@@ -6,3 +6,8 @@ node_modules
 test-ledger
 .yarn
 .surfpool
+.cursor
+.claude
+graphify-out
+clients/js/dist
+clients/js/node_modules

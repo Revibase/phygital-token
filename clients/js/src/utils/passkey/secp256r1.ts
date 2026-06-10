@@ -1,0 +1,81 @@
+import {
+  getAddressEncoder,
+  getUtf8Encoder,
+  type Address,
+  type Instruction,
+} from "@solana/kit";
+import { SECP256R1_PROGRAM_ADDRESS } from "../consts";
+import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify";
+import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
+import { buildSecp256r1VerifyInputFromWebAuthn } from ".";
+
+async function sha256(data: Uint8Array): Promise<Uint8Array> {
+  const copy = new Uint8Array(data);
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", copy));
+}
+
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
+function encodeAddress(addressValue: Address): Uint8Array {
+  return new Uint8Array(getAddressEncoder().encode(addressValue));
+}
+
+export async function buildTransferChallenge(input: {
+  tokenProgram: Address;
+  mint: Address;
+  sender: Address;
+  recipient: Address;
+  slotHash: Uint8Array;
+}): Promise<Uint8Array> {
+  const messageHash = await sha256(
+    concatBytes(
+      encodeAddress(input.mint),
+      encodeAddress(input.sender),
+      encodeAddress(input.recipient),
+    ),
+  );
+
+  return sha256(
+    concatBytes(
+      new Uint8Array(getUtf8Encoder().encode("transfer")),
+      encodeAddress(input.tokenProgram),
+      messageHash,
+      new Uint8Array(input.slotHash),
+    ),
+  );
+}
+
+export type WebAuthnSecp256r1Verification = {
+  secp256r1Verify: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
+  originIndex: number;
+  crossOrigin: boolean;
+  truncatedClientDataJson: Uint8Array;
+};
+
+export async function buildSecp256r1VerifyInstructionFromWebAuthn(input: {
+  domainConfig: Address;
+  response: AuthenticationResponseJSON;
+  compressedPubkey: Uint8Array;
+}): Promise<WebAuthnSecp256r1Verification> {
+  const parsed = buildSecp256r1VerifyInputFromWebAuthn({
+    response: input.response,
+    compressedPubkey: input.compressedPubkey,
+  });
+ 
+
+  return {
+    secp256r1Verify: getSecp256r1VerifyInstruction(parsed.verifyInput),
+    originIndex: 0,
+    crossOrigin: parsed.crossOrigin,
+    truncatedClientDataJson: parsed.truncatedClientDataJson,
+  };
+}

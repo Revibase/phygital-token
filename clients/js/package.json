@@ -1,0 +1,37 @@
+{
+  "name": "phygital-nfts-client",
+  "version": "0.1.0",
+  "description": "TypeScript client for the Phygital NFTs Solana program (generated via Codama)",
+  "license": "ISC",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src/generated"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "yarn build"
+  },
+  "peerDependencies": {
+    "@solana/kit": "^6.4.0"
+  },
+  "devDependencies": {
+    "@solana/kit": "^6.4.0",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@solana/program-client-core": "^6.4.0"
+  }
+}

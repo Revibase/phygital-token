@@ -1,0 +1,21 @@
+{
+  "idl": "idl/phygital_nfts.json",
+  "before": [],
+  "scripts": {
+    "js": {
+      "from": "@codama/renderers-js",
+      "args": [
+        "clients/js",
+        {
+          "formatCode": true,
+          "syncPackageJson": true,
+          "kitImportStrategy": "preferRoot",
+          "dependencyVersions": {
+            "@solana/kit": "^6.4.0",
+            "@solana/program-client-core": "^6.4.0"
+          }
+        }
+      ]
+    }
+  }
+}
