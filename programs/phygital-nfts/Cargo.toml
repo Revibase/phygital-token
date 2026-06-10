@@ -10,6 +10,7 @@ name = "phygital_nfts"
 
 [features]
 default = []
+mainnet = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []

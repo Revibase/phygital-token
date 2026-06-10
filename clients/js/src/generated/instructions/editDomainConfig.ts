@@ -64,6 +64,7 @@ export type EditDomainConfigInstruction<
   TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
   TAccountDomainConfig extends string | AccountMeta<string> = string,
   TAccountAuthority extends string | AccountMeta<string> = string,
+  TAccountNewAuthority extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -76,6 +77,10 @@ export type EditDomainConfigInstruction<
         ? ReadonlySignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
+      TAccountNewAuthority extends string
+        ? ReadonlySignerAccount<TAccountNewAuthority> &
+            AccountSignerMeta<TAccountNewAuthority>
+        : TAccountNewAuthority,
       ...TRemainingAccounts,
     ]
   >;
@@ -137,9 +142,11 @@ export function getEditDomainConfigInstructionDataCodec(): Codec<
 export type EditDomainConfigInput<
   TAccountDomainConfig extends string = string,
   TAccountAuthority extends string = string,
+  TAccountNewAuthority extends string = string,
 > = {
   domainConfig: Address<TAccountDomainConfig>;
   authority: TransactionSigner<TAccountAuthority>;
+  newAuthority?: TransactionSigner<TAccountNewAuthority>;
   newOrigins: EditDomainConfigInstructionDataArgs["newOrigins"];
   newRoyaltyBps: EditDomainConfigInstructionDataArgs["newRoyaltyBps"];
 };
@@ -147,14 +154,20 @@ export type EditDomainConfigInput<
 export function getEditDomainConfigInstruction<
   TAccountDomainConfig extends string,
   TAccountAuthority extends string,
+  TAccountNewAuthority extends string,
   TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
 >(
-  input: EditDomainConfigInput<TAccountDomainConfig, TAccountAuthority>,
+  input: EditDomainConfigInput<
+    TAccountDomainConfig,
+    TAccountAuthority,
+    TAccountNewAuthority
+  >,
   config?: { programAddress?: TProgramAddress },
 ): EditDomainConfigInstruction<
   TProgramAddress,
   TAccountDomainConfig,
-  TAccountAuthority
+  TAccountAuthority,
+  TAccountNewAuthority
 > {
   // Program address.
   const programAddress =
@@ -164,6 +177,7 @@ export function getEditDomainConfigInstruction<
   const originalAccounts = {
     domainConfig: { value: input.domainConfig ?? null, isWritable: true },
     authority: { value: input.authority ?? null, isWritable: false },
+    newAuthority: { value: input.newAuthority ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -178,6 +192,7 @@ export function getEditDomainConfigInstruction<
     accounts: [
       getAccountMeta("domainConfig", accounts.domainConfig),
       getAccountMeta("authority", accounts.authority),
+      getAccountMeta("newAuthority", accounts.newAuthority),
     ],
     data: getEditDomainConfigInstructionDataEncoder().encode(
       args as EditDomainConfigInstructionDataArgs,
@@ -186,7 +201,8 @@ export function getEditDomainConfigInstruction<
   } as EditDomainConfigInstruction<
     TProgramAddress,
     TAccountDomainConfig,
-    TAccountAuthority
+    TAccountAuthority,
+    TAccountNewAuthority
   >);
 }
 
@@ -198,6 +214,7 @@ export type ParsedEditDomainConfigInstruction<
   accounts: {
     domainConfig: TAccountMetas[0];
     authority: TAccountMetas[1];
+    newAuthority?: TAccountMetas[2] | undefined;
   };
   data: EditDomainConfigInstructionData;
 };
@@ -210,12 +227,12 @@ export function parseEditDomainConfigInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedEditDomainConfigInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 2) {
+  if (instruction.accounts.length < 3) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 2,
+        expectedAccountMetas: 3,
       },
     );
   }
@@ -225,9 +242,19 @@ export function parseEditDomainConfigInstruction<
     accountIndex += 1;
     return accountMeta;
   };
+  const getNextOptionalAccount = () => {
+    const accountMeta = getNextAccount();
+    return accountMeta.address === PHYGITAL_NFTS_PROGRAM_ADDRESS
+      ? undefined
+      : accountMeta;
+  };
   return {
     programAddress: instruction.programAddress,
-    accounts: { domainConfig: getNextAccount(), authority: getNextAccount() },
+    accounts: {
+      domainConfig: getNextAccount(),
+      authority: getNextAccount(),
+      newAuthority: getNextOptionalAccount(),
+    },
     data: getEditDomainConfigInstructionDataDecoder().decode(instruction.data),
   };
 }

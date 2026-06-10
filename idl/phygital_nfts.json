@@ -282,6 +282,11 @@
         {
           "name": "authority",
           "signer": true
+        },
+        {
+          "name": "new_authority",
+          "signer": true,
+          "optional": true
         }
       ],
       "args": [
@@ -759,6 +764,11 @@
       "code": 6031,
       "name": "DomainConfigKeyMismatch",
       "msg": "Domain config account does not match collection metadata"
+    },
+    {
+      "code": 6032,
+      "name": "AuthorityMismatch",
+      "msg": "Authority does not match"
     }
   ],
   "types": [

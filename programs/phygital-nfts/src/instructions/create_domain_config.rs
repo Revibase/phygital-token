@@ -38,6 +38,12 @@ pub struct CreateDomainConfig<'info> {
 }
 
 pub fn handler(ctx: Context<CreateDomainConfig>, args: CreateDomainConfigArgs) -> Result<()> {
+    #[cfg(feature ="mainnet")]
+    require!(
+        ctx.accounts.payer.key().eq(&crate::ADMIN),
+        TokenProgramError::AuthorityMismatch
+    );
+
     require!(
         args.royalty_bps <= 10_000,
         TokenProgramError::InvalidRoyaltyBps

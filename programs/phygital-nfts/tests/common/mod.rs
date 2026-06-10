@@ -233,6 +233,7 @@ impl TestContext {
             accounts: phygital_nfts::accounts::EditDomainConfig {
                 domain_config: self.domain_config_pda(rp_id),
                 authority,
+                new_authority: None
             }
             .to_account_metas(None),
             data: phygital_nfts::instruction::EditDomainConfig { args }.data(),

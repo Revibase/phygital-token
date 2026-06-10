@@ -97,4 +97,7 @@ pub enum TokenProgramError {
 
     #[msg("Domain config account does not match collection metadata")]
     DomainConfigKeyMismatch,
+
+    #[msg("Authority does not match")]
+    AuthorityMismatch,
 }

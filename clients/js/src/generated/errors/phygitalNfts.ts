@@ -78,9 +78,12 @@ export const PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED = 0x178d; // 6029
 export const PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_IS_MISSING = 0x178e; // 6030
 /** DomainConfigKeyMismatch: Domain config account does not match collection metadata */
 export const PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_KEY_MISMATCH = 0x178f; // 6031
+/** AuthorityMismatch: Authority does not match */
+export const PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH = 0x1790; // 6032
 
 export type PhygitalNftsError =
   | typeof PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW
+  | typeof PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_IS_MISSING
   | typeof PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_KEY_MISMATCH
@@ -117,6 +120,7 @@ let phygitalNftsErrorMessages: Record<PhygitalNftsError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
   phygitalNftsErrorMessages = {
     [PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW]: `Arithmetic overflow`,
+    [PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH]: `Authority does not match`,
     [PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
     [PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_IS_MISSING]: `Domain config account is missing`,
     [PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_KEY_MISMATCH]: `Domain config account does not match collection metadata`,

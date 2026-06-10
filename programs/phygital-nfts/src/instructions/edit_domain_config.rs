@@ -15,6 +15,8 @@ pub struct EditDomainConfig<'info> {
     pub domain_config: Account<'info, DomainConfig>,
 
     pub authority: Signer<'info>,
+
+    pub new_authority: Option<Signer<'info>>
 }
 
 pub fn handler(ctx: Context<EditDomainConfig>, args: EditDomainConfigArgs) -> Result<()> {
@@ -24,6 +26,10 @@ pub fn handler(ctx: Context<EditDomainConfig>, args: EditDomainConfigArgs) -> Re
         domain_config.authority == ctx.accounts.authority.key(),
         TokenProgramError::OwnerMismatch
     );
+
+    if let Some(new_authority) = &ctx.accounts.new_authority {
+        domain_config.authority = new_authority.key();
+    }
 
     if let Some(new_origins) = args.new_origins {
         domain_config.write_origins(&new_origins)?;
