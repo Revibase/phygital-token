@@ -171,24 +171,22 @@ export async function findAssociatedTokenAddress(
   });
   return ata;
 }
-export async function authenticateTransferPasskey(input: {
-  challenge: Uint8Array;
-  secp256r1Pubkey: Uint8Array;
-}): Promise<AuthenticationResponseJSON> {
+export async function authenticateTransferPasskey(
+  challenge: Uint8Array,
+  credentialId: string | null = null,
+): Promise<AuthenticationResponseJSON> {
   return startAuthentication({
     optionsJSON: {
       challenge: bufferToBase64URLString(
-        new Uint8Array(input.challenge).buffer as ArrayBuffer,
+        new Uint8Array(challenge).buffer as ArrayBuffer,
       ),
       rpId: RP_ID,
       userVerification: "preferred",
       allowCredentials: [
         {
-          id: bufferToBase64URLString(
-            new Uint8Array(input.secp256r1Pubkey).buffer as ArrayBuffer,
-          ),
+          id: credentialId ?? "",
           type: "public-key",
-          transports: ["nfc", "usb", "ble", "internal"],
+          transports: ["nfc"],
         },
       ],
     },

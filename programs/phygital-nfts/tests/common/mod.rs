@@ -58,8 +58,8 @@ impl TestContext {
             &mut svm,
             program_id,
             &[
-                manifest_dir.join("../../target/sbpf-solana-solana/release/phygital_nfts.so"),
                 manifest_dir.join("../../target/deploy/phygital_nfts.so"),
+                manifest_dir.join("../../target/sbpf-solana-solana/release/phygital_nfts.so"),
                 manifest_dir.join("../../target/sbpf-solana-solana/release/deps/phygital_nfts.so"),
             ],
             "phygital_nfts",
@@ -68,8 +68,8 @@ impl TestContext {
             &mut svm,
             transfer_hook_program_id,
             &[
-                manifest_dir.join("../../target/sbpf-solana-solana/release/phygital_nfts_hook.so"),
                 manifest_dir.join("../../target/deploy/phygital_nfts_hook.so"),
+                manifest_dir.join("../../target/sbpf-solana-solana/release/phygital_nfts_hook.so"),
                 manifest_dir
                     .join("../../target/sbpf-solana-solana/release/deps/phygital_nfts_hook.so"),
             ],
@@ -451,7 +451,6 @@ impl TestContext {
             TOKEN_2022_ID,
             nft.token_mint.pubkey(),
             sender,
-            recipient.pubkey(),
             slot_number,
             slot_hash,
             transfer_terms,

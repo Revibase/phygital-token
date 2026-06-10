@@ -11,3 +11,7 @@ test-ledger
 graphify-out
 clients/js/dist
 clients/js/node_modules
+app/node_modules
+app/.svelte-kit
+app/build
+app/.wrangler

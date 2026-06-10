@@ -1,0 +1,33 @@
+{
+  "name": "phygital-nfts-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "deploy": "npm run build && wrangler pages deploy .svelte-kit/cloudflare"
+  },
+  "dependencies": {
+    "@solana-mobile/wallet-standard-mobile": "^0.5.0",
+    "@solana/kit": "^6.4.0",
+    "@solana/wallet-account-signer": "^6.4.0",
+    "@wallet-standard/app": "^1.1.0",
+    "@wallet-standard/base": "^1.1.0",
+    "phygital-nfts-client": "file:../clients/js"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@sveltejs/adapter-cloudflare": "^7.0.0",
+    "@sveltejs/kit": "^2.16.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "buffer": "^6.0.3",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.0",
+    "wrangler": "^4.0.0"
+  }
+}

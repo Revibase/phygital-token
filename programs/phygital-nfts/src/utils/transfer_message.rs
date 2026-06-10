@@ -33,13 +33,11 @@ pub fn read_transfer_terms(token_mint: &AccountInfo) -> Result<TransferTerms> {
 pub fn build_transfer_message_hash(
     token_mint: &Pubkey,
     sender: &Pubkey,
-    recipient: &Pubkey,
     terms: &TransferTerms,
 ) -> [u8; 32] {
     let mut buffer = Vec::with_capacity(128);
     buffer.extend_from_slice(token_mint.as_ref());
     buffer.extend_from_slice(sender.as_ref());
-    buffer.extend_from_slice(recipient.as_ref());
     buffer.extend_from_slice(&terms.price.to_le_bytes());
     buffer.extend_from_slice(terms.payment_token_mint.as_ref());
     buffer.extend_from_slice(terms.allowed_recipient.as_ref());

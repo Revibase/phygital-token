@@ -50,17 +50,11 @@ impl TestPasskey {
         token_program: Pubkey,
         token_mint: Pubkey,
         sender: Pubkey,
-        recipient: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
         transfer_terms: TransferTerms,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(
-            &token_mint,
-            &sender,
-            &recipient,
-            &transfer_terms,
-        );
+        let message_hash = build_transfer_message_hash(&token_mint, &sender, &transfer_terms);
 
         let mut challenge_buffer = Vec::new();
         challenge_buffer.extend_from_slice(TransferActionType::Transfer.to_bytes());

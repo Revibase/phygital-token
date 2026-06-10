@@ -52,14 +52,12 @@ function encodeOptionalPubkey(value: Address | null): Uint8Array {
 export async function buildTransferMessageHash(input: {
   mint: Address;
   sender: Address;
-  recipient: Address;
   transferTerms: TransferTermsInput;
 }): Promise<Uint8Array> {
   return sha256(
     concatBytes(
       encodeAddress(input.mint),
       encodeAddress(input.sender),
-      encodeAddress(input.recipient),
       encodeU64LE(input.transferTerms.transferPrice),
       encodeOptionalPubkey(input.transferTerms.paymentTokenMint),
       encodeOptionalPubkey(input.transferTerms.allowedRecipient),
@@ -71,14 +69,12 @@ export async function buildTransferChallenge(input: {
   tokenProgram: Address;
   mint: Address;
   sender: Address;
-  recipient: Address;
   slotHash: Uint8Array;
   transferTerms: TransferTermsInput;
 }): Promise<Uint8Array> {
   const messageHash = await buildTransferMessageHash({
     mint: input.mint,
     sender: input.sender,
-    recipient: input.recipient,
     transferTerms: input.transferTerms,
   });
 

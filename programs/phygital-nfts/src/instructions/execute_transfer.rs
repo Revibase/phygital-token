@@ -182,7 +182,6 @@ pub fn handler(
     let message_hash = build_transfer_message_hash(
         &ctx.accounts.token_mint.key(),
         &ctx.accounts.sender.key(),
-        &ctx.accounts.recipient.key(),
         &transfer_terms,
     );
 

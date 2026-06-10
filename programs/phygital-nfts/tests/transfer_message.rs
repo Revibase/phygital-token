@@ -17,10 +17,23 @@ fn transfer_message_hash_changes_when_price_changes() {
         ..free_terms
     };
 
-    let free_hash = build_transfer_message_hash(&mint, &sender, &recipient, &free_terms);
-    let paid_hash = build_transfer_message_hash(&mint, &sender, &recipient, &paid_terms);
+    let free_hash = build_transfer_message_hash(&mint, &sender, &free_terms);
+    let paid_hash = build_transfer_message_hash(&mint, &sender, &paid_terms);
 
     assert_ne!(free_hash, paid_hash);
+}
+
+#[test]
+fn transfer_message_hash_changes_when_sender_changes() {
+    let mint = Keypair::new().pubkey();
+    let sender_a = Keypair::new().pubkey();
+    let sender_b = Keypair::new().pubkey();
+    let terms = sample_transfer_terms();
+
+    let hash_a = build_transfer_message_hash(&mint, &sender_a, &terms);
+    let hash_b = build_transfer_message_hash(&mint, &sender_b, &terms);
+
+    assert_ne!(hash_a, hash_b);
 }
 
 #[test]
