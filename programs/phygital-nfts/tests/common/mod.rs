@@ -15,6 +15,7 @@ use phygital_nfts::{
     CreateDomainConfigArgs, CreateGroupTokenArgs, CreateTokenArgs, EditDomainConfigArgs,
     Secp256r1Pubkey, Secp256r1VerifyArgs, SetTransferConfigArgs,
 };
+use phygital_nfts::utils::TransferTerms;
 use sha2::{Digest, Sha256};
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
@@ -425,6 +426,7 @@ impl TestContext {
             include_secp_ix,
             None,
             None,
+            None,
         )
     }
 
@@ -436,11 +438,14 @@ impl TestContext {
         include_secp_ix: bool,
         slot_number: Option<u64>,
         slot_hash: Option<[u8; 32]>,
+        transfer_terms: Option<TransferTerms>,
     ) -> litesvm::types::TransactionResult {
         let (slot_number, slot_hash) = match (slot_number, slot_hash) {
             (Some(slot), Some(hash)) => (slot, hash),
             _ => current_slot_entry(&self.svm),
         };
+
+        let transfer_terms = transfer_terms.unwrap_or_else(sample_transfer_terms);
 
         let (secp_ix, verify_args) = nft.passkey.secp256r1_verify_instruction(
             TOKEN_2022_ID,
@@ -449,6 +454,7 @@ impl TestContext {
             recipient.pubkey(),
             slot_number,
             slot_hash,
+            transfer_terms,
         );
 
         let transfer_ix = self.execute_transfer_ix(
@@ -582,6 +588,14 @@ impl TestContext {
     }
 }
 
+pub fn sample_transfer_terms() -> TransferTerms {
+    TransferTerms {
+        price: 0,
+        payment_token_mint: Pubkey::default(),
+        allowed_recipient: Pubkey::default(),
+    }
+}
+
 pub fn sample_create_domain_config_args() -> CreateDomainConfigArgs {
     let rp_id_hash: [u8; 32] = Sha256::digest(TEST_RP_ID.as_bytes()).into();
     CreateDomainConfigArgs {
@@ -597,7 +611,7 @@ pub fn sample_create_group_args() -> CreateGroupTokenArgs {
         name: "Test Collection".to_string(),
         symbol: "TCOL".to_string(),
         uri: "https://example.com/collection.json".to_string(),
-        royalty_bps: 500,
+        royalty_bps: Some(500),
         max_size: 100,
     }
 }

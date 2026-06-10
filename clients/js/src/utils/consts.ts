@@ -34,6 +34,10 @@ export const METADATA_KEY_SECP256R1 = "s";
 export const METADATA_KEY_TRANSFER_PRICE = "p";
 export const METADATA_KEY_PAYMENT_TOKEN_MINT = "m";
 export const METADATA_KEY_PAYMENT_TOKEN_PROGRAM = "tp";
+export const METADATA_KEY_ALLOWED_RECIPIENT = "a";
+export const METADATA_KEY_ROYALTY_BPS = "rb";
+
+export const DEFAULT_PUBKEY_BYTES = new Uint8Array(32);
 
 export const TOKEN_GROUP_MEMBER_EXTENSION_TYPE = 108;
 export const TOKEN_METADATA_EXTENSION_TYPE = 19;

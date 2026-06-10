@@ -23,7 +23,8 @@ pub struct CreateGroupTokenArgs {
     pub name: String,
     pub symbol: String,
     pub uri: String,
-    pub royalty_bps: u16,
+    /// Optional secondary-sale royalty in basis points (0–10_000).
+    pub royalty_bps: Option<u16>,
     /// Maximum number of NFTs that can join this collection.
     pub max_size: u64,
 }
@@ -57,10 +58,12 @@ pub struct CreateGroupToken<'info> {
 }
 
 pub fn handler(ctx: Context<CreateGroupToken>, args: CreateGroupTokenArgs) -> Result<()> {
-    require!(
-        args.royalty_bps <= 10_000,
-        TokenProgramError::InvalidRoyaltyBps
-    );
+    if let Some(royalty_bps) = args.royalty_bps {
+        require!(
+            royalty_bps <= 10_000,
+            TokenProgramError::InvalidRoyaltyBps
+        );
+    }
     validate_metadata_strings(&args.name, &args.symbol, &args.uri)?;
 
     let group_mint_key = ctx.accounts.group_mint.key();
@@ -80,10 +83,12 @@ pub fn handler(ctx: Context<CreateGroupToken>, args: CreateGroupTokenArgs) -> Re
         ROYALTY_OWNER_METADATA_KEY.to_string(),
         ctx.accounts.owner.key().to_string(),
     ));
-    metadata.additional_metadata.push((
-        ROYALTY_BPS_METADATA_KEY.to_string(),
-        args.royalty_bps.to_string(),
-    ));
+    if let Some(royalty_bps) = args.royalty_bps {
+        metadata.additional_metadata.push((
+            ROYALTY_BPS_METADATA_KEY.to_string(),
+            royalty_bps.to_string(),
+        ));
+    }
     let metadata_size = metadata.tlv_size_of().unwrap();
 
     let layout = collection_mint_layout(metadata_size)?;
@@ -196,18 +201,20 @@ pub fn handler(ctx: Context<CreateGroupToken>, args: CreateGroupTokenArgs) -> Re
         ctx.accounts.owner.key().to_string(),
     )?;
 
-    token_metadata_update_field(
-        CpiContext::new(
-            token_program_id,
-            TokenMetadataUpdateField {
-                program_id: token_program.clone(),
-                metadata: mint,
-                update_authority: ctx.accounts.owner.to_account_info(),
-            },
-        ),
-        Field::Key(ROYALTY_BPS_METADATA_KEY.to_string()),
-        args.royalty_bps.to_string(),
-    )?;
+    if let Some(royalty_bps) = args.royalty_bps {
+        token_metadata_update_field(
+            CpiContext::new(
+                token_program_id,
+                TokenMetadataUpdateField {
+                    program_id: token_program.clone(),
+                    metadata: mint,
+                    update_authority: ctx.accounts.owner.to_account_info(),
+                },
+            ),
+            Field::Key(ROYALTY_BPS_METADATA_KEY.to_string()),
+            royalty_bps.to_string(),
+        )?;
+    }
 
     Ok(())
 }

@@ -4,7 +4,7 @@ import {
   type Address,
   type Instruction,
 } from "@solana/kit";
-import { SECP256R1_PROGRAM_ADDRESS } from "../consts";
+import { DEFAULT_PUBKEY_BYTES, SECP256R1_PROGRAM_ADDRESS } from "../consts";
 import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { buildSecp256r1VerifyInputFromWebAuthn } from ".";
@@ -29,20 +29,58 @@ function encodeAddress(addressValue: Address): Uint8Array {
   return new Uint8Array(getAddressEncoder().encode(addressValue));
 }
 
+export type TransferTermsInput = {
+  transferPrice: bigint;
+  paymentTokenMint: Address | null;
+  allowedRecipient: Address | null;
+};
+
+function encodeU64LE(value: bigint): Uint8Array {
+  const bytes = new Uint8Array(8);
+  let current = value;
+  for (let i = 0; i < 8; i += 1) {
+    bytes[i] = Number(current & 0xffn);
+    current >>= 8n;
+  }
+  return bytes;
+}
+
+function encodeOptionalPubkey(value: Address | null): Uint8Array {
+  return value ? encodeAddress(value) : new Uint8Array(DEFAULT_PUBKEY_BYTES);
+}
+
+export async function buildTransferMessageHash(input: {
+  mint: Address;
+  sender: Address;
+  recipient: Address;
+  transferTerms: TransferTermsInput;
+}): Promise<Uint8Array> {
+  return sha256(
+    concatBytes(
+      encodeAddress(input.mint),
+      encodeAddress(input.sender),
+      encodeAddress(input.recipient),
+      encodeU64LE(input.transferTerms.transferPrice),
+      encodeOptionalPubkey(input.transferTerms.paymentTokenMint),
+      encodeOptionalPubkey(input.transferTerms.allowedRecipient),
+    ),
+  );
+}
+
 export async function buildTransferChallenge(input: {
   tokenProgram: Address;
   mint: Address;
   sender: Address;
   recipient: Address;
   slotHash: Uint8Array;
+  transferTerms: TransferTermsInput;
 }): Promise<Uint8Array> {
-  const messageHash = await sha256(
-    concatBytes(
-      encodeAddress(input.mint),
-      encodeAddress(input.sender),
-      encodeAddress(input.recipient),
-    ),
-  );
+  const messageHash = await buildTransferMessageHash({
+    mint: input.mint,
+    sender: input.sender,
+    recipient: input.recipient,
+    transferTerms: input.transferTerms,
+  });
 
   return sha256(
     concatBytes(

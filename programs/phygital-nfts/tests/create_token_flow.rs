@@ -87,6 +87,47 @@ fn create_group_token_initializes_collection_mint() {
 }
 
 #[test]
+fn create_group_token_without_royalty_omits_royalty_bps_metadata() {
+    let mut ctx = TestContext::new();
+    let owner = Keypair::new();
+    let group_mint = Keypair::new();
+
+    ctx.svm
+        .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
+        .unwrap();
+
+    let mut args = sample_create_group_args();
+    args.royalty_bps = None;
+
+    TestContext::create_collection(
+        &mut ctx.svm,
+        ctx.program_id,
+        &ctx.payer,
+        &owner,
+        &group_mint,
+        args,
+        sample_create_domain_config_args(),
+    );
+
+    let mint_account = ctx
+        .svm
+        .get_account(&group_mint.pubkey())
+        .expect("collection mint");
+    let mint_state =
+        StateWithExtensions::<SplMint>::unpack(&mint_account.data).expect("unpack mint");
+    let metadata = mint_state
+        .get_variable_len_extension::<TokenMetadata>()
+        .expect("token metadata");
+    assert!(
+        metadata
+            .additional_metadata
+            .iter()
+            .all(|(key, _)| key != ROYALTY_BPS_METADATA_KEY),
+        "royalty bps metadata should be omitted when royalties are not configured"
+    );
+}
+
+#[test]
 fn create_group_token_rejects_invalid_royalty_bps() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
@@ -105,7 +146,7 @@ fn create_group_token_rejects_invalid_royalty_bps() {
         .expect("create domain config");
 
     let mut args = sample_create_group_args();
-    args.royalty_bps = 10_001;
+    args.royalty_bps = Some(10_001);
 
     let ix = ctx.create_group_token_ix(
         ctx.payer.pubkey(),

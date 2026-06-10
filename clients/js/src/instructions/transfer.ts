@@ -27,6 +27,7 @@ export type TransferInput = {
  */
 export async function transfer(input: TransferInput): Promise<Instruction[]> {
   const currentOwner = await getCurrentOwner(input.rpc, input.mint);
+  const mintContext = await resolveTransferMintContext(input.rpc, input.mint);
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
@@ -34,9 +35,12 @@ export async function transfer(input: TransferInput): Promise<Instruction[]> {
     sender: currentOwner,
     recipient: input.recipient.address,
     slotHash,
+    transferTerms: {
+      transferPrice: mintContext.transferPrice,
+      paymentTokenMint: mintContext.paymentTokenMint,
+      allowedRecipient: mintContext.allowedRecipient,
+    },
   });
-
-  const mintContext = await resolveTransferMintContext(input.rpc, input.mint);
   const webauthnResponse = await authenticateTransferPasskey({
     challenge,
     secp256r1Pubkey: mintContext.secp256r1Pubkey,

@@ -239,8 +239,18 @@ pub fn get_royalty_owner(mint: &AccountInfo) -> Result<Pubkey> {
 
 pub fn get_royalty_bps(mint: &AccountInfo) -> Result<u16> {
     let metadata = get_token_metadata(mint)?;
-    let value = get_metadata_field(&metadata, ROYALTY_BPS_METADATA_KEY)
-        .or_else(|_| get_metadata_field(&metadata, "royalty_bps"))?;
+    let value = get_metadata_field_optional(&metadata, ROYALTY_BPS_METADATA_KEY);
+    if value.is_empty() {
+        let legacy = get_metadata_field_optional(&metadata, "royalty_bps");
+        if legacy.is_empty() {
+            return Ok(0);
+        }
+        return parse_royalty_bps(&legacy);
+    }
+    parse_royalty_bps(&value)
+}
+
+fn parse_royalty_bps(value: &str) -> Result<u16> {
     let royalty_bps: u16 = value
         .parse()
         .map_err(|_| error!(TokenProgramError::InvalidRoyaltyBps))?;
@@ -293,7 +303,7 @@ pub fn get_last_transfer_slot(mint: &AccountInfo) -> Result<u64> {
     let metadata = get_token_metadata(mint)?;
     let value = get_metadata_field_optional(&metadata, LAST_TRANSFER_SLOT_METADATA_KEY);
     if value.is_empty() {
-        return Ok(0);
+        return Ok(LAST_TRANSFER_SLOT_NONE);
     }
     value
         .parse()

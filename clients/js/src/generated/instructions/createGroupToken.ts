@@ -14,6 +14,8 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU16Decoder,
@@ -36,6 +38,8 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
+  type Option,
+  type OptionOrNullable,
   type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
@@ -107,7 +111,8 @@ export type CreateGroupTokenInstructionData = {
   name: string;
   symbol: string;
   uri: string;
-  royaltyBps: number;
+  /** Optional secondary-sale royalty in basis points (0–10_000). */
+  royaltyBps: Option<number>;
   /** Maximum number of NFTs that can join this collection. */
   maxSize: bigint;
 };
@@ -116,7 +121,8 @@ export type CreateGroupTokenInstructionDataArgs = {
   name: string;
   symbol: string;
   uri: string;
-  royaltyBps: number;
+  /** Optional secondary-sale royalty in basis points (0–10_000). */
+  royaltyBps: OptionOrNullable<number>;
   /** Maximum number of NFTs that can join this collection. */
   maxSize: number | bigint;
 };
@@ -128,7 +134,7 @@ export function getCreateGroupTokenInstructionDataEncoder(): Encoder<CreateGroup
       ["name", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["symbol", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["uri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["royaltyBps", getU16Encoder()],
+      ["royaltyBps", getOptionEncoder(getU16Encoder())],
       ["maxSize", getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: CREATE_GROUP_TOKEN_DISCRIMINATOR }),
@@ -141,7 +147,7 @@ export function getCreateGroupTokenInstructionDataDecoder(): Decoder<CreateGroup
     ["name", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["symbol", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["uri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["royaltyBps", getU16Decoder()],
+    ["royaltyBps", getOptionDecoder(getU16Decoder())],
     ["maxSize", getU64Decoder()],
   ]);
 }

@@ -263,6 +263,19 @@ pub fn handler(ctx: Context<CreateToken>, args: CreateTokenArgs) -> Result<()> {
     )?;
 
     set_authority(
+        CpiContext::new_with_signer(
+            token_program_id,
+            SetAuthority {
+                account_or_mint: mint.clone(),
+                current_authority: ctx.accounts.program_authority.to_account_info(),
+            },
+            signer_seeds,
+        ),
+        AuthorityType::MintTokens,
+        None,
+    )?;
+
+    set_authority(
         CpiContext::new(
             token_program_id,
             SetAuthority {

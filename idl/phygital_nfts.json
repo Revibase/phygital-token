@@ -769,6 +769,11 @@
       "code": 6032,
       "name": "AuthorityMismatch",
       "msg": "Authority does not match"
+    },
+    {
+      "code": 6033,
+      "name": "InvalidPaymentTokenAccount",
+      "msg": "Payment token account must be the canonical ATA for the expected owner"
     }
   ],
   "types": [
@@ -834,7 +839,12 @@
           },
           {
             "name": "royalty_bps",
-            "type": "u16"
+            "docs": [
+              "Optional secondary-sale royalty in basis points (0–10_000)."
+            ],
+            "type": {
+              "option": "u16"
+            }
           },
           {
             "name": "max_size",

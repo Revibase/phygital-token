@@ -14,7 +14,6 @@ use anchor_spl::token_2022_extensions::{token_metadata_update_field, TokenMetada
 use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
-use sha2::{Digest, Sha256};
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 use spl_token_metadata_interface::state::Field;
@@ -23,11 +22,11 @@ use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
 use crate::error::TokenProgramError;
 use crate::state::DomainConfig;
 use crate::utils::{
-    encode_last_transfer_slot, get_allowed_recipient, get_domain_config, get_group_mint,
-    get_last_transfer_slot, get_payment_token_mint, get_payment_token_program, get_royalty_bps,
-    get_royalty_owner,
-    get_secp256r1_pubkey, get_transfer_price, ChallengeArgs, Secp256r1VerifyArgs,
-    TransferActionType, LAST_TRANSFER_SLOT_METADATA_KEY, LAST_TRANSFER_SLOT_NONE,
+    build_transfer_message_hash, encode_last_transfer_slot, get_allowed_recipient, get_domain_config,
+    get_group_mint, get_last_transfer_slot, get_payment_token_program, get_royalty_bps,
+    get_royalty_owner, get_secp256r1_pubkey, read_transfer_terms,
+    ChallengeArgs, Secp256r1VerifyArgs, TransferActionType, LAST_TRANSFER_SLOT_METADATA_KEY,
+    LAST_TRANSFER_SLOT_NONE,
 };
 
 #[derive(Accounts)]
@@ -179,11 +178,13 @@ pub fn handler(
         );
     }
 
-    let mut message_buffer = Vec::with_capacity(96);
-    message_buffer.extend_from_slice(ctx.accounts.token_mint.key().as_ref());
-    message_buffer.extend_from_slice(ctx.accounts.sender.key().as_ref());
-    message_buffer.extend_from_slice(ctx.accounts.recipient.key().as_ref());
-    let message_hash: [u8; 32] = Sha256::digest(&message_buffer).into();
+    let transfer_terms = read_transfer_terms(&ctx.accounts.token_mint.to_account_info())?;
+    let message_hash = build_transfer_message_hash(
+        &ctx.accounts.token_mint.key(),
+        &ctx.accounts.sender.key(),
+        &ctx.accounts.recipient.key(),
+        &transfer_terms,
+    );
 
     secp256r1_verify_args.verify_webauthn(
         &ctx.accounts.slot_hashes,
@@ -204,8 +205,8 @@ pub fn handler(
         TokenProgramError::Secp256r1PubkeyMismatch
     );
 
-    if get_transfer_price(&ctx.accounts.token_mint.to_account_info())? > 0 {
-        process_payment(&ctx)?;
+    if transfer_terms.price > 0 {
+        process_payment(&ctx, &transfer_terms)?;
     }
 
     {
@@ -309,9 +310,41 @@ pub fn handler(
     Ok(())
 }
 
-fn process_payment(ctx: &Context<ExecuteTransfer>) -> Result<()> {
-    let price = get_transfer_price(&ctx.accounts.token_mint.to_account_info())?;
-    let group_royalty_bps = get_royalty_bps(&ctx.accounts.group_mint.to_account_info())? as u64;
+fn validate_payment_token_account(
+    account: &InterfaceAccount<TokenAccount>,
+    expected_owner: &Pubkey,
+    payment_mint: &Pubkey,
+    payment_token_program: &Pubkey,
+) -> Result<()> {
+    require!(
+        account.owner == *expected_owner,
+        TokenProgramError::OwnerMismatch
+    );
+    require!(
+        account.mint == *payment_mint,
+        TokenProgramError::PaymentTokenMintMismatch
+    );
+
+    let expected_ata = associated_token::get_associated_token_address_with_program_id(
+        expected_owner,
+        payment_mint,
+        payment_token_program,
+    );
+    require!(
+        account.key() == expected_ata,
+        TokenProgramError::InvalidPaymentTokenAccount
+    );
+
+    Ok(())
+}
+
+fn process_payment(
+    ctx: &Context<ExecuteTransfer>,
+    transfer_terms: &crate::utils::TransferTerms,
+) -> Result<()> {
+    let price = transfer_terms.price;
+    let group_royalty_bps =
+        get_royalty_bps(&ctx.accounts.group_mint.to_account_info())? as u64;
     let domain_royalty_bps = ctx.accounts.domain_config.royalty_bps as u64;
 
     let group_royalty_amount = price
@@ -331,8 +364,10 @@ fn process_payment(ctx: &Context<ExecuteTransfer>) -> Result<()> {
         .checked_sub(group_royalty_amount)
         .ok_or(TokenProgramError::ArithmeticOverflow)?;
 
-    let expected_payment_mint = get_payment_token_mint(&ctx.accounts.token_mint.to_account_info())?
-        .ok_or(TokenProgramError::PaymentTokenMintRequired)?;
+    require!(
+        transfer_terms.payment_token_mint != Pubkey::default(),
+        TokenProgramError::PaymentTokenMintRequired
+    );
 
     let payment_mint = ctx
         .accounts
@@ -340,14 +375,15 @@ fn process_payment(ctx: &Context<ExecuteTransfer>) -> Result<()> {
         .as_ref()
         .ok_or(TokenProgramError::PaymentTokenMintMismatch)?;
     require!(
-        payment_mint.key() == expected_payment_mint,
+        payment_mint.key() == transfer_terms.payment_token_mint,
         TokenProgramError::PaymentTokenMintMismatch
     );
 
     let expected_payment_program = get_payment_token_program(&ctx.accounts.token_mint.to_account_info())?
         .unwrap_or(ID);
+    let payment_token_program_key = ctx.accounts.payment_token_program.key();
     require!(
-        ctx.accounts.payment_token_program.key() == expected_payment_program,
+        payment_token_program_key == expected_payment_program,
         TokenProgramError::PaymentTokenProgramMismatch
     );
 
@@ -361,11 +397,18 @@ fn process_payment(ctx: &Context<ExecuteTransfer>) -> Result<()> {
         .sender_payment_token_account
         .as_ref()
         .ok_or(TokenProgramError::InsufficientTransferPayment)?;
-    let group_owner_ata = ctx
-        .accounts
-        .group_owner_payment_token_account
-        .as_ref()
-        .ok_or(TokenProgramError::InsufficientTransferPayment)?;
+    validate_payment_token_account(
+        recipient_ata,
+        &ctx.accounts.recipient.key(),
+        &payment_mint.key(),
+        &payment_token_program_key,
+    )?;
+    validate_payment_token_account(
+        sender_ata,
+        &ctx.accounts.sender.key(),
+        &payment_mint.key(),
+        &payment_token_program_key,
+    )?;
 
     let decimals = payment_mint.decimals;
 
@@ -375,6 +418,12 @@ fn process_payment(ctx: &Context<ExecuteTransfer>) -> Result<()> {
             .domain_authority_payment_token_account
             .as_ref()
             .ok_or(TokenProgramError::InsufficientTransferPayment)?;
+        validate_payment_token_account(
+            domain_authority_ata,
+            &ctx.accounts.domain_authority.key(),
+            &payment_mint.key(),
+            &payment_token_program_key,
+        )?;
 
         associated_token::create_idempotent(CpiContext::new(
             ctx.accounts.associated_token_program.key(),
@@ -404,6 +453,18 @@ fn process_payment(ctx: &Context<ExecuteTransfer>) -> Result<()> {
     }
 
     if group_owner_amount > 0 {
+        let group_owner_ata = ctx
+            .accounts
+            .group_owner_payment_token_account
+            .as_ref()
+            .ok_or(TokenProgramError::InsufficientTransferPayment)?;
+        validate_payment_token_account(
+            group_owner_ata,
+            &ctx.accounts.group_owner.key(),
+            &payment_mint.key(),
+            &payment_token_program_key,
+        )?;
+
         associated_token::create_idempotent(CpiContext::new(
             ctx.accounts.associated_token_program.key(),
             Create {

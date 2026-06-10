@@ -245,16 +245,23 @@ export async function buildTransferInstructions(
       paymentTokenMint,
       paymentTokenProgram,
     );
-    groupOwnerPaymentTokenAccount = await findAssociatedTokenAddress(
-      input.mintContext.groupOwner,
-      paymentTokenMint,
-      paymentTokenProgram,
-    );
-    domainAuthorityPaymentTokenAccount = await findAssociatedTokenAddress(
-      input.mintContext.domainAuthority,
-      paymentTokenMint,
-      paymentTokenProgram,
-    );
+    if (input.mintContext.groupRoyaltyBps > 0) {
+      groupOwnerPaymentTokenAccount = await findAssociatedTokenAddress(
+        input.mintContext.groupOwner,
+        paymentTokenMint,
+        paymentTokenProgram,
+      );
+    }
+    if (
+      input.mintContext.groupRoyaltyBps > 0 &&
+      input.mintContext.domainRoyaltyBps > 0
+    ) {
+      domainAuthorityPaymentTokenAccount = await findAssociatedTokenAddress(
+        input.mintContext.domainAuthority,
+        paymentTokenMint,
+        paymentTokenProgram,
+      );
+    }
   }
 
   const executeTransfer = await getExecuteTransferInstructionAsync({

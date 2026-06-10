@@ -80,6 +80,8 @@ export const PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_IS_MISSING = 0x178e; // 6030
 export const PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_KEY_MISMATCH = 0x178f; // 6031
 /** AuthorityMismatch: Authority does not match */
 export const PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH = 0x1790; // 6032
+/** InvalidPaymentTokenAccount: Payment token account must be the canonical ATA for the expected owner */
+export const PHYGITAL_NFTS_ERROR__INVALID_PAYMENT_TOKEN_ACCOUNT = 0x1791; // 6033
 
 export type PhygitalNftsError =
   | typeof PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW
@@ -91,6 +93,7 @@ export type PhygitalNftsError =
   | typeof PHYGITAL_NFTS_ERROR__INSUFFICIENT_TRANSFER_PAYMENT
   | typeof PHYGITAL_NFTS_ERROR__INVALID_CLOSE_AUTHORITY
   | typeof PHYGITAL_NFTS_ERROR__INVALID_METADATA
+  | typeof PHYGITAL_NFTS_ERROR__INVALID_PAYMENT_TOKEN_ACCOUNT
   | typeof PHYGITAL_NFTS_ERROR__INVALID_ROYALTY_BPS
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_INSTRUCTION
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY
@@ -128,6 +131,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_NFTS_ERROR__INSUFFICIENT_TRANSFER_PAYMENT]: `Transfer price not met`,
     [PHYGITAL_NFTS_ERROR__INVALID_CLOSE_AUTHORITY]: `Sender token account close authority must be delegated to the program`,
     [PHYGITAL_NFTS_ERROR__INVALID_METADATA]: `Mint metadata is missing or invalid`,
+    [PHYGITAL_NFTS_ERROR__INVALID_PAYMENT_TOKEN_ACCOUNT]: `Payment token account must be the canonical ATA for the expected owner`,
     [PHYGITAL_NFTS_ERROR__INVALID_ROYALTY_BPS]: `Royalty basis points cannot exceed 10000`,
     [PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_INSTRUCTION]: `The instruction preceding this program invocation is not a secp256r1 verification instruction`,
     [PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,

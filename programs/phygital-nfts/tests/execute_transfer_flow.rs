@@ -144,6 +144,7 @@ fn execute_transfer_rejects_slot_not_greater_than_last_transfer() {
             true,
             Some(slot_number),
             Some(slot_hash),
+            None,
         )
         .expect_err("reusing the same slot after a successful transfer should fail");
 
@@ -188,6 +189,7 @@ fn execute_transfer_allows_next_transfer_with_higher_slot() {
         true,
         Some(second_slot),
         Some(second_hash),
+        None,
     )
     .expect("second transfer with a higher slot should succeed");
 

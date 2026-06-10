@@ -6,9 +6,11 @@ import {
   type SolanaRpcApi,
 } from "@solana/kit";
 import {
+  METADATA_KEY_ALLOWED_RECIPIENT,
   METADATA_KEY_DOMAIN_CONFIG,
   METADATA_KEY_PAYMENT_TOKEN_MINT,
   METADATA_KEY_PAYMENT_TOKEN_PROGRAM,
+  METADATA_KEY_ROYALTY_BPS,
   METADATA_KEY_ROYALTY_OWNER,
   METADATA_KEY_SECP256R1,
   METADATA_KEY_TRANSFER_PRICE,
@@ -30,6 +32,9 @@ export type TransferMintContext = {
   transferPrice: bigint;
   paymentTokenMint: Address | null;
   paymentTokenProgram: Address | null;
+  allowedRecipient: Address | null;
+  groupRoyaltyBps: number;
+  domainRoyaltyBps: number;
 };
 
 function readU16LE(data: Uint8Array, offset: number): number {
@@ -177,6 +182,15 @@ export async function resolveTransferMintContext(
     throw new Error("Collection mint is missing royalty owner metadata");
   }
 
+  const royaltyBpsValue = groupExtensions.metadata.get(METADATA_KEY_ROYALTY_BPS);
+  let groupRoyaltyBps = 0;
+  if (royaltyBpsValue) {
+    groupRoyaltyBps = Number.parseInt(royaltyBpsValue, 10);
+    if (Number.isNaN(groupRoyaltyBps) || groupRoyaltyBps > 10_000) {
+      throw new Error("Collection mint has invalid royalty bps metadata");
+    }
+  }
+
   const secp256r1Value = tokenExtensions.metadata.get(METADATA_KEY_SECP256R1);
   if (!secp256r1Value) {
     throw new Error("Token mint is missing secp256r1 passkey metadata");
@@ -201,5 +215,10 @@ export async function resolveTransferMintContext(
     paymentTokenProgram: parseOptionalAddress(
       tokenExtensions.metadata.get(METADATA_KEY_PAYMENT_TOKEN_PROGRAM),
     ),
+    allowedRecipient: parseOptionalAddress(
+      tokenExtensions.metadata.get(METADATA_KEY_ALLOWED_RECIPIENT),
+    ),
+    groupRoyaltyBps,
+    domainRoyaltyBps: domainConfigAccount.data.royaltyBps,
   };
 }

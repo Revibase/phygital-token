@@ -17,6 +17,12 @@ export {
   parseWebAuthnClientData,
 } from "./internal";
 
+export {
+  buildTransferChallenge,
+  buildTransferMessageHash,
+  type TransferTermsInput,
+} from "./secp256r1";
+
 
 export function buildSecp256r1VerifyInputFromWebAuthn(input: {
   response: AuthenticationResponseJSON;

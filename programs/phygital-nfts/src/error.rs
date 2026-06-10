@@ -100,4 +100,7 @@ pub enum TokenProgramError {
 
     #[msg("Authority does not match")]
     AuthorityMismatch,
+
+    #[msg("Payment token account must be the canonical ATA for the expected owner")]
+    InvalidPaymentTokenAccount,
 }
