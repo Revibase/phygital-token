@@ -12,12 +12,10 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressEncoder,
   getBooleanDecoder,
   getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getProgramDerivedAddress,
   getStructDecoder,
   getStructEncoder,
   getU32Decoder,
@@ -46,7 +44,6 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
-  getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
 import { findProgramAuthorityPda } from "../pdas";
@@ -83,12 +80,13 @@ export type ExecuteTransferInstruction<
     | string
     | AccountMeta<string> = string,
   TAccountPaymentTokenMint extends string | AccountMeta<string> = string,
+  TAccountPaymentTokenProgram extends string | AccountMeta<string> = string,
   TAccountSlotHashes extends string | AccountMeta<string> =
     "SysvarS1otHashes111111111111111111111111111",
   TAccountInstructionsSysvar extends string | AccountMeta<string> =
     "Sysvar1nstructions1111111111111111111111111",
   TAccountTokenProgram extends string | AccountMeta<string> =
-    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
   TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
     "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
   TAccountSystemProgram extends string | AccountMeta<string> =
@@ -105,7 +103,7 @@ export type ExecuteTransferInstruction<
             AccountSignerMeta<TAccountRecipient>
         : TAccountRecipient,
       TAccountSender extends string
-        ? WritableAccount<TAccountSender>
+        ? ReadonlyAccount<TAccountSender>
         : TAccountSender,
       TAccountTokenMint extends string
         ? WritableAccount<TAccountTokenMint>
@@ -123,10 +121,10 @@ export type ExecuteTransferInstruction<
         ? WritableAccount<TAccountRecipientTokenAccount>
         : TAccountRecipientTokenAccount,
       TAccountGroupOwner extends string
-        ? WritableAccount<TAccountGroupOwner>
+        ? ReadonlyAccount<TAccountGroupOwner>
         : TAccountGroupOwner,
       TAccountDomainAuthority extends string
-        ? WritableAccount<TAccountDomainAuthority>
+        ? ReadonlyAccount<TAccountDomainAuthority>
         : TAccountDomainAuthority,
       TAccountProgramAuthority extends string
         ? WritableAccount<TAccountProgramAuthority>
@@ -146,6 +144,9 @@ export type ExecuteTransferInstruction<
       TAccountPaymentTokenMint extends string
         ? ReadonlyAccount<TAccountPaymentTokenMint>
         : TAccountPaymentTokenMint,
+      TAccountPaymentTokenProgram extends string
+        ? ReadonlyAccount<TAccountPaymentTokenProgram>
+        : TAccountPaymentTokenProgram,
       TAccountSlotHashes extends string
         ? ReadonlyAccount<TAccountSlotHashes>
         : TAccountSlotHashes,
@@ -242,6 +243,7 @@ export type ExecuteTransferAsyncInput<
   TAccountGroupOwnerPaymentTokenAccount extends string = string,
   TAccountDomainAuthorityPaymentTokenAccount extends string = string,
   TAccountPaymentTokenMint extends string = string,
+  TAccountPaymentTokenProgram extends string = string,
   TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
   TAccountTokenProgram extends string = string,
@@ -257,7 +259,7 @@ export type ExecuteTransferAsyncInput<
   /** Collection mint read from the NFT's TokenGroupMember extension. */
   groupMint: Address<TAccountGroupMint>;
   domainConfig: Address<TAccountDomainConfig>;
-  senderTokenAccount?: Address<TAccountSenderTokenAccount>;
+  senderTokenAccount: Address<TAccountSenderTokenAccount>;
   /** Recipient ATA — created in the handler; rent paid by `program_authority`. */
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
   groupOwner: Address<TAccountGroupOwner>;
@@ -268,6 +270,7 @@ export type ExecuteTransferAsyncInput<
   groupOwnerPaymentTokenAccount?: Address<TAccountGroupOwnerPaymentTokenAccount>;
   domainAuthorityPaymentTokenAccount?: Address<TAccountDomainAuthorityPaymentTokenAccount>;
   paymentTokenMint?: Address<TAccountPaymentTokenMint>;
+  paymentTokenProgram: Address<TAccountPaymentTokenProgram>;
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
@@ -298,6 +301,7 @@ export async function getExecuteTransferInstructionAsync<
   TAccountGroupOwnerPaymentTokenAccount extends string,
   TAccountDomainAuthorityPaymentTokenAccount extends string,
   TAccountPaymentTokenMint extends string,
+  TAccountPaymentTokenProgram extends string,
   TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TAccountTokenProgram extends string,
@@ -322,6 +326,7 @@ export async function getExecuteTransferInstructionAsync<
     TAccountGroupOwnerPaymentTokenAccount,
     TAccountDomainAuthorityPaymentTokenAccount,
     TAccountPaymentTokenMint,
+    TAccountPaymentTokenProgram,
     TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
@@ -348,6 +353,7 @@ export async function getExecuteTransferInstructionAsync<
     TAccountGroupOwnerPaymentTokenAccount,
     TAccountDomainAuthorityPaymentTokenAccount,
     TAccountPaymentTokenMint,
+    TAccountPaymentTokenProgram,
     TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
@@ -363,7 +369,7 @@ export async function getExecuteTransferInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     recipient: { value: input.recipient ?? null, isWritable: true },
-    sender: { value: input.sender ?? null, isWritable: true },
+    sender: { value: input.sender ?? null, isWritable: false },
     tokenMint: { value: input.tokenMint ?? null, isWritable: true },
     groupMint: { value: input.groupMint ?? null, isWritable: false },
     domainConfig: { value: input.domainConfig ?? null, isWritable: false },
@@ -375,8 +381,11 @@ export async function getExecuteTransferInstructionAsync<
       value: input.recipientTokenAccount ?? null,
       isWritable: true,
     },
-    groupOwner: { value: input.groupOwner ?? null, isWritable: true },
-    domainAuthority: { value: input.domainAuthority ?? null, isWritable: true },
+    groupOwner: { value: input.groupOwner ?? null, isWritable: false },
+    domainAuthority: {
+      value: input.domainAuthority ?? null,
+      isWritable: false,
+    },
     programAuthority: {
       value: input.programAuthority ?? null,
       isWritable: true,
@@ -399,6 +408,10 @@ export async function getExecuteTransferInstructionAsync<
     },
     paymentTokenMint: {
       value: input.paymentTokenMint ?? null,
+      isWritable: false,
+    },
+    paymentTokenProgram: {
+      value: input.paymentTokenProgram ?? null,
       isWritable: false,
     },
     slotHashes: { value: input.slotHashes ?? null, isWritable: false },
@@ -426,36 +439,6 @@ export async function getExecuteTransferInstructionAsync<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
-  }
-  if (!accounts.senderTokenAccount.value) {
-    accounts.senderTokenAccount.value = await getProgramDerivedAddress({
-      programAddress:
-        "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" as Address<"ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL">,
-      seeds: [
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "sender",
-            accounts.sender.value,
-          ),
-        ),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "tokenProgram",
-            accounts.tokenProgram.value,
-          ),
-        ),
-        getAddressEncoder().encode(
-          getAddressFromResolvedInstructionAccount(
-            "tokenMint",
-            accounts.tokenMint.value,
-          ),
-        ),
-      ],
-    });
-  }
   if (!accounts.programAuthority.value) {
     accounts.programAuthority.value = await findProgramAuthorityPda();
   }
@@ -466,6 +449,10 @@ export async function getExecuteTransferInstructionAsync<
   if (!accounts.instructionsSysvar.value) {
     accounts.instructionsSysvar.value =
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
+  }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
   }
   if (!accounts.associatedTokenProgram.value) {
     accounts.associatedTokenProgram.value =
@@ -510,6 +497,7 @@ export async function getExecuteTransferInstructionAsync<
         accounts.domainAuthorityPaymentTokenAccount,
       ),
       getAccountMeta("paymentTokenMint", accounts.paymentTokenMint),
+      getAccountMeta("paymentTokenProgram", accounts.paymentTokenProgram),
       getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
@@ -538,6 +526,7 @@ export async function getExecuteTransferInstructionAsync<
     TAccountGroupOwnerPaymentTokenAccount,
     TAccountDomainAuthorityPaymentTokenAccount,
     TAccountPaymentTokenMint,
+    TAccountPaymentTokenProgram,
     TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
@@ -563,6 +552,7 @@ export type ExecuteTransferInput<
   TAccountGroupOwnerPaymentTokenAccount extends string = string,
   TAccountDomainAuthorityPaymentTokenAccount extends string = string,
   TAccountPaymentTokenMint extends string = string,
+  TAccountPaymentTokenProgram extends string = string,
   TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
   TAccountTokenProgram extends string = string,
@@ -589,6 +579,7 @@ export type ExecuteTransferInput<
   groupOwnerPaymentTokenAccount?: Address<TAccountGroupOwnerPaymentTokenAccount>;
   domainAuthorityPaymentTokenAccount?: Address<TAccountDomainAuthorityPaymentTokenAccount>;
   paymentTokenMint?: Address<TAccountPaymentTokenMint>;
+  paymentTokenProgram: Address<TAccountPaymentTokenProgram>;
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
@@ -619,6 +610,7 @@ export function getExecuteTransferInstruction<
   TAccountGroupOwnerPaymentTokenAccount extends string,
   TAccountDomainAuthorityPaymentTokenAccount extends string,
   TAccountPaymentTokenMint extends string,
+  TAccountPaymentTokenProgram extends string,
   TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TAccountTokenProgram extends string,
@@ -643,6 +635,7 @@ export function getExecuteTransferInstruction<
     TAccountGroupOwnerPaymentTokenAccount,
     TAccountDomainAuthorityPaymentTokenAccount,
     TAccountPaymentTokenMint,
+    TAccountPaymentTokenProgram,
     TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
@@ -668,6 +661,7 @@ export function getExecuteTransferInstruction<
   TAccountGroupOwnerPaymentTokenAccount,
   TAccountDomainAuthorityPaymentTokenAccount,
   TAccountPaymentTokenMint,
+  TAccountPaymentTokenProgram,
   TAccountSlotHashes,
   TAccountInstructionsSysvar,
   TAccountTokenProgram,
@@ -682,7 +676,7 @@ export function getExecuteTransferInstruction<
   // Original accounts.
   const originalAccounts = {
     recipient: { value: input.recipient ?? null, isWritable: true },
-    sender: { value: input.sender ?? null, isWritable: true },
+    sender: { value: input.sender ?? null, isWritable: false },
     tokenMint: { value: input.tokenMint ?? null, isWritable: true },
     groupMint: { value: input.groupMint ?? null, isWritable: false },
     domainConfig: { value: input.domainConfig ?? null, isWritable: false },
@@ -694,8 +688,11 @@ export function getExecuteTransferInstruction<
       value: input.recipientTokenAccount ?? null,
       isWritable: true,
     },
-    groupOwner: { value: input.groupOwner ?? null, isWritable: true },
-    domainAuthority: { value: input.domainAuthority ?? null, isWritable: true },
+    groupOwner: { value: input.groupOwner ?? null, isWritable: false },
+    domainAuthority: {
+      value: input.domainAuthority ?? null,
+      isWritable: false,
+    },
     programAuthority: {
       value: input.programAuthority ?? null,
       isWritable: true,
@@ -718,6 +715,10 @@ export function getExecuteTransferInstruction<
     },
     paymentTokenMint: {
       value: input.paymentTokenMint ?? null,
+      isWritable: false,
+    },
+    paymentTokenProgram: {
+      value: input.paymentTokenProgram ?? null,
       isWritable: false,
     },
     slotHashes: { value: input.slotHashes ?? null, isWritable: false },
@@ -745,10 +746,6 @@ export function getExecuteTransferInstruction<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
-  }
   if (!accounts.slotHashes.value) {
     accounts.slotHashes.value =
       "SysvarS1otHashes111111111111111111111111111" as Address<"SysvarS1otHashes111111111111111111111111111">;
@@ -756,6 +753,10 @@ export function getExecuteTransferInstruction<
   if (!accounts.instructionsSysvar.value) {
     accounts.instructionsSysvar.value =
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
+  }
+  if (!accounts.tokenProgram.value) {
+    accounts.tokenProgram.value =
+      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
   }
   if (!accounts.associatedTokenProgram.value) {
     accounts.associatedTokenProgram.value =
@@ -800,6 +801,7 @@ export function getExecuteTransferInstruction<
         accounts.domainAuthorityPaymentTokenAccount,
       ),
       getAccountMeta("paymentTokenMint", accounts.paymentTokenMint),
+      getAccountMeta("paymentTokenProgram", accounts.paymentTokenProgram),
       getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
@@ -828,6 +830,7 @@ export function getExecuteTransferInstruction<
     TAccountGroupOwnerPaymentTokenAccount,
     TAccountDomainAuthorityPaymentTokenAccount,
     TAccountPaymentTokenMint,
+    TAccountPaymentTokenProgram,
     TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
@@ -862,13 +865,14 @@ export type ParsedExecuteTransferInstruction<
     groupOwnerPaymentTokenAccount?: TAccountMetas[12] | undefined;
     domainAuthorityPaymentTokenAccount?: TAccountMetas[13] | undefined;
     paymentTokenMint?: TAccountMetas[14] | undefined;
-    slotHashes: TAccountMetas[15];
-    instructionsSysvar: TAccountMetas[16];
-    tokenProgram: TAccountMetas[17];
-    associatedTokenProgram: TAccountMetas[18];
-    systemProgram: TAccountMetas[19];
+    paymentTokenProgram: TAccountMetas[15];
+    slotHashes: TAccountMetas[16];
+    instructionsSysvar: TAccountMetas[17];
+    tokenProgram: TAccountMetas[18];
+    associatedTokenProgram: TAccountMetas[19];
+    systemProgram: TAccountMetas[20];
     /** Transfer-hook program — must be in the transaction for Token-2022 hook CPI. */
-    transferHookProgram: TAccountMetas[20];
+    transferHookProgram: TAccountMetas[21];
   };
   data: ExecuteTransferInstructionData;
 };
@@ -881,12 +885,12 @@ export function parseExecuteTransferInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedExecuteTransferInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 21) {
+  if (instruction.accounts.length < 22) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 21,
+        expectedAccountMetas: 22,
       },
     );
   }
@@ -920,6 +924,7 @@ export function parseExecuteTransferInstruction<
       groupOwnerPaymentTokenAccount: getNextOptionalAccount(),
       domainAuthorityPaymentTokenAccount: getNextOptionalAccount(),
       paymentTokenMint: getNextOptionalAccount(),
+      paymentTokenProgram: getNextAccount(),
       slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
       tokenProgram: getNextAccount(),

@@ -2,14 +2,13 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{
     instruction::AccountMeta, program::invoke_signed, program_option::COption,
 };
-use anchor_lang::system_program::{transfer as system_transfer, Transfer as SystemTransfer};
 use anchor_spl::associated_token::{self, AssociatedToken, Create};
 use anchor_spl::token_2022::{
     close_account, set_authority,
     spl_token_2022::extension::StateWithExtensions,
     spl_token_2022::instruction::{transfer_checked as spl_transfer_checked, AuthorityType},
     spl_token_2022::state::Account as TokenAccountState,
-    CloseAccount, SetAuthority,
+    CloseAccount, SetAuthority, ID,
 };
 use anchor_spl::token_2022_extensions::{token_metadata_update_field, TokenMetadataUpdateField};
 use anchor_spl::token_interface::{
@@ -25,7 +24,8 @@ use crate::error::TokenProgramError;
 use crate::state::DomainConfig;
 use crate::utils::{
     encode_last_transfer_slot, get_allowed_recipient, get_domain_config, get_group_mint,
-    get_last_transfer_slot, get_payment_token_mint, get_royalty_bps, get_royalty_owner,
+    get_last_transfer_slot, get_payment_token_mint, get_payment_token_program, get_royalty_bps,
+    get_royalty_owner,
     get_secp256r1_pubkey, get_transfer_price, ChallengeArgs, Secp256r1VerifyArgs,
     TransferActionType, LAST_TRANSFER_SLOT_METADATA_KEY, LAST_TRANSFER_SLOT_NONE,
 };
@@ -38,7 +38,6 @@ pub struct ExecuteTransfer<'info> {
 
     /// Sender — does NOT need to sign. program_authority acts as permanent delegate.
     /// CHECK: validated via sender_token_account.owner
-    #[account(mut)]
     pub sender: UncheckedAccount<'info>,
 
     #[account(mut)]
@@ -51,11 +50,9 @@ pub struct ExecuteTransfer<'info> {
 
     #[account(
         mut,
-        associated_token::mint = token_mint,
-        associated_token::authority = sender,
-        associated_token::token_program = token_program,
         constraint = sender_token_account.amount == 1,
         constraint = sender_token_account.owner == sender.key() @ TokenProgramError::OwnerMismatch,
+        constraint = sender_token_account.mint == token_mint.key(),
     )]
     pub sender_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
@@ -65,11 +62,9 @@ pub struct ExecuteTransfer<'info> {
     pub recipient_token_account: UncheckedAccount<'info>,
 
     /// CHECK: validated against royalty_owner in group mint metadata
-    #[account(mut)]
     pub group_owner: UncheckedAccount<'info>,
 
     /// CHECK: validated against `domain_config.authority`
-    #[account(mut)]
     pub domain_authority: UncheckedAccount<'info>,
 
     #[account(
@@ -93,6 +88,8 @@ pub struct ExecuteTransfer<'info> {
 
     pub payment_token_mint: Option<Box<InterfaceAccount<'info, Mint>>>,
 
+    pub payment_token_program: Interface<'info, TokenInterface>,
+
     /// CHECK: validated as the SlotHashes sysvar address
     #[account(address = SLOT_HASHES_SYSVAR_ID)]
     pub slot_hashes: UncheckedAccount<'info>,
@@ -101,6 +98,9 @@ pub struct ExecuteTransfer<'info> {
     #[account(address = INSTRUCTIONS_SYSVAR_ID)]
     pub instructions_sysvar: UncheckedAccount<'info>,
 
+    #[account(
+        address = ID
+    )]
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -121,6 +121,16 @@ pub fn handler(
     let authority_seeds: &[&[u8]] = authority_seed_array.as_slice();
     let signer_seed_array = [authority_seeds];
     let signer_seeds: &[&[&[u8]]] = signer_seed_array.as_slice();
+
+    let expected_sender_ata = associated_token::get_associated_token_address_with_program_id(
+        &ctx.accounts.sender.key(),
+        &ctx.accounts.token_mint.key(),
+        &ctx.accounts.token_program.key(),
+    );
+    require!(
+        ctx.accounts.sender_token_account.key() == expected_sender_ata,
+        TokenProgramError::OwnerMismatch
+    );
 
     let expected_recipient_ata = associated_token::get_associated_token_address_with_program_id(
         &ctx.accounts.recipient.key(),
@@ -321,127 +331,130 @@ fn process_payment(ctx: &Context<ExecuteTransfer>) -> Result<()> {
         .checked_sub(group_royalty_amount)
         .ok_or(TokenProgramError::ArithmeticOverflow)?;
 
-    match get_payment_token_mint(&ctx.accounts.token_mint.to_account_info())? {
-        None => {
-            if domain_fee > 0 {
-                system_transfer(
-                    CpiContext::new(
-                        ctx.accounts.system_program.key(),
-                        SystemTransfer {
-                            from: ctx.accounts.recipient.to_account_info(),
-                            to: ctx.accounts.domain_authority.to_account_info(),
-                        },
-                    ),
-                    domain_fee,
-                )?;
-            }
-            if group_owner_amount > 0 {
-                system_transfer(
-                    CpiContext::new(
-                        ctx.accounts.system_program.key(),
-                        SystemTransfer {
-                            from: ctx.accounts.recipient.to_account_info(),
-                            to: ctx.accounts.group_owner.to_account_info(),
-                        },
-                    ),
-                    group_owner_amount,
-                )?;
-            }
-            if seller_amount > 0 {
-                system_transfer(
-                    CpiContext::new(
-                        ctx.accounts.system_program.key(),
-                        SystemTransfer {
-                            from: ctx.accounts.recipient.to_account_info(),
-                            to: ctx.accounts.sender.to_account_info(),
-                        },
-                    ),
-                    seller_amount,
-                )?;
-            }
-        }
-        Some(expected_payment_mint) => {
-            let payment_mint = ctx
-                .accounts
-                .payment_token_mint
-                .as_ref()
-                .ok_or(TokenProgramError::PaymentTokenMintMismatch)?;
-            require!(
-                payment_mint.key() == expected_payment_mint,
-                TokenProgramError::PaymentTokenMintMismatch
-            );
+    let expected_payment_mint = get_payment_token_mint(&ctx.accounts.token_mint.to_account_info())?
+        .ok_or(TokenProgramError::PaymentTokenMintRequired)?;
 
-            let recipient_ata = ctx
-                .accounts
-                .recipient_payment_token_account
-                .as_ref()
-                .ok_or(TokenProgramError::InsufficientTransferPayment)?;
-            let sender_ata = ctx
-                .accounts
-                .sender_payment_token_account
-                .as_ref()
-                .ok_or(TokenProgramError::InsufficientTransferPayment)?;
-            let group_owner_ata = ctx
-                .accounts
-                .group_owner_payment_token_account
-                .as_ref()
-                .ok_or(TokenProgramError::InsufficientTransferPayment)?;
+    let payment_mint = ctx
+        .accounts
+        .payment_token_mint
+        .as_ref()
+        .ok_or(TokenProgramError::PaymentTokenMintMismatch)?;
+    require!(
+        payment_mint.key() == expected_payment_mint,
+        TokenProgramError::PaymentTokenMintMismatch
+    );
 
-            let decimals = payment_mint.decimals;
+    let expected_payment_program = get_payment_token_program(&ctx.accounts.token_mint.to_account_info())?
+        .unwrap_or(ID);
+    require!(
+        ctx.accounts.payment_token_program.key() == expected_payment_program,
+        TokenProgramError::PaymentTokenProgramMismatch
+    );
 
-            if domain_fee > 0 {
-                let domain_authority_ata = ctx
-                    .accounts
-                    .domain_authority_payment_token_account
-                    .as_ref()
-                    .ok_or(TokenProgramError::InsufficientTransferPayment)?;
-                transfer_checked(
-                    CpiContext::new(
-                        ctx.accounts.token_program.key(),
-                        TransferChecked {
-                            from: recipient_ata.to_account_info(),
-                            mint: payment_mint.to_account_info(),
-                            to: domain_authority_ata.to_account_info(),
-                            authority: ctx.accounts.recipient.to_account_info(),
-                        },
-                    ),
-                    domain_fee,
-                    decimals,
-                )?;
-            }
+    let recipient_ata = ctx
+        .accounts
+        .recipient_payment_token_account
+        .as_ref()
+        .ok_or(TokenProgramError::InsufficientTransferPayment)?;
+    let sender_ata = ctx
+        .accounts
+        .sender_payment_token_account
+        .as_ref()
+        .ok_or(TokenProgramError::InsufficientTransferPayment)?;
+    let group_owner_ata = ctx
+        .accounts
+        .group_owner_payment_token_account
+        .as_ref()
+        .ok_or(TokenProgramError::InsufficientTransferPayment)?;
 
-            if group_owner_amount > 0 {
-                transfer_checked(
-                    CpiContext::new(
-                        ctx.accounts.token_program.key(),
-                        TransferChecked {
-                            from: recipient_ata.to_account_info(),
-                            mint: payment_mint.to_account_info(),
-                            to: group_owner_ata.to_account_info(),
-                            authority: ctx.accounts.recipient.to_account_info(),
-                        },
-                    ),
-                    group_owner_amount,
-                    decimals,
-                )?;
-            }
+    let decimals = payment_mint.decimals;
 
-            if seller_amount > 0 {
-                transfer_checked(
-                    CpiContext::new(
-                        ctx.accounts.token_program.key(),
-                        TransferChecked {
-                            from: recipient_ata.to_account_info(),
-                            mint: payment_mint.to_account_info(),
-                            to: sender_ata.to_account_info(),
-                            authority: ctx.accounts.recipient.to_account_info(),
-                        },
-                    ),
-                    seller_amount,
-                    decimals,
-                )?;
-            }
-        }
+    if domain_fee > 0 {
+        let domain_authority_ata = ctx
+            .accounts
+            .domain_authority_payment_token_account
+            .as_ref()
+            .ok_or(TokenProgramError::InsufficientTransferPayment)?;
+
+        associated_token::create_idempotent(CpiContext::new(
+            ctx.accounts.associated_token_program.key(),
+            Create {
+                payer: ctx.accounts.recipient.to_account_info(),
+                associated_token: domain_authority_ata.to_account_info(),
+                authority: ctx.accounts.domain_authority.to_account_info(),
+                mint: payment_mint.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+                token_program: ctx.accounts.payment_token_program.to_account_info(),
+            },
+        ))?;
+
+        transfer_checked(
+            CpiContext::new(
+                ctx.accounts.payment_token_program.key(),
+                TransferChecked {
+                    from: recipient_ata.to_account_info(),
+                    mint: payment_mint.to_account_info(),
+                    to: domain_authority_ata.to_account_info(),
+                    authority: ctx.accounts.recipient.to_account_info(),
+                },
+            ),
+            domain_fee,
+            decimals,
+        )?;
+    }
+
+    if group_owner_amount > 0 {
+        associated_token::create_idempotent(CpiContext::new(
+            ctx.accounts.associated_token_program.key(),
+            Create {
+                payer: ctx.accounts.recipient.to_account_info(),
+                associated_token: group_owner_ata.to_account_info(),
+                authority: ctx.accounts.group_owner.to_account_info(),
+                mint: payment_mint.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+                token_program: ctx.accounts.payment_token_program.to_account_info(),
+            },
+        ))?;
+        transfer_checked(
+            CpiContext::new(
+                ctx.accounts.payment_token_program.key(),
+                TransferChecked {
+                    from: recipient_ata.to_account_info(),
+                    mint: payment_mint.to_account_info(),
+                    to: group_owner_ata.to_account_info(),
+                    authority: ctx.accounts.recipient.to_account_info(),
+                },
+            ),
+            group_owner_amount,
+            decimals,
+        )?;
+    }
+
+    if seller_amount > 0 {
+        associated_token::create_idempotent(CpiContext::new(
+            ctx.accounts.associated_token_program.key(),
+            Create {
+                payer: ctx.accounts.recipient.to_account_info(),
+                associated_token: sender_ata.to_account_info(),
+                authority: ctx.accounts.sender.to_account_info(),
+                mint: payment_mint.to_account_info(),
+                system_program: ctx.accounts.system_program.to_account_info(),
+                token_program: ctx.accounts.payment_token_program.to_account_info(),
+            },
+        ))?;
+        transfer_checked(
+            CpiContext::new(
+                ctx.accounts.payment_token_program.key(),
+                TransferChecked {
+                    from: recipient_ata.to_account_info(),
+                    mint: payment_mint.to_account_info(),
+                    to: sender_ata.to_account_info(),
+                    authority: ctx.accounts.recipient.to_account_info(),
+                },
+            ),
+            seller_amount,
+            decimals,
+        )?;
     }
 
     Ok(())

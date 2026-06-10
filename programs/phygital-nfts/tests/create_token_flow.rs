@@ -12,7 +12,8 @@ use common::{
 };
 use phygital_nfts::utils::{
     encode_optional_pubkey, encode_secp256r1_pubkey, ALLOWED_RECIPIENT_METADATA_KEY,
-    PAYMENT_TOKEN_MINT_METADATA_KEY, ROYALTY_BPS_METADATA_KEY, SECP256R1_METADATA_KEY,
+    PAYMENT_TOKEN_MINT_METADATA_KEY, PAYMENT_TOKEN_PROGRAM_METADATA_KEY,
+    ROYALTY_BPS_METADATA_KEY, SECP256R1_METADATA_KEY,
     TRANSFER_PRICE_METADATA_KEY,
 };
 use phygital_nfts::{Secp256r1Pubkey, SetTransferConfigArgs};
@@ -238,6 +239,7 @@ fn set_transfer_config_updates_metadata_and_payer_funds_mint_growth() {
         SetTransferConfigArgs {
             price: u64::MAX,
             payment_token_mint: Some(payment_mint),
+            payment_token_program: Some(anchor_spl::token_2022::ID),
             allowed_recipient: Some(allowed_recipient),
         },
     );
@@ -284,6 +286,17 @@ fn set_transfer_config_updates_metadata_and_payer_funds_mint_growth() {
         .map(|(_, value)| value.as_str())
         .expect("payment mint metadata");
     assert_eq!(payment, encode_optional_pubkey(Some(payment_mint)));
+
+    let payment_program = metadata
+        .additional_metadata
+        .iter()
+        .find(|(key, _)| key == PAYMENT_TOKEN_PROGRAM_METADATA_KEY)
+        .map(|(_, value)| value.as_str())
+        .expect("payment token program metadata");
+    assert_eq!(
+        payment_program,
+        encode_optional_pubkey(Some(anchor_spl::token_2022::ID))
+    );
 
     let recipient = metadata
         .additional_metadata

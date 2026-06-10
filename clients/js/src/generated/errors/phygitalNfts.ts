@@ -44,34 +44,40 @@ export const PHYGITAL_NFTS_ERROR__GROUP_MINT_MISMATCH = 0x177c; // 6012
 export const PHYGITAL_NFTS_ERROR__OWNER_MISMATCH = 0x177d; // 6013
 /** PaymentTokenMintMismatch: Payment token mint mismatch */
 export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_MISMATCH = 0x177e; // 6014
+/** PaymentTokenMintRequired: Payment token mint must be set when transfer price is greater than zero */
+export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_REQUIRED = 0x177f; // 6015
+/** PaymentTokenProgramRequired: Payment token program must be set when payment token mint is set */
+export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_REQUIRED = 0x1780; // 6016
+/** PaymentTokenProgramMismatch: Payment token program mismatch */
+export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_MISMATCH = 0x1781; // 6017
 /** ArithmeticOverflow: Arithmetic overflow */
-export const PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW = 0x177f; // 6015
+export const PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW = 0x1782; // 6018
 /** InvalidTransferHookProgram: Invalid transfer hook program ID */
-export const PHYGITAL_NFTS_ERROR__INVALID_TRANSFER_HOOK_PROGRAM = 0x1780; // 6016
+export const PHYGITAL_NFTS_ERROR__INVALID_TRANSFER_HOOK_PROGRAM = 0x1783; // 6019
 /** InvalidSlotHash: Slot not found in SlotHashes sysvar — signature has expired or is being replayed */
-export const PHYGITAL_NFTS_ERROR__INVALID_SLOT_HASH = 0x1781; // 6017
+export const PHYGITAL_NFTS_ERROR__INVALID_SLOT_HASH = 0x1784; // 6020
 /** StaleTransferSlot: Transfer slot must be greater than the last successful transfer slot */
-export const PHYGITAL_NFTS_ERROR__STALE_TRANSFER_SLOT = 0x1782; // 6018
+export const PHYGITAL_NFTS_ERROR__STALE_TRANSFER_SLOT = 0x1785; // 6021
 /** InvalidTransferAuthority: Transfer authority must be the program permanent delegate */
-export const PHYGITAL_NFTS_ERROR__INVALID_TRANSFER_AUTHORITY = 0x1783; // 6019
+export const PHYGITAL_NFTS_ERROR__INVALID_TRANSFER_AUTHORITY = 0x1786; // 6022
 /** InvalidCloseAuthority: Sender token account close authority must be delegated to the program */
-export const PHYGITAL_NFTS_ERROR__INVALID_CLOSE_AUTHORITY = 0x1784; // 6020
+export const PHYGITAL_NFTS_ERROR__INVALID_CLOSE_AUTHORITY = 0x1787; // 6023
 /** RpIdHashMismatch: RpId hash mismatch */
-export const PHYGITAL_NFTS_ERROR__RP_ID_HASH_MISMATCH = 0x1785; // 6021
+export const PHYGITAL_NFTS_ERROR__RP_ID_HASH_MISMATCH = 0x1788; // 6024
 /** OriginIndexOutOfBounds: Origin index out of bounds */
-export const PHYGITAL_NFTS_ERROR__ORIGIN_INDEX_OUT_OF_BOUNDS = 0x1786; // 6022
+export const PHYGITAL_NFTS_ERROR__ORIGIN_INDEX_OUT_OF_BOUNDS = 0x1789; // 6025
 /** ClientDataHashMismatch: Client data hash mismatch */
-export const PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x1787; // 6023
+export const PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x178a; // 6026
 /** MissingInstructionsSysvar: Missing instructions sysvar account */
-export const PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x1788; // 6024
+export const PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x178b; // 6027
 /** InvalidSysvarDataFormat: Invalid sysvar data format */
-export const PHYGITAL_NFTS_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x1789; // 6025
+export const PHYGITAL_NFTS_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x178c; // 6028
 /** MaxLengthExceeded: Max length exceeded */
-export const PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED = 0x178a; // 6026
+export const PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED = 0x178d; // 6029
 /** DomainConfigIsMissing: Domain config account is missing */
-export const PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_IS_MISSING = 0x178b; // 6027
+export const PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_IS_MISSING = 0x178e; // 6030
 /** DomainConfigKeyMismatch: Domain config account does not match collection metadata */
-export const PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_KEY_MISMATCH = 0x178c; // 6028
+export const PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_KEY_MISMATCH = 0x178f; // 6031
 
 export type PhygitalNftsError =
   | typeof PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW
@@ -98,6 +104,9 @@ export type PhygitalNftsError =
   | typeof PHYGITAL_NFTS_ERROR__ORIGIN_INDEX_OUT_OF_BOUNDS
   | typeof PHYGITAL_NFTS_ERROR__OWNER_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_MISMATCH
+  | typeof PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_REQUIRED
+  | typeof PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_MISMATCH
+  | typeof PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_REQUIRED
   | typeof PHYGITAL_NFTS_ERROR__RECIPIENT_NOT_ALLOWED
   | typeof PHYGITAL_NFTS_ERROR__RP_ID_HASH_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__SECP256R1_PUBKEY_MISMATCH
@@ -131,6 +140,9 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_NFTS_ERROR__ORIGIN_INDEX_OUT_OF_BOUNDS]: `Origin index out of bounds`,
     [PHYGITAL_NFTS_ERROR__OWNER_MISMATCH]: `Token owner mismatch`,
     [PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_MISMATCH]: `Payment token mint mismatch`,
+    [PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_REQUIRED]: `Payment token mint must be set when transfer price is greater than zero`,
+    [PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_MISMATCH]: `Payment token program mismatch`,
+    [PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_REQUIRED]: `Payment token program must be set when payment token mint is set`,
     [PHYGITAL_NFTS_ERROR__RECIPIENT_NOT_ALLOWED]: `Recipient is not the allowed recipient set in transfer config`,
     [PHYGITAL_NFTS_ERROR__RP_ID_HASH_MISMATCH]: `RpId hash mismatch`,
     [PHYGITAL_NFTS_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match token record`,

@@ -71,7 +71,7 @@ export type CreateTokenInstruction<
   TAccountProgramAuthority extends string | AccountMeta<string> = string,
   TAccountOwnerTokenAccount extends string | AccountMeta<string> = string,
   TAccountTokenProgram extends string | AccountMeta<string> =
-    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
   TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
     "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
   TAccountSystemProgram extends string | AccountMeta<string> =
@@ -180,7 +180,10 @@ export type CreateTokenAsyncInput<
   tokenMint: TransactionSigner<TAccountTokenMint>;
   /** The group this token will be a member of */
   groupMint: Address<TAccountGroupMint>;
-  /** Program-level PDA — permanent delegate, transfer hook authority */
+  /**
+   * Program-level PDA — permanent delegate, transfer hook authority.
+   * Writable because it signs Token-2022 CPIs that may debit its lamports.
+   */
   programAuthority?: Address<TAccountProgramAuthority>;
   /** Owner ATA — created in the handler after the mint exists. */
   ownerTokenAccount: Address<TAccountOwnerTokenAccount>;
@@ -270,7 +273,7 @@ export async function getCreateTokenInstructionAsync<
   }
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
   }
   if (!accounts.associatedTokenProgram.value) {
     accounts.associatedTokenProgram.value =
@@ -329,7 +332,10 @@ export type CreateTokenInput<
   tokenMint: TransactionSigner<TAccountTokenMint>;
   /** The group this token will be a member of */
   groupMint: Address<TAccountGroupMint>;
-  /** Program-level PDA — permanent delegate, transfer hook authority */
+  /**
+   * Program-level PDA — permanent delegate, transfer hook authority.
+   * Writable because it signs Token-2022 CPIs that may debit its lamports.
+   */
   programAuthority: Address<TAccountProgramAuthority>;
   /** Owner ATA — created in the handler after the mint exists. */
   ownerTokenAccount: Address<TAccountOwnerTokenAccount>;
@@ -414,7 +420,7 @@ export function getCreateTokenInstruction<
   // Resolve default values.
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
   }
   if (!accounts.associatedTokenProgram.value) {
     accounts.associatedTokenProgram.value =
@@ -468,7 +474,10 @@ export type ParsedCreateTokenInstruction<
     tokenMint: TAccountMetas[2];
     /** The group this token will be a member of */
     groupMint: TAccountMetas[3];
-    /** Program-level PDA — permanent delegate, transfer hook authority */
+    /**
+     * Program-level PDA — permanent delegate, transfer hook authority.
+     * Writable because it signs Token-2022 CPIs that may debit its lamports.
+     */
     programAuthority: TAccountMetas[4];
     /** Owner ATA — created in the handler after the mint exists. */
     ownerTokenAccount: TAccountMetas[5];

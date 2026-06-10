@@ -17,6 +17,7 @@ pub const ROYALTY_OWNER_METADATA_KEY: &str = "ro";
 pub const ROYALTY_BPS_METADATA_KEY: &str = "rb";
 pub const TRANSFER_PRICE_METADATA_KEY: &str = "p";
 pub const PAYMENT_TOKEN_MINT_METADATA_KEY: &str = "m";
+pub const PAYMENT_TOKEN_PROGRAM_METADATA_KEY: &str = "tp";
 pub const ALLOWED_RECIPIENT_METADATA_KEY: &str = "a";
 pub const LAST_TRANSFER_SLOT_METADATA_KEY: &str = "ls";
 pub const LAST_TRANSFER_SLOT_WIDTH: usize = 20;
@@ -95,10 +96,11 @@ pub fn encode_secp256r1_pubkey(pubkey: &Secp256r1Pubkey) -> String {
 
 /// Placeholder transfer-config fields written during `create_token`.
 /// `set_transfer_config` overwrites these without growing the mint account.
-pub fn transfer_config_placeholder_fields() -> [(&'static str, &'static str); 3] {
+pub fn transfer_config_placeholder_fields() -> [(&'static str, &'static str); 4] {
     [
         (TRANSFER_PRICE_METADATA_KEY, "0"),
         (PAYMENT_TOKEN_MINT_METADATA_KEY, ""),
+        (PAYMENT_TOKEN_PROGRAM_METADATA_KEY, ""),
         (ALLOWED_RECIPIENT_METADATA_KEY, ""),
     ]
 }
@@ -150,6 +152,7 @@ pub fn token_metadata_with_transfer_config(
     metadata: &TokenMetadata,
     price: u64,
     payment_token_mint: Option<Pubkey>,
+    payment_token_program: Option<Pubkey>,
     allowed_recipient: Option<Pubkey>,
 ) -> TokenMetadata {
     let mut updated = metadata.clone();
@@ -158,6 +161,11 @@ pub fn token_metadata_with_transfer_config(
         &mut updated,
         PAYMENT_TOKEN_MINT_METADATA_KEY,
         encode_optional_pubkey(payment_token_mint),
+    );
+    upsert_additional_metadata(
+        &mut updated,
+        PAYMENT_TOKEN_PROGRAM_METADATA_KEY,
+        encode_optional_pubkey(payment_token_program),
     );
     upsert_additional_metadata(
         &mut updated,
@@ -264,6 +272,18 @@ pub fn get_payment_token_mint(mint: &AccountInfo) -> Result<Option<Pubkey>> {
         return parse_optional_pubkey(&get_metadata_field_optional(
             &metadata,
             "payment_token_mint",
+        ));
+    }
+    parse_optional_pubkey(&value)
+}
+
+pub fn get_payment_token_program(mint: &AccountInfo) -> Result<Option<Pubkey>> {
+    let metadata = get_token_metadata(mint)?;
+    let value = get_metadata_field_optional(&metadata, PAYMENT_TOKEN_PROGRAM_METADATA_KEY);
+    if value.is_empty() {
+        return parse_optional_pubkey(&get_metadata_field_optional(
+            &metadata,
+            "payment_token_program",
         ));
     }
     parse_optional_pubkey(&value)

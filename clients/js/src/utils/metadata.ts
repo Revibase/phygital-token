@@ -8,6 +8,7 @@ import {
 import {
   METADATA_KEY_DOMAIN_CONFIG,
   METADATA_KEY_PAYMENT_TOKEN_MINT,
+  METADATA_KEY_PAYMENT_TOKEN_PROGRAM,
   METADATA_KEY_ROYALTY_OWNER,
   METADATA_KEY_SECP256R1,
   METADATA_KEY_TRANSFER_PRICE,
@@ -28,6 +29,7 @@ export type TransferMintContext = {
   secp256r1Pubkey: Uint8Array;
   transferPrice: bigint;
   paymentTokenMint: Address | null;
+  paymentTokenProgram: Address | null;
 };
 
 function readU16LE(data: Uint8Array, offset: number): number {
@@ -195,6 +197,9 @@ export async function resolveTransferMintContext(
     ),
     paymentTokenMint: parseOptionalAddress(
       tokenExtensions.metadata.get(METADATA_KEY_PAYMENT_TOKEN_MINT),
+    ),
+    paymentTokenProgram: parseOptionalAddress(
+      tokenExtensions.metadata.get(METADATA_KEY_PAYMENT_TOKEN_PROGRAM),
     ),
   };
 }

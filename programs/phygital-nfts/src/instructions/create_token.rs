@@ -48,7 +48,8 @@ pub struct CreateToken<'info> {
     #[account(mut)]
     pub group_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    /// Program-level PDA — permanent delegate, transfer hook authority
+    /// Program-level PDA — permanent delegate, transfer hook authority.
+    /// Writable because it signs Token-2022 CPIs that may debit its lamports.
     #[account(
         mut,
         seeds = [PROGRAM_AUTHORITY_SEED],
@@ -60,7 +61,10 @@ pub struct CreateToken<'info> {
     /// CHECK: initialized via associated_token::create_idempotent
     #[account(mut)]
     pub owner_token_account: UncheckedAccount<'info>,
-
+    
+    #[account(
+        address = token_2022::ID
+    )]
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,

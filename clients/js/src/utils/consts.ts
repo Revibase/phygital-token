@@ -6,6 +6,10 @@ export const TOKEN_2022_PROGRAM_ADDRESS = address(
   "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
 );
 
+export const TOKEN_PROGRAM_ADDRESS = address(
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+);
+
 export const ASSOCIATED_TOKEN_PROGRAM_ADDRESS = address(
   "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
 );
@@ -29,6 +33,7 @@ export const METADATA_KEY_ROYALTY_OWNER = "ro";
 export const METADATA_KEY_SECP256R1 = "s";
 export const METADATA_KEY_TRANSFER_PRICE = "p";
 export const METADATA_KEY_PAYMENT_TOKEN_MINT = "m";
+export const METADATA_KEY_PAYMENT_TOKEN_PROGRAM = "tp";
 
 export const TOKEN_GROUP_MEMBER_EXTENSION_TYPE = 108;
 export const TOKEN_METADATA_EXTENSION_TYPE = 19;

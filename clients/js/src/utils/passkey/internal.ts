@@ -2,7 +2,11 @@ import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bufferToBase64URLString, startAuthentication, type AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { getAddressEncoder, getProgramDerivedAddress, type Address, type Instruction, type ReadonlyUint8Array } from "@solana/kit";
-import { ASSOCIATED_TOKEN_PROGRAM_ADDRESS, RP_ID, TOKEN_2022_PROGRAM_ADDRESS } from "../consts";
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ADDRESS,
+  RP_ID,
+  TOKEN_2022_PROGRAM_ADDRESS,
+} from "../consts";
 import { getExecuteTransferInstructionAsync } from "../../generated";
 import { TransferInput } from "../../instructions/transfer";
 import type { TransferMintContext } from "../metadata";
@@ -213,35 +217,43 @@ export async function buildTransferInstructions(
     input.mint,
     tokenProgram,
   );
+  const senderTokenAccount = await findAssociatedTokenAddress(
+    input.currentOwner,
+    input.mint,
+    tokenProgram,
+  );
 
   let recipientPaymentTokenAccount: Address | undefined;
   let senderPaymentTokenAccount: Address | undefined;
   let groupOwnerPaymentTokenAccount: Address | undefined;
   let domainAuthorityPaymentTokenAccount: Address | undefined;
   let paymentTokenMint: Address | undefined;
+  let paymentTokenProgram: Address = TOKEN_2022_PROGRAM_ADDRESS;
 
   if (input.mintContext.transferPrice > 0n &&
     input.mintContext.paymentTokenMint) {
     paymentTokenMint = input.mintContext.paymentTokenMint;
+    paymentTokenProgram =
+      input.mintContext.paymentTokenProgram ?? TOKEN_2022_PROGRAM_ADDRESS;
     recipientPaymentTokenAccount = await findAssociatedTokenAddress(
       recipientAddress,
       paymentTokenMint,
-      tokenProgram
+      paymentTokenProgram,
     );
     senderPaymentTokenAccount = await findAssociatedTokenAddress(
       input.currentOwner,
       paymentTokenMint,
-      tokenProgram,
+      paymentTokenProgram,
     );
     groupOwnerPaymentTokenAccount = await findAssociatedTokenAddress(
       input.mintContext.groupOwner,
       paymentTokenMint,
-      tokenProgram
+      paymentTokenProgram,
     );
     domainAuthorityPaymentTokenAccount = await findAssociatedTokenAddress(
       input.mintContext.domainAuthority,
       paymentTokenMint,
-      tokenProgram
+      paymentTokenProgram,
     );
   }
 
@@ -251,6 +263,7 @@ export async function buildTransferInstructions(
     tokenMint: input.mint,
     groupMint: input.mintContext.groupMint,
     domainConfig: input.mintContext.domainConfig,
+    senderTokenAccount,
     recipientTokenAccount,
     groupOwner: input.mintContext.groupOwner,
     domainAuthority: input.mintContext.domainAuthority,
@@ -259,6 +272,7 @@ export async function buildTransferInstructions(
     groupOwnerPaymentTokenAccount,
     domainAuthorityPaymentTokenAccount,
     paymentTokenMint,
+    paymentTokenProgram,
     tokenProgram,
     signedMessageIndex: 0,
     slotNumber: input.slotNumber,

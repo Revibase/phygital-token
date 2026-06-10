@@ -67,7 +67,7 @@ export type SetTransferConfigInstruction<
   TAccountOwnerTokenAccount extends string | AccountMeta<string> = string,
   TAccountProgramAuthority extends string | AccountMeta<string> = string,
   TAccountTokenProgram extends string | AccountMeta<string> =
-    "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
   TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
     "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
   TAccountSystemProgram extends string | AccountMeta<string> =
@@ -111,12 +111,14 @@ export type SetTransferConfigInstructionData = {
   discriminator: ReadonlyUint8Array;
   price: bigint;
   paymentTokenMint: Option<Address>;
+  paymentTokenProgram: Option<Address>;
   allowedRecipient: Option<Address>;
 };
 
 export type SetTransferConfigInstructionDataArgs = {
   price: number | bigint;
   paymentTokenMint: OptionOrNullable<Address>;
+  paymentTokenProgram: OptionOrNullable<Address>;
   allowedRecipient: OptionOrNullable<Address>;
 };
 
@@ -126,6 +128,7 @@ export function getSetTransferConfigInstructionDataEncoder(): Encoder<SetTransfe
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["price", getU64Encoder()],
       ["paymentTokenMint", getOptionEncoder(getAddressEncoder())],
+      ["paymentTokenProgram", getOptionEncoder(getAddressEncoder())],
       ["allowedRecipient", getOptionEncoder(getAddressEncoder())],
     ]),
     (value) => ({ ...value, discriminator: SET_TRANSFER_CONFIG_DISCRIMINATOR }),
@@ -137,6 +140,7 @@ export function getSetTransferConfigInstructionDataDecoder(): Decoder<SetTransfe
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["price", getU64Decoder()],
     ["paymentTokenMint", getOptionDecoder(getAddressDecoder())],
+    ["paymentTokenProgram", getOptionDecoder(getAddressDecoder())],
     ["allowedRecipient", getOptionDecoder(getAddressDecoder())],
   ]);
 }
@@ -171,6 +175,7 @@ export type SetTransferConfigAsyncInput<
   systemProgram?: Address<TAccountSystemProgram>;
   price: SetTransferConfigInstructionDataArgs["price"];
   paymentTokenMint: SetTransferConfigInstructionDataArgs["paymentTokenMint"];
+  paymentTokenProgram: SetTransferConfigInstructionDataArgs["paymentTokenProgram"];
   allowedRecipient: SetTransferConfigInstructionDataArgs["allowedRecipient"];
 };
 
@@ -244,7 +249,7 @@ export async function getSetTransferConfigInstructionAsync<
   // Resolve default values.
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
   }
   if (!accounts.ownerTokenAccount.value) {
     accounts.ownerTokenAccount.value = await getProgramDerivedAddress({
@@ -333,6 +338,7 @@ export type SetTransferConfigInput<
   systemProgram?: Address<TAccountSystemProgram>;
   price: SetTransferConfigInstructionDataArgs["price"];
   paymentTokenMint: SetTransferConfigInstructionDataArgs["paymentTokenMint"];
+  paymentTokenProgram: SetTransferConfigInstructionDataArgs["paymentTokenProgram"];
   allowedRecipient: SetTransferConfigInstructionDataArgs["allowedRecipient"];
 };
 
@@ -404,7 +410,7 @@ export function getSetTransferConfigInstruction<
   // Resolve default values.
   if (!accounts.tokenProgram.value) {
     accounts.tokenProgram.value =
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address<"TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA">;
+      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
   }
   if (!accounts.associatedTokenProgram.value) {
     accounts.associatedTokenProgram.value =

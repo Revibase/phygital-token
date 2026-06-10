@@ -47,6 +47,15 @@ pub enum TokenProgramError {
     #[msg("Payment token mint mismatch")]
     PaymentTokenMintMismatch,
 
+    #[msg("Payment token mint must be set when transfer price is greater than zero")]
+    PaymentTokenMintRequired,
+
+    #[msg("Payment token program must be set when payment token mint is set")]
+    PaymentTokenProgramRequired,
+
+    #[msg("Payment token program mismatch")]
+    PaymentTokenProgramMismatch,
+
     #[msg("Arithmetic overflow")]
     ArithmeticOverflow,
 

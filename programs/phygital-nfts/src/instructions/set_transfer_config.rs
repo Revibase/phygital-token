@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token_2022;
 use anchor_spl::token_2022::spl_token_2022::extension::{
     BaseStateWithExtensions, StateWithExtensions,
 };
@@ -12,13 +13,15 @@ use crate::constants::PROGRAM_AUTHORITY_SEED;
 use crate::error::TokenProgramError;
 use crate::utils::{
     encode_optional_pubkey, fund_member_mint_rent_if_needed, token_metadata_with_transfer_config,
-    ALLOWED_RECIPIENT_METADATA_KEY, PAYMENT_TOKEN_MINT_METADATA_KEY, TRANSFER_PRICE_METADATA_KEY,
+    ALLOWED_RECIPIENT_METADATA_KEY, PAYMENT_TOKEN_MINT_METADATA_KEY,
+    PAYMENT_TOKEN_PROGRAM_METADATA_KEY, TRANSFER_PRICE_METADATA_KEY,
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct SetTransferConfigArgs {
     pub price: u64,
     pub payment_token_mint: Option<Pubkey>,
+    pub payment_token_program: Option<Pubkey>,
     pub allowed_recipient: Option<Pubkey>,
 }
 
@@ -49,6 +52,7 @@ pub struct SetTransferConfig<'info> {
     )]
     pub program_authority: SystemAccount<'info>,
 
+    #[account(address = token_2022::ID)]
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -64,6 +68,12 @@ fn read_token_metadata(mint: &AccountInfo) -> Result<TokenMetadata> {
 }
 
 pub fn handler(ctx: Context<SetTransferConfig>, args: SetTransferConfigArgs) -> Result<()> {
+    match (args.payment_token_mint, args.payment_token_program) {
+        (Some(_), None) => err!(TokenProgramError::PaymentTokenProgramRequired)?,
+        (None, Some(_)) => err!(TokenProgramError::PaymentTokenProgramMismatch)?,
+        _ => {}
+    }
+
     let program_authority_bump = ctx.bumps.program_authority;
     let bump_seed = [program_authority_bump];
     let authority_seed_array = [PROGRAM_AUTHORITY_SEED, &bump_seed[..]];
@@ -77,6 +87,7 @@ pub fn handler(ctx: Context<SetTransferConfig>, args: SetTransferConfigArgs) -> 
         &current_metadata,
         args.price,
         args.payment_token_mint,
+        args.payment_token_program,
         args.allowed_recipient,
     );
     let metadata_size = updated_metadata
@@ -95,6 +106,10 @@ pub fn handler(ctx: Context<SetTransferConfig>, args: SetTransferConfigArgs) -> 
         (
             PAYMENT_TOKEN_MINT_METADATA_KEY,
             encode_optional_pubkey(args.payment_token_mint),
+        ),
+        (
+            PAYMENT_TOKEN_PROGRAM_METADATA_KEY,
+            encode_optional_pubkey(args.payment_token_program),
         ),
         (
             ALLOWED_RECIPIENT_METADATA_KEY,

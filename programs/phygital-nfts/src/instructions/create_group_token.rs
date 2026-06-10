@@ -49,6 +49,9 @@ pub struct CreateGroupToken<'info> {
     )]
     pub program_authority: SystemAccount<'info>,
 
+    #[account(
+        address = token_2022::ID
+    )]
     pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }

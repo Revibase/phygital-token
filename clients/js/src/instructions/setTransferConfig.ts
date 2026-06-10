@@ -11,8 +11,10 @@ import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts";
 export type SetTransferConfigParams = {
   /** Sale price in lamports (native SOL) or smallest units of `paymentTokenMint`. */
   price: bigint | number;
-  /** SPL mint used for payment. Omit or `null` to charge native SOL. */
+  /** SPL mint used for payment. Required when `price > 0`. */
   paymentTokenMint?: Address | null;
+  /** Token program for `paymentTokenMint`. Required when `paymentTokenMint` is set. */
+  paymentTokenProgram?: Address | null;
   /** Restrict transfers to this wallet. Omit or `null` to allow any recipient. */
   allowedRecipient?: Address | null;
 };
@@ -43,6 +45,7 @@ export async function setTransferConfig(
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
     price: input.price,
     paymentTokenMint: input.paymentTokenMint ?? null,
+    paymentTokenProgram: input.paymentTokenProgram ?? null,
     allowedRecipient: input.allowedRecipient ?? null,
   });
 }

@@ -304,6 +304,7 @@ impl TestContext {
                 group_owner_payment_token_account: None,
                 domain_authority_payment_token_account: None,
                 payment_token_mint: None,
+                payment_token_program: TOKEN_2022_ID,
                 slot_hashes: SLOT_HASHES_SYSVAR_ID,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
                 token_program: TOKEN_2022_ID,
