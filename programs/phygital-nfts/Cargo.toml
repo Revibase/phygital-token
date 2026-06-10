@@ -14,22 +14,36 @@ cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 anchor-debug = []
 custom-heap = []
 custom-panic = []
 
 
 [dependencies]
-anchor-lang = "1.0.2"
-anchor-spl = "1.0.2"
+anchor-lang = { version = "1.0.2", features = ["init-if-needed"] }
+anchor-spl = { version = "1.0.2", features = ["token_2022_extensions"] }
+base64 = "0.22.1"
+sha2 = "0.10"
+spl-token-group-interface = "0.7"
+spl-token-metadata-interface = "0.8"
+solana-instructions-sysvar = "3.0"
+solana-sdk-ids = "3"
+spl-discriminator = "0.4"
+spl-transfer-hook-interface = "0.9"
 
 [dev-dependencies]
-litesvm = "0.10.0"
+phygital-nfts-hook = { path = "../phygital-nfts-hook" }
+litesvm = { version = "0.10.0", features = ["precompiles"] }
 solana-message = "3.0.1"
 solana-transaction = "3.0.2"
 solana-signer = "3.0.0"
 solana-keypair = "3.0.1"
+agave-precompiles = "3.1"
+sha2 = "0.10"
+solana-slot-hashes = "3.0"
+p256 = { version = "0.13.2", features = ["ecdsa"] }
+rand = "0.8"
 
 
 [lints.rust]
