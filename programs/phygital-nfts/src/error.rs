@@ -26,15 +26,6 @@ pub enum TokenProgramError {
     #[msg("secp256r1 pubkey does not match token record")]
     Secp256r1PubkeyMismatch,
 
-    #[msg("Transfer price not met")]
-    InsufficientTransferPayment,
-
-    #[msg("Recipient is not the allowed recipient set in transfer config")]
-    RecipientNotAllowed,
-
-    #[msg("Royalty basis points cannot exceed 10000")]
-    InvalidRoyaltyBps,
-
     #[msg("Mint metadata is missing or invalid")]
     InvalidMetadata,
 
@@ -74,12 +65,6 @@ pub enum TokenProgramError {
     #[msg("Sender token account close authority must be delegated to the program")]
     InvalidCloseAuthority,
 
-    #[msg("RpId hash mismatch")]
-    RpIdHashMismatch,
-
-    #[msg("Origin index out of bounds")]
-    OriginIndexOutOfBounds,
-
     #[msg("Client data hash mismatch")]
     ClientDataHashMismatch,
 
@@ -91,12 +76,6 @@ pub enum TokenProgramError {
 
     #[msg("Max length exceeded")]
     MaxLengthExceeded,
-
-    #[msg("Domain config account is missing")]
-    DomainConfigIsMissing,
-
-    #[msg("Domain config account does not match collection metadata")]
-    DomainConfigKeyMismatch,
 
     #[msg("Authority does not match")]
     AuthorityMismatch,

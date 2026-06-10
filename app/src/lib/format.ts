@@ -58,7 +58,10 @@ export function mapTransferError(error: unknown): string {
 	if (message.includes('credential') || message.includes('passkey')) {
 		return "This isn't the right card. Use the physical card linked to this mint.";
 	}
-	if (message.includes('allowed recipient')) {
+	if (message.includes('locked')) {
+		return error.message;
+	}
+	if (message.includes('unlock recipient') || message.includes('claimed by')) {
 		return error.message;
 	}
 	if (message.includes('user rejected') || message.includes('rejected')) {

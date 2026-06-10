@@ -1,10 +1,12 @@
 import {
   getAddressEncoder,
-  getUtf8Encoder,
   type Address,
   type Instruction,
 } from "@solana/kit";
-import { DEFAULT_PUBKEY_BYTES, SECP256R1_PROGRAM_ADDRESS } from "../consts";
+import {
+  SECP256R1_PROGRAM_ADDRESS,
+  TRANSFER_ACTION_BYTES,
+} from "../consts";
 import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify";
 import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { buildSecp256r1VerifyInputFromWebAuthn } from ".";
@@ -29,39 +31,12 @@ function encodeAddress(addressValue: Address): Uint8Array {
   return new Uint8Array(getAddressEncoder().encode(addressValue));
 }
 
-export type TransferTermsInput = {
-  transferPrice: bigint;
-  paymentTokenMint: Address | null;
-  allowedRecipient: Address | null;
-};
-
-function encodeU64LE(value: bigint): Uint8Array {
-  const bytes = new Uint8Array(8);
-  let current = value;
-  for (let i = 0; i < 8; i += 1) {
-    bytes[i] = Number(current & 0xffn);
-    current >>= 8n;
-  }
-  return bytes;
-}
-
-function encodeOptionalPubkey(value: Address | null): Uint8Array {
-  return value ? encodeAddress(value) : new Uint8Array(DEFAULT_PUBKEY_BYTES);
-}
-
 export async function buildTransferMessageHash(input: {
   mint: Address;
   sender: Address;
-  transferTerms: TransferTermsInput;
 }): Promise<Uint8Array> {
   return sha256(
-    concatBytes(
-      encodeAddress(input.mint),
-      encodeAddress(input.sender),
-      encodeU64LE(input.transferTerms.transferPrice),
-      encodeOptionalPubkey(input.transferTerms.paymentTokenMint),
-      encodeOptionalPubkey(input.transferTerms.allowedRecipient),
-    ),
+    concatBytes(encodeAddress(input.mint), encodeAddress(input.sender)),
   );
 }
 
@@ -70,17 +45,15 @@ export async function buildTransferChallenge(input: {
   mint: Address;
   sender: Address;
   slotHash: Uint8Array;
-  transferTerms: TransferTermsInput;
 }): Promise<Uint8Array> {
   const messageHash = await buildTransferMessageHash({
     mint: input.mint,
     sender: input.sender,
-    transferTerms: input.transferTerms,
   });
 
   return sha256(
     concatBytes(
-      new Uint8Array(getUtf8Encoder().encode("transfer")),
+      TRANSFER_ACTION_BYTES,
       encodeAddress(input.tokenProgram),
       messageHash,
       new Uint8Array(input.slotHash),
@@ -90,13 +63,12 @@ export async function buildTransferChallenge(input: {
 
 export type WebAuthnSecp256r1Verification = {
   secp256r1Verify: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
-  originIndex: number;
+  origin: string;
   crossOrigin: boolean;
   truncatedClientDataJson: Uint8Array;
 };
 
 export async function buildSecp256r1VerifyInstructionFromWebAuthn(input: {
-  domainConfig: Address;
   response: AuthenticationResponseJSON;
   compressedPubkey: Uint8Array;
 }): Promise<WebAuthnSecp256r1Verification> {
@@ -104,11 +76,10 @@ export async function buildSecp256r1VerifyInstructionFromWebAuthn(input: {
     response: input.response,
     compressedPubkey: input.compressedPubkey,
   });
- 
 
   return {
     secp256r1Verify: getSecp256r1VerifyInstruction(parsed.verifyInput),
-    originIndex: 0,
+    origin: parsed.origin,
     crossOrigin: parsed.crossOrigin,
     truncatedClientDataJson: parsed.truncatedClientDataJson,
   };

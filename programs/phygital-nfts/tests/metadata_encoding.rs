@@ -1,25 +1,12 @@
-use anchor_lang::prelude::*;
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use phygital_nfts::constants::{
     MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN, MAX_METADATA_URI_LEN,
 };
 use phygital_nfts::Secp256r1Pubkey;
 use phygital_nfts::utils::{
-    encode_last_transfer_slot, encode_optional_pubkey, encode_secp256r1_pubkey,
-    initial_last_transfer_slot_value, validate_metadata_strings, LAST_TRANSFER_SLOT_NONE,
-    LAST_TRANSFER_SLOT_WIDTH,
+    encode_last_transfer_slot, encode_secp256r1_pubkey, initial_last_transfer_slot_value,
+    validate_metadata_strings, LAST_TRANSFER_SLOT_NONE, LAST_TRANSFER_SLOT_WIDTH,
 };
-
-#[test]
-fn encode_optional_pubkey_empty_for_none() {
-    assert_eq!(encode_optional_pubkey(None), "");
-}
-
-#[test]
-fn encode_optional_pubkey_stringifies_some() {
-    let key = Pubkey::new_unique();
-    assert_eq!(encode_optional_pubkey(Some(key)), key.to_string());
-}
 
 #[test]
 fn validate_metadata_strings_accepts_limits() {

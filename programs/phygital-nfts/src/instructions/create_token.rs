@@ -18,9 +18,8 @@ use spl_token_metadata_interface::state::Field;
 use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
 use crate::utils::{
     encode_secp256r1_pubkey, initial_last_transfer_slot_value, member_mint_layout,
-    member_mint_metadata_tlv_size, transfer_config_placeholder_fields,
-    validate_collection_group_mint, validate_metadata_strings, LAST_TRANSFER_SLOT_METADATA_KEY,
-    SECP256R1_METADATA_KEY,
+    member_mint_metadata_tlv_size, validate_collection_group_mint, validate_metadata_strings,
+    LAST_TRANSFER_SLOT_METADATA_KEY, SECP256R1_METADATA_KEY,
 };
 use crate::Secp256r1Pubkey;
 
@@ -75,6 +74,7 @@ pub fn handler(ctx: Context<CreateToken>, args: CreateTokenArgs) -> Result<()> {
     validate_collection_group_mint(
         &ctx.accounts.group_mint.to_account_info(),
         ctx.accounts.program_authority.key(),
+        ctx.program_id,
     )?;
 
     let token_mint_key = ctx.accounts.token_mint.key();
@@ -206,22 +206,6 @@ pub fn handler(ctx: Context<CreateToken>, args: CreateTokenArgs) -> Result<()> {
         Field::Key(SECP256R1_METADATA_KEY.to_string()),
         secp_pubkey_b64,
     )?;
-
-    for (key, value) in transfer_config_placeholder_fields() {
-        token_metadata_update_field(
-            CpiContext::new_with_signer(
-                token_program_id,
-                TokenMetadataUpdateField {
-                    program_id: token_program.clone(),
-                    metadata: mint.clone(),
-                    update_authority: ctx.accounts.program_authority.to_account_info(),
-                },
-                signer_seeds,
-            ),
-            Field::Key(key.to_string()),
-            value.to_string(),
-        )?;
-    }
 
     token_metadata_update_field(
         CpiContext::new_with_signer(

@@ -6,18 +6,10 @@ import {
   type SolanaRpcApi,
 } from "@solana/kit";
 import {
-  METADATA_KEY_ALLOWED_RECIPIENT,
-  METADATA_KEY_DOMAIN_CONFIG,
-  METADATA_KEY_PAYMENT_TOKEN_MINT,
-  METADATA_KEY_PAYMENT_TOKEN_PROGRAM,
-  METADATA_KEY_ROYALTY_BPS,
-  METADATA_KEY_ROYALTY_OWNER,
   METADATA_KEY_SECP256R1,
-  METADATA_KEY_TRANSFER_PRICE,
   TOKEN_GROUP_MEMBER_EXTENSION_TYPE,
   TOKEN_METADATA_EXTENSION_TYPE,
 } from "./consts";
-import { fetchDomainConfig } from "../generated";
 import { fetchAccountData } from "./slotHash";
 import { getCurrentOwner } from "./tokenOwner";
 
@@ -26,16 +18,7 @@ const MINT_ACCOUNT_SIZE = 82;
 export type TransferMintContext = {
   tokenMint: Address;
   groupMint: Address;
-  domainConfig: Address;
-  groupOwner: Address;
-  domainAuthority: Address;
   secp256r1Pubkey: Uint8Array;
-  transferPrice: bigint;
-  paymentTokenMint: Address | null;
-  paymentTokenProgram: Address | null;
-  allowedRecipient: Address | null;
-  groupRoyaltyBps: number;
-  domainRoyaltyBps: number;
 };
 
 function readU16LE(data: Uint8Array, offset: number): number {
@@ -149,44 +132,6 @@ export type CardAttribute = {
   value: string;
 };
 
-export type TransferBreakdown = {
-  total: bigint;
-  sellerAmount: bigint;
-  groupOwnerAmount: bigint;
-  domainFee: bigint;
-  groupRoyaltyAmount: bigint;
-};
-
-export function computeTransferBreakdown(
-  price: bigint,
-  groupRoyaltyBps: number,
-  domainRoyaltyBps: number,
-): TransferBreakdown {
-  if (price === 0n) {
-    return {
-      total: 0n,
-      sellerAmount: 0n,
-      groupOwnerAmount: 0n,
-      domainFee: 0n,
-      groupRoyaltyAmount: 0n,
-    };
-  }
-
-  const groupRoyaltyAmount =
-    (price * BigInt(groupRoyaltyBps)) / 10_000n;
-  const domainFee = (groupRoyaltyAmount * BigInt(domainRoyaltyBps)) / 10_000n;
-  const groupOwnerAmount = groupRoyaltyAmount - domainFee;
-  const sellerAmount = price - groupRoyaltyAmount;
-
-  return {
-    total: price,
-    sellerAmount,
-    groupOwnerAmount,
-    domainFee,
-    groupRoyaltyAmount,
-  };
-}
-
 export type TokenJsonMetadata = {
   name?: string;
   image?: string;
@@ -267,22 +212,6 @@ export async function resolveTokenJsonMetadata(
   return fetchJsonMetadata(uri);
 }
 
-async function fetchPaymentTokenSymbol(
-  rpc: Rpc<SolanaRpcApi>,
-  paymentTokenMint: Address | null,
-): Promise<string | null> {
-  if (!paymentTokenMint) {
-    return null;
-  }
-  try {
-    const mintData = await fetchAccountData(rpc, paymentTokenMint);
-    const extensions = walkMintExtensions(mintData);
-    return extensions.metadata?.symbol ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export type NftDisplayInfo = {
   mint: Address;
   name: string;
@@ -297,12 +226,6 @@ export type NftDisplayInfo = {
   collectionMint: Address | null;
   collectionName: string | null;
   currentOwner: Address;
-  transferPrice: bigint;
-  paymentTokenMint: Address | null;
-  paymentTokenSymbol: string | null;
-  allowedRecipient: Address | null;
-  groupRoyaltyBps: number;
-  domainRoyaltyBps: number;
 };
 
 export async function fetchNftDisplayInfo(
@@ -322,11 +245,6 @@ export async function fetchNftDisplayInfo(
     ? await fetchJsonMetadata(tokenMeta.uri)
     : null;
 
-  const paymentTokenSymbol = await fetchPaymentTokenSymbol(
-    rpc,
-    mintContext.paymentTokenMint,
-  );
-
   return {
     mint: tokenMint,
     name: tokenMeta?.name ?? jsonMeta?.name ?? "Unknown NFT",
@@ -340,27 +258,7 @@ export async function fetchNftDisplayInfo(
     collectionMint: mintContext.groupMint,
     collectionName: groupMeta?.name ?? null,
     currentOwner: await getCurrentOwner(rpc, tokenMint),
-    transferPrice: mintContext.transferPrice,
-    paymentTokenMint: mintContext.paymentTokenMint,
-    paymentTokenSymbol,
-    allowedRecipient: mintContext.allowedRecipient,
-    groupRoyaltyBps: mintContext.groupRoyaltyBps,
-    domainRoyaltyBps: mintContext.domainRoyaltyBps,
   };
-}
-
-function parseOptionalAddress(value: string | undefined): Address | null {
-  if (!value || value.length === 0) {
-    return null;
-  }
-  return address(value);
-}
-
-function parseTransferPrice(value: string | undefined): bigint {
-  if (!value || value.length === 0) {
-    return 0n;
-  }
-  return BigInt(value);
 }
 
 function decodeSecp256r1Pubkey(encoded: string): Uint8Array {
@@ -383,33 +281,6 @@ export async function resolveTransferMintContext(
     throw new Error("Token mint is missing a TokenGroupMember extension");
   }
 
-  const groupMintData = await fetchAccountData(rpc, tokenExtensions.groupMint);
-  const groupExtensions = walkMintExtensions(groupMintData);
-
-  const groupAdditional = groupExtensions.metadata?.additional;
-  if (!groupAdditional) {
-    throw new Error("Collection mint is missing token metadata extension");
-  }
-
-  const domainConfigValue = groupAdditional.get(METADATA_KEY_DOMAIN_CONFIG);
-  if (!domainConfigValue) {
-    throw new Error("Collection mint is missing domain config metadata");
-  }
-
-  const royaltyOwnerValue = groupAdditional.get(METADATA_KEY_ROYALTY_OWNER);
-  if (!royaltyOwnerValue) {
-    throw new Error("Collection mint is missing royalty owner metadata");
-  }
-
-  const royaltyBpsValue = groupAdditional.get(METADATA_KEY_ROYALTY_BPS);
-  let groupRoyaltyBps = 0;
-  if (royaltyBpsValue) {
-    groupRoyaltyBps = Number.parseInt(royaltyBpsValue, 10);
-    if (Number.isNaN(groupRoyaltyBps) || groupRoyaltyBps > 10_000) {
-      throw new Error("Collection mint has invalid royalty bps metadata");
-    }
-  }
-
   const tokenAdditional = tokenExtensions.metadata?.additional;
   if (!tokenAdditional) {
     throw new Error("Token mint is missing token metadata extension");
@@ -420,29 +291,9 @@ export async function resolveTransferMintContext(
     throw new Error("Token mint is missing secp256r1 passkey metadata");
   }
 
-  const domainConfig = address(domainConfigValue);
-  const domainConfigAccount = await fetchDomainConfig(rpc, domainConfig);
-
   return {
     tokenMint,
     groupMint: tokenExtensions.groupMint,
-    domainConfig,
-    groupOwner: address(royaltyOwnerValue),
-    domainAuthority: domainConfigAccount.data.authority,
     secp256r1Pubkey: decodeSecp256r1Pubkey(secp256r1Value),
-    transferPrice: parseTransferPrice(
-      tokenAdditional.get(METADATA_KEY_TRANSFER_PRICE),
-    ),
-    paymentTokenMint: parseOptionalAddress(
-      tokenAdditional.get(METADATA_KEY_PAYMENT_TOKEN_MINT),
-    ),
-    paymentTokenProgram: parseOptionalAddress(
-      tokenAdditional.get(METADATA_KEY_PAYMENT_TOKEN_PROGRAM),
-    ),
-    allowedRecipient: parseOptionalAddress(
-      tokenAdditional.get(METADATA_KEY_ALLOWED_RECIPIENT),
-    ),
-    groupRoyaltyBps,
-    domainRoyaltyBps: domainConfigAccount.data.royaltyBps,
   };
 }

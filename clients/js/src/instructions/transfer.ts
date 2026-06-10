@@ -62,11 +62,6 @@ export async function beginTransfer(
     mint: input.mint,
     sender: currentOwner,
     slotHash,
-    transferTerms: {
-      transferPrice: mintContext.transferPrice,
-      paymentTokenMint: mintContext.paymentTokenMint,
-      allowedRecipient: mintContext.allowedRecipient,
-    },
   });
 
   return {

@@ -1,26 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { computeTransferBreakdown, type NftDisplayInfo } from 'phygital-nfts-client';
+	import type { NftDisplayInfo } from 'phygital-nfts-client';
 	import { fetchMarketplaceQuote, type MarketplaceQuote } from '$lib/marketplace';
-	import { formatLamports, formatTokenAmount } from '$lib/format';
 
 	let { nft }: { nft: NftDisplayInfo } = $props();
 
 	let marketQuote = $state<MarketplaceQuote | null>(null);
-	let breakdownOpen = $state(false);
-
-	const hasPrice = $derived(nft.transferPrice > 0n);
-	const breakdown = $derived(
-		computeTransferBreakdown(nft.transferPrice, nft.groupRoyaltyBps, nft.domainRoyaltyBps)
-	);
-
-	const claimPriceLabel = $derived(
-		hasPrice
-			? nft.paymentTokenMint
-				? formatTokenAmount(nft.transferPrice, nft.paymentTokenSymbol)
-				: formatLamports(nft.transferPrice)
-			: 'Free'
-	);
 
 	onMount(async () => {
 		marketQuote = await fetchMarketplaceQuote(nft.mint);
@@ -28,54 +13,6 @@
 </script>
 
 <section class="pricing">
-	<div class="claim-block">
-		<h2>Claim</h2>
-		<div class="row">
-			<span class="label">Price to claim</span>
-			<span class="value">{claimPriceLabel}</span>
-		</div>
-
-		{#if hasPrice && (breakdown.groupRoyaltyAmount > 0n || breakdown.sellerAmount > 0n)}
-			<button type="button" class="breakdown-toggle" onclick={() => (breakdownOpen = !breakdownOpen)}>
-				{breakdownOpen ? 'Hide breakdown' : 'Show breakdown'}
-			</button>
-			{#if breakdownOpen}
-				<dl class="breakdown">
-					{#if breakdown.sellerAmount > 0n}
-						<div>
-							<dt>To current owner</dt>
-							<dd>
-								{nft.paymentTokenMint
-									? formatTokenAmount(breakdown.sellerAmount, nft.paymentTokenSymbol)
-									: formatLamports(breakdown.sellerAmount)}
-							</dd>
-						</div>
-					{/if}
-					{#if breakdown.groupOwnerAmount > 0n}
-						<div>
-							<dt>Collection royalty</dt>
-							<dd>
-								{nft.paymentTokenMint
-									? formatTokenAmount(breakdown.groupOwnerAmount, nft.paymentTokenSymbol)
-									: formatLamports(breakdown.groupOwnerAmount)}
-							</dd>
-						</div>
-					{/if}
-					{#if breakdown.domainFee > 0n}
-						<div>
-							<dt>Platform fee</dt>
-							<dd>
-								{nft.paymentTokenMint
-									? formatTokenAmount(breakdown.domainFee, nft.paymentTokenSymbol)
-									: formatLamports(breakdown.domainFee)}
-							</dd>
-						</div>
-					{/if}
-				</dl>
-			{/if}
-		{/if}
-	</div>
-
 	<div class="market">
 		<div class="market-header">
 			<h2>Market</h2>
@@ -112,10 +49,6 @@
 		color: var(--muted-foreground);
 	}
 
-	.claim-block h2 {
-		margin-bottom: 0.5rem;
-	}
-
 	.row {
 		display: flex;
 		justify-content: space-between;
@@ -130,49 +63,10 @@
 	}
 
 	.value {
-		font-size: 1rem;
-		font-weight: 700;
+		font-size: 0.95rem;
+		font-weight: 600;
 		color: var(--foreground);
-	}
-
-	.breakdown-toggle {
-		margin-top: 0.35rem;
-		border: 0;
-		background: transparent;
-		color: var(--foreground);
-		font-size: 0.82rem;
-		cursor: pointer;
-		padding: 0;
-	}
-
-	.breakdown {
-		margin: 0.5rem 0 0;
-		padding-top: 0.5rem;
-		border-top: 1px solid var(--border);
-	}
-
-	.breakdown div {
-		display: flex;
-		justify-content: space-between;
-		padding: 0.25rem 0;
-	}
-
-	.breakdown dt {
-		margin: 0;
-		font-size: 0.8rem;
-		color: var(--muted-foreground);
-	}
-
-	.breakdown dd {
-		margin: 0;
-		font-size: 0.85rem;
-		color: var(--foreground);
-	}
-
-	.market {
-		margin-top: 1rem;
-		padding-top: 1rem;
-		border-top: 1px solid var(--border);
+		text-align: right;
 	}
 
 	.market-header {

@@ -7,18 +7,14 @@ use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use spl_token_group_interface::state::{TokenGroup, TokenGroupMember};
 use spl_token_metadata_interface::state::TokenMetadata;
 
-use crate::constants::{MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN, MAX_METADATA_URI_LEN};
+use crate::constants::{
+    GROUP_MINT_SEED, MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN, MAX_METADATA_URI_LEN,
+};
 use crate::error::TokenProgramError;
 use crate::Secp256r1Pubkey;
 
 pub const SECP256R1_METADATA_KEY: &str = "s";
-pub const DOMAIN_CONFIG_METADATA_KEY: &str = "dc";
-pub const ROYALTY_OWNER_METADATA_KEY: &str = "ro";
-pub const ROYALTY_BPS_METADATA_KEY: &str = "rb";
-pub const TRANSFER_PRICE_METADATA_KEY: &str = "p";
-pub const PAYMENT_TOKEN_MINT_METADATA_KEY: &str = "m";
-pub const PAYMENT_TOKEN_PROGRAM_METADATA_KEY: &str = "tp";
-pub const ALLOWED_RECIPIENT_METADATA_KEY: &str = "a";
+pub const GROUP_UNIQUE_ID_METADATA_KEY: &str = "ui";
 pub const LAST_TRANSFER_SLOT_METADATA_KEY: &str = "ls";
 pub const LAST_TRANSFER_SLOT_WIDTH: usize = 20;
 pub const LAST_TRANSFER_SLOT_NONE: u64 = u64::MAX;
@@ -74,50 +70,11 @@ fn get_metadata_field_optional(metadata: &TokenMetadata, key: &str) -> String {
         .unwrap_or_default()
 }
 
-fn parse_optional_pubkey(value: &str) -> Result<Option<Pubkey>> {
-    if value.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(
-            value
-                .parse::<Pubkey>()
-                .map_err(|_| error!(TokenProgramError::InvalidMetadata))?,
-        ))
-    }
-}
-
-pub fn encode_optional_pubkey(value: Option<Pubkey>) -> String {
-    value.map(|key| key.to_string()).unwrap_or_default()
-}
-
 pub fn encode_secp256r1_pubkey(pubkey: &Secp256r1Pubkey) -> String {
     BASE64.encode(pubkey.0)
 }
 
-/// Placeholder transfer-config fields written during `create_token`.
-/// `set_transfer_config` overwrites these without growing the mint account.
-pub fn transfer_config_placeholder_fields() -> [(&'static str, &'static str); 4] {
-    [
-        (TRANSFER_PRICE_METADATA_KEY, "0"),
-        (PAYMENT_TOKEN_MINT_METADATA_KEY, ""),
-        (PAYMENT_TOKEN_PROGRAM_METADATA_KEY, ""),
-        (ALLOWED_RECIPIENT_METADATA_KEY, ""),
-    ]
-}
-
-fn upsert_additional_metadata(metadata: &mut TokenMetadata, key: &str, value: String) {
-    if let Some((_, existing)) = metadata
-        .additional_metadata
-        .iter_mut()
-        .find(|(field_key, _)| field_key == key)
-    {
-        *existing = value;
-    } else {
-        metadata.additional_metadata.push((key.to_string(), value));
-    }
-}
-
-/// TLV size for a member mint at `create_token` — placeholders only.
+/// TLV size for a member mint at `create_token`.
 pub fn member_mint_metadata_tlv_size(
     name: &str,
     symbol: &str,
@@ -134,11 +91,6 @@ pub fn member_mint_metadata_tlv_size(
         SECP256R1_METADATA_KEY.to_string(),
         secp256r1_value.to_string(),
     ));
-    for (key, value) in transfer_config_placeholder_fields() {
-        metadata
-            .additional_metadata
-            .push((key.to_string(), value.to_string()));
-    }
     metadata.additional_metadata.push((
         LAST_TRANSFER_SLOT_METADATA_KEY.to_string(),
         initial_last_transfer_slot_value(),
@@ -146,33 +98,6 @@ pub fn member_mint_metadata_tlv_size(
     metadata
         .tlv_size_of()
         .map_err(|_| error!(TokenProgramError::ArithmeticOverflow))
-}
-
-pub fn token_metadata_with_transfer_config(
-    metadata: &TokenMetadata,
-    price: u64,
-    payment_token_mint: Option<Pubkey>,
-    payment_token_program: Option<Pubkey>,
-    allowed_recipient: Option<Pubkey>,
-) -> TokenMetadata {
-    let mut updated = metadata.clone();
-    upsert_additional_metadata(&mut updated, TRANSFER_PRICE_METADATA_KEY, price.to_string());
-    upsert_additional_metadata(
-        &mut updated,
-        PAYMENT_TOKEN_MINT_METADATA_KEY,
-        encode_optional_pubkey(payment_token_mint),
-    );
-    upsert_additional_metadata(
-        &mut updated,
-        PAYMENT_TOKEN_PROGRAM_METADATA_KEY,
-        encode_optional_pubkey(payment_token_program),
-    );
-    upsert_additional_metadata(
-        &mut updated,
-        ALLOWED_RECIPIENT_METADATA_KEY,
-        encode_optional_pubkey(allowed_recipient),
-    );
-    updated
 }
 
 pub fn get_group_mint(mint: &AccountInfo) -> Result<Pubkey> {
@@ -194,11 +119,18 @@ pub fn get_secp256r1_pubkey(mint: &AccountInfo) -> Result<[u8; 33]> {
     decode_secp256r1_hex(&hex_str)
 }
 
-pub fn get_domain_config(mint: &AccountInfo) -> Result<Pubkey> {
+pub fn find_group_mint_pda(unique_id: u64, program_id: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[GROUP_MINT_SEED, &unique_id.to_le_bytes()],
+        program_id,
+    )
+}
+
+pub fn get_group_unique_id(mint: &AccountInfo) -> Result<u64> {
     let metadata = get_token_metadata(mint)?;
-    let value = get_metadata_field(&metadata, DOMAIN_CONFIG_METADATA_KEY)?;
+    let value = get_metadata_field(&metadata, GROUP_UNIQUE_ID_METADATA_KEY)?;
     value
-        .parse::<Pubkey>()
+        .parse::<u64>()
         .map_err(|_| error!(TokenProgramError::InvalidMetadata))
 }
 
@@ -206,8 +138,14 @@ pub fn get_domain_config(mint: &AccountInfo) -> Result<Pubkey> {
 pub fn validate_collection_group_mint(
     group_mint: &AccountInfo,
     program_authority: Pubkey,
+    program_id: &Pubkey,
 ) -> Result<()> {
-    get_domain_config(group_mint)?;
+    let unique_id = get_group_unique_id(group_mint)?;
+    let (expected_pda, _) = find_group_mint_pda(unique_id, program_id);
+    require!(
+        group_mint.key() == expected_pda,
+        TokenProgramError::GroupMintMismatch
+    );
 
     let data = group_mint.try_borrow_data()?;
     let state = StateWithExtensions::<SplMint>::unpack(&data)
@@ -228,77 +166,6 @@ pub fn validate_collection_group_mint(
     Ok(())
 }
 
-pub fn get_royalty_owner(mint: &AccountInfo) -> Result<Pubkey> {
-    let metadata = get_token_metadata(mint)?;
-    let value = get_metadata_field(&metadata, ROYALTY_OWNER_METADATA_KEY)
-        .or_else(|_| get_metadata_field(&metadata, "royalty_owner"))?;
-    value
-        .parse::<Pubkey>()
-        .map_err(|_| error!(TokenProgramError::InvalidMetadata))
-}
-
-pub fn get_royalty_bps(mint: &AccountInfo) -> Result<u16> {
-    let metadata = get_token_metadata(mint)?;
-    let value = get_metadata_field_optional(&metadata, ROYALTY_BPS_METADATA_KEY);
-    if value.is_empty() {
-        let legacy = get_metadata_field_optional(&metadata, "royalty_bps");
-        if legacy.is_empty() {
-            return Ok(0);
-        }
-        return parse_royalty_bps(&legacy);
-    }
-    parse_royalty_bps(&value)
-}
-
-fn parse_royalty_bps(value: &str) -> Result<u16> {
-    let royalty_bps: u16 = value
-        .parse()
-        .map_err(|_| error!(TokenProgramError::InvalidRoyaltyBps))?;
-    require!(royalty_bps <= 10_000, TokenProgramError::InvalidRoyaltyBps);
-    Ok(royalty_bps)
-}
-
-pub fn get_transfer_price(mint: &AccountInfo) -> Result<u64> {
-    let metadata = get_token_metadata(mint)?;
-    let value = get_metadata_field_optional(&metadata, TRANSFER_PRICE_METADATA_KEY);
-    if value.is_empty() {
-        let legacy = get_metadata_field_optional(&metadata, "transfer_price");
-        if legacy.is_empty() {
-            return Ok(0);
-        }
-        return legacy
-            .parse()
-            .map_err(|_| error!(TokenProgramError::InvalidMetadata));
-    }
-    value
-        .parse()
-        .map_err(|_| error!(TokenProgramError::InvalidMetadata))
-}
-
-pub fn get_payment_token_mint(mint: &AccountInfo) -> Result<Option<Pubkey>> {
-    let metadata = get_token_metadata(mint)?;
-    let value = get_metadata_field_optional(&metadata, PAYMENT_TOKEN_MINT_METADATA_KEY);
-    if value.is_empty() {
-        return parse_optional_pubkey(&get_metadata_field_optional(
-            &metadata,
-            "payment_token_mint",
-        ));
-    }
-    parse_optional_pubkey(&value)
-}
-
-pub fn get_payment_token_program(mint: &AccountInfo) -> Result<Option<Pubkey>> {
-    let metadata = get_token_metadata(mint)?;
-    let value = get_metadata_field_optional(&metadata, PAYMENT_TOKEN_PROGRAM_METADATA_KEY);
-    if value.is_empty() {
-        return parse_optional_pubkey(&get_metadata_field_optional(
-            &metadata,
-            "payment_token_program",
-        ));
-    }
-    parse_optional_pubkey(&value)
-}
-
 pub fn get_last_transfer_slot(mint: &AccountInfo) -> Result<u64> {
     let metadata = get_token_metadata(mint)?;
     let value = get_metadata_field_optional(&metadata, LAST_TRANSFER_SLOT_METADATA_KEY);
@@ -308,15 +175,6 @@ pub fn get_last_transfer_slot(mint: &AccountInfo) -> Result<u64> {
     value
         .parse()
         .map_err(|_| error!(TokenProgramError::InvalidMetadata))
-}
-
-pub fn get_allowed_recipient(mint: &AccountInfo) -> Result<Option<Pubkey>> {
-    let metadata = get_token_metadata(mint)?;
-    let value = get_metadata_field_optional(&metadata, ALLOWED_RECIPIENT_METADATA_KEY);
-    if value.is_empty() {
-        return parse_optional_pubkey(&get_metadata_field_optional(&metadata, "allowed_recipient"));
-    }
-    parse_optional_pubkey(&value)
 }
 
 fn decode_secp256r1_base64(encoded: &str) -> Result<[u8; 33]> {

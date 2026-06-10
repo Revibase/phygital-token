@@ -1,4 +1,4 @@
-import { address, type Address } from "@solana/kit";
+import { address } from "@solana/kit";
 
 export const RP_ID = "revibase.com";
 
@@ -28,16 +28,8 @@ export const SLOT_HASHES_SYSVAR_ADDRESS = address(
 
 export const TRANSFER_ACTION_BYTES = new TextEncoder().encode("transfer");
 
-export const METADATA_KEY_DOMAIN_CONFIG = "dc";
-export const METADATA_KEY_ROYALTY_OWNER = "ro";
+export const METADATA_KEY_GROUP_UNIQUE_ID = "ui";
 export const METADATA_KEY_SECP256R1 = "s";
-export const METADATA_KEY_TRANSFER_PRICE = "p";
-export const METADATA_KEY_PAYMENT_TOKEN_MINT = "m";
-export const METADATA_KEY_PAYMENT_TOKEN_PROGRAM = "tp";
-export const METADATA_KEY_ALLOWED_RECIPIENT = "a";
-export const METADATA_KEY_ROYALTY_BPS = "rb";
-
-export const DEFAULT_PUBKEY_BYTES = new Uint8Array(32);
 
 export const TOKEN_GROUP_MEMBER_EXTENSION_TYPE = 108;
 export const TOKEN_METADATA_EXTENSION_TYPE = 19;

@@ -27,7 +27,7 @@
 		transition: transform 120ms ease, opacity 120ms ease;
 	}
 
-	.primary:hover {
+	.primary:hover:not(:disabled) {
 		opacity: 0.88;
 		transform: translateY(-1px);
 	}

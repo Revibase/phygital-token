@@ -6,7 +6,6 @@ use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 
 use crate::{
     error::TokenProgramError,
-    state::DomainConfig,
     utils::{
         secp256r1_pubkey::{
             Secp256r1Pubkey, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
@@ -27,11 +26,13 @@ struct Secp256r1SignatureOffsets {
     message_instruction_index: u16,
 }
 
+pub const MAX_ORIGIN_LEN: usize = 256;
+
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Debug, Clone)]
 pub struct Secp256r1VerifyArgs {
     pub signed_message_index: u8,
     pub slot_number: u64,
-    pub origin_index: u8,
+    pub origin: String,
     pub cross_origin: bool,
     pub truncated_client_data_json: Vec<u8>,
 }
@@ -240,10 +241,10 @@ impl Secp256r1VerifyArgs {
         err!(TokenProgramError::InvalidSlotHash)
     }
 
-    fn extract_webauthn_signed_message_from_instruction(
+    fn extract_client_data_hash_from_instruction(
         &self,
         instructions_sysvar: &UncheckedAccount,
-    ) -> Result<([u8; 32], [u8; 32])> {
+    ) -> Result<[u8; 32]> {
         require!(
             instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
             TokenProgramError::MissingInstructionsSysvar
@@ -272,15 +273,9 @@ impl Secp256r1VerifyArgs {
 
         let message = Self::extract_message_data(data, &offsets)?;
 
-        let rp_id_hash: [u8; 32] = message[..32]
+        Ok(message[(message.len() - 32)..]
             .try_into()
-            .map_err(|_| TokenProgramError::InvalidSignatureOffsets)?;
-
-        let client_data_hash: [u8; 32] = message[(message.len() - 32)..]
-            .try_into()
-            .map_err(|_| TokenProgramError::InvalidSignatureOffsets)?;
-
-        Ok((rp_id_hash, client_data_hash))
+            .map_err(|_| error!(TokenProgramError::InvalidSignatureOffsets))?)
     }
 
     pub fn extract_public_key_from_instruction(
@@ -324,25 +319,18 @@ impl Secp256r1VerifyArgs {
     pub fn verify_webauthn<'info>(
         &self,
         slot_hashes: &UncheckedAccount<'info>,
-        domain_config: &Account<'info, DomainConfig>,
         instructions_sysvar: &UncheckedAccount<'info>,
         challenge_args: ChallengeArgs,
     ) -> Result<()> {
-        let (rp_id_hash, client_data_hash) =
-            self.extract_webauthn_signed_message_from_instruction(instructions_sysvar)?;
-
         require!(
-            domain_config.rp_id_hash == rp_id_hash,
-            TokenProgramError::RpIdHashMismatch
+            !self.origin.is_empty() && self.origin.len() <= MAX_ORIGIN_LEN,
+            TokenProgramError::MaxLengthExceeded
         );
 
-        let slot_hash = self.fetch_slot_hash(slot_hashes)?;
+        let client_data_hash =
+            self.extract_client_data_hash_from_instruction(instructions_sysvar)?;
 
-        let whitelisted_origins = domain_config.parse_origins()?;
-        let expected_origin = whitelisted_origins
-            .get(self.origin_index as usize)
-            .ok_or(TokenProgramError::OriginIndexOutOfBounds)?
-            .to_string();
+        let slot_hash = self.fetch_slot_hash(slot_hashes)?;
 
         let mut buffer = Vec::new();
         buffer.extend_from_slice(challenge_args.action_type.to_bytes());
@@ -353,7 +341,7 @@ impl Secp256r1VerifyArgs {
         let expected_challenge: [u8; 32] = Sha256::digest(&buffer).into();
 
         let generated_client_data_json =
-            self.generate_client_data_json(&expected_origin, expected_challenge)?;
+            self.generate_client_data_json(&self.origin, expected_challenge)?;
 
         let expected_client_data_hash: [u8; 32] =
             Sha256::digest(&generated_client_data_json).into();

@@ -12,112 +12,50 @@ import {
   extendClient,
   fixEncoderSize,
   getBytesEncoder,
-  SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
   SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
   SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
   SolanaError,
   type Address,
   type ClientWithPayer,
-  type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
-  type GetAccountInfoApi,
-  type GetMultipleAccountsApi,
   type Instruction,
   type InstructionWithData,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  addSelfFetchFunctions,
   addSelfPlanAndSendFunctions,
-  type SelfFetchFunctions,
   type SelfPlanAndSendFunctions,
 } from "@solana/program-client-core";
 import {
-  getDomainConfigCodec,
-  type DomainConfig,
-  type DomainConfigArgs,
-} from "../accounts";
-import {
-  getCreateDomainConfigInstruction,
   getCreateGroupTokenInstructionAsync,
   getCreateTokenInstructionAsync,
-  getEditDomainConfigInstruction,
   getExecuteTransferInstructionAsync,
-  getSetTransferConfigInstructionAsync,
-  parseCreateDomainConfigInstruction,
   parseCreateGroupTokenInstruction,
   parseCreateTokenInstruction,
-  parseEditDomainConfigInstruction,
   parseExecuteTransferInstruction,
-  parseSetTransferConfigInstruction,
-  type CreateDomainConfigInput,
   type CreateGroupTokenAsyncInput,
   type CreateTokenAsyncInput,
-  type EditDomainConfigInput,
   type ExecuteTransferAsyncInput,
-  type ParsedCreateDomainConfigInstruction,
   type ParsedCreateGroupTokenInstruction,
   type ParsedCreateTokenInstruction,
-  type ParsedEditDomainConfigInstruction,
   type ParsedExecuteTransferInstruction,
-  type ParsedSetTransferConfigInstruction,
-  type SetTransferConfigAsyncInput,
 } from "../instructions";
 import { findProgramAuthorityPda } from "../pdas";
 
 export const PHYGITAL_NFTS_PROGRAM_ADDRESS =
   "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1" as Address<"3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1">;
 
-export enum PhygitalNftsAccount {
-  DomainConfig,
-}
-
-export function identifyPhygitalNftsAccount(
-  account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
-): PhygitalNftsAccount {
-  const data = "data" in account ? account.data : account;
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([201, 232, 212, 229, 59, 241, 106, 197]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalNftsAccount.DomainConfig;
-  }
-  throw new SolanaError(
-    SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
-    { accountData: data, programName: "phygitalNfts" },
-  );
-}
-
 export enum PhygitalNftsInstruction {
-  CreateDomainConfig,
   CreateGroupToken,
   CreateToken,
-  EditDomainConfig,
   ExecuteTransfer,
-  SetTransferConfig,
 }
 
 export function identifyPhygitalNftsInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): PhygitalNftsInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([197, 81, 191, 2, 164, 140, 184, 90]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalNftsInstruction.CreateDomainConfig;
-  }
   if (
     containsBytes(
       data,
@@ -144,34 +82,12 @@ export function identifyPhygitalNftsInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([110, 212, 99, 229, 72, 93, 185, 231]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalNftsInstruction.EditDomainConfig;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([233, 126, 160, 184, 235, 206, 31, 119]),
       ),
       0,
     )
   ) {
     return PhygitalNftsInstruction.ExecuteTransfer;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([218, 190, 152, 27, 117, 55, 231, 177]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalNftsInstruction.SetTransferConfig;
   }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
@@ -183,36 +99,20 @@ export type ParsedPhygitalNftsInstruction<
   TProgram extends string = "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1",
 > =
   | ({
-      instructionType: PhygitalNftsInstruction.CreateDomainConfig;
-    } & ParsedCreateDomainConfigInstruction<TProgram>)
-  | ({
       instructionType: PhygitalNftsInstruction.CreateGroupToken;
     } & ParsedCreateGroupTokenInstruction<TProgram>)
   | ({
       instructionType: PhygitalNftsInstruction.CreateToken;
     } & ParsedCreateTokenInstruction<TProgram>)
   | ({
-      instructionType: PhygitalNftsInstruction.EditDomainConfig;
-    } & ParsedEditDomainConfigInstruction<TProgram>)
-  | ({
       instructionType: PhygitalNftsInstruction.ExecuteTransfer;
-    } & ParsedExecuteTransferInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalNftsInstruction.SetTransferConfig;
-    } & ParsedSetTransferConfigInstruction<TProgram>);
+    } & ParsedExecuteTransferInstruction<TProgram>);
 
 export function parsePhygitalNftsInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedPhygitalNftsInstruction<TProgram> {
   const instructionType = identifyPhygitalNftsInstruction(instruction);
   switch (instructionType) {
-    case PhygitalNftsInstruction.CreateDomainConfig: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalNftsInstruction.CreateDomainConfig,
-        ...parseCreateDomainConfigInstruction(instruction),
-      };
-    }
     case PhygitalNftsInstruction.CreateGroupToken: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -227,25 +127,11 @@ export function parsePhygitalNftsInstruction<TProgram extends string>(
         ...parseCreateTokenInstruction(instruction),
       };
     }
-    case PhygitalNftsInstruction.EditDomainConfig: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalNftsInstruction.EditDomainConfig,
-        ...parseEditDomainConfigInstruction(instruction),
-      };
-    }
     case PhygitalNftsInstruction.ExecuteTransfer: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: PhygitalNftsInstruction.ExecuteTransfer,
         ...parseExecuteTransferInstruction(instruction),
-      };
-    }
-    case PhygitalNftsInstruction.SetTransferConfig: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalNftsInstruction.SetTransferConfig,
-        ...parseSetTransferConfigInstruction(instruction),
       };
     }
     default:
@@ -260,21 +146,11 @@ export function parsePhygitalNftsInstruction<TProgram extends string>(
 }
 
 export type PhygitalNftsPlugin = {
-  accounts: PhygitalNftsPluginAccounts;
   instructions: PhygitalNftsPluginInstructions;
   pdas: PhygitalNftsPluginPdas;
 };
 
-export type PhygitalNftsPluginAccounts = {
-  domainConfig: ReturnType<typeof getDomainConfigCodec> &
-    SelfFetchFunctions<DomainConfigArgs, DomainConfig>;
-};
-
 export type PhygitalNftsPluginInstructions = {
-  createDomainConfig: (
-    input: MakeOptional<CreateDomainConfigInput, "payer">,
-  ) => ReturnType<typeof getCreateDomainConfigInstruction> &
-    SelfPlanAndSendFunctions;
   createGroupToken: (
     input: MakeOptional<CreateGroupTokenAsyncInput, "payer">,
   ) => ReturnType<typeof getCreateGroupTokenInstructionAsync> &
@@ -283,17 +159,9 @@ export type PhygitalNftsPluginInstructions = {
     input: MakeOptional<CreateTokenAsyncInput, "payer">,
   ) => ReturnType<typeof getCreateTokenInstructionAsync> &
     SelfPlanAndSendFunctions;
-  editDomainConfig: (
-    input: EditDomainConfigInput,
-  ) => ReturnType<typeof getEditDomainConfigInstruction> &
-    SelfPlanAndSendFunctions;
   executeTransfer: (
     input: ExecuteTransferAsyncInput,
   ) => ReturnType<typeof getExecuteTransferInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  setTransferConfig: (
-    input: MakeOptional<SetTransferConfigAsyncInput, "payer">,
-  ) => ReturnType<typeof getSetTransferConfigInstructionAsync> &
     SelfPlanAndSendFunctions;
 };
 
@@ -301,10 +169,7 @@ export type PhygitalNftsPluginPdas = {
   programAuthority: typeof findProgramAuthorityPda;
 };
 
-export type PhygitalNftsPluginRequirements = ClientWithRpc<
-  GetAccountInfoApi & GetMultipleAccountsApi
-> &
-  ClientWithPayer &
+export type PhygitalNftsPluginRequirements = ClientWithPayer &
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
@@ -314,18 +179,7 @@ export function phygitalNftsProgram() {
   ): Omit<T, "phygitalNfts"> & { phygitalNfts: PhygitalNftsPlugin } => {
     return extendClient(client, {
       phygitalNfts: <PhygitalNftsPlugin>{
-        accounts: {
-          domainConfig: addSelfFetchFunctions(client, getDomainConfigCodec()),
-        },
         instructions: {
-          createDomainConfig: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCreateDomainConfigInstruction({
-                ...input,
-                payer: input.payer ?? client.payer,
-              }),
-            ),
           createGroupToken: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -342,23 +196,10 @@ export function phygitalNftsProgram() {
                 payer: input.payer ?? client.payer,
               }),
             ),
-          editDomainConfig: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getEditDomainConfigInstruction(input),
-            ),
           executeTransfer: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getExecuteTransferInstructionAsync(input),
-            ),
-          setTransferConfig: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetTransferConfigInstructionAsync({
-                ...input,
-                payer: input.payer ?? client.payer,
-              }),
             ),
         },
         pdas: { programAuthority: findProgramAuthorityPda },

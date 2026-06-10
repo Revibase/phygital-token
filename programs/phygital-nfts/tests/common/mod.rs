@@ -1,6 +1,6 @@
 mod secp256r1;
 
-use anchor_lang::solana_program::instruction::Instruction;
+use anchor_lang::solana_program::instruction::{AccountMeta, Instruction};
 use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::solana_program::system_instruction;
 use anchor_lang::{prelude::*, InstructionData, ToAccountMetas};
@@ -10,13 +10,8 @@ use anchor_spl::token_2022::spl_token_2022::instruction::transfer_checked;
 use anchor_spl::token_2022::spl_token_2022::state::Account as TokenAccountState;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use litesvm::LiteSVM;
-use phygital_nfts::constants::{PROGRAM_AUTHORITY_SEED, SEED_DOMAIN_CONFIG};
-use phygital_nfts::{
-    CreateDomainConfigArgs, CreateGroupTokenArgs, CreateTokenArgs, EditDomainConfigArgs,
-    Secp256r1Pubkey, Secp256r1VerifyArgs, SetTransferConfigArgs,
-};
-use phygital_nfts::utils::TransferTerms;
-use sha2::{Digest, Sha256};
+use phygital_nfts::constants::{GROUP_MINT_SEED, PROGRAM_AUTHORITY_SEED};
+use phygital_nfts::{CreateGroupTokenArgs, CreateTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs};
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
 use solana_sdk_ids::sysvar::{
@@ -35,9 +30,7 @@ pub struct MintedNft {
     pub collection_owner: Keypair,
     pub holder: Keypair,
     pub token_mint: Keypair,
-    pub group_mint: Keypair,
-    pub domain_config: Pubkey,
-    pub domain_authority: Pubkey,
+    pub group_mint: Pubkey,
     pub passkey: TestPasskey,
 }
 
@@ -115,9 +108,12 @@ impl TestContext {
         Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &self.program_id).0
     }
 
-    pub fn domain_config_pda(&self, rp_id: &str) -> Pubkey {
-        let hash: [u8; 32] = Sha256::digest(rp_id.as_bytes()).into();
-        Pubkey::find_program_address(&[SEED_DOMAIN_CONFIG, hash.as_ref()], &self.program_id).0
+    pub fn group_mint_pda(&self, unique_id: u64) -> Pubkey {
+        Pubkey::find_program_address(
+            &[GROUP_MINT_SEED, &unique_id.to_le_bytes()],
+            &self.program_id,
+        )
+        .0
     }
 
     /// Funds `program_authority` so it can pay for recipient ATA rent during transfers.
@@ -132,45 +128,25 @@ impl TestContext {
         Self::send_instruction(&mut self.svm, ix, &[payer]).expect("fund program authority");
     }
 
-    pub fn create_domain_config_ix(
-        &self,
-        payer: Pubkey,
-        authority: Pubkey,
-        args: CreateDomainConfigArgs,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_nfts::accounts::CreateDomainConfig {
-                payer,
-                authority,
-                domain_config: self.domain_config_pda(&args.rp_id),
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
-            data: phygital_nfts::instruction::CreateDomainConfig { args }.data(),
-        }
-    }
-
     pub fn create_group_token_ix(
         &self,
         payer: Pubkey,
         owner: Pubkey,
         group_mint: Pubkey,
-        domain_config: Pubkey,
         args: CreateGroupTokenArgs,
     ) -> Instruction {
+        let accounts = phygital_nfts::accounts::CreateGroupToken {
+            payer,
+            owner,
+            group_mint,
+            program_authority: self.program_authority(),
+            token_program: TOKEN_2022_ID,
+            system_program: anchor_lang::solana_program::system_program::ID,
+        }
+        .to_account_metas(None);
         Instruction {
             program_id: self.program_id,
-            accounts: phygital_nfts::accounts::CreateGroupToken {
-                payer,
-                owner,
-                group_mint,
-                domain_config,
-                program_authority: self.program_authority(),
-                token_program: TOKEN_2022_ID,
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
+            accounts,
             data: phygital_nfts::instruction::CreateGroupToken { args }.data(),
         }
     }
@@ -180,93 +156,32 @@ impl TestContext {
         program_id: Pubkey,
         payer: &Keypair,
         owner: &Keypair,
-        group_mint: &Keypair,
         group_args: CreateGroupTokenArgs,
-        domain_args: CreateDomainConfigArgs,
-    ) {
-        let rp_id = domain_args.rp_id.clone();
-        let domain_config = {
-            let hash: [u8; 32] = Sha256::digest(rp_id.as_bytes()).into();
-            Pubkey::find_program_address(&[SEED_DOMAIN_CONFIG, hash.as_ref()], &program_id).0
-        };
+    ) -> Pubkey {
         let program_authority =
             Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &program_id).0;
+        let group_mint = Pubkey::find_program_address(
+            &[GROUP_MINT_SEED, &group_args.unique_id.to_le_bytes()],
+            &program_id,
+        )
+        .0;
 
-        let domain_ix = Instruction {
-            program_id,
-            accounts: phygital_nfts::accounts::CreateDomainConfig {
-                payer: payer.pubkey(),
-                authority: owner.pubkey(),
-                domain_config,
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
-            data: phygital_nfts::instruction::CreateDomainConfig { args: domain_args }.data(),
-        };
-        Self::send_instruction(svm, domain_ix, &[payer, owner]).expect("create domain config");
-
+        let accounts = phygital_nfts::accounts::CreateGroupToken {
+            payer: payer.pubkey(),
+            owner: owner.pubkey(),
+            group_mint,
+            program_authority,
+            token_program: TOKEN_2022_ID,
+            system_program: anchor_lang::solana_program::system_program::ID,
+        }
+        .to_account_metas(None);
         let group_ix = Instruction {
             program_id,
-            accounts: phygital_nfts::accounts::CreateGroupToken {
-                payer: payer.pubkey(),
-                owner: owner.pubkey(),
-                group_mint: group_mint.pubkey(),
-                domain_config,
-                program_authority,
-                token_program: TOKEN_2022_ID,
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
+            accounts,
             data: phygital_nfts::instruction::CreateGroupToken { args: group_args }.data(),
         };
-        Self::send_instruction(svm, group_ix, &[payer, owner, group_mint])
-            .expect("create group token");
-    }
-
-    pub fn edit_domain_config_ix(
-        &self,
-        authority: Pubkey,
-        rp_id: &str,
-        args: EditDomainConfigArgs,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_nfts::accounts::EditDomainConfig {
-                domain_config: self.domain_config_pda(rp_id),
-                authority,
-                new_authority: None
-            }
-            .to_account_metas(None),
-            data: phygital_nfts::instruction::EditDomainConfig { args }.data(),
-        }
-    }
-
-    pub fn set_transfer_config_ix(
-        &self,
-        payer: Pubkey,
-        owner: Pubkey,
-        token_mint: Pubkey,
-        args: SetTransferConfigArgs,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_nfts::accounts::SetTransferConfig {
-                payer,
-                owner,
-                token_mint,
-                owner_token_account: get_associated_token_address_with_program_id(
-                    &owner,
-                    &token_mint,
-                    &TOKEN_2022_ID,
-                ),
-                program_authority: self.program_authority(),
-                token_program: TOKEN_2022_ID,
-                associated_token_program: ASSOCIATED_TOKEN_ID,
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
-            data: phygital_nfts::instruction::SetTransferConfig { args }.data(),
-        }
+        Self::send_instruction(svm, group_ix, &[payer, owner]).expect("create group token");
+        group_mint
     }
 
     pub fn execute_transfer_ix(
@@ -275,9 +190,6 @@ impl TestContext {
         sender: Pubkey,
         token_mint: Pubkey,
         group_mint: Pubkey,
-        group_owner: Pubkey,
-        domain_config: Pubkey,
-        domain_authority: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
     ) -> Instruction {
         Instruction {
@@ -287,7 +199,6 @@ impl TestContext {
                 sender,
                 token_mint,
                 group_mint,
-                domain_config,
                 sender_token_account: get_associated_token_address_with_program_id(
                     &sender,
                     &token_mint,
@@ -298,15 +209,7 @@ impl TestContext {
                     &token_mint,
                     &TOKEN_2022_ID,
                 ),
-                group_owner,
-                domain_authority,
                 program_authority: self.program_authority(),
-                recipient_payment_token_account: None,
-                sender_payment_token_account: None,
-                group_owner_payment_token_account: None,
-                domain_authority_payment_token_account: None,
-                payment_token_mint: None,
-                payment_token_program: TOKEN_2022_ID,
                 slot_hashes: SLOT_HASHES_SYSVAR_ID,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
                 token_program: TOKEN_2022_ID,
@@ -362,7 +265,6 @@ impl TestContext {
     pub fn mint_nft_with_passkey(&mut self, passkey: &TestPasskey) -> MintedNft {
         let collection_owner = Keypair::new();
         let holder = Keypair::new();
-        let group_mint = Keypair::new();
         let token_mint = Keypair::new();
 
         self.svm
@@ -372,14 +274,13 @@ impl TestContext {
             .airdrop(&holder.pubkey(), 2 * LAMPORTS_PER_SOL)
             .unwrap();
 
-        Self::create_collection(
+        let group_args = sample_create_group_args();
+        let group_mint = Self::create_collection(
             &mut self.svm,
             self.program_id,
             &self.payer,
             &collection_owner,
-            &group_mint,
-            sample_create_group_args(),
-            sample_create_domain_config_args(),
+            group_args,
         );
 
         self.fund_program_authority(None);
@@ -391,7 +292,7 @@ impl TestContext {
             self.payer.pubkey(),
             holder.pubkey(),
             token_mint.pubkey(),
-            group_mint.pubkey(),
+            group_mint,
             token_args,
         );
         Self::send_instruction(
@@ -401,14 +302,11 @@ impl TestContext {
         )
         .expect("create token");
 
-        let domain_authority = collection_owner.pubkey();
         MintedNft {
             collection_owner,
             holder,
             token_mint,
             group_mint,
-            domain_config: self.domain_config_pda(TEST_RP_ID),
-            domain_authority,
             passkey: passkey.clone(),
         }
     }
@@ -426,7 +324,6 @@ impl TestContext {
             include_secp_ix,
             None,
             None,
-            None,
         )
     }
 
@@ -438,14 +335,11 @@ impl TestContext {
         include_secp_ix: bool,
         slot_number: Option<u64>,
         slot_hash: Option<[u8; 32]>,
-        transfer_terms: Option<TransferTerms>,
     ) -> litesvm::types::TransactionResult {
         let (slot_number, slot_hash) = match (slot_number, slot_hash) {
             (Some(slot), Some(hash)) => (slot, hash),
             _ => current_slot_entry(&self.svm),
         };
-
-        let transfer_terms = transfer_terms.unwrap_or_else(sample_transfer_terms);
 
         let (secp_ix, verify_args) = nft.passkey.secp256r1_verify_instruction(
             TOKEN_2022_ID,
@@ -453,17 +347,13 @@ impl TestContext {
             sender,
             slot_number,
             slot_hash,
-            transfer_terms,
         );
 
         let transfer_ix = self.execute_transfer_ix(
             recipient.pubkey(),
             sender,
             nft.token_mint.pubkey(),
-            nft.group_mint.pubkey(),
-            nft.collection_owner.pubkey(),
-            nft.domain_config,
-            nft.domain_authority,
+            nft.group_mint,
             verify_args,
         );
 
@@ -587,31 +477,13 @@ impl TestContext {
     }
 }
 
-pub fn sample_transfer_terms() -> TransferTerms {
-    TransferTerms {
-        price: 0,
-        payment_token_mint: Pubkey::default(),
-        allowed_recipient: Pubkey::default(),
-    }
-}
-
-pub fn sample_create_domain_config_args() -> CreateDomainConfigArgs {
-    let rp_id_hash: [u8; 32] = Sha256::digest(TEST_RP_ID.as_bytes()).into();
-    CreateDomainConfigArgs {
-        rp_id: TEST_RP_ID.to_string(),
-        rp_id_hash,
-        origins: vec![TEST_ORIGIN.to_string()],
-        royalty_bps: 0,
-    }
-}
-
 pub fn sample_create_group_args() -> CreateGroupTokenArgs {
     CreateGroupTokenArgs {
         name: "Test Collection".to_string(),
         symbol: "TCOL".to_string(),
         uri: "https://example.com/collection.json".to_string(),
-        royalty_bps: Some(500),
         max_size: 100,
+        unique_id: 1,
     }
 }
 

@@ -1,8 +1,8 @@
 import {
 	address,
+	getBase58Codec,
 	appendTransactionMessageInstructions,
 	createTransactionMessage,
-	getBase58Codec,
 	pipe,
 	setTransactionMessageFeePayerSigner,
 	setTransactionMessageLifetimeUsingBlockhash,
@@ -47,20 +47,6 @@ export async function submitTransfer(
 
 	const signatureBytes = await signAndSendTransactionMessageWithSigners(transactionMessage);
 	return getBase58Codec().decode(signatureBytes);
-}
-
-export function assertRecipientAllowed(
-	connectedAddress: Address,
-	allowedRecipient: Address | null
-): void {
-	if (!allowedRecipient) {
-		return;
-	}
-	if (connectedAddress !== allowedRecipient) {
-		throw new Error(
-			`This card can only be claimed by ${allowedRecipient}. Connect that wallet to continue.`
-		);
-	}
 }
 
 export function parseMintParam(value: string | null): Address {

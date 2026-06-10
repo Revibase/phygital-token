@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 
-pub const SEED_DOMAIN_CONFIG: &[u8] = b"domain_config";
 
 pub const PROGRAM_AUTHORITY_SEED: &[u8] = b"program_authority";
+pub const GROUP_MINT_SEED: &[u8] = b"group_mint";
 
 pub const TRANSFER_HOOK_PROGRAM_ID: Pubkey =
     pubkey!("FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G");

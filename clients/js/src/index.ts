@@ -7,11 +7,9 @@ export {
 } from "./instructions/transfer";
 
 export {
-  computeTransferBreakdown,
   fetchNftDisplayInfo,
   resolveTokenJsonMetadata,
   type CardAttribute,
   type NftDisplayInfo,
   type TokenJsonMetadata,
-  type TransferBreakdown,
 } from "./utils/metadata";

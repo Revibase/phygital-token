@@ -5,7 +5,7 @@ use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use super::{TEST_ORIGIN, TEST_RP_ID};
 use phygital_nfts::utils::{
-    build_transfer_message_hash, Secp256r1VerifyArgs, TransferActionType, TransferTerms,
+    build_transfer_message_hash, Secp256r1VerifyArgs, TransferActionType,
     COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
     SIGNATURE_OFFSETS_START,
 };
@@ -52,9 +52,8 @@ impl TestPasskey {
         sender: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
-        transfer_terms: TransferTerms,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(&token_mint, &sender, &transfer_terms);
+        let message_hash = build_transfer_message_hash(&token_mint, &sender);
 
         let mut challenge_buffer = Vec::new();
         challenge_buffer.extend_from_slice(TransferActionType::Transfer.to_bytes());
@@ -90,7 +89,7 @@ impl TestPasskey {
         let verify_args = Secp256r1VerifyArgs {
             signed_message_index: 0,
             slot_number,
-            origin_index: 0,
+            origin: origin.to_string(),
             cross_origin: false,
             truncated_client_data_json: vec![],
         };

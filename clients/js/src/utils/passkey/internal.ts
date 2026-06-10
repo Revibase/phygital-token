@@ -1,7 +1,7 @@
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bufferToBase64URLString, startAuthentication, type AuthenticationResponseJSON } from "@simplewebauthn/browser";
-import { getAddressEncoder, getProgramDerivedAddress, type Address, type Instruction, type ReadonlyUint8Array } from "@solana/kit";
+import { getAddressEncoder, getProgramDerivedAddress, type Address, type Instruction } from "@solana/kit";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ADDRESS,
   RP_ID,
@@ -55,34 +55,6 @@ export function extractAdditionalFields(clientData: Record<string, unknown>) {
 
   const serialized = JSON.stringify(remaining);
   return new Uint8Array(new TextEncoder().encode(serialized.slice(1, -1)));
-}
-
-export function parseOrigins(
-  originsBytes: ReadonlyUint8Array,
-  numOrigins: number,
-): string[] {
-  const origins: string[] = [];
-  let cursor = 0;
-  const decoder = new TextDecoder();
-
-  for (let i = 0; i < numOrigins; i += 1) {
-    if (cursor + 2 > originsBytes.length) {
-      throw new Error("MaxLengthExceeded");
-    }
-
-    const strLen = originsBytes[cursor] | (originsBytes[cursor + 1] << 8);
-    cursor += 2;
-
-    if (cursor + strLen > originsBytes.length) {
-      throw new Error("MaxLengthExceeded");
-    }
-
-    const strBytes = originsBytes.slice(cursor, cursor + strLen);
-    origins.push(decoder.decode(strBytes));
-    cursor += strLen;
-  }
-
-  return origins;
 }
 
 export function convertSignatureDERtoRS(signature: Uint8Array): Uint8Array {
@@ -204,11 +176,11 @@ export async function buildTransferInstructions(
   const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
   const recipientAddress = input.recipient.address;
 
-  const { secp256r1Verify, originIndex, crossOrigin, truncatedClientDataJson } = await buildSecp256r1VerifyInstructionFromWebAuthn({
-    domainConfig: input.mintContext.domainConfig,
-    response: input.webauthnResponse,
-    compressedPubkey: input.mintContext.secp256r1Pubkey,
-  });
+  const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
+    await buildSecp256r1VerifyInstructionFromWebAuthn({
+      response: input.webauthnResponse,
+      compressedPubkey: input.mintContext.secp256r1Pubkey,
+    });
 
   const recipientTokenAccount = await findAssociatedTokenAddress(
     recipientAddress,
@@ -221,71 +193,20 @@ export async function buildTransferInstructions(
     tokenProgram,
   );
 
-  let recipientPaymentTokenAccount: Address | undefined;
-  let senderPaymentTokenAccount: Address | undefined;
-  let groupOwnerPaymentTokenAccount: Address | undefined;
-  let domainAuthorityPaymentTokenAccount: Address | undefined;
-  let paymentTokenMint: Address | undefined;
-  let paymentTokenProgram: Address = TOKEN_2022_PROGRAM_ADDRESS;
-
-  if (input.mintContext.transferPrice > 0n &&
-    input.mintContext.paymentTokenMint) {
-    paymentTokenMint = input.mintContext.paymentTokenMint;
-    paymentTokenProgram =
-      input.mintContext.paymentTokenProgram ?? TOKEN_2022_PROGRAM_ADDRESS;
-    recipientPaymentTokenAccount = await findAssociatedTokenAddress(
-      recipientAddress,
-      paymentTokenMint,
-      paymentTokenProgram,
-    );
-    senderPaymentTokenAccount = await findAssociatedTokenAddress(
-      input.currentOwner,
-      paymentTokenMint,
-      paymentTokenProgram,
-    );
-    if (input.mintContext.groupRoyaltyBps > 0) {
-      groupOwnerPaymentTokenAccount = await findAssociatedTokenAddress(
-        input.mintContext.groupOwner,
-        paymentTokenMint,
-        paymentTokenProgram,
-      );
-    }
-    if (
-      input.mintContext.groupRoyaltyBps > 0 &&
-      input.mintContext.domainRoyaltyBps > 0
-    ) {
-      domainAuthorityPaymentTokenAccount = await findAssociatedTokenAddress(
-        input.mintContext.domainAuthority,
-        paymentTokenMint,
-        paymentTokenProgram,
-      );
-    }
-  }
-
   const executeTransfer = await getExecuteTransferInstructionAsync({
     recipient: input.recipient,
     sender: input.currentOwner,
     tokenMint: input.mint,
     groupMint: input.mintContext.groupMint,
-    domainConfig: input.mintContext.domainConfig,
     senderTokenAccount,
     recipientTokenAccount,
-    groupOwner: input.mintContext.groupOwner,
-    domainAuthority: input.mintContext.domainAuthority,
-    recipientPaymentTokenAccount,
-    senderPaymentTokenAccount,
-    groupOwnerPaymentTokenAccount,
-    domainAuthorityPaymentTokenAccount,
-    paymentTokenMint,
-    paymentTokenProgram,
     tokenProgram,
     signedMessageIndex: 0,
     slotNumber: input.slotNumber,
-    originIndex,
+    origin,
     crossOrigin,
     truncatedClientDataJson,
   });
 
   return [secp256r1Verify, executeTransfer];
 }
-

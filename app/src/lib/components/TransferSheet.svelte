@@ -1,16 +1,10 @@
 <script lang="ts">
-	import { computeTransferBreakdown, type NftDisplayInfo } from 'phygital-nfts-client';
+	import type { NftDisplayInfo } from 'phygital-nfts-client';
 	import type { TransferSession } from 'phygital-nfts-client';
 	import WalletConnect from '$lib/components/WalletConnect.svelte';
 	import { txExplorerUrl } from '$lib/explorer';
+	import { mapTransferError, shortenAddress } from '$lib/format';
 	import {
-		formatLamports,
-		formatTokenAmount,
-		mapTransferError,
-		shortenAddress
-	} from '$lib/format';
-	import {
-		assertRecipientAllowed,
 		authenticateTransferCard,
 		createTransferSession,
 		submitTransfer
@@ -37,22 +31,8 @@
 		ReturnType<typeof authenticateTransferCard>
 	> | null>(null);
 	let txSignature = $state<string | null>(null);
-	let breakdownOpen = $state(false);
 
 	const stepNumber = $derived(step === 'card' ? 1 : step === 'confirm' ? 2 : 0);
-
-	const hasPrice = $derived(nft.transferPrice > 0n);
-	const breakdown = $derived(
-		computeTransferBreakdown(nft.transferPrice, nft.groupRoyaltyBps, nft.domainRoyaltyBps)
-	);
-
-	const priceLabel = $derived(
-		hasPrice
-			? nft.paymentTokenMint
-				? formatTokenAmount(nft.transferPrice, nft.paymentTokenSymbol)
-				: formatLamports(nft.transferPrice)
-			: 'Free'
-	);
 
 	function reset() {
 		step = 'card';
@@ -61,7 +41,6 @@
 		session = null;
 		webauthnResponse = null;
 		txSignature = null;
-		breakdownOpen = false;
 	}
 
 	function close() {
@@ -111,7 +90,6 @@
 		busy = true;
 
 		try {
-			assertRecipientAllowed($walletStore.signer.address, nft.allowedRecipient);
 			const signature = await submitTransfer(session, webauthnResponse, $walletStore.signer);
 			txSignature = signature;
 			step = 'success';
@@ -177,12 +155,7 @@
 					</p>
 				</div>
 
-				<button
-					type="button"
-					class="primary"
-					disabled={busy}
-					onclick={startCardTap}
-				>
+				<button type="button" class="primary" disabled={busy} onclick={startCardTap}>
 					{busy ? 'Waiting for card…' : 'Tap card'}
 				</button>
 			{:else if step === 'confirm'}
@@ -192,7 +165,7 @@
 					{/if}
 					<div>
 						<p class="summary-name">{nft.name}</p>
-						<p class="summary-price">{priceLabel}</p>
+						<p class="summary-status">Ready to claim</p>
 					</div>
 				</div>
 
@@ -204,34 +177,6 @@
 				{:else}
 					<p class="lead wallet-prompt">Choose the wallet that will own this card.</p>
 					<WalletConnect />
-				{/if}
-
-				{#if hasPrice}
-					<button
-						type="button"
-						class="link-btn"
-						onclick={() => (breakdownOpen = !breakdownOpen)}
-					>
-						{breakdownOpen ? 'Hide breakdown' : 'Show price breakdown'}
-					</button>
-					{#if breakdownOpen}
-						<dl class="breakdown">
-							<div>
-								<dt>Total</dt>
-								<dd>{priceLabel}</dd>
-							</div>
-							{#if breakdown.sellerAmount > 0n}
-								<div>
-									<dt>To current owner</dt>
-									<dd>
-										{nft.paymentTokenMint
-											? formatTokenAmount(breakdown.sellerAmount, nft.paymentTokenSymbol)
-											: formatLamports(breakdown.sellerAmount)}
-									</dd>
-								</div>
-							{/if}
-						</dl>
-					{/if}
 				{/if}
 
 				<button
@@ -432,10 +377,11 @@
 		color: var(--foreground);
 	}
 
-	.summary-price {
+	.summary-status {
 		margin: 0.2rem 0 0;
 		color: var(--foreground);
-		font-weight: 700;
+		font-weight: 600;
+		font-size: 0.9rem;
 	}
 
 	.recipient {
@@ -450,37 +396,6 @@
 
 	.recipient span:last-child {
 		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-		color: var(--foreground);
-	}
-
-	.link-btn {
-		border: 0;
-		background: transparent;
-		color: var(--foreground);
-		font-size: 0.85rem;
-		cursor: pointer;
-		padding: 0 0 0.75rem;
-	}
-
-	.breakdown {
-		margin: 0 0 1rem;
-	}
-
-	.breakdown div {
-		display: flex;
-		justify-content: space-between;
-		padding: 0.25rem 0;
-	}
-
-	.breakdown dt {
-		margin: 0;
-		font-size: 0.82rem;
-		color: var(--muted-foreground);
-	}
-
-	.breakdown dd {
-		margin: 0;
-		font-size: 0.85rem;
 		color: var(--foreground);
 	}
 

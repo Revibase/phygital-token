@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::token_2022::spl_token_2022::extension::ExtensionType;
 use anchor_spl::token_2022::spl_token_2022::state::Mint;
 
@@ -40,6 +39,14 @@ fn mint_account_layout(
     })
 }
 
+/// Token-2022 mint account size before `InitializeMint2` (metadata + group pointers only).
+pub const COLLECTION_MINT_INITIAL_LEN: usize = 302;
+
+pub fn collection_mint_initial_len() -> usize {
+    mint_extension_account_len(&[ExtensionType::MetadataPointer, ExtensionType::GroupPointer])
+        .expect("collection mint initial len")
+}
+
 pub fn collection_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
     mint_account_layout(
         &[ExtensionType::MetadataPointer, ExtensionType::GroupPointer],
@@ -52,31 +59,18 @@ pub fn collection_mint_layout(metadata_size: usize) -> Result<MintAccountLayout>
     )
 }
 
-/// Transfers lamports from `payer` to `mint` when metadata growth needs more rent.
-pub fn fund_member_mint_rent_if_needed<'info>(
-    mint: AccountInfo<'info>,
-    payer: AccountInfo<'info>,
-    system_program: AccountInfo<'info>,
-    metadata_size: usize,
-) -> Result<()> {
-    let required = member_mint_layout(metadata_size)?.rent_lamports;
-    let current = mint.lamports();
-    if required > current {
-        let top_up = required
-            .checked_sub(current)
-            .ok_or_else(|| error!(TokenProgramError::ArithmeticOverflow))?;
-        transfer(
-            CpiContext::new(
-                system_program.key(),
-                Transfer {
-                    from: payer,
-                    to: mint,
-                },
-            ),
-            top_up,
-        )?;
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn collection_mint_initial_len_matches_constant() {
+        assert_eq!(
+            collection_mint_initial_len(),
+            COLLECTION_MINT_INITIAL_LEN,
+            "update COLLECTION_MINT_INITIAL_LEN if extension sizes change"
+        );
     }
-    Ok(())
 }
 
 pub fn member_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {

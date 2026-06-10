@@ -6,9 +6,6 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./createDomainConfig";
 export * from "./createGroupToken";
 export * from "./createToken";
-export * from "./editDomainConfig";
 export * from "./executeTransfer";
-export * from "./setTransferConfig";

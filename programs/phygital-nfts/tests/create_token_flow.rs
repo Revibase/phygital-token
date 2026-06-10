@@ -6,17 +6,9 @@ use anchor_spl::token_2022::spl_token_2022::extension::{
 };
 use anchor_spl::token_2022::spl_token_2022::state::{Account as SplAccount, Mint as SplMint};
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
-use common::{
-    sample_create_domain_config_args, sample_create_group_args, sample_create_token_args,
-    TestContext,
-};
-use phygital_nfts::utils::{
-    encode_optional_pubkey, encode_secp256r1_pubkey, ALLOWED_RECIPIENT_METADATA_KEY,
-    PAYMENT_TOKEN_MINT_METADATA_KEY, PAYMENT_TOKEN_PROGRAM_METADATA_KEY,
-    ROYALTY_BPS_METADATA_KEY, SECP256R1_METADATA_KEY,
-    TRANSFER_PRICE_METADATA_KEY,
-};
-use phygital_nfts::{Secp256r1Pubkey, SetTransferConfigArgs};
+use common::{sample_create_group_args, sample_create_token_args, TestContext};
+use phygital_nfts::utils::{encode_secp256r1_pubkey, GROUP_UNIQUE_ID_METADATA_KEY, SECP256R1_METADATA_KEY};
+use phygital_nfts::Secp256r1Pubkey;
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 use spl_token_group_interface::state::{TokenGroup, TokenGroupMember};
@@ -42,27 +34,30 @@ fn fund_program_authority_seeds_rent_pool() {
 fn create_group_token_initializes_collection_mint() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
-    let group_mint = Keypair::new();
 
     ctx.svm
         .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
         .unwrap();
 
-    TestContext::create_collection(
+    let group_args = sample_create_group_args();
+    let group_mint = TestContext::create_collection(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
         &owner,
-        &group_mint,
-        sample_create_group_args(),
-        sample_create_domain_config_args(),
+        group_args,
     );
 
     let mint_account = ctx
         .svm
-        .get_account(&group_mint.pubkey())
+        .get_account(&group_mint)
         .expect("collection mint");
     assert_eq!(mint_account.owner, TOKEN_2022_ID);
+    assert_eq!(
+        group_mint,
+        ctx.group_mint_pda(1),
+        "collection mint should be the program PDA"
+    );
 
     let mint_state =
         StateWithExtensions::<SplMint>::unpack(&mint_account.data).expect("unpack mint");
@@ -77,108 +72,31 @@ fn create_group_token_initializes_collection_mint() {
         .expect("token metadata");
     assert_eq!(metadata.name, "Test Collection");
     assert_eq!(metadata.symbol, "TCOL");
-    let royalty = metadata
+    let unique_id = metadata
         .additional_metadata
         .iter()
-        .find(|(key, _)| key == ROYALTY_BPS_METADATA_KEY)
+        .find(|(key, _)| key == GROUP_UNIQUE_ID_METADATA_KEY)
         .map(|(_, value)| value.as_str())
-        .expect("royalty bps metadata");
-    assert_eq!(royalty, "500");
-}
-
-#[test]
-fn create_group_token_without_royalty_omits_royalty_bps_metadata() {
-    let mut ctx = TestContext::new();
-    let owner = Keypair::new();
-    let group_mint = Keypair::new();
-
-    ctx.svm
-        .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
-        .unwrap();
-
-    let mut args = sample_create_group_args();
-    args.royalty_bps = None;
-
-    TestContext::create_collection(
-        &mut ctx.svm,
-        ctx.program_id,
-        &ctx.payer,
-        &owner,
-        &group_mint,
-        args,
-        sample_create_domain_config_args(),
-    );
-
-    let mint_account = ctx
-        .svm
-        .get_account(&group_mint.pubkey())
-        .expect("collection mint");
-    let mint_state =
-        StateWithExtensions::<SplMint>::unpack(&mint_account.data).expect("unpack mint");
-    let metadata = mint_state
-        .get_variable_len_extension::<TokenMetadata>()
-        .expect("token metadata");
-    assert!(
-        metadata
-            .additional_metadata
-            .iter()
-            .all(|(key, _)| key != ROYALTY_BPS_METADATA_KEY),
-        "royalty bps metadata should be omitted when royalties are not configured"
-    );
-}
-
-#[test]
-fn create_group_token_rejects_invalid_royalty_bps() {
-    let mut ctx = TestContext::new();
-    let owner = Keypair::new();
-    let group_mint = Keypair::new();
-
-    ctx.svm
-        .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
-        .unwrap();
-
-    let domain_ix = ctx.create_domain_config_ix(
-        ctx.payer.pubkey(),
-        owner.pubkey(),
-        sample_create_domain_config_args(),
-    );
-    TestContext::send_instruction(&mut ctx.svm, domain_ix, &[&ctx.payer, &owner])
-        .expect("create domain config");
-
-    let mut args = sample_create_group_args();
-    args.royalty_bps = Some(10_001);
-
-    let ix = ctx.create_group_token_ix(
-        ctx.payer.pubkey(),
-        owner.pubkey(),
-        group_mint.pubkey(),
-        ctx.domain_config_pda(common::TEST_RP_ID),
-        args,
-    );
-    let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer, &owner, &group_mint])
-        .expect_err("invalid royalty should fail");
-    assert!(format!("{err:?}").contains("InvalidRoyaltyBps") || format!("{err:?}").contains("6004"));
+        .expect("unique id metadata");
+    assert_eq!(unique_id, "1");
 }
 
 #[test]
 fn create_token_mints_nft_into_collection() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
-    let group_mint = Keypair::new();
     let token_mint = Keypair::new();
 
     ctx.svm
         .airdrop(&owner.pubkey(), 2 * common::LAMPORTS_PER_SOL)
         .unwrap();
 
-    TestContext::create_collection(
+    let group_mint = TestContext::create_collection(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
         &owner,
-        &group_mint,
         sample_create_group_args(),
-        sample_create_domain_config_args(),
     );
 
     ctx.fund_program_authority(None);
@@ -187,7 +105,7 @@ fn create_token_mints_nft_into_collection() {
         ctx.payer.pubkey(),
         owner.pubkey(),
         token_mint.pubkey(),
-        group_mint.pubkey(),
+        group_mint,
         sample_create_token_args(),
     );
     TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer, &owner, &token_mint])
@@ -202,7 +120,7 @@ fn create_token_mints_nft_into_collection() {
     let member = mint_state
         .get_extension::<TokenGroupMember>()
         .expect("group member extension");
-    assert_eq!(Pubkey::from(member.group), group_mint.pubkey());
+    assert_eq!(Pubkey::from(member.group), group_mint);
 
     let metadata = mint_state
         .get_variable_len_extension::<TokenMetadata>()
@@ -230,143 +148,21 @@ fn create_token_mints_nft_into_collection() {
 }
 
 #[test]
-fn set_transfer_config_updates_metadata_and_payer_funds_mint_growth() {
-    let mut ctx = TestContext::new();
-    let owner = Keypair::new();
-    let group_mint = Keypair::new();
-    let token_mint = Keypair::new();
-    let payment_mint = Pubkey::new_from_array([0xAB; 32]);
-    let allowed_recipient = Pubkey::new_from_array([0xCD; 32]);
-
-    ctx.svm
-        .airdrop(&owner.pubkey(), 2 * common::LAMPORTS_PER_SOL)
-        .unwrap();
-
-    TestContext::create_collection(
-        &mut ctx.svm,
-        ctx.program_id,
-        &ctx.payer,
-        &owner,
-        &group_mint,
-        sample_create_group_args(),
-        sample_create_domain_config_args(),
-    );
-
-    ctx.fund_program_authority(None);
-
-    let token_ix = ctx.create_token_ix(
-        ctx.payer.pubkey(),
-        owner.pubkey(),
-        token_mint.pubkey(),
-        group_mint.pubkey(),
-        sample_create_token_args(),
-    );
-    TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer, &owner, &token_mint])
-        .expect("create token");
-
-    let mint_before = ctx
-        .svm
-        .get_account(&token_mint.pubkey())
-        .expect("token mint before config");
-    let data_len_before = mint_before.data.len();
-    let lamports_before = mint_before.lamports;
-
-    let owner_balance_before = ctx.svm.get_account(&owner.pubkey()).unwrap().lamports;
-
-    let config_ix = ctx.set_transfer_config_ix(
-        owner.pubkey(),
-        owner.pubkey(),
-        token_mint.pubkey(),
-        SetTransferConfigArgs {
-            price: u64::MAX,
-            payment_token_mint: Some(payment_mint),
-            payment_token_program: Some(anchor_spl::token_2022::ID),
-            allowed_recipient: Some(allowed_recipient),
-        },
-    );
-    TestContext::send_instruction(&mut ctx.svm, config_ix, &[&owner])
-        .expect("set transfer config");
-
-    let mint_after = ctx
-        .svm
-        .get_account(&token_mint.pubkey())
-        .expect("token mint after config");
-    assert!(
-        mint_after.data.len() > data_len_before,
-        "mint data should grow when transfer config values exceed placeholders"
-    );
-    assert!(
-        mint_after.lamports > lamports_before,
-        "payer should top up mint rent for metadata growth"
-    );
-
-    let owner_balance_after = ctx.svm.get_account(&owner.pubkey()).unwrap().lamports;
-    assert!(
-        owner_balance_after < owner_balance_before,
-        "payer should fund mint rent shortfall"
-    );
-
-    let mint_state =
-        StateWithExtensions::<SplMint>::unpack(&mint_after.data).expect("unpack mint");
-    let metadata = mint_state
-        .get_variable_len_extension::<TokenMetadata>()
-        .expect("token metadata");
-
-    let price = metadata
-        .additional_metadata
-        .iter()
-        .find(|(key, _)| key == TRANSFER_PRICE_METADATA_KEY)
-        .map(|(_, value)| value.as_str())
-        .expect("transfer price metadata");
-    assert_eq!(price, u64::MAX.to_string());
-
-    let payment = metadata
-        .additional_metadata
-        .iter()
-        .find(|(key, _)| key == PAYMENT_TOKEN_MINT_METADATA_KEY)
-        .map(|(_, value)| value.as_str())
-        .expect("payment mint metadata");
-    assert_eq!(payment, encode_optional_pubkey(Some(payment_mint)));
-
-    let payment_program = metadata
-        .additional_metadata
-        .iter()
-        .find(|(key, _)| key == PAYMENT_TOKEN_PROGRAM_METADATA_KEY)
-        .map(|(_, value)| value.as_str())
-        .expect("payment token program metadata");
-    assert_eq!(
-        payment_program,
-        encode_optional_pubkey(Some(anchor_spl::token_2022::ID))
-    );
-
-    let recipient = metadata
-        .additional_metadata
-        .iter()
-        .find(|(key, _)| key == ALLOWED_RECIPIENT_METADATA_KEY)
-        .map(|(_, value)| value.as_str())
-        .expect("allowed recipient metadata");
-    assert_eq!(recipient, encode_optional_pubkey(Some(allowed_recipient)));
-}
-
-#[test]
 fn create_token_rejects_metadata_exceeding_max_lengths() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
-    let group_mint = Keypair::new();
     let token_mint = Keypair::new();
 
     ctx.svm
         .airdrop(&owner.pubkey(), 2 * common::LAMPORTS_PER_SOL)
         .unwrap();
 
-    TestContext::create_collection(
+    let group_mint = TestContext::create_collection(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
         &owner,
-        &group_mint,
         sample_create_group_args(),
-        sample_create_domain_config_args(),
     );
 
     ctx.fund_program_authority(None);
@@ -378,7 +174,7 @@ fn create_token_rejects_metadata_exceeding_max_lengths() {
         ctx.payer.pubkey(),
         owner.pubkey(),
         token_mint.pubkey(),
-        group_mint.pubkey(),
+        group_mint,
         args,
     );
     let err = TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer, &owner, &token_mint])
@@ -393,31 +189,22 @@ fn create_token_rejects_metadata_exceeding_max_lengths() {
 fn create_group_token_rejects_metadata_exceeding_max_lengths() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
-    let group_mint = Keypair::new();
 
     ctx.svm
         .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
         .unwrap();
 
-    let domain_ix = ctx.create_domain_config_ix(
-        ctx.payer.pubkey(),
-        owner.pubkey(),
-        sample_create_domain_config_args(),
-    );
-    TestContext::send_instruction(&mut ctx.svm, domain_ix, &[&ctx.payer, &owner])
-        .expect("create domain config");
-
     let mut args = sample_create_group_args();
     args.name = "n".repeat(33);
 
+    let group_mint = ctx.group_mint_pda(args.unique_id);
     let ix = ctx.create_group_token_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
-        group_mint.pubkey(),
-        ctx.domain_config_pda(common::TEST_RP_ID),
+        group_mint,
         args,
     );
-    let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer, &owner, &group_mint])
+    let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer, &owner])
         .expect_err("long name should fail");
     assert!(
         format!("{err:?}").contains("MaxLengthExceeded") || format!("{err:?}").contains("6082"),

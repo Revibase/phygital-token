@@ -4,7 +4,6 @@ import {
   base64URLStringToBuffer,
   convertSignatureDERtoRS,
   getSecp256r1Message,
-  parseOrigins,
   parseWebAuthnClientData,
 } from "./internal";
 
@@ -13,14 +12,12 @@ export {
   convertSignatureDERtoRS,
   extractAdditionalFields,
   getSecp256r1Message,
-  parseOrigins,
   parseWebAuthnClientData,
 } from "./internal";
 
 export {
   buildTransferChallenge,
   buildTransferMessageHash,
-  type TransferTermsInput,
 } from "./secp256r1";
 
 
