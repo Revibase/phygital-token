@@ -8,7 +8,7 @@ import {
 import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts";
 import {
-  resolveTokenJsonMetadata,
+  resolveCardInstanceJsonMetadata,
   resolveTransferMintContext,
   type TransferMintContext,
 } from "../utils/metadata";
@@ -18,17 +18,18 @@ import {
 } from "../utils/passkey/internal";
 import { buildTransferChallenge } from "../utils/passkey/secp256r1";
 import { getLatestSlotHash } from "../utils/slotHash";
-import { getCurrentOwner } from "../utils/tokenOwner";
+import { parseCardInstanceAccount } from "../utils/metadata";
 
 export type TransferInput = {
   rpc: Rpc<SolanaRpcApi>;
-  mint: Address;
+  cardInstance: Address;
   recipient: TransactionSigner;
 };
 
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
-  mint: Address;
+  cardInstance: Address;
+  designMint: Address;
   currentOwner: Address;
   mintContext: TransferMintContext;
   credentialId: string | null;
@@ -39,7 +40,7 @@ export type TransferSession = {
 
 export type BeginTransferInput = {
   rpc: Rpc<SolanaRpcApi>;
-  mint: Address;
+  cardInstance: Address;
 };
 
 /**
@@ -50,23 +51,32 @@ export type BeginTransferInput = {
 export async function beginTransfer(
   input: BeginTransferInput,
 ): Promise<TransferSession> {
-  const currentOwner = await getCurrentOwner(input.rpc, input.mint);
-  const [mintContext, jsonMeta] = await Promise.all([
-    resolveTransferMintContext(input.rpc, input.mint),
-    resolveTokenJsonMetadata(input.rpc, input.mint),
-  ]);
-  const credentialId = jsonMeta?.credentialId?.trim() || null;
+  const mintContext = await resolveTransferMintContext(
+    input.rpc,
+    input.cardInstance,
+  );
+  const cardInstance = await parseCardInstanceAccount(
+    input.rpc,
+    input.cardInstance,
+  );
+  const currentOwner = cardInstance.owner;
+  const cardJsonMeta = await resolveCardInstanceJsonMetadata(
+    input.rpc,
+    input.cardInstance,
+  );
+  const credentialId = cardJsonMeta?.credentialId?.trim() || null;
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
-    mint: input.mint,
+    cardInstance: input.cardInstance,
     sender: currentOwner,
     slotHash,
   });
 
   return {
     rpc: input.rpc,
-    mint: input.mint,
+    cardInstance: input.cardInstance,
+    designMint: mintContext.designMint,
     currentOwner,
     mintContext,
     credentialId,
@@ -95,7 +105,7 @@ export async function completeTransfer(
 ): Promise<Instruction[]> {
   return buildTransferInstructions({
     rpc: session.rpc,
-    mint: session.mint,
+    cardInstance: session.cardInstance,
     recipient,
     currentOwner: session.currentOwner,
     mintContext: session.mintContext,
@@ -103,4 +113,3 @@ export async function completeTransfer(
     slotNumber: session.slotNumber,
   });
 }
-

@@ -5,29 +5,38 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
+    "predev": "npm run build --prefix ../clients/js",
     "build": "vite build",
+    "prebuild": "npm run build --prefix ../clients/js",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "deploy": "npm run build && wrangler pages deploy .svelte-kit/cloudflare"
   },
   "dependencies": {
-    "@solana-mobile/wallet-standard-mobile": "^0.5.0",
+    "@ardrive/turbo-sdk": "^1.41.3",
+    "@solana/connector": "^0.2.4",
     "@solana/kit": "^6.4.0",
     "@solana/wallet-account-signer": "^6.4.0",
-    "@wallet-standard/app": "^1.1.0",
-    "@wallet-standard/base": "^1.1.0",
-    "phygital-nfts-client": "file:../clients/js"
+    "@solana/web3.js": "^1.98.4",
+    "@walletconnect/universal-provider": "^2.23.9",
+    "crypto-browserify": "^3.12.1",
+    "phygital-nfts-client": "file:../clients/js",
+    "process": "^0.11.10",
+    "qrcode": "^1.5.4",
+    "stream-browserify": "^3.0.0"
   },
   "devDependencies": {
     "@fontsource-variable/inter": "^5.2.8",
     "@sveltejs/adapter-cloudflare": "^7.0.0",
     "@sveltejs/kit": "^2.16.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@types/qrcode": "^1.5.6",
     "buffer": "^6.0.3",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.0",
+    "vite-plugin-node-polyfills": "^0.28.0",
     "wrangler": "^4.0.0"
   }
 }

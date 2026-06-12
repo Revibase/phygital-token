@@ -2180,10 +2180,9 @@ dependencies = [
  "solana-signer 3.0.1",
  "solana-slot-hashes 3.0.2",
  "solana-transaction",
- "spl-discriminator 0.4.1",
+ "spl-token-2022-interface",
  "spl-token-group-interface",
  "spl-token-metadata-interface",
- "spl-transfer-hook-interface",
 ]
 
 [[package]]
@@ -2191,6 +2190,12 @@ name = "phygital-nfts-hook"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "litesvm",
+ "phygital-nfts",
+ "solana-keypair",
+ "solana-message 3.1.0",
+ "solana-signer 3.0.1",
+ "solana-transaction",
  "spl-discriminator 0.4.1",
  "spl-transfer-hook-interface",
 ]

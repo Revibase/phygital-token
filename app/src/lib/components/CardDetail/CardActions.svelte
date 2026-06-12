@@ -1,19 +1,38 @@
 <script lang="ts">
-	let { onClaim }: { onClaim: () => void } = $props();
+	let {
+		canClaim,
+		onClaim
+	}: {
+		canClaim: boolean;
+		onClaim: () => void;
+	} = $props();
 </script>
 
-<section class="actions">
-	<button type="button" class="primary" onclick={onClaim}>Claim card</button>
-	<p class="hint">Tap your physical card, then confirm in your wallet.</p>
-</section>
+<div class="action-bar">
+	{#if !canClaim}
+		<button type="button" class="unavailable" disabled>Claim unavailable</button>
+	{:else}
+		<button type="button" class="primary" onclick={onClaim}>Claim card</button>
+		<p class="hint">Tap your physical card, then sign with your wallet.</p>
+	{/if}
+</div>
 
 <style>
-	.actions {
-		margin-top: 1.5rem;
-		padding: 0 1rem;
+	.action-bar {
+		position: fixed;
+		left: 50%;
+		bottom: 0;
+		transform: translateX(-50%);
+		z-index: 30;
+		width: min(100%, 480px);
+		padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0));
+		background: color-mix(in oklch, var(--background) 92%, transparent);
+		border-top: 1px solid var(--border);
+		backdrop-filter: blur(10px);
 	}
 
-	.primary {
+	.primary,
+	.unavailable {
 		width: 100%;
 		min-height: 48px;
 		border: 0;
@@ -21,9 +40,12 @@
 		padding: 0.95rem 1rem;
 		font-size: 1.05rem;
 		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.primary {
 		color: var(--primary-foreground);
 		background: var(--primary);
-		cursor: pointer;
 		transition: transform 120ms ease, opacity 120ms ease;
 	}
 
@@ -32,10 +54,17 @@
 		transform: translateY(-1px);
 	}
 
+	.unavailable {
+		color: var(--muted-foreground);
+		background: var(--muted);
+		border: 1px solid var(--border);
+		cursor: not-allowed;
+	}
+
 	.hint {
-		margin: 0.75rem 0 0;
-		font-size: 0.85rem;
-		line-height: 1.5;
+		margin: 0.55rem 0 0;
+		font-size: 0.82rem;
+		line-height: 1.45;
 		color: var(--muted-foreground);
 		text-align: center;
 	}

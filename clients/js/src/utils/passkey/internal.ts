@@ -1,16 +1,17 @@
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bufferToBase64URLString, startAuthentication, type AuthenticationResponseJSON } from "@simplewebauthn/browser";
-import { getAddressEncoder, getProgramDerivedAddress, type Address, type Instruction } from "@solana/kit";
-import {
-  ASSOCIATED_TOKEN_PROGRAM_ADDRESS,
-  RP_ID,
-  TOKEN_2022_PROGRAM_ADDRESS,
-} from "../consts";
+import { Decoder } from "cbor-x";
+import { address, type Address, type Instruction } from "@solana/kit";
+import { findAssociatedTokenAddress } from "../associatedToken";
+import { RP_ID, TOKEN_2022_PROGRAM_ADDRESS, TRANSFER_HOOK_PROGRAM_ADDRESS } from "../consts";
 import { getExecuteTransferInstructionAsync } from "../../generated";
+import { findCardInstancePda } from "../../instructions/mint";
 import { TransferInput } from "../../instructions/transfer";
 import type { TransferMintContext } from "../metadata";
 import { buildSecp256r1VerifyInstructionFromWebAuthn } from "./secp256r1";
+
+const coseKeyDecoder = new Decoder({ mapsAsObjects: false });
 
 export function uint8ArrayToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -129,20 +130,40 @@ export function parseWebAuthnClientData(clientDataJSON: string) {
   };
 }
 
-export async function findAssociatedTokenAddress(
-  owner: Address,
-  mint: Address,
-  tokenProgram: Address): Promise<Address> {
-  const [ata] = await getProgramDerivedAddress({
-    programAddress: ASSOCIATED_TOKEN_PROGRAM_ADDRESS,
-    seeds: [
-      getAddressEncoder().encode(owner),
-      getAddressEncoder().encode(tokenProgram),
-      getAddressEncoder().encode(mint),
-    ],
-  });
-  return ata;
+function readCoseEs256CompressedPublicKey(bytes: Uint8Array): Uint8Array {
+  const map = coseKeyDecoder.decode(bytes) as Map<number, Uint8Array>;
+  const x = map.get(-2);
+  const y = map.get(-3);
+  if (!x || !y || x.length !== 32 || y.length !== 32) {
+    throw new Error("Invalid ES256 COSE public key");
+  }
+
+  const compressed = new Uint8Array(33);
+  compressed[0] = (y[31]! & 1) === 1 ? 0x03 : 0x02;
+  compressed.set(x, 1);
+  return compressed;
 }
+
+export function extractCompressedPubkeyFromAuthResponse(
+  response: AuthenticationResponseJSON,
+): Uint8Array {
+  const withPublicKey = response as AuthenticationResponseJSON & {
+    publicKey?: string;
+  };
+  if (!withPublicKey.publicKey) {
+    throw new Error(
+      "WebAuthn assertion is missing a public key. Use a browser that exposes credential public keys.",
+    );
+  }
+
+  const raw = base64URLStringToBuffer(withPublicKey.publicKey);
+  if (raw.length === 33) {
+    return raw;
+  }
+
+  return readCoseEs256CompressedPublicKey(raw);
+}
+
 export async function authenticateTransferPasskey(
   challenge: Uint8Array,
   credentialId: string | null = null,
@@ -176,30 +197,39 @@ export async function buildTransferInstructions(
   const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
   const recipientAddress = input.recipient.address;
 
+  const compressedPubkey = extractCompressedPubkeyFromAuthResponse(
+    input.webauthnResponse,
+  );
+  const expectedCardInstance = await findCardInstancePda([compressedPubkey]);
+  if (address(expectedCardInstance) !== address(input.mintContext.cardInstance)) {
+    throw new Error("Passkey public key does not match this card instance");
+  }
+
   const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthn({
       response: input.webauthnResponse,
-      compressedPubkey: input.mintContext.secp256r1Pubkey,
+      compressedPubkey,
     });
 
   const recipientTokenAccount = await findAssociatedTokenAddress(
     recipientAddress,
-    input.mint,
+    input.mintContext.designMint,
     tokenProgram,
   );
   const senderTokenAccount = await findAssociatedTokenAddress(
     input.currentOwner,
-    input.mint,
+    input.mintContext.designMint,
     tokenProgram,
   );
 
   const executeTransfer = await getExecuteTransferInstructionAsync({
     recipient: input.recipient,
     sender: input.currentOwner,
-    tokenMint: input.mint,
-    groupMint: input.mintContext.groupMint,
+    cardInstance: input.mintContext.cardInstance,
+    designMint: input.mintContext.designMint,
     senderTokenAccount,
     recipientTokenAccount,
+    transferHookProgram: TRANSFER_HOOK_PROGRAM_ADDRESS,
     tokenProgram,
     signedMessageIndex: 0,
     slotNumber: input.slotNumber,

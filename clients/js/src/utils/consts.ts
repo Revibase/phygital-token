@@ -28,9 +28,6 @@ export const SLOT_HASHES_SYSVAR_ADDRESS = address(
 
 export const TRANSFER_ACTION_BYTES = new TextEncoder().encode("transfer");
 
-export const METADATA_KEY_GROUP_UNIQUE_ID = "ui";
-export const METADATA_KEY_SECP256R1 = "s";
-
 export const TOKEN_GROUP_MEMBER_EXTENSION_TYPE = 108;
 export const TOKEN_METADATA_EXTENSION_TYPE = 19;
 

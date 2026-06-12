@@ -48,12 +48,31 @@ impl TestPasskey {
     pub fn secp256r1_verify_instruction(
         &self,
         token_program: Pubkey,
-        token_mint: Pubkey,
+        card_instance: Pubkey,
         sender: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(&token_mint, &sender);
+        self.secp256r1_verify_instruction_with(
+            token_program,
+            card_instance,
+            sender,
+            slot_number,
+            slot_hash,
+            None,
+        )
+    }
+
+    pub fn secp256r1_verify_instruction_with(
+        &self,
+        token_program: Pubkey,
+        card_instance: Pubkey,
+        sender: Pubkey,
+        slot_number: u64,
+        slot_hash: [u8; 32],
+        signature_override: Option<[u8; 64]>,
+    ) -> (Instruction, Secp256r1VerifyArgs) {
+        let message_hash = build_transfer_message_hash(&card_instance, &sender);
 
         let mut challenge_buffer = Vec::new();
         challenge_buffer.extend_from_slice(TransferActionType::Transfer.to_bytes());
@@ -77,8 +96,12 @@ impl TestPasskey {
         signed_message.extend_from_slice(&rp_id_hash);
         signed_message.extend_from_slice(&client_data_hash);
 
-        let signature: p256::ecdsa::Signature = self.signing_key.sign(&signed_message);
-        let signature_bytes = normalize_low_s(signature.to_bytes().into());
+        let signature_bytes = if let Some(bytes) = signature_override {
+            bytes
+        } else {
+            let signature: p256::ecdsa::Signature = self.signing_key.sign(&signed_message);
+            normalize_low_s(signature.to_bytes().into())
+        };
 
         let ix = new_secp256r1_instruction_with_signature(
             &signed_message,

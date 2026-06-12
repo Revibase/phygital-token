@@ -4,7 +4,7 @@
 
 {#if description}
 	<section class="description">
-		<h2>Description</h2>
+		<h2>Flavor text</h2>
 		<p>{description}</p>
 	</section>
 {/if}

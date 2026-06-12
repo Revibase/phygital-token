@@ -27,13 +27,12 @@ anchor-spl = { version = "1.0.2", features = ["token_2022_extensions"] }
 base64 = "0.22.1"
 sha2 = "0.10"
 spl-token-group-interface = "0.7"
-spl-token-metadata-interface = "0.8"
 solana-instructions-sysvar = "3.0"
 solana-sdk-ids = "3"
-spl-discriminator = "0.4"
-spl-transfer-hook-interface = "0.9"
 
 [dev-dependencies]
+spl-token-2022-interface = "2.1"
+spl-token-metadata-interface = "0.8"
 phygital-nfts-hook = { path = "../phygital-nfts-hook" }
 litesvm = { version = "0.10.0", features = ["precompiles"] }
 solana-message = "3.0.1"

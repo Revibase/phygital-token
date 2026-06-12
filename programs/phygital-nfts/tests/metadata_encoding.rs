@@ -1,12 +1,24 @@
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use anchor_lang::prelude::Rent;
+use anchor_spl::token_2022::spl_token_2022::extension::ExtensionType;
+use anchor_spl::token_2022::spl_token_2022::state::Account as SplTokenAccount;
 use phygital_nfts::constants::{
     MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN, MAX_METADATA_URI_LEN,
 };
-use phygital_nfts::Secp256r1Pubkey;
-use phygital_nfts::utils::{
-    encode_last_transfer_slot, encode_secp256r1_pubkey, initial_last_transfer_slot_value,
-    validate_metadata_strings, LAST_TRANSFER_SLOT_NONE, LAST_TRANSFER_SLOT_WIDTH,
-};
+use phygital_nfts::utils::validate_uri;
+use phygital_nfts::utils::{design_mint_metadata_tlv_size, validate_metadata_strings};
+use phygital_nfts::utils::LAST_TRANSFER_SLOT_NONE;
+
+#[test]
+fn design_mint_token_account_rent_matches_transfer_hook_ata() {
+    let len = ExtensionType::try_calculate_account_len::<SplTokenAccount>(&[
+        ExtensionType::ImmutableOwner,
+        ExtensionType::TransferHookAccount,
+    ])
+    .expect("len");
+    let rent = Rent::default().minimum_balance(len);
+    assert_eq!(len, 175);
+    assert_eq!(rent, 2_108_880);
+}
 
 #[test]
 fn validate_metadata_strings_accepts_limits() {
@@ -24,23 +36,32 @@ fn validate_metadata_strings_rejects_long_uri() {
 }
 
 #[test]
-fn last_transfer_slot_metadata_uses_fixed_width_encoding() {
-    assert_eq!(initial_last_transfer_slot_value().len(), LAST_TRANSFER_SLOT_WIDTH);
-    assert_eq!(
-        initial_last_transfer_slot_value(),
-        encode_last_transfer_slot(LAST_TRANSFER_SLOT_NONE)
-    );
-    assert_eq!(encode_last_transfer_slot(42), "00000000000000000042");
-    assert_eq!(
-        encode_last_transfer_slot(u64::MAX).len(),
-        LAST_TRANSFER_SLOT_WIDTH
-    );
+fn design_mint_metadata_tlv_size_is_positive() {
+    let size = design_mint_metadata_tlv_size("Test Design", "TDES", "https://example.com/x.json")
+        .expect("tlv size");
+    assert!(size > 0);
+    assert_eq!(LAST_TRANSFER_SLOT_NONE, u64::MAX);
 }
 
 #[test]
-fn encode_secp256r1_pubkey_base64() {
-    let pubkey = Secp256r1Pubkey([0x02u8; 33]);
-    let encoded = encode_secp256r1_pubkey(&pubkey);
-    let decoded: Vec<u8> = BASE64.decode(encoded).expect("valid base64");
-    assert_eq!(decoded.as_slice(), pubkey.as_ref());
+fn validate_metadata_strings_rejects_long_name() {
+    let name = "n".repeat(MAX_METADATA_NAME_LEN + 1);
+    let err = validate_metadata_strings(&name, "NFT", "https://example.com/x.json")
+        .expect_err("over-limit name");
+    assert!(format!("{err:?}").contains("MaxLengthExceeded"));
+}
+
+#[test]
+fn validate_metadata_strings_rejects_long_symbol() {
+    let symbol = "s".repeat(MAX_METADATA_SYMBOL_LEN + 1);
+    let err = validate_metadata_strings("nft", &symbol, "https://example.com/x.json")
+        .expect_err("over-limit symbol");
+    assert!(format!("{err:?}").contains("MaxLengthExceeded"));
+}
+
+#[test]
+fn validate_uri_rejects_over_limit() {
+    let uri = "u".repeat(MAX_METADATA_URI_LEN + 1);
+    let err = validate_uri(&uri).expect_err("over-limit uri");
+    assert!(format!("{err:?}").contains("MaxLengthExceeded"));
 }

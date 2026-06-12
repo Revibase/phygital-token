@@ -39,10 +39,10 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
-  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
@@ -64,8 +64,8 @@ export type ExecuteTransferInstruction<
   TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
   TAccountRecipient extends string | AccountMeta<string> = string,
   TAccountSender extends string | AccountMeta<string> = string,
-  TAccountTokenMint extends string | AccountMeta<string> = string,
-  TAccountGroupMint extends string | AccountMeta<string> = string,
+  TAccountCardInstance extends string | AccountMeta<string> = string,
+  TAccountDesignMint extends string | AccountMeta<string> = string,
   TAccountSenderTokenAccount extends string | AccountMeta<string> = string,
   TAccountRecipientTokenAccount extends string | AccountMeta<string> = string,
   TAccountProgramAuthority extends string | AccountMeta<string> = string,
@@ -87,18 +87,18 @@ export type ExecuteTransferInstruction<
   InstructionWithAccounts<
     [
       TAccountRecipient extends string
-        ? WritableSignerAccount<TAccountRecipient> &
+        ? ReadonlySignerAccount<TAccountRecipient> &
             AccountSignerMeta<TAccountRecipient>
         : TAccountRecipient,
       TAccountSender extends string
         ? ReadonlyAccount<TAccountSender>
         : TAccountSender,
-      TAccountTokenMint extends string
-        ? WritableAccount<TAccountTokenMint>
-        : TAccountTokenMint,
-      TAccountGroupMint extends string
-        ? ReadonlyAccount<TAccountGroupMint>
-        : TAccountGroupMint,
+      TAccountCardInstance extends string
+        ? WritableAccount<TAccountCardInstance>
+        : TAccountCardInstance,
+      TAccountDesignMint extends string
+        ? WritableAccount<TAccountDesignMint>
+        : TAccountDesignMint,
       TAccountSenderTokenAccount extends string
         ? WritableAccount<TAccountSenderTokenAccount>
         : TAccountSenderTokenAccount,
@@ -191,8 +191,8 @@ export function getExecuteTransferInstructionDataCodec(): Codec<
 export type ExecuteTransferAsyncInput<
   TAccountRecipient extends string = string,
   TAccountSender extends string = string,
-  TAccountTokenMint extends string = string,
-  TAccountGroupMint extends string = string,
+  TAccountCardInstance extends string = string,
+  TAccountDesignMint extends string = string,
   TAccountSenderTokenAccount extends string = string,
   TAccountRecipientTokenAccount extends string = string,
   TAccountProgramAuthority extends string = string,
@@ -203,13 +203,15 @@ export type ExecuteTransferAsyncInput<
   TAccountSystemProgram extends string = string,
   TAccountTransferHookProgram extends string = string,
 > = {
-  /** Recipient — initiates and pays for this transaction */
+  /** Recipient — initiator for this transaction */
   recipient: TransactionSigner<TAccountRecipient>;
-  /** Sender — does NOT need to sign. program_authority acts as permanent delegate. */
+  /**
+   * Sender — does NOT need to sign. Must match `card_instance.owner`.
+   * program_authority acts as permanent delegate for the token move.
+   */
   sender: Address<TAccountSender>;
-  tokenMint: Address<TAccountTokenMint>;
-  /** Collection mint read from the NFT's TokenGroupMember extension. */
-  groupMint: Address<TAccountGroupMint>;
+  cardInstance: Address<TAccountCardInstance>;
+  designMint: Address<TAccountDesignMint>;
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
   /** Recipient ATA — created in the handler; rent paid by `program_authority`. */
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
@@ -231,8 +233,8 @@ export type ExecuteTransferAsyncInput<
 export async function getExecuteTransferInstructionAsync<
   TAccountRecipient extends string,
   TAccountSender extends string,
-  TAccountTokenMint extends string,
-  TAccountGroupMint extends string,
+  TAccountCardInstance extends string,
+  TAccountDesignMint extends string,
   TAccountSenderTokenAccount extends string,
   TAccountRecipientTokenAccount extends string,
   TAccountProgramAuthority extends string,
@@ -247,8 +249,8 @@ export async function getExecuteTransferInstructionAsync<
   input: ExecuteTransferAsyncInput<
     TAccountRecipient,
     TAccountSender,
-    TAccountTokenMint,
-    TAccountGroupMint,
+    TAccountCardInstance,
+    TAccountDesignMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
@@ -265,8 +267,8 @@ export async function getExecuteTransferInstructionAsync<
     TProgramAddress,
     TAccountRecipient,
     TAccountSender,
-    TAccountTokenMint,
-    TAccountGroupMint,
+    TAccountCardInstance,
+    TAccountDesignMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
@@ -284,10 +286,10 @@ export async function getExecuteTransferInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    recipient: { value: input.recipient ?? null, isWritable: true },
+    recipient: { value: input.recipient ?? null, isWritable: false },
     sender: { value: input.sender ?? null, isWritable: false },
-    tokenMint: { value: input.tokenMint ?? null, isWritable: true },
-    groupMint: { value: input.groupMint ?? null, isWritable: false },
+    cardInstance: { value: input.cardInstance ?? null, isWritable: true },
+    designMint: { value: input.designMint ?? null, isWritable: true },
     senderTokenAccount: {
       value: input.senderTokenAccount ?? null,
       isWritable: true,
@@ -358,8 +360,8 @@ export async function getExecuteTransferInstructionAsync<
     accounts: [
       getAccountMeta("recipient", accounts.recipient),
       getAccountMeta("sender", accounts.sender),
-      getAccountMeta("tokenMint", accounts.tokenMint),
-      getAccountMeta("groupMint", accounts.groupMint),
+      getAccountMeta("cardInstance", accounts.cardInstance),
+      getAccountMeta("designMint", accounts.designMint),
       getAccountMeta("senderTokenAccount", accounts.senderTokenAccount),
       getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
       getAccountMeta("programAuthority", accounts.programAuthority),
@@ -378,8 +380,8 @@ export async function getExecuteTransferInstructionAsync<
     TProgramAddress,
     TAccountRecipient,
     TAccountSender,
-    TAccountTokenMint,
-    TAccountGroupMint,
+    TAccountCardInstance,
+    TAccountDesignMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
@@ -395,8 +397,8 @@ export async function getExecuteTransferInstructionAsync<
 export type ExecuteTransferInput<
   TAccountRecipient extends string = string,
   TAccountSender extends string = string,
-  TAccountTokenMint extends string = string,
-  TAccountGroupMint extends string = string,
+  TAccountCardInstance extends string = string,
+  TAccountDesignMint extends string = string,
   TAccountSenderTokenAccount extends string = string,
   TAccountRecipientTokenAccount extends string = string,
   TAccountProgramAuthority extends string = string,
@@ -407,13 +409,15 @@ export type ExecuteTransferInput<
   TAccountSystemProgram extends string = string,
   TAccountTransferHookProgram extends string = string,
 > = {
-  /** Recipient — initiates and pays for this transaction */
+  /** Recipient — initiator for this transaction */
   recipient: TransactionSigner<TAccountRecipient>;
-  /** Sender — does NOT need to sign. program_authority acts as permanent delegate. */
+  /**
+   * Sender — does NOT need to sign. Must match `card_instance.owner`.
+   * program_authority acts as permanent delegate for the token move.
+   */
   sender: Address<TAccountSender>;
-  tokenMint: Address<TAccountTokenMint>;
-  /** Collection mint read from the NFT's TokenGroupMember extension. */
-  groupMint: Address<TAccountGroupMint>;
+  cardInstance: Address<TAccountCardInstance>;
+  designMint: Address<TAccountDesignMint>;
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
   /** Recipient ATA — created in the handler; rent paid by `program_authority`. */
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
@@ -435,8 +439,8 @@ export type ExecuteTransferInput<
 export function getExecuteTransferInstruction<
   TAccountRecipient extends string,
   TAccountSender extends string,
-  TAccountTokenMint extends string,
-  TAccountGroupMint extends string,
+  TAccountCardInstance extends string,
+  TAccountDesignMint extends string,
   TAccountSenderTokenAccount extends string,
   TAccountRecipientTokenAccount extends string,
   TAccountProgramAuthority extends string,
@@ -451,8 +455,8 @@ export function getExecuteTransferInstruction<
   input: ExecuteTransferInput<
     TAccountRecipient,
     TAccountSender,
-    TAccountTokenMint,
-    TAccountGroupMint,
+    TAccountCardInstance,
+    TAccountDesignMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
@@ -468,8 +472,8 @@ export function getExecuteTransferInstruction<
   TProgramAddress,
   TAccountRecipient,
   TAccountSender,
-  TAccountTokenMint,
-  TAccountGroupMint,
+  TAccountCardInstance,
+  TAccountDesignMint,
   TAccountSenderTokenAccount,
   TAccountRecipientTokenAccount,
   TAccountProgramAuthority,
@@ -486,10 +490,10 @@ export function getExecuteTransferInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    recipient: { value: input.recipient ?? null, isWritable: true },
+    recipient: { value: input.recipient ?? null, isWritable: false },
     sender: { value: input.sender ?? null, isWritable: false },
-    tokenMint: { value: input.tokenMint ?? null, isWritable: true },
-    groupMint: { value: input.groupMint ?? null, isWritable: false },
+    cardInstance: { value: input.cardInstance ?? null, isWritable: true },
+    designMint: { value: input.designMint ?? null, isWritable: true },
     senderTokenAccount: {
       value: input.senderTokenAccount ?? null,
       isWritable: true,
@@ -557,8 +561,8 @@ export function getExecuteTransferInstruction<
     accounts: [
       getAccountMeta("recipient", accounts.recipient),
       getAccountMeta("sender", accounts.sender),
-      getAccountMeta("tokenMint", accounts.tokenMint),
-      getAccountMeta("groupMint", accounts.groupMint),
+      getAccountMeta("cardInstance", accounts.cardInstance),
+      getAccountMeta("designMint", accounts.designMint),
       getAccountMeta("senderTokenAccount", accounts.senderTokenAccount),
       getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
       getAccountMeta("programAuthority", accounts.programAuthority),
@@ -577,8 +581,8 @@ export function getExecuteTransferInstruction<
     TProgramAddress,
     TAccountRecipient,
     TAccountSender,
-    TAccountTokenMint,
-    TAccountGroupMint,
+    TAccountCardInstance,
+    TAccountDesignMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
@@ -597,13 +601,15 @@ export type ParsedExecuteTransferInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    /** Recipient — initiates and pays for this transaction */
+    /** Recipient — initiator for this transaction */
     recipient: TAccountMetas[0];
-    /** Sender — does NOT need to sign. program_authority acts as permanent delegate. */
+    /**
+     * Sender — does NOT need to sign. Must match `card_instance.owner`.
+     * program_authority acts as permanent delegate for the token move.
+     */
     sender: TAccountMetas[1];
-    tokenMint: TAccountMetas[2];
-    /** Collection mint read from the NFT's TokenGroupMember extension. */
-    groupMint: TAccountMetas[3];
+    cardInstance: TAccountMetas[2];
+    designMint: TAccountMetas[3];
     senderTokenAccount: TAccountMetas[4];
     /** Recipient ATA — created in the handler; rent paid by `program_authority`. */
     recipientTokenAccount: TAccountMetas[5];
@@ -647,8 +653,8 @@ export function parseExecuteTransferInstruction<
     accounts: {
       recipient: getNextAccount(),
       sender: getNextAccount(),
-      tokenMint: getNextAccount(),
-      groupMint: getNextAccount(),
+      cardInstance: getNextAccount(),
+      designMint: getNextAccount(),
       senderTokenAccount: getNextAccount(),
       recipientTokenAccount: getNextAccount(),
       programAuthority: getNextAccount(),

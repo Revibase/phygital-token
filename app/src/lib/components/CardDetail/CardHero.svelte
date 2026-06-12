@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { RarityTier } from '$lib/card';
+	import type { CardAttribute } from 'phygital-nfts-client';
 	import { hasHoloEffect } from '$lib/card';
 
 	let {
@@ -7,19 +8,24 @@
 		name,
 		symbol,
 		accentColor,
-		rarityTier
+		rarityTier,
+		keyStats = []
 	}: {
 		image: string | null;
 		name: string;
 		symbol: string;
 		accentColor: string;
 		rarityTier: RarityTier;
+		keyStats?: CardAttribute[];
 	} = $props();
 
 	let loaded = $state(false);
 	let fullscreen = $state(false);
 
 	const holo = $derived(hasHoloEffect(rarityTier));
+
+	const hpStat = $derived(keyStats.find((s) => s.traitType.toLowerCase() === 'hp'));
+	const typeStat = $derived(keyStats.find((s) => s.traitType.toLowerCase() === 'type'));
 
 	function handleLoad() {
 		loaded = true;
@@ -54,6 +60,7 @@
 		{#if image}
 			<div class="skeleton" class:hidden={loaded} aria-hidden="true"></div>
 			<div class="art-wrap">
+				<div class="inner-frame" aria-hidden="true"></div>
 				<img
 					class="artwork"
 					class:visible={loaded}
@@ -63,6 +70,18 @@
 				/>
 				{#if holo}
 					<div class="holo-overlay" aria-hidden="true"></div>
+				{/if}
+				{#if hpStat}
+					<div class="overlay-stat hp">
+						<span class="label">{hpStat.traitType}</span>
+						<span class="value">{hpStat.value}</span>
+					</div>
+				{/if}
+				{#if typeStat}
+					<div class="overlay-stat type">
+						<span class="label">{typeStat.traitType}</span>
+						<span class="value">{typeStat.value}</span>
+					</div>
 				{/if}
 			</div>
 		{:else}
@@ -121,8 +140,13 @@
 		position: relative;
 	}
 
-	.art-wrap {
-		border: 3px solid color-mix(in srgb, var(--accent) 60%, transparent);
+	.inner-frame {
+		position: absolute;
+		inset: 10px;
+		border-radius: 12px;
+		border: 1px solid color-mix(in oklch, var(--foreground) 10%, transparent);
+		pointer-events: none;
+		z-index: 1;
 	}
 
 	.artwork {
@@ -136,6 +160,45 @@
 
 	.artwork.visible {
 		opacity: 1;
+	}
+
+	.overlay-stat {
+		position: absolute;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+		padding: 0.35rem 0.55rem;
+		border-radius: 10px;
+		background: color-mix(in oklch, var(--background) 72%, transparent);
+		border: 1px solid color-mix(in oklch, var(--foreground) 12%, transparent);
+		backdrop-filter: blur(6px);
+	}
+
+	.overlay-stat.hp {
+		top: 0.65rem;
+		right: 0.65rem;
+		align-items: flex-end;
+	}
+
+	.overlay-stat.type {
+		bottom: 0.65rem;
+		left: 0.65rem;
+	}
+
+	.label {
+		font-size: 0.58rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--muted-foreground);
+	}
+
+	.value {
+		font-size: 0.95rem;
+		font-weight: 800;
+		color: var(--foreground);
+		line-height: 1;
 	}
 
 	.holo-overlay {
@@ -200,22 +263,6 @@
 		max-height: 90vh;
 		border-radius: 16px;
 		box-shadow: 0 24px 80px var(--shadow-color);
-	}
-
-	@media (max-width: 480px) {
-		.hero {
-			margin-left: -1rem;
-			margin-right: -1rem;
-			width: calc(100% + 2rem);
-		}
-
-		.art-wrap,
-		.placeholder,
-		.skeleton {
-			border-radius: 0;
-			border-left: 0;
-			border-right: 0;
-		}
 	}
 
 	@keyframes shimmer {

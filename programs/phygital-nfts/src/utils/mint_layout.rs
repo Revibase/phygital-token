@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_2022::spl_token_2022::extension::ExtensionType;
-use anchor_spl::token_2022::spl_token_2022::state::Mint;
+use anchor_spl::token_2022::spl_token_2022::state::{Account as SplTokenAccount, Mint};
 
 use crate::error::TokenProgramError;
 
@@ -23,6 +23,23 @@ fn mint_extension_account_len(extension_types: &[ExtensionType]) -> Result<usize
         .map_err(|_| error!(TokenProgramError::ArithmeticOverflow))
 }
 
+fn token_extension_account_len(extension_types: &[ExtensionType]) -> Result<usize> {
+    ExtensionType::try_calculate_account_len::<SplTokenAccount>(extension_types)
+        .map_err(|_| error!(TokenProgramError::ArithmeticOverflow))
+}
+
+/// Rent for a Token-2022 token account holding a design mint.
+///
+/// Recipient ATAs are created via the associated-token program, which initializes
+/// `ImmutableOwner` in addition to the mint-required `TransferHookAccount` extension.
+pub fn design_mint_token_account_rent() -> Result<u64> {
+    let len = token_extension_account_len(&[
+        ExtensionType::ImmutableOwner,
+        ExtensionType::TransferHookAccount,
+    ])?;
+    Ok(Rent::get()?.minimum_balance(len))
+}
+
 fn mint_account_layout(
     initial_extensions: &[ExtensionType],
     final_extensions: &[ExtensionType],
@@ -39,15 +56,8 @@ fn mint_account_layout(
     })
 }
 
-/// Token-2022 mint account size before `InitializeMint2` (metadata + group pointers only).
-pub const COLLECTION_MINT_INITIAL_LEN: usize = 302;
-
-pub fn collection_mint_initial_len() -> usize {
-    mint_extension_account_len(&[ExtensionType::MetadataPointer, ExtensionType::GroupPointer])
-        .expect("collection mint initial len")
-}
-
-pub fn collection_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
+/// Token-2022 group (collection) mint sizing for external collection mints.
+pub fn group_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
     mint_account_layout(
         &[ExtensionType::MetadataPointer, ExtensionType::GroupPointer],
         &[
@@ -59,21 +69,11 @@ pub fn collection_mint_layout(metadata_size: usize) -> Result<MintAccountLayout>
     )
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn collection_mint_initial_len_matches_constant() {
-        assert_eq!(
-            collection_mint_initial_len(),
-            COLLECTION_MINT_INITIAL_LEN,
-            "update COLLECTION_MINT_INITIAL_LEN if extension sizes change"
-        );
-    }
+pub fn member_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
+    design_mint_layout(metadata_size)
 }
 
-pub fn member_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
+pub fn design_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
     mint_account_layout(
         &[
             ExtensionType::MetadataPointer,

@@ -1,18 +1,40 @@
-import { getWallets, type Wallets } from '@wallet-standard/app';
 import type { Wallet, WalletAccount } from '@wallet-standard/base';
 import type { UiWalletAccount } from '@wallet-standard/ui-core';
 import { getOrCreateUiWalletAccountForStandardWalletAccount } from '@wallet-standard/ui-registry';
+import {
+	ConnectorClient,
+	getDefaultConfig,
+	isConnected,
+	ready,
+	type WalletConnectConfig,
+	type WalletConnectorId,
+	type WalletConnectorMetadata
+} from '@solana/connector/headless';
+import {
+	SolanaSignMessage,
+	type SolanaSignMessageFeature
+} from '@solana/wallet-standard-features';
+import {
+	SolanaSignTransaction,
+	type SolanaSignTransactionFeature
+} from '@solana/wallet-standard-features';
 import { createTransactionSendingSignerFromWalletAccount } from '@solana/wallet-account-signer';
 import type { TransactionSendingSigner } from '@solana/signers';
+import type { SolanaWalletAdapter } from '@ardrive/turbo-sdk/web';
+import { Transaction } from '@solana/web3.js';
 import { browser } from '$app/environment';
+import { env } from '$env/dynamic/public';
 import { get, writable } from 'svelte/store';
+import { getRpcUrl } from './rpc';
+
+export type WalletConnectorOption = WalletConnectorMetadata;
 
 export type WalletState = {
 	connected: boolean;
 	connecting: boolean;
-	wallet: Wallet | null;
-	account: UiWalletAccount | null;
+	accountAddress: string | null;
 	signer: TransactionSendingSigner | null;
+	connectorId: string | null;
 	error: string | null;
 };
 
@@ -20,60 +42,184 @@ function emptyState(): WalletState {
 	return {
 		connected: false,
 		connecting: false,
-		wallet: null,
-		account: null,
+		accountAddress: null,
 		signer: null,
+		connectorId: null,
 		error: null
 	};
 }
 
 export const walletStore = writable<WalletState>(emptyState());
-export const availableWallets = writable<readonly Wallet[]>([]);
+export const availableConnectors = writable<readonly WalletConnectorOption[]>([]);
+export const walletConnectUri = writable<string | null>(null);
+export const walletReady = writable(false);
 
-let walletsApi: Wallets | null = null;
+let connectorClient: ConnectorClient | null = null;
+let connectorUnsubscribe: (() => void) | null = null;
+let connectedWallet: Wallet | null = null;
+let connectedAccount: WalletAccount | null = null;
 let initialized = false;
+let connectAttempt = 0;
 
-function refreshAvailableWallets(): void {
-	if (!walletsApi) {
-		availableWallets.set([]);
+const CONNECT_TIMEOUT_MS = 120_000;
+const CONNECTOR_INIT_TIMEOUT_MS = 15_000;
+
+const FEATURED_WALLET_NAMES = ['Phantom', 'Solflare'];
+
+export function getNetworkFromRpc(): 'devnet' | 'mainnet' | 'testnet' {
+	const url = getRpcUrl().toLowerCase();
+	if (url.includes('devnet')) {
+		return 'devnet';
+	}
+	if (url.includes('testnet')) {
+		return 'testnet';
+	}
+	return 'mainnet';
+}
+
+export function getSolanaChain(): `solana:${string}` {
+	const network = getNetworkFromRpc();
+	if (network === 'devnet') {
+		return 'solana:devnet';
+	}
+	if (network === 'testnet') {
+		return 'solana:testnet';
+	}
+	return 'solana:mainnet';
+}
+
+function accountToSigner(
+	wallet: Wallet,
+	account: WalletAccount
+): { uiAccount: UiWalletAccount; signer: TransactionSendingSigner } {
+	const uiAccount = getOrCreateUiWalletAccountForStandardWalletAccount(wallet, account);
+	const signer = createTransactionSendingSignerFromWalletAccount(uiAccount, getSolanaChain());
+	return { uiAccount, signer };
+}
+
+export function isWalletConnectConnector(
+	connector: Pick<WalletConnectorMetadata, 'id' | 'name'>
+): boolean {
+	const id = String(connector.id).toLowerCase();
+	const name = connector.name.toLowerCase();
+	return id.includes('walletconnect') || name.includes('walletconnect');
+}
+
+function sortConnectors(connectors: readonly WalletConnectorOption[]): WalletConnectorOption[] {
+	return [...connectors].sort((left, right) => {
+		const leftWalletConnect = isWalletConnectConnector(left);
+		const rightWalletConnect = isWalletConnectConnector(right);
+		if (leftWalletConnect !== rightWalletConnect) {
+			return leftWalletConnect ? 1 : -1;
+		}
+
+		const leftFeatured = FEATURED_WALLET_NAMES.includes(left.name);
+		const rightFeatured = FEATURED_WALLET_NAMES.includes(right.name);
+		if (leftFeatured !== rightFeatured) {
+			return leftFeatured ? -1 : 1;
+		}
+
+		return left.name.localeCompare(right.name);
+	});
+}
+
+function refreshAvailableConnectors(): void {
+	if (!connectorClient) {
+		availableConnectors.set([]);
 		return;
 	}
 
-	const wallets = walletsApi.get().filter((wallet) => {
-		if (isMobileWalletAdapterEnvironment()) {
-			return true;
+	availableConnectors.set(sortConnectors(connectorClient.getSnapshot().connectors));
+}
+
+function syncWalletState(): void {
+	if (!connectorClient) {
+		return;
+	}
+
+	const state = connectorClient.getSnapshot();
+	refreshAvailableConnectors();
+
+	const wallet = state.wallet;
+	if (!isConnected(wallet)) {
+		connectedWallet = null;
+		connectedAccount = null;
+		if (wallet.status === 'connecting') {
+			walletStore.update(() => ({ ...emptyState(), connecting: true, error: null }));
+		} else if (wallet.status === 'error') {
+			walletStore.set({
+				...emptyState(),
+				error: wallet.error.message
+			});
+		} else {
+			walletStore.set(emptyState());
 		}
-		return !MWA_WALLET_NAMES.has(wallet.name);
+		return;
+	}
+
+	const walletObj = connectorClient.getConnector(wallet.session.connectorId);
+	const account = wallet.session.selectedAccount.account;
+	if (!walletObj) {
+		connectedWallet = null;
+		connectedAccount = null;
+		walletStore.set({
+			...emptyState(),
+			error: 'Connected wallet is unavailable'
+		});
+		return;
+	}
+
+	connectedWallet = walletObj;
+	connectedAccount = account;
+	const { signer } = accountToSigner(walletObj, account);
+	walletStore.set({
+		connected: true,
+		connecting: false,
+		accountAddress: wallet.session.selectedAccount.address,
+		signer,
+		connectorId: String(wallet.session.connectorId),
+		error: null
 	});
-	availableWallets.set(wallets);
 }
 
-function getSolanaChain(): `solana:${string}` {
-	return 'solana:devnet';
+export function clearWalletConnectUri(): void {
+	walletConnectUri.set(null);
 }
 
-/** MWA web is supported on Android Chrome — not desktop browsers. */
-export function isMobileWalletAdapterEnvironment(): boolean {
-	if (!browser) {
+async function waitForConnectors(timeoutMs: number): Promise<boolean> {
+	if (!connectorClient) {
 		return false;
 	}
-	const ua = navigator.userAgent;
-	const isAndroid = /android/i.test(ua);
-	const isChrome = /chrome/i.test(ua) && !/edg/i.test(ua);
-	return isAndroid && isChrome;
+
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		refreshAvailableConnectors();
+		if (get(availableConnectors).length > 0) {
+			return true;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 100));
+	}
+
+	return false;
 }
 
-const MWA_WALLET_NAMES = new Set(['Mobile Wallet Adapter', 'Remote Mobile Wallet Adapter']);
+async function resetConnectorSession(): Promise<void> {
+	if (!connectorClient) {
+		return;
+	}
 
-function pickSolanaAccount(wallet: Wallet): UiWalletAccount | null {
-	const account = wallet.accounts.find((entry) =>
-		entry.chains.some((chain) => chain.startsWith('solana:'))
-	);
-	return account ? getOrCreateUiWalletAccountForStandardWalletAccount(wallet, account) : null;
+	try {
+		await connectorClient.disconnectWallet();
+	} catch {
+		// Ignore disconnect errors while cancelling an in-flight connect.
+	}
 }
 
-function accountToSigner(account: UiWalletAccount): TransactionSendingSigner {
-	return createTransactionSendingSignerFromWalletAccount(account, getSolanaChain());
+export async function cancelWalletConnection(): Promise<void> {
+	connectAttempt += 1;
+	clearWalletConnectUri();
+	await resetConnectorSession();
+	walletStore.set(emptyState());
 }
 
 export async function initWallet(): Promise<void> {
@@ -81,88 +227,207 @@ export async function initWallet(): Promise<void> {
 		return;
 	}
 
-	if (isMobileWalletAdapterEnvironment()) {
-		const {
-			registerMwa,
-			createDefaultAuthorizationCache,
-			createDefaultChainSelector
-		} = await import('@solana-mobile/wallet-standard-mobile');
+	const projectId = env.PUBLIC_WALLETCONNECT_PROJECT_ID?.trim();
+	const origin = window.location.origin;
+	const walletConnectConfig = projectId
+		? ({
+				enabled: true,
+				projectId,
+				defaultChain: getSolanaChain(),
+				metadata: {
+					name: 'Phygital NFTs',
+					description: 'Phygital trading card viewer and claim',
+					url: origin,
+					icons: [`${origin}/favicon.svg`]
+				},
+				getCurrentChain: () => getSolanaChain(),
+				onDisplayUri: (uri: string) => {
+					walletConnectUri.set(uri);
+				},
+				onSessionEstablished: () => {
+					walletConnectUri.set(null);
+				},
+				onSessionDisconnected: () => {
+					walletConnectUri.set(null);
+				}
+			} as WalletConnectConfig)
+		: undefined;
 
-		registerMwa({
-			appIdentity: {
-				name: 'Phygital NFTs',
-				uri: window.location.origin,
-				icon: `${window.location.origin}/favicon.svg`
+	connectorClient = new ConnectorClient(
+		getDefaultConfig({
+			appName: 'Phygital NFTs',
+			appUrl: origin,
+			network: getNetworkFromRpc(),
+			autoConnect: false,
+			enableMobile: false,
+			wallets: {
+				allowList: ['Phantom', 'Solflare', 'Backpack'],
+				featured: FEATURED_WALLET_NAMES
 			},
-			authorizationCache: createDefaultAuthorizationCache(),
-			chains: [getSolanaChain()],
-			chainSelector: createDefaultChainSelector(),
-			onWalletNotFound: async () => {
-				throw new Error(
-					'No compatible mobile wallet found. Install a Solana wallet that supports Mobile Wallet Adapter.'
-				);
-			}
-		});
-	}
+			clusters: [
+				{
+					id: getSolanaChain(),
+					label: getNetworkFromRpc() === 'mainnet' ? 'Mainnet' : 'Devnet',
+					url: getRpcUrl()
+				}
+			],
+			...(walletConnectConfig ? { walletConnect: walletConnectConfig } : {})
+		})
+	);
 
-	walletsApi = getWallets();
-	walletsApi.on('register', refreshAvailableWallets);
-	walletsApi.on('unregister', refreshAvailableWallets);
-	refreshAvailableWallets();
+	connectorUnsubscribe = connectorClient.subscribe(() => {
+		syncWalletState();
+	});
+
+	await ready;
+
+	const connectorsReady = await waitForConnectors(CONNECTOR_INIT_TIMEOUT_MS);
+	refreshAvailableConnectors();
+
 	initialized = true;
-}
+	walletReady.set(true);
 
-export async function connectWallet(wallet: Wallet): Promise<void> {
-	walletStore.update((state) => ({ ...state, connecting: true, error: null }));
-
-	try {
-		const solanaFeature = wallet.features['standard:connect'] as
-			| { connect: (input?: { silent?: boolean }) => Promise<{ accounts: WalletAccount[] }> }
-			| undefined;
-
-		if (!solanaFeature) {
-			throw new Error('Wallet does not support standard connect');
-		}
-
-		const { accounts } = await solanaFeature.connect();
-		const connectedAccount =
-			accounts.find((entry) => entry.chains.some((chain) => chain.startsWith('solana:'))) ??
-			null;
-		const account = connectedAccount
-			? getOrCreateUiWalletAccountForStandardWalletAccount(wallet, connectedAccount)
-			: pickSolanaAccount(wallet);
-
-		if (!account) {
-			throw new Error('No Solana account returned by wallet');
-		}
-
-		const signer = accountToSigner(account);
-		walletStore.set({
-			connected: true,
-			connecting: false,
-			wallet,
-			account,
-			signer,
-			error: null
-		});
-	} catch (error) {
+	if (!connectorsReady) {
 		walletStore.set({
 			...emptyState(),
-			connecting: false,
-			error: error instanceof Error ? error.message : 'Failed to connect wallet'
+			error: projectId
+				? 'No wallets are available. Install a Solana browser extension or reload the page.'
+				: 'No browser wallets detected. Install Phantom or Solflare, or set PUBLIC_WALLETCONNECT_PROJECT_ID for mobile WalletConnect.'
 		});
+	}
+}
+
+export async function connectConnector(connectorId: WalletConnectorId): Promise<void> {
+	if (!initialized) {
+		throw new Error('Wallet is still initializing');
+	}
+
+	if (!connectorClient) {
+		throw new Error('Wallet connector is not initialized');
+	}
+
+	const connector = get(availableConnectors).find((entry) => entry.id === connectorId);
+	if (!connector) {
+		throw new Error('Wallet connector not found');
+	}
+
+	const attemptId = ++connectAttempt;
+	walletStore.update((state) => ({ ...state, connecting: true, error: null }));
+	clearWalletConnectUri();
+
+	try {
+		await Promise.race([
+			connectorClient.connectWallet(connectorId, {
+				silent: false,
+				allowInteractiveFallback: true
+			}),
+			new Promise<never>((_, reject) => {
+				setTimeout(() => {
+					reject(
+						new Error(
+							'Wallet connection timed out. Scan the QR code or approve the request in your wallet app.'
+						)
+					);
+				}, CONNECT_TIMEOUT_MS);
+			})
+		]);
+
+		if (attemptId !== connectAttempt) {
+			return;
+		}
+
+		syncWalletState();
+	} catch (error) {
+		if (attemptId === connectAttempt) {
+			await resetConnectorSession();
+			walletStore.set({
+				...emptyState(),
+				error: error instanceof Error ? error.message : 'Failed to connect wallet'
+			});
+		}
 		throw error;
 	}
 }
 
 export async function disconnectWallet(): Promise<void> {
-	const wallet = get(walletStore).wallet;
-
-	if (wallet?.features['standard:disconnect']) {
-		const disconnect = wallet.features['standard:disconnect'] as {
-			disconnect: () => Promise<void>;
-		};
-		await disconnect.disconnect();
-	}
+	connectAttempt += 1;
+	clearWalletConnectUri();
+	connectedWallet = null;
+	connectedAccount = null;
+	await resetConnectorSession();
 	walletStore.set(emptyState());
+}
+
+export function destroyWallet(): void {
+	connectorUnsubscribe?.();
+	connectorUnsubscribe = null;
+	connectorClient?.destroy();
+	connectorClient = null;
+	initialized = false;
+	walletReady.set(false);
+}
+
+export function getWalletStoreSnapshot(): WalletState {
+	return get(walletStore);
+}
+
+export function getConnectorClient(): ConnectorClient | null {
+	return connectorClient;
+}
+
+function getSignMessageFeature(
+	wallet: Wallet
+): SolanaSignMessageFeature[typeof SolanaSignMessage] {
+	const feature = wallet.features[SolanaSignMessage] as
+		| SolanaSignMessageFeature[typeof SolanaSignMessage]
+		| undefined;
+	if (!feature?.signMessage) {
+		throw new Error('Connected wallet does not support message signing.');
+	}
+	return feature;
+}
+
+function getSignTransactionFeature(
+	wallet: Wallet
+): SolanaSignTransactionFeature[typeof SolanaSignTransaction] {
+	const feature = wallet.features[SolanaSignTransaction] as
+		| SolanaSignTransactionFeature[typeof SolanaSignTransaction]
+		| undefined;
+	if (!feature?.signTransaction) {
+		throw new Error('Connected wallet does not support transaction signing.');
+	}
+	return feature;
+}
+
+export function getTurboWalletAdapter(): SolanaWalletAdapter {
+	if (!connectedWallet || !connectedAccount) {
+		throw new Error('Connect your wallet before uploading to Arweave.');
+	}
+
+	const wallet = connectedWallet;
+	const account = connectedAccount;
+	const signMessageFeature = getSignMessageFeature(wallet);
+	const signTransactionFeature = getSignTransactionFeature(wallet);
+
+	return {
+		publicKey: {
+			toString: () => account.address
+		},
+		signMessage: async (message: Uint8Array) => {
+			const [output] = await signMessageFeature.signMessage({ account, message });
+			return output.signature;
+		},
+		signTransaction: async (transaction: Transaction) => {
+			const serialized = transaction.serialize({
+				requireAllSignatures: false,
+				verifySignatures: false
+			});
+			const [output] = await signTransactionFeature.signTransaction({
+				account,
+				transaction: new Uint8Array(serialized),
+				chain: getSolanaChain()
+			});
+			return Transaction.from(output.signedTransaction);
+		}
+	};
 }

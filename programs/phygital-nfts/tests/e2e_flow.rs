@@ -1,0 +1,143 @@
+mod common;
+
+use anchor_lang::prelude::*;
+use anchor_spl::token_2022::spl_token_2022::extension::{
+    BaseStateWithExtensions, StateWithExtensions,
+};
+use anchor_spl::token_2022::spl_token_2022::state::Mint as SplMint;
+use anchor_spl::token_2022_extensions::spl_token_metadata_interface::state::TokenMetadata;
+use common::{
+    create_external_group_mint, current_slot_entry, sample_create_design_args, MintedCard,
+    TestContext, TestPasskey, LAMPORTS_PER_SOL,
+};
+use phygital_nfts::Secp256r1Pubkey;
+use phygital_nfts::MintTokenArgs;
+use solana_keypair::Keypair;
+use solana_signer::Signer;
+use spl_token_group_interface::state::TokenGroupMember;
+
+fn setup_e2e_card(ctx: &mut TestContext, passkey: &TestPasskey) -> MintedCard {
+    let collection_owner = Keypair::new();
+    let holder = Keypair::new();
+
+    ctx.svm
+        .airdrop(&collection_owner.pubkey(), 2 * LAMPORTS_PER_SOL)
+        .unwrap();
+    ctx.svm
+        .airdrop(&holder.pubkey(), 2 * LAMPORTS_PER_SOL)
+        .unwrap();
+
+    let group = create_external_group_mint(
+        &mut ctx.svm,
+        &ctx.payer,
+        "Test Collection",
+        "TCOL",
+        common::SAMPLE_CARD_URI,
+        100,
+    );
+    let group_mint = group.mint.pubkey();
+
+    let design_mint = TestContext::create_design(
+        &mut ctx.svm,
+        ctx.program_id,
+        &ctx.payer,
+        &collection_owner,
+        &group,
+        sample_create_design_args(),
+    );
+
+    let design_account = ctx.svm.get_account(&design_mint).expect("design mint");
+    let design_state =
+        StateWithExtensions::<SplMint>::unpack(&design_account.data).expect("unpack design mint");
+    let member = design_state
+        .get_extension::<TokenGroupMember>()
+        .expect("group member extension");
+    assert_eq!(Pubkey::from(member.group), group_mint);
+
+    let metadata = design_state
+        .get_variable_len_extension::<TokenMetadata>()
+        .expect("token metadata");
+    assert_eq!(metadata.name, "Test Design");
+
+    ctx.fund_program_authority(None);
+
+    let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
+    let card_instance = ctx.card_instance_pda(&secp256r1_pubkey);
+    let token_args = MintTokenArgs {
+        secp256r1_pubkey,
+        design_mint,
+        uri: common::SAMPLE_CARD_URI.to_string(),
+    };
+
+    let token_ix = ctx.mint_token_ix(
+        ctx.payer.pubkey(),
+        card_instance,
+        design_mint,
+        token_args,
+    );
+    TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer])
+        .expect("create token");
+
+    assert_eq!(ctx.token_balance(ctx.program_authority(), design_mint), 1);
+
+    MintedCard {
+        collection_owner,
+        holder,
+        design_mint,
+        card_instance,
+        group_mint,
+        passkey: passkey.clone(),
+    }
+}
+
+#[test]
+fn e2e_external_collection_design_mint_and_transfer() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let card = setup_e2e_card(&mut ctx, &passkey);
+    let recipient = Keypair::new();
+
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 0);
+
+    let (transfer_slot, _) = current_slot_entry(&ctx.svm);
+    ctx.send_execute_transfer(&card, &recipient, true)
+        .expect("execute_transfer should succeed");
+
+    assert_eq!(
+        ctx.last_transfer_slot(card.card_instance),
+        transfer_slot,
+        "card instance should record the slot used for the transfer"
+    );
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 0);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 1);
+}
+
+#[test]
+fn e2e_execute_transfer_rejects_group_mint_as_design_mint() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let card = setup_e2e_card(&mut ctx, &passkey);
+    let recipient = Keypair::new();
+
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
+
+    let result = ctx.send_execute_transfer_for_design_mint(
+        &card,
+        ctx.program_authority(),
+        &recipient,
+        card.group_mint,
+        true,
+    );
+
+    let err_str = format!("{:?}", result.expect_err("group mint as design should fail"));
+    assert!(
+        err_str.contains("DesignMintMismatch")
+            || err_str.contains("AccountNotInitialized")
+            || err_str.contains("6010")
+            || err_str.contains("3012"),
+        "unexpected error: {err_str}"
+    );
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 0);
+}

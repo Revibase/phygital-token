@@ -1,8 +1,12 @@
 import type { Address } from '@solana/kit';
 
+export type MarketplaceSource = 'magic-eden' | 'tensor' | null;
+
 export type MarketplaceQuote = {
-	floorPrice: bigint | null;
+	floorPriceLamports: bigint | null;
 	listingCount: number;
+	lastSaleLamports: bigint | null;
+	source: MarketplaceSource;
 };
 
 export async function fetchMarketplaceQuote(

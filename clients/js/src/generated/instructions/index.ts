@@ -6,6 +6,6 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./createGroupToken";
-export * from "./createToken";
+export * from "./createDesignMint";
 export * from "./executeTransfer";
+export * from "./mintToken";

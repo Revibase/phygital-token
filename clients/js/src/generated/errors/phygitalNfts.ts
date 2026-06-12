@@ -32,50 +32,56 @@ export const PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY = 0x1776; // 6006
 export const PHYGITAL_NFTS_ERROR__SECP256R1_PUBKEY_MISMATCH = 0x1777; // 6007
 /** InvalidMetadata: Mint metadata is missing or invalid */
 export const PHYGITAL_NFTS_ERROR__INVALID_METADATA = 0x1778; // 6008
+/** InvalidParentGroup: Parent group mint is missing, invalid, or update authority mismatch */
+export const PHYGITAL_NFTS_ERROR__INVALID_PARENT_GROUP = 0x1779; // 6009
+/** DesignMintMismatch: Design mint does not match token record */
+export const PHYGITAL_NFTS_ERROR__DESIGN_MINT_MISMATCH = 0x177a; // 6010
 /** GroupMintMismatch: Group mint does not match token record */
-export const PHYGITAL_NFTS_ERROR__GROUP_MINT_MISMATCH = 0x1779; // 6009
+export const PHYGITAL_NFTS_ERROR__GROUP_MINT_MISMATCH = 0x177b; // 6011
 /** OwnerMismatch: Token owner mismatch */
-export const PHYGITAL_NFTS_ERROR__OWNER_MISMATCH = 0x177a; // 6010
+export const PHYGITAL_NFTS_ERROR__OWNER_MISMATCH = 0x177c; // 6012
 /** PaymentTokenMintMismatch: Payment token mint mismatch */
-export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_MISMATCH = 0x177b; // 6011
+export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_MISMATCH = 0x177d; // 6013
 /** PaymentTokenMintRequired: Payment token mint must be set when transfer price is greater than zero */
-export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_REQUIRED = 0x177c; // 6012
+export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_MINT_REQUIRED = 0x177e; // 6014
 /** PaymentTokenProgramRequired: Payment token program must be set when payment token mint is set */
-export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_REQUIRED = 0x177d; // 6013
+export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_REQUIRED = 0x177f; // 6015
 /** PaymentTokenProgramMismatch: Payment token program mismatch */
-export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_MISMATCH = 0x177e; // 6014
+export const PHYGITAL_NFTS_ERROR__PAYMENT_TOKEN_PROGRAM_MISMATCH = 0x1780; // 6016
 /** ArithmeticOverflow: Arithmetic overflow */
-export const PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW = 0x177f; // 6015
+export const PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW = 0x1781; // 6017
 /** InvalidTransferHookProgram: Invalid transfer hook program ID */
-export const PHYGITAL_NFTS_ERROR__INVALID_TRANSFER_HOOK_PROGRAM = 0x1780; // 6016
+export const PHYGITAL_NFTS_ERROR__INVALID_TRANSFER_HOOK_PROGRAM = 0x1782; // 6018
 /** InvalidSlotHash: Slot not found in SlotHashes sysvar — signature has expired or is being replayed */
-export const PHYGITAL_NFTS_ERROR__INVALID_SLOT_HASH = 0x1781; // 6017
+export const PHYGITAL_NFTS_ERROR__INVALID_SLOT_HASH = 0x1783; // 6019
 /** StaleTransferSlot: Transfer slot must be greater than the last successful transfer slot */
-export const PHYGITAL_NFTS_ERROR__STALE_TRANSFER_SLOT = 0x1782; // 6018
+export const PHYGITAL_NFTS_ERROR__STALE_TRANSFER_SLOT = 0x1784; // 6020
 /** InvalidTransferAuthority: Transfer authority must be the program permanent delegate */
-export const PHYGITAL_NFTS_ERROR__INVALID_TRANSFER_AUTHORITY = 0x1783; // 6019
+export const PHYGITAL_NFTS_ERROR__INVALID_TRANSFER_AUTHORITY = 0x1785; // 6021
 /** InvalidCloseAuthority: Sender token account close authority must be delegated to the program */
-export const PHYGITAL_NFTS_ERROR__INVALID_CLOSE_AUTHORITY = 0x1784; // 6020
+export const PHYGITAL_NFTS_ERROR__INVALID_CLOSE_AUTHORITY = 0x1786; // 6022
 /** ClientDataHashMismatch: Client data hash mismatch */
-export const PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x1785; // 6021
+export const PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x1787; // 6023
 /** MissingInstructionsSysvar: Missing instructions sysvar account */
-export const PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x1786; // 6022
+export const PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x1788; // 6024
 /** InvalidSysvarDataFormat: Invalid sysvar data format */
-export const PHYGITAL_NFTS_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x1787; // 6023
+export const PHYGITAL_NFTS_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x1789; // 6025
 /** MaxLengthExceeded: Max length exceeded */
-export const PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED = 0x1788; // 6024
+export const PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED = 0x178a; // 6026
 /** AuthorityMismatch: Authority does not match */
-export const PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH = 0x1789; // 6025
+export const PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH = 0x178b; // 6027
 /** InvalidPaymentTokenAccount: Payment token account must be the canonical ATA for the expected owner */
-export const PHYGITAL_NFTS_ERROR__INVALID_PAYMENT_TOKEN_ACCOUNT = 0x178a; // 6026
+export const PHYGITAL_NFTS_ERROR__INVALID_PAYMENT_TOKEN_ACCOUNT = 0x178c; // 6028
 
 export type PhygitalNftsError =
   | typeof PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW
   | typeof PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH
+  | typeof PHYGITAL_NFTS_ERROR__DESIGN_MINT_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__GROUP_MINT_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__INVALID_CLOSE_AUTHORITY
   | typeof PHYGITAL_NFTS_ERROR__INVALID_METADATA
+  | typeof PHYGITAL_NFTS_ERROR__INVALID_PARENT_GROUP
   | typeof PHYGITAL_NFTS_ERROR__INVALID_PAYMENT_TOKEN_ACCOUNT
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_INSTRUCTION
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY
@@ -104,9 +110,11 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW]: `Arithmetic overflow`,
     [PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH]: `Authority does not match`,
     [PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
+    [PHYGITAL_NFTS_ERROR__DESIGN_MINT_MISMATCH]: `Design mint does not match token record`,
     [PHYGITAL_NFTS_ERROR__GROUP_MINT_MISMATCH]: `Group mint does not match token record`,
     [PHYGITAL_NFTS_ERROR__INVALID_CLOSE_AUTHORITY]: `Sender token account close authority must be delegated to the program`,
     [PHYGITAL_NFTS_ERROR__INVALID_METADATA]: `Mint metadata is missing or invalid`,
+    [PHYGITAL_NFTS_ERROR__INVALID_PARENT_GROUP]: `Parent group mint is missing, invalid, or update authority mismatch`,
     [PHYGITAL_NFTS_ERROR__INVALID_PAYMENT_TOKEN_ACCOUNT]: `Payment token account must be the canonical ATA for the expected owner`,
     [PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_INSTRUCTION]: `The instruction preceding this program invocation is not a secp256r1 verification instruction`,
     [PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,

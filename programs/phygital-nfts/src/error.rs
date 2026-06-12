@@ -29,6 +29,12 @@ pub enum TokenProgramError {
     #[msg("Mint metadata is missing or invalid")]
     InvalidMetadata,
 
+    #[msg("Parent group mint is missing, invalid, or update authority mismatch")]
+    InvalidParentGroup,
+
+    #[msg("Design mint does not match token record")]
+    DesignMintMismatch,
+
     #[msg("Group mint does not match token record")]
     GroupMintMismatch,
 

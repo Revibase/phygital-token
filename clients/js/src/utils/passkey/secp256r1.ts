@@ -32,22 +32,22 @@ function encodeAddress(addressValue: Address): Uint8Array {
 }
 
 export async function buildTransferMessageHash(input: {
-  mint: Address;
+  cardInstance: Address;
   sender: Address;
 }): Promise<Uint8Array> {
   return sha256(
-    concatBytes(encodeAddress(input.mint), encodeAddress(input.sender)),
+    concatBytes(encodeAddress(input.cardInstance), encodeAddress(input.sender)),
   );
 }
 
 export async function buildTransferChallenge(input: {
   tokenProgram: Address;
-  mint: Address;
+  cardInstance: Address;
   sender: Address;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
   const messageHash = await buildTransferMessageHash({
-    mint: input.mint,
+    cardInstance: input.cardInstance,
     sender: input.sender,
   });
 

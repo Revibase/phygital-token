@@ -59,7 +59,7 @@
 		busy = true;
 
 		try {
-			const nextSession = await createTransferSession(nft.mint);
+			const nextSession = await createTransferSession(nft.cardInstance);
 			session = nextSession;
 			webauthnResponse = await authenticateTransferCard(nextSession);
 			step = 'confirm';
@@ -70,6 +70,16 @@
 		} finally {
 			busy = false;
 		}
+	}
+
+	function isSignatureRejection(message: string): boolean {
+		const lower = message.toLowerCase();
+		return (
+			lower.includes('reject') ||
+			lower.includes('denied') ||
+			lower.includes('cancel') ||
+			lower.includes('declined')
+		);
 	}
 
 	async function handleConfirm() {
@@ -95,10 +105,15 @@
 			step = 'success';
 			onComplete();
 		} catch (confirmError) {
-			error = mapTransferError(confirmError);
-			session = null;
-			webauthnResponse = null;
-			step = 'card';
+			const message = mapTransferError(confirmError);
+			error = message;
+			if (isSignatureRejection(message)) {
+				step = 'confirm';
+			} else {
+				session = null;
+				webauthnResponse = null;
+				step = 'card';
+			}
 		} finally {
 			busy = false;
 		}
@@ -119,7 +134,7 @@
 				{#if step === 'card'}
 					Tap your card
 				{:else if step === 'confirm'}
-					Confirm in wallet
+					Sign to claim
 				{:else}
 					Card claimed
 				{/if}
@@ -150,7 +165,7 @@
 					</div>
 					<p class="lead">Hold your card near your phone.</p>
 					<p class="sub">
-						Your physical card proves you can claim this card. You'll choose your wallet
+						Your physical card proves you can claim this card. You'll sign with your wallet
 						next.
 					</p>
 				</div>
@@ -169,10 +184,10 @@
 					</div>
 				</div>
 
-				{#if $walletStore.signer}
+				{#if $walletStore.signer && $walletStore.accountAddress}
 					<div class="recipient">
-						<span>Your wallet</span>
-						<span>{shortenAddress($walletStore.signer.address, 6)}</span>
+						<span>Sign with</span>
+						<span>{shortenAddress($walletStore.accountAddress, 6)}</span>
 					</div>
 				{:else}
 					<p class="lead wallet-prompt">Choose the wallet that will own this card.</p>
@@ -185,7 +200,7 @@
 					disabled={busy || !$walletStore.signer}
 					onclick={handleConfirm}
 				>
-					{busy ? 'Confirming…' : 'Confirm'}
+					{busy ? 'Signing…' : 'Sign to claim'}
 				</button>
 			{:else if step === 'success'}
 				<div class="success">

@@ -2,9 +2,11 @@
 
 pub mod error;
 pub mod instructions;
+pub mod state;
 pub mod utils;
 
 pub use instructions::*;
+pub use state::*;
 pub use utils::*;
 
 use anchor_lang::prelude::*;
@@ -14,15 +16,15 @@ declare_id!("3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1");
 pub mod phygital_nfts {
     use super::*;
 
-    pub fn create_group_token(
-        ctx: Context<CreateGroupToken>,
-        args: CreateGroupTokenArgs,
+    pub fn create_design_mint(
+        ctx: Context<CreateDesignMint>,
+        args: CreateDesignMintArgs,
     ) -> Result<()> {
-        create_group_token::handler(ctx, args)
+        create_design_mint::handler(ctx, args)
     }
 
-    pub fn create_token(ctx: Context<CreateToken>, args: CreateTokenArgs) -> Result<()> {
-        create_token::handler(ctx, args)
+    pub fn mint_token(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
+        mint_token::handler(ctx, args)
     }
 
     pub fn execute_transfer(

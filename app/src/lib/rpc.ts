@@ -2,7 +2,7 @@ import { createSolanaRpc, type Rpc, type SolanaRpcApi } from '@solana/kit';
 import { browser } from '$app/environment';
 import { env } from '$env/dynamic/public';
 
-const DEFAULT_RPC = 'https://api.devnet.solana.com';
+const DEFAULT_RPC = 'https://api.mainnet-beta.solana.com';
 
 export function getRpcUrl(): string {
 	return env.PUBLIC_SOLANA_RPC_URL ?? DEFAULT_RPC;

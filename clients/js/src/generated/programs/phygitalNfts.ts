@@ -12,44 +12,80 @@ import {
   extendClient,
   fixEncoderSize,
   getBytesEncoder,
+  SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
   SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
   SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
   SolanaError,
   type Address,
   type ClientWithPayer,
+  type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
+  type GetAccountInfoApi,
+  type GetMultipleAccountsApi,
   type Instruction,
   type InstructionWithData,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
+  addSelfFetchFunctions,
   addSelfPlanAndSendFunctions,
+  type SelfFetchFunctions,
   type SelfPlanAndSendFunctions,
 } from "@solana/program-client-core";
 import {
-  getCreateGroupTokenInstructionAsync,
-  getCreateTokenInstructionAsync,
+  getCardInstanceCodec,
+  type CardInstance,
+  type CardInstanceArgs,
+} from "../accounts";
+import {
+  getCreateDesignMintInstructionAsync,
   getExecuteTransferInstructionAsync,
-  parseCreateGroupTokenInstruction,
-  parseCreateTokenInstruction,
+  getMintTokenInstructionAsync,
+  parseCreateDesignMintInstruction,
   parseExecuteTransferInstruction,
-  type CreateGroupTokenAsyncInput,
-  type CreateTokenAsyncInput,
+  parseMintTokenInstruction,
+  type CreateDesignMintAsyncInput,
   type ExecuteTransferAsyncInput,
-  type ParsedCreateGroupTokenInstruction,
-  type ParsedCreateTokenInstruction,
+  type MintTokenAsyncInput,
+  type ParsedCreateDesignMintInstruction,
   type ParsedExecuteTransferInstruction,
+  type ParsedMintTokenInstruction,
 } from "../instructions";
 import { findProgramAuthorityPda } from "../pdas";
 
 export const PHYGITAL_NFTS_PROGRAM_ADDRESS =
   "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1" as Address<"3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1">;
 
+export enum PhygitalNftsAccount {
+  CardInstance,
+}
+
+export function identifyPhygitalNftsAccount(
+  account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
+): PhygitalNftsAccount {
+  const data = "data" in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([250, 165, 184, 218, 79, 217, 254, 165]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalNftsAccount.CardInstance;
+  }
+  throw new SolanaError(
+    SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
+    { accountData: data, programName: "phygitalNfts" },
+  );
+}
+
 export enum PhygitalNftsInstruction {
-  CreateGroupToken,
-  CreateToken,
+  CreateDesignMint,
   ExecuteTransfer,
+  MintToken,
 }
 
 export function identifyPhygitalNftsInstruction(
@@ -60,23 +96,12 @@ export function identifyPhygitalNftsInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([81, 202, 126, 151, 104, 130, 127, 235]),
+        new Uint8Array([115, 14, 101, 59, 231, 27, 148, 225]),
       ),
       0,
     )
   ) {
-    return PhygitalNftsInstruction.CreateGroupToken;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([84, 52, 204, 228, 24, 140, 234, 75]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalNftsInstruction.CreateToken;
+    return PhygitalNftsInstruction.CreateDesignMint;
   }
   if (
     containsBytes(
@@ -89,6 +114,17 @@ export function identifyPhygitalNftsInstruction(
   ) {
     return PhygitalNftsInstruction.ExecuteTransfer;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([172, 137, 183, 14, 207, 110, 234, 56]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalNftsInstruction.MintToken;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "phygitalNfts" },
@@ -99,32 +135,25 @@ export type ParsedPhygitalNftsInstruction<
   TProgram extends string = "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1",
 > =
   | ({
-      instructionType: PhygitalNftsInstruction.CreateGroupToken;
-    } & ParsedCreateGroupTokenInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalNftsInstruction.CreateToken;
-    } & ParsedCreateTokenInstruction<TProgram>)
+      instructionType: PhygitalNftsInstruction.CreateDesignMint;
+    } & ParsedCreateDesignMintInstruction<TProgram>)
   | ({
       instructionType: PhygitalNftsInstruction.ExecuteTransfer;
-    } & ParsedExecuteTransferInstruction<TProgram>);
+    } & ParsedExecuteTransferInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalNftsInstruction.MintToken;
+    } & ParsedMintTokenInstruction<TProgram>);
 
 export function parsePhygitalNftsInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedPhygitalNftsInstruction<TProgram> {
   const instructionType = identifyPhygitalNftsInstruction(instruction);
   switch (instructionType) {
-    case PhygitalNftsInstruction.CreateGroupToken: {
+    case PhygitalNftsInstruction.CreateDesignMint: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: PhygitalNftsInstruction.CreateGroupToken,
-        ...parseCreateGroupTokenInstruction(instruction),
-      };
-    }
-    case PhygitalNftsInstruction.CreateToken: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalNftsInstruction.CreateToken,
-        ...parseCreateTokenInstruction(instruction),
+        instructionType: PhygitalNftsInstruction.CreateDesignMint,
+        ...parseCreateDesignMintInstruction(instruction),
       };
     }
     case PhygitalNftsInstruction.ExecuteTransfer: {
@@ -132,6 +161,13 @@ export function parsePhygitalNftsInstruction<TProgram extends string>(
       return {
         instructionType: PhygitalNftsInstruction.ExecuteTransfer,
         ...parseExecuteTransferInstruction(instruction),
+      };
+    }
+    case PhygitalNftsInstruction.MintToken: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalNftsInstruction.MintToken,
+        ...parseMintTokenInstruction(instruction),
       };
     }
     default:
@@ -146,22 +182,28 @@ export function parsePhygitalNftsInstruction<TProgram extends string>(
 }
 
 export type PhygitalNftsPlugin = {
+  accounts: PhygitalNftsPluginAccounts;
   instructions: PhygitalNftsPluginInstructions;
   pdas: PhygitalNftsPluginPdas;
 };
 
+export type PhygitalNftsPluginAccounts = {
+  cardInstance: ReturnType<typeof getCardInstanceCodec> &
+    SelfFetchFunctions<CardInstanceArgs, CardInstance>;
+};
+
 export type PhygitalNftsPluginInstructions = {
-  createGroupToken: (
-    input: MakeOptional<CreateGroupTokenAsyncInput, "payer">,
-  ) => ReturnType<typeof getCreateGroupTokenInstructionAsync> &
-    SelfPlanAndSendFunctions;
-  createToken: (
-    input: MakeOptional<CreateTokenAsyncInput, "payer">,
-  ) => ReturnType<typeof getCreateTokenInstructionAsync> &
+  createDesignMint: (
+    input: MakeOptional<CreateDesignMintAsyncInput, "payer">,
+  ) => ReturnType<typeof getCreateDesignMintInstructionAsync> &
     SelfPlanAndSendFunctions;
   executeTransfer: (
     input: ExecuteTransferAsyncInput,
   ) => ReturnType<typeof getExecuteTransferInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  mintToken: (
+    input: MintTokenAsyncInput,
+  ) => ReturnType<typeof getMintTokenInstructionAsync> &
     SelfPlanAndSendFunctions;
 };
 
@@ -169,7 +211,10 @@ export type PhygitalNftsPluginPdas = {
   programAuthority: typeof findProgramAuthorityPda;
 };
 
-export type PhygitalNftsPluginRequirements = ClientWithPayer &
+export type PhygitalNftsPluginRequirements = ClientWithRpc<
+  GetAccountInfoApi & GetMultipleAccountsApi
+> &
+  ClientWithPayer &
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
@@ -179,19 +224,14 @@ export function phygitalNftsProgram() {
   ): Omit<T, "phygitalNfts"> & { phygitalNfts: PhygitalNftsPlugin } => {
     return extendClient(client, {
       phygitalNfts: <PhygitalNftsPlugin>{
+        accounts: {
+          cardInstance: addSelfFetchFunctions(client, getCardInstanceCodec()),
+        },
         instructions: {
-          createGroupToken: (input) =>
+          createDesignMint: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getCreateGroupTokenInstructionAsync({
-                ...input,
-                payer: input.payer ?? client.payer,
-              }),
-            ),
-          createToken: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCreateTokenInstructionAsync({
+              getCreateDesignMintInstructionAsync({
                 ...input,
                 payer: input.payer ?? client.payer,
               }),
@@ -200,6 +240,11 @@ export function phygitalNftsProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getExecuteTransferInstructionAsync(input),
+            ),
+          mintToken: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getMintTokenInstructionAsync(input),
             ),
         },
         pdas: { programAuthority: findProgramAuthorityPda },

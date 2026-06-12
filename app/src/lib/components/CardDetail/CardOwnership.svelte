@@ -4,10 +4,12 @@
 	import type { Address } from '@solana/kit';
 
 	let {
-		mint,
+		cardInstance,
+		designMint,
 		currentOwner
 	}: {
-		mint: Address;
+		cardInstance: Address;
+		designMint: Address;
 		currentOwner: Address;
 	} = $props();
 
@@ -40,12 +42,19 @@
 				</dd>
 			</div>
 			<div>
-				<dt>Mint address</dt>
+				<dt>Card instance</dt>
 				<dd>
-					<a href={mintExplorerUrl(mint)} target="_blank" rel="noreferrer">
-						{shortenAddress(mint, 6)}
+					<span>{shortenAddress(cardInstance, 6)}</span>
+					<button type="button" class="copy" onclick={() => copyText(cardInstance)}>Copy</button>
+				</dd>
+			</div>
+			<div>
+				<dt>Design mint</dt>
+				<dd>
+					<a href={mintExplorerUrl(designMint)} target="_blank" rel="noreferrer">
+						{shortenAddress(designMint, 6)}
 					</a>
-					<button type="button" class="copy" onclick={() => copyText(mint)}>Copy</button>
+					<button type="button" class="copy" onclick={() => copyText(designMint)}>Copy</button>
 				</dd>
 			</div>
 		</dl>

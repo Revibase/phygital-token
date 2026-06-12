@@ -12,6 +12,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getAddressDecoder,
+  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
@@ -45,35 +47,26 @@ import {
 } from "@solana/program-client-core";
 import { findProgramAuthorityPda } from "../pdas";
 import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../programs";
-import {
-  getSecp256r1PubkeyDecoder,
-  getSecp256r1PubkeyEncoder,
-  type Secp256r1Pubkey,
-  type Secp256r1PubkeyArgs,
-} from "../types";
 
-export const CREATE_TOKEN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  84, 52, 204, 228, 24, 140, 234, 75,
-]);
+export const CREATE_DESIGN_MINT_DISCRIMINATOR: ReadonlyUint8Array =
+  new Uint8Array([115, 14, 101, 59, 231, 27, 148, 225]);
 
-export function getCreateTokenDiscriminatorBytes(): ReadonlyUint8Array {
+export function getCreateDesignMintDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CREATE_TOKEN_DISCRIMINATOR,
+    CREATE_DESIGN_MINT_DISCRIMINATOR,
   );
 }
 
-export type CreateTokenInstruction<
+export type CreateDesignMintInstruction<
   TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
   TAccountPayer extends string | AccountMeta<string> = string,
   TAccountOwner extends string | AccountMeta<string> = string,
-  TAccountTokenMint extends string | AccountMeta<string> = string,
   TAccountGroupMint extends string | AccountMeta<string> = string,
+  TAccountGroupMintAuthority extends string | AccountMeta<string> = string,
+  TAccountDesignMint extends string | AccountMeta<string> = string,
   TAccountProgramAuthority extends string | AccountMeta<string> = string,
-  TAccountOwnerTokenAccount extends string | AccountMeta<string> = string,
   TAccountTokenProgram extends string | AccountMeta<string> =
     "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
-  TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
-    "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -89,25 +82,22 @@ export type CreateTokenInstruction<
         ? ReadonlySignerAccount<TAccountOwner> &
             AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
-      TAccountTokenMint extends string
-        ? WritableSignerAccount<TAccountTokenMint> &
-            AccountSignerMeta<TAccountTokenMint>
-        : TAccountTokenMint,
       TAccountGroupMint extends string
         ? WritableAccount<TAccountGroupMint>
         : TAccountGroupMint,
+      TAccountGroupMintAuthority extends string
+        ? ReadonlySignerAccount<TAccountGroupMintAuthority> &
+            AccountSignerMeta<TAccountGroupMintAuthority>
+        : TAccountGroupMintAuthority,
+      TAccountDesignMint extends string
+        ? WritableAccount<TAccountDesignMint>
+        : TAccountDesignMint,
       TAccountProgramAuthority extends string
         ? WritableAccount<TAccountProgramAuthority>
         : TAccountProgramAuthority,
-      TAccountOwnerTokenAccount extends string
-        ? WritableAccount<TAccountOwnerTokenAccount>
-        : TAccountOwnerTokenAccount,
       TAccountTokenProgram extends string
         ? ReadonlyAccount<TAccountTokenProgram>
         : TAccountTokenProgram,
-      TAccountAssociatedTokenProgram extends string
-        ? ReadonlyAccount<TAccountAssociatedTokenProgram>
-        : TAccountAssociatedTokenProgram,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -115,122 +105,113 @@ export type CreateTokenInstruction<
     ]
   >;
 
-export type CreateTokenInstructionData = {
+export type CreateDesignMintInstructionData = {
   discriminator: ReadonlyUint8Array;
   name: string;
   symbol: string;
   uri: string;
-  secp256r1Pubkey: Secp256r1Pubkey;
+  designId: Address;
 };
 
-export type CreateTokenInstructionDataArgs = {
+export type CreateDesignMintInstructionDataArgs = {
   name: string;
   symbol: string;
   uri: string;
-  secp256r1Pubkey: Secp256r1PubkeyArgs;
+  designId: Address;
 };
 
-export function getCreateTokenInstructionDataEncoder(): Encoder<CreateTokenInstructionDataArgs> {
+export function getCreateDesignMintInstructionDataEncoder(): Encoder<CreateDesignMintInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["name", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["symbol", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["uri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
+      ["designId", getAddressEncoder()],
     ]),
-    (value) => ({ ...value, discriminator: CREATE_TOKEN_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: CREATE_DESIGN_MINT_DISCRIMINATOR }),
   );
 }
 
-export function getCreateTokenInstructionDataDecoder(): Decoder<CreateTokenInstructionData> {
+export function getCreateDesignMintInstructionDataDecoder(): Decoder<CreateDesignMintInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["name", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["symbol", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["uri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
+    ["designId", getAddressDecoder()],
   ]);
 }
 
-export function getCreateTokenInstructionDataCodec(): Codec<
-  CreateTokenInstructionDataArgs,
-  CreateTokenInstructionData
+export function getCreateDesignMintInstructionDataCodec(): Codec<
+  CreateDesignMintInstructionDataArgs,
+  CreateDesignMintInstructionData
 > {
   return combineCodec(
-    getCreateTokenInstructionDataEncoder(),
-    getCreateTokenInstructionDataDecoder(),
+    getCreateDesignMintInstructionDataEncoder(),
+    getCreateDesignMintInstructionDataDecoder(),
   );
 }
 
-export type CreateTokenAsyncInput<
+export type CreateDesignMintAsyncInput<
   TAccountPayer extends string = string,
   TAccountOwner extends string = string,
-  TAccountTokenMint extends string = string,
   TAccountGroupMint extends string = string,
+  TAccountGroupMintAuthority extends string = string,
+  TAccountDesignMint extends string = string,
   TAccountProgramAuthority extends string = string,
-  TAccountOwnerTokenAccount extends string = string,
   TAccountTokenProgram extends string = string,
-  TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   owner: TransactionSigner<TAccountOwner>;
-  /** New token mint keypair — generated by caller */
-  tokenMint: TransactionSigner<TAccountTokenMint>;
-  /** The group this token will be a member of */
+  /** External Token-2022 collection (group) mint. */
   groupMint: Address<TAccountGroupMint>;
-  /**
-   * Program-level PDA — permanent delegate, transfer hook authority.
-   * Writable because it signs Token-2022 CPIs that may debit its lamports.
-   */
+  /** Must match the collection mint's TokenGroup update authority. */
+  groupMintAuthority: TransactionSigner<TAccountGroupMintAuthority>;
+  /** Design mint PDA — created in the handler via `create_account` + signer seeds. */
+  designMint: Address<TAccountDesignMint>;
   programAuthority?: Address<TAccountProgramAuthority>;
-  /** Owner ATA — created in the handler after the mint exists. */
-  ownerTokenAccount: Address<TAccountOwnerTokenAccount>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  name: CreateTokenInstructionDataArgs["name"];
-  symbol: CreateTokenInstructionDataArgs["symbol"];
-  uri: CreateTokenInstructionDataArgs["uri"];
-  secp256r1Pubkey: CreateTokenInstructionDataArgs["secp256r1Pubkey"];
+  name: CreateDesignMintInstructionDataArgs["name"];
+  symbol: CreateDesignMintInstructionDataArgs["symbol"];
+  uri: CreateDesignMintInstructionDataArgs["uri"];
+  designId: CreateDesignMintInstructionDataArgs["designId"];
 };
 
-export async function getCreateTokenInstructionAsync<
+export async function getCreateDesignMintInstructionAsync<
   TAccountPayer extends string,
   TAccountOwner extends string,
-  TAccountTokenMint extends string,
   TAccountGroupMint extends string,
+  TAccountGroupMintAuthority extends string,
+  TAccountDesignMint extends string,
   TAccountProgramAuthority extends string,
-  TAccountOwnerTokenAccount extends string,
   TAccountTokenProgram extends string,
-  TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
 >(
-  input: CreateTokenAsyncInput<
+  input: CreateDesignMintAsyncInput<
     TAccountPayer,
     TAccountOwner,
-    TAccountTokenMint,
     TAccountGroupMint,
+    TAccountGroupMintAuthority,
+    TAccountDesignMint,
     TAccountProgramAuthority,
-    TAccountOwnerTokenAccount,
     TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
-  CreateTokenInstruction<
+  CreateDesignMintInstruction<
     TProgramAddress,
     TAccountPayer,
     TAccountOwner,
-    TAccountTokenMint,
     TAccountGroupMint,
+    TAccountGroupMintAuthority,
+    TAccountDesignMint,
     TAccountProgramAuthority,
-    TAccountOwnerTokenAccount,
     TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
     TAccountSystemProgram
   >
 > {
@@ -242,21 +223,17 @@ export async function getCreateTokenInstructionAsync<
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
     owner: { value: input.owner ?? null, isWritable: false },
-    tokenMint: { value: input.tokenMint ?? null, isWritable: true },
     groupMint: { value: input.groupMint ?? null, isWritable: true },
+    groupMintAuthority: {
+      value: input.groupMintAuthority ?? null,
+      isWritable: false,
+    },
+    designMint: { value: input.designMint ?? null, isWritable: true },
     programAuthority: {
       value: input.programAuthority ?? null,
       isWritable: true,
     },
-    ownerTokenAccount: {
-      value: input.ownerTokenAccount ?? null,
-      isWritable: true,
-    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
-    associatedTokenProgram: {
-      value: input.associatedTokenProgram ?? null,
-      isWritable: false,
-    },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -275,10 +252,6 @@ export async function getCreateTokenInstructionAsync<
     accounts.tokenProgram.value =
       "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
   }
-  if (!accounts.associatedTokenProgram.value) {
-    accounts.associatedTokenProgram.value =
-      "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" as Address<"ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL">;
-  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -289,99 +262,88 @@ export async function getCreateTokenInstructionAsync<
     accounts: [
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("owner", accounts.owner),
-      getAccountMeta("tokenMint", accounts.tokenMint),
       getAccountMeta("groupMint", accounts.groupMint),
+      getAccountMeta("groupMintAuthority", accounts.groupMintAuthority),
+      getAccountMeta("designMint", accounts.designMint),
       getAccountMeta("programAuthority", accounts.programAuthority),
-      getAccountMeta("ownerTokenAccount", accounts.ownerTokenAccount),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
-      getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getCreateTokenInstructionDataEncoder().encode(
-      args as CreateTokenInstructionDataArgs,
+    data: getCreateDesignMintInstructionDataEncoder().encode(
+      args as CreateDesignMintInstructionDataArgs,
     ),
     programAddress,
-  } as CreateTokenInstruction<
+  } as CreateDesignMintInstruction<
     TProgramAddress,
     TAccountPayer,
     TAccountOwner,
-    TAccountTokenMint,
     TAccountGroupMint,
+    TAccountGroupMintAuthority,
+    TAccountDesignMint,
     TAccountProgramAuthority,
-    TAccountOwnerTokenAccount,
     TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
     TAccountSystemProgram
   >);
 }
 
-export type CreateTokenInput<
+export type CreateDesignMintInput<
   TAccountPayer extends string = string,
   TAccountOwner extends string = string,
-  TAccountTokenMint extends string = string,
   TAccountGroupMint extends string = string,
+  TAccountGroupMintAuthority extends string = string,
+  TAccountDesignMint extends string = string,
   TAccountProgramAuthority extends string = string,
-  TAccountOwnerTokenAccount extends string = string,
   TAccountTokenProgram extends string = string,
-  TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   payer: TransactionSigner<TAccountPayer>;
   owner: TransactionSigner<TAccountOwner>;
-  /** New token mint keypair — generated by caller */
-  tokenMint: TransactionSigner<TAccountTokenMint>;
-  /** The group this token will be a member of */
+  /** External Token-2022 collection (group) mint. */
   groupMint: Address<TAccountGroupMint>;
-  /**
-   * Program-level PDA — permanent delegate, transfer hook authority.
-   * Writable because it signs Token-2022 CPIs that may debit its lamports.
-   */
+  /** Must match the collection mint's TokenGroup update authority. */
+  groupMintAuthority: TransactionSigner<TAccountGroupMintAuthority>;
+  /** Design mint PDA — created in the handler via `create_account` + signer seeds. */
+  designMint: Address<TAccountDesignMint>;
   programAuthority: Address<TAccountProgramAuthority>;
-  /** Owner ATA — created in the handler after the mint exists. */
-  ownerTokenAccount: Address<TAccountOwnerTokenAccount>;
   tokenProgram?: Address<TAccountTokenProgram>;
-  associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  name: CreateTokenInstructionDataArgs["name"];
-  symbol: CreateTokenInstructionDataArgs["symbol"];
-  uri: CreateTokenInstructionDataArgs["uri"];
-  secp256r1Pubkey: CreateTokenInstructionDataArgs["secp256r1Pubkey"];
+  name: CreateDesignMintInstructionDataArgs["name"];
+  symbol: CreateDesignMintInstructionDataArgs["symbol"];
+  uri: CreateDesignMintInstructionDataArgs["uri"];
+  designId: CreateDesignMintInstructionDataArgs["designId"];
 };
 
-export function getCreateTokenInstruction<
+export function getCreateDesignMintInstruction<
   TAccountPayer extends string,
   TAccountOwner extends string,
-  TAccountTokenMint extends string,
   TAccountGroupMint extends string,
+  TAccountGroupMintAuthority extends string,
+  TAccountDesignMint extends string,
   TAccountProgramAuthority extends string,
-  TAccountOwnerTokenAccount extends string,
   TAccountTokenProgram extends string,
-  TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
 >(
-  input: CreateTokenInput<
+  input: CreateDesignMintInput<
     TAccountPayer,
     TAccountOwner,
-    TAccountTokenMint,
     TAccountGroupMint,
+    TAccountGroupMintAuthority,
+    TAccountDesignMint,
     TAccountProgramAuthority,
-    TAccountOwnerTokenAccount,
     TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): CreateTokenInstruction<
+): CreateDesignMintInstruction<
   TProgramAddress,
   TAccountPayer,
   TAccountOwner,
-  TAccountTokenMint,
   TAccountGroupMint,
+  TAccountGroupMintAuthority,
+  TAccountDesignMint,
   TAccountProgramAuthority,
-  TAccountOwnerTokenAccount,
   TAccountTokenProgram,
-  TAccountAssociatedTokenProgram,
   TAccountSystemProgram
 > {
   // Program address.
@@ -392,21 +354,17 @@ export function getCreateTokenInstruction<
   const originalAccounts = {
     payer: { value: input.payer ?? null, isWritable: true },
     owner: { value: input.owner ?? null, isWritable: false },
-    tokenMint: { value: input.tokenMint ?? null, isWritable: true },
     groupMint: { value: input.groupMint ?? null, isWritable: true },
+    groupMintAuthority: {
+      value: input.groupMintAuthority ?? null,
+      isWritable: false,
+    },
+    designMint: { value: input.designMint ?? null, isWritable: true },
     programAuthority: {
       value: input.programAuthority ?? null,
       isWritable: true,
     },
-    ownerTokenAccount: {
-      value: input.ownerTokenAccount ?? null,
-      isWritable: true,
-    },
     tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
-    associatedTokenProgram: {
-      value: input.associatedTokenProgram ?? null,
-      isWritable: false,
-    },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -422,10 +380,6 @@ export function getCreateTokenInstruction<
     accounts.tokenProgram.value =
       "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
   }
-  if (!accounts.associatedTokenProgram.value) {
-    accounts.associatedTokenProgram.value =
-      "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" as Address<"ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL">;
-  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
@@ -436,33 +390,31 @@ export function getCreateTokenInstruction<
     accounts: [
       getAccountMeta("payer", accounts.payer),
       getAccountMeta("owner", accounts.owner),
-      getAccountMeta("tokenMint", accounts.tokenMint),
       getAccountMeta("groupMint", accounts.groupMint),
+      getAccountMeta("groupMintAuthority", accounts.groupMintAuthority),
+      getAccountMeta("designMint", accounts.designMint),
       getAccountMeta("programAuthority", accounts.programAuthority),
-      getAccountMeta("ownerTokenAccount", accounts.ownerTokenAccount),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
-      getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getCreateTokenInstructionDataEncoder().encode(
-      args as CreateTokenInstructionDataArgs,
+    data: getCreateDesignMintInstructionDataEncoder().encode(
+      args as CreateDesignMintInstructionDataArgs,
     ),
     programAddress,
-  } as CreateTokenInstruction<
+  } as CreateDesignMintInstruction<
     TProgramAddress,
     TAccountPayer,
     TAccountOwner,
-    TAccountTokenMint,
     TAccountGroupMint,
+    TAccountGroupMintAuthority,
+    TAccountDesignMint,
     TAccountProgramAuthority,
-    TAccountOwnerTokenAccount,
     TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
     TAccountSystemProgram
   >);
 }
 
-export type ParsedCreateTokenInstruction<
+export type ParsedCreateDesignMintInstruction<
   TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
@@ -470,38 +422,33 @@ export type ParsedCreateTokenInstruction<
   accounts: {
     payer: TAccountMetas[0];
     owner: TAccountMetas[1];
-    /** New token mint keypair — generated by caller */
-    tokenMint: TAccountMetas[2];
-    /** The group this token will be a member of */
-    groupMint: TAccountMetas[3];
-    /**
-     * Program-level PDA — permanent delegate, transfer hook authority.
-     * Writable because it signs Token-2022 CPIs that may debit its lamports.
-     */
-    programAuthority: TAccountMetas[4];
-    /** Owner ATA — created in the handler after the mint exists. */
-    ownerTokenAccount: TAccountMetas[5];
+    /** External Token-2022 collection (group) mint. */
+    groupMint: TAccountMetas[2];
+    /** Must match the collection mint's TokenGroup update authority. */
+    groupMintAuthority: TAccountMetas[3];
+    /** Design mint PDA — created in the handler via `create_account` + signer seeds. */
+    designMint: TAccountMetas[4];
+    programAuthority: TAccountMetas[5];
     tokenProgram: TAccountMetas[6];
-    associatedTokenProgram: TAccountMetas[7];
-    systemProgram: TAccountMetas[8];
+    systemProgram: TAccountMetas[7];
   };
-  data: CreateTokenInstructionData;
+  data: CreateDesignMintInstructionData;
 };
 
-export function parseCreateTokenInstruction<
+export function parseCreateDesignMintInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedCreateTokenInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+): ParsedCreateDesignMintInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 8) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 8,
       },
     );
   }
@@ -516,14 +463,13 @@ export function parseCreateTokenInstruction<
     accounts: {
       payer: getNextAccount(),
       owner: getNextAccount(),
-      tokenMint: getNextAccount(),
       groupMint: getNextAccount(),
+      groupMintAuthority: getNextAccount(),
+      designMint: getNextAccount(),
       programAuthority: getNextAccount(),
-      ownerTokenAccount: getNextAccount(),
       tokenProgram: getNextAccount(),
-      associatedTokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),
     },
-    data: getCreateTokenInstructionDataDecoder().decode(instruction.data),
+    data: getCreateDesignMintInstructionDataDecoder().decode(instruction.data),
   };
 }

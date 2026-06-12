@@ -25,3 +25,8 @@ impl AsRef<[u8]> for Secp256r1Pubkey {
         (&self.0).as_ref()
     }
 }
+
+/// 32-byte PDA seed derived from a compressed secp256r1 pubkey (x-coordinate).
+pub fn secp256r1_pda_seed(pubkey: &Secp256r1Pubkey) -> &[u8] {
+    &pubkey.0[1..]
+}

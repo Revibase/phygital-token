@@ -26,6 +26,10 @@
 			<span class="label">Listings</span>
 			<span class="value">{marketQuote?.listingCount ?? '—'}</span>
 		</div>
+		<div class="row muted">
+			<span class="label">Last sale</span>
+			<span class="value">—</span>
+		</div>
 	</div>
 </section>
 

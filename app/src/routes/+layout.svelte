@@ -1,12 +1,19 @@
 <script lang="ts">
 	import '../app.css';
-	import WalletButton from '$lib/components/WalletButton.svelte';
+	import { onMount } from 'svelte';
+	import WalletConnectModal from '$lib/components/WalletConnectModal.svelte';
+	import { pageTitle } from '$lib/page-context';
+	import { initWallet } from '$lib/wallet';
 	import { BRAND_COLORS } from '$lib/themes';
 	import { buildThemeBootstrapScript } from '$lib/theme-bootstrap';
 
 	let { children } = $props();
 
 	const themeBootstrapScript = buildThemeBootstrapScript();
+
+	onMount(async () => {
+		await initWallet();
+	});
 </script>
 
 <svelte:head>
@@ -19,15 +26,16 @@
 	<header>
 		<div>
 			<p class="brand-kicker">Phygital NFTs</p>
-			<h2 class="brand-title">Phygital Cards</h2>
+			<h2 class="brand-title">{$pageTitle ?? 'Phygital Cards'}</h2>
 		</div>
-		<WalletButton />
 	</header>
 
 	<main>
 		{@render children()}
 	</main>
 </div>
+
+<WalletConnectModal />
 
 <style>
 	.app {

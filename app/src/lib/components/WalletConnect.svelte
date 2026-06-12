@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import {
-		availableWallets,
-		connectWallet,
-		initWallet,
+		availableConnectors,
+		connectConnector,
+		isWalletConnectConnector,
+		walletConnectUri,
+		walletReady,
 		walletStore
 	} from '$lib/wallet';
 	import { shortenAddress } from '$lib/format';
@@ -16,41 +17,83 @@
 
 	let showPicker = $state(false);
 
-	onMount(async () => {
-		await initWallet();
-	});
+	const connectors = $derived($availableConnectors);
+	const extensionConnectors = $derived(connectors.filter((connector) => !isWalletConnectConnector(connector)));
+
+	const connectLabel = $derived(
+		$walletStore.connecting
+			? $walletConnectUri
+				? 'Scan QR code…'
+				: 'Connecting…'
+			: !$walletReady
+				? 'Loading wallets…'
+				: connectors.length === 0
+					? 'No wallets available'
+					: 'Connect wallet'
+	);
+
+	async function connectWith(connectorId: (typeof connectors)[number]['id']) {
+		try {
+			await connectConnector(connectorId);
+		} catch {
+			// Error is stored in walletStore for display.
+		}
+	}
+
+	async function handleConnectClick() {
+		if (connectors.length === 1) {
+			await connectWith(connectors[0].id);
+			return;
+		}
+
+		if (extensionConnectors.length === 1) {
+			await connectWith(extensionConnectors[0].id);
+			return;
+		}
+
+		showPicker = !showPicker;
+	}
 </script>
 
 <div class="wallet-connect" class:compact={variant === 'compact'}>
-	{#if $walletStore.connected && $walletStore.account}
+	{#if $walletStore.connected && $walletStore.accountAddress}
 		<div class="connected">
-			<span>{shortenAddress($walletStore.account.address)}</span>
+			<span>{shortenAddress($walletStore.accountAddress)}</span>
 		</div>
 	{:else}
 		<button
 			type="button"
 			class="connect"
-			disabled={$walletStore.connecting}
-			onclick={() => (showPicker = !showPicker)}
+			disabled={$walletStore.connecting || !$walletReady || connectors.length === 0}
+			onclick={handleConnectClick}
 		>
-			{$walletStore.connecting ? 'Connecting…' : 'Connect wallet'}
+			{connectLabel}
 		</button>
+	{/if}
+
+	{#if $walletStore.connecting && $walletConnectUri}
+		<p class="hint">Scan the QR code with your mobile wallet or approve the connection in your wallet app.</p>
 	{/if}
 
 	{#if showPicker}
 		<div class="picker" role="menu">
-			{#if $availableWallets.length === 0}
-				<p class="empty">No wallets detected. Open in a Solana mobile wallet browser.</p>
+			{#if connectors.length === 0}
+				<p class="empty">
+					Install Phantom or Solflare, or set PUBLIC_WALLETCONNECT_PROJECT_ID for mobile WalletConnect.
+				</p>
 			{:else}
-				{#each $availableWallets as wallet (wallet.name)}
+				{#each connectors as connector (connector.id)}
 					<button
 						type="button"
 						onclick={async () => {
 							showPicker = false;
-							await connectWallet(wallet);
+							await connectWith(connector.id);
 						}}
 					>
-						{wallet.name}
+						{#if connector.icon}
+							<img src={connector.icon} alt="" class="wallet-icon" />
+						{/if}
+						<span>{connector.name}</span>
 					</button>
 				{/each}
 			{/if}
@@ -104,7 +147,9 @@
 	}
 
 	.picker button {
-		display: block;
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
 		width: 100%;
 		border: 0;
 		border-radius: calc(var(--radius) - 2px);
@@ -118,6 +163,20 @@
 
 	.picker button:hover {
 		background: var(--accent);
+	}
+
+	.wallet-icon {
+		width: 24px;
+		height: 24px;
+		border-radius: 6px;
+		flex-shrink: 0;
+	}
+
+	.hint {
+		margin: 0.35rem 0 0;
+		font-size: 0.8rem;
+		color: var(--muted-foreground);
+		line-height: 1.4;
 	}
 
 	.empty,

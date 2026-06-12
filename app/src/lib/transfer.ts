@@ -18,10 +18,10 @@ import {
 } from 'phygital-nfts-client';
 import { getRpc } from './rpc';
 
-export async function createTransferSession(mint: Address): Promise<TransferSession> {
+export async function createTransferSession(cardInstance: Address): Promise<TransferSession> {
 	return beginTransfer({
 		rpc: getRpc(),
-		mint
+		cardInstance
 	});
 }
 
@@ -51,7 +51,7 @@ export async function submitTransfer(
 
 export function parseMintParam(value: string | null): Address {
 	if (!value?.trim()) {
-		throw new Error('Missing mint address. Add ?mint=<address> to the URL.');
+		throw new Error('Missing card instance address. Use /card/<instance-address>.');
 	}
 	return address(value.trim());
 }
