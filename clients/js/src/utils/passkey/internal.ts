@@ -2,24 +2,23 @@ import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bufferToBase64URLString, startAuthentication, type AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { Decoder } from "cbor-x";
-import { address, type Address, type Instruction } from "@solana/kit";
+import { address, TransactionSigner, type Instruction } from "@solana/kit";
 import { findAssociatedTokenAddress } from "../associatedToken";
 import { RP_ID, TOKEN_2022_PROGRAM_ADDRESS, TRANSFER_HOOK_PROGRAM_ADDRESS } from "../consts";
 import { getExecuteTransferInstructionAsync } from "../../generated";
 import { findCardInstancePda } from "../../instructions/mint";
-import { TransferInput } from "../../instructions/transfer";
-import type { TransferMintContext } from "../metadata";
+import { TransferSession } from "../../instructions/transfer";
 import { buildSecp256r1VerifyInstructionFromWebAuthn } from "./secp256r1";
 
 const coseKeyDecoder = new Decoder({ mapsAsObjects: false });
 
-export function uint8ArrayToHex(bytes: Uint8Array): string {
+function uint8ArrayToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
 
-export function hexToUint8Array(hex: string): Uint8Array {
+function hexToUint8Array(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < bytes.length; i += 1) {
     bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
@@ -40,7 +39,7 @@ export function base64URLStringToBuffer(base64URLString: string): Uint8Array {
   return bytes;
 }
 
-export function extractAdditionalFields(clientData: Record<string, unknown>) {
+function extractAdditionalFields(clientData: Record<string, unknown>) {
   const knownKeys = new Set(["type", "challenge", "origin", "crossOrigin"]);
 
   const remaining: Record<string, unknown> = {};
@@ -144,7 +143,7 @@ function readCoseEs256CompressedPublicKey(bytes: Uint8Array): Uint8Array {
   return compressed;
 }
 
-export function extractCompressedPubkeyFromAuthResponse(
+function extractCompressedPubkeyFromAuthResponse(
   response: AuthenticationResponseJSON,
 ): Uint8Array {
   const withPublicKey = response as AuthenticationResponseJSON & {
@@ -165,8 +164,7 @@ export function extractCompressedPubkeyFromAuthResponse(
 }
 
 export async function authenticateTransferPasskey(
-  challenge: Uint8Array,
-  credentialId: string | null = null,
+  challenge: Uint8Array
 ): Promise<AuthenticationResponseJSON> {
   return startAuthentication({
     optionsJSON: {
@@ -177,7 +175,7 @@ export async function authenticateTransferPasskey(
       userVerification: "preferred",
       allowCredentials: [
         {
-          id: credentialId ?? "",
+          id: "",
           type: "public-key",
           transports: ["nfc"],
         },
@@ -187,52 +185,47 @@ export async function authenticateTransferPasskey(
 }
 
 export async function buildTransferInstructions(
-  input: TransferInput & {
-    currentOwner: Address;
-    webauthnResponse: AuthenticationResponseJSON;
-    slotNumber: bigint;
-    mintContext: TransferMintContext;
-  },
+  session:TransferSession,
+  webauthnResponse: AuthenticationResponseJSON,
+  recipient:TransactionSigner
 ): Promise<Instruction[]> {
   const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
-  const recipientAddress = input.recipient.address;
-
   const compressedPubkey = extractCompressedPubkeyFromAuthResponse(
-    input.webauthnResponse,
+    webauthnResponse,
   );
   const expectedCardInstance = await findCardInstancePda([compressedPubkey]);
-  if (address(expectedCardInstance) !== address(input.mintContext.cardInstance)) {
+  if (address(expectedCardInstance) !== address(session.nft.cardInstance)) {
     throw new Error("Passkey public key does not match this card instance");
   }
 
   const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthn({
-      response: input.webauthnResponse,
+      response: webauthnResponse,
       compressedPubkey,
     });
 
   const recipientTokenAccount = await findAssociatedTokenAddress(
-    recipientAddress,
-    input.mintContext.designMint,
+    recipient.address,
+    session.nft.mint,
     tokenProgram,
   );
   const senderTokenAccount = await findAssociatedTokenAddress(
-    input.currentOwner,
-    input.mintContext.designMint,
+    session.nft.currentOwner,
+    session.nft.mint,
     tokenProgram,
   );
 
   const executeTransfer = await getExecuteTransferInstructionAsync({
-    recipient: input.recipient,
-    sender: input.currentOwner,
-    cardInstance: input.mintContext.cardInstance,
-    designMint: input.mintContext.designMint,
+    recipient,
+    sender: session.nft.currentOwner,
+    cardInstance: session.nft.cardInstance,
+    mint: session.nft.mint,
     senderTokenAccount,
     recipientTokenAccount,
     transferHookProgram: TRANSFER_HOOK_PROGRAM_ADDRESS,
     tokenProgram,
     signedMessageIndex: 0,
-    slotNumber: input.slotNumber,
+    slotNumber: session.slotNumber,
     origin,
     crossOrigin,
     truncatedClientDataJson,

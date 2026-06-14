@@ -16,11 +16,11 @@ declare_id!("3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1");
 pub mod phygital_nfts {
     use super::*;
 
-    pub fn create_design_mint(
-        ctx: Context<CreateDesignMint>,
-        args: CreateDesignMintArgs,
+    pub fn create_mint(
+        ctx: Context<CreateMint>,
+        args: CreateMintArgs,
     ) -> Result<()> {
-        create_design_mint::handler(ctx, args)
+        create_mint::handler(ctx, args)
     }
 
     pub fn mint_token(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {

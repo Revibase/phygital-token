@@ -8,16 +8,16 @@
   },
   "instructions": [
     {
-      "name": "create_design_mint",
+      "name": "create_mint",
       "discriminator": [
-        115,
-        14,
-        101,
-        59,
-        231,
-        27,
-        148,
-        225
+        69,
+        44,
+        215,
+        132,
+        253,
+        214,
+        41,
+        45
       ],
       "accounts": [
         {
@@ -44,7 +44,7 @@
           "signer": true
         },
         {
-          "name": "design_mint",
+          "name": "mint",
           "docs": [
             "Design mint PDA — created in the handler via `create_account` + signer seeds."
           ],
@@ -54,13 +54,6 @@
               {
                 "kind": "const",
                 "value": [
-                  100,
-                  101,
-                  115,
-                  105,
-                  103,
-                  110,
-                  95,
                   109,
                   105,
                   110,
@@ -122,7 +115,7 @@
           "name": "args",
           "type": {
             "defined": {
-              "name": "CreateDesignMintArgs"
+              "name": "CreateMintArgs"
             }
           }
         }
@@ -160,7 +153,7 @@
           "writable": true
         },
         {
-          "name": "design_mint",
+          "name": "mint",
           "writable": true
         },
         {
@@ -266,7 +259,7 @@
           "writable": true
         },
         {
-          "name": "design_mint",
+          "name": "mint",
           "writable": true
         },
         {
@@ -402,7 +395,7 @@
     },
     {
       "code": 6010,
-      "name": "DesignMintMismatch",
+      "name": "mintMismatch",
       "msg": "Design mint does not match token record"
     },
     {
@@ -503,11 +496,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "uri",
-            "type": "string"
-          },
-          {
-            "name": "design_mint",
+            "name": "mint",
             "type": "pubkey"
           },
           {
@@ -517,12 +506,16 @@
           {
             "name": "last_transfer_slot",
             "type": "u64"
+          },
+          {
+            "name": "uri",
+            "type": "string"
           }
         ]
       }
     },
     {
-      "name": "CreateDesignMintArgs",
+      "name": "CreateMintArgs",
       "type": {
         "kind": "struct",
         "fields": [
@@ -559,7 +552,7 @@
             }
           },
           {
-            "name": "design_mint",
+            "name": "mint",
             "type": "pubkey"
           },
           {

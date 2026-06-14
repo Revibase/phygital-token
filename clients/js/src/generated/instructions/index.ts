@@ -6,6 +6,6 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./createDesignMint";
+export * from "./createMint";
 export * from "./executeTransfer";
 export * from "./mintToken";

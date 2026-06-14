@@ -1,15 +1,20 @@
+import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import {
   getAddressEncoder,
   type Address,
   type Instruction,
 } from "@solana/kit";
+import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify";
 import {
   SECP256R1_PROGRAM_ADDRESS,
   TRANSFER_ACTION_BYTES,
 } from "../consts";
-import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify";
-import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
-import { buildSecp256r1VerifyInputFromWebAuthn } from ".";
+import {
+  base64URLStringToBuffer,
+  convertSignatureDERtoRS,
+  getSecp256r1Message,
+  parseWebAuthnClientData,
+} from "./internal";
 
 async function sha256(data: Uint8Array): Promise<Uint8Array> {
   const copy = new Uint8Array(data);
@@ -29,6 +34,32 @@ function concatBytes(...parts: Uint8Array[]): Uint8Array {
 
 function encodeAddress(addressValue: Address): Uint8Array {
   return new Uint8Array(getAddressEncoder().encode(addressValue));
+}
+
+function buildSecp256r1VerifyInputFromWebAuthn(input: {
+  response: AuthenticationResponseJSON;
+  compressedPubkey: Uint8Array;
+}) {
+  const clientData = parseWebAuthnClientData(
+    input.response.response.clientDataJSON,
+  );
+  const signature = convertSignatureDERtoRS(
+    base64URLStringToBuffer(input.response.response.signature),
+  );
+  const message = getSecp256r1Message(input.response);
+
+  return {
+    verifyInput: [
+      {
+        publicKey: input.compressedPubkey,
+        signature,
+        message,
+      },
+    ],
+    crossOrigin: clientData.crossOrigin,
+    truncatedClientDataJson: clientData.truncatedClientDataJson,
+    origin: clientData.origin,
+  };
 }
 
 export async function buildTransferMessageHash(input: {

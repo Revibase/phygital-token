@@ -32,7 +32,7 @@ fn token_extension_account_len(extension_types: &[ExtensionType]) -> Result<usiz
 ///
 /// Recipient ATAs are created via the associated-token program, which initializes
 /// `ImmutableOwner` in addition to the mint-required `TransferHookAccount` extension.
-pub fn design_mint_token_account_rent() -> Result<u64> {
+pub fn mint_token_account_rent() -> Result<u64> {
     let len = token_extension_account_len(&[
         ExtensionType::ImmutableOwner,
         ExtensionType::TransferHookAccount,
@@ -70,10 +70,10 @@ pub fn group_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
 }
 
 pub fn member_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
-    design_mint_layout(metadata_size)
+    mint_layout(metadata_size)
 }
 
-pub fn design_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
+pub fn mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
     mint_account_layout(
         &[
             ExtensionType::MetadataPointer,

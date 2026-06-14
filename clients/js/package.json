@@ -14,8 +14,7 @@
     }
   },
   "files": [
-    "dist",
-    "src/generated"
+    "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/fix-esm.mjs",
@@ -34,8 +33,10 @@
     "@noble/curves": "^2.0.1",
     "@noble/hashes": "^2.0.1",
     "@simplewebauthn/browser": "^13.3.0",
-    "cbor-x": "^1.6.0",
     "@solana-program/system": "^0.12.2",
-    "@solana/program-client-core": "^6.4.0"
+    "@solana-program/token-2022": "^0.11.0",
+    "@solana/program-client-core": "^6.4.0",
+    "@solana/signers": "^6.4.0",
+    "cbor-x": "^1.6.0"
   }
 }

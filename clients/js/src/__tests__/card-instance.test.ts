@@ -1,23 +1,23 @@
 import { address, type Rpc, type SolanaRpcApi } from "@solana/kit";
 import { describe, expect, it } from "vitest";
 import {
+  fetchCardInstance,
   getCardInstanceEncoder,
   CARD_INSTANCE_DISCRIMINATOR,
 } from "../generated/accounts/cardInstance";
 import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../generated/programs/phygitalNfts";
-import { parseCardInstanceAccount } from "../utils/metadata";
 
-describe("parseCardInstanceAccount", () => {
-  it("parses owner and design mint from encoded account data", async () => {
+describe("fetchCardInstance", () => {
+  it("decodes owner and design mint from encoded account data", async () => {
     const cardInstance = address("11111111111111111111111111111112");
-    const designMint = address("11111111111111111111111111111113");
+    const mint = address("11111111111111111111111111111113");
     const owner = address("11111111111111111111111111111114");
     const uri = "https://example.com/card.json";
     const lastTransferSlot = 42n;
 
     const body = getCardInstanceEncoder().encode({
       uri,
-      designMint,
+      mint,
       owner,
       lastTransferSlot,
     });
@@ -38,11 +38,11 @@ describe("parseCardInstanceAccount", () => {
       }),
     } as unknown as Rpc<SolanaRpcApi>;
 
-    const parsed = await parseCardInstanceAccount(rpc, cardInstance);
-    expect(parsed.uri).toBe(uri);
-    expect(parsed.designMint).toBe(designMint);
-    expect(parsed.owner).toBe(owner);
-    expect(parsed.lastTransferSlot).toBe(lastTransferSlot);
+    const parsed = await fetchCardInstance(rpc, cardInstance);
+    expect(parsed.data.uri).toBe(uri);
+    expect(parsed.data.mint).toBe(mint);
+    expect(parsed.data.owner).toBe(owner);
+    expect(parsed.data.lastTransferSlot).toBe(lastTransferSlot);
     expect(data.subarray(0, 8)).toEqual(CARD_INSTANCE_DISCRIMINATOR);
   });
 });

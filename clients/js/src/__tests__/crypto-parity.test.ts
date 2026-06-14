@@ -3,7 +3,7 @@ import { address, getAddressDecoder, getAddressEncoder } from "@solana/kit";
 import { describe, expect, it } from "vitest";
 import {
   findCardInstancePda,
-  findDesignMintPda,
+  findmintPda,
 } from "../instructions/mint";
 import {
   buildTransferChallenge,
@@ -75,11 +75,11 @@ describe("buildTransferChallenge", () => {
 });
 
 describe("PDAs", () => {
-  it("findDesignMintPda uses group_mint and design_id seeds", async () => {
+  it("findmintPda uses group_mint and design_id seeds", async () => {
     const groupMint = address("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
     const designId = pubkeyFromByte(42);
-    const designMint = await findDesignMintPda(groupMint, designId);
-    expect(designMint).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
+    const mint = await findmintPda(groupMint, designId);
+    expect(mint).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
   });
 
   it("findCardInstancePda uses x-only secp256r1 seed", async () => {

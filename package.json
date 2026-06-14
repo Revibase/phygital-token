@@ -6,9 +6,7 @@
     "idl:sync": "cp target/idl/phygital_nfts.json idl/phygital_nfts.json && cp target/idl/phygital_nfts_hook.json idl/phygital_nfts_hook.json",
     "generate:client": "codama run js",
     "build:client": "yarn --cwd clients/js build",
-    "build:program": "NO_DNA=1 anchor build && yarn idl:sync && yarn generate:client && yarn build:client",
-    "dev:app": "npm --prefix app run dev",
-    "build:app": "yarn build:client && npm --prefix app run build"
+    "build:program": "NO_DNA=1 anchor build && yarn idl:sync && yarn generate:client && yarn build:client"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.0.2"

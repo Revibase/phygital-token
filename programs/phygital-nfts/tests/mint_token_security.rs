@@ -26,7 +26,7 @@ fn mint_token_rejects_wrong_custody_ata() {
         "https://example.com/collection.json",
         100,
     );
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
@@ -41,14 +41,14 @@ fn mint_token_rejects_wrong_custody_ata() {
     let wrong_ata = Keypair::new().pubkey();
     let args = MintTokenArgs {
         secp256r1_pubkey,
-        design_mint,
+        mint: mint,
         uri: SAMPLE_CARD_URI.to_string(),
     };
 
     let ix = ctx.mint_token_ix_with_custody_ata(
         ctx.payer.pubkey(),
         card_instance,
-        design_mint,
+        mint,
         wrong_ata,
         args,
     );
@@ -66,7 +66,7 @@ fn mint_token_first_mint_succeeds_without_funding_program_authority() {
     let passkey = TestPasskey::generate();
     let card = ctx.mint_card_with_passkey_without_fund(&passkey);
 
-    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.mint), 1);
     assert_eq!(ctx.program_authority_lamports(), 0);
 }
 
@@ -96,13 +96,13 @@ fn mint_token_rejects_duplicate_secp256r1_pubkey() {
     let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey,
-        design_mint: card.design_mint,
+        mint: card.mint,
         uri: SAMPLE_CARD_URI.to_string(),
     };
     let ix = ctx.mint_token_ix(
         ctx.payer.pubkey(),
         card.card_instance,
-        card.design_mint,
+        card.mint,
         args,
     );
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer])
@@ -110,7 +110,7 @@ fn mint_token_rejects_duplicate_secp256r1_pubkey() {
 }
 
 #[test]
-fn mint_token_rejects_design_mint_arg_mismatch() {
+fn mint_token_rejects_mint_arg_mismatch() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     ctx.svm
@@ -125,7 +125,7 @@ fn mint_token_rejects_design_mint_arg_mismatch() {
         "https://example.com/collection.json",
         100,
     );
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
@@ -140,12 +140,12 @@ fn mint_token_rejects_design_mint_arg_mismatch() {
     let wrong_design = Keypair::new().pubkey();
     let args = MintTokenArgs {
         secp256r1_pubkey,
-        design_mint: wrong_design,
+        mint: wrong_design,
         uri: SAMPLE_CARD_URI.to_string(),
     };
-    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), card_instance, design_mint, args);
+    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), card_instance, mint, args);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]);
-    assert_token_program_error(err, "DesignMintMismatch", error_code::DESIGN_MINT_MISMATCH);
+    assert_token_program_error(err, "mintMismatch", error_code::mint_MISMATCH);
 }
 
 #[test]
@@ -157,7 +157,7 @@ fn mint_token_rejects_plain_mint_without_group_member() {
     let card_instance = ctx.card_instance_pda(&secp256r1_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey,
-        design_mint: plain_mint.pubkey(),
+        mint: plain_mint.pubkey(),
         uri: SAMPLE_CARD_URI.to_string(),
     };
     let ix = ctx.mint_token_ix(
@@ -190,7 +190,7 @@ fn mint_token_allows_permissionless_inflation_on_existing_design() {
         "https://example.com/collection.json",
         100,
     );
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
@@ -204,12 +204,12 @@ fn mint_token_allows_permissionless_inflation_on_existing_design() {
     let card_instance = ctx.card_instance_pda(&secp256r1_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey,
-        design_mint,
+        mint: mint,
         uri: SAMPLE_CARD_URI.to_string(),
     };
-    let ix = ctx.mint_token_ix(attacker.pubkey(), card_instance, design_mint, args);
+    let ix = ctx.mint_token_ix(attacker.pubkey(), card_instance, mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&attacker]).expect("attacker mint succeeds");
-    assert_eq!(ctx.token_balance(ctx.program_authority(), design_mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), mint), 1);
 }
 
 #[test]
@@ -223,19 +223,19 @@ fn mint_token_documents_secp256r1_pda_squatting_risk() {
     let victim_card = ctx.card_instance_pda(&victim_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
-        design_mint: card.design_mint,
+        mint: card.mint,
         uri: SAMPLE_CARD_URI.to_string(),
     };
-    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_card, card.design_mint, args);
+    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_card, card.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]).expect("squatter mints first");
 
     let ix2 = ctx.mint_token_ix(
         ctx.payer.pubkey(),
         victim_card,
-        card.design_mint,
+        card.mint,
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
-            design_mint: card.design_mint,
+            mint: card.mint,
             uri: "https://example.com/victim.json".to_string(),
         },
     );
@@ -264,7 +264,7 @@ fn mint_token_rejects_non_admin_payer() {
         "https://example.com/collection.json",
         100,
     );
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
@@ -277,8 +277,8 @@ fn mint_token_rejects_non_admin_payer() {
     let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
     let card_instance = ctx.card_instance_pda(&secp256r1_pubkey);
     let mut token_args = sample_mint_token_args();
-    token_args.design_mint = design_mint;
-    let ix = ctx.mint_token_ix(non_admin.pubkey(), card_instance, design_mint, token_args);
+    token_args.mint = mint;
+    let ix = ctx.mint_token_ix(non_admin.pubkey(), card_instance, mint, token_args);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&non_admin]);
     assert_token_program_error(err, "AuthorityMismatch", error_code::AUTHORITY_MISMATCH);
     let _ = ADMIN;

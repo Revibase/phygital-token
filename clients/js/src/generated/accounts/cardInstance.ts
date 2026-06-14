@@ -55,17 +55,17 @@ export function getCardInstanceDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type CardInstance = {
   discriminator: ReadonlyUint8Array;
-  uri: string;
-  designMint: Address;
+  mint: Address;
   owner: Address;
   lastTransferSlot: bigint;
+  uri: string;
 };
 
 export type CardInstanceArgs = {
-  uri: string;
-  designMint: Address;
+  mint: Address;
   owner: Address;
   lastTransferSlot: number | bigint;
+  uri: string;
 };
 
 /** Gets the encoder for {@link CardInstanceArgs} account data. */
@@ -73,10 +73,10 @@ export function getCardInstanceEncoder(): Encoder<CardInstanceArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["uri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["designMint", getAddressEncoder()],
+      ["mint", getAddressEncoder()],
       ["owner", getAddressEncoder()],
       ["lastTransferSlot", getU64Encoder()],
+      ["uri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ]),
     (value) => ({ ...value, discriminator: CARD_INSTANCE_DISCRIMINATOR }),
   );
@@ -86,10 +86,10 @@ export function getCardInstanceEncoder(): Encoder<CardInstanceArgs> {
 export function getCardInstanceDecoder(): Decoder<CardInstance> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["uri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["designMint", getAddressDecoder()],
+    ["mint", getAddressDecoder()],
     ["owner", getAddressDecoder()],
     ["lastTransferSlot", getU64Decoder()],
+    ["uri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
   ]);
 }
 

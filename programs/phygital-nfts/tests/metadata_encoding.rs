@@ -5,11 +5,11 @@ use phygital_nfts::constants::{
     MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN, MAX_METADATA_URI_LEN,
 };
 use phygital_nfts::utils::validate_uri;
-use phygital_nfts::utils::{design_mint_metadata_tlv_size, validate_metadata_strings};
+use phygital_nfts::utils::{mint_metadata_tlv_size, validate_metadata_strings};
 use phygital_nfts::utils::LAST_TRANSFER_SLOT_NONE;
 
 #[test]
-fn design_mint_token_account_rent_matches_transfer_hook_ata() {
+fn mint_token_account_rent_matches_transfer_hook_ata() {
     let len = ExtensionType::try_calculate_account_len::<SplTokenAccount>(&[
         ExtensionType::ImmutableOwner,
         ExtensionType::TransferHookAccount,
@@ -36,8 +36,8 @@ fn validate_metadata_strings_rejects_long_uri() {
 }
 
 #[test]
-fn design_mint_metadata_tlv_size_is_positive() {
-    let size = design_mint_metadata_tlv_size("Test Design", "TDES", "https://example.com/x.json")
+fn mint_metadata_tlv_size_is_positive() {
+    let size = mint_metadata_tlv_size("Test Design", "TDES", "https://example.com/x.json")
         .expect("tlv size");
     assert!(size > 0);
     assert_eq!(LAST_TRANSFER_SLOT_NONE, u64::MAX);

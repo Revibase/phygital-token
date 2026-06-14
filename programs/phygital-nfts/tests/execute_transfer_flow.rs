@@ -14,8 +14,8 @@ fn execute_transfer_moves_card_to_recipient_without_sender_signature() {
     let recipient = Keypair::new();
     let program_authority = ctx.program_authority();
 
-    assert_eq!(ctx.token_balance(program_authority, card.design_mint), 1);
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 0);
+    assert_eq!(ctx.token_balance(program_authority, card.mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.mint), 0);
 
     let (transfer_slot, _) = current_slot_entry(&ctx.svm);
     ctx.send_execute_transfer(&card, &recipient, true)
@@ -27,16 +27,16 @@ fn execute_transfer_moves_card_to_recipient_without_sender_signature() {
     );
 
     assert_eq!(
-        ctx.token_balance(program_authority, card.design_mint),
+        ctx.token_balance(program_authority, card.mint),
         0,
         "custody balance should be zero after transfer"
     );
     assert!(
-        !ctx.sender_ata_exists(program_authority, card.design_mint),
+        !ctx.sender_ata_exists(program_authority, card.mint),
         "custody ata should be closed when balance was 1"
     );
     assert_eq!(
-        ctx.token_balance(recipient.pubkey(), card.design_mint),
+        ctx.token_balance(recipient.pubkey(), card.mint),
         1,
         "recipient should hold the card token"
     );
@@ -87,8 +87,8 @@ fn execute_transfer_rejects_sender_not_matching_card_owner() {
         err_str.contains("OwnerMismatch") || err_str.contains("6012"),
         "unexpected error: {err:?}"
     );
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card_for_transfer.design_mint), 1);
-    assert_eq!(ctx.token_balance(wrong_recipient.pubkey(), card_for_transfer.design_mint), 0);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card_for_transfer.mint), 1);
+    assert_eq!(ctx.token_balance(wrong_recipient.pubkey(), card_for_transfer.mint), 0);
 }
 
 #[test]
@@ -100,7 +100,7 @@ fn execute_transfer_keeps_sender_ata_when_balance_remains() {
     ctx.mint_second_card_same_design(&card, &passkey_b);
 
     let program_authority = ctx.program_authority();
-    assert_eq!(ctx.token_balance(program_authority, card.design_mint), 2);
+    assert_eq!(ctx.token_balance(program_authority, card.mint), 2);
 
     let recipient = Keypair::new();
     let card_for_transfer = MintedCard {
@@ -111,12 +111,12 @@ fn execute_transfer_keeps_sender_ata_when_balance_remains() {
     ctx.send_execute_transfer(&card_for_transfer, &recipient, true)
         .expect("transfer with remaining balance should succeed");
 
-    assert_eq!(ctx.token_balance(program_authority, card_for_transfer.design_mint), 1);
+    assert_eq!(ctx.token_balance(program_authority, card_for_transfer.mint), 1);
     assert!(
-        ctx.sender_ata_exists(program_authority, card_for_transfer.design_mint),
+        ctx.sender_ata_exists(program_authority, card_for_transfer.mint),
         "custody ata should stay open when balance remains"
     );
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card_for_transfer.design_mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card_for_transfer.mint), 1);
 }
 
 #[test]
@@ -140,7 +140,7 @@ fn execute_transfer_requires_preceding_secp256r1_instruction() {
             || err_str.contains("ClientDataHashMismatch"),
         "unexpected error: {err:?}"
     );
-    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.mint), 1);
 }
 
 #[test]
@@ -161,14 +161,14 @@ fn direct_owner_transfer_checked_is_blocked_by_transfer_hook() {
     let create_ata_ix = ctx.create_recipient_ata_ix(
         recipient.pubkey(),
         recipient.pubkey(),
-        card.design_mint,
+        card.mint,
     );
     TestContext::send_instruction(&mut ctx.svm, create_ata_ix, &[&recipient])
         .expect("create recipient ata");
 
     let transfer_ix = ctx.owner_transfer_checked_ix(
         holder.pubkey(),
-        card.design_mint,
+        card.mint,
         recipient.pubkey(),
     );
 
@@ -184,7 +184,7 @@ fn direct_owner_transfer_checked_is_blocked_by_transfer_hook() {
             || err_str.contains("custom program error"),
         "transfer hook should block owner-signed transfer_checked: {err:?}"
     );
-    assert_eq!(ctx.token_balance(holder.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(holder.pubkey(), card.mint), 1);
 }
 
 #[test]
@@ -218,8 +218,8 @@ fn execute_transfer_rejects_slot_not_greater_than_last_transfer() {
         err_str.contains("StaleTransferSlot") || err_str.contains("6013"),
         "expected stale slot error, got: {err:?}"
     );
-    assert_eq!(ctx.token_balance(second_recipient.pubkey(), card.design_mint), 0);
-    assert_eq!(ctx.token_balance(first_recipient.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(second_recipient.pubkey(), card.mint), 0);
+    assert_eq!(ctx.token_balance(first_recipient.pubkey(), card.mint), 1);
 }
 
 #[test]
@@ -250,5 +250,5 @@ fn execute_transfer_allows_next_transfer_with_higher_slot() {
     .expect("second transfer with a higher slot should succeed");
 
     assert_eq!(ctx.last_transfer_slot(card.card_instance), second_slot);
-    assert_eq!(ctx.token_balance(second_recipient.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(second_recipient.pubkey(), card.mint), 1);
 }

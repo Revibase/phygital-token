@@ -1,27 +1,23 @@
-import { getTransferSolInstruction } from "@solana-program/system";
 import {
   getAddressEncoder,
   getBase58Encoder,
   getBytesEncoder,
-  getMinimumBalanceForRentExemption,
   getProgramDerivedAddress,
   type Address,
   type Instruction,
-  type Rpc,
-  type SolanaRpcApi,
   type TransactionSigner,
 } from "@solana/kit";
-import { getCreateDesignMintInstructionAsync } from "../generated/instructions/createDesignMint";
 import { getMintTokenInstructionAsync } from "../generated/instructions/mintToken";
 import { findProgramAuthorityPda } from "../generated/pdas/programAuthority";
 import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../generated/programs/phygitalNfts";
 import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey";
 import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts";
 import { findAssociatedTokenAddress } from "../utils/associatedToken";
+import { getCreateMintInstructionAsync } from "../generated/instructions/createMint";
+import { base64URLStringToBuffer } from "../utils/passkey/internal";
 
-const DESIGN_MINT_SEED = new TextEncoder().encode("design_mint");
+const mint_SEED = new TextEncoder().encode("mint");
 const CARD_INSTANCE_SEED = new TextEncoder().encode("card_instance");
-const TOKEN_ACCOUNT_SIZE = 165n;
 
 export const MAX_METADATA_NAME_LEN = 32;
 export const MAX_METADATA_SYMBOL_LEN = 10;
@@ -33,7 +29,7 @@ export type MetadataFields = {
   uri: string;
 };
 
-export type CreateDesignMintParams = MetadataFields & {
+type CreateMintParams = MetadataFields & {
   payer: TransactionSigner;
   owner: TransactionSigner;
   groupMint: Address;
@@ -41,27 +37,27 @@ export type CreateDesignMintParams = MetadataFields & {
   designId: Address;
 };
 
-export type MintTokenParams = {
+type MintTokenParams = {
   authority: TransactionSigner;
-  designMint: Address;
+  mint: Address;
   secp256r1Pubkey: Secp256r1Pubkey;
   uri: string;
 };
 
-export async function findDesignMintPda(
+export async function findmintPda(
   groupMint: Address,
   designId: Address,
 ): Promise<Address> {
-  const [designMint] = await getProgramDerivedAddress({
+  const [mint] = await getProgramDerivedAddress({
     programAddress: PHYGITAL_NFTS_PROGRAM_ADDRESS,
     seeds: [
-      getBytesEncoder().encode(DESIGN_MINT_SEED),
+      getBytesEncoder().encode(mint_SEED),
       getAddressEncoder().encode(groupMint),
       getAddressEncoder().encode(designId),
     ],
   });
 
-  return designMint;
+  return mint;
 }
 
 export async function findCardInstancePda(
@@ -78,7 +74,7 @@ export async function findCardInstancePda(
   return cardInstance;
 }
 
-export function parseSecp256r1Pubkey(input: string): Secp256r1Pubkey {
+export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
   const trimmed = input.trim();
   if (!trimmed) {
     throw new Error("secp256r1 pubkey is required.");
@@ -86,7 +82,7 @@ export function parseSecp256r1Pubkey(input: string): Secp256r1Pubkey {
 
   let bytes: Uint8Array;
   try {
-    bytes = new Uint8Array(getBase58Encoder().encode(trimmed));
+    bytes = new Uint8Array(base64URLStringToBuffer(trimmed));
   } catch {
     throw new Error("Pubkey must be valid base58.");
   }
@@ -114,68 +110,25 @@ export function validateMetadataFields(fields: MetadataFields): void {
   }
 }
 
-export function getExpectedRentPoolTarget(): bigint {
-  const ataRent = getMinimumBalanceForRentExemption(TOKEN_ACCOUNT_SIZE);
-  return BigInt(ataRent) * 10n;
-}
-
-export async function getFundProgramAuthorityInstruction(
-  payer: TransactionSigner,
-  amount?: bigint,
-) {
-  const [programAuthority] = await findProgramAuthorityPda();
-  return getTransferSolInstruction({
-    source: payer,
-    destination: programAuthority,
-    amount: amount ?? getExpectedRentPoolTarget(),
-  });
-}
-
-export async function getProgramAuthorityBalance(
-  rpc: Rpc<SolanaRpcApi>,
-): Promise<bigint> {
-  const [programAuthority] = await findProgramAuthorityPda();
-  const response = await rpc
-    .getAccountInfo(programAuthority, { commitment: "confirmed" })
-    .send();
-
-  return response.value ? BigInt(response.value.lamports) : 0n;
-}
-
-export async function needsProgramAuthorityFunding(
-  rpc: Rpc<SolanaRpcApi>,
-): Promise<{ needed: boolean; target: bigint; current: bigint; shortfall: bigint }> {
-  const target = getExpectedRentPoolTarget();
-  const current = await getProgramAuthorityBalance(rpc);
-  const shortfall = target > current ? target - current : 0n;
-
-  return {
-    needed: shortfall > 0n,
-    target,
-    current,
-    shortfall,
-  };
-}
-
-export async function buildCreateDesignMintInstructions(
-  input: CreateDesignMintParams,
-): Promise<{ instructions: Instruction[]; designMint: Address }> {
+export async function buildCreateMintInstructions(
+  input: CreateMintParams,
+): Promise<{ instructions: Instruction[]; mint: Address }> {
   validateMetadataFields(input);
 
-  const designMint = await findDesignMintPda(input.groupMint, input.designId);
-  const instruction = await getCreateDesignMintInstructionAsync({
+  const mint = await findmintPda(input.groupMint, input.designId);
+  const instruction = await getCreateMintInstructionAsync({
     payer: input.payer,
     owner: input.owner,
     groupMint: input.groupMint,
     groupMintAuthority: input.groupMintAuthority,
-    designMint,
+    mint,
     name: input.name,
     symbol: input.symbol,
     uri: input.uri,
     designId: input.designId,
   });
 
-  return { instructions: [instruction], designMint };
+  return { instructions: [instruction], mint };
 }
 
 export async function buildMintTokenInstructions(
@@ -185,37 +138,19 @@ export async function buildMintTokenInstructions(
   const [programAuthority] = await findProgramAuthorityPda();
   const programAuthorityTokenAccount = await findAssociatedTokenAddress(
     programAuthority,
-    input.designMint,
+    input.mint,
     TOKEN_2022_PROGRAM_ADDRESS,
   );
 
   const instruction = await getMintTokenInstructionAsync({
     authority: input.authority,
     cardInstance,
-    designMint: input.designMint,
+    mint: input.mint,
     programAuthorityTokenAccount,
     secp256r1Pubkey: input.secp256r1Pubkey,
-    designMintArg: input.designMint,
+    mintArg: input.mint,
     uri: input.uri,
   });
 
   return { instructions: [instruction], cardInstance };
-}
-
-export async function buildMintTokenTransactionInstructions(
-  rpc: Rpc<SolanaRpcApi>,
-  input: MintTokenParams,
-): Promise<{ instructions: Instruction[]; cardInstance: Address }> {
-  const instructions: Instruction[] = [];
-  const funding = await needsProgramAuthorityFunding(rpc);
-
-  if (funding.needed) {
-    instructions.push(
-      await getFundProgramAuthorityInstruction(input.authority, funding.shortfall),
-    );
-  }
-
-  const created = await buildMintTokenInstructions(input);
-  instructions.push(...created.instructions);
-  return { instructions, cardInstance: created.cardInstance };
 }

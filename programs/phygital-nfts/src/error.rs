@@ -33,7 +33,7 @@ pub enum TokenProgramError {
     InvalidParentGroup,
 
     #[msg("Design mint does not match token record")]
-    DesignMintMismatch,
+    mintMismatch,
 
     #[msg("Group mint does not match token record")]
     GroupMintMismatch,

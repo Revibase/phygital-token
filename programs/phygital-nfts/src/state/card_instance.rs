@@ -6,17 +6,17 @@ use crate::utils::LAST_TRANSFER_SLOT_NONE;
 #[account]
 #[derive(InitSpace)]
 pub struct CardInstance {
-    #[max_len(MAX_METADATA_URI_LEN)]
-    pub uri: String,
-    pub design_mint: Pubkey,
+    pub mint: Pubkey,
     pub owner: Pubkey,
     pub last_transfer_slot: u64,
+    #[max_len(MAX_METADATA_URI_LEN)]
+    pub uri: String,
 }
 
 impl CardInstance {
-    pub fn init(&mut self, uri: String, design_mint: Pubkey, owner: Pubkey) {
+    pub fn init(&mut self, uri: String, mint: Pubkey, owner: Pubkey) {
         self.uri = uri;
-        self.design_mint = design_mint;
+        self.mint = mint;
         self.owner = owner;
         self.last_transfer_slot = LAST_TRANSFER_SLOT_NONE;
     }

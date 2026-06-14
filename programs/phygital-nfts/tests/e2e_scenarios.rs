@@ -20,15 +20,15 @@ fn e2e_happy_lifecycle_with_retransfer() {
         .expect("claim");
     assert_eq!(ctx.last_transfer_slot(card.card_instance), first_slot);
 
-    let (owner, design_mint, _, _) = ctx.card_instance_fields(card.card_instance);
+    let (owner, mint, _, _) = ctx.card_instance_fields(card.card_instance);
     assert_eq!(owner, first_recipient.pubkey());
-    assert_eq!(design_mint, card.design_mint);
+    assert_eq!(mint, card.mint);
 
     let card_for_holder = MintedCard {
         passkey: passkey.clone(),
         collection_owner: Keypair::new(),
         holder: Keypair::new(),
-        design_mint: card.design_mint,
+        mint: card.mint,
         card_instance: card.card_instance,
         group_mint: card.group_mint,
     };
@@ -47,7 +47,7 @@ fn e2e_happy_lifecycle_with_retransfer() {
     .expect("re-transfer");
 
     assert_eq!(ctx.last_transfer_slot(card.card_instance), second_slot);
-    assert_eq!(ctx.token_balance(second_recipient.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(second_recipient.pubkey(), card.mint), 1);
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn e2e_mint_funded_rent_liveness() {
     ctx.mint_second_card_same_design(&card, &TestPasskey::generate());
     ctx.send_execute_transfer(&card, &recipient, true)
         .expect("transfer after one rent top-up mint");
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.mint), 1);
 }
 
 #[test]
@@ -76,7 +76,7 @@ fn e2e_manual_rent_fund_liveness() {
 
     ctx.send_execute_transfer(&card, &recipient, true)
         .expect("transfer with manual rent fund");
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.mint), 1);
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn e2e_multi_card_same_design_custody() {
         passkey: passkey_a.clone(),
         collection_owner: Keypair::new(),
         holder: Keypair::new(),
-        design_mint: card.design_mint,
+        mint: card.mint,
         card_instance: card.card_instance,
         group_mint: card.group_mint,
     };
@@ -103,7 +103,7 @@ fn e2e_multi_card_same_design_custody() {
         passkey: passkey_b.clone(),
         collection_owner: Keypair::new(),
         holder: Keypair::new(),
-        design_mint: card.design_mint,
+        mint: card.mint,
         card_instance: ctx.card_instance_pda(&Secp256r1Pubkey(passkey_b.compressed_pubkey)),
         group_mint: card.group_mint,
     };
@@ -113,9 +113,9 @@ fn e2e_multi_card_same_design_custody() {
     ctx.send_execute_transfer(&card_b, &recipient_b, true)
         .expect("claim B");
 
-    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
-    assert_eq!(ctx.token_balance(recipient_a.pubkey(), card.design_mint), 1);
-    assert_eq!(ctx.token_balance(recipient_b.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.mint), 1);
+    assert_eq!(ctx.token_balance(recipient_a.pubkey(), card.mint), 1);
+    assert_eq!(ctx.token_balance(recipient_b.pubkey(), card.mint), 1);
 }
 
 #[test]
@@ -128,19 +128,19 @@ fn e2e_card_pda_squatting_blocks_victim() {
     let victim_card = ctx.card_instance_pda(&victim_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
-        design_mint: card.design_mint,
+        mint: card.mint,
         uri: common::SAMPLE_CARD_URI.to_string(),
     };
-    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_card, card.design_mint, args);
+    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_card, card.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]).expect("squatter mint");
 
     let ix2 = ctx.mint_token_ix(
         ctx.payer.pubkey(),
         victim_card,
-        card.design_mint,
+        card.mint,
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
-            design_mint: card.design_mint,
+            mint: card.mint,
             uri: "https://example.com/victim.json".to_string(),
         },
     );

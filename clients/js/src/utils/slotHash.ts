@@ -1,5 +1,4 @@
 import {
-  getAddressEncoder,
   getBase64Encoder,
   getU64Decoder,
   type Address,
@@ -57,8 +56,4 @@ export async function fetchAccountData(
   }
 
   return decodeBase64AccountData(response.value.data);
-}
-
-export function encodeAddress(addressValue: Address): Uint8Array {
-  return new Uint8Array(getAddressEncoder().encode(addressValue));
 }

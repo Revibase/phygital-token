@@ -20,11 +20,11 @@ use anchor_spl::token_2022::spl_token_2022::state::Account as TokenAccountState;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use litesvm::LiteSVM;
 use phygital_nfts::constants::{
-    ADMIN, CARD_INSTANCE_SEED, DESIGN_MINT_SEED, PROGRAM_AUTHORITY_SEED,
+    ADMIN, CARD_INSTANCE_SEED, MINT_SEED, PROGRAM_AUTHORITY_SEED,
 };
 use phygital_nfts::state::CardInstance;
 use phygital_nfts::utils::secp256r1_pda_seed;
-use phygital_nfts::{CreateDesignMintArgs, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs};
+use phygital_nfts::{CreateMintArgs, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs};
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
 use solana_sdk_ids::sysvar::{
@@ -42,7 +42,7 @@ pub const TEST_ORIGIN: &str = "http://localhost:3000";
 pub struct MintedCard {
     pub collection_owner: Keypair,
     pub holder: Keypair,
-    pub design_mint: Pubkey,
+    pub mint: Pubkey,
     pub card_instance: Pubkey,
     pub group_mint: Pubkey,
     pub passkey: TestPasskey,
@@ -136,10 +136,10 @@ impl TestContext {
         Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &self.program_id).0
     }
 
-    pub fn design_mint_pda(&self, group_mint: Pubkey, design_id: Pubkey) -> Pubkey {
+    pub fn mint_pda(&self, group_mint: Pubkey, design_id: Pubkey) -> Pubkey {
         Pubkey::find_program_address(
             &[
-                DESIGN_MINT_SEED,
+                MINT_SEED,
                 group_mint.as_ref(),
                 design_id.as_ref(),
             ],
@@ -198,10 +198,10 @@ impl TestContext {
         }
     }
 
-    pub fn custody_ata(&self, design_mint: Pubkey) -> Pubkey {
+    pub fn custody_ata(&self, mint: Pubkey) -> Pubkey {
         get_associated_token_address_with_program_id(
             &self.program_authority(),
-            &design_mint,
+            &mint,
             &TOKEN_2022_ID,
         )
     }
@@ -215,17 +215,17 @@ impl TestContext {
             .expect("deserialize card instance");
         (
             instance.owner,
-            instance.design_mint,
+            instance.mint,
             instance.uri,
             instance.last_transfer_slot,
         )
     }
 
-    pub fn recipient_close_authority(&self, recipient: Pubkey, design_mint: Pubkey) -> Option<Pubkey> {
+    pub fn recipient_close_authority(&self, recipient: Pubkey, mint: Pubkey) -> Option<Pubkey> {
         use anchor_lang::solana_program::program_option::COption;
         use anchor_spl::token_2022::spl_token_2022::extension::StateWithExtensions;
 
-        let ata = get_associated_token_address_with_program_id(&recipient, &design_mint, &TOKEN_2022_ID);
+        let ata = get_associated_token_address_with_program_id(&recipient, &mint, &TOKEN_2022_ID);
         let account = self.svm.get_account(&ata)?;
         let state = StateWithExtensions::<TokenAccountState>::unpack(&account.data).ok()?;
         match state.base.close_authority {
@@ -234,21 +234,21 @@ impl TestContext {
         }
     }
 
-    pub fn create_design_mint_ix(
+    pub fn create_mint_ix(
         &self,
         payer: Pubkey,
         owner: Pubkey,
         group_mint_authority: Pubkey,
-        design_mint: Pubkey,
+        mint: Pubkey,
         group_mint: Pubkey,
-        args: CreateDesignMintArgs,
+        args: CreateMintArgs,
     ) -> Instruction {
-        let accounts = phygital_nfts::accounts::CreateDesignMint {
+        let accounts = phygital_nfts::accounts::CreateMint {
             payer,
             owner,
             group_mint,
             group_mint_authority,
-            design_mint,
+            mint,
             program_authority: self.program_authority(),
             token_program: TOKEN_2022_ID,
             system_program: anchor_lang::solana_program::system_program::ID,
@@ -257,7 +257,7 @@ impl TestContext {
         Instruction {
             program_id: self.program_id,
             accounts,
-            data: phygital_nfts::instruction::CreateDesignMint { args }.data(),
+            data: phygital_nfts::instruction::CreateMint { args }.data(),
         }
     }
 
@@ -267,14 +267,14 @@ impl TestContext {
         payer: &Keypair,
         owner: &Keypair,
         group: &ExternalGroupMint,
-        mint_args: CreateDesignMintArgs,
+        mint_args: CreateMintArgs,
     ) -> Pubkey {
         let program_authority =
             Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &program_id).0;
         let group_mint = group.mint.pubkey();
-        let design_mint = Pubkey::find_program_address(
+        let mint = Pubkey::find_program_address(
             &[
-                DESIGN_MINT_SEED,
+                MINT_SEED,
                 group_mint.as_ref(),
                 mint_args.design_id.as_ref(),
             ],
@@ -282,12 +282,12 @@ impl TestContext {
         )
         .0;
 
-        let accounts = phygital_nfts::accounts::CreateDesignMint {
+        let accounts = phygital_nfts::accounts::CreateMint {
             payer: payer.pubkey(),
             owner: owner.pubkey(),
             group_mint,
             group_mint_authority: group.authority.pubkey(),
-            design_mint,
+            mint,
             program_authority,
             token_program: TOKEN_2022_ID,
             system_program: anchor_lang::solana_program::system_program::ID,
@@ -296,11 +296,11 @@ impl TestContext {
         let ix = Instruction {
             program_id,
             accounts,
-            data: phygital_nfts::instruction::CreateDesignMint { args: mint_args }.data(),
+            data: phygital_nfts::instruction::CreateMint { args: mint_args }.data(),
         };
         Self::send_instruction(svm, ix, &[payer, owner, &group.authority])
             .expect("create design mint");
-        design_mint
+        mint
     }
 
     pub fn execute_transfer_ix(
@@ -308,14 +308,14 @@ impl TestContext {
         recipient: Pubkey,
         sender: Pubkey,
         card_instance: Pubkey,
-        design_mint: Pubkey,
+        mint: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
     ) -> Instruction {
         self.execute_transfer_ix_with_hook(
             recipient,
             sender,
             card_instance,
-            design_mint,
+            mint,
             secp256r1_verify_args,
             self.transfer_hook_program_id,
         )
@@ -326,7 +326,7 @@ impl TestContext {
         recipient: Pubkey,
         sender: Pubkey,
         card_instance: Pubkey,
-        design_mint: Pubkey,
+        mint: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         transfer_hook_program: Pubkey,
     ) -> Instruction {
@@ -336,15 +336,15 @@ impl TestContext {
                 recipient,
                 sender,
                 card_instance,
-                design_mint,
+                mint: mint,
                 sender_token_account: get_associated_token_address_with_program_id(
                     &sender,
-                    &design_mint,
+                    &mint,
                     &TOKEN_2022_ID,
                 ),
                 recipient_token_account: get_associated_token_address_with_program_id(
                     &recipient,
-                    &design_mint,
+                    &mint,
                     &TOKEN_2022_ID,
                 ),
                 program_authority: self.program_authority(),
@@ -367,12 +367,12 @@ impl TestContext {
         &self,
         payer: Pubkey,
         owner: Pubkey,
-        design_mint: Pubkey,
+        mint: Pubkey,
     ) -> Instruction {
         anchor_spl::associated_token::spl_associated_token_account::instruction::create_associated_token_account(
             &payer,
             &owner,
-            &design_mint,
+            &mint,
             &TOKEN_2022_ID,
         )
     }
@@ -380,17 +380,17 @@ impl TestContext {
     pub fn owner_transfer_checked_ix(
         &self,
         owner: Pubkey,
-        design_mint: Pubkey,
+        mint: Pubkey,
         recipient: Pubkey,
     ) -> Instruction {
         let sender_ata =
-            get_associated_token_address_with_program_id(&owner, &design_mint, &TOKEN_2022_ID);
+            get_associated_token_address_with_program_id(&owner, &mint, &TOKEN_2022_ID);
         let recipient_ata =
-            get_associated_token_address_with_program_id(&recipient, &design_mint, &TOKEN_2022_ID);
+            get_associated_token_address_with_program_id(&recipient, &mint, &TOKEN_2022_ID);
         transfer_checked(
             &TOKEN_2022_ID,
             &sender_ata,
-            &design_mint,
+            &mint,
             &recipient_ata,
             &owner,
             &[],
@@ -430,7 +430,7 @@ impl TestContext {
         let group_mint = group.mint.pubkey();
 
         let mint_args = sample_create_design_args();
-        let design_mint = Self::create_design(
+        let mint = Self::create_design(
             &mut self.svm,
             self.program_id,
             &self.payer,
@@ -447,14 +447,14 @@ impl TestContext {
         let card_instance = self.card_instance_pda(&secp256r1_pubkey);
         let token_args = MintTokenArgs {
             secp256r1_pubkey,
-            design_mint,
+            mint,
             uri: "https://example.com/card.json".to_string(),
         };
 
         let token_ix = self.mint_token_ix(
             self.payer.pubkey(),
             card_instance,
-            design_mint,
+            mint,
             token_args,
         );
         TestContext::send_instruction(&mut self.svm, token_ix, &[&self.payer])
@@ -463,7 +463,7 @@ impl TestContext {
         MintedCard {
             collection_owner,
             holder,
-            design_mint,
+            mint,
             card_instance,
             group_mint,
             passkey: passkey.clone(),
@@ -479,14 +479,14 @@ impl TestContext {
         let card_instance = self.card_instance_pda(&secp256r1_pubkey);
         let token_args = MintTokenArgs {
             secp256r1_pubkey,
-            design_mint: card.design_mint,
+            mint: card.mint,
             uri: "https://example.com/card.json".to_string(),
         };
 
         let token_ix = self.mint_token_ix(
             self.payer.pubkey(),
             card_instance,
-            card.design_mint,
+            card.mint,
             token_args,
         );
         TestContext::send_instruction(&mut self.svm, token_ix, &[&self.payer])
@@ -544,7 +544,7 @@ impl TestContext {
             recipient.pubkey(),
             sender,
             card.card_instance,
-            card.design_mint,
+            card.mint,
             verify_args,
         );
 
@@ -561,12 +561,12 @@ impl TestContext {
         Self::send_instructions(&mut self.svm, &instructions, &[recipient])
     }
 
-    pub fn send_execute_transfer_for_design_mint(
+    pub fn send_execute_transfer_for_mint(
         &mut self,
         card: &MintedCard,
         sender: Pubkey,
         recipient: &Keypair,
-        design_mint: Pubkey,
+        mint: Pubkey,
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
         let (slot_number, slot_hash) = current_slot_entry(&self.svm);
@@ -583,7 +583,7 @@ impl TestContext {
             recipient.pubkey(),
             sender,
             card.card_instance,
-            design_mint,
+            mint,
             verify_args,
         );
 
@@ -618,10 +618,10 @@ impl TestContext {
         instance.last_transfer_slot
     }
 
-    pub fn token_balance(&self, owner: Pubkey, design_mint: Pubkey) -> u64 {
+    pub fn token_balance(&self, owner: Pubkey, mint: Pubkey) -> u64 {
         use anchor_spl::token_2022::spl_token_2022::extension::StateWithExtensions;
 
-        let ata = get_associated_token_address_with_program_id(&owner, &design_mint, &TOKEN_2022_ID);
+        let ata = get_associated_token_address_with_program_id(&owner, &mint, &TOKEN_2022_ID);
         let Some(account) = self.svm.get_account(&ata) else {
             return 0;
         };
@@ -630,8 +630,8 @@ impl TestContext {
         state.base.amount
     }
 
-    pub fn sender_ata_exists(&self, owner: Pubkey, design_mint: Pubkey) -> bool {
-        let ata = get_associated_token_address_with_program_id(&owner, &design_mint, &TOKEN_2022_ID);
+    pub fn sender_ata_exists(&self, owner: Pubkey, mint: Pubkey) -> bool {
+        let ata = get_associated_token_address_with_program_id(&owner, &mint, &TOKEN_2022_ID);
         self.svm.get_account(&ata).is_some()
     }
 
@@ -639,14 +639,14 @@ impl TestContext {
         &self,
         payer: Pubkey,
         card_instance: Pubkey,
-        design_mint: Pubkey,
+        mint: Pubkey,
         args: MintTokenArgs,
     ) -> Instruction {
         self.mint_token_ix_with_custody_ata(
             payer,
             card_instance,
-            design_mint,
-            self.custody_ata(design_mint),
+            mint,
+            self.custody_ata(mint),
             args,
         )
     }
@@ -655,7 +655,7 @@ impl TestContext {
         &self,
         payer: Pubkey,
         card_instance: Pubkey,
-        design_mint: Pubkey,
+        mint: Pubkey,
         program_authority_token_account: Pubkey,
         args: MintTokenArgs,
     ) -> Instruction {
@@ -665,7 +665,7 @@ impl TestContext {
             accounts: phygital_nfts::accounts::MintToken {
                 authority: payer,
                 card_instance,
-                design_mint,
+                mint,
                 program_authority,
                 program_authority_token_account,
                 token_program: TOKEN_2022_ID,
@@ -710,8 +710,8 @@ impl TestContext {
     }
 }
 
-pub fn sample_create_design_args() -> CreateDesignMintArgs {
-    CreateDesignMintArgs {
+pub fn sample_create_design_args() -> CreateMintArgs {
+    CreateMintArgs {
         name: "Test Design".to_string(),
         symbol: "TDES".to_string(),
         uri: "https://example.com/design.json".to_string(),
@@ -735,7 +735,7 @@ pub fn admin_payer() -> Keypair {
 pub fn sample_mint_token_args() -> MintTokenArgs {
     MintTokenArgs {
         secp256r1_pubkey: Secp256r1Pubkey([0x02; 33]),
-        design_mint: Keypair::new().pubkey(),
+        mint: Keypair::new().pubkey(),
         uri: SAMPLE_CARD_URI.to_string(),
     }
 }

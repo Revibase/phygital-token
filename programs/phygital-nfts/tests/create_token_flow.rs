@@ -35,7 +35,7 @@ fn fund_program_authority_seeds_rent_pool() {
 }
 
 #[test]
-fn create_design_mint_initializes_design_mint() {
+fn create_mint_initializes_mint() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
 
@@ -55,7 +55,7 @@ fn create_design_mint_initializes_design_mint() {
 
     let mint_args = sample_create_design_args();
     let design_id = mint_args.design_id;
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
@@ -64,9 +64,9 @@ fn create_design_mint_initializes_design_mint() {
         mint_args,
     );
 
-    assert_eq!(design_mint, ctx.design_mint_pda(group_mint, design_id));
+    assert_eq!(mint, ctx.mint_pda(group_mint, design_id));
 
-    let mint_account = ctx.svm.get_account(&design_mint).expect("design mint");
+    let mint_account = ctx.svm.get_account(&mint).expect("design mint");
     let mint_state =
         StateWithExtensions::<SplMint>::unpack(&mint_account.data).expect("unpack mint");
     let member = mint_state
@@ -86,7 +86,7 @@ fn create_design_mint_initializes_design_mint() {
 }
 
 #[test]
-fn create_design_mint_rejects_wrong_group_mint_authority() {
+fn create_mint_rejects_wrong_group_mint_authority() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     let wrong_authority = Keypair::new();
@@ -104,13 +104,13 @@ fn create_design_mint_rejects_wrong_group_mint_authority() {
         100,
     );
     let args = sample_create_design_args();
-    let design_mint = ctx.design_mint_pda(group.mint.pubkey(), args.design_id);
+    let mint = ctx.mint_pda(group.mint.pubkey(), args.design_id);
 
-    let ix = ctx.create_design_mint_ix(
+    let ix = ctx.create_mint_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
         wrong_authority.pubkey(),
-        design_mint,
+        mint,
         group.mint.pubkey(),
         args,
     );
@@ -143,7 +143,7 @@ fn mint_token_mints_card_into_design() {
         "https://example.com/collection.json",
         100,
     );
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
@@ -155,7 +155,7 @@ fn mint_token_mints_card_into_design() {
     ctx.fund_program_authority(None);
 
     let mut token_args = sample_mint_token_args();
-    token_args.design_mint = design_mint;
+    token_args.mint = mint;
     let expected_uri = token_args.uri.clone();
     let card_instance = ctx.card_instance_pda(&token_args.secp256r1_pubkey);
     assert_eq!(
@@ -167,7 +167,7 @@ fn mint_token_mints_card_into_design() {
     let token_ix = ctx.mint_token_ix(
         ctx.payer.pubkey(),
         card_instance,
-        design_mint,
+        mint,
         token_args,
     );
     TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer])
@@ -180,12 +180,12 @@ fn mint_token_mints_card_into_design() {
     let instance = CardInstance::try_deserialize(&mut card_account.data.as_ref())
         .expect("deserialize card instance");
     assert_eq!(instance.uri, expected_uri);
-    assert_eq!(instance.design_mint, design_mint);
+    assert_eq!(instance.mint, mint);
     assert_eq!(instance.owner, ctx.program_authority());
 
     let ata = anchor_spl::associated_token::get_associated_token_address_with_program_id(
         &ctx.program_authority(),
-        &design_mint,
+        &mint,
         &TOKEN_2022_ID,
     );
     let ata_account = ctx.svm.get_account(&ata).expect("custody ata");
@@ -195,7 +195,7 @@ fn mint_token_mints_card_into_design() {
 }
 
 #[test]
-fn create_design_mint_rejects_metadata_exceeding_max_lengths() {
+fn create_mint_rejects_metadata_exceeding_max_lengths() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
 
@@ -214,13 +214,13 @@ fn create_design_mint_rejects_metadata_exceeding_max_lengths() {
 
     let mut args = sample_create_design_args();
     args.uri = "u".repeat(MAX_METADATA_URI_LEN + 1);
-    let design_mint = ctx.design_mint_pda(group.mint.pubkey(), args.design_id);
+    let mint = ctx.mint_pda(group.mint.pubkey(), args.design_id);
 
-    let ix = ctx.create_design_mint_ix(
+    let ix = ctx.create_mint_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
         group.authority.pubkey(),
-        design_mint,
+        mint,
         group.mint.pubkey(),
         args,
     );
@@ -253,7 +253,7 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
         "https://example.com/collection.json",
         100,
     );
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
@@ -270,10 +270,10 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
     let first_ix = ctx.mint_token_ix(
         ctx.payer.pubkey(),
         card_a,
-        design_mint,
+        mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_a.compressed_pubkey),
-            design_mint,
+            mint,
             uri: SAMPLE_CARD_URI.to_string(),
         },
     );
@@ -291,10 +291,10 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
     let second_ix = ctx.mint_token_ix(
         ctx.payer.pubkey(),
         card_b,
-        design_mint,
+        mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_b.compressed_pubkey),
-            design_mint,
+            mint,
             uri: SAMPLE_CARD_URI.to_string(),
         },
     );
@@ -326,7 +326,7 @@ fn mint_token_rejects_uri_exceeding_max_length() {
         "https://example.com/collection.json",
         100,
     );
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
@@ -336,14 +336,14 @@ fn mint_token_rejects_uri_exceeding_max_length() {
     );
 
     let mut token_args = sample_mint_token_args();
-    token_args.design_mint = design_mint;
+    token_args.mint = mint;
     token_args.uri = "u".repeat(MAX_METADATA_URI_LEN + 1);
     let card_instance = ctx.card_instance_pda(&token_args.secp256r1_pubkey);
 
     let token_ix = ctx.mint_token_ix(
         ctx.payer.pubkey(),
         card_instance,
-        design_mint,
+        mint,
         token_args,
     );
     let err = TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer])

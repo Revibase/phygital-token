@@ -33,8 +33,8 @@ pub fn validate_metadata_strings(name: &str, symbol: &str, uri: &str) -> Result<
     Ok(())
 }
 
-/// TLV size for a design mint at `create_design_mint`.
-pub fn design_mint_metadata_tlv_size(name: &str, symbol: &str, uri: &str) -> Result<usize> {
+/// TLV size for a design mint at `create_mint`.
+pub fn mint_metadata_tlv_size(name: &str, symbol: &str, uri: &str) -> Result<usize> {
     let metadata = TokenMetadata {
         name: name.to_string(),
         symbol: symbol.to_string(),

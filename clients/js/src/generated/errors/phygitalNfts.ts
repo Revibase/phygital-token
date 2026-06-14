@@ -34,7 +34,7 @@ export const PHYGITAL_NFTS_ERROR__SECP256R1_PUBKEY_MISMATCH = 0x1777; // 6007
 export const PHYGITAL_NFTS_ERROR__INVALID_METADATA = 0x1778; // 6008
 /** InvalidParentGroup: Parent group mint is missing, invalid, or update authority mismatch */
 export const PHYGITAL_NFTS_ERROR__INVALID_PARENT_GROUP = 0x1779; // 6009
-/** DesignMintMismatch: Design mint does not match token record */
+/** mintMismatch: Design mint does not match token record */
 export const PHYGITAL_NFTS_ERROR__DESIGN_MINT_MISMATCH = 0x177a; // 6010
 /** GroupMintMismatch: Group mint does not match token record */
 export const PHYGITAL_NFTS_ERROR__GROUP_MINT_MISMATCH = 0x177b; // 6011

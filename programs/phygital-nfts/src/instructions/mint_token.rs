@@ -14,13 +14,13 @@ use spl_token_group_interface::state::TokenGroupMember;
 use crate::constants::{CARD_INSTANCE_SEED, PROGRAM_AUTHORITY_SEED};
 use crate::error::TokenProgramError;
 use crate::state::CardInstance;
-use crate::utils::{design_mint_token_account_rent, secp256r1_pda_seed, validate_uri};
+use crate::utils::{mint_token_account_rent, secp256r1_pda_seed, validate_uri};
 use crate::Secp256r1Pubkey;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MintTokenArgs {
     pub secp256r1_pubkey: Secp256r1Pubkey,
-    pub design_mint: Pubkey,
+    pub mint: Pubkey,
     pub uri: String,
 }
 
@@ -41,9 +41,9 @@ pub struct MintToken<'info> {
 
     #[account(
         mut,
-        constraint = design_mint.key() == args.design_mint @ TokenProgramError::DesignMintMismatch,
+        constraint = mint.key() == args.mint @ TokenProgramError::mintMismatch,
     )]
-    pub design_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
@@ -75,24 +75,24 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
 
     validate_uri(&args.uri)?;
 
-    let design_mint_key = ctx.accounts.design_mint.key();
-    let design_mint_info = ctx.accounts.design_mint.to_account_info();
+    let mint_key = ctx.accounts.mint.key();
+    let mint_info = ctx.accounts.mint.to_account_info();
     {
-        let design_mint_data = design_mint_info.try_borrow_data()?;
-        let design_state = StateWithExtensions::<SplMint>::unpack(&design_mint_data)
+        let mint_data = mint_info.try_borrow_data()?;
+        let design_state = StateWithExtensions::<SplMint>::unpack(&mint_data)
             .map_err(|_| error!(TokenProgramError::InvalidMetadata))?;
         let member = design_state
             .get_extension::<TokenGroupMember>()
             .map_err(|_| error!(TokenProgramError::InvalidMetadata))?;
         require!(
-            Pubkey::from(member.mint) == design_mint_key,
-            TokenProgramError::DesignMintMismatch
+            Pubkey::from(member.mint) == mint_key,
+            TokenProgramError::mintMismatch
         );
     }
 
     ctx.accounts.card_instance.init(
         args.uri,
-        design_mint_key,
+        mint_key,
         ctx.accounts.program_authority.key(),
     );
 
@@ -104,12 +104,12 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
     let signer_seeds: &[&[&[u8]]] = signer_seed_array.as_slice();
 
     let token_program_id = ctx.accounts.token_program.key();
-    let mint = design_mint_info;
+    let mint = mint_info;
     let program_authority = ctx.accounts.program_authority.to_account_info();
 
     let expected_custody_ata = associated_token::get_associated_token_address_with_program_id(
         &ctx.accounts.program_authority.key(),
-        &design_mint_key,
+        &mint_key,
         &token_program_id,
     );
     require_keys_eq!(
@@ -124,7 +124,7 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
         .to_account_info();
     let custody_ata_exists =
         custody_ata.owner == &token_program_id && !custody_ata.data_is_empty();
-    let token_account_rent = design_mint_token_account_rent()?;
+    let token_account_rent = mint_token_account_rent()?;
 
     if custody_ata_exists {
         transfer(

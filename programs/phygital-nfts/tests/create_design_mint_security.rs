@@ -4,13 +4,13 @@ use common::{
     assert_token_program_error, create_external_group_mint, create_group_mint_without_update_authority,
     create_plain_token2022_mint, error_code, sample_create_design_args, TestContext,
 };
-use phygital_nfts::CreateDesignMintArgs;
+use phygital_nfts::CreateMintArgs;
 use phygital_nfts::utils::constants::{MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
 #[test]
-fn create_design_mint_rejects_plain_token_mint_as_group() {
+fn create_mint_rejects_plain_token_mint_as_group() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     ctx.svm
@@ -19,14 +19,14 @@ fn create_design_mint_rejects_plain_token_mint_as_group() {
 
     let plain_mint = create_plain_token2022_mint(&mut ctx.svm, &ctx.payer);
     let args = sample_create_design_args();
-    let design_mint = ctx.design_mint_pda(plain_mint.pubkey(), args.design_id);
+    let mint = ctx.mint_pda(plain_mint.pubkey(), args.design_id);
     let fake_authority = Keypair::new();
 
-    let ix = ctx.create_design_mint_ix(
+    let ix = ctx.create_mint_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
         fake_authority.pubkey(),
-        design_mint,
+        mint,
         plain_mint.pubkey(),
         args,
     );
@@ -39,7 +39,7 @@ fn create_design_mint_rejects_plain_token_mint_as_group() {
 }
 
 #[test]
-fn create_design_mint_rejects_group_without_update_authority() {
+fn create_mint_rejects_group_without_update_authority() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     ctx.svm
@@ -49,13 +49,13 @@ fn create_design_mint_rejects_group_without_update_authority() {
     let group_mint = create_group_mint_without_update_authority(&mut ctx.svm, &ctx.payer, 100);
     let fake_authority = Keypair::new();
     let args = sample_create_design_args();
-    let design_mint = ctx.design_mint_pda(group_mint.pubkey(), args.design_id);
+    let mint = ctx.mint_pda(group_mint.pubkey(), args.design_id);
 
-    let ix = ctx.create_design_mint_ix(
+    let ix = ctx.create_mint_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
         fake_authority.pubkey(),
-        design_mint,
+        mint,
         group_mint.pubkey(),
         args,
     );
@@ -68,7 +68,7 @@ fn create_design_mint_rejects_group_without_update_authority() {
 }
 
 #[test]
-fn create_design_mint_rejects_duplicate_design_id() {
+fn create_mint_rejects_duplicate_design_id() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     ctx.svm
@@ -91,7 +91,7 @@ fn create_design_mint_rejects_duplicate_design_id() {
         &ctx.payer,
         &owner,
         &group,
-        CreateDesignMintArgs {
+        CreateMintArgs {
             name: args.name.clone(),
             symbol: args.symbol.clone(),
             uri: args.uri.clone(),
@@ -99,12 +99,12 @@ fn create_design_mint_rejects_duplicate_design_id() {
         },
     );
 
-    let design_mint = ctx.design_mint_pda(group.mint.pubkey(), design_id);
-    let ix = ctx.create_design_mint_ix(
+    let mint = ctx.mint_pda(group.mint.pubkey(), design_id);
+    let ix = ctx.create_mint_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
         group.authority.pubkey(),
-        design_mint,
+        mint,
         group.mint.pubkey(),
         args,
     );
@@ -113,7 +113,7 @@ fn create_design_mint_rejects_duplicate_design_id() {
 }
 
 #[test]
-fn create_design_mint_rejects_overlong_name() {
+fn create_mint_rejects_overlong_name() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     ctx.svm
@@ -130,13 +130,13 @@ fn create_design_mint_rejects_overlong_name() {
     );
     let mut args = sample_create_design_args();
     args.name = "n".repeat(MAX_METADATA_NAME_LEN + 1);
-    let design_mint = ctx.design_mint_pda(group.mint.pubkey(), args.design_id);
+    let mint = ctx.mint_pda(group.mint.pubkey(), args.design_id);
 
-    let ix = ctx.create_design_mint_ix(
+    let ix = ctx.create_mint_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
         group.authority.pubkey(),
-        design_mint,
+        mint,
         group.mint.pubkey(),
         args,
     );
@@ -149,7 +149,7 @@ fn create_design_mint_rejects_overlong_name() {
 }
 
 #[test]
-fn create_design_mint_rejects_overlong_symbol() {
+fn create_mint_rejects_overlong_symbol() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     ctx.svm
@@ -166,13 +166,13 @@ fn create_design_mint_rejects_overlong_symbol() {
     );
     let mut args = sample_create_design_args();
     args.symbol = "s".repeat(MAX_METADATA_SYMBOL_LEN + 1);
-    let design_mint = ctx.design_mint_pda(group.mint.pubkey(), args.design_id);
+    let mint = ctx.mint_pda(group.mint.pubkey(), args.design_id);
 
-    let ix = ctx.create_design_mint_ix(
+    let ix = ctx.create_mint_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
         group.authority.pubkey(),
-        design_mint,
+        mint,
         group.mint.pubkey(),
         args,
     );
@@ -185,7 +185,7 @@ fn create_design_mint_rejects_overlong_symbol() {
 }
 
 #[test]
-fn create_design_mint_allows_permissionless_payer_with_group_authority() {
+fn create_mint_allows_permissionless_payer_with_group_authority() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     let permissionless_payer = Keypair::new();
@@ -205,7 +205,7 @@ fn create_design_mint_allows_permissionless_payer_with_group_authority() {
         100,
     );
     let args = sample_create_design_args();
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &permissionless_payer,
@@ -214,5 +214,5 @@ fn create_design_mint_allows_permissionless_payer_with_group_authority() {
         args,
     );
 
-    assert!(ctx.svm.get_account(&design_mint).is_some());
+    assert!(ctx.svm.get_account(&mint).is_some());
 }

@@ -37,7 +37,7 @@ fn setup_e2e_card(ctx: &mut TestContext, passkey: &TestPasskey) -> MintedCard {
     );
     let group_mint = group.mint.pubkey();
 
-    let design_mint = TestContext::create_design(
+    let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
         &ctx.payer,
@@ -46,7 +46,7 @@ fn setup_e2e_card(ctx: &mut TestContext, passkey: &TestPasskey) -> MintedCard {
         sample_create_design_args(),
     );
 
-    let design_account = ctx.svm.get_account(&design_mint).expect("design mint");
+    let design_account = ctx.svm.get_account(&mint).expect("design mint");
     let design_state =
         StateWithExtensions::<SplMint>::unpack(&design_account.data).expect("unpack design mint");
     let member = design_state
@@ -65,25 +65,25 @@ fn setup_e2e_card(ctx: &mut TestContext, passkey: &TestPasskey) -> MintedCard {
     let card_instance = ctx.card_instance_pda(&secp256r1_pubkey);
     let token_args = MintTokenArgs {
         secp256r1_pubkey,
-        design_mint,
+        mint: mint,
         uri: common::SAMPLE_CARD_URI.to_string(),
     };
 
     let token_ix = ctx.mint_token_ix(
         ctx.payer.pubkey(),
         card_instance,
-        design_mint,
+        mint,
         token_args,
     );
     TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer])
         .expect("create token");
 
-    assert_eq!(ctx.token_balance(ctx.program_authority(), design_mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), mint), 1);
 
     MintedCard {
         collection_owner,
         holder,
-        design_mint,
+        mint,
         card_instance,
         group_mint,
         passkey: passkey.clone(),
@@ -91,14 +91,14 @@ fn setup_e2e_card(ctx: &mut TestContext, passkey: &TestPasskey) -> MintedCard {
 }
 
 #[test]
-fn e2e_external_collection_design_mint_and_transfer() {
+fn e2e_external_collection_mint_and_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let card = setup_e2e_card(&mut ctx, &passkey);
     let recipient = Keypair::new();
 
-    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 0);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.mint), 0);
 
     let (transfer_slot, _) = current_slot_entry(&ctx.svm);
     ctx.send_execute_transfer(&card, &recipient, true)
@@ -109,20 +109,20 @@ fn e2e_external_collection_design_mint_and_transfer() {
         transfer_slot,
         "card instance should record the slot used for the transfer"
     );
-    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 0);
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.mint), 0);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.mint), 1);
 }
 
 #[test]
-fn e2e_execute_transfer_rejects_group_mint_as_design_mint() {
+fn e2e_execute_transfer_rejects_group_mint_as_mint() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let card = setup_e2e_card(&mut ctx, &passkey);
     let recipient = Keypair::new();
 
-    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.mint), 1);
 
-    let result = ctx.send_execute_transfer_for_design_mint(
+    let result = ctx.send_execute_transfer_for_mint(
         &card,
         ctx.program_authority(),
         &recipient,
@@ -132,12 +132,12 @@ fn e2e_execute_transfer_rejects_group_mint_as_design_mint() {
 
     let err_str = format!("{:?}", result.expect_err("group mint as design should fail"));
     assert!(
-        err_str.contains("DesignMintMismatch")
+        err_str.contains("mintMismatch")
             || err_str.contains("AccountNotInitialized")
             || err_str.contains("6010")
             || err_str.contains("3012"),
         "unexpected error: {err_str}"
     );
-    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 0);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.mint), 0);
 }

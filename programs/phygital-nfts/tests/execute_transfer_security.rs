@@ -31,7 +31,7 @@ fn execute_transfer_rejects_wrong_signature() {
         recipient.pubkey(),
         ctx.program_authority(),
         card.card_instance,
-        card.design_mint,
+        card.mint,
         verify_args,
     );
     ctx.svm.airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL).ok();
@@ -64,7 +64,7 @@ fn execute_transfer_rejects_passkey_for_different_card() {
         recipient.pubkey(),
         ctx.program_authority(),
         card_b_instance,
-        card_a.design_mint,
+        card_a.mint,
         verify_args,
     );
     ctx.svm.airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL).ok();
@@ -95,7 +95,7 @@ fn execute_transfer_rejects_wrong_sender_in_message_hash() {
         recipient.pubkey(),
         ctx.program_authority(),
         card.card_instance,
-        card.design_mint,
+        card.mint,
         verify_args,
     );
     ctx.svm.airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL).ok();
@@ -129,7 +129,7 @@ fn execute_transfer_rejects_secp_not_preceding() {
         recipient.pubkey(),
         ctx.program_authority(),
         card.card_instance,
-        card.design_mint,
+        card.mint,
         verify_args,
     );
     let noop = system_instruction::transfer(&recipient.pubkey(), &recipient.pubkey(), 0);
@@ -185,7 +185,7 @@ fn execute_transfer_rejects_wrong_transfer_hook_program() {
         recipient.pubkey(),
         ctx.program_authority(),
         card.card_instance,
-        card.design_mint,
+        card.mint,
         verify_args,
         wrong_hook,
     );
@@ -214,7 +214,7 @@ fn execute_transfer_fails_with_single_mint_and_no_rent_fund() {
     assert_eq!(ctx.program_authority_lamports(), 0);
     let err = ctx.send_execute_transfer(&card, &recipient, true);
     assert_transaction_failed(err);
-    assert_eq!(ctx.token_balance(ctx.program_authority(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), card.mint), 1);
 }
 
 #[test]
@@ -228,7 +228,7 @@ fn execute_transfer_succeeds_after_mint_funded_rent() {
     assert!(ctx.program_authority_lamports() >= ctx.recipient_ata_rent());
     ctx.send_execute_transfer(&card, &recipient, true)
         .expect("transfer after mint-funded rent top-ups");
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.mint), 1);
 }
 
 #[test]
@@ -241,7 +241,7 @@ fn execute_transfer_succeeds_after_manual_rent_fund() {
 
     ctx.send_execute_transfer(&card, &recipient, true)
         .expect("transfer after manual fund");
-    assert_eq!(ctx.token_balance(recipient.pubkey(), card.design_mint), 1);
+    assert_eq!(ctx.token_balance(recipient.pubkey(), card.mint), 1);
 }
 
 #[test]
@@ -255,7 +255,7 @@ fn execute_transfer_sets_recipient_close_authority_to_program_authority() {
         .expect("transfer");
 
     assert_eq!(
-        ctx.recipient_close_authority(recipient.pubkey(), card.design_mint),
+        ctx.recipient_close_authority(recipient.pubkey(), card.mint),
         Some(ctx.program_authority())
     );
 }
@@ -279,7 +279,7 @@ fn execute_transfer_holder_chain_to_second_recipient() {
         passkey: passkey.clone(),
         collection_owner: Keypair::new(),
         holder: Keypair::new(),
-        design_mint: card.design_mint,
+        mint: card.mint,
         card_instance: card.card_instance,
         group_mint: card.group_mint,
     };
@@ -294,7 +294,7 @@ fn execute_transfer_holder_chain_to_second_recipient() {
     .expect("holder re-transfer");
 
     assert_eq!(
-        ctx.token_balance(second_recipient.pubkey(), card.design_mint),
+        ctx.token_balance(second_recipient.pubkey(), card.mint),
         1
     );
     let (owner, _, _, _) = ctx.card_instance_fields(card.card_instance);
@@ -317,7 +317,7 @@ fn execute_transfer_rejects_passkey_for_unclaimed_card_b() {
         passkey: passkey_b.clone(),
         collection_owner: Keypair::new(),
         holder: Keypair::new(),
-        design_mint: card.design_mint,
+        mint: card.mint,
         card_instance: card_b_instance,
         group_mint: card.group_mint,
     };

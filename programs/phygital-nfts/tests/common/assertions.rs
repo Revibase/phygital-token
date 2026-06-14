@@ -7,7 +7,7 @@ pub mod error_code {
     pub const SECP256R1_PUBKEY_MISMATCH: u32 = 6007;
     pub const INVALID_METADATA: u32 = 6008;
     pub const INVALID_PARENT_GROUP: u32 = 6009;
-    pub const DESIGN_MINT_MISMATCH: u32 = 6010;
+    pub const mint_MISMATCH: u32 = 6010;
     pub const OWNER_MISMATCH: u32 = 6012;
     pub const INVALID_TRANSFER_HOOK_PROGRAM: u32 = 6018;
     pub const INVALID_SLOT_HASH: u32 = 6019;

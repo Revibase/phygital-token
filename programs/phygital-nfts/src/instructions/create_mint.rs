@@ -16,14 +16,14 @@ use anchor_spl::token_2022_extensions::{
 use anchor_spl::token_interface::{Mint, TokenInterface};
 use spl_token_group_interface::state::TokenGroup;
 
-use crate::constants::{DESIGN_MINT_SEED, PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
+use crate::constants::{MINT_SEED, PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
 use crate::error::TokenProgramError;
 use crate::utils::{
-    design_mint_layout, design_mint_metadata_tlv_size, validate_metadata_strings,
+    mint_layout, mint_metadata_tlv_size, validate_metadata_strings,
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
-pub struct CreateDesignMintArgs {
+pub struct CreateMintArgs {
     pub name: String,
     pub symbol: String,
     pub uri: String,
@@ -31,8 +31,8 @@ pub struct CreateDesignMintArgs {
 }
 
 #[derive(Accounts)]
-#[instruction(args: CreateDesignMintArgs)]
-pub struct CreateDesignMint<'info> {
+#[instruction(args: CreateMintArgs)]
+pub struct CreateMint<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
@@ -48,10 +48,10 @@ pub struct CreateDesignMint<'info> {
     /// Design mint PDA — created in the handler via `create_account` + signer seeds.
     #[account(
         mut,
-        seeds = [DESIGN_MINT_SEED, group_mint.key().as_ref(), args.design_id.as_ref()],
+        seeds = [MINT_SEED, group_mint.key().as_ref(), args.design_id.as_ref()],
         bump,
     )]
-    pub design_mint: SystemAccount<'info>,
+    pub mint: SystemAccount<'info>,
 
     #[account(
         mut,
@@ -67,7 +67,7 @@ pub struct CreateDesignMint<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<CreateDesignMint>, args: CreateDesignMintArgs) -> Result<()> {
+pub fn handler(ctx: Context<CreateMint>, args: CreateMintArgs) -> Result<()> {
     validate_metadata_strings(&args.name, &args.symbol, &args.uri)?;
 
     {
@@ -89,7 +89,7 @@ pub fn handler(ctx: Context<CreateDesignMint>, args: CreateDesignMintArgs) -> Re
         );
     }
 
-    let design_mint_key = ctx.accounts.design_mint.key();
+    let mint_key = ctx.accounts.mint.key();
     let program_authority_bump = ctx.bumps.program_authority;
     let authority_bump_seed = [program_authority_bump];
     let authority_seed_array = [PROGRAM_AUTHORITY_SEED, authority_bump_seed.as_ref()];
@@ -97,15 +97,15 @@ pub fn handler(ctx: Context<CreateDesignMint>, args: CreateDesignMintArgs) -> Re
     let authority_signer_seed_array = [authority_seeds];
     let authority_signer_seeds: &[&[&[u8]]] = authority_signer_seed_array.as_slice();
 
-    let metadata_size = design_mint_metadata_tlv_size(&args.name, &args.symbol, &args.uri)?;
-    let layout = design_mint_layout(metadata_size)?;
+    let metadata_size = mint_metadata_tlv_size(&args.name, &args.symbol, &args.uri)?;
+    let layout = mint_layout(metadata_size)?;
 
-    let design_mint_bump = ctx.bumps.design_mint;
+    let mint_bump = ctx.bumps.mint;
     let group_mint_key = ctx.accounts.group_mint.key();
     let design_id = args.design_id.as_ref();
-    let bump_seed = [design_mint_bump];
+    let bump_seed = [mint_bump];
     let mint_seed_array = [
-        DESIGN_MINT_SEED,
+        MINT_SEED,
         group_mint_key.as_ref(),
         design_id,
         bump_seed.as_ref(),
@@ -119,7 +119,7 @@ pub fn handler(ctx: Context<CreateDesignMint>, args: CreateDesignMintArgs) -> Re
             ctx.accounts.system_program.key(),
             CreateAccount {
                 from: ctx.accounts.payer.to_account_info(),
-                to: ctx.accounts.design_mint.to_account_info(),
+                to: ctx.accounts.mint.to_account_info(),
             },
             mint_signer_seeds_invoke,
         ),
@@ -130,7 +130,7 @@ pub fn handler(ctx: Context<CreateDesignMint>, args: CreateDesignMintArgs) -> Re
 
     let token_program_id = ctx.accounts.token_program.key();
     let token_program = ctx.accounts.token_program.to_account_info();
-    let mint = ctx.accounts.design_mint.to_account_info();
+    let mint = ctx.accounts.mint.to_account_info();
 
     metadata_pointer_initialize(
         CpiContext::new(
@@ -141,7 +141,7 @@ pub fn handler(ctx: Context<CreateDesignMint>, args: CreateDesignMintArgs) -> Re
             },
         ),
         Some(ctx.accounts.program_authority.key()),
-        Some(design_mint_key),
+        Some(mint_key),
     )?;
 
     transfer_hook_initialize(
@@ -176,7 +176,7 @@ pub fn handler(ctx: Context<CreateDesignMint>, args: CreateDesignMintArgs) -> Re
             },
         ),
         Some(ctx.accounts.program_authority.key()),
-        Some(design_mint_key),
+        Some(mint_key),
     )?;
 
     initialize_mint2(

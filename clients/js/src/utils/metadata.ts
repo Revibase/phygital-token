@@ -1,203 +1,83 @@
 import {
   address,
-  getAddressDecoder,
+  getBase58Encoder,
+  unwrapOption,
   type Address,
   type Rpc,
   type SolanaRpcApi,
 } from "@solana/kit";
-import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../generated/programs/phygitalNfts";
 import {
-  TOKEN_GROUP_MEMBER_EXTENSION_TYPE,
-  TOKEN_METADATA_EXTENSION_TYPE,
-} from "./consts";
-import { fetchAccountData } from "./slotHash";
+  fetchMint,
+  isExtension,
+  type Extension,
+} from "@solana-program/token-2022";
+import { fetchCardInstance } from "../generated";
+import {
+  findCardInstancePda,
+  parseSecp256r1Pubkey,
+} from "../instructions/mint";
 
-const MINT_ACCOUNT_SIZE = 82;
-const CARD_INSTANCE_DISCRIMINATOR_SIZE = 8;
-const PUBKEY_SIZE = 32;
-
-export type TransferMintContext = {
-  cardInstance: Address;
-  designMint: Address;
-  groupMint: Address;
-};
-
-export type ParsedCardInstance = {
-  cardInstance: Address;
-  uri: string;
-  designMint: Address;
-  owner: Address;
-  lastTransferSlot: bigint;
-};
-
-function readU16LE(data: Uint8Array, offset: number): number {
-  return data[offset] | (data[offset + 1] << 8);
-}
-
-function readU32LE(data: Uint8Array, offset: number): number {
-  return (
-    data[offset] |
-    (data[offset + 1] << 8) |
-    (data[offset + 2] << 16) |
-    (data[offset + 3] << 24)
-  );
-}
-
-function readU64LE(data: Uint8Array, offset: number): bigint {
-  const view = new DataView(data.buffer, data.byteOffset + offset, 8);
-  return view.getBigUint64(0, true);
-}
-
-function readBorshString(
-  data: Uint8Array,
-  offset: number,
-): { value: string; offset: number } {
-  const length = readU32LE(data, offset);
-  const start = offset + 4;
-  const end = start + length;
-  const value = new TextDecoder().decode(data.subarray(start, end));
-  return { value, offset: end };
-}
-
-function readOptionalPubkey(
-  data: Uint8Array,
-  offset: number,
-): { offset: number } {
-  const tag = data[offset];
-  return { offset: tag === 0 ? offset + 1 : offset + 33 };
-}
-
-export type TokenMetadataFields = {
-  name: string;
-  symbol: string;
-  uri: string;
-  additional: Map<string, string>;
-};
-
-function parseTokenMetadataExtension(data: Uint8Array): TokenMetadataFields {
-  let offset = 0;
-
-  ({ offset } = readOptionalPubkey(data, offset));
-  offset += 32;
-
-  const name = readBorshString(data, offset);
-  const symbol = readBorshString(data, name.offset);
-  const uri = readBorshString(data, symbol.offset);
-  offset = uri.offset;
-
-  const additional = new Map<string, string>();
-  const additionalCount = readU32LE(data, offset);
-  offset += 4;
-  for (let i = 0; i < additionalCount; i += 1) {
-    const key = readBorshString(data, offset);
-    const value = readBorshString(data, key.offset);
-    additional.set(key.value, value.value);
-    offset = value.offset;
-  }
-
-  return {
-    name: name.value,
-    symbol: symbol.value,
-    uri: uri.value,
-    additional,
-  };
-}
-
-function parseGroupMint(data: Uint8Array): Address {
-  if (data.length < 64) {
-    throw new Error("TokenGroupMember extension is too short");
-  }
-  return getAddressDecoder().decode(data.subarray(32, 64));
-}
-
-function walkMintExtensions(data: Uint8Array): {
-  groupMint: Address | null;
-  metadata: TokenMetadataFields | null;
-} {
-  let groupMint: Address | null = null;
-  let metadata: TokenMetadataFields | null = null;
-  let offset = MINT_ACCOUNT_SIZE;
-
-  while (offset + 4 <= data.length) {
-    const extensionType = readU16LE(data, offset);
-    const extensionLength = readU16LE(data, offset + 2);
-    const extensionStart = offset + 4;
-    const extensionEnd = extensionStart + extensionLength;
-    if (extensionEnd > data.length) {
-      break;
+function findMintExtension(
+  extensions: readonly Extension[],
+  kind: "TokenMetadata",
+): Extract<Extension, { __kind: "TokenMetadata" }> | null;
+function findMintExtension(
+  extensions: readonly Extension[],
+  kind: "TokenGroupMember",
+): Extract<Extension, { __kind: "TokenGroupMember" }> | null;
+function findMintExtension(
+  extensions: readonly Extension[],
+  kind: Extension["__kind"],
+): Extension | null {
+  for (const extension of extensions) {
+    if (isExtension(kind, extension)) {
+      return extension;
     }
-
-    const extensionData = data.subarray(extensionStart, extensionEnd);
-    if (extensionType === TOKEN_GROUP_MEMBER_EXTENSION_TYPE) {
-      groupMint = parseGroupMint(extensionData);
-    }
-    if (extensionType === TOKEN_METADATA_EXTENSION_TYPE) {
-      metadata = parseTokenMetadataExtension(extensionData);
-    }
-
-    offset = extensionEnd;
   }
-
-  return { groupMint, metadata };
+  return null;
 }
 
-export async function parseCardInstanceAccount(
-  rpc: Rpc<SolanaRpcApi>,
-  cardInstance: Address,
-): Promise<ParsedCardInstance> {
-  const account = await rpc
-    .getAccountInfo(cardInstance, { commitment: "confirmed" })
-    .send();
-
-  if (!account.value) {
-    throw new Error(`Card instance account not found: ${cardInstance}`);
+async function resolveCardInstanceFromLookup(
+  lookupKey: string,
+): Promise<{ cardInstance: Address; publicKey: string | null }> {
+  const trimmed = lookupKey.trim();
+  if (!trimmed) {
+    throw new Error("Card lookup key is required.");
   }
 
-  if (address(account.value.owner) !== address(PHYGITAL_NFTS_PROGRAM_ADDRESS)) {
-    throw new Error("Address is not a card instance PDA");
+  let bytes: Uint8Array;
+  try {
+    bytes = new Uint8Array(getBase58Encoder().encode(trimmed));
+  } catch {
+    throw new Error("Invalid base58 address or public key.");
   }
 
-  const data = await fetchAccountData(rpc, cardInstance);
-  const minSize =
-    CARD_INSTANCE_DISCRIMINATOR_SIZE + 4 + PUBKEY_SIZE + PUBKEY_SIZE + 8;
-  if (data.length < minSize) {
-    throw new Error("Card instance account data is too short");
+  if (bytes.length === 33 && (bytes[0] === 0x02 || bytes[0] === 0x03)) {
+    const secp256r1Pubkey = parseSecp256r1Pubkey(trimmed);
+    return {
+      cardInstance: await findCardInstancePda(secp256r1Pubkey),
+      publicKey: trimmed,
+    };
   }
 
-  const bodyOffset = CARD_INSTANCE_DISCRIMINATOR_SIZE;
-  const uri = readBorshString(data, bodyOffset);
-  const designMintOffset = uri.offset;
-  const designMint = getAddressDecoder().decode(
-    data.subarray(designMintOffset, designMintOffset + PUBKEY_SIZE),
-  );
-  const ownerOffset = designMintOffset + PUBKEY_SIZE;
-  const owner = getAddressDecoder().decode(
-    data.subarray(ownerOffset, ownerOffset + PUBKEY_SIZE),
-  );
-  const lastTransferSlot = readU64LE(data, ownerOffset + PUBKEY_SIZE);
+  if (bytes.length === 32) {
+    return { cardInstance: address(trimmed), publicKey: null };
+  }
 
-  return {
-    cardInstance,
-    uri: uri.value,
-    designMint,
-    owner,
-    lastTransferSlot,
-  };
+  throw new Error("Expected a card instance address or secp256r1 public key.");
 }
-
-export type CardAttribute = {
+type CardAttribute = {
   traitType: string;
   value: string;
 };
 
 export type TokenJsonMetadata = {
   name?: string;
+  symbol?: string;
   image?: string;
   description?: string;
-  secp256r1Pubkey?: string;
-  credentialId?: string;
-  /** UTC expiry as milliseconds since Unix epoch. */
-  expiry?: number;
+  /** Design mint public key this card instance belongs to. */
+  mint?: string;
   attributes?: Array<{
     trait_type?: string;
     traitType?: string;
@@ -205,10 +85,8 @@ export type TokenJsonMetadata = {
   }>;
 };
 
-type JsonMetadata = TokenJsonMetadata;
-
 function parseCardAttributes(
-  raw: JsonMetadata["attributes"],
+  raw: TokenJsonMetadata["attributes"],
 ): CardAttribute[] {
   if (!raw?.length) {
     return [];
@@ -217,7 +95,11 @@ function parseCardAttributes(
   return raw
     .map((attribute) => {
       const traitType = attribute.trait_type ?? attribute.traitType;
-      if (!traitType || attribute.value === undefined || attribute.value === null) {
+      if (
+        !traitType ||
+        attribute.value === undefined ||
+        attribute.value === null
+      ) {
         return null;
       }
       return {
@@ -228,7 +110,31 @@ function parseCardAttributes(
     .filter((attribute): attribute is CardAttribute => attribute !== null);
 }
 
-async function fetchJsonMetadata(uri: string): Promise<JsonMetadata | null> {
+export async function fetchCardMetadata(uri: string, params: URLSearchParams) {
+  try {
+    const url = new URL(uri);
+    for (const [key, value] of params.entries()) {
+      url.searchParams.set(key, value);
+    }
+    const response = await fetch(`${url.toString()}`);
+    if (!response.ok) {
+      const error = (await response.json()) as { error: string };
+      throw new Error(error.error);
+    }
+    return (await response.json()) as {
+      credentialId: string | null;
+      expiry: number | null;
+      publicKey: string;
+      counter: number;
+    };
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function fetchJsonMetadata(
+  uri: string,
+): Promise<TokenJsonMetadata | null> {
   if (!uri) {
     return null;
   }
@@ -237,148 +143,81 @@ async function fetchJsonMetadata(uri: string): Promise<JsonMetadata | null> {
     if (!response.ok) {
       return null;
     }
-    return (await response.json()) as JsonMetadata;
+    return (await response.json()) as TokenJsonMetadata;
   } catch {
     return null;
   }
-}
-
-function parseCredentialId(
-  jsonMeta: TokenJsonMetadata | null,
-): string | null {
-  const value = jsonMeta?.credentialId?.trim();
-  return value ? value : null;
-}
-
-function parseExpiry(jsonMeta: TokenJsonMetadata | null): number | null {
-  const raw = jsonMeta?.expiry;
-  if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) {
-    return null;
-  }
-  return raw;
-}
-
-export async function resolveCardInstanceJsonMetadata(
-  rpc: Rpc<SolanaRpcApi>,
-  cardInstance: Address,
-): Promise<TokenJsonMetadata | null> {
-  const instance = await parseCardInstanceAccount(rpc, cardInstance);
-  if (!instance.uri) {
-    return null;
-  }
-  return fetchJsonMetadata(instance.uri);
-}
-
-export async function resolveDesignMintContext(
-  rpc: Rpc<SolanaRpcApi>,
-  designMint: Address,
-): Promise<{ designMint: Address; groupMint: Address }> {
-  const designMintData = await fetchAccountData(rpc, designMint);
-  const designExtensions = walkMintExtensions(designMintData);
-
-  if (!designExtensions.groupMint) {
-    throw new Error("Design mint is missing a TokenGroupMember extension");
-  }
-
-  if (!designExtensions.metadata) {
-    throw new Error("Design mint is missing token metadata extension");
-  }
-
-  return {
-    designMint,
-    groupMint: designExtensions.groupMint,
-  };
-}
-
-export async function resolveTransferMintContext(
-  rpc: Rpc<SolanaRpcApi>,
-  cardInstance: Address,
-): Promise<TransferMintContext> {
-  const instance = await parseCardInstanceAccount(rpc, cardInstance);
-  const designContext = await resolveDesignMintContext(rpc, instance.designMint);
-
-  return {
-    cardInstance,
-    designMint: designContext.designMint,
-    groupMint: designContext.groupMint,
-  };
-}
-
-export async function resolveTokenJsonMetadata(
-  rpc: Rpc<SolanaRpcApi>,
-  designMint: Address,
-): Promise<TokenJsonMetadata | null> {
-  const mintData = await fetchAccountData(rpc, designMint);
-  const tokenExtensions = walkMintExtensions(mintData);
-  const uri = tokenExtensions.metadata?.uri;
-  if (!uri) {
-    return null;
-  }
-  return fetchJsonMetadata(uri);
 }
 
 export type NftDisplayInfo = {
   /** Card instance PDA — unique per physical card. */
   cardInstance: Address;
   /** Shared design mint (SFT). */
-  designMint: Address;
-  /** @deprecated Use designMint for token explorer links. */
   mint: Address;
   name: string;
   symbol: string;
   /** Design metadata URI (shared visual/name info). */
   uri: string;
-  /** Card instance metadata URI (per-card passkey/credential data). */
-  cardUri: string;
   image: string | null;
   description: string | null;
   attributes: CardAttribute[];
-  credentialId: string | null;
-  /** UTC expiry as milliseconds since Unix epoch. */
-  expiry: number | null;
+  /** Collection Details. */
   collectionMint: Address | null;
   collectionName: string | null;
+  collectionSymbol: string | null;
+  collectionImage: string | null;
+  collectionUri: string | null;
+  cardUri: string;
   currentOwner: Address;
   lastTransferSlot: bigint;
 };
 
 export async function fetchNftDisplayInfo(
   rpc: Rpc<SolanaRpcApi>,
-  cardInstance: Address,
+  lookupKey: string,
 ): Promise<NftDisplayInfo> {
-  const mintContext = await resolveTransferMintContext(rpc, cardInstance);
-  const instance = await parseCardInstanceAccount(rpc, cardInstance);
-  const designMintData = await fetchAccountData(rpc, mintContext.designMint);
-  const designExtensions = walkMintExtensions(designMintData);
-  const designMeta = designExtensions.metadata;
+  const { cardInstance } = await resolveCardInstanceFromLookup(lookupKey);
+  const instance = await fetchCardInstance(rpc, cardInstance);
 
-  const groupMintData = await fetchAccountData(rpc, mintContext.groupMint);
-  const groupExtensions = walkMintExtensions(groupMintData);
-  const groupMeta = groupExtensions.metadata;
+  const mintAccount = await fetchMint(rpc, instance.data.mint);
+  const designExtensions = unwrapOption(mintAccount.data.extensions) ?? [];
+  const designMeta = findMintExtension(designExtensions, "TokenMetadata");
+  const groupMember = findMintExtension(designExtensions, "TokenGroupMember");
+  const collectionMint = groupMember?.group ?? null;
 
-  const designJsonMeta = designMeta?.uri
-    ? await fetchJsonMetadata(designMeta.uri)
-    : null;
-  const cardJsonMeta = instance.uri
-    ? await fetchJsonMetadata(instance.uri)
-    : null;
+  let collectionMeta: Extract<Extension, { __kind: "TokenMetadata" }> | null =
+    null;
+  if (collectionMint) {
+    const collectionMintAccount = await fetchMint(rpc, collectionMint);
+    const collectionExtensions =
+      unwrapOption(collectionMintAccount.data.extensions) ?? [];
+    collectionMeta = findMintExtension(collectionExtensions, "TokenMetadata");
+  }
+
+  const [designJsonMeta, collectionJsonMeta] = await Promise.all([
+    designMeta?.uri ? fetchJsonMetadata(designMeta.uri) : Promise.resolve(null),
+    collectionMeta?.uri
+      ? fetchJsonMetadata(collectionMeta.uri)
+      : Promise.resolve(null),
+  ]);
 
   return {
     cardInstance,
-    designMint: mintContext.designMint,
-    mint: mintContext.designMint,
+    mint: instance.data.mint,
     name: designMeta?.name ?? designJsonMeta?.name ?? "Unknown card",
-    symbol: designMeta?.symbol ?? "",
+    symbol: designMeta?.symbol ?? designJsonMeta?.symbol ?? "",
     uri: designMeta?.uri ?? "",
-    cardUri: instance.uri,
     image: designJsonMeta?.image ?? null,
     description: designJsonMeta?.description ?? null,
     attributes: parseCardAttributes(designJsonMeta?.attributes),
-    credentialId: parseCredentialId(cardJsonMeta),
-    expiry: parseExpiry(cardJsonMeta),
-    collectionMint: mintContext.groupMint,
-    collectionName: groupMeta?.name ?? null,
-    currentOwner: instance.owner,
-    lastTransferSlot: instance.lastTransferSlot,
+    collectionMint,
+    collectionName: collectionMeta?.name ?? collectionJsonMeta?.name ?? null,
+    collectionSymbol:
+      collectionMeta?.symbol ?? collectionJsonMeta?.symbol ?? null,
+    collectionImage: collectionJsonMeta?.image ?? null,
+    collectionUri: collectionMeta?.uri ?? null,
+    cardUri: instance.data.uri,
+    currentOwner: instance.data.owner,
+    lastTransferSlot: instance.data.lastTransferSlot,
   };
 }

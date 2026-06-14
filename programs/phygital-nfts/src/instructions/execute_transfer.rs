@@ -44,15 +44,15 @@ pub struct ExecuteTransfer<'info> {
 
     #[account(
         mut,
-        constraint = card_instance.design_mint == design_mint.key(),
+        constraint = card_instance.mint == mint.key(),
     )]
-    pub design_mint: Box<InterfaceAccount<'info, Mint>>,
+    pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
         mut,
         constraint = sender_token_account.amount >= 1,
         constraint = sender_token_account.owner == sender.key() @ TokenProgramError::OwnerMismatch,
-        constraint = sender_token_account.mint == design_mint.key(),
+        constraint = sender_token_account.mint == mint.key(),
     )]
     pub sender_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
@@ -129,7 +129,7 @@ pub fn handler(
             payer: ctx.accounts.program_authority.to_account_info(),
             associated_token: ctx.accounts.recipient_token_account.to_account_info(),
             authority: ctx.accounts.recipient.to_account_info(),
-            mint: ctx.accounts.design_mint.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
             system_program: ctx.accounts.system_program.to_account_info(),
             token_program: ctx.accounts.token_program.to_account_info(),
         },
@@ -142,7 +142,7 @@ pub fn handler(
     let mut transfer_ix = spl_transfer_checked(
         &ctx.accounts.token_program.key(),
         &ctx.accounts.sender_token_account.key(),
-        &ctx.accounts.design_mint.key(),
+        &ctx.accounts.mint.key(),
         &ctx.accounts.recipient_token_account.key(),
         &ctx.accounts.program_authority.key(),
         &[],
@@ -158,7 +158,7 @@ pub fn handler(
         &transfer_ix,
         &[
             ctx.accounts.sender_token_account.to_account_info(),
-            ctx.accounts.design_mint.to_account_info(),
+            ctx.accounts.mint.to_account_info(),
             ctx.accounts.recipient_token_account.to_account_info(),
             ctx.accounts.program_authority.to_account_info(),
             hook_program,
@@ -194,10 +194,10 @@ pub fn handler(
     )?;
 
     msg!(
-        "execute_transfer: {} → {} for design_mint {} (instance {})",
+        "execute_transfer: {} → {} for mint {} (instance {})",
         ctx.accounts.sender.key(),
         ctx.accounts.recipient.key(),
-        ctx.accounts.design_mint.key(),
+        ctx.accounts.mint.key(),
         ctx.accounts.card_instance.key(),
     );
 

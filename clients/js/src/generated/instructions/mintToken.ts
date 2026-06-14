@@ -65,7 +65,7 @@ export type MintTokenInstruction<
   TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountCardInstance extends string | AccountMeta<string> = string,
-  TAccountDesignMint extends string | AccountMeta<string> = string,
+  TAccountMint extends string | AccountMeta<string> = string,
   TAccountProgramAuthority extends string | AccountMeta<string> = string,
   TAccountProgramAuthorityTokenAccount extends string | AccountMeta<string> =
     string,
@@ -87,9 +87,9 @@ export type MintTokenInstruction<
       TAccountCardInstance extends string
         ? WritableAccount<TAccountCardInstance>
         : TAccountCardInstance,
-      TAccountDesignMint extends string
-        ? WritableAccount<TAccountDesignMint>
-        : TAccountDesignMint,
+      TAccountMint extends string
+        ? WritableAccount<TAccountMint>
+        : TAccountMint,
       TAccountProgramAuthority extends string
         ? WritableAccount<TAccountProgramAuthority>
         : TAccountProgramAuthority,
@@ -112,13 +112,13 @@ export type MintTokenInstruction<
 export type MintTokenInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1Pubkey: Secp256r1Pubkey;
-  designMint: Address;
+  mint: Address;
   uri: string;
 };
 
 export type MintTokenInstructionDataArgs = {
   secp256r1Pubkey: Secp256r1PubkeyArgs;
-  designMint: Address;
+  mint: Address;
   uri: string;
 };
 
@@ -127,7 +127,7 @@ export function getMintTokenInstructionDataEncoder(): Encoder<MintTokenInstructi
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
-      ["designMint", getAddressEncoder()],
+      ["mint", getAddressEncoder()],
       ["uri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ]),
     (value) => ({ ...value, discriminator: MINT_TOKEN_DISCRIMINATOR }),
@@ -138,7 +138,7 @@ export function getMintTokenInstructionDataDecoder(): Decoder<MintTokenInstructi
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
-    ["designMint", getAddressDecoder()],
+    ["mint", getAddressDecoder()],
     ["uri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
   ]);
 }
@@ -156,7 +156,7 @@ export function getMintTokenInstructionDataCodec(): Codec<
 export type MintTokenAsyncInput<
   TAccountAuthority extends string = string,
   TAccountCardInstance extends string = string,
-  TAccountDesignMint extends string = string,
+  TAccountMint extends string = string,
   TAccountProgramAuthority extends string = string,
   TAccountProgramAuthorityTokenAccount extends string = string,
   TAccountTokenProgram extends string = string,
@@ -165,7 +165,7 @@ export type MintTokenAsyncInput<
 > = {
   authority: TransactionSigner<TAccountAuthority>;
   cardInstance: Address<TAccountCardInstance>;
-  designMint: Address<TAccountDesignMint>;
+  mint: Address<TAccountMint>;
   programAuthority?: Address<TAccountProgramAuthority>;
   /**
    * Program-authority ATA on the design mint — created in the handler if needed.
@@ -178,14 +178,14 @@ export type MintTokenAsyncInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
-  designMintArg: MintTokenInstructionDataArgs["designMint"];
+  mintArg: MintTokenInstructionDataArgs["mint"];
   uri: MintTokenInstructionDataArgs["uri"];
 };
 
 export async function getMintTokenInstructionAsync<
   TAccountAuthority extends string,
   TAccountCardInstance extends string,
-  TAccountDesignMint extends string,
+  TAccountMint extends string,
   TAccountProgramAuthority extends string,
   TAccountProgramAuthorityTokenAccount extends string,
   TAccountTokenProgram extends string,
@@ -196,7 +196,7 @@ export async function getMintTokenInstructionAsync<
   input: MintTokenAsyncInput<
     TAccountAuthority,
     TAccountCardInstance,
-    TAccountDesignMint,
+    TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
@@ -209,7 +209,7 @@ export async function getMintTokenInstructionAsync<
     TProgramAddress,
     TAccountAuthority,
     TAccountCardInstance,
-    TAccountDesignMint,
+    TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
@@ -225,7 +225,7 @@ export async function getMintTokenInstructionAsync<
   const originalAccounts = {
     authority: { value: input.authority ?? null, isWritable: true },
     cardInstance: { value: input.cardInstance ?? null, isWritable: true },
-    designMint: { value: input.designMint ?? null, isWritable: true },
+    mint: { value: input.mint ?? null, isWritable: true },
     programAuthority: {
       value: input.programAuthority ?? null,
       isWritable: true,
@@ -247,7 +247,7 @@ export async function getMintTokenInstructionAsync<
   >;
 
   // Original args.
-  const args = { ...input, designMint: input.designMintArg };
+  const args = { ...input, mint: input.mintArg };
 
   // Resolve default values.
   if (!accounts.programAuthority.value) {
@@ -271,7 +271,7 @@ export async function getMintTokenInstructionAsync<
     accounts: [
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("cardInstance", accounts.cardInstance),
-      getAccountMeta("designMint", accounts.designMint),
+      getAccountMeta("mint", accounts.mint),
       getAccountMeta("programAuthority", accounts.programAuthority),
       getAccountMeta(
         "programAuthorityTokenAccount",
@@ -289,7 +289,7 @@ export async function getMintTokenInstructionAsync<
     TProgramAddress,
     TAccountAuthority,
     TAccountCardInstance,
-    TAccountDesignMint,
+    TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
@@ -301,7 +301,7 @@ export async function getMintTokenInstructionAsync<
 export type MintTokenInput<
   TAccountAuthority extends string = string,
   TAccountCardInstance extends string = string,
-  TAccountDesignMint extends string = string,
+  TAccountMint extends string = string,
   TAccountProgramAuthority extends string = string,
   TAccountProgramAuthorityTokenAccount extends string = string,
   TAccountTokenProgram extends string = string,
@@ -310,7 +310,7 @@ export type MintTokenInput<
 > = {
   authority: TransactionSigner<TAccountAuthority>;
   cardInstance: Address<TAccountCardInstance>;
-  designMint: Address<TAccountDesignMint>;
+  mint: Address<TAccountMint>;
   programAuthority: Address<TAccountProgramAuthority>;
   /**
    * Program-authority ATA on the design mint — created in the handler if needed.
@@ -323,14 +323,14 @@ export type MintTokenInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
-  designMintArg: MintTokenInstructionDataArgs["designMint"];
+  mintArg: MintTokenInstructionDataArgs["mint"];
   uri: MintTokenInstructionDataArgs["uri"];
 };
 
 export function getMintTokenInstruction<
   TAccountAuthority extends string,
   TAccountCardInstance extends string,
-  TAccountDesignMint extends string,
+  TAccountMint extends string,
   TAccountProgramAuthority extends string,
   TAccountProgramAuthorityTokenAccount extends string,
   TAccountTokenProgram extends string,
@@ -341,7 +341,7 @@ export function getMintTokenInstruction<
   input: MintTokenInput<
     TAccountAuthority,
     TAccountCardInstance,
-    TAccountDesignMint,
+    TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
@@ -353,7 +353,7 @@ export function getMintTokenInstruction<
   TProgramAddress,
   TAccountAuthority,
   TAccountCardInstance,
-  TAccountDesignMint,
+  TAccountMint,
   TAccountProgramAuthority,
   TAccountProgramAuthorityTokenAccount,
   TAccountTokenProgram,
@@ -368,7 +368,7 @@ export function getMintTokenInstruction<
   const originalAccounts = {
     authority: { value: input.authority ?? null, isWritable: true },
     cardInstance: { value: input.cardInstance ?? null, isWritable: true },
-    designMint: { value: input.designMint ?? null, isWritable: true },
+    mint: { value: input.mint ?? null, isWritable: true },
     programAuthority: {
       value: input.programAuthority ?? null,
       isWritable: true,
@@ -390,7 +390,7 @@ export function getMintTokenInstruction<
   >;
 
   // Original args.
-  const args = { ...input, designMint: input.designMintArg };
+  const args = { ...input, mint: input.mintArg };
 
   // Resolve default values.
   if (!accounts.tokenProgram.value) {
@@ -411,7 +411,7 @@ export function getMintTokenInstruction<
     accounts: [
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("cardInstance", accounts.cardInstance),
-      getAccountMeta("designMint", accounts.designMint),
+      getAccountMeta("mint", accounts.mint),
       getAccountMeta("programAuthority", accounts.programAuthority),
       getAccountMeta(
         "programAuthorityTokenAccount",
@@ -429,7 +429,7 @@ export function getMintTokenInstruction<
     TProgramAddress,
     TAccountAuthority,
     TAccountCardInstance,
-    TAccountDesignMint,
+    TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
@@ -446,7 +446,7 @@ export type ParsedMintTokenInstruction<
   accounts: {
     authority: TAccountMetas[0];
     cardInstance: TAccountMetas[1];
-    designMint: TAccountMetas[2];
+    mint: TAccountMetas[2];
     programAuthority: TAccountMetas[3];
     /**
      * Program-authority ATA on the design mint — created in the handler if needed.
@@ -490,7 +490,7 @@ export function parseMintTokenInstruction<
     accounts: {
       authority: getNextAccount(),
       cardInstance: getNextAccount(),
-      designMint: getNextAccount(),
+      mint: getNextAccount(),
       programAuthority: getNextAccount(),
       programAuthorityTokenAccount: getNextAccount(),
       tokenProgram: getNextAccount(),

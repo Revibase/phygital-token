@@ -39,16 +39,16 @@ import {
   type CardInstanceArgs,
 } from "../accounts";
 import {
-  getCreateDesignMintInstructionAsync,
+  getCreateMintInstructionAsync,
   getExecuteTransferInstructionAsync,
   getMintTokenInstructionAsync,
-  parseCreateDesignMintInstruction,
+  parseCreateMintInstruction,
   parseExecuteTransferInstruction,
   parseMintTokenInstruction,
-  type CreateDesignMintAsyncInput,
+  type CreateMintAsyncInput,
   type ExecuteTransferAsyncInput,
   type MintTokenAsyncInput,
-  type ParsedCreateDesignMintInstruction,
+  type ParsedCreateMintInstruction,
   type ParsedExecuteTransferInstruction,
   type ParsedMintTokenInstruction,
 } from "../instructions";
@@ -83,7 +83,7 @@ export function identifyPhygitalNftsAccount(
 }
 
 export enum PhygitalNftsInstruction {
-  CreateDesignMint,
+  CreateMint,
   ExecuteTransfer,
   MintToken,
 }
@@ -96,12 +96,12 @@ export function identifyPhygitalNftsInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([115, 14, 101, 59, 231, 27, 148, 225]),
+        new Uint8Array([69, 44, 215, 132, 253, 214, 41, 45]),
       ),
       0,
     )
   ) {
-    return PhygitalNftsInstruction.CreateDesignMint;
+    return PhygitalNftsInstruction.CreateMint;
   }
   if (
     containsBytes(
@@ -135,8 +135,8 @@ export type ParsedPhygitalNftsInstruction<
   TProgram extends string = "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1",
 > =
   | ({
-      instructionType: PhygitalNftsInstruction.CreateDesignMint;
-    } & ParsedCreateDesignMintInstruction<TProgram>)
+      instructionType: PhygitalNftsInstruction.CreateMint;
+    } & ParsedCreateMintInstruction<TProgram>)
   | ({
       instructionType: PhygitalNftsInstruction.ExecuteTransfer;
     } & ParsedExecuteTransferInstruction<TProgram>)
@@ -149,11 +149,11 @@ export function parsePhygitalNftsInstruction<TProgram extends string>(
 ): ParsedPhygitalNftsInstruction<TProgram> {
   const instructionType = identifyPhygitalNftsInstruction(instruction);
   switch (instructionType) {
-    case PhygitalNftsInstruction.CreateDesignMint: {
+    case PhygitalNftsInstruction.CreateMint: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: PhygitalNftsInstruction.CreateDesignMint,
-        ...parseCreateDesignMintInstruction(instruction),
+        instructionType: PhygitalNftsInstruction.CreateMint,
+        ...parseCreateMintInstruction(instruction),
       };
     }
     case PhygitalNftsInstruction.ExecuteTransfer: {
@@ -193,9 +193,9 @@ export type PhygitalNftsPluginAccounts = {
 };
 
 export type PhygitalNftsPluginInstructions = {
-  createDesignMint: (
-    input: MakeOptional<CreateDesignMintAsyncInput, "payer">,
-  ) => ReturnType<typeof getCreateDesignMintInstructionAsync> &
+  createMint: (
+    input: MakeOptional<CreateMintAsyncInput, "payer">,
+  ) => ReturnType<typeof getCreateMintInstructionAsync> &
     SelfPlanAndSendFunctions;
   executeTransfer: (
     input: ExecuteTransferAsyncInput,
@@ -228,10 +228,10 @@ export function phygitalNftsProgram() {
           cardInstance: addSelfFetchFunctions(client, getCardInstanceCodec()),
         },
         instructions: {
-          createDesignMint: (input) =>
+          createMint: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getCreateDesignMintInstructionAsync({
+              getCreateMintInstructionAsync({
                 ...input,
                 payer: input.payer ?? client.payer,
               }),
