@@ -2,7 +2,7 @@ mod common;
 
 use common::{
     assert_token_program_error, create_external_group_mint, create_group_mint_without_update_authority,
-    create_plain_token2022_mint, error_code, sample_create_design_args, TestContext,
+    create_plain_token2022_mint, sample_create_design_args, TestContext,
 };
 use phygital_nfts::CreateMintArgs;
 use phygital_nfts::utils::constants::{MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN};
@@ -35,7 +35,7 @@ fn create_mint_rejects_plain_token_mint_as_group() {
         ix,
         &[&ctx.payer, &owner, &fake_authority],
     );
-    assert_token_program_error(err, "InvalidParentGroup", error_code::INVALID_PARENT_GROUP);
+    assert_token_program_error(err, "InvalidParentGroup");
 }
 
 #[test]
@@ -64,7 +64,7 @@ fn create_mint_rejects_group_without_update_authority() {
         ix,
         &[&ctx.payer, &owner, &fake_authority],
     );
-    assert_token_program_error(err, "InvalidParentGroup", error_code::INVALID_PARENT_GROUP);
+    assert_token_program_error(err, "InvalidParentGroup");
 }
 
 #[test]
@@ -145,7 +145,7 @@ fn create_mint_rejects_overlong_name() {
         ix,
         &[&ctx.payer, &owner, &group.authority],
     );
-    assert_token_program_error(err, "MaxLengthExceeded", error_code::MAX_LENGTH_EXCEEDED);
+    assert_token_program_error(err, "MaxLengthExceeded");
 }
 
 #[test]
@@ -181,7 +181,7 @@ fn create_mint_rejects_overlong_symbol() {
         ix,
         &[&ctx.payer, &owner, &group.authority],
     );
-    assert_token_program_error(err, "MaxLengthExceeded", error_code::MAX_LENGTH_EXCEEDED);
+    assert_token_program_error(err, "MaxLengthExceeded");
 }
 
 #[test]

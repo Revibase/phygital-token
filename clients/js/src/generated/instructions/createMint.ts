@@ -164,11 +164,8 @@ export type CreateMintAsyncInput<
 > = {
   payer: TransactionSigner<TAccountPayer>;
   owner: TransactionSigner<TAccountOwner>;
-  /** External Token-2022 collection (group) mint. */
   groupMint: Address<TAccountGroupMint>;
-  /** Must match the collection mint's TokenGroup update authority. */
   groupMintAuthority: TransactionSigner<TAccountGroupMintAuthority>;
-  /** Design mint PDA — created in the handler via `create_account` + signer seeds. */
   mint: Address<TAccountMint>;
   programAuthority?: Address<TAccountProgramAuthority>;
   tokenProgram?: Address<TAccountTokenProgram>;
@@ -297,11 +294,8 @@ export type CreateMintInput<
 > = {
   payer: TransactionSigner<TAccountPayer>;
   owner: TransactionSigner<TAccountOwner>;
-  /** External Token-2022 collection (group) mint. */
   groupMint: Address<TAccountGroupMint>;
-  /** Must match the collection mint's TokenGroup update authority. */
   groupMintAuthority: TransactionSigner<TAccountGroupMintAuthority>;
-  /** Design mint PDA — created in the handler via `create_account` + signer seeds. */
   mint: Address<TAccountMint>;
   programAuthority: Address<TAccountProgramAuthority>;
   tokenProgram?: Address<TAccountTokenProgram>;
@@ -421,11 +415,8 @@ export type ParsedCreateMintInstruction<
   accounts: {
     payer: TAccountMetas[0];
     owner: TAccountMetas[1];
-    /** External Token-2022 collection (group) mint. */
     groupMint: TAccountMetas[2];
-    /** Must match the collection mint's TokenGroup update authority. */
     groupMintAuthority: TAccountMetas[3];
-    /** Design mint PDA — created in the handler via `create_account` + signer seeds. */
     mint: TAccountMetas[4];
     programAuthority: TAccountMetas[5];
     tokenProgram: TAccountMetas[6];

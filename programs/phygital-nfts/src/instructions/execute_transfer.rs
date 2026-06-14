@@ -11,24 +11,20 @@ use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 
 use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
-use crate::error::TokenProgramError;
-use crate::state::CardInstance;
+use crate::error::PhygitalError;
+use crate::state::{find_card_instance_pda, CardInstance, LAST_TRANSFER_SLOT_NONE};
 use crate::utils::{
-    build_transfer_message_hash, find_card_instance_pda, ChallengeArgs, Secp256r1VerifyArgs,
-    TransferActionType, LAST_TRANSFER_SLOT_NONE,
+    build_transfer_message_hash, ChallengeArgs, Secp256r1VerifyArgs, TransferActionType,
 };
 
 #[derive(Accounts)]
 #[instruction(secp256r1_verify_args: Secp256r1VerifyArgs)]
 pub struct ExecuteTransfer<'info> {
-    /// Recipient — initiator for this transaction
     pub recipient: Signer<'info>,
 
-    /// Sender — does NOT need to sign. Must match `card_instance.owner`.
-    /// program_authority acts as permanent delegate for the token move.
-    /// CHECK: validated against card_instance.owner and sender_token_account.owner
+    /// CHECK: sender does not sign; validated against card_instance.owner and sender_token_account.owner
     #[account(
-        constraint = sender.key() == card_instance.owner @ TokenProgramError::OwnerMismatch,
+        constraint = sender.key() == card_instance.owner @ PhygitalError::OwnerMismatch,
     )] 
     pub sender: UncheckedAccount<'info>,
 
@@ -38,7 +34,7 @@ pub struct ExecuteTransfer<'info> {
             let extracted_pubkey = secp256r1_verify_args.extract_public_key_from_instruction(&instructions_sysvar)?;
             let (expected_pda, _) = find_card_instance_pda(&extracted_pubkey, &crate::ID);
             card_instance.key() == expected_pda
-        } @ TokenProgramError::Secp256r1PubkeyMismatch,
+        } @ PhygitalError::Secp256r1PubkeyMismatch,
     )]
     pub card_instance: Account<'info, CardInstance>,
 
@@ -51,12 +47,11 @@ pub struct ExecuteTransfer<'info> {
     #[account(
         mut,
         constraint = sender_token_account.amount >= 1,
-        constraint = sender_token_account.owner == sender.key() @ TokenProgramError::OwnerMismatch,
+        constraint = sender_token_account.owner == sender.key() @ PhygitalError::OwnerMismatch,
         constraint = sender_token_account.mint == mint.key(),
     )]
     pub sender_token_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
-    /// Recipient ATA — created in the handler; rent paid by `program_authority`.
     /// CHECK: validated and initialized via `associated_token::create_idempotent`
     #[account(mut)]
     pub recipient_token_account: UncheckedAccount<'info>,
@@ -83,7 +78,6 @@ pub struct ExecuteTransfer<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 
-    /// Transfer-hook program — must be in the transaction for Token-2022 hook CPI.
     /// CHECK: constrained to this program's id
     #[account(address = TRANSFER_HOOK_PROGRAM_ID)]
     pub transfer_hook_program: UncheckedAccount<'info>,
@@ -104,7 +98,7 @@ pub fn handler(
     if last_transfer_slot != LAST_TRANSFER_SLOT_NONE {
         require!(
             secp256r1_verify_args.slot_number > last_transfer_slot,
-            TokenProgramError::StaleTransferSlot
+            PhygitalError::StaleTransferSlot
         );
     }
 
@@ -117,7 +111,7 @@ pub fn handler(
         &ctx.accounts.slot_hashes,
         &ctx.accounts.instructions_sysvar,
         ChallengeArgs {
-            account: ctx.accounts.token_program.key(),
+            domain_account: ctx.accounts.token_program.key(),
             message_hash,
             action_type: TransferActionType::Transfer,
         },

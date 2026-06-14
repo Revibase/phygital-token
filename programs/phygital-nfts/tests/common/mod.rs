@@ -3,7 +3,7 @@ mod external_group_mint;
 mod plain_token_mint;
 mod secp256r1;
 
-pub use assertions::{assert_token_program_error, assert_transaction_failed, error_code};
+pub use assertions::{assert_token_program_error, assert_transaction_failed};
 pub use external_group_mint::{
     create_external_group_mint, create_group_mint_without_update_authority, ExternalGroupMint,
 };

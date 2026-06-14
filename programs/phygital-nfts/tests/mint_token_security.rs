@@ -2,7 +2,7 @@ mod common;
 
 use common::{
     assert_token_program_error, create_external_group_mint, create_plain_token2022_mint,
-    error_code, sample_create_design_args, sample_mint_token_args, unauthorized_payer, TestContext,
+    sample_create_design_args, sample_mint_token_args, unauthorized_payer, TestContext,
     TestPasskey, SAMPLE_CARD_URI,
 };
 use phygital_nfts::{MintTokenArgs, Secp256r1Pubkey};
@@ -53,11 +53,7 @@ fn mint_token_rejects_wrong_custody_ata() {
         args,
     );
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]);
-    assert_token_program_error(
-        err,
-        "InvalidPaymentTokenAccount",
-        error_code::INVALID_PAYMENT_TOKEN_ACCOUNT,
-    );
+    assert_token_program_error(err, "InvalidCustodyTokenAccount");
 }
 
 #[test]
@@ -145,7 +141,7 @@ fn mint_token_rejects_mint_arg_mismatch() {
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), card_instance, mint, args);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]);
-    assert_token_program_error(err, "mintMismatch", error_code::mint_MISMATCH);
+    assert_token_program_error(err, "MintMismatch");
 }
 
 #[test]
@@ -167,7 +163,7 @@ fn mint_token_rejects_plain_mint_without_group_member() {
         args,
     );
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]);
-    assert_token_program_error(err, "InvalidMetadata", error_code::INVALID_METADATA);
+    assert_token_program_error(err, "InvalidMint");
 }
 
 #[test]
@@ -280,6 +276,6 @@ fn mint_token_rejects_non_admin_payer() {
     token_args.mint = mint;
     let ix = ctx.mint_token_ix(non_admin.pubkey(), card_instance, mint, token_args);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&non_admin]);
-    assert_token_program_error(err, "AuthorityMismatch", error_code::AUTHORITY_MISMATCH);
+    assert_token_program_error(err, "AuthorityMismatch");
     let _ = ADMIN;
 }

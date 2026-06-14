@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::constants::{PHYGITAL_NFTS_PROGRAM_ID, PROGRAM_AUTHORITY_SEED};
-use crate::error::TokenProgramError;
+use crate::error::TransferHookError;
 
 /// Token-2022 transfer-hook `Execute` passes exactly these four accounts.
 #[derive(Accounts)]
@@ -24,7 +24,7 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, _amount: u64) -> Result<()> {
         Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &PHYGITAL_NFTS_PROGRAM_ID);
     require!(
         ctx.accounts.authority.key() == expected_authority,
-        TokenProgramError::InvalidTransferAuthority,
+        TransferHookError::InvalidTransferAuthority,
     );
 
     msg!(

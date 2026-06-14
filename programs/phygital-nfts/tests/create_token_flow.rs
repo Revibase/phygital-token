@@ -160,7 +160,7 @@ fn mint_token_mints_card_into_design() {
     let card_instance = ctx.card_instance_pda(&token_args.secp256r1_pubkey);
     assert_eq!(
         card_instance,
-        phygital_nfts::utils::find_card_instance_pda(&token_args.secp256r1_pubkey, &ctx.program_id)
+        phygital_nfts::state::find_card_instance_pda(&token_args.secp256r1_pubkey, &ctx.program_id)
             .0
     );
 

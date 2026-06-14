@@ -132,9 +132,9 @@ fn e2e_execute_transfer_rejects_group_mint_as_mint() {
 
     let err_str = format!("{:?}", result.expect_err("group mint as design should fail"));
     assert!(
-        err_str.contains("mintMismatch")
+        err_str.contains("MintMismatch")
             || err_str.contains("AccountNotInitialized")
-            || err_str.contains("6010")
+            || err_str.contains("ConstraintRaw")
             || err_str.contains("3012"),
         "unexpected error: {err_str}"
     );

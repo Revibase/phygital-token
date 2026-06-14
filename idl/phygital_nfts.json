@@ -31,23 +31,14 @@
         },
         {
           "name": "group_mint",
-          "docs": [
-            "External Token-2022 collection (group) mint."
-          ],
           "writable": true
         },
         {
           "name": "group_mint_authority",
-          "docs": [
-            "Must match the collection mint's TokenGroup update authority."
-          ],
           "signer": true
         },
         {
           "name": "mint",
-          "docs": [
-            "Design mint PDA — created in the handler via `create_account` + signer seeds."
-          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -136,17 +127,10 @@
       "accounts": [
         {
           "name": "recipient",
-          "docs": [
-            "Recipient — initiator for this transaction"
-          ],
           "signer": true
         },
         {
-          "name": "sender",
-          "docs": [
-            "Sender — does NOT need to sign. Must match `card_instance.owner`.",
-            "program_authority acts as permanent delegate for the token move."
-          ]
+          "name": "sender"
         },
         {
           "name": "card_instance",
@@ -162,9 +146,6 @@
         },
         {
           "name": "recipient_token_account",
-          "docs": [
-            "Recipient ATA — created in the handler; rent paid by `program_authority`."
-          ],
           "writable": true
         },
         {
@@ -219,9 +200,6 @@
         },
         {
           "name": "transfer_hook_program",
-          "docs": [
-            "Transfer-hook program — must be in the transaction for Token-2022 hook CPI."
-          ],
           "address": "FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G"
         }
       ],
@@ -294,12 +272,6 @@
         },
         {
           "name": "program_authority_token_account",
-          "docs": [
-            "Program-authority ATA on the design mint — created in the handler if needed.",
-            "When it already exists, the payer funds `program_authority` with rent for one",
-            "extended recipient ATA (transfer-hook token account) so execute_transfer can",
-            "pay for recipient ATAs."
-          ],
           "writable": true
         },
         {
@@ -345,148 +317,93 @@
   "errors": [
     {
       "code": 6000,
-      "name": "InvalidSecp256r1Signature",
-      "msg": "Invalid secp256r1 signature"
-    },
-    {
-      "code": 6001,
-      "name": "InvalidSecp256r1VerifyArg",
-      "msg": "Malformed or missing WebAuthn verification parameters"
-    },
-    {
-      "code": 6002,
       "name": "InvalidSecp256r1Instruction",
       "msg": "The instruction preceding this program invocation is not a secp256r1 verification instruction"
     },
     {
-      "code": 6003,
-      "name": "MissingSecp256r1Instruction",
-      "msg": "secp256r1 instruction missing from transaction"
-    },
-    {
-      "code": 6004,
+      "code": 6001,
       "name": "SignatureIndexOutOfBounds",
       "msg": "The signature index provided is out of bounds for the secp256r1 instruction"
     },
     {
-      "code": 6005,
+      "code": 6002,
       "name": "InvalidSignatureOffsets",
       "msg": "Failed to deserialize secp256r1 signature offsets from the instruction data"
     },
     {
-      "code": 6006,
+      "code": 6003,
       "name": "InvalidSecp256r1PublicKey",
       "msg": "Invalid secp256r1 public key"
     },
     {
-      "code": 6007,
+      "code": 6004,
       "name": "Secp256r1PubkeyMismatch",
       "msg": "secp256r1 pubkey does not match token record"
     },
     {
-      "code": 6008,
-      "name": "InvalidMetadata",
-      "msg": "Mint metadata is missing or invalid"
+      "code": 6005,
+      "name": "InvalidMint",
+      "msg": "Mint is not a member of the expected token group"
     },
     {
-      "code": 6009,
+      "code": 6006,
       "name": "InvalidParentGroup",
       "msg": "Parent group mint is missing, invalid, or update authority mismatch"
     },
     {
-      "code": 6010,
-      "name": "mintMismatch",
-      "msg": "Design mint does not match token record"
+      "code": 6007,
+      "name": "MintMismatch",
+      "msg": "Mint does not match token record"
     },
     {
-      "code": 6011,
-      "name": "GroupMintMismatch",
-      "msg": "Group mint does not match token record"
-    },
-    {
-      "code": 6012,
+      "code": 6008,
       "name": "OwnerMismatch",
       "msg": "Token owner mismatch"
     },
     {
-      "code": 6013,
-      "name": "PaymentTokenMintMismatch",
-      "msg": "Payment token mint mismatch"
-    },
-    {
-      "code": 6014,
-      "name": "PaymentTokenMintRequired",
-      "msg": "Payment token mint must be set when transfer price is greater than zero"
-    },
-    {
-      "code": 6015,
-      "name": "PaymentTokenProgramRequired",
-      "msg": "Payment token program must be set when payment token mint is set"
-    },
-    {
-      "code": 6016,
-      "name": "PaymentTokenProgramMismatch",
-      "msg": "Payment token program mismatch"
-    },
-    {
-      "code": 6017,
+      "code": 6009,
       "name": "ArithmeticOverflow",
       "msg": "Arithmetic overflow"
     },
     {
-      "code": 6018,
-      "name": "InvalidTransferHookProgram",
-      "msg": "Invalid transfer hook program ID"
-    },
-    {
-      "code": 6019,
+      "code": 6010,
       "name": "InvalidSlotHash",
       "msg": "Slot not found in SlotHashes sysvar — signature has expired or is being replayed"
     },
     {
-      "code": 6020,
+      "code": 6011,
       "name": "StaleTransferSlot",
       "msg": "Transfer slot must be greater than the last successful transfer slot"
     },
     {
-      "code": 6021,
-      "name": "InvalidTransferAuthority",
-      "msg": "Transfer authority must be the program permanent delegate"
-    },
-    {
-      "code": 6022,
-      "name": "InvalidCloseAuthority",
-      "msg": "Sender token account close authority must be delegated to the program"
-    },
-    {
-      "code": 6023,
+      "code": 6012,
       "name": "ClientDataHashMismatch",
       "msg": "Client data hash mismatch"
     },
     {
-      "code": 6024,
+      "code": 6013,
       "name": "MissingInstructionsSysvar",
       "msg": "Missing instructions sysvar account"
     },
     {
-      "code": 6025,
+      "code": 6014,
       "name": "InvalidSysvarDataFormat",
       "msg": "Invalid sysvar data format"
     },
     {
-      "code": 6026,
+      "code": 6015,
       "name": "MaxLengthExceeded",
       "msg": "Max length exceeded"
     },
     {
-      "code": 6027,
+      "code": 6016,
       "name": "AuthorityMismatch",
       "msg": "Authority does not match"
     },
     {
-      "code": 6028,
-      "name": "InvalidPaymentTokenAccount",
-      "msg": "Payment token account must be the canonical ATA for the expected owner"
+      "code": 6017,
+      "name": "InvalidCustodyTokenAccount",
+      "msg": "Custody token account must be the canonical ATA for program_authority"
     }
   ],
   "types": [

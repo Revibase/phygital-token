@@ -12,7 +12,7 @@ use anchor_spl::token_interface::{Mint, TokenInterface};
 use spl_token_group_interface::state::TokenGroupMember;
 
 use crate::constants::{CARD_INSTANCE_SEED, PROGRAM_AUTHORITY_SEED};
-use crate::error::TokenProgramError;
+use crate::error::PhygitalError;
 use crate::state::CardInstance;
 use crate::utils::{mint_token_account_rent, secp256r1_pda_seed, validate_uri};
 use crate::Secp256r1Pubkey;
@@ -41,7 +41,7 @@ pub struct MintToken<'info> {
 
     #[account(
         mut,
-        constraint = mint.key() == args.mint @ TokenProgramError::mintMismatch,
+        constraint = mint.key() == args.mint @ PhygitalError::MintMismatch,
     )]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
 
@@ -52,10 +52,6 @@ pub struct MintToken<'info> {
     )]
     pub program_authority: SystemAccount<'info>,
 
-    /// Program-authority ATA on the design mint — created in the handler if needed.
-    /// When it already exists, the payer funds `program_authority` with rent for one
-    /// extended recipient ATA (transfer-hook token account) so execute_transfer can
-    /// pay for recipient ATAs.
     /// CHECK: validated and initialized via associated_token::create_idempotent
     #[account(mut)]
     pub program_authority_token_account: UncheckedAccount<'info>,
@@ -71,7 +67,7 @@ pub struct MintToken<'info> {
 pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
 
     #[cfg(feature = "mainnet")]
-    require!(ctx.accounts.authority.key() == crate::ADMIN, TokenProgramError::AuthorityMismatch);
+    require!(ctx.accounts.authority.key() == crate::ADMIN, PhygitalError::AuthorityMismatch);
 
     validate_uri(&args.uri)?;
 
@@ -80,13 +76,13 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
     {
         let mint_data = mint_info.try_borrow_data()?;
         let design_state = StateWithExtensions::<SplMint>::unpack(&mint_data)
-            .map_err(|_| error!(TokenProgramError::InvalidMetadata))?;
+            .map_err(|_| error!(PhygitalError::InvalidMint))?;
         let member = design_state
             .get_extension::<TokenGroupMember>()
-            .map_err(|_| error!(TokenProgramError::InvalidMetadata))?;
+            .map_err(|_| error!(PhygitalError::InvalidMint))?;
         require!(
             Pubkey::from(member.mint) == mint_key,
-            TokenProgramError::mintMismatch
+            PhygitalError::MintMismatch
         );
     }
 
@@ -115,7 +111,7 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
     require_keys_eq!(
         ctx.accounts.program_authority_token_account.key(),
         expected_custody_ata,
-        TokenProgramError::InvalidPaymentTokenAccount,
+        PhygitalError::InvalidCustodyTokenAccount,
     );
 
     let custody_ata = ctx

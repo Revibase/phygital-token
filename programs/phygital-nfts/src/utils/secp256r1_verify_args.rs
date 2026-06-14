@@ -5,7 +5,7 @@ use solana_instructions_sysvar::get_instruction_relative;
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 
 use crate::{
-    error::TokenProgramError,
+    error::PhygitalError,
     utils::{
         secp256r1_pubkey::{
             Secp256r1Pubkey, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
@@ -15,6 +15,10 @@ use crate::{
     },
 };
 
+// `#[repr(C)]` pins field order to match the secp256r1 program's on-wire offset
+// layout, which is read via an unaligned pointer cast below. Without it, Rust may
+// reorder the fields and the cast would map them incorrectly.
+#[repr(C)]
 #[allow(dead_code)]
 struct Secp256r1SignatureOffsets {
     signature_offset: u16,
@@ -38,7 +42,7 @@ pub struct Secp256r1VerifyArgs {
 }
 
 pub struct ChallengeArgs {
-    pub account: Pubkey,
+    pub domain_account: Pubkey,
     pub message_hash: [u8; 32],
     pub action_type: TransferActionType,
 }
@@ -47,7 +51,6 @@ impl Secp256r1VerifyArgs {
     fn read_signature_offsets(
         data: &[u8],
         signed_message_index: u8,
-        _num_signatures: u8,
     ) -> Result<Secp256r1SignatureOffsets> {
         let start = signed_message_index
             .saturating_mul(SIGNATURE_OFFSETS_SERIALIZED_SIZE as u8)
@@ -55,17 +58,17 @@ impl Secp256r1VerifyArgs {
         let start_usize = start as usize;
         let end_usize = start_usize
             .checked_add(SIGNATURE_OFFSETS_SERIALIZED_SIZE)
-            .ok_or(TokenProgramError::InvalidSignatureOffsets)?;
+            .ok_or(PhygitalError::InvalidSignatureOffsets)?;
 
         require!(
             end_usize <= data.len(),
-            TokenProgramError::InvalidSignatureOffsets
+            PhygitalError::InvalidSignatureOffsets
         );
 
         const EXPECTED_STRUCT_SIZE: usize = core::mem::size_of::<Secp256r1SignatureOffsets>();
         require!(
             EXPECTED_STRUCT_SIZE == SIGNATURE_OFFSETS_SERIALIZED_SIZE,
-            TokenProgramError::InvalidSignatureOffsets
+            PhygitalError::InvalidSignatureOffsets
         );
 
         let offsets = unsafe {
@@ -85,20 +88,20 @@ impl Secp256r1VerifyArgs {
         let message_size = offsets.message_data_size as usize;
         let message_end = message_offset
             .checked_add(message_size)
-            .ok_or(TokenProgramError::InvalidSignatureOffsets)?;
+            .ok_or(PhygitalError::InvalidSignatureOffsets)?;
 
         require!(
             message_end <= data.len(),
-            TokenProgramError::InvalidSignatureOffsets
+            PhygitalError::InvalidSignatureOffsets
         );
         require!(
             message_size >= 64,
-            TokenProgramError::InvalidSignatureOffsets
+            PhygitalError::InvalidSignatureOffsets
         );
 
         Ok(data
             .get(message_offset..message_end)
-            .ok_or(TokenProgramError::InvalidSignatureOffsets)?)
+            .ok_or(PhygitalError::InvalidSignatureOffsets)?)
     }
 
     fn extract_public_key_data<'a>(
@@ -108,16 +111,16 @@ impl Secp256r1VerifyArgs {
         let public_key_offset = offsets.public_key_offset as usize;
         let public_key_end = public_key_offset
             .checked_add(COMPRESSED_PUBKEY_SERIALIZED_SIZE)
-            .ok_or(TokenProgramError::InvalidSecp256r1PublicKey)?;
+            .ok_or(PhygitalError::InvalidSecp256r1PublicKey)?;
 
         require!(
             public_key_end <= data.len(),
-            TokenProgramError::InvalidSecp256r1PublicKey
+            PhygitalError::InvalidSecp256r1PublicKey
         );
 
         Ok(data
             .get(public_key_offset..public_key_end)
-            .ok_or(TokenProgramError::InvalidSecp256r1PublicKey)?)
+            .ok_or(PhygitalError::InvalidSecp256r1PublicKey)?)
     }
 
     fn ccd_to_string(value: &str, output: &mut Vec<u8>) {
@@ -186,18 +189,18 @@ impl Secp256r1VerifyArgs {
     fn fetch_slot_hash(&self, slot_hashes_account: &UncheckedAccount) -> Result<[u8; 32]> {
         let data = slot_hashes_account
             .try_borrow_data()
-            .map_err(|_| TokenProgramError::InvalidSysvarDataFormat)?;
+            .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?;
 
-        require!(data.len() >= 8, TokenProgramError::InvalidSysvarDataFormat);
+        require!(data.len() >= 8, PhygitalError::InvalidSysvarDataFormat);
 
         let num_slot_hashes = u64::from_le_bytes(
             data[..8]
                 .try_into()
-                .map_err(|_| TokenProgramError::InvalidSysvarDataFormat)?,
+                .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?,
         ) as usize;
 
         if num_slot_hashes == 0 {
-            return err!(TokenProgramError::InvalidSysvarDataFormat);
+            return err!(PhygitalError::InvalidSysvarDataFormat);
         }
 
         let mut left = 0usize;
@@ -209,28 +212,28 @@ impl Secp256r1VerifyArgs {
             let pos = 8usize
                 .checked_add(
                     mid.checked_mul(40)
-                        .ok_or(TokenProgramError::InvalidSysvarDataFormat)?,
+                        .ok_or(PhygitalError::InvalidSysvarDataFormat)?,
                 )
-                .ok_or(TokenProgramError::InvalidSysvarDataFormat)?;
+                .ok_or(PhygitalError::InvalidSysvarDataFormat)?;
 
             require!(
                 pos.checked_add(40)
-                    .ok_or(TokenProgramError::InvalidSysvarDataFormat)?
+                    .ok_or(PhygitalError::InvalidSysvarDataFormat)?
                     <= data.len(),
-                TokenProgramError::InvalidSysvarDataFormat
+                PhygitalError::InvalidSysvarDataFormat
             );
 
             let slot = u64::from_le_bytes(
                 data[pos..pos + 8]
                     .try_into()
-                    .map_err(|_| TokenProgramError::InvalidSysvarDataFormat)?,
+                    .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?,
             );
 
             if slot == self.slot_number {
                 let hash_bytes = &data[pos + 8..pos + 40];
                 return Ok(hash_bytes
                     .try_into()
-                    .map_err(|_| TokenProgramError::InvalidSysvarDataFormat)?);
+                    .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?);
             } else if slot > self.slot_number {
                 left = mid + 1;
             } else {
@@ -238,7 +241,7 @@ impl Secp256r1VerifyArgs {
             }
         }
 
-        err!(TokenProgramError::InvalidSlotHash)
+        err!(PhygitalError::InvalidSlotHash)
     }
 
     fn extract_client_data_hash_from_instruction(
@@ -247,35 +250,35 @@ impl Secp256r1VerifyArgs {
     ) -> Result<[u8; 32]> {
         require!(
             instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
-            TokenProgramError::MissingInstructionsSysvar
+            PhygitalError::MissingInstructionsSysvar
         );
 
         let instruction = get_instruction_relative(-1, instructions_sysvar)?;
 
         require!(
             instruction.program_id == SECP256R1_PROGRAM_ID,
-            TokenProgramError::InvalidSecp256r1Instruction
+            PhygitalError::InvalidSecp256r1Instruction
         );
 
         let data = instruction.data.as_slice();
 
         let num_signatures = *data
             .first()
-            .ok_or(TokenProgramError::InvalidSecp256r1Instruction)?;
+            .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
 
         require!(
             self.signed_message_index < num_signatures,
-            TokenProgramError::SignatureIndexOutOfBounds
+            PhygitalError::SignatureIndexOutOfBounds
         );
 
         let offsets =
-            Self::read_signature_offsets(data, self.signed_message_index, num_signatures)?;
+            Self::read_signature_offsets(data, self.signed_message_index)?;
 
         let message = Self::extract_message_data(data, &offsets)?;
 
         Ok(message[(message.len() - 32)..]
             .try_into()
-            .map_err(|_| error!(TokenProgramError::InvalidSignatureOffsets))?)
+            .map_err(|_| error!(PhygitalError::InvalidSignatureOffsets))?)
     }
 
     pub fn extract_public_key_from_instruction(
@@ -284,34 +287,34 @@ impl Secp256r1VerifyArgs {
     ) -> Result<Secp256r1Pubkey> {
         require!(
             instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
-            TokenProgramError::MissingInstructionsSysvar
+            PhygitalError::MissingInstructionsSysvar
         );
 
         let instruction = get_instruction_relative(-1, instructions_sysvar)?;
 
         require!(
             instruction.program_id == SECP256R1_PROGRAM_ID,
-            TokenProgramError::InvalidSecp256r1Instruction
+            PhygitalError::InvalidSecp256r1Instruction
         );
 
         let data = instruction.data.as_slice();
         let num_signatures = *data
             .first()
-            .ok_or(TokenProgramError::InvalidSecp256r1Instruction)?;
+            .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
 
         require!(
             self.signed_message_index < num_signatures,
-            TokenProgramError::SignatureIndexOutOfBounds
+            PhygitalError::SignatureIndexOutOfBounds
         );
 
         let offsets =
-            Self::read_signature_offsets(data, self.signed_message_index, num_signatures)?;
+            Self::read_signature_offsets(data, self.signed_message_index)?;
 
         let public_key_bytes = Self::extract_public_key_data(data, &offsets)?;
 
         let extracted_pubkey: [u8; COMPRESSED_PUBKEY_SERIALIZED_SIZE] = public_key_bytes
             .try_into()
-            .map_err(|_| TokenProgramError::InvalidSecp256r1PublicKey)?;
+            .map_err(|_| PhygitalError::InvalidSecp256r1PublicKey)?;
 
         Ok(Secp256r1Pubkey(extracted_pubkey))
     }
@@ -324,7 +327,7 @@ impl Secp256r1VerifyArgs {
     ) -> Result<()> {
         require!(
             !self.origin.is_empty() && self.origin.len() <= MAX_ORIGIN_LEN,
-            TokenProgramError::MaxLengthExceeded
+            PhygitalError::MaxLengthExceeded
         );
 
         let client_data_hash =
@@ -334,7 +337,7 @@ impl Secp256r1VerifyArgs {
 
         let mut buffer = Vec::new();
         buffer.extend_from_slice(challenge_args.action_type.to_bytes());
-        buffer.extend_from_slice(challenge_args.account.as_ref());
+        buffer.extend_from_slice(challenge_args.domain_account.as_ref());
         buffer.extend_from_slice(&challenge_args.message_hash);
         buffer.extend_from_slice(&slot_hash);
 
@@ -348,7 +351,7 @@ impl Secp256r1VerifyArgs {
 
         require!(
             client_data_hash == expected_client_data_hash,
-            TokenProgramError::ClientDataHashMismatch
+            PhygitalError::ClientDataHashMismatch
         );
 
         Ok(())

@@ -6,7 +6,7 @@ use phygital_nfts::constants::{
 };
 use phygital_nfts::utils::validate_uri;
 use phygital_nfts::utils::{mint_metadata_tlv_size, validate_metadata_strings};
-use phygital_nfts::utils::LAST_TRANSFER_SLOT_NONE;
+use phygital_nfts::state::LAST_TRANSFER_SLOT_NONE;
 
 #[test]
 fn mint_token_account_rent_matches_transfer_hook_ata() {

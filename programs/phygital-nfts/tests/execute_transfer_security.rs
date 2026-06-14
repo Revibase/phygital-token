@@ -3,7 +3,7 @@ mod common;
 use anchor_lang::solana_program::system_instruction;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use common::{
-    assert_token_program_error, assert_transaction_failed, current_slot_entry, error_code,
+    assert_token_program_error, assert_transaction_failed, current_slot_entry,
     MintedCard, TestContext, TestPasskey, LAMPORTS_PER_SOL,
 };
 use phygital_nfts::Secp256r1Pubkey;
@@ -72,7 +72,7 @@ fn execute_transfer_rejects_passkey_for_different_card() {
         vec![secp_ix, transfer_ix],
         &[&recipient],
     );
-    assert_token_program_error(err, "Secp256r1PubkeyMismatch", error_code::SECP256R1_PUBKEY_MISMATCH);
+    assert_token_program_error(err, "Secp256r1PubkeyMismatch");
 }
 
 #[test]
@@ -103,11 +103,7 @@ fn execute_transfer_rejects_wrong_sender_in_message_hash() {
         vec![secp_ix, transfer_ix],
         &[&recipient],
     );
-    assert_token_program_error(
-        err,
-        "ClientDataHashMismatch",
-        error_code::CLIENT_DATA_HASH_MISMATCH,
-    );
+    assert_token_program_error(err, "ClientDataHashMismatch");
 }
 
 #[test]
@@ -138,11 +134,7 @@ fn execute_transfer_rejects_secp_not_preceding() {
         vec![secp_ix, noop, transfer_ix],
         &[&recipient],
     );
-    assert_token_program_error(
-        err,
-        "InvalidSecp256r1Instruction",
-        error_code::INVALID_SECP256R1_INSTRUCTION,
-    );
+    assert_token_program_error(err, "InvalidSecp256r1Instruction");
 }
 
 #[test]
@@ -162,7 +154,7 @@ fn execute_transfer_rejects_slot_not_in_sysvar() {
         Some(missing_slot),
         Some(missing_hash),
     );
-    assert_token_program_error(err, "InvalidSlotHash", error_code::INVALID_SLOT_HASH);
+    assert_token_program_error(err, "InvalidSlotHash");
 }
 
 #[test]
@@ -329,5 +321,5 @@ fn execute_transfer_rejects_passkey_for_unclaimed_card_b() {
         None,
         None,
     );
-    assert_token_program_error(err, "OwnerMismatch", error_code::OWNER_MISMATCH);
+    assert_token_program_error(err, "OwnerMismatch");
 }

@@ -17,7 +17,7 @@ use anchor_spl::token_interface::{Mint, TokenInterface};
 use spl_token_group_interface::state::TokenGroup;
 
 use crate::constants::{MINT_SEED, PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
-use crate::error::TokenProgramError;
+use crate::error::PhygitalError;
 use crate::utils::{
     mint_layout, mint_metadata_tlv_size, validate_metadata_strings,
 };
@@ -38,14 +38,11 @@ pub struct CreateMint<'info> {
 
     pub owner: Signer<'info>,
 
-    /// External Token-2022 collection (group) mint.
     #[account(mut)]
     pub group_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    /// Must match the collection mint's TokenGroup update authority.
     pub group_mint_authority: Signer<'info>,
 
-    /// Design mint PDA — created in the handler via `create_account` + signer seeds.
     #[account(
         mut,
         seeds = [MINT_SEED, group_mint.key().as_ref(), args.design_id.as_ref()],
@@ -74,18 +71,18 @@ pub fn handler(ctx: Context<CreateMint>, args: CreateMintArgs) -> Result<()> {
         let group_mint_info = ctx.accounts.group_mint.to_account_info();
         let group_mint_data = group_mint_info.try_borrow_data()?;
         let group_state = StateWithExtensions::<SplMint>::unpack(&group_mint_data)
-            .map_err(|_| error!(TokenProgramError::InvalidParentGroup))?;
+            .map_err(|_| error!(PhygitalError::InvalidParentGroup))?;
         let token_group = group_state
             .get_extension::<TokenGroup>()
-            .map_err(|_| error!(TokenProgramError::InvalidParentGroup))?;
+            .map_err(|_| error!(PhygitalError::InvalidParentGroup))?;
         let update_authority = token_group
             .update_authority
             .get()
             .map(Pubkey::from)
-            .ok_or(TokenProgramError::InvalidParentGroup)?;
+            .ok_or(PhygitalError::InvalidParentGroup)?;
         require!(
             update_authority == ctx.accounts.group_mint_authority.key(),
-            TokenProgramError::InvalidParentGroup
+            PhygitalError::InvalidParentGroup
         );
     }
 

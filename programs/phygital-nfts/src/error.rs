@@ -1,18 +1,9 @@
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum TokenProgramError {
-    #[msg("Invalid secp256r1 signature")]
-    InvalidSecp256r1Signature,
-
-    #[msg("Malformed or missing WebAuthn verification parameters")]
-    InvalidSecp256r1VerifyArg,
-
+pub enum PhygitalError {
     #[msg("The instruction preceding this program invocation is not a secp256r1 verification instruction")]
     InvalidSecp256r1Instruction,
-
-    #[msg("secp256r1 instruction missing from transaction")]
-    MissingSecp256r1Instruction,
 
     #[msg("The signature index provided is out of bounds for the secp256r1 instruction")]
     SignatureIndexOutOfBounds,
@@ -26,50 +17,26 @@ pub enum TokenProgramError {
     #[msg("secp256r1 pubkey does not match token record")]
     Secp256r1PubkeyMismatch,
 
-    #[msg("Mint metadata is missing or invalid")]
-    InvalidMetadata,
+    #[msg("Mint is not a member of the expected token group")]
+    InvalidMint,
 
     #[msg("Parent group mint is missing, invalid, or update authority mismatch")]
     InvalidParentGroup,
 
-    #[msg("Design mint does not match token record")]
-    mintMismatch,
-
-    #[msg("Group mint does not match token record")]
-    GroupMintMismatch,
+    #[msg("Mint does not match token record")]
+    MintMismatch,
 
     #[msg("Token owner mismatch")]
     OwnerMismatch,
 
-    #[msg("Payment token mint mismatch")]
-    PaymentTokenMintMismatch,
-
-    #[msg("Payment token mint must be set when transfer price is greater than zero")]
-    PaymentTokenMintRequired,
-
-    #[msg("Payment token program must be set when payment token mint is set")]
-    PaymentTokenProgramRequired,
-
-    #[msg("Payment token program mismatch")]
-    PaymentTokenProgramMismatch,
-
     #[msg("Arithmetic overflow")]
     ArithmeticOverflow,
-
-    #[msg("Invalid transfer hook program ID")]
-    InvalidTransferHookProgram,
 
     #[msg("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
     InvalidSlotHash,
 
     #[msg("Transfer slot must be greater than the last successful transfer slot")]
     StaleTransferSlot,
-
-    #[msg("Transfer authority must be the program permanent delegate")]
-    InvalidTransferAuthority,
-
-    #[msg("Sender token account close authority must be delegated to the program")]
-    InvalidCloseAuthority,
 
     #[msg("Client data hash mismatch")]
     ClientDataHashMismatch,
@@ -86,6 +53,6 @@ pub enum TokenProgramError {
     #[msg("Authority does not match")]
     AuthorityMismatch,
 
-    #[msg("Payment token account must be the canonical ATA for the expected owner")]
-    InvalidPaymentTokenAccount,
+    #[msg("Custody token account must be the canonical ATA for program_authority")]
+    InvalidCustodyTokenAccount,
 }

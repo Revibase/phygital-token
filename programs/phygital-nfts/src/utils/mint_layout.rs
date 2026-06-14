@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token_2022::spl_token_2022::extension::ExtensionType;
 use anchor_spl::token_2022::spl_token_2022::state::{Account as SplTokenAccount, Mint};
 
-use crate::error::TokenProgramError;
+use crate::error::PhygitalError;
 
 /// Sizing for a Token-2022 mint account created via `system_program::create_account`.
 ///
@@ -20,12 +20,12 @@ pub struct MintAccountLayout {
 
 fn mint_extension_account_len(extension_types: &[ExtensionType]) -> Result<usize> {
     ExtensionType::try_calculate_account_len::<Mint>(extension_types)
-        .map_err(|_| error!(TokenProgramError::ArithmeticOverflow))
+        .map_err(|_| error!(PhygitalError::ArithmeticOverflow))
 }
 
 fn token_extension_account_len(extension_types: &[ExtensionType]) -> Result<usize> {
     ExtensionType::try_calculate_account_len::<SplTokenAccount>(extension_types)
-        .map_err(|_| error!(TokenProgramError::ArithmeticOverflow))
+        .map_err(|_| error!(PhygitalError::ArithmeticOverflow))
 }
 
 /// Rent for a Token-2022 token account holding a design mint.
@@ -48,29 +48,12 @@ fn mint_account_layout(
     let initial_data_len = mint_extension_account_len(initial_extensions)?;
     let final_data_len = mint_extension_account_len(final_extensions)?
         .checked_add(metadata_size)
-        .ok_or_else(|| error!(TokenProgramError::ArithmeticOverflow))?;
+        .ok_or_else(|| error!(PhygitalError::ArithmeticOverflow))?;
 
     Ok(MintAccountLayout {
         initial_data_len,
         rent_lamports: Rent::get()?.minimum_balance(final_data_len),
     })
-}
-
-/// Token-2022 group (collection) mint sizing for external collection mints.
-pub fn group_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
-    mint_account_layout(
-        &[ExtensionType::MetadataPointer, ExtensionType::GroupPointer],
-        &[
-            ExtensionType::MetadataPointer,
-            ExtensionType::GroupPointer,
-            ExtensionType::TokenGroup,
-        ],
-        metadata_size,
-    )
-}
-
-pub fn member_mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {
-    mint_layout(metadata_size)
 }
 
 pub fn mint_layout(metadata_size: usize) -> Result<MintAccountLayout> {

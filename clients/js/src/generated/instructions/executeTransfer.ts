@@ -203,17 +203,11 @@ export type ExecuteTransferAsyncInput<
   TAccountSystemProgram extends string = string,
   TAccountTransferHookProgram extends string = string,
 > = {
-  /** Recipient — initiator for this transaction */
   recipient: TransactionSigner<TAccountRecipient>;
-  /**
-   * Sender — does NOT need to sign. Must match `card_instance.owner`.
-   * program_authority acts as permanent delegate for the token move.
-   */
   sender: Address<TAccountSender>;
   cardInstance: Address<TAccountCardInstance>;
   mint: Address<TAccountMint>;
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
-  /** Recipient ATA — created in the handler; rent paid by `program_authority`. */
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
   programAuthority?: Address<TAccountProgramAuthority>;
   slotHashes?: Address<TAccountSlotHashes>;
@@ -221,7 +215,6 @@ export type ExecuteTransferAsyncInput<
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  /** Transfer-hook program — must be in the transaction for Token-2022 hook CPI. */
   transferHookProgram?: Address<TAccountTransferHookProgram>;
   signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
   slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
@@ -409,17 +402,11 @@ export type ExecuteTransferInput<
   TAccountSystemProgram extends string = string,
   TAccountTransferHookProgram extends string = string,
 > = {
-  /** Recipient — initiator for this transaction */
   recipient: TransactionSigner<TAccountRecipient>;
-  /**
-   * Sender — does NOT need to sign. Must match `card_instance.owner`.
-   * program_authority acts as permanent delegate for the token move.
-   */
   sender: Address<TAccountSender>;
   cardInstance: Address<TAccountCardInstance>;
   mint: Address<TAccountMint>;
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
-  /** Recipient ATA — created in the handler; rent paid by `program_authority`. */
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
   programAuthority: Address<TAccountProgramAuthority>;
   slotHashes?: Address<TAccountSlotHashes>;
@@ -427,7 +414,6 @@ export type ExecuteTransferInput<
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  /** Transfer-hook program — must be in the transaction for Token-2022 hook CPI. */
   transferHookProgram?: Address<TAccountTransferHookProgram>;
   signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
   slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
@@ -601,17 +587,11 @@ export type ParsedExecuteTransferInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    /** Recipient — initiator for this transaction */
     recipient: TAccountMetas[0];
-    /**
-     * Sender — does NOT need to sign. Must match `card_instance.owner`.
-     * program_authority acts as permanent delegate for the token move.
-     */
     sender: TAccountMetas[1];
     cardInstance: TAccountMetas[2];
     mint: TAccountMetas[3];
     senderTokenAccount: TAccountMetas[4];
-    /** Recipient ATA — created in the handler; rent paid by `program_authority`. */
     recipientTokenAccount: TAccountMetas[5];
     programAuthority: TAccountMetas[6];
     slotHashes: TAccountMetas[7];
@@ -619,7 +599,6 @@ export type ParsedExecuteTransferInstruction<
     tokenProgram: TAccountMetas[9];
     associatedTokenProgram: TAccountMetas[10];
     systemProgram: TAccountMetas[11];
-    /** Transfer-hook program — must be in the transaction for Token-2022 hook CPI. */
     transferHookProgram: TAccountMetas[12];
   };
   data: ExecuteTransferInstructionData;

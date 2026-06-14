@@ -167,12 +167,6 @@ export type MintTokenAsyncInput<
   cardInstance: Address<TAccountCardInstance>;
   mint: Address<TAccountMint>;
   programAuthority?: Address<TAccountProgramAuthority>;
-  /**
-   * Program-authority ATA on the design mint — created in the handler if needed.
-   * When it already exists, the payer funds `program_authority` with rent for one
-   * extended recipient ATA (transfer-hook token account) so execute_transfer can
-   * pay for recipient ATAs.
-   */
   programAuthorityTokenAccount: Address<TAccountProgramAuthorityTokenAccount>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
@@ -312,12 +306,6 @@ export type MintTokenInput<
   cardInstance: Address<TAccountCardInstance>;
   mint: Address<TAccountMint>;
   programAuthority: Address<TAccountProgramAuthority>;
-  /**
-   * Program-authority ATA on the design mint — created in the handler if needed.
-   * When it already exists, the payer funds `program_authority` with rent for one
-   * extended recipient ATA (transfer-hook token account) so execute_transfer can
-   * pay for recipient ATAs.
-   */
   programAuthorityTokenAccount: Address<TAccountProgramAuthorityTokenAccount>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
@@ -448,12 +436,6 @@ export type ParsedMintTokenInstruction<
     cardInstance: TAccountMetas[1];
     mint: TAccountMetas[2];
     programAuthority: TAccountMetas[3];
-    /**
-     * Program-authority ATA on the design mint — created in the handler if needed.
-     * When it already exists, the payer funds `program_authority` with rent for one
-     * extended recipient ATA (transfer-hook token account) so execute_transfer can
-     * pay for recipient ATAs.
-     */
     programAuthorityTokenAccount: TAccountMetas[4];
     tokenProgram: TAccountMetas[5];
     associatedTokenProgram: TAccountMetas[6];
