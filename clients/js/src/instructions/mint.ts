@@ -34,7 +34,6 @@ type CreateMintParams = MetadataFields & {
   owner: TransactionSigner;
   groupMint: Address;
   groupMintAuthority: TransactionSigner;
-  designId: Address;
 };
 
 type MintTokenParams = {

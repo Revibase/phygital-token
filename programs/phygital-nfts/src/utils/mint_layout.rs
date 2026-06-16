@@ -28,7 +28,7 @@ fn token_extension_account_len(extension_types: &[ExtensionType]) -> Result<usiz
         .map_err(|_| error!(PhygitalError::ArithmeticOverflow))
 }
 
-/// Rent for a Token-2022 token account holding a design mint.
+/// Rent for a Token-2022 token account holding a mint.
 ///
 /// Recipient ATAs are created via the associated-token program, which initializes
 /// `ImmutableOwner` in addition to the mint-required `TransferHookAccount` extension.

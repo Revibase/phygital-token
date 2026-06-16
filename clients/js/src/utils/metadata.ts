@@ -76,7 +76,6 @@ export type TokenJsonMetadata = {
   symbol?: string;
   image?: string;
   description?: string;
-  /** Design mint public key this card instance belongs to. */
   mint?: string;
   attributes?: Array<{
     trait_type?: string;

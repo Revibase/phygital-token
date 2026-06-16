@@ -8,7 +8,7 @@ import {
 import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../generated/programs/phygitalNfts";
 
 describe("fetchCardInstance", () => {
-  it("decodes owner and design mint from encoded account data", async () => {
+  it("decodes owner and mint from encoded account data", async () => {
     const cardInstance = address("11111111111111111111111111111112");
     const mint = address("11111111111111111111111111111113");
     const owner = address("11111111111111111111111111111114");
