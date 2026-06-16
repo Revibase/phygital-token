@@ -6,6 +6,3 @@ pub use mint_token::*;
 
 pub mod execute_transfer;
 pub use execute_transfer::*;
-
-pub mod update_counter;
-pub use update_counter::*;

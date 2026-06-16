@@ -1,14 +1,16 @@
 export {
-  buildTapTransferInstructions,
-  type TapTransferTarget,
+  authenticateCard,
+  beginTransfer,
+  completeTransfer,
+  type TransferSession,
 } from "./instructions/transfer";
 
-export {
-  buildUpdateCounterInstructions} from "./instructions/updateCounter";
+export { buildCreateCollectionMintInstructions } from "./instructions/collection";
 
 export {
   buildCreateMintInstructions,
   buildMintTokenInstructions,
+  findmintPda,
   MAX_METADATA_NAME_LEN,
   MAX_METADATA_SYMBOL_LEN,
   MAX_METADATA_URI_LEN,
@@ -23,9 +25,6 @@ export {
 } from "./utils/metadata";
 
 export {
-  parseTapSignature,
-  verify as verifyWithServerCheck,
-  type CardMetadata,
-  type CardMetadataFetcher,
-  type TapSignature,
-} from "./utils/verify";
+  verifyLocal,
+  verifyWithServerCheck
+} from "./utils/verify"

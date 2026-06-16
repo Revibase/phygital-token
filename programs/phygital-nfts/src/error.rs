@@ -17,6 +17,12 @@ pub enum PhygitalError {
     #[msg("secp256r1 pubkey does not match token record")]
     Secp256r1PubkeyMismatch,
 
+    #[msg("Mint is not a member of the expected token group")]
+    InvalidMint,
+
+    #[msg("Parent group mint is missing, invalid, or update authority mismatch")]
+    InvalidParentGroup,
+
     #[msg("Mint does not match token record")]
     MintMismatch,
 
@@ -26,14 +32,20 @@ pub enum PhygitalError {
     #[msg("Arithmetic overflow")]
     ArithmeticOverflow,
 
-    #[msg("Tap counter must be greater than the last successful transfer counter — signature is being replayed")]
-    StaleTransferCounter,
+    #[msg("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
+    InvalidSlotHash,
 
-    #[msg("Signed tap message is not the expected counter || nonce layout")]
-    InvalidTapMessage,
+    #[msg("Transfer slot must be greater than the last successful transfer slot")]
+    StaleTransferSlot,
+
+    #[msg("Client data hash mismatch")]
+    ClientDataHashMismatch,
 
     #[msg("Missing instructions sysvar account")]
     MissingInstructionsSysvar,
+
+    #[msg("Invalid sysvar data format")]
+    InvalidSysvarDataFormat,
 
     #[msg("Max length exceeded")]
     MaxLengthExceeded,

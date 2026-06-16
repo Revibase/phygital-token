@@ -40,7 +40,27 @@
         {
           "name": "mint",
           "writable": true,
-          "signer": true
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "group_mint"
+              },
+              {
+                "kind": "arg",
+                "path": "args.design_id"
+              }
+            ]
+          }
         },
         {
           "name": "program_authority",
@@ -159,6 +179,10 @@
           }
         },
         {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
           "name": "instructions_sysvar",
           "address": "Sysvar1nstructions1111111111111111111111111"
         },
@@ -273,39 +297,6 @@
           }
         }
       ]
-    },
-    {
-      "name": "update_counter",
-      "discriminator": [
-        171,
-        200,
-        174,
-        106,
-        229,
-        34,
-        80,
-        175
-      ],
-      "accounts": [
-        {
-          "name": "card_instance",
-          "writable": true
-        },
-        {
-          "name": "instructions_sysvar",
-          "address": "Sysvar1nstructions1111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "secp256r1_verify_args",
-          "type": {
-            "defined": {
-              "name": "Secp256r1VerifyArgs"
-            }
-          }
-        }
-      ]
     }
   ],
   "accounts": [
@@ -351,46 +342,66 @@
     },
     {
       "code": 6005,
+      "name": "InvalidMint",
+      "msg": "Mint is not a member of the expected token group"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidParentGroup",
+      "msg": "Parent group mint is missing, invalid, or update authority mismatch"
+    },
+    {
+      "code": 6007,
       "name": "MintMismatch",
       "msg": "Mint does not match token record"
     },
     {
-      "code": 6006,
+      "code": 6008,
       "name": "OwnerMismatch",
       "msg": "Token owner mismatch"
     },
     {
-      "code": 6007,
+      "code": 6009,
       "name": "ArithmeticOverflow",
       "msg": "Arithmetic overflow"
     },
     {
-      "code": 6008,
-      "name": "StaleTransferCounter",
-      "msg": "Tap counter must be greater than the last successful transfer counter — signature is being replayed"
-    },
-    {
-      "code": 6009,
-      "name": "InvalidTapMessage",
-      "msg": "Signed tap message is not the expected counter || nonce layout"
-    },
-    {
       "code": 6010,
+      "name": "InvalidSlotHash",
+      "msg": "Slot not found in SlotHashes sysvar — signature has expired or is being replayed"
+    },
+    {
+      "code": 6011,
+      "name": "StaleTransferSlot",
+      "msg": "Transfer slot must be greater than the last successful transfer slot"
+    },
+    {
+      "code": 6012,
+      "name": "ClientDataHashMismatch",
+      "msg": "Client data hash mismatch"
+    },
+    {
+      "code": 6013,
       "name": "MissingInstructionsSysvar",
       "msg": "Missing instructions sysvar account"
     },
     {
-      "code": 6011,
+      "code": 6014,
+      "name": "InvalidSysvarDataFormat",
+      "msg": "Invalid sysvar data format"
+    },
+    {
+      "code": 6015,
       "name": "MaxLengthExceeded",
       "msg": "Max length exceeded"
     },
     {
-      "code": 6012,
+      "code": 6016,
       "name": "AuthorityMismatch",
       "msg": "Authority does not match"
     },
     {
-      "code": 6013,
+      "code": 6017,
       "name": "InvalidCustodyTokenAccount",
       "msg": "Custody token account must be the canonical ATA for program_authority"
     }
@@ -410,12 +421,12 @@
             "type": "pubkey"
           },
           {
-            "name": "last_counter",
-            "docs": [
-              "Highest tap counter consumed on-chain. Each physical tap emits a strictly greater",
-              "counter, so requiring `counter > last_counter` prevents replay."
-            ],
-            "type": "u32"
+            "name": "last_transfer_slot",
+            "type": "u64"
+          },
+          {
+            "name": "uri",
+            "type": "string"
           }
         ]
       }
@@ -436,6 +447,10 @@
           {
             "name": "uri",
             "type": "string"
+          },
+          {
+            "name": "design_id",
+            "type": "pubkey"
           }
         ]
       }
@@ -452,6 +467,14 @@
                 "name": "Secp256r1Pubkey"
               }
             }
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "uri",
+            "type": "string"
           }
         ]
       }
@@ -472,30 +495,28 @@
     },
     {
       "name": "Secp256r1VerifyArgs",
-      "docs": [
-        "Arguments for verifying a tap via the dynamic-URL signature.",
-        "",
-        "The NFC tag signs a fixed `counter || nonce` message it generates itself; it has",
-        "no knowledge of the transfer context. All transfer-context binding therefore comes",
-        "from the program: the signing pubkey is matched to the `card_instance` PDA, and the",
-        "monotonic `counter` extracted from the signed message provides replay protection."
-      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "instruction_index",
-            "docs": [
-              "Index of the secp256r1 verify instruction."
-            ],
+            "name": "signed_message_index",
             "type": "u8"
           },
           {
-            "name": "signed_message_index",
-            "docs": [
-              "Index of the signature within the secp256r1 verify instruction."
-            ],
-            "type": "u8"
+            "name": "slot_number",
+            "type": "u64"
+          },
+          {
+            "name": "origin",
+            "type": "string"
+          },
+          {
+            "name": "cross_origin",
+            "type": "bool"
+          },
+          {
+            "name": "truncated_client_data_json",
+            "type": "bytes"
           }
         ]
       }

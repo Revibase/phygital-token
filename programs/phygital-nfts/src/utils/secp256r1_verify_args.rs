@@ -1,12 +1,17 @@
 use anchor_lang::prelude::*;
-use solana_instructions_sysvar::load_instruction_at_checked;
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use sha2::{Digest, Sha256};
+use solana_instructions_sysvar::get_instruction_relative;
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 
 use crate::{
     error::PhygitalError,
-    utils::secp256r1_pubkey::{
-        Secp256r1Pubkey, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
-        SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
+    utils::{
+        secp256r1_pubkey::{
+            Secp256r1Pubkey, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
+            SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
+        },
+        transfer_action_type::TransferActionType,
     },
 };
 
@@ -25,25 +30,21 @@ struct Secp256r1SignatureOffsets {
     message_instruction_index: u16,
 }
 
-/// Big-endian tap counter width (bytes) at the front of the signed NDEF message.
-pub const TAP_COUNTER_LEN: usize = 4;
-/// Random nonce width (bytes) following the counter in the signed NDEF message.
-pub const TAP_NONCE_LEN: usize = 8;
-/// Exact length of the message the NFC tag signs: `counter(4 BE) || nonce(8)`.
-pub const TAP_MESSAGE_LEN: usize = TAP_COUNTER_LEN + TAP_NONCE_LEN;
+pub const MAX_ORIGIN_LEN: usize = 256;
 
-/// Arguments for verifying a tap via the dynamic-URL signature.
-///
-/// The NFC tag signs a fixed `counter || nonce` message it generates itself; it has
-/// no knowledge of the transfer context. All transfer-context binding therefore comes
-/// from the program: the signing pubkey is matched to the `card_instance` PDA, and the
-/// monotonic `counter` extracted from the signed message provides replay protection.
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Debug, Clone)]
 pub struct Secp256r1VerifyArgs {
-    /// Index of the secp256r1 verify instruction.
-    pub instruction_index: u8,
-    /// Index of the signature within the secp256r1 verify instruction.
     pub signed_message_index: u8,
+    pub slot_number: u64,
+    pub origin: String,
+    pub cross_origin: bool,
+    pub truncated_client_data_json: Vec<u8>,
+}
+
+pub struct ChallengeArgs {
+    pub domain_account: Pubkey,
+    pub message_hash: [u8; 32],
+    pub action_type: TransferActionType,
 }
 
 impl Secp256r1VerifyArgs {
@@ -94,8 +95,8 @@ impl Secp256r1VerifyArgs {
             PhygitalError::InvalidSignatureOffsets
         );
         require!(
-            message_size == TAP_MESSAGE_LEN,
-            PhygitalError::InvalidTapMessage
+            message_size >= 64,
+            PhygitalError::InvalidSignatureOffsets
         );
 
         Ok(data
@@ -122,29 +123,146 @@ impl Secp256r1VerifyArgs {
             .ok_or(PhygitalError::InvalidSecp256r1PublicKey)?)
     }
 
-    /// Reads the preceding instruction, validates it is the secp256r1 verify program,
-    /// and returns the signature offsets for `signed_message_index`.
-    fn load_instruction_offsets<'a>(
+    fn ccd_to_string(value: &str, output: &mut Vec<u8>) {
+        output.push(b'"');
+
+        for ch in value.chars() {
+            match ch {
+                '\u{0020}'..='\u{0021}' | '\u{0023}'..='\u{005B}' | '\u{005D}'..='\u{10FFFF}' => {
+                    let mut buf = [0u8; 4];
+                    let s = ch.encode_utf8(&mut buf);
+                    output.extend_from_slice(s.as_bytes());
+                }
+                '"' => output.extend_from_slice(br#"\""#),
+                '\\' => output.extend_from_slice(br#"\\"#),
+                _ => {
+                    output.extend_from_slice(b"\\u");
+                    let code = ch as u32;
+                    let hex = [
+                        Self::hex_digit((code >> 12) & 0xF),
+                        Self::hex_digit((code >> 8) & 0xF),
+                        Self::hex_digit((code >> 4) & 0xF),
+                        Self::hex_digit(code & 0xF),
+                    ];
+                    output.extend_from_slice(&hex);
+                }
+            }
+        }
+
+        output.push(b'"');
+    }
+
+    #[inline]
+    fn hex_digit(n: u32) -> u8 {
+        match n {
+            0..=9 => b'0' + (n as u8),
+            10..=15 => b'a' + ((n as u8) - 10),
+            _ => unreachable!(),
+        }
+    }
+
+    fn generate_client_data_json(
+        &self,
+        expected_origin: &String,
+        expected_challenge: [u8; 32],
+    ) -> Result<Vec<u8>> {
+        let mut result = Vec::new();
+        result.extend_from_slice(br#"{"type":"webauthn.get""#);
+        result.extend_from_slice(br#","challenge":"#);
+        Self::ccd_to_string(&URL_SAFE_NO_PAD.encode(expected_challenge), &mut result);
+        result.extend_from_slice(br#","origin":"#);
+        Self::ccd_to_string(expected_origin, &mut result);
+        if self.cross_origin {
+            result.extend_from_slice(br#","crossOrigin":true"#);
+        } else {
+            result.extend_from_slice(br#","crossOrigin":false"#);
+        }
+        if !self.truncated_client_data_json.is_empty() {
+            result.push(b',');
+            result.extend_from_slice(&self.truncated_client_data_json);
+        }
+        result.push(b'}');
+
+        Ok(result)
+    }
+
+    fn fetch_slot_hash(&self, slot_hashes_account: &UncheckedAccount) -> Result<[u8; 32]> {
+        let data = slot_hashes_account
+            .try_borrow_data()
+            .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?;
+
+        require!(data.len() >= 8, PhygitalError::InvalidSysvarDataFormat);
+
+        let num_slot_hashes = u64::from_le_bytes(
+            data[..8]
+                .try_into()
+                .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?,
+        ) as usize;
+
+        if num_slot_hashes == 0 {
+            return err!(PhygitalError::InvalidSysvarDataFormat);
+        }
+
+        let mut left = 0usize;
+        let mut right = num_slot_hashes;
+
+        while left < right {
+            let mid = left + (right - left) / 2;
+
+            let pos = 8usize
+                .checked_add(
+                    mid.checked_mul(40)
+                        .ok_or(PhygitalError::InvalidSysvarDataFormat)?,
+                )
+                .ok_or(PhygitalError::InvalidSysvarDataFormat)?;
+
+            require!(
+                pos.checked_add(40)
+                    .ok_or(PhygitalError::InvalidSysvarDataFormat)?
+                    <= data.len(),
+                PhygitalError::InvalidSysvarDataFormat
+            );
+
+            let slot = u64::from_le_bytes(
+                data[pos..pos + 8]
+                    .try_into()
+                    .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?,
+            );
+
+            if slot == self.slot_number {
+                let hash_bytes = &data[pos + 8..pos + 40];
+                return Ok(hash_bytes
+                    .try_into()
+                    .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?);
+            } else if slot > self.slot_number {
+                left = mid + 1;
+            } else {
+                right = mid;
+            }
+        }
+
+        err!(PhygitalError::InvalidSlotHash)
+    }
+
+    fn extract_client_data_hash_from_instruction(
         &self,
         instructions_sysvar: &UncheckedAccount,
-        instruction_data: &'a mut Vec<u8>,
-    ) -> Result<Secp256r1SignatureOffsets> {
+    ) -> Result<[u8; 32]> {
         require!(
             instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
             PhygitalError::MissingInstructionsSysvar
         );
 
-        let instruction =
-            load_instruction_at_checked(self.instruction_index.into(), instructions_sysvar)?;
+        let instruction = get_instruction_relative(-1, instructions_sysvar)?;
 
         require!(
             instruction.program_id == SECP256R1_PROGRAM_ID,
             PhygitalError::InvalidSecp256r1Instruction
         );
 
-        *instruction_data = instruction.data;
+        let data = instruction.data.as_slice();
 
-        let num_signatures = *instruction_data
+        let num_signatures = *data
             .first()
             .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
 
@@ -153,17 +271,46 @@ impl Secp256r1VerifyArgs {
             PhygitalError::SignatureIndexOutOfBounds
         );
 
-        Self::read_signature_offsets(instruction_data, self.signed_message_index)
+        let offsets =
+            Self::read_signature_offsets(data, self.signed_message_index)?;
+
+        let message = Self::extract_message_data(data, &offsets)?;
+
+        Ok(message[(message.len() - 32)..]
+            .try_into()
+            .map_err(|_| error!(PhygitalError::InvalidSignatureOffsets))?)
     }
 
     pub fn extract_public_key_from_instruction(
         &self,
         instructions_sysvar: &UncheckedAccount,
     ) -> Result<Secp256r1Pubkey> {
-        let mut data = Vec::new();
-        let offsets = self.load_instruction_offsets(instructions_sysvar, &mut data)?;
+        require!(
+            instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
+            PhygitalError::MissingInstructionsSysvar
+        );
 
-        let public_key_bytes = Self::extract_public_key_data(&data, &offsets)?;
+        let instruction = get_instruction_relative(-1, instructions_sysvar)?;
+
+        require!(
+            instruction.program_id == SECP256R1_PROGRAM_ID,
+            PhygitalError::InvalidSecp256r1Instruction
+        );
+
+        let data = instruction.data.as_slice();
+        let num_signatures = *data
+            .first()
+            .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
+
+        require!(
+            self.signed_message_index < num_signatures,
+            PhygitalError::SignatureIndexOutOfBounds
+        );
+
+        let offsets =
+            Self::read_signature_offsets(data, self.signed_message_index)?;
+
+        let public_key_bytes = Self::extract_public_key_data(data, &offsets)?;
 
         let extracted_pubkey: [u8; COMPRESSED_PUBKEY_SERIALIZED_SIZE] = public_key_bytes
             .try_into()
@@ -172,21 +319,41 @@ impl Secp256r1VerifyArgs {
         Ok(Secp256r1Pubkey(extracted_pubkey))
     }
 
-    /// Extracts and returns the monotonic tap counter from the signed `counter || nonce`
-    /// message verified by the preceding secp256r1 instruction.
-    ///
-    /// The secp256r1 precompile has already verified the ECDSA signature over this exact
-    /// message against the public key, so trusting the message contents here is sound.
-    pub fn extract_tap_counter(&self, instructions_sysvar: &UncheckedAccount) -> Result<u32> {
-        let mut data = Vec::new();
-        let offsets = self.load_instruction_offsets(instructions_sysvar, &mut data)?;
+    pub fn verify_webauthn<'info>(
+        &self,
+        slot_hashes: &UncheckedAccount<'info>,
+        instructions_sysvar: &UncheckedAccount<'info>,
+        challenge_args: ChallengeArgs,
+    ) -> Result<()> {
+        require!(
+            !self.origin.is_empty() && self.origin.len() <= MAX_ORIGIN_LEN,
+            PhygitalError::MaxLengthExceeded
+        );
 
-        let message = Self::extract_message_data(&data, &offsets)?;
+        let client_data_hash =
+            self.extract_client_data_hash_from_instruction(instructions_sysvar)?;
 
-        let counter_bytes: [u8; TAP_COUNTER_LEN] = message[..TAP_COUNTER_LEN]
-            .try_into()
-            .map_err(|_| error!(PhygitalError::InvalidTapMessage))?;
+        let slot_hash = self.fetch_slot_hash(slot_hashes)?;
 
-        Ok(u32::from_be_bytes(counter_bytes))
+        let mut buffer = Vec::new();
+        buffer.extend_from_slice(challenge_args.action_type.to_bytes());
+        buffer.extend_from_slice(challenge_args.domain_account.as_ref());
+        buffer.extend_from_slice(&challenge_args.message_hash);
+        buffer.extend_from_slice(&slot_hash);
+
+        let expected_challenge: [u8; 32] = Sha256::digest(&buffer).into();
+
+        let generated_client_data_json =
+            self.generate_client_data_json(&self.origin, expected_challenge)?;
+
+        let expected_client_data_hash: [u8; 32] =
+            Sha256::digest(&generated_client_data_json).into();
+
+        require!(
+            client_data_hash == expected_client_data_hash,
+            PhygitalError::ClientDataHashMismatch
+        );
+
+        Ok(())
     }
 }

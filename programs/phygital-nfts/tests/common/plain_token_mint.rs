@@ -26,11 +26,16 @@ pub fn create_plain_token2022_mint(svm: &mut LiteSVM, payer: &Keypair) -> Keypai
         Mint::LEN as u64,
         &TOKEN_2022_ID,
     );
-    super::TestContext::send_instruction(svm, create_ix, &[payer, &mint])
-        .expect("create plain mint");
+    super::TestContext::send_instruction(svm, create_ix, &[payer, &mint]).expect("create plain mint");
 
-    let init_ix = initialize_mint2(&TOKEN_2022_ID, &mint.pubkey(), &authority.pubkey(), None, 0)
-        .expect("init mint2");
+    let init_ix = initialize_mint2(
+        &TOKEN_2022_ID,
+        &mint.pubkey(),
+        &authority.pubkey(),
+        None,
+        0,
+    )
+    .expect("init mint2");
     super::TestContext::send_instruction(svm, init_ix, &[&authority]).expect("initialize mint2");
 
     mint

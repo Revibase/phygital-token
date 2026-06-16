@@ -8,16 +8,18 @@ import {
 import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../generated/programs/phygitalNfts";
 
 describe("fetchCardInstance", () => {
-  it("decodes owner and mint from encoded account data", async () => {
+  it("decodes owner and design mint from encoded account data", async () => {
     const cardInstance = address("11111111111111111111111111111112");
     const mint = address("11111111111111111111111111111113");
     const owner = address("11111111111111111111111111111114");
-    const lastCounter = 42;
+    const uri = "https://example.com/card.json";
+    const lastTransferSlot = 42n;
 
     const body = getCardInstanceEncoder().encode({
+      uri,
       mint,
       owner,
-      lastCounter,
+      lastTransferSlot,
     });
     const data = new Uint8Array(body);
 
@@ -37,9 +39,10 @@ describe("fetchCardInstance", () => {
     } as unknown as Rpc<SolanaRpcApi>;
 
     const parsed = await fetchCardInstance(rpc, cardInstance);
+    expect(parsed.data.uri).toBe(uri);
     expect(parsed.data.mint).toBe(mint);
     expect(parsed.data.owner).toBe(owner);
-    expect(parsed.data.lastCounter).toBe(lastCounter);
+    expect(parsed.data.lastTransferSlot).toBe(lastTransferSlot);
     expect(data.subarray(0, 8)).toEqual(CARD_INSTANCE_DISCRIMINATOR);
   });
 });

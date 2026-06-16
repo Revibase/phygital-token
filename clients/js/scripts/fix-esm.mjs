@@ -34,7 +34,7 @@ function fixSpec(dir, spec) {
 function fixFile(file) {
   const dir = dirname(file);
   const source = readFileSync(file, "utf8");
-  const updated = source.replace(/from "(\.\.?\/[^"]+)"/g, (match, spec) => {
+  const updated = source.replace(/from "(\.\/[^"]+)"/g, (match, spec) => {
     const fixed = fixSpec(dir, spec);
     return fixed === spec ? match : `from "${fixed}"`;
   });

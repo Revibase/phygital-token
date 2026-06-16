@@ -12,6 +12,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getAddressDecoder,
+  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
@@ -87,7 +89,7 @@ export type CreateMintInstruction<
             AccountSignerMeta<TAccountGroupMintAuthority>
         : TAccountGroupMintAuthority,
       TAccountMint extends string
-        ? WritableSignerAccount<TAccountMint> & AccountSignerMeta<TAccountMint>
+        ? WritableAccount<TAccountMint>
         : TAccountMint,
       TAccountProgramAuthority extends string
         ? WritableAccount<TAccountProgramAuthority>
@@ -107,12 +109,14 @@ export type CreateMintInstructionData = {
   name: string;
   symbol: string;
   uri: string;
+  designId: Address;
 };
 
 export type CreateMintInstructionDataArgs = {
   name: string;
   symbol: string;
   uri: string;
+  designId: Address;
 };
 
 export function getCreateMintInstructionDataEncoder(): Encoder<CreateMintInstructionDataArgs> {
@@ -122,6 +126,7 @@ export function getCreateMintInstructionDataEncoder(): Encoder<CreateMintInstruc
       ["name", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["symbol", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
       ["uri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["designId", getAddressEncoder()],
     ]),
     (value) => ({ ...value, discriminator: CREATE_MINT_DISCRIMINATOR }),
   );
@@ -133,6 +138,7 @@ export function getCreateMintInstructionDataDecoder(): Decoder<CreateMintInstruc
     ["name", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["symbol", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
     ["uri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["designId", getAddressDecoder()],
   ]);
 }
 
@@ -160,13 +166,14 @@ export type CreateMintAsyncInput<
   owner: TransactionSigner<TAccountOwner>;
   groupMint: Address<TAccountGroupMint>;
   groupMintAuthority: TransactionSigner<TAccountGroupMintAuthority>;
-  mint: TransactionSigner<TAccountMint>;
+  mint: Address<TAccountMint>;
   programAuthority?: Address<TAccountProgramAuthority>;
   tokenProgram?: Address<TAccountTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   name: CreateMintInstructionDataArgs["name"];
   symbol: CreateMintInstructionDataArgs["symbol"];
   uri: CreateMintInstructionDataArgs["uri"];
+  designId: CreateMintInstructionDataArgs["designId"];
 };
 
 export async function getCreateMintInstructionAsync<
@@ -289,13 +296,14 @@ export type CreateMintInput<
   owner: TransactionSigner<TAccountOwner>;
   groupMint: Address<TAccountGroupMint>;
   groupMintAuthority: TransactionSigner<TAccountGroupMintAuthority>;
-  mint: TransactionSigner<TAccountMint>;
+  mint: Address<TAccountMint>;
   programAuthority: Address<TAccountProgramAuthority>;
   tokenProgram?: Address<TAccountTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   name: CreateMintInstructionDataArgs["name"];
   symbol: CreateMintInstructionDataArgs["symbol"];
   uri: CreateMintInstructionDataArgs["uri"];
+  designId: CreateMintInstructionDataArgs["designId"];
 };
 
 export function getCreateMintInstruction<

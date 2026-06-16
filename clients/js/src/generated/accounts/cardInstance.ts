@@ -7,6 +7,8 @@
  */
 
 import {
+  addDecoderSizePrefix,
+  addEncoderSizePrefix,
   assertAccountExists,
   assertAccountsExist,
   combineCodec,
@@ -23,15 +25,19 @@ import {
   getStructEncoder,
   getU32Decoder,
   getU32Encoder,
+  getU64Decoder,
+  getU64Encoder,
+  getUtf8Decoder,
+  getUtf8Encoder,
   transformEncoder,
   type Account,
   type Address,
+  type Codec,
+  type Decoder,
   type EncodedAccount,
+  type Encoder,
   type FetchAccountConfig,
   type FetchAccountsConfig,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
   type MaybeAccount,
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
@@ -51,51 +57,44 @@ export type CardInstance = {
   discriminator: ReadonlyUint8Array;
   mint: Address;
   owner: Address;
-  /**
-   * Highest tap counter consumed on-chain. Each physical tap emits a strictly greater
-   * counter, so requiring `counter > last_counter` prevents replay.
-   */
-  lastCounter: number;
+  lastTransferSlot: bigint;
+  uri: string;
 };
 
 export type CardInstanceArgs = {
   mint: Address;
   owner: Address;
-  /**
-   * Highest tap counter consumed on-chain. Each physical tap emits a strictly greater
-   * counter, so requiring `counter > last_counter` prevents replay.
-   */
-  lastCounter: number;
+  lastTransferSlot: number | bigint;
+  uri: string;
 };
 
 /** Gets the encoder for {@link CardInstanceArgs} account data. */
-export function getCardInstanceEncoder(): FixedSizeEncoder<CardInstanceArgs> {
+export function getCardInstanceEncoder(): Encoder<CardInstanceArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["mint", getAddressEncoder()],
       ["owner", getAddressEncoder()],
-      ["lastCounter", getU32Encoder()],
+      ["lastTransferSlot", getU64Encoder()],
+      ["uri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ]),
     (value) => ({ ...value, discriminator: CARD_INSTANCE_DISCRIMINATOR }),
   );
 }
 
 /** Gets the decoder for {@link CardInstance} account data. */
-export function getCardInstanceDecoder(): FixedSizeDecoder<CardInstance> {
+export function getCardInstanceDecoder(): Decoder<CardInstance> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["mint", getAddressDecoder()],
     ["owner", getAddressDecoder()],
-    ["lastCounter", getU32Decoder()],
+    ["lastTransferSlot", getU64Decoder()],
+    ["uri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
   ]);
 }
 
 /** Gets the codec for {@link CardInstance} account data. */
-export function getCardInstanceCodec(): FixedSizeCodec<
-  CardInstanceArgs,
-  CardInstance
-> {
+export function getCardInstanceCodec(): Codec<CardInstanceArgs, CardInstance> {
   return combineCodec(getCardInstanceEncoder(), getCardInstanceDecoder());
 }
 
@@ -150,8 +149,4 @@ export async function fetchAllMaybeCardInstance(
 ): Promise<MaybeAccount<CardInstance>[]> {
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
   return maybeAccounts.map((maybeAccount) => decodeCardInstance(maybeAccount));
-}
-
-export function getCardInstanceSize(): number {
-  return 76;
 }

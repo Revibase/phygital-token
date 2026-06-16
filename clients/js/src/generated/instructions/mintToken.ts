@@ -7,22 +7,30 @@
  */
 
 import {
+  addDecoderSizePrefix,
+  addEncoderSizePrefix,
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getAddressDecoder,
+  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  getU32Decoder,
+  getU32Encoder,
+  getUtf8Decoder,
+  getUtf8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
   type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
+  type Codec,
+  type Decoder,
+  type Encoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
@@ -104,30 +112,38 @@ export type MintTokenInstruction<
 export type MintTokenInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1Pubkey: Secp256r1Pubkey;
+  mint: Address;
+  uri: string;
 };
 
 export type MintTokenInstructionDataArgs = {
   secp256r1Pubkey: Secp256r1PubkeyArgs;
+  mint: Address;
+  uri: string;
 };
 
-export function getMintTokenInstructionDataEncoder(): FixedSizeEncoder<MintTokenInstructionDataArgs> {
+export function getMintTokenInstructionDataEncoder(): Encoder<MintTokenInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
+      ["mint", getAddressEncoder()],
+      ["uri", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ]),
     (value) => ({ ...value, discriminator: MINT_TOKEN_DISCRIMINATOR }),
   );
 }
 
-export function getMintTokenInstructionDataDecoder(): FixedSizeDecoder<MintTokenInstructionData> {
+export function getMintTokenInstructionDataDecoder(): Decoder<MintTokenInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
+    ["mint", getAddressDecoder()],
+    ["uri", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
   ]);
 }
 
-export function getMintTokenInstructionDataCodec(): FixedSizeCodec<
+export function getMintTokenInstructionDataCodec(): Codec<
   MintTokenInstructionDataArgs,
   MintTokenInstructionData
 > {
@@ -156,6 +172,8 @@ export type MintTokenAsyncInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
+  mintArg: MintTokenInstructionDataArgs["mint"];
+  uri: MintTokenInstructionDataArgs["uri"];
 };
 
 export async function getMintTokenInstructionAsync<
@@ -223,7 +241,7 @@ export async function getMintTokenInstructionAsync<
   >;
 
   // Original args.
-  const args = { ...input };
+  const args = { ...input, mint: input.mintArg };
 
   // Resolve default values.
   if (!accounts.programAuthority.value) {
@@ -293,6 +311,8 @@ export type MintTokenInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
+  mintArg: MintTokenInstructionDataArgs["mint"];
+  uri: MintTokenInstructionDataArgs["uri"];
 };
 
 export function getMintTokenInstruction<
@@ -358,7 +378,7 @@ export function getMintTokenInstruction<
   >;
 
   // Original args.
-  const args = { ...input };
+  const args = { ...input, mint: input.mintArg };
 
   // Resolve default values.
   if (!accounts.tokenProgram.value) {

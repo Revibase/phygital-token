@@ -8,11 +8,14 @@ use anchor_spl::token_2022::{
 };
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
+use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 
 use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
 use crate::error::PhygitalError;
-use crate::state::{find_card_instance_pda, CardInstance};
-use crate::utils::Secp256r1VerifyArgs;
+use crate::state::{find_card_instance_pda, CardInstance, LAST_TRANSFER_SLOT_NONE};
+use crate::utils::{
+    build_transfer_message_hash, ChallengeArgs, Secp256r1VerifyArgs, TransferActionType,
+};
 
 #[derive(Accounts)]
 #[instruction(secp256r1_verify_args: Secp256r1VerifyArgs)]
@@ -22,7 +25,7 @@ pub struct ExecuteTransfer<'info> {
     /// CHECK: sender does not sign; validated against card_instance.owner and sender_token_account.owner
     #[account(
         constraint = sender.key() == card_instance.owner @ PhygitalError::OwnerMismatch,
-    )]
+    )] 
     pub sender: UncheckedAccount<'info>,
 
     #[account(
@@ -37,7 +40,7 @@ pub struct ExecuteTransfer<'info> {
 
     #[account(
         mut,
-        constraint = card_instance.mint == mint.key() @ PhygitalError::MintMismatch,
+        constraint = card_instance.mint == mint.key(),
     )]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
 
@@ -59,6 +62,10 @@ pub struct ExecuteTransfer<'info> {
         bump,
     )]
     pub program_authority: SystemAccount<'info>,
+
+    /// CHECK: validated as the SlotHashes sysvar address
+    #[account(address = SLOT_HASHES_SYSVAR_ID)]
+    pub slot_hashes: UncheckedAccount<'info>,
 
     /// CHECK: validated as the instructions sysvar address
     #[account(address = INSTRUCTIONS_SYSVAR_ID)]
@@ -87,12 +94,28 @@ pub fn handler(
     let signer_seed_array = [authority_seeds];
     let signer_seeds: &[&[&[u8]]] = signer_seed_array.as_slice();
 
-    // The secp256r1 precompile in the preceding instruction has already verified the
-    // tag's signature over `counter || nonce`. We extract the counter and enforce strict
-    // monotonicity so each physical tap authorizes at most one transfer (replay defense).
-    let tap_counter =
-        secp256r1_verify_args.extract_tap_counter(&ctx.accounts.instructions_sysvar)?;
-    ctx.accounts.card_instance.advance_counter(tap_counter)?;
+    let last_transfer_slot = ctx.accounts.card_instance.last_transfer_slot;
+    if last_transfer_slot != LAST_TRANSFER_SLOT_NONE {
+        require!(
+            secp256r1_verify_args.slot_number > last_transfer_slot,
+            PhygitalError::StaleTransferSlot
+        );
+    }
+
+    let message_hash = build_transfer_message_hash(
+        &ctx.accounts.card_instance.key(),
+        &ctx.accounts.sender.key(),
+    );
+
+    secp256r1_verify_args.verify_webauthn(
+        &ctx.accounts.slot_hashes,
+        &ctx.accounts.instructions_sysvar,
+        ChallengeArgs {
+            domain_account: ctx.accounts.token_program.key(),
+            message_hash,
+            action_type: TransferActionType::Transfer,
+        },
+    )?;
 
     associated_token::create_idempotent(CpiContext::new_with_signer(
         ctx.accounts.associated_token_program.key(),
@@ -137,6 +160,7 @@ pub fn handler(
         signer_seeds,
     )?;
 
+    ctx.accounts.card_instance.last_transfer_slot = secp256r1_verify_args.slot_number;
     ctx.accounts.card_instance.owner = ctx.accounts.recipient.key();
 
     if closing_sender_ata {
