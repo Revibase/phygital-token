@@ -17,11 +17,8 @@ export {
 } from "./instructions/mint";
 
 export {
-  DEFAULT_VERIFY_METADATA_ENDPOINT as DEFAULT_CARD_METADATA_ENDPOINT,
-  verifyMetadata as fetchCardMetadata,
   fetchNftDisplayInfo,
-  type VerifyMetadataResult as CardMetadataResult,
-  type VerifyMetadataCallback as FetchCardMetadataCallback,
+  type VerifyMetadataCallback,
   type NftDisplayInfo,
 } from "./utils/metadata";
 

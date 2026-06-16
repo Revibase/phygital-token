@@ -48,20 +48,6 @@ function findMintExtension(
   return null;
 }
 
-async function resolveCardInstanceFromLookup(
-  lookupKey: string,
-): Promise<{ cardInstance: Address; publicKey: string | null }> {
-  const trimmed = lookupKey.trim();
-  if (!trimmed) {
-    throw new Error("Card lookup key is required.");
-  }
-
-  const secp256r1Pubkey = parseSecp256r1Pubkey(trimmed);
-  return {
-    cardInstance: await findCardInstancePda(secp256r1Pubkey),
-    publicKey: trimmed,
-  };
-}
 type CardAttribute = {
   traitType: string;
   value: string;
@@ -169,7 +155,7 @@ export async function fetchNftDisplayInfo(
   rpc: Rpc<SolanaRpcApi>,
   lookupKey: string,
 ): Promise<NftDisplayInfo> {
-  const { cardInstance } = await resolveCardInstanceFromLookup(lookupKey);
+  const  cardInstance  = await findCardInstancePda(parseSecp256r1Pubkey(lookupKey));
   const instance = await fetchCardInstance(rpc, cardInstance);
 
   const mintAccount = await fetchMint(rpc, instance.data.mint);
