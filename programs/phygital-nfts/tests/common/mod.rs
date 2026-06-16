@@ -20,7 +20,7 @@ use anchor_spl::token_2022::spl_token_2022::state::Account as TokenAccountState;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use litesvm::LiteSVM;
 use phygital_nfts::constants::{
-    ADMIN, CARD_INSTANCE_SEED, MINT_SEED, PROGRAM_AUTHORITY_SEED,
+    ADMIN, CARD_INSTANCE_SEED, PROGRAM_AUTHORITY_SEED,
 };
 use phygital_nfts::state::CardInstance;
 use phygital_nfts::utils::secp256r1_pda_seed;
@@ -136,18 +136,6 @@ impl TestContext {
         Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &self.program_id).0
     }
 
-    pub fn mint_pda(&self, group_mint: Pubkey, design_id: Pubkey) -> Pubkey {
-        Pubkey::find_program_address(
-            &[
-                MINT_SEED,
-                group_mint.as_ref(),
-                design_id.as_ref(),
-            ],
-            &self.program_id,
-        )
-        .0
-    }
-
     pub fn card_instance_pda(&self, secp256r1_pubkey: &Secp256r1Pubkey) -> Pubkey {
         Pubkey::find_program_address(
             &[CARD_INSTANCE_SEED, secp256r1_pda_seed(secp256r1_pubkey)],
@@ -206,7 +194,7 @@ impl TestContext {
         )
     }
 
-    pub fn card_instance_fields(&self, card_instance: Pubkey) -> (Pubkey, Pubkey, String, u64) {
+    pub fn card_instance_fields(&self, card_instance: Pubkey) -> (Pubkey, Pubkey, u64) {
         let account = self
             .svm
             .get_account(&card_instance)
@@ -216,7 +204,6 @@ impl TestContext {
         (
             instance.owner,
             instance.mint,
-            instance.uri,
             instance.last_transfer_slot,
         )
     }
@@ -272,22 +259,15 @@ impl TestContext {
         let program_authority =
             Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &program_id).0;
         let group_mint = group.mint.pubkey();
-        let mint = Pubkey::find_program_address(
-            &[
-                MINT_SEED,
-                group_mint.as_ref(),
-                mint_args.design_id.as_ref(),
-            ],
-            &program_id,
-        )
-        .0;
+        // The mint is now a caller-provided keypair rather than a PDA.
+        let mint = Keypair::new();
 
         let accounts = phygital_nfts::accounts::CreateMint {
             payer: payer.pubkey(),
             owner: owner.pubkey(),
             group_mint,
             group_mint_authority: group.authority.pubkey(),
-            mint,
+            mint: mint.pubkey(),
             program_authority,
             token_program: TOKEN_2022_ID,
             system_program: anchor_lang::solana_program::system_program::ID,
@@ -298,9 +278,9 @@ impl TestContext {
             accounts,
             data: phygital_nfts::instruction::CreateMint { args: mint_args }.data(),
         };
-        Self::send_instruction(svm, ix, &[payer, owner, &group.authority])
+        Self::send_instruction(svm, ix, &[payer, owner, &group.authority, &mint])
             .expect("create design mint");
-        mint
+        mint.pubkey()
     }
 
     pub fn execute_transfer_ix(
@@ -445,11 +425,7 @@ impl TestContext {
 
         let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
         let card_instance = self.card_instance_pda(&secp256r1_pubkey);
-        let token_args = MintTokenArgs {
-            secp256r1_pubkey,
-            mint,
-            uri: "https://example.com/card.json".to_string(),
-        };
+        let token_args = MintTokenArgs { secp256r1_pubkey };
 
         let token_ix = self.mint_token_ix(
             self.payer.pubkey(),
@@ -477,11 +453,7 @@ impl TestContext {
     ) -> Pubkey {
         let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
         let card_instance = self.card_instance_pda(&secp256r1_pubkey);
-        let token_args = MintTokenArgs {
-            secp256r1_pubkey,
-            mint: card.mint,
-            uri: "https://example.com/card.json".to_string(),
-        };
+        let token_args = MintTokenArgs { secp256r1_pubkey };
 
         let token_ix = self.mint_token_ix(
             self.payer.pubkey(),
@@ -715,7 +687,6 @@ pub fn sample_create_design_args() -> CreateMintArgs {
         name: "Test Design".to_string(),
         symbol: "TDES".to_string(),
         uri: "https://example.com/design.json".to_string(),
-        design_id: Keypair::new().pubkey(),
     }
 }
 
@@ -735,7 +706,5 @@ pub fn admin_payer() -> Keypair {
 pub fn sample_mint_token_args() -> MintTokenArgs {
     MintTokenArgs {
         secp256r1_pubkey: Secp256r1Pubkey([0x02; 33]),
-        mint: Keypair::new().pubkey(),
-        uri: SAMPLE_CARD_URI.to_string(),
     }
 }

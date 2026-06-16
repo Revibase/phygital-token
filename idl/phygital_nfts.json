@@ -40,27 +40,7 @@
         {
           "name": "mint",
           "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  105,
-                  110,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "group_mint"
-              },
-              {
-                "kind": "arg",
-                "path": "args.design_id"
-              }
-            ]
-          }
+          "signer": true
         },
         {
           "name": "program_authority",
@@ -342,66 +322,51 @@
     },
     {
       "code": 6005,
-      "name": "InvalidMint",
-      "msg": "Mint is not a member of the expected token group"
-    },
-    {
-      "code": 6006,
-      "name": "InvalidParentGroup",
-      "msg": "Parent group mint is missing, invalid, or update authority mismatch"
-    },
-    {
-      "code": 6007,
-      "name": "MintMismatch",
-      "msg": "Mint does not match token record"
-    },
-    {
-      "code": 6008,
       "name": "OwnerMismatch",
       "msg": "Token owner mismatch"
     },
     {
-      "code": 6009,
+      "code": 6006,
       "name": "ArithmeticOverflow",
       "msg": "Arithmetic overflow"
     },
     {
-      "code": 6010,
+      "code": 6007,
       "name": "InvalidSlotHash",
       "msg": "Slot not found in SlotHashes sysvar — signature has expired or is being replayed"
     },
     {
-      "code": 6011,
+      "code": 6008,
       "name": "StaleTransferSlot",
       "msg": "Transfer slot must be greater than the last successful transfer slot"
     },
     {
-      "code": 6012,
+      "code": 6009,
       "name": "ClientDataHashMismatch",
       "msg": "Client data hash mismatch"
     },
     {
-      "code": 6013,
+      "code": 6010,
       "name": "MissingInstructionsSysvar",
       "msg": "Missing instructions sysvar account"
     },
     {
-      "code": 6014,
+      "code": 6011,
       "name": "InvalidSysvarDataFormat",
       "msg": "Invalid sysvar data format"
     },
     {
-      "code": 6015,
+      "code": 6012,
       "name": "MaxLengthExceeded",
       "msg": "Max length exceeded"
     },
     {
-      "code": 6016,
+      "code": 6013,
       "name": "AuthorityMismatch",
       "msg": "Authority does not match"
     },
     {
-      "code": 6017,
+      "code": 6014,
       "name": "InvalidCustodyTokenAccount",
       "msg": "Custody token account must be the canonical ATA for program_authority"
     }
@@ -423,10 +388,6 @@
           {
             "name": "last_transfer_slot",
             "type": "u64"
-          },
-          {
-            "name": "uri",
-            "type": "string"
           }
         ]
       }
@@ -447,10 +408,6 @@
           {
             "name": "uri",
             "type": "string"
-          },
-          {
-            "name": "design_id",
-            "type": "pubkey"
           }
         ]
       }
@@ -467,14 +424,6 @@
                 "name": "Secp256r1Pubkey"
               }
             }
-          },
-          {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "uri",
-            "type": "string"
           }
         ]
       }

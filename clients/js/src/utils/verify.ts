@@ -8,16 +8,24 @@ import {
 } from "@solana/kit";
 import { base64URLStringToBuffer } from "./passkey/internal";
 import { p256 } from "@noble/curves/nist.js";
+import { parseSecp256r1Pubkey } from "../instructions/mint";
 import {
-  findCardInstancePda,
-  parseSecp256r1Pubkey,
-} from "../instructions/mint";
-import { fetchCardInstance } from "../generated";
-import { fetchCardMetadata } from "./metadata";
+  DEFAULT_CARD_METADATA_ENDPOINT,
+  fetchCardMetadata,
+  type FetchCardMetadataCallback,
+} from "./metadata";
 
+/**
+ * Verifies the request against the card metadata server.
+ *
+ * The per-card URI is no longer stored on-chain, so card metadata is fetched
+ * from a fixed endpoint by default. Pass `fetchCardMetadataCallback` to override
+ * how (and from where) the card metadata is resolved.
+ */
 export async function verifyWithServerCheck(
-  rpc: Rpc<SolanaRpcApi>,
   params: URLSearchParams,
+  fetchCardMetadataCallback: FetchCardMetadataCallback = (queryParams) =>
+    fetchCardMetadata(DEFAULT_CARD_METADATA_ENDPOINT, queryParams),
 ) {
   const publicKey = params.get("pk");
   const signature = params.get("s");
@@ -26,13 +34,10 @@ export async function verifyWithServerCheck(
   if (!publicKey || !signature || !counter || !nonce)
     throw new Error("Missing query params");
 
-  const secp256r1PubKey = parseSecp256r1Pubkey(publicKey);
-  const cardInfo = await fetchCardInstance(
-    rpc,
-    await findCardInstancePda(secp256r1PubKey),
-  );
-  const result = await fetchCardMetadata(cardInfo.data.uri, params);
-  return result;
+  // Validate the public key shape before hitting the metadata endpoint.
+  parseSecp256r1Pubkey(publicKey);
+
+  return fetchCardMetadataCallback(params);
 }
 
 export function verifyLocal(params: URLSearchParams) {

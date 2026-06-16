@@ -2,7 +2,6 @@ use anchor_lang::prelude::*;
 
 
 pub const PROGRAM_AUTHORITY_SEED: &[u8] = b"program_authority";
-pub const MINT_SEED: &[u8] = b"mint";
 pub const CARD_INSTANCE_SEED: &[u8] = b"card_instance";
 
 pub const TRANSFER_HOOK_PROGRAM_ID: Pubkey =

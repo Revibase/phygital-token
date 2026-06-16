@@ -289,7 +289,7 @@ fn execute_transfer_holder_chain_to_second_recipient() {
         ctx.token_balance(second_recipient.pubkey(), card.mint),
         1
     );
-    let (owner, _, _, _) = ctx.card_instance_fields(card.card_instance);
+    let (owner, _, _) = ctx.card_instance_fields(card.card_instance);
     assert_eq!(owner, second_recipient.pubkey());
 }
 

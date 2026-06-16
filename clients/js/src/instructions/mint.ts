@@ -1,6 +1,4 @@
 import {
-  getAddressEncoder,
-  getBase58Encoder,
   getBytesEncoder,
   getProgramDerivedAddress,
   type Address,
@@ -16,7 +14,6 @@ import { findAssociatedTokenAddress } from "../utils/associatedToken";
 import { getCreateMintInstructionAsync } from "../generated/instructions/createMint";
 import { base64URLStringToBuffer } from "../utils/passkey/internal";
 
-const mint_SEED = new TextEncoder().encode("mint");
 const CARD_INSTANCE_SEED = new TextEncoder().encode("card_instance");
 
 export const MAX_METADATA_NAME_LEN = 32;
@@ -34,31 +31,15 @@ type CreateMintParams = MetadataFields & {
   owner: TransactionSigner;
   groupMint: Address;
   groupMintAuthority: TransactionSigner;
-  designId: Address;
+  // The mint is now a caller-supplied keypair rather than a program-derived address.
+  mint: TransactionSigner;
 };
 
 type MintTokenParams = {
   authority: TransactionSigner;
   mint: Address;
   secp256r1Pubkey: Secp256r1Pubkey;
-  uri: string;
 };
-
-export async function findmintPda(
-  groupMint: Address,
-  designId: Address,
-): Promise<Address> {
-  const [mint] = await getProgramDerivedAddress({
-    programAddress: PHYGITAL_NFTS_PROGRAM_ADDRESS,
-    seeds: [
-      getBytesEncoder().encode(mint_SEED),
-      getAddressEncoder().encode(groupMint),
-      getAddressEncoder().encode(designId),
-    ],
-  });
-
-  return mint;
-}
 
 export async function findCardInstancePda(
   secp256r1Pubkey: Secp256r1Pubkey,
@@ -115,20 +96,18 @@ export async function buildCreateMintInstructions(
 ): Promise<{ instructions: Instruction[]; mint: Address }> {
   validateMetadataFields(input);
 
-  const mint = await findmintPda(input.groupMint, input.designId);
   const instruction = await getCreateMintInstructionAsync({
     payer: input.payer,
     owner: input.owner,
     groupMint: input.groupMint,
     groupMintAuthority: input.groupMintAuthority,
-    mint,
+    mint: input.mint,
     name: input.name,
     symbol: input.symbol,
     uri: input.uri,
-    designId: input.designId,
   });
 
-  return { instructions: [instruction], mint };
+  return { instructions: [instruction], mint: input.mint.address };
 }
 
 export async function buildMintTokenInstructions(
@@ -148,8 +127,6 @@ export async function buildMintTokenInstructions(
     mint: input.mint,
     programAuthorityTokenAccount,
     secp256r1Pubkey: input.secp256r1Pubkey,
-    mintArg: input.mint,
-    uri: input.uri,
   });
 
   return { instructions: [instruction], cardInstance };

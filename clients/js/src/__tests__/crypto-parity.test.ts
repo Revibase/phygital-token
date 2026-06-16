@@ -1,10 +1,7 @@
 import { createHash } from "node:crypto";
-import { address, getAddressDecoder, getAddressEncoder } from "@solana/kit";
+import { getAddressDecoder, getAddressEncoder } from "@solana/kit";
 import { describe, expect, it } from "vitest";
-import {
-  findCardInstancePda,
-  findmintPda,
-} from "../instructions/mint";
+import { findCardInstancePda } from "../instructions/mint";
 import {
   buildTransferChallenge,
   buildTransferMessageHash,
@@ -75,13 +72,6 @@ describe("buildTransferChallenge", () => {
 });
 
 describe("PDAs", () => {
-  it("findmintPda uses group_mint and design_id seeds", async () => {
-    const groupMint = address("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
-    const designId = pubkeyFromByte(42);
-    const mint = await findmintPda(groupMint, designId);
-    expect(mint).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
-  });
-
   it("findCardInstancePda uses x-only secp256r1 seed", async () => {
     const compressed = new Uint8Array(33);
     compressed[0] = 0x02;

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::{CARD_INSTANCE_SEED, MAX_METADATA_URI_LEN};
+use crate::constants::{CARD_INSTANCE_SEED};
 use crate::utils::{secp256r1_pda_seed, Secp256r1Pubkey};
 
 pub const LAST_TRANSFER_SLOT_NONE: u64 = u64::MAX;
@@ -11,13 +11,10 @@ pub struct CardInstance {
     pub mint: Pubkey,
     pub owner: Pubkey,
     pub last_transfer_slot: u64,
-    #[max_len(MAX_METADATA_URI_LEN)]
-    pub uri: String,
 }
 
 impl CardInstance {
-    pub fn init(&mut self, uri: String, mint: Pubkey, owner: Pubkey) {
-        self.uri = uri;
+    pub fn init(&mut self, mint: Pubkey, owner: Pubkey) {
         self.mint = mint;
         self.owner = owner;
         self.last_transfer_slot = LAST_TRANSFER_SLOT_NONE;

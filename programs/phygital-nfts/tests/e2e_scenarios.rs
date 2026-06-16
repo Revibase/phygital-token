@@ -20,7 +20,7 @@ fn e2e_happy_lifecycle_with_retransfer() {
         .expect("claim");
     assert_eq!(ctx.last_transfer_slot(card.card_instance), first_slot);
 
-    let (owner, mint, _, _) = ctx.card_instance_fields(card.card_instance);
+    let (owner, mint, _) = ctx.card_instance_fields(card.card_instance);
     assert_eq!(owner, first_recipient.pubkey());
     assert_eq!(mint, card.mint);
 
@@ -128,8 +128,6 @@ fn e2e_card_pda_squatting_blocks_victim() {
     let victim_card = ctx.card_instance_pda(&victim_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
-        mint: card.mint,
-        uri: common::SAMPLE_CARD_URI.to_string(),
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_card, card.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]).expect("squatter mint");
@@ -140,8 +138,6 @@ fn e2e_card_pda_squatting_blocks_victim() {
         card.mint,
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
-            mint: card.mint,
-            uri: "https://example.com/victim.json".to_string(),
         },
     );
     TestContext::send_instruction(&mut ctx.svm, ix2, &[&ctx.payer])

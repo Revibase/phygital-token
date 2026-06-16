@@ -1,27 +1,20 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::associated_token::{self, AssociatedToken, Create};
-use anchor_spl::token_2022::spl_token_2022::extension::{
-    BaseStateWithExtensions, StateWithExtensions,
-};
-use anchor_spl::token_2022::spl_token_2022::state::Mint as SplMint;
 use anchor_spl::token_2022::{
     self, mint_to, MintTo,
 };
 use anchor_spl::token_interface::{Mint, TokenInterface};
-use spl_token_group_interface::state::TokenGroupMember;
 
 use crate::constants::{CARD_INSTANCE_SEED, PROGRAM_AUTHORITY_SEED};
 use crate::error::PhygitalError;
 use crate::state::CardInstance;
-use crate::utils::{mint_token_account_rent, secp256r1_pda_seed, validate_uri};
+use crate::utils::{mint_token_account_rent, secp256r1_pda_seed};
 use crate::Secp256r1Pubkey;
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MintTokenArgs {
     pub secp256r1_pubkey: Secp256r1Pubkey,
-    pub mint: Pubkey,
-    pub uri: String,
 }
 
 #[derive(Accounts)]
@@ -39,10 +32,7 @@ pub struct MintToken<'info> {
     )]
     pub card_instance: Account<'info, CardInstance>,
 
-    #[account(
-        mut,
-        constraint = mint.key() == args.mint @ PhygitalError::MintMismatch,
-    )]
+    #[account(mut)]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
 
     #[account(
@@ -64,30 +54,15 @@ pub struct MintToken<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
+pub fn handler(ctx: Context<MintToken>, _args: MintTokenArgs) -> Result<()> {
 
     #[cfg(feature = "mainnet")]
     require!(ctx.accounts.authority.key() == crate::ADMIN, PhygitalError::AuthorityMismatch);
 
-    validate_uri(&args.uri)?;
-
     let mint_key = ctx.accounts.mint.key();
     let mint_info = ctx.accounts.mint.to_account_info();
-    {
-        let mint_data = mint_info.try_borrow_data()?;
-        let design_state = StateWithExtensions::<SplMint>::unpack(&mint_data)
-            .map_err(|_| error!(PhygitalError::InvalidMint))?;
-        let member = design_state
-            .get_extension::<TokenGroupMember>()
-            .map_err(|_| error!(PhygitalError::InvalidMint))?;
-        require!(
-            Pubkey::from(member.mint) == mint_key,
-            PhygitalError::MintMismatch
-        );
-    }
-
+  
     ctx.accounts.card_instance.init(
-        args.uri,
         mint_key,
         ctx.accounts.program_authority.key(),
     );

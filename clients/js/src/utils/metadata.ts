@@ -16,6 +16,25 @@ import {
   findCardInstancePda,
   parseSecp256r1Pubkey,
 } from "../instructions/mint";
+import { RP_ID } from "./consts";
+
+/**
+ * Default server endpoint used to look up card metadata (credential record).
+ * The per-card URI is no longer stored on-chain, so callers either rely on this
+ * fixed endpoint or override it via `FetchCardMetadataCallback`.
+ */
+export const DEFAULT_CARD_METADATA_ENDPOINT = `https://${RP_ID}/api/metadata`;
+
+export type CardMetadataResult = {
+  credentialId: string | null;
+  expiry: number | null;
+  publicKey: string;
+  counter: number;
+};
+
+export type FetchCardMetadataCallback = (
+  params: URLSearchParams,
+) => Promise<CardMetadataResult>;
 
 function findMintExtension(
   extensions: readonly Extension[],
@@ -110,7 +129,10 @@ function parseCardAttributes(
     .filter((attribute): attribute is CardAttribute => attribute !== null);
 }
 
-export async function fetchCardMetadata(uri: string, params: URLSearchParams) {
+export async function fetchCardMetadata(
+  uri: string,
+  params: URLSearchParams,
+): Promise<CardMetadataResult> {
   try {
     const url = new URL(uri);
     for (const [key, value] of params.entries()) {
@@ -121,12 +143,7 @@ export async function fetchCardMetadata(uri: string, params: URLSearchParams) {
       const error = (await response.json()) as { error: string };
       throw new Error(error.error);
     }
-    return (await response.json()) as {
-      credentialId: string | null;
-      expiry: number | null;
-      publicKey: string;
-      counter: number;
-    };
+    return (await response.json()) as CardMetadataResult;
   } catch (error) {
     throw error;
   }
@@ -216,7 +233,7 @@ export async function fetchNftDisplayInfo(
       collectionMeta?.symbol ?? collectionJsonMeta?.symbol ?? null,
     collectionImage: collectionJsonMeta?.image ?? null,
     collectionUri: collectionMeta?.uri ?? null,
-    cardUri: instance.data.uri,
+    cardUri: DEFAULT_CARD_METADATA_ENDPOINT,
     currentOwner: instance.data.owner,
     lastTransferSlot: instance.data.lastTransferSlot,
   };

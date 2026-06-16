@@ -63,11 +63,7 @@ fn setup_e2e_card(ctx: &mut TestContext, passkey: &TestPasskey) -> MintedCard {
 
     let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
     let card_instance = ctx.card_instance_pda(&secp256r1_pubkey);
-    let token_args = MintTokenArgs {
-        secp256r1_pubkey,
-        mint: mint,
-        uri: common::SAMPLE_CARD_URI.to_string(),
-    };
+    let token_args = MintTokenArgs { secp256r1_pubkey };
 
     let token_ix = ctx.mint_token_ix(
         ctx.payer.pubkey(),

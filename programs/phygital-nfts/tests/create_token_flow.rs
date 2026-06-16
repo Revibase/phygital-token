@@ -9,7 +9,7 @@ use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use anchor_spl::token_2022_extensions::spl_token_metadata_interface::state::TokenMetadata;
 use common::{
     create_external_group_mint, sample_create_design_args, sample_mint_token_args, TestContext,
-    TestPasskey, SAMPLE_CARD_URI,
+    TestPasskey,
 };
 use phygital_nfts::state::CardInstance;
 use phygital_nfts::{MintTokenArgs, Secp256r1Pubkey};
@@ -54,7 +54,6 @@ fn create_mint_initializes_mint() {
     let group_mint = group.mint.pubkey();
 
     let mint_args = sample_create_design_args();
-    let design_id = mint_args.design_id;
     let mint = TestContext::create_design(
         &mut ctx.svm,
         ctx.program_id,
@@ -63,8 +62,6 @@ fn create_mint_initializes_mint() {
         &group,
         mint_args,
     );
-
-    assert_eq!(mint, ctx.mint_pda(group_mint, design_id));
 
     let mint_account = ctx.svm.get_account(&mint).expect("design mint");
     let mint_state =
@@ -104,26 +101,24 @@ fn create_mint_rejects_wrong_group_mint_authority() {
         100,
     );
     let args = sample_create_design_args();
-    let mint = ctx.mint_pda(group.mint.pubkey(), args.design_id);
+    let mint = Keypair::new();
 
     let ix = ctx.create_mint_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
         wrong_authority.pubkey(),
-        mint,
+        mint.pubkey(),
         group.mint.pubkey(),
         args,
     );
-    let err = TestContext::send_instruction(
+    // token-2022's token-group member init requires the group's real update
+    // authority to sign, so a wrong authority still makes the tx fail.
+    TestContext::send_instruction(
         &mut ctx.svm,
         ix,
-        &[&ctx.payer, &owner, &wrong_authority],
+        &[&ctx.payer, &owner, &wrong_authority, &mint],
     )
     .expect_err("wrong group mint authority should fail");
-    assert!(
-        format!("{err:?}").contains("InvalidParentGroup") || format!("{err:?}").contains("6083"),
-        "unexpected error: {err:?}"
-    );
 }
 
 #[test]
@@ -154,9 +149,7 @@ fn mint_token_mints_card_into_design() {
 
     ctx.fund_program_authority(None);
 
-    let mut token_args = sample_mint_token_args();
-    token_args.mint = mint;
-    let expected_uri = token_args.uri.clone();
+    let token_args = sample_mint_token_args();
     let card_instance = ctx.card_instance_pda(&token_args.secp256r1_pubkey);
     assert_eq!(
         card_instance,
@@ -179,7 +172,6 @@ fn mint_token_mints_card_into_design() {
         .expect("card instance account");
     let instance = CardInstance::try_deserialize(&mut card_account.data.as_ref())
         .expect("deserialize card instance");
-    assert_eq!(instance.uri, expected_uri);
     assert_eq!(instance.mint, mint);
     assert_eq!(instance.owner, ctx.program_authority());
 
@@ -214,20 +206,20 @@ fn create_mint_rejects_metadata_exceeding_max_lengths() {
 
     let mut args = sample_create_design_args();
     args.uri = "u".repeat(MAX_METADATA_URI_LEN + 1);
-    let mint = ctx.mint_pda(group.mint.pubkey(), args.design_id);
+    let mint = Keypair::new();
 
     let ix = ctx.create_mint_ix(
         ctx.payer.pubkey(),
         owner.pubkey(),
         group.authority.pubkey(),
-        mint,
+        mint.pubkey(),
         group.mint.pubkey(),
         args,
     );
     let err = TestContext::send_instruction(
         &mut ctx.svm,
         ix,
-        &[&ctx.payer, &owner, &group.authority],
+        &[&ctx.payer, &owner, &group.authority, &mint],
     )
     .expect_err("long uri should fail");
     assert!(
@@ -273,8 +265,6 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
         mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_a.compressed_pubkey),
-            mint,
-            uri: SAMPLE_CARD_URI.to_string(),
         },
     );
     TestContext::send_instruction(&mut ctx.svm, first_ix, &[&ctx.payer])
@@ -294,8 +284,6 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
         mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_b.compressed_pubkey),
-            mint,
-            uri: SAMPLE_CARD_URI.to_string(),
         },
     );
     TestContext::send_instruction(&mut ctx.svm, second_ix, &[&ctx.payer])
@@ -307,49 +295,4 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
         .expect("program authority account")
         .lamports;
     assert_eq!(balance_after, balance_before + token_account_rent);
-}
-
-#[test]
-fn mint_token_rejects_uri_exceeding_max_length() {
-    let mut ctx = TestContext::new();
-    let owner = Keypair::new();
-
-    ctx.svm
-        .airdrop(&owner.pubkey(), 2 * common::LAMPORTS_PER_SOL)
-        .unwrap();
-
-    let group = create_external_group_mint(
-        &mut ctx.svm,
-        &ctx.payer,
-        "Test Collection",
-        "TCOL",
-        "https://example.com/collection.json",
-        100,
-    );
-    let mint = TestContext::create_design(
-        &mut ctx.svm,
-        ctx.program_id,
-        &ctx.payer,
-        &owner,
-        &group,
-        sample_create_design_args(),
-    );
-
-    let mut token_args = sample_mint_token_args();
-    token_args.mint = mint;
-    token_args.uri = "u".repeat(MAX_METADATA_URI_LEN + 1);
-    let card_instance = ctx.card_instance_pda(&token_args.secp256r1_pubkey);
-
-    let token_ix = ctx.mint_token_ix(
-        ctx.payer.pubkey(),
-        card_instance,
-        mint,
-        token_args,
-    );
-    let err = TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer])
-        .expect_err("long uri should fail");
-    assert!(
-        format!("{err:?}").contains("MaxLengthExceeded") || format!("{err:?}").contains("6082"),
-        "unexpected error: {err:?}"
-    );
 }

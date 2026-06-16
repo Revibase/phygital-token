@@ -10,7 +10,6 @@ export { buildCreateCollectionMintInstructions } from "./instructions/collection
 export {
   buildCreateMintInstructions,
   buildMintTokenInstructions,
-  findmintPda,
   MAX_METADATA_NAME_LEN,
   MAX_METADATA_SYMBOL_LEN,
   MAX_METADATA_URI_LEN,
@@ -20,7 +19,11 @@ export {
 } from "./instructions/mint";
 
 export {
+  DEFAULT_CARD_METADATA_ENDPOINT,
+  fetchCardMetadata,
   fetchNftDisplayInfo,
+  type CardMetadataResult,
+  type FetchCardMetadataCallback,
   type NftDisplayInfo,
 } from "./utils/metadata";
 

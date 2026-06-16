@@ -17,15 +17,6 @@ pub enum PhygitalError {
     #[msg("secp256r1 pubkey does not match token record")]
     Secp256r1PubkeyMismatch,
 
-    #[msg("Mint is not a member of the expected token group")]
-    InvalidMint,
-
-    #[msg("Parent group mint is missing, invalid, or update authority mismatch")]
-    InvalidParentGroup,
-
-    #[msg("Mint does not match token record")]
-    MintMismatch,
-
     #[msg("Token owner mismatch")]
     OwnerMismatch,
 
