@@ -1,6 +1,4 @@
 import {
-  address,
-  getBase58Encoder,
   unwrapOption,
   type Address,
   type Rpc,
@@ -18,23 +16,17 @@ import {
 } from "../instructions/mint";
 import { RP_ID } from "./consts";
 
-/**
- * Default server endpoint used to look up card metadata (credential record).
- * The per-card URI is no longer stored on-chain, so callers either rely on this
- * fixed endpoint or override it via `FetchCardMetadataCallback`.
- */
-export const DEFAULT_CARD_METADATA_ENDPOINT = `https://${RP_ID}/api/metadata`;
 
-export type CardMetadataResult = {
-  credentialId: string | null;
-  expiry: number | null;
+export const DEFAULT_VERIFY_METADATA_ENDPOINT = `https://${RP_ID}/api/metadata`;
+
+export type VerifyMetadataResult = {
   publicKey: string;
-  counter: number;
+  isVerified:boolean;
 };
 
-export type FetchCardMetadataCallback = (
+export type VerifyMetadataCallback = (
   params: URLSearchParams,
-) => Promise<CardMetadataResult>;
+) => Promise<VerifyMetadataResult>;
 
 function findMintExtension(
   extensions: readonly Extension[],
@@ -64,26 +56,11 @@ async function resolveCardInstanceFromLookup(
     throw new Error("Card lookup key is required.");
   }
 
-  let bytes: Uint8Array;
-  try {
-    bytes = new Uint8Array(getBase58Encoder().encode(trimmed));
-  } catch {
-    throw new Error("Invalid base58 address or public key.");
-  }
-
-  if (bytes.length === 33 && (bytes[0] === 0x02 || bytes[0] === 0x03)) {
-    const secp256r1Pubkey = parseSecp256r1Pubkey(trimmed);
-    return {
-      cardInstance: await findCardInstancePda(secp256r1Pubkey),
-      publicKey: trimmed,
-    };
-  }
-
-  if (bytes.length === 32) {
-    return { cardInstance: address(trimmed), publicKey: null };
-  }
-
-  throw new Error("Expected a card instance address or secp256r1 public key.");
+  const secp256r1Pubkey = parseSecp256r1Pubkey(trimmed);
+  return {
+    cardInstance: await findCardInstancePda(secp256r1Pubkey),
+    publicKey: trimmed,
+  };
 }
 type CardAttribute = {
   traitType: string;
@@ -129,10 +106,10 @@ function parseCardAttributes(
     .filter((attribute): attribute is CardAttribute => attribute !== null);
 }
 
-export async function fetchCardMetadata(
+export async function verifyMetadata(
   uri: string,
   params: URLSearchParams,
-): Promise<CardMetadataResult> {
+): Promise<VerifyMetadataResult> {
   try {
     const url = new URL(uri);
     for (const [key, value] of params.entries()) {
@@ -143,7 +120,7 @@ export async function fetchCardMetadata(
       const error = (await response.json()) as { error: string };
       throw new Error(error.error);
     }
-    return (await response.json()) as CardMetadataResult;
+    return (await response.json()) as VerifyMetadataResult;
   } catch (error) {
     throw error;
   }
@@ -184,7 +161,6 @@ export type NftDisplayInfo = {
   collectionSymbol: string | null;
   collectionImage: string | null;
   collectionUri: string | null;
-  cardUri: string;
   currentOwner: Address;
   lastTransferSlot: bigint;
 };
@@ -233,7 +209,6 @@ export async function fetchNftDisplayInfo(
       collectionMeta?.symbol ?? collectionJsonMeta?.symbol ?? null,
     collectionImage: collectionJsonMeta?.image ?? null,
     collectionUri: collectionMeta?.uri ?? null,
-    cardUri: DEFAULT_CARD_METADATA_ENDPOINT,
     currentOwner: instance.data.owner,
     lastTransferSlot: instance.data.lastTransferSlot,
   };

@@ -5,8 +5,6 @@ export {
   type TransferSession,
 } from "./instructions/transfer";
 
-export { buildCreateCollectionMintInstructions } from "./instructions/collection";
-
 export {
   buildCreateMintInstructions,
   buildMintTokenInstructions,
@@ -19,11 +17,11 @@ export {
 } from "./instructions/mint";
 
 export {
-  DEFAULT_CARD_METADATA_ENDPOINT,
-  fetchCardMetadata,
+  DEFAULT_VERIFY_METADATA_ENDPOINT as DEFAULT_CARD_METADATA_ENDPOINT,
+  verifyMetadata as fetchCardMetadata,
   fetchNftDisplayInfo,
-  type CardMetadataResult,
-  type FetchCardMetadataCallback,
+  type VerifyMetadataResult as CardMetadataResult,
+  type VerifyMetadataCallback as FetchCardMetadataCallback,
   type NftDisplayInfo,
 } from "./utils/metadata";
 

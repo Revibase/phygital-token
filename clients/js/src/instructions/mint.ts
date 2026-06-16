@@ -112,7 +112,7 @@ export async function buildCreateMintInstructions(
 
 export async function buildMintTokenInstructions(
   input: MintTokenParams,
-): Promise<{ instructions: Instruction[]; cardInstance: Address }> {
+): Promise<Instruction[]> {
   const cardInstance = await findCardInstancePda(input.secp256r1Pubkey);
   const [programAuthority] = await findProgramAuthorityPda();
   const programAuthorityTokenAccount = await findAssociatedTokenAddress(
@@ -129,5 +129,5 @@ export async function buildMintTokenInstructions(
     secp256r1Pubkey: input.secp256r1Pubkey,
   });
 
-  return { instructions: [instruction], cardInstance };
+  return [instruction];
 }

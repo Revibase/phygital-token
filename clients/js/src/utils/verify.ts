@@ -10,13 +10,15 @@ import { base64URLStringToBuffer } from "./passkey/internal";
 import { p256 } from "@noble/curves/nist.js";
 import { parseSecp256r1Pubkey } from "../instructions/mint";
 import {
-  DEFAULT_CARD_METADATA_ENDPOINT,
-  fetchCardMetadata,
-  type FetchCardMetadataCallback,
+  DEFAULT_VERIFY_METADATA_ENDPOINT,
+  verifyMetadata,
+  type VerifyMetadataCallback,
 } from "./metadata";
 
+let runningCounterMap = new Map<string, number>();
+
 /**
- * Verifies the request against the card metadata server.
+ * Verifies the request against the server.
  *
  * The per-card URI is no longer stored on-chain, so card metadata is fetched
  * from a fixed endpoint by default. Pass `fetchCardMetadataCallback` to override
@@ -24,20 +26,15 @@ import {
  */
 export async function verifyWithServerCheck(
   params: URLSearchParams,
-  fetchCardMetadataCallback: FetchCardMetadataCallback = (queryParams) =>
-    fetchCardMetadata(DEFAULT_CARD_METADATA_ENDPOINT, queryParams),
+  verifyMetadataCallback: VerifyMetadataCallback = (queryParams) =>
+    verifyMetadata(DEFAULT_VERIFY_METADATA_ENDPOINT, queryParams),
 ) {
-  const publicKey = params.get("pk");
-  const signature = params.get("s");
-  const counter = params.get("c");
-  const nonce = params.get("n");
-  if (!publicKey || !signature || !counter || !nonce)
-    throw new Error("Missing query params");
+  const localResult = verifyLocal(params);
+  if (!localResult.isVerified) {
+    return localResult;
+  }
 
-  // Validate the public key shape before hitting the metadata endpoint.
-  parseSecp256r1Pubkey(publicKey);
-
-  return fetchCardMetadataCallback(params);
+  return verifyMetadataCallback(params);
 }
 
 export function verifyLocal(params: URLSearchParams) {
@@ -75,6 +72,14 @@ export function verifyLocal(params: URLSearchParams) {
   ) {
     throw new Error(`counter out of uint32 range: ${currentCounter}`);
   }
+
+  if (
+    currentCounter <
+    (runningCounterMap.get(publicKey) ?? Number.MAX_SAFE_INTEGER)
+  ) {
+    throw new Error(`Counter is already used. Tap to verify again.`);
+  }
+
   const counterBytes = getU32Encoder({ endian: Endian.Big }).encode(
     currentCounter,
   );
@@ -83,9 +88,14 @@ export function verifyLocal(params: URLSearchParams) {
   message.set(counterBytes, 0);
   message.set(randomBytes, 4);
 
+  const isVerified = p256.verify(rawSig, message, compressedPk);
+
+  if (isVerified) {
+    runningCounterMap.set(publicKey, currentCounter);
+  }
+
   return {
-    isVerified: p256.verify(rawSig, message, compressedPk),
+    isVerified,
     publicKey,
-    currentCounter,
   };
 }
