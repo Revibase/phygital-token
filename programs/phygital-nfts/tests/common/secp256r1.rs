@@ -1,16 +1,11 @@
-use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
-use super::{TEST_ORIGIN, TEST_RP_ID};
 use phygital_nfts::utils::{
-    build_transfer_message_hash, Secp256r1VerifyArgs, TransferActionType,
-    COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
-    SIGNATURE_OFFSETS_START,
+    Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
+    SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START, TAP_MESSAGE_LEN,
 };
 use rand::rngs::OsRng;
-use sha2::{Digest, Sha256};
 
 const SIGNATURE_SERIALIZED_SIZE: usize = 64;
 const DATA_START: usize = SIGNATURE_OFFSETS_SERIALIZED_SIZE + SIGNATURE_OFFSETS_START;
@@ -23,6 +18,8 @@ const SECP256R1_ORDER: [u8; 32] = [
     0xBC, 0xE6, 0xFA, 0xAD, 0xA7, 0x17, 0x9E, 0x84, 0xF3, 0xB9, 0xCA, 0xC2, 0xFC, 0x63, 0x25, 0x51,
 ];
 
+/// Test stand-in for a physical NFC tag. The tag signs the fixed `counter || nonce`
+/// message it generates on each tap; nothing about the transfer is part of the message.
 #[derive(Clone)]
 pub struct TestPasskey {
     signing_key: SigningKey,
@@ -45,85 +42,51 @@ impl TestPasskey {
         }
     }
 
+    /// Builds the dynamic-URL signed message for a tap: `counter(4 BE) || nonce(8)`.
+    fn tap_message(counter: u32, nonce: [u8; 8]) -> [u8; TAP_MESSAGE_LEN] {
+        let mut message = [0u8; TAP_MESSAGE_LEN];
+        message[..4].copy_from_slice(&counter.to_be_bytes());
+        message[4..].copy_from_slice(&nonce);
+        message
+    }
+
+    /// Builds the secp256r1 precompile instruction verifying this tag's signature over
+    /// `counter || nonce`, plus the matching `Secp256r1VerifyArgs`.
     pub fn secp256r1_verify_instruction(
         &self,
-        token_program: Pubkey,
-        card_instance: Pubkey,
-        sender: Pubkey,
-        slot_number: u64,
-        slot_hash: [u8; 32],
+        counter: u32,
+        nonce: [u8; 8],
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.secp256r1_verify_instruction_with(
-            token_program,
-            card_instance,
-            sender,
-            slot_number,
-            slot_hash,
-            None,
-        )
+        self.secp256r1_verify_instruction_with(counter, nonce, None)
     }
 
     pub fn secp256r1_verify_instruction_with(
         &self,
-        token_program: Pubkey,
-        card_instance: Pubkey,
-        sender: Pubkey,
-        slot_number: u64,
-        slot_hash: [u8; 32],
+        counter: u32,
+        nonce: [u8; 8],
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(&card_instance, &sender);
-
-        let mut challenge_buffer = Vec::new();
-        challenge_buffer.extend_from_slice(TransferActionType::Transfer.to_bytes());
-        challenge_buffer.extend_from_slice(token_program.as_ref());
-        challenge_buffer.extend_from_slice(&message_hash);
-        challenge_buffer.extend_from_slice(&slot_hash);
-        let expected_challenge: [u8; 32] = Sha256::digest(&challenge_buffer).into();
-
-        let origin = TEST_ORIGIN;
-        let mut client_data_json = Vec::new();
-        client_data_json.extend_from_slice(br#"{"type":"webauthn.get","challenge":"#);
-        Self::ccd_to_string(&URL_SAFE_NO_PAD.encode(expected_challenge), &mut client_data_json);
-        client_data_json.extend_from_slice(br#","origin":"#);
-        Self::ccd_to_string(origin, &mut client_data_json);
-        client_data_json.extend_from_slice(br#","crossOrigin":false}"#);
-
-        let client_data_hash: [u8; 32] = Sha256::digest(&client_data_json).into();
-        let rp_id_hash: [u8; 32] = Sha256::digest(TEST_RP_ID.as_bytes()).into();
-
-        let mut signed_message = Vec::with_capacity(64);
-        signed_message.extend_from_slice(&rp_id_hash);
-        signed_message.extend_from_slice(&client_data_hash);
+        let message = Self::tap_message(counter, nonce);
 
         let signature_bytes = if let Some(bytes) = signature_override {
             bytes
         } else {
-            let signature: p256::ecdsa::Signature = self.signing_key.sign(&signed_message);
+            let signature: p256::ecdsa::Signature = self.signing_key.sign(&message);
             normalize_low_s(signature.to_bytes().into())
         };
 
         let ix = new_secp256r1_instruction_with_signature(
-            &signed_message,
+            &message,
             &signature_bytes,
             &self.compressed_pubkey,
         );
 
         let verify_args = Secp256r1VerifyArgs {
+            instruction_index: 0,
             signed_message_index: 0,
-            slot_number,
-            origin: origin.to_string(),
-            cross_origin: false,
-            truncated_client_data_json: vec![],
         };
 
         (ix, verify_args)
-    }
-
-    fn ccd_to_string(value: &str, output: &mut Vec<u8>) {
-        output.push(b'"');
-        output.extend_from_slice(value.as_bytes());
-        output.push(b'"');
     }
 }
 
@@ -185,12 +148,4 @@ fn new_secp256r1_instruction_with_signature(
         accounts: vec![],
         data: instruction_data,
     }
-}
-
-pub fn current_slot_entry(svm: &litesvm::LiteSVM) -> (u64, [u8; 32]) {
-    let slot_hashes: solana_slot_hashes::SlotHashes = svm.get_sysvar();
-    let (slot, hash) = slot_hashes
-        .first()
-        .expect("slot hashes sysvar should contain at least one entry");
-    (*slot, hash.to_bytes())
 }

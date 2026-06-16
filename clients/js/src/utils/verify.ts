@@ -1,24 +1,30 @@
-import {
-  Endian,
-  getBase64Encoder,
-  getU32Decoder,
-  getU32Encoder,
-  Rpc,
-  SolanaRpcApi,
-} from "@solana/kit";
-import { base64URLStringToBuffer } from "./passkey/internal";
-import { p256 } from "@noble/curves/nist.js";
-import {
-  findCardInstancePda,
-  parseSecp256r1Pubkey,
-} from "../instructions/mint";
-import { fetchCardInstance } from "../generated";
-import { fetchCardMetadata } from "./metadata";
+import { Endian, getU32Encoder } from "@solana/kit";
+import { base64URLStringToBuffer } from "./encoding";
+import { DEFAULT_CARD_METADATA_ENDPOINT } from "./consts";
 
-export async function verifyWithServerCheck(
-  rpc: Rpc<SolanaRpcApi>,
-  params: URLSearchParams,
-) {
+/** Length (bytes) of the message the NFC tag signs: `counter(4 BE) || nonce(8)`. */
+export const TAP_MESSAGE_LEN = 12;
+
+/**
+ * Parsed and validated contents of a dynamic-URL tap. The tag signs a fixed
+ * `counter(4 BE) || nonce(8)` message; the signature is raw 64-byte ECDSA over P-256.
+ */
+export type TapSignature = {
+  /** 33-byte compressed P-256 public key. */
+  compressedPubkey: Uint8Array;
+  /** 64-byte raw `r || s` ECDSA signature. */
+  signature: Uint8Array;
+  /** The exact 12-byte message that was signed (`counter || nonce`). */
+  message: Uint8Array;
+  /** Monotonic tap counter, parsed from the message. */
+  counter: number;
+};
+
+/**
+ * Validates the `pk`/`s`/`c`/`n` params of a dynamic NDEF URL and reconstructs the
+ * signed message. Shared by server verification and the on-chain instruction builders.
+ */
+export function parseTapSignature(params: URLSearchParams): TapSignature {
   const publicKey = params.get("pk");
   const signature = params.get("s");
   const counter = params.get("c");
@@ -26,27 +32,10 @@ export async function verifyWithServerCheck(
   if (!publicKey || !signature || !counter || !nonce)
     throw new Error("Missing query params");
 
-  const secp256r1PubKey = parseSecp256r1Pubkey(publicKey);
-  const cardInfo = await fetchCardInstance(
-    rpc,
-    await findCardInstancePda(secp256r1PubKey),
-  );
-  const result = await fetchCardMetadata(cardInfo.data.uri, params);
-  return result;
-}
-
-export function verifyLocal(params: URLSearchParams) {
-  const publicKey = params.get("pk");
-  const signature = params.get("s");
-  const counter = params.get("c");
-  const nonce = params.get("n");
-  if (!publicKey || !signature || !counter || !nonce)
-    throw new Error("Missing query params");
-
-  const compressedPk = base64URLStringToBuffer(publicKey);
-  if (compressedPk.length !== 33) {
+  const compressedPubkey = base64URLStringToBuffer(publicKey);
+  if (compressedPubkey.length !== 33) {
     throw new Error(
-      `pk must be 33-byte compressed P-256 key, got ${compressedPk.length} bytes`,
+      `pk must be 33-byte compressed P-256 key, got ${compressedPubkey.length} bytes`,
     );
   }
 
@@ -74,13 +63,67 @@ export function verifyLocal(params: URLSearchParams) {
     currentCounter,
   );
 
-  const message = new Uint8Array(12);
+  const message = new Uint8Array(TAP_MESSAGE_LEN);
   message.set(counterBytes, 0);
   message.set(randomBytes, 4);
 
   return {
-    isVerified: p256.verify(rawSig, message, compressedPk),
-    publicKey,
-    currentCounter,
+    compressedPubkey,
+    signature: rawSig,
+    message,
+    counter: currentCounter,
   };
+}
+
+/**
+ * Card identity and freshness resolved by the verifying server for a given tap.
+ * `latestCounter` is the highest counter the server has recorded for this card.
+ */
+export type CardMetadata = {
+  secp256r1PublicKey: string;
+  credentialId: string | null;
+  expiry: number | null;
+  latestCounter: number;
+};
+
+/** Resolves a tap's card metadata from a server, given the dynamic-URL params. */
+export type CardMetadataFetcher = (
+  params: URLSearchParams,
+) => Promise<CardMetadata>;
+
+/**
+ * Verifies a tapped NDEF dynamic URL against a server.
+ *
+ * The server resolves the card metadata for the supplied params and is the authority on
+ * freshness: it throws if the tap's counter is not greater than the latest counter it has
+ * stored for this card. By default a fixed endpoint is used; pass `fetchCardMetadata` to
+ * route the check through your own backend.
+ */
+export async function verify(
+  params: URLSearchParams,
+  fetchCardMetadata: CardMetadataFetcher = defaultFetchCardMetadata,
+): Promise<CardMetadata> {
+  // Surface malformed taps locally before involving the server.
+  parseTapSignature(params);
+  return fetchCardMetadata(params);
+}
+
+async function defaultFetchCardMetadata(
+  params: URLSearchParams,
+): Promise<CardMetadata> {
+  const url = new URL(DEFAULT_CARD_METADATA_ENDPOINT);
+  for (const [key, value] of params.entries()) {
+    url.searchParams.set(key, value);
+  }
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as {
+      error?: string;
+    };
+    throw new Error(
+      body.error ?? `Card verification failed (${response.status})`,
+    );
+  }
+  return (await response.json()) as CardMetadata;
 }

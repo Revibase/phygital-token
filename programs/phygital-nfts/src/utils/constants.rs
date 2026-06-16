@@ -1,16 +1,12 @@
 use anchor_lang::prelude::*;
 
-
 pub const PROGRAM_AUTHORITY_SEED: &[u8] = b"program_authority";
-pub const MINT_SEED: &[u8] = b"mint";
 pub const CARD_INSTANCE_SEED: &[u8] = b"card_instance";
 
 pub const TRANSFER_HOOK_PROGRAM_ID: Pubkey =
     pubkey!("FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G");
 
-pub const ADMIN:  Pubkey =
-    pubkey!("AMn21jT5RMZrv5hSvtkrWCMJFp3cUyeAx4AxKvF59xJZ");
-
+pub const ADMIN: Pubkey = pubkey!("AMn21jT5RMZrv5hSvtkrWCMJFp3cUyeAx4AxKvF59xJZ");
 
 /// On-chain metadata limits — mirror in clients before building transactions.
 pub const MAX_METADATA_NAME_LEN: usize = 32;

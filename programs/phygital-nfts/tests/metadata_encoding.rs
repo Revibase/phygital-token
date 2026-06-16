@@ -4,9 +4,8 @@ use anchor_spl::token_2022::spl_token_2022::state::Account as SplTokenAccount;
 use phygital_nfts::constants::{
     MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN, MAX_METADATA_URI_LEN,
 };
-use phygital_nfts::utils::validate_uri;
+use phygital_nfts::state::LAST_COUNTER_NONE;
 use phygital_nfts::utils::{mint_metadata_tlv_size, validate_metadata_strings};
-use phygital_nfts::state::LAST_TRANSFER_SLOT_NONE;
 
 #[test]
 fn mint_token_account_rent_matches_transfer_hook_ata() {
@@ -40,7 +39,7 @@ fn mint_metadata_tlv_size_is_positive() {
     let size = mint_metadata_tlv_size("Test Design", "TDES", "https://example.com/x.json")
         .expect("tlv size");
     assert!(size > 0);
-    assert_eq!(LAST_TRANSFER_SLOT_NONE, u64::MAX);
+    assert_eq!(LAST_COUNTER_NONE, u32::MAX);
 }
 
 #[test]
@@ -56,12 +55,5 @@ fn validate_metadata_strings_rejects_long_symbol() {
     let symbol = "s".repeat(MAX_METADATA_SYMBOL_LEN + 1);
     let err = validate_metadata_strings("nft", &symbol, "https://example.com/x.json")
         .expect_err("over-limit symbol");
-    assert!(format!("{err:?}").contains("MaxLengthExceeded"));
-}
-
-#[test]
-fn validate_uri_rejects_over_limit() {
-    let uri = "u".repeat(MAX_METADATA_URI_LEN + 1);
-    let err = validate_uri(&uri).expect_err("over-limit uri");
     assert!(format!("{err:?}").contains("MaxLengthExceeded"));
 }

@@ -3,14 +3,13 @@ mod external_group_mint;
 mod plain_token_mint;
 mod secp256r1;
 
-pub use assertions::{assert_token_program_error, assert_transaction_failed};
+pub use assertions::{assert_token_program_error,assert_transaction_failed};
 pub use external_group_mint::{
     create_external_group_mint, create_group_mint_without_update_authority, ExternalGroupMint,
 };
 pub use plain_token_mint::create_plain_token2022_mint;
 
 use anchor_lang::solana_program::instruction::Instruction;
-use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::solana_program::system_instruction;
 use anchor_lang::{prelude::*, InstructionData, ToAccountMetas};
 use anchor_spl::associated_token::get_associated_token_address_with_program_id;
@@ -19,25 +18,19 @@ use anchor_spl::token_2022::spl_token_2022::instruction::transfer_checked;
 use anchor_spl::token_2022::spl_token_2022::state::Account as TokenAccountState;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use litesvm::LiteSVM;
-use phygital_nfts::constants::{
-    ADMIN, CARD_INSTANCE_SEED, MINT_SEED, PROGRAM_AUTHORITY_SEED,
-};
-use phygital_nfts::state::CardInstance;
+use phygital_nfts::constants::{ADMIN, CARD_INSTANCE_SEED, PROGRAM_AUTHORITY_SEED};
+use phygital_nfts::state::{CardInstance, LAST_COUNTER_NONE};
 use phygital_nfts::utils::secp256r1_pda_seed;
 use phygital_nfts::{CreateMintArgs, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs};
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
-use solana_sdk_ids::sysvar::{
-    instructions::ID as INSTRUCTIONS_SYSVAR_ID, slot_hashes::ID as SLOT_HASHES_SYSVAR_ID,
-};
+use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use solana_signer::Signer;
 use solana_transaction::versioned::VersionedTransaction;
 
-pub use secp256r1::{current_slot_entry, TestPasskey};
+pub use secp256r1::TestPasskey;
 
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
-pub const TEST_RP_ID: &str = "localhost";
-pub const TEST_ORIGIN: &str = "http://localhost:3000";
 
 pub struct MintedCard {
     pub collection_owner: Keypair,
@@ -60,21 +53,13 @@ fn program_artifact_paths(manifest_dir: &std::path::Path, name: &str) -> Vec<std
     if let Ok(cargo_target_dir) = std::env::var("CARGO_TARGET_DIR") {
         let base = std::path::PathBuf::from(cargo_target_dir);
         paths.push(base.join(format!("deploy/{name}.so")));
-        paths.push(
-            base.join(format!("sbpf-solana-solana/release/{name}.so")),
-        );
-        paths.push(
-            base.join(format!("sbpf-solana-solana/release/deps/{name}.so")),
-        );
+        paths.push(base.join(format!("sbpf-solana-solana/release/{name}.so")));
+        paths.push(base.join(format!("sbpf-solana-solana/release/deps/{name}.so")));
     }
     let workspace_target = manifest_dir.join("../../target");
     paths.push(workspace_target.join(format!("deploy/{name}.so")));
-    paths.push(
-        workspace_target.join(format!("sbpf-solana-solana/release/{name}.so")),
-    );
-    paths.push(
-        workspace_target.join(format!("sbpf-solana-solana/release/deps/{name}.so")),
-    );
+    paths.push(workspace_target.join(format!("sbpf-solana-solana/release/{name}.so")));
+    paths.push(workspace_target.join(format!("sbpf-solana-solana/release/deps/{name}.so")));
     paths
 }
 
@@ -136,18 +121,6 @@ impl TestContext {
         Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &self.program_id).0
     }
 
-    pub fn mint_pda(&self, group_mint: Pubkey, design_id: Pubkey) -> Pubkey {
-        Pubkey::find_program_address(
-            &[
-                MINT_SEED,
-                group_mint.as_ref(),
-                design_id.as_ref(),
-            ],
-            &self.program_id,
-        )
-        .0
-    }
-
     pub fn card_instance_pda(&self, secp256r1_pubkey: &Secp256r1Pubkey) -> Pubkey {
         Pubkey::find_program_address(
             &[CARD_INSTANCE_SEED, secp256r1_pda_seed(secp256r1_pubkey)],
@@ -206,19 +179,14 @@ impl TestContext {
         )
     }
 
-    pub fn card_instance_fields(&self, card_instance: Pubkey) -> (Pubkey, Pubkey, String, u64) {
+    pub fn card_instance_fields(&self, card_instance: Pubkey) -> (Pubkey, Pubkey, u32) {
         let account = self
             .svm
             .get_account(&card_instance)
             .expect("card instance account");
         let instance = CardInstance::try_deserialize(&mut account.data.as_ref())
             .expect("deserialize card instance");
-        (
-            instance.owner,
-            instance.mint,
-            instance.uri,
-            instance.last_transfer_slot,
-        )
+        (instance.owner, instance.mint, instance.last_counter)
     }
 
     pub fn recipient_close_authority(&self, recipient: Pubkey, mint: Pubkey) -> Option<Pubkey> {
@@ -268,26 +236,18 @@ impl TestContext {
         owner: &Keypair,
         group: &ExternalGroupMint,
         mint_args: CreateMintArgs,
-    ) -> Pubkey {
+    ) -> Keypair {
         let program_authority =
             Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &program_id).0;
         let group_mint = group.mint.pubkey();
-        let mint = Pubkey::find_program_address(
-            &[
-                MINT_SEED,
-                group_mint.as_ref(),
-                mint_args.design_id.as_ref(),
-            ],
-            &program_id,
-        )
-        .0;
+        let mint = Keypair::new();
 
         let accounts = phygital_nfts::accounts::CreateMint {
             payer: payer.pubkey(),
             owner: owner.pubkey(),
             group_mint,
             group_mint_authority: group.authority.pubkey(),
-            mint,
+            mint: mint.pubkey(),
             program_authority,
             token_program: TOKEN_2022_ID,
             system_program: anchor_lang::solana_program::system_program::ID,
@@ -298,7 +258,7 @@ impl TestContext {
             accounts,
             data: phygital_nfts::instruction::CreateMint { args: mint_args }.data(),
         };
-        Self::send_instruction(svm, ix, &[payer, owner, &group.authority])
+        Self::send_instruction(svm, ix, &[payer, owner, &mint, &group.authority])
             .expect("create design mint");
         mint
     }
@@ -348,7 +308,6 @@ impl TestContext {
                     &TOKEN_2022_ID,
                 ),
                 program_authority: self.program_authority(),
-                slot_hashes: SLOT_HASHES_SYSVAR_ID,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
                 token_program: TOKEN_2022_ID,
                 associated_token_program: ASSOCIATED_TOKEN_ID,
@@ -445,25 +404,21 @@ impl TestContext {
 
         let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
         let card_instance = self.card_instance_pda(&secp256r1_pubkey);
-        let token_args = MintTokenArgs {
-            secp256r1_pubkey,
-            mint,
-            uri: "https://example.com/card.json".to_string(),
-        };
+        let token_args = MintTokenArgs { secp256r1_pubkey };
 
         let token_ix = self.mint_token_ix(
             self.payer.pubkey(),
             card_instance,
-            mint,
+            mint.pubkey(),
             token_args,
         );
-        TestContext::send_instruction(&mut self.svm, token_ix, &[&self.payer])
+        TestContext::send_instruction(&mut self.svm, token_ix, &[&self.payer, &mint])
             .expect("create token");
 
         MintedCard {
             collection_owner,
             holder,
-            mint,
+            mint: mint.pubkey(),
             card_instance,
             group_mint,
             passkey: passkey.clone(),
@@ -477,18 +432,10 @@ impl TestContext {
     ) -> Pubkey {
         let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
         let card_instance = self.card_instance_pda(&secp256r1_pubkey);
-        let token_args = MintTokenArgs {
-            secp256r1_pubkey,
-            mint: card.mint,
-            uri: "https://example.com/card.json".to_string(),
-        };
+        let token_args = MintTokenArgs { secp256r1_pubkey };
 
-        let token_ix = self.mint_token_ix(
-            self.payer.pubkey(),
-            card_instance,
-            card.mint,
-            token_args,
-        );
+        let token_ix =
+            self.mint_token_ix(self.payer.pubkey(), card_instance, card.mint, token_args);
         TestContext::send_instruction(&mut self.svm, token_ix, &[&self.payer])
             .expect("create second token");
         card_instance
@@ -506,7 +453,6 @@ impl TestContext {
             recipient,
             include_secp_ix,
             None,
-            None,
         )
     }
 
@@ -518,27 +464,28 @@ impl TestContext {
         Self::send_instructions(&mut self.svm, &instructions, signers)
     }
 
+    /// Next tap counter that satisfies on-chain monotonicity for this card. A freshly
+    /// minted card (no prior transfer) accepts any counter, so we start at 1.
+    pub fn next_counter(&self, card_instance: Pubkey) -> u32 {
+        let last = self.last_counter(card_instance);
+        if last == LAST_COUNTER_NONE {
+            1
+        } else {
+            last.saturating_add(1)
+        }
+    }
+
     pub fn send_execute_transfer_from(
         &mut self,
         card: &MintedCard,
         sender: Pubkey,
         recipient: &Keypair,
         include_secp_ix: bool,
-        slot_number: Option<u64>,
-        slot_hash: Option<[u8; 32]>,
+        counter: Option<u32>,
     ) -> litesvm::types::TransactionResult {
-        let (slot_number, slot_hash) = match (slot_number, slot_hash) {
-            (Some(slot), Some(hash)) => (slot, hash),
-            _ => current_slot_entry(&self.svm),
-        };
+        let counter = counter.unwrap_or_else(|| self.next_counter(card.card_instance));
 
-        let (secp_ix, verify_args) = card.passkey.secp256r1_verify_instruction(
-            TOKEN_2022_ID,
-            card.card_instance,
-            sender,
-            slot_number,
-            slot_hash,
-        );
+        let (secp_ix, verify_args) = card.passkey.secp256r1_verify_instruction(counter, [0u8; 8]);
 
         let transfer_ix = self.execute_transfer_ix(
             recipient.pubkey(),
@@ -569,15 +516,9 @@ impl TestContext {
         mint: Pubkey,
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
-        let (slot_number, slot_hash) = current_slot_entry(&self.svm);
+        let counter = self.next_counter(card.card_instance);
 
-        let (secp_ix, verify_args) = card.passkey.secp256r1_verify_instruction(
-            TOKEN_2022_ID,
-            card.card_instance,
-            sender,
-            slot_number,
-            slot_hash,
-        );
+        let (secp_ix, verify_args) = card.passkey.secp256r1_verify_instruction(counter, [0u8; 8]);
 
         let transfer_ix = self.execute_transfer_ix(
             recipient.pubkey(),
@@ -600,22 +541,46 @@ impl TestContext {
         Self::send_instructions(&mut self.svm, &instructions, &[recipient])
     }
 
-    pub fn set_current_slot(&mut self, slot: u64) {
-        use solana_slot_hashes::SlotHashes;
-
-        self.svm.warp_to_slot(slot);
-        let hash = solana_message::Hash::new_from_array([slot as u8; 32]);
-        self.svm.set_sysvar(&SlotHashes::new(&[(slot, hash)]));
+    pub fn update_counter_ix(
+        &self,
+        card_instance: Pubkey,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_nfts::accounts::UpdateCounter {
+                card_instance,
+                instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
+            }
+            .to_account_metas(None),
+            data: phygital_nfts::instruction::UpdateCounter {
+                secp256r1_verify_args,
+            }
+            .data(),
+        }
     }
 
-    pub fn last_transfer_slot(&self, card_instance: Pubkey) -> u64 {
+    pub fn send_update_counter(
+        &mut self,
+        card_instance: Pubkey,
+        passkey: &TestPasskey,
+        counter: u32,
+        payer: &Keypair,
+    ) -> litesvm::types::TransactionResult {
+        let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(counter, [0u8; 8]);
+        let update_ix = self.update_counter_ix(card_instance, verify_args);
+        self.svm.airdrop(&payer.pubkey(), 1 * LAMPORTS_PER_SOL).ok();
+        Self::send_instructions(&mut self.svm, &[secp_ix, update_ix], &[payer])
+    }
+
+    pub fn last_counter(&self, card_instance: Pubkey) -> u32 {
         let account = self
             .svm
             .get_account(&card_instance)
             .expect("card instance account");
         let instance = CardInstance::try_deserialize(&mut account.data.as_ref())
             .expect("deserialize card instance");
-        instance.last_transfer_slot
+        instance.last_counter
     }
 
     pub fn token_balance(&self, owner: Pubkey, mint: Pubkey) -> u64 {
@@ -715,7 +680,6 @@ pub fn sample_create_design_args() -> CreateMintArgs {
         name: "Test Design".to_string(),
         symbol: "TDES".to_string(),
         uri: "https://example.com/design.json".to_string(),
-        design_id: Keypair::new().pubkey(),
     }
 }
 
@@ -735,7 +699,5 @@ pub fn admin_payer() -> Keypair {
 pub fn sample_mint_token_args() -> MintTokenArgs {
     MintTokenArgs {
         secp256r1_pubkey: Secp256r1Pubkey([0x02; 33]),
-        mint: Keypair::new().pubkey(),
-        uri: SAMPLE_CARD_URI.to_string(),
     }
 }

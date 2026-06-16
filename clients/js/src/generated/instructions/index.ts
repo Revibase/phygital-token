@@ -9,3 +9,4 @@
 export * from "./createMint";
 export * from "./executeTransfer";
 export * from "./mintToken";
+export * from "./updateCounter";

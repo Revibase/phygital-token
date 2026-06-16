@@ -7,34 +7,22 @@
  */
 
 import {
-  addDecoderSizePrefix,
-  addEncoderSizePrefix,
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU32Decoder,
-  getU32Encoder,
-  getU64Decoder,
-  getU64Encoder,
-  getU8Decoder,
-  getU8Encoder,
-  getUtf8Decoder,
-  getUtf8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
@@ -50,6 +38,12 @@ import {
 } from "@solana/program-client-core";
 import { findProgramAuthorityPda } from "../pdas";
 import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../programs";
+import {
+  getSecp256r1VerifyArgsDecoder,
+  getSecp256r1VerifyArgsEncoder,
+  type Secp256r1VerifyArgs,
+  type Secp256r1VerifyArgsArgs,
+} from "../types";
 
 export const EXECUTE_TRANSFER_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([233, 126, 160, 184, 235, 206, 31, 119]);
@@ -69,8 +63,6 @@ export type ExecuteTransferInstruction<
   TAccountSenderTokenAccount extends string | AccountMeta<string> = string,
   TAccountRecipientTokenAccount extends string | AccountMeta<string> = string,
   TAccountProgramAuthority extends string | AccountMeta<string> = string,
-  TAccountSlotHashes extends string | AccountMeta<string> =
-    "SysvarS1otHashes111111111111111111111111111",
   TAccountInstructionsSysvar extends string | AccountMeta<string> =
     "Sysvar1nstructions1111111111111111111111111",
   TAccountTokenProgram extends string | AccountMeta<string> =
@@ -108,9 +100,6 @@ export type ExecuteTransferInstruction<
       TAccountProgramAuthority extends string
         ? WritableAccount<TAccountProgramAuthority>
         : TAccountProgramAuthority,
-      TAccountSlotHashes extends string
-        ? ReadonlyAccount<TAccountSlotHashes>
-        : TAccountSlotHashes,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
@@ -132,53 +121,31 @@ export type ExecuteTransferInstruction<
 
 export type ExecuteTransferInstructionData = {
   discriminator: ReadonlyUint8Array;
-  signedMessageIndex: number;
-  slotNumber: bigint;
-  origin: string;
-  crossOrigin: boolean;
-  truncatedClientDataJson: ReadonlyUint8Array;
+  secp256r1VerifyArgs: Secp256r1VerifyArgs;
 };
 
 export type ExecuteTransferInstructionDataArgs = {
-  signedMessageIndex: number;
-  slotNumber: number | bigint;
-  origin: string;
-  crossOrigin: boolean;
-  truncatedClientDataJson: ReadonlyUint8Array;
+  secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
 };
 
-export function getExecuteTransferInstructionDataEncoder(): Encoder<ExecuteTransferInstructionDataArgs> {
+export function getExecuteTransferInstructionDataEncoder(): FixedSizeEncoder<ExecuteTransferInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["signedMessageIndex", getU8Encoder()],
-      ["slotNumber", getU64Encoder()],
-      ["origin", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["crossOrigin", getBooleanEncoder()],
-      [
-        "truncatedClientDataJson",
-        addEncoderSizePrefix(getBytesEncoder(), getU32Encoder()),
-      ],
+      ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
     ]),
     (value) => ({ ...value, discriminator: EXECUTE_TRANSFER_DISCRIMINATOR }),
   );
 }
 
-export function getExecuteTransferInstructionDataDecoder(): Decoder<ExecuteTransferInstructionData> {
+export function getExecuteTransferInstructionDataDecoder(): FixedSizeDecoder<ExecuteTransferInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["signedMessageIndex", getU8Decoder()],
-    ["slotNumber", getU64Decoder()],
-    ["origin", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["crossOrigin", getBooleanDecoder()],
-    [
-      "truncatedClientDataJson",
-      addDecoderSizePrefix(getBytesDecoder(), getU32Decoder()),
-    ],
+    ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
   ]);
 }
 
-export function getExecuteTransferInstructionDataCodec(): Codec<
+export function getExecuteTransferInstructionDataCodec(): FixedSizeCodec<
   ExecuteTransferInstructionDataArgs,
   ExecuteTransferInstructionData
 > {
@@ -196,7 +163,6 @@ export type ExecuteTransferAsyncInput<
   TAccountSenderTokenAccount extends string = string,
   TAccountRecipientTokenAccount extends string = string,
   TAccountProgramAuthority extends string = string,
-  TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
@@ -210,17 +176,12 @@ export type ExecuteTransferAsyncInput<
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
   programAuthority?: Address<TAccountProgramAuthority>;
-  slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   transferHookProgram?: Address<TAccountTransferHookProgram>;
-  signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
-  slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
-  origin: ExecuteTransferInstructionDataArgs["origin"];
-  crossOrigin: ExecuteTransferInstructionDataArgs["crossOrigin"];
-  truncatedClientDataJson: ExecuteTransferInstructionDataArgs["truncatedClientDataJson"];
+  secp256r1VerifyArgs: ExecuteTransferInstructionDataArgs["secp256r1VerifyArgs"];
 };
 
 export async function getExecuteTransferInstructionAsync<
@@ -231,7 +192,6 @@ export async function getExecuteTransferInstructionAsync<
   TAccountSenderTokenAccount extends string,
   TAccountRecipientTokenAccount extends string,
   TAccountProgramAuthority extends string,
-  TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
@@ -247,7 +207,6 @@ export async function getExecuteTransferInstructionAsync<
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
-    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
@@ -265,7 +224,6 @@ export async function getExecuteTransferInstructionAsync<
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
-    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
@@ -295,7 +253,6 @@ export async function getExecuteTransferInstructionAsync<
       value: input.programAuthority ?? null,
       isWritable: true,
     },
-    slotHashes: { value: input.slotHashes ?? null, isWritable: false },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
       isWritable: false,
@@ -322,10 +279,6 @@ export async function getExecuteTransferInstructionAsync<
   // Resolve default values.
   if (!accounts.programAuthority.value) {
     accounts.programAuthority.value = await findProgramAuthorityPda();
-  }
-  if (!accounts.slotHashes.value) {
-    accounts.slotHashes.value =
-      "SysvarS1otHashes111111111111111111111111111" as Address<"SysvarS1otHashes111111111111111111111111111">;
   }
   if (!accounts.instructionsSysvar.value) {
     accounts.instructionsSysvar.value =
@@ -358,7 +311,6 @@ export async function getExecuteTransferInstructionAsync<
       getAccountMeta("senderTokenAccount", accounts.senderTokenAccount),
       getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
       getAccountMeta("programAuthority", accounts.programAuthority),
-      getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
@@ -378,7 +330,6 @@ export async function getExecuteTransferInstructionAsync<
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
-    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
@@ -395,7 +346,6 @@ export type ExecuteTransferInput<
   TAccountSenderTokenAccount extends string = string,
   TAccountRecipientTokenAccount extends string = string,
   TAccountProgramAuthority extends string = string,
-  TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
@@ -409,17 +359,12 @@ export type ExecuteTransferInput<
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
   programAuthority: Address<TAccountProgramAuthority>;
-  slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   transferHookProgram?: Address<TAccountTransferHookProgram>;
-  signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
-  slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
-  origin: ExecuteTransferInstructionDataArgs["origin"];
-  crossOrigin: ExecuteTransferInstructionDataArgs["crossOrigin"];
-  truncatedClientDataJson: ExecuteTransferInstructionDataArgs["truncatedClientDataJson"];
+  secp256r1VerifyArgs: ExecuteTransferInstructionDataArgs["secp256r1VerifyArgs"];
 };
 
 export function getExecuteTransferInstruction<
@@ -430,7 +375,6 @@ export function getExecuteTransferInstruction<
   TAccountSenderTokenAccount extends string,
   TAccountRecipientTokenAccount extends string,
   TAccountProgramAuthority extends string,
-  TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
@@ -446,7 +390,6 @@ export function getExecuteTransferInstruction<
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
-    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
@@ -463,7 +406,6 @@ export function getExecuteTransferInstruction<
   TAccountSenderTokenAccount,
   TAccountRecipientTokenAccount,
   TAccountProgramAuthority,
-  TAccountSlotHashes,
   TAccountInstructionsSysvar,
   TAccountTokenProgram,
   TAccountAssociatedTokenProgram,
@@ -492,7 +434,6 @@ export function getExecuteTransferInstruction<
       value: input.programAuthority ?? null,
       isWritable: true,
     },
-    slotHashes: { value: input.slotHashes ?? null, isWritable: false },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
       isWritable: false,
@@ -517,10 +458,6 @@ export function getExecuteTransferInstruction<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.slotHashes.value) {
-    accounts.slotHashes.value =
-      "SysvarS1otHashes111111111111111111111111111" as Address<"SysvarS1otHashes111111111111111111111111111">;
-  }
   if (!accounts.instructionsSysvar.value) {
     accounts.instructionsSysvar.value =
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
@@ -552,7 +489,6 @@ export function getExecuteTransferInstruction<
       getAccountMeta("senderTokenAccount", accounts.senderTokenAccount),
       getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
       getAccountMeta("programAuthority", accounts.programAuthority),
-      getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
@@ -572,7 +508,6 @@ export function getExecuteTransferInstruction<
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
     TAccountProgramAuthority,
-    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
@@ -594,12 +529,11 @@ export type ParsedExecuteTransferInstruction<
     senderTokenAccount: TAccountMetas[4];
     recipientTokenAccount: TAccountMetas[5];
     programAuthority: TAccountMetas[6];
-    slotHashes: TAccountMetas[7];
-    instructionsSysvar: TAccountMetas[8];
-    tokenProgram: TAccountMetas[9];
-    associatedTokenProgram: TAccountMetas[10];
-    systemProgram: TAccountMetas[11];
-    transferHookProgram: TAccountMetas[12];
+    instructionsSysvar: TAccountMetas[7];
+    tokenProgram: TAccountMetas[8];
+    associatedTokenProgram: TAccountMetas[9];
+    systemProgram: TAccountMetas[10];
+    transferHookProgram: TAccountMetas[11];
   };
   data: ExecuteTransferInstructionData;
 };
@@ -612,12 +546,12 @@ export function parseExecuteTransferInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedExecuteTransferInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 13) {
+  if (instruction.accounts.length < 12) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 13,
+        expectedAccountMetas: 12,
       },
     );
   }
@@ -637,7 +571,6 @@ export function parseExecuteTransferInstruction<
       senderTokenAccount: getNextAccount(),
       recipientTokenAccount: getNextAccount(),
       programAuthority: getNextAccount(),
-      slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
       tokenProgram: getNextAccount(),
       associatedTokenProgram: getNextAccount(),

@@ -7,3 +7,4 @@
  */
 
 export * from "./secp256r1Pubkey";
+export * from "./secp256r1VerifyArgs";

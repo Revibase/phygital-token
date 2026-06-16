@@ -24,74 +24,58 @@ export const PHYGITAL_NFTS_ERROR__INVALID_SIGNATURE_OFFSETS = 0x1772; // 6002
 export const PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY = 0x1773; // 6003
 /** Secp256r1PubkeyMismatch: secp256r1 pubkey does not match token record */
 export const PHYGITAL_NFTS_ERROR__SECP256R1_PUBKEY_MISMATCH = 0x1774; // 6004
-/** InvalidMint: Mint is not a member of the expected token group */
-export const PHYGITAL_NFTS_ERROR__INVALID_MINT = 0x1775; // 6005
-/** InvalidParentGroup: Parent group mint is missing, invalid, or update authority mismatch */
-export const PHYGITAL_NFTS_ERROR__INVALID_PARENT_GROUP = 0x1776; // 6006
 /** MintMismatch: Mint does not match token record */
-export const PHYGITAL_NFTS_ERROR__MINT_MISMATCH = 0x1777; // 6007
+export const PHYGITAL_NFTS_ERROR__MINT_MISMATCH = 0x1775; // 6005
 /** OwnerMismatch: Token owner mismatch */
-export const PHYGITAL_NFTS_ERROR__OWNER_MISMATCH = 0x1778; // 6008
+export const PHYGITAL_NFTS_ERROR__OWNER_MISMATCH = 0x1776; // 6006
 /** ArithmeticOverflow: Arithmetic overflow */
-export const PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW = 0x1779; // 6009
-/** InvalidSlotHash: Slot not found in SlotHashes sysvar — signature has expired or is being replayed */
-export const PHYGITAL_NFTS_ERROR__INVALID_SLOT_HASH = 0x177a; // 6010
-/** StaleTransferSlot: Transfer slot must be greater than the last successful transfer slot */
-export const PHYGITAL_NFTS_ERROR__STALE_TRANSFER_SLOT = 0x177b; // 6011
-/** ClientDataHashMismatch: Client data hash mismatch */
-export const PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x177c; // 6012
+export const PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW = 0x1777; // 6007
+/** StaleTransferCounter: Tap counter must be greater than the last successful transfer counter — signature is being replayed */
+export const PHYGITAL_NFTS_ERROR__STALE_TRANSFER_COUNTER = 0x1778; // 6008
+/** InvalidTapMessage: Signed tap message is not the expected counter || nonce layout */
+export const PHYGITAL_NFTS_ERROR__INVALID_TAP_MESSAGE = 0x1779; // 6009
 /** MissingInstructionsSysvar: Missing instructions sysvar account */
-export const PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x177d; // 6013
-/** InvalidSysvarDataFormat: Invalid sysvar data format */
-export const PHYGITAL_NFTS_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x177e; // 6014
+export const PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x177a; // 6010
 /** MaxLengthExceeded: Max length exceeded */
-export const PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED = 0x177f; // 6015
+export const PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED = 0x177b; // 6011
 /** AuthorityMismatch: Authority does not match */
-export const PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH = 0x1780; // 6016
+export const PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH = 0x177c; // 6012
 /** InvalidCustodyTokenAccount: Custody token account must be the canonical ATA for program_authority */
-export const PHYGITAL_NFTS_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT = 0x1781; // 6017
+export const PHYGITAL_NFTS_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT = 0x177d; // 6013
 
 export type PhygitalNftsError =
   | typeof PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW
   | typeof PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH
-  | typeof PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT
-  | typeof PHYGITAL_NFTS_ERROR__INVALID_MINT
-  | typeof PHYGITAL_NFTS_ERROR__INVALID_PARENT_GROUP
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_INSTRUCTION
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SIGNATURE_OFFSETS
-  | typeof PHYGITAL_NFTS_ERROR__INVALID_SLOT_HASH
-  | typeof PHYGITAL_NFTS_ERROR__INVALID_SYSVAR_DATA_FORMAT
+  | typeof PHYGITAL_NFTS_ERROR__INVALID_TAP_MESSAGE
   | typeof PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED
   | typeof PHYGITAL_NFTS_ERROR__MINT_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR
   | typeof PHYGITAL_NFTS_ERROR__OWNER_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__SECP256R1_PUBKEY_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
-  | typeof PHYGITAL_NFTS_ERROR__STALE_TRANSFER_SLOT;
+  | typeof PHYGITAL_NFTS_ERROR__STALE_TRANSFER_COUNTER;
 
 let phygitalNftsErrorMessages: Record<PhygitalNftsError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
   phygitalNftsErrorMessages = {
     [PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW]: `Arithmetic overflow`,
     [PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH]: `Authority does not match`,
-    [PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
     [PHYGITAL_NFTS_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT]: `Custody token account must be the canonical ATA for program_authority`,
-    [PHYGITAL_NFTS_ERROR__INVALID_MINT]: `Mint is not a member of the expected token group`,
-    [PHYGITAL_NFTS_ERROR__INVALID_PARENT_GROUP]: `Parent group mint is missing, invalid, or update authority mismatch`,
     [PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_INSTRUCTION]: `The instruction preceding this program invocation is not a secp256r1 verification instruction`,
     [PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,
     [PHYGITAL_NFTS_ERROR__INVALID_SIGNATURE_OFFSETS]: `Failed to deserialize secp256r1 signature offsets from the instruction data`,
-    [PHYGITAL_NFTS_ERROR__INVALID_SLOT_HASH]: `Slot not found in SlotHashes sysvar — signature has expired or is being replayed`,
-    [PHYGITAL_NFTS_ERROR__INVALID_SYSVAR_DATA_FORMAT]: `Invalid sysvar data format`,
+    [PHYGITAL_NFTS_ERROR__INVALID_TAP_MESSAGE]: `Signed tap message is not the expected counter || nonce layout`,
     [PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED]: `Max length exceeded`,
     [PHYGITAL_NFTS_ERROR__MINT_MISMATCH]: `Mint does not match token record`,
     [PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
     [PHYGITAL_NFTS_ERROR__OWNER_MISMATCH]: `Token owner mismatch`,
     [PHYGITAL_NFTS_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match token record`,
     [PHYGITAL_NFTS_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
-    [PHYGITAL_NFTS_ERROR__STALE_TRANSFER_SLOT]: `Transfer slot must be greater than the last successful transfer slot`,
+    [PHYGITAL_NFTS_ERROR__STALE_TRANSFER_COUNTER]: `Tap counter must be greater than the last successful transfer counter — signature is being replayed`,
   };
 }
 

@@ -4,14 +4,6 @@ use anchor_spl::token_2022_extensions::spl_token_metadata_interface::state::Toke
 use crate::constants::{MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN, MAX_METADATA_URI_LEN};
 use crate::error::PhygitalError;
 
-pub fn validate_uri(uri: &str) -> Result<()> {
-    require!(
-        uri.len() <= MAX_METADATA_URI_LEN,
-        PhygitalError::MaxLengthExceeded
-    );
-    Ok(())
-}
-
 pub fn validate_metadata_strings(name: &str, symbol: &str, uri: &str) -> Result<()> {
     require!(
         name.len() <= MAX_METADATA_NAME_LEN,

@@ -1,8 +1,6 @@
 mod common;
 
-use common::{
-    assert_transaction_failed, current_slot_entry, MintedCard, TestContext, TestPasskey,
-};
+use common::{assert_transaction_failed, MintedCard, TestContext, TestPasskey};
 use phygital_nfts::{MintTokenArgs, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
@@ -15,12 +13,11 @@ fn e2e_happy_lifecycle_with_retransfer() {
     let first_recipient = Keypair::new();
     let second_recipient = Keypair::new();
 
-    let (first_slot, _) = current_slot_entry(&ctx.svm);
     ctx.send_execute_transfer(&card, &first_recipient, true)
         .expect("claim");
-    assert_eq!(ctx.last_transfer_slot(card.card_instance), first_slot);
+    assert_eq!(ctx.last_counter(card.card_instance), 1);
 
-    let (owner, mint, _, _) = ctx.card_instance_fields(card.card_instance);
+    let (owner, mint, _) = ctx.card_instance_fields(card.card_instance);
     assert_eq!(owner, first_recipient.pubkey());
     assert_eq!(mint, card.mint);
 
@@ -32,21 +29,18 @@ fn e2e_happy_lifecycle_with_retransfer() {
         card_instance: card.card_instance,
         group_mint: card.group_mint,
     };
-    let second_slot = first_slot.saturating_add(1);
-    ctx.set_current_slot(second_slot);
-    let (second_slot, second_hash) = current_slot_entry(&ctx.svm);
 
+    // Auto-selects the next tap counter (2), satisfying monotonicity.
     ctx.send_execute_transfer_from(
         &card_for_holder,
         first_recipient.pubkey(),
         &second_recipient,
         true,
-        Some(second_slot),
-        Some(second_hash),
+        None,
     )
     .expect("re-transfer");
 
-    assert_eq!(ctx.last_transfer_slot(card.card_instance), second_slot);
+    assert_eq!(ctx.last_counter(card.card_instance), 2);
     assert_eq!(ctx.token_balance(second_recipient.pubkey(), card.mint), 1);
 }
 
@@ -128,8 +122,6 @@ fn e2e_card_pda_squatting_blocks_victim() {
     let victim_card = ctx.card_instance_pda(&victim_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
-        mint: card.mint,
-        uri: common::SAMPLE_CARD_URI.to_string(),
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_card, card.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]).expect("squatter mint");
@@ -140,10 +132,7 @@ fn e2e_card_pda_squatting_blocks_victim() {
         card.mint,
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
-            mint: card.mint,
-            uri: "https://example.com/victim.json".to_string(),
         },
     );
-    TestContext::send_instruction(&mut ctx.svm, ix2, &[&ctx.payer])
-        .expect_err("victim blocked");
+    TestContext::send_instruction(&mut ctx.svm, ix2, &[&ctx.payer]).expect_err("victim blocked");
 }

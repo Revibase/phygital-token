@@ -1,87 +1,62 @@
-import { createHash } from "node:crypto";
-import { address, getAddressDecoder, getAddressEncoder } from "@solana/kit";
+import { p256 } from "@noble/curves/nist.js";
+import { address, getAddressDecoder } from "@solana/kit";
 import { describe, expect, it } from "vitest";
-import {
-  findCardInstancePda,
-  findmintPda,
-} from "../instructions/mint";
-import {
-  buildTransferChallenge,
-  buildTransferMessageHash,
-} from "../utils/passkey/secp256r1";
-import { TRANSFER_ACTION_BYTES, TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts";
+import { findCardInstancePda } from "../instructions/mint";
+import { parseTapSignature } from "../utils/verify";
 import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey";
 
 function pubkeyFromByte(byte: number) {
-  const bytes = new Uint8Array(32).fill(byte);
-  return getAddressDecoder().decode(bytes);
+  return getAddressDecoder().decode(new Uint8Array(32).fill(byte));
 }
 
-function sha256(data: Uint8Array): Uint8Array {
-  return new Uint8Array(createHash("sha256").update(data).digest());
+function bufferToBase64URL(bytes: Uint8Array): string {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function concatBytes(...parts: Uint8Array[]): Uint8Array {
-  const total = parts.reduce((sum, part) => sum + part.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const part of parts) {
-    out.set(part, offset);
-    offset += part.length;
-  }
-  return out;
-}
+describe("parseTapSignature", () => {
+  it("reconstructs the signed counter || nonce message and round-trips a real signature", () => {
+    const priv = p256.utils.randomSecretKey();
+    const compressedPubkey = p256.getPublicKey(priv, true);
 
-describe("buildTransferMessageHash", () => {
-  it("matches Rust golden vector for fixed pubkeys", async () => {
-    const cardInstance = pubkeyFromByte(1);
-    const sender = pubkeyFromByte(2);
+    const counter = 42;
+    const nonce = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+    const message = new Uint8Array(12);
+    message.set([0x00, 0x00, 0x00, 0x2a], 0); // 42 big-endian
+    message.set(nonce, 4);
 
-    const preimage = concatBytes(
-      new Uint8Array(getAddressEncoder().encode(cardInstance)),
-      new Uint8Array(getAddressEncoder().encode(sender)),
-    );
-    const expected = sha256(preimage);
+    const signature = p256.sign(message, priv);
 
-    const hash = await buildTransferMessageHash({ cardInstance, sender });
-    expect(hash).toEqual(expected);
-  });
-});
-
-describe("buildTransferChallenge", () => {
-  it("matches Rust challenge layout", async () => {
-    const cardInstance = pubkeyFromByte(1);
-    const sender = pubkeyFromByte(2);
-    const slotHash = new Uint8Array(32).fill(9);
-
-    const messageHash = await buildTransferMessageHash({ cardInstance, sender });
-    const expected = sha256(
-      concatBytes(
-        TRANSFER_ACTION_BYTES,
-        new Uint8Array(getAddressEncoder().encode(TOKEN_2022_PROGRAM_ADDRESS)),
-        messageHash,
-        slotHash,
-      ),
-    );
-
-    const challenge = await buildTransferChallenge({
-      tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
-      cardInstance,
-      sender,
-      slotHash,
+    const params = new URLSearchParams({
+      pk: bufferToBase64URL(compressedPubkey),
+      s: bufferToBase64URL(signature),
+      c: String(counter),
+      n: bufferToBase64URL(nonce),
     });
-    expect(challenge).toEqual(expected);
+
+    const tap = parseTapSignature(params);
+    expect(tap.counter).toBe(counter);
+    expect(Array.from(tap.message)).toEqual(Array.from(message));
+    expect(tap.compressedPubkey.length).toBe(33);
+    expect(tap.signature.length).toBe(64);
+    expect(p256.verify(tap.signature, tap.message, tap.compressedPubkey)).toBe(
+      true,
+    );
+  });
+
+  it("rejects a counter outside the uint32 range", () => {
+    const params = new URLSearchParams({
+      pk: bufferToBase64URL(new Uint8Array(33).fill(0x02)),
+      s: bufferToBase64URL(new Uint8Array(64)),
+      c: String(0x1_0000_0000),
+      n: bufferToBase64URL(new Uint8Array(8)),
+    });
+    expect(() => parseTapSignature(params)).toThrow(/uint32 range/);
   });
 });
 
 describe("PDAs", () => {
-  it("findmintPda uses group_mint and design_id seeds", async () => {
-    const groupMint = address("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
-    const designId = pubkeyFromByte(42);
-    const mint = await findmintPda(groupMint, designId);
-    expect(mint).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
-  });
-
   it("findCardInstancePda uses x-only secp256r1 seed", async () => {
     const compressed = new Uint8Array(33);
     compressed[0] = 0x02;

@@ -1,12 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{create_account, CreateAccount};
-use anchor_spl::token_2022::spl_token_2022::extension::{
-    BaseStateWithExtensions, StateWithExtensions,
-};
-use anchor_spl::token_2022::spl_token_2022::state::Mint as SplMint;
-use anchor_spl::token_2022::{
-    self, initialize_mint2, InitializeMint2,
-};
+use anchor_spl::token_2022::{self, initialize_mint2, InitializeMint2};
 use anchor_spl::token_2022_extensions::{
     group_member_pointer_initialize, metadata_pointer_initialize, permanent_delegate_initialize,
     token_member_initialize, token_metadata_initialize, transfer_hook_initialize,
@@ -14,20 +8,15 @@ use anchor_spl::token_2022_extensions::{
     TokenMemberInitialize, TokenMetadataInitialize, TransferHookInitialize,
 };
 use anchor_spl::token_interface::{Mint, TokenInterface};
-use spl_token_group_interface::state::TokenGroup;
 
-use crate::constants::{MINT_SEED, PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
-use crate::error::PhygitalError;
-use crate::utils::{
-    mint_layout, mint_metadata_tlv_size, validate_metadata_strings,
-};
+use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
+use crate::utils::{mint_layout, mint_metadata_tlv_size, validate_metadata_strings};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMintArgs {
     pub name: String,
     pub symbol: String,
     pub uri: String,
-    pub design_id: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -43,12 +32,8 @@ pub struct CreateMint<'info> {
 
     pub group_mint_authority: Signer<'info>,
 
-    #[account(
-        mut,
-        seeds = [MINT_SEED, group_mint.key().as_ref(), args.design_id.as_ref()],
-        bump,
-    )]
-    pub mint: SystemAccount<'info>,
+    #[account(mut)]
+    pub mint: Signer<'info>,
 
     #[account(
         mut,
@@ -67,25 +52,6 @@ pub struct CreateMint<'info> {
 pub fn handler(ctx: Context<CreateMint>, args: CreateMintArgs) -> Result<()> {
     validate_metadata_strings(&args.name, &args.symbol, &args.uri)?;
 
-    {
-        let group_mint_info = ctx.accounts.group_mint.to_account_info();
-        let group_mint_data = group_mint_info.try_borrow_data()?;
-        let group_state = StateWithExtensions::<SplMint>::unpack(&group_mint_data)
-            .map_err(|_| error!(PhygitalError::InvalidParentGroup))?;
-        let token_group = group_state
-            .get_extension::<TokenGroup>()
-            .map_err(|_| error!(PhygitalError::InvalidParentGroup))?;
-        let update_authority = token_group
-            .update_authority
-            .get()
-            .map(Pubkey::from)
-            .ok_or(PhygitalError::InvalidParentGroup)?;
-        require!(
-            update_authority == ctx.accounts.group_mint_authority.key(),
-            PhygitalError::InvalidParentGroup
-        );
-    }
-
     let mint_key = ctx.accounts.mint.key();
     let program_authority_bump = ctx.bumps.program_authority;
     let authority_bump_seed = [program_authority_bump];
@@ -97,28 +63,13 @@ pub fn handler(ctx: Context<CreateMint>, args: CreateMintArgs) -> Result<()> {
     let metadata_size = mint_metadata_tlv_size(&args.name, &args.symbol, &args.uri)?;
     let layout = mint_layout(metadata_size)?;
 
-    let mint_bump = ctx.bumps.mint;
-    let group_mint_key = ctx.accounts.group_mint.key();
-    let design_id = args.design_id.as_ref();
-    let bump_seed = [mint_bump];
-    let mint_seed_array = [
-        MINT_SEED,
-        group_mint_key.as_ref(),
-        design_id,
-        bump_seed.as_ref(),
-    ];
-    let mint_signer_seeds: &[&[u8]] = mint_seed_array.as_slice();
-    let mint_signer_seed_array = [mint_signer_seeds];
-    let mint_signer_seeds_invoke: &[&[&[u8]]] = mint_signer_seed_array.as_slice();
-
     create_account(
-        CpiContext::new_with_signer(
+        CpiContext::new(
             ctx.accounts.system_program.key(),
             CreateAccount {
                 from: ctx.accounts.payer.to_account_info(),
                 to: ctx.accounts.mint.to_account_info(),
             },
-            mint_signer_seeds_invoke,
         ),
         layout.rent_lamports,
         layout.initial_data_len as u64,

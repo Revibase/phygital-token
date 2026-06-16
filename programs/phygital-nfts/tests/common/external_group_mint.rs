@@ -60,7 +60,8 @@ pub fn create_external_group_mint(
         initial_data_len as u64,
         &TOKEN_2022_ID,
     );
-    super::TestContext::send_instruction(svm, create_ix, &[payer, &mint]).expect("create group mint");
+    super::TestContext::send_instruction(svm, create_ix, &[payer, &mint])
+        .expect("create group mint");
 
     let mint_pubkey = mint.pubkey();
     let authority_pubkey = authority.pubkey();
@@ -82,17 +83,10 @@ pub fn create_external_group_mint(
         Some(mint_pubkey),
     )
     .expect("group pointer ix");
-    super::TestContext::send_instruction(svm, group_pointer_ix, &[payer])
-        .expect("group pointer");
+    super::TestContext::send_instruction(svm, group_pointer_ix, &[payer]).expect("group pointer");
 
-    let init_mint_ix = initialize_mint2(
-        &TOKEN_2022_ID,
-        &mint_pubkey,
-        &authority_pubkey,
-        None,
-        0,
-    )
-    .expect("init mint2 ix");
+    let init_mint_ix = initialize_mint2(&TOKEN_2022_ID, &mint_pubkey, &authority_pubkey, None, 0)
+        .expect("init mint2 ix");
     super::TestContext::send_instruction(svm, init_mint_ix, &[&authority]).expect("init mint2");
 
     let token_group_ix = initialize_group(
@@ -139,8 +133,8 @@ pub fn create_group_mint_without_update_authority(
     ];
     let initial_data_len =
         ExtensionType::try_calculate_account_len::<Mint>(&initial_extensions).expect("initial len");
-    let final_data_len = ExtensionType::try_calculate_account_len::<Mint>(&final_extensions)
-        .expect("final len");
+    let final_data_len =
+        ExtensionType::try_calculate_account_len::<Mint>(&final_extensions).expect("final len");
     let rent: Rent = svm.get_sysvar();
     let rent_lamports = rent.minimum_balance(final_data_len);
 
@@ -154,7 +148,8 @@ pub fn create_group_mint_without_update_authority(
         initial_data_len as u64,
         &TOKEN_2022_ID,
     );
-    super::TestContext::send_instruction(svm, create_ix, &[payer, &mint]).expect("create group mint");
+    super::TestContext::send_instruction(svm, create_ix, &[payer, &mint])
+        .expect("create group mint");
 
     let mint_pubkey = mint.pubkey();
     let authority_pubkey = authority.pubkey();
@@ -176,17 +171,10 @@ pub fn create_group_mint_without_update_authority(
         Some(mint_pubkey),
     )
     .expect("group pointer ix");
-    super::TestContext::send_instruction(svm, group_pointer_ix, &[payer])
-        .expect("group pointer");
+    super::TestContext::send_instruction(svm, group_pointer_ix, &[payer]).expect("group pointer");
 
-    let init_mint_ix = initialize_mint2(
-        &TOKEN_2022_ID,
-        &mint_pubkey,
-        &authority_pubkey,
-        None,
-        0,
-    )
-    .expect("init mint2 ix");
+    let init_mint_ix = initialize_mint2(&TOKEN_2022_ID, &mint_pubkey, &authority_pubkey, None, 0)
+        .expect("init mint2 ix");
     super::TestContext::send_instruction(svm, init_mint_ix, &[&authority]).expect("init mint2");
 
     let token_group_ix = initialize_group(

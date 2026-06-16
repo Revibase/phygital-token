@@ -42,15 +42,19 @@ import {
   getCreateMintInstructionAsync,
   getExecuteTransferInstructionAsync,
   getMintTokenInstructionAsync,
+  getUpdateCounterInstruction,
   parseCreateMintInstruction,
   parseExecuteTransferInstruction,
   parseMintTokenInstruction,
+  parseUpdateCounterInstruction,
   type CreateMintAsyncInput,
   type ExecuteTransferAsyncInput,
   type MintTokenAsyncInput,
   type ParsedCreateMintInstruction,
   type ParsedExecuteTransferInstruction,
   type ParsedMintTokenInstruction,
+  type ParsedUpdateCounterInstruction,
+  type UpdateCounterInput,
 } from "../instructions";
 import { findProgramAuthorityPda } from "../pdas";
 
@@ -86,6 +90,7 @@ export enum PhygitalNftsInstruction {
   CreateMint,
   ExecuteTransfer,
   MintToken,
+  UpdateCounter,
 }
 
 export function identifyPhygitalNftsInstruction(
@@ -125,6 +130,17 @@ export function identifyPhygitalNftsInstruction(
   ) {
     return PhygitalNftsInstruction.MintToken;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([171, 200, 174, 106, 229, 34, 80, 175]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalNftsInstruction.UpdateCounter;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "phygitalNfts" },
@@ -142,7 +158,10 @@ export type ParsedPhygitalNftsInstruction<
     } & ParsedExecuteTransferInstruction<TProgram>)
   | ({
       instructionType: PhygitalNftsInstruction.MintToken;
-    } & ParsedMintTokenInstruction<TProgram>);
+    } & ParsedMintTokenInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalNftsInstruction.UpdateCounter;
+    } & ParsedUpdateCounterInstruction<TProgram>);
 
 export function parsePhygitalNftsInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -168,6 +187,13 @@ export function parsePhygitalNftsInstruction<TProgram extends string>(
       return {
         instructionType: PhygitalNftsInstruction.MintToken,
         ...parseMintTokenInstruction(instruction),
+      };
+    }
+    case PhygitalNftsInstruction.UpdateCounter: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalNftsInstruction.UpdateCounter,
+        ...parseUpdateCounterInstruction(instruction),
       };
     }
     default:
@@ -204,6 +230,10 @@ export type PhygitalNftsPluginInstructions = {
   mintToken: (
     input: MintTokenAsyncInput,
   ) => ReturnType<typeof getMintTokenInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updateCounter: (
+    input: UpdateCounterInput,
+  ) => ReturnType<typeof getUpdateCounterInstruction> &
     SelfPlanAndSendFunctions;
 };
 
@@ -245,6 +275,11 @@ export function phygitalNftsProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getMintTokenInstructionAsync(input),
+            ),
+          updateCounter: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateCounterInstruction(input),
             ),
         },
         pdas: { programAuthority: findProgramAuthorityPda },

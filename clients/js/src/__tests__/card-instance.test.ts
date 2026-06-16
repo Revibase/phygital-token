@@ -12,14 +12,12 @@ describe("fetchCardInstance", () => {
     const cardInstance = address("11111111111111111111111111111112");
     const mint = address("11111111111111111111111111111113");
     const owner = address("11111111111111111111111111111114");
-    const uri = "https://example.com/card.json";
-    const lastTransferSlot = 42n;
+    const lastCounter = 42;
 
     const body = getCardInstanceEncoder().encode({
-      uri,
       mint,
       owner,
-      lastTransferSlot,
+      lastCounter,
     });
     const data = new Uint8Array(body);
 
@@ -39,10 +37,9 @@ describe("fetchCardInstance", () => {
     } as unknown as Rpc<SolanaRpcApi>;
 
     const parsed = await fetchCardInstance(rpc, cardInstance);
-    expect(parsed.data.uri).toBe(uri);
     expect(parsed.data.mint).toBe(mint);
     expect(parsed.data.owner).toBe(owner);
-    expect(parsed.data.lastTransferSlot).toBe(lastTransferSlot);
+    expect(parsed.data.lastCounter).toBe(lastCounter);
     expect(data.subarray(0, 8)).toEqual(CARD_INSTANCE_DISCRIMINATOR);
   });
 });

@@ -110,28 +110,6 @@ function parseCardAttributes(
     .filter((attribute): attribute is CardAttribute => attribute !== null);
 }
 
-export async function fetchCardMetadata(uri: string, params: URLSearchParams) {
-  try {
-    const url = new URL(uri);
-    for (const [key, value] of params.entries()) {
-      url.searchParams.set(key, value);
-    }
-    const response = await fetch(`${url.toString()}`);
-    if (!response.ok) {
-      const error = (await response.json()) as { error: string };
-      throw new Error(error.error);
-    }
-    return (await response.json()) as {
-      credentialId: string | null;
-      expiry: number | null;
-      publicKey: string;
-      counter: number;
-    };
-  } catch (error) {
-    throw error;
-  }
-}
-
 async function fetchJsonMetadata(
   uri: string,
 ): Promise<TokenJsonMetadata | null> {
@@ -167,9 +145,9 @@ export type NftDisplayInfo = {
   collectionSymbol: string | null;
   collectionImage: string | null;
   collectionUri: string | null;
-  cardUri: string;
   currentOwner: Address;
-  lastTransferSlot: bigint;
+  /** Highest tap counter consumed on-chain; `0xFFFFFFFF` if never advanced. */
+  lastCounter: number;
 };
 
 export async function fetchNftDisplayInfo(
@@ -216,8 +194,7 @@ export async function fetchNftDisplayInfo(
       collectionMeta?.symbol ?? collectionJsonMeta?.symbol ?? null,
     collectionImage: collectionJsonMeta?.image ?? null,
     collectionUri: collectionMeta?.uri ?? null,
-    cardUri: instance.data.uri,
     currentOwner: instance.data.owner,
-    lastTransferSlot: instance.data.lastTransferSlot,
+    lastCounter: instance.data.lastCounter,
   };
 }

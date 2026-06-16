@@ -1,4 +1,5 @@
 import {
+  generateKeyPairSigner,
   getAddressEncoder,
   getBase58Encoder,
   getBytesEncoder,
@@ -14,9 +15,8 @@ import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey";
 import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts";
 import { findAssociatedTokenAddress } from "../utils/associatedToken";
 import { getCreateMintInstructionAsync } from "../generated/instructions/createMint";
-import { base64URLStringToBuffer } from "../utils/passkey/internal";
+import { base64URLStringToBuffer } from "../utils/encoding";
 
-const mint_SEED = new TextEncoder().encode("mint");
 const CARD_INSTANCE_SEED = new TextEncoder().encode("card_instance");
 
 export const MAX_METADATA_NAME_LEN = 32;
@@ -41,24 +41,7 @@ type MintTokenParams = {
   authority: TransactionSigner;
   mint: Address;
   secp256r1Pubkey: Secp256r1Pubkey;
-  uri: string;
 };
-
-export async function findmintPda(
-  groupMint: Address,
-  designId: Address,
-): Promise<Address> {
-  const [mint] = await getProgramDerivedAddress({
-    programAddress: PHYGITAL_NFTS_PROGRAM_ADDRESS,
-    seeds: [
-      getBytesEncoder().encode(mint_SEED),
-      getAddressEncoder().encode(groupMint),
-      getAddressEncoder().encode(designId),
-    ],
-  });
-
-  return mint;
-}
 
 export async function findCardInstancePda(
   secp256r1Pubkey: Secp256r1Pubkey,
@@ -100,10 +83,14 @@ export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
 
 export function validateMetadataFields(fields: MetadataFields): void {
   if (fields.name.length > MAX_METADATA_NAME_LEN) {
-    throw new Error(`Name must be at most ${MAX_METADATA_NAME_LEN} characters.`);
+    throw new Error(
+      `Name must be at most ${MAX_METADATA_NAME_LEN} characters.`,
+    );
   }
   if (fields.symbol.length > MAX_METADATA_SYMBOL_LEN) {
-    throw new Error(`Symbol must be at most ${MAX_METADATA_SYMBOL_LEN} characters.`);
+    throw new Error(
+      `Symbol must be at most ${MAX_METADATA_SYMBOL_LEN} characters.`,
+    );
   }
   if (fields.uri.length > MAX_METADATA_URI_LEN) {
     throw new Error(`URI must be at most ${MAX_METADATA_URI_LEN} characters.`);
@@ -112,10 +99,10 @@ export function validateMetadataFields(fields: MetadataFields): void {
 
 export async function buildCreateMintInstructions(
   input: CreateMintParams,
-): Promise<{ instructions: Instruction[]; mint: Address }> {
+): Promise<{ instructions: Instruction[]; mint: TransactionSigner }> {
   validateMetadataFields(input);
 
-  const mint = await findmintPda(input.groupMint, input.designId);
+  const mint = await generateKeyPairSigner();
   const instruction = await getCreateMintInstructionAsync({
     payer: input.payer,
     owner: input.owner,
@@ -125,7 +112,6 @@ export async function buildCreateMintInstructions(
     name: input.name,
     symbol: input.symbol,
     uri: input.uri,
-    designId: input.designId,
   });
 
   return { instructions: [instruction], mint };
@@ -148,8 +134,6 @@ export async function buildMintTokenInstructions(
     mint: input.mint,
     programAuthorityTokenAccount,
     secp256r1Pubkey: input.secp256r1Pubkey,
-    mintArg: input.mint,
-    uri: input.uri,
   });
 
   return { instructions: [instruction], cardInstance };

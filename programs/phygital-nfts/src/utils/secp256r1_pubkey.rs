@@ -5,7 +5,9 @@ pub const SIGNATURE_OFFSETS_SERIALIZED_SIZE: usize = 14;
 pub const SIGNATURE_OFFSETS_START: usize = 2;
 pub const SECP256R1_PROGRAM_ID: Pubkey = pubkey!("Secp256r1SigVerify1111111111111111111111111");
 
-#[derive(AnchorSerialize, AnchorDeserialize, InitSpace, Eq, PartialEq, Hash, Debug, Clone, Copy)]
+#[derive(
+    AnchorSerialize, AnchorDeserialize, InitSpace, Eq, PartialEq, Hash, Debug, Clone, Copy,
+)]
 pub struct Secp256r1Pubkey(pub [u8; COMPRESSED_PUBKEY_SERIALIZED_SIZE]);
 
 impl Secp256r1Pubkey {

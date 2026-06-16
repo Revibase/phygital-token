@@ -16,10 +16,7 @@ declare_id!("3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1");
 pub mod phygital_nfts {
     use super::*;
 
-    pub fn create_mint(
-        ctx: Context<CreateMint>,
-        args: CreateMintArgs,
-    ) -> Result<()> {
+    pub fn create_mint(ctx: Context<CreateMint>, args: CreateMintArgs) -> Result<()> {
         create_mint::handler(ctx, args)
     }
 
@@ -32,5 +29,12 @@ pub mod phygital_nfts {
         secp256r1_verify_args: Secp256r1VerifyArgs,
     ) -> Result<()> {
         execute_transfer::handler(ctx, secp256r1_verify_args)
+    }
+
+    pub fn update_counter(
+        ctx: Context<UpdateCounter>,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> Result<()> {
+        update_counter::handler(ctx, secp256r1_verify_args)
     }
 }
