@@ -15,13 +15,11 @@ import {
   type VerifyMetadataCallback,
 } from "./metadata";
 
-let runningCounterMap = new Map<string, number>();
-
 /**
  * Verifies the request against the server.
  *
  * The per-card URI is no longer stored on-chain, so card metadata is fetched
- * from a fixed endpoint by default. Pass `fetchCardMetadataCallback` to override
+ * from a fixed endpoint by default. Pass `verifyMetadataCallback` to override
  * how (and from where) the card metadata is resolved.
  */
 export async function verifyWithServerCheck(
@@ -29,11 +27,6 @@ export async function verifyWithServerCheck(
   verifyMetadataCallback: VerifyMetadataCallback = (queryParams) =>
     verifyMetadata(DEFAULT_VERIFY_METADATA_ENDPOINT, queryParams),
 ) {
-  const localResult = verifyLocal(params);
-  if (!localResult.isVerified) {
-    return localResult;
-  }
-
   return verifyMetadataCallback(params);
 }
 
@@ -73,13 +66,6 @@ export function verifyLocal(params: URLSearchParams) {
     throw new Error(`counter out of uint32 range: ${currentCounter}`);
   }
 
-  if (
-    currentCounter <
-    (runningCounterMap.get(publicKey) ?? Number.MAX_SAFE_INTEGER)
-  ) {
-    throw new Error(`Counter is already used. Tap to verify again.`);
-  }
-
   const counterBytes = getU32Encoder({ endian: Endian.Big }).encode(
     currentCounter,
   );
@@ -90,12 +76,9 @@ export function verifyLocal(params: URLSearchParams) {
 
   const isVerified = p256.verify(rawSig, message, compressedPk);
 
-  if (isVerified) {
-    runningCounterMap.set(publicKey, currentCounter);
-  }
-
   return {
     isVerified,
     publicKey,
+    counter: currentCounter
   };
 }

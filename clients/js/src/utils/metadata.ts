@@ -22,6 +22,7 @@ export const DEFAULT_VERIFY_METADATA_ENDPOINT = `https://${RP_ID}/api/metadata`;
 export type VerifyMetadataResult = {
   publicKey: string;
   isVerified:boolean;
+  counter: number;
 };
 
 export type VerifyMetadataCallback = (
