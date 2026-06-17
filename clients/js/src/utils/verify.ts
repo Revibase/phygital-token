@@ -6,7 +6,10 @@ import {
   Rpc,
   SolanaRpcApi,
 } from "@solana/kit";
-import { base64URLStringToBuffer } from "./passkey/internal";
+import {
+  base64URLStringToBuffer,
+  normalizeSignatureToLowS,
+} from "./passkey/internal";
 import { p256 } from "@noble/curves/nist.js";
 import { parseSecp256r1Pubkey } from "../instructions/mint";
 import {
@@ -74,7 +77,8 @@ export function verifyLocal(params: URLSearchParams) {
   message.set(counterBytes, 0);
   message.set(randomBytes, 4);
 
-  const isVerified = p256.verify(rawSig, message, compressedPk);
+  const normalizedSig = normalizeSignatureToLowS(rawSig);
+  const isVerified = p256.verify(normalizedSig, message, compressedPk);
 
   return {
     isVerified,

@@ -53,9 +53,41 @@ function extractAdditionalFields(clientData: Record<string, unknown>) {
   return new Uint8Array(new TextEncoder().encode(serialized.slice(1, -1)));
 }
 
+/**
+ * Normalizes a raw 64-byte `r||s` P-256 ECDSA signature to its canonical
+ * low-S form (`s <= n/2`).
+ *
+ * Hardware signers — NFC secure elements and platform authenticators — often
+ * emit high-S signatures. They are valid ECDSA but non-canonical, and both
+ * `@noble/curves` (default `lowS: true`) and Solana's secp256r1 precompile
+ * reject them. Always run a raw signature through this before verifying or
+ * before building an on-chain secp256r1 verify instruction.
+ */
+export function normalizeSignatureToLowS(signature: Uint8Array): Uint8Array {
+  if (signature.length !== 64) {
+    throw new Error(
+      `expected 64-byte raw r||s signature, got ${signature.length} bytes`,
+    );
+  }
+
+  const order = p256.Point.CURVE().n;
+  const halfOrder = order >> 1n;
+  const sBig = BigInt(`0x${uint8ArrayToHex(signature.slice(32, 64))}`);
+  if (sBig <= halfOrder) {
+    return signature;
+  }
+
+  const sLow = order - sBig;
+  const sPad = hexToUint8Array(sLow.toString(16).padStart(64, "0"));
+  const normalized = new Uint8Array(64);
+  normalized.set(signature.slice(0, 32), 0);
+  normalized.set(sPad, 32);
+  return normalized;
+}
+
 export function convertSignatureDERtoRS(signature: Uint8Array): Uint8Array {
   if (signature.length === 64) {
-    return signature;
+    return normalizeSignatureToLowS(signature);
   }
 
   if (signature[0] !== 0x30) {
@@ -92,15 +124,11 @@ export function convertSignatureDERtoRS(signature: Uint8Array): Uint8Array {
     throw new Error("r or s length > 32 bytes");
   }
 
-  const rPad = new Uint8Array(32);
-  rPad.set(rStripped, 32 - rStripped.length);
+  const rawSig = new Uint8Array(64);
+  rawSig.set(rStripped, 32 - rStripped.length);
+  rawSig.set(sStripped, 64 - sStripped.length);
 
-  const HALF_ORDER = p256.Point.CURVE().n >> 1n;
-  const sBig = BigInt(`0x${uint8ArrayToHex(sStripped)}`);
-  const sLow = sBig > HALF_ORDER ? p256.Point.CURVE().n - sBig : sBig;
-  const sPad = hexToUint8Array(sLow.toString(16).padStart(64, "0"));
-
-  return new Uint8Array([...rPad, ...sPad]);
+  return normalizeSignatureToLowS(rawSig);
 }
 
 export function getSecp256r1Message(
