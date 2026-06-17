@@ -1,9 +1,17 @@
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import { bufferToBase64URLString, startAuthentication, type AuthenticationResponseJSON } from "@simplewebauthn/browser";
+import {
+  bufferToBase64URLString,
+  startAuthentication,
+  type AuthenticationResponseJSON,
+} from "@simplewebauthn/browser";
 import { TransactionSigner, type Instruction } from "@solana/kit";
 import { findAssociatedTokenAddress } from "../associatedToken";
-import { RP_ID, TOKEN_2022_PROGRAM_ADDRESS, TRANSFER_HOOK_PROGRAM_ADDRESS } from "../consts";
+import {
+  RP_ID,
+  TOKEN_2022_PROGRAM_ADDRESS,
+  TRANSFER_HOOK_PROGRAM_ADDRESS,
+} from "../consts";
 import { getExecuteTransferInstructionAsync } from "../../generated";
 import { TransferSession } from "../../instructions/transfer";
 import { buildSecp256r1VerifyInstructionFromWebAuthn } from "./secp256r1";
@@ -145,7 +153,9 @@ export function getSecp256r1Message(
 }
 
 export function parseWebAuthnClientData(clientDataJSON: string) {
-  const parsed = JSON.parse(clientDataJSON) as Record<string, unknown>;
+  const parsed = JSON.parse(
+    new TextDecoder().decode(base64URLStringToBuffer(clientDataJSON)),
+  ) as Record<string, unknown>;
   return {
     origin: String(parsed.origin),
     crossOrigin: Boolean(parsed.crossOrigin),
@@ -154,7 +164,7 @@ export function parseWebAuthnClientData(clientDataJSON: string) {
 }
 
 export async function authenticateTransferPasskey(
-  challenge: Uint8Array
+  challenge: Uint8Array,
 ): Promise<AuthenticationResponseJSON> {
   return startAuthentication({
     optionsJSON: {
@@ -165,7 +175,9 @@ export async function authenticateTransferPasskey(
       userVerification: "preferred",
       allowCredentials: [
         {
-          id: bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(32)).buffer),
+          id: bufferToBase64URLString(
+            crypto.getRandomValues(new Uint8Array(32)).buffer,
+          ),
           type: "public-key",
           transports: ["nfc"],
         },
@@ -175,16 +187,16 @@ export async function authenticateTransferPasskey(
 }
 
 export async function buildTransferInstructions(
-  session:TransferSession,
+  session: TransferSession,
   response: AuthenticationResponseJSON,
-  recipient:TransactionSigner
+  recipient: TransactionSigner,
 ): Promise<Instruction[]> {
   const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
 
   const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthn({
       response,
-      session
+      session,
     });
 
   const recipientTokenAccount = await findAssociatedTokenAddress(
