@@ -1,16 +1,12 @@
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bufferToBase64URLString, startAuthentication, type AuthenticationResponseJSON } from "@simplewebauthn/browser";
-import { Decoder } from "cbor-x";
-import { address, TransactionSigner, type Instruction } from "@solana/kit";
+import { TransactionSigner, type Instruction } from "@solana/kit";
 import { findAssociatedTokenAddress } from "../associatedToken";
 import { RP_ID, TOKEN_2022_PROGRAM_ADDRESS, TRANSFER_HOOK_PROGRAM_ADDRESS } from "../consts";
 import { getExecuteTransferInstructionAsync } from "../../generated";
-import { findCardInstancePda } from "../../instructions/mint";
 import { TransferSession } from "../../instructions/transfer";
 import { buildSecp256r1VerifyInstructionFromWebAuthn } from "./secp256r1";
-
-const coseKeyDecoder = new Decoder({ mapsAsObjects: false });
 
 function uint8ArrayToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -129,40 +125,6 @@ export function parseWebAuthnClientData(clientDataJSON: string) {
   };
 }
 
-function readCoseEs256CompressedPublicKey(bytes: Uint8Array): Uint8Array {
-  const map = coseKeyDecoder.decode(bytes) as Map<number, Uint8Array>;
-  const x = map.get(-2);
-  const y = map.get(-3);
-  if (!x || !y || x.length !== 32 || y.length !== 32) {
-    throw new Error("Invalid ES256 COSE public key");
-  }
-
-  const compressed = new Uint8Array(33);
-  compressed[0] = (y[31]! & 1) === 1 ? 0x03 : 0x02;
-  compressed.set(x, 1);
-  return compressed;
-}
-
-function extractCompressedPubkeyFromAuthResponse(
-  response: AuthenticationResponseJSON,
-): Uint8Array {
-  const withPublicKey = response as AuthenticationResponseJSON & {
-    publicKey?: string;
-  };
-  if (!withPublicKey.publicKey) {
-    throw new Error(
-      "WebAuthn assertion is missing a public key. Use a browser that exposes credential public keys.",
-    );
-  }
-
-  const raw = base64URLStringToBuffer(withPublicKey.publicKey);
-  if (raw.length === 33) {
-    return raw;
-  }
-
-  return readCoseEs256CompressedPublicKey(raw);
-}
-
 export async function authenticateTransferPasskey(
   challenge: Uint8Array
 ): Promise<AuthenticationResponseJSON> {
@@ -175,7 +137,7 @@ export async function authenticateTransferPasskey(
       userVerification: "preferred",
       allowCredentials: [
         {
-          id: "",
+          id: bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(32)).buffer),
           type: "public-key",
           transports: ["nfc"],
         },
@@ -186,22 +148,15 @@ export async function authenticateTransferPasskey(
 
 export async function buildTransferInstructions(
   session:TransferSession,
-  webauthnResponse: AuthenticationResponseJSON,
+  response: AuthenticationResponseJSON,
   recipient:TransactionSigner
 ): Promise<Instruction[]> {
   const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
-  const compressedPubkey = extractCompressedPubkeyFromAuthResponse(
-    webauthnResponse,
-  );
-  const expectedCardInstance = await findCardInstancePda([compressedPubkey]);
-  if (address(expectedCardInstance) !== address(session.nft.cardInstance)) {
-    throw new Error("Passkey public key does not match this card instance");
-  }
 
   const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthn({
-      response: webauthnResponse,
-      compressedPubkey,
+      response,
+      session
     });
 
   const recipientTokenAccount = await findAssociatedTokenAddress(

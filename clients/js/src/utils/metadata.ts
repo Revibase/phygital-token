@@ -16,12 +16,11 @@ import {
 } from "../instructions/mint";
 import { RP_ID } from "./consts";
 
-
 export const DEFAULT_VERIFY_METADATA_ENDPOINT = `https://${RP_ID}/api/metadata`;
 
 export type VerifyMetadataResult = {
   publicKey: string;
-  isVerified:boolean;
+  isVerified: boolean;
   counter: number;
 };
 
@@ -132,6 +131,7 @@ async function fetchJsonMetadata(
 
 export type NftDisplayInfo = {
   /** Card instance PDA — unique per physical card. */
+  publicKey: string;
   cardInstance: Address;
   /** Shared design mint (SFT). */
   mint: Address;
@@ -154,9 +154,11 @@ export type NftDisplayInfo = {
 
 export async function fetchNftDisplayInfo(
   rpc: Rpc<SolanaRpcApi>,
-  lookupKey: string,
+  publicKey: string,
 ): Promise<NftDisplayInfo> {
-  const  cardInstance  = await findCardInstancePda(parseSecp256r1Pubkey(lookupKey));
+  const cardInstance = await findCardInstancePda(
+    parseSecp256r1Pubkey(publicKey),
+  );
   const instance = await fetchCardInstance(rpc, cardInstance);
 
   const mintAccount = await fetchMint(rpc, instance.data.mint);
@@ -182,6 +184,7 @@ export async function fetchNftDisplayInfo(
   ]);
 
   return {
+    publicKey,
     cardInstance,
     mint: instance.data.mint,
     name: designMeta?.name ?? designJsonMeta?.name ?? "Unknown card",

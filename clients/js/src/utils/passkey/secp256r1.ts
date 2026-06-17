@@ -15,6 +15,7 @@ import {
   getSecp256r1Message,
   parseWebAuthnClientData,
 } from "./internal";
+import { TransferSession } from "../../instructions/transfer";
 
 async function sha256(data: Uint8Array): Promise<Uint8Array> {
   const copy = new Uint8Array(data);
@@ -37,8 +38,8 @@ function encodeAddress(addressValue: Address): Uint8Array {
 }
 
 function buildSecp256r1VerifyInputFromWebAuthn(input: {
+  session: TransferSession,
   response: AuthenticationResponseJSON;
-  compressedPubkey: Uint8Array;
 }) {
   const clientData = parseWebAuthnClientData(
     input.response.response.clientDataJSON,
@@ -51,7 +52,7 @@ function buildSecp256r1VerifyInputFromWebAuthn(input: {
   return {
     verifyInput: [
       {
-        publicKey: input.compressedPubkey,
+        publicKey: base64URLStringToBuffer(input.session.nft.publicKey),
         signature,
         message,
       },
@@ -100,13 +101,10 @@ export type WebAuthnSecp256r1Verification = {
 };
 
 export async function buildSecp256r1VerifyInstructionFromWebAuthn(input: {
+  session: TransferSession,
   response: AuthenticationResponseJSON;
-  compressedPubkey: Uint8Array;
 }): Promise<WebAuthnSecp256r1Verification> {
-  const parsed = buildSecp256r1VerifyInputFromWebAuthn({
-    response: input.response,
-    compressedPubkey: input.compressedPubkey,
-  });
+  const parsed = buildSecp256r1VerifyInputFromWebAuthn(input);
 
   return {
     secp256r1Verify: getSecp256r1VerifyInstruction(parsed.verifyInput),
