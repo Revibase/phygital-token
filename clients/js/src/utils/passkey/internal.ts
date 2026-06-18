@@ -1,20 +1,6 @@
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import {
-  bufferToBase64URLString,
-  startAuthentication,
-  type AuthenticationResponseJSON,
-} from "@simplewebauthn/browser";
-import { type TransactionSigner, type Instruction } from "@solana/kit";
-import { findAssociatedTokenAddress } from "../associatedToken.js";
-import {
-  RP_ID,
-  TOKEN_2022_PROGRAM_ADDRESS,
-  TRANSFER_HOOK_PROGRAM_ADDRESS,
-} from "../consts.js";
-import { getExecuteTransferInstructionAsync } from "../../generated/index.js";
-import { type TransferSession } from "../../instructions/transfer.js";
-import { buildSecp256r1VerifyInstructionFromWebAuthn } from "./secp256r1.js";
+import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 
 function uint8ArrayToHex(bytes: Uint8Array): string {
   return Array.from(bytes)

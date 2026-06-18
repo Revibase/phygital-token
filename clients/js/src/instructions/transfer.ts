@@ -12,7 +12,6 @@ import {
 import {
   RP_ID,
   TOKEN_2022_PROGRAM_ADDRESS,
-  TRANSFER_HOOK_PROGRAM_ADDRESS,
 } from "../utils/consts.js";
 import { type AssetDisplayInfo } from "../utils/metadata.js";
 import {
@@ -94,7 +93,6 @@ export async function completeTransfer(
     origin,
     crossOrigin,
     truncatedClientDataJson,
-    domainConfig,
   } = await buildSecp256r1VerifyInstructionFromWebAuthn({
     response,
     session,
@@ -112,14 +110,13 @@ export async function completeTransfer(
   );
 
   const executeTransfer = await getExecuteTransferInstructionAsync({
-    domainConfig,
+    domainConfig: session.displayInfo.domainConfig,
     recipient,
     sender: session.displayInfo.currentOwner,
     asset: session.displayInfo.asset,
     mint: session.displayInfo.mint,
     senderTokenAccount,
     recipientTokenAccount,
-    transferHookProgram: TRANSFER_HOOK_PROGRAM_ADDRESS,
     tokenProgram,
     signedMessageIndex: 0,
     slotNumber: session.slotNumber,

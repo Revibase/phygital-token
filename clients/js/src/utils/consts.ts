@@ -14,10 +14,6 @@ export const SECP256R1_PROGRAM_ADDRESS = address(
   "Secp256r1SigVerify1111111111111111111111111",
 );
 
-export const TRANSFER_HOOK_PROGRAM_ADDRESS = address(
-  "FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G",
-);
-
 export const SLOT_HASHES_SYSVAR_ADDRESS = address(
   "SysvarS1otHashes111111111111111111111111111",
 );

@@ -50,7 +50,6 @@ function buildSecp256r1VerifyInputFromWebAuthn(input: {
     crossOrigin: clientData.crossOrigin,
     truncatedClientDataJson: clientData.truncatedClientDataJson,
     origin: clientData.origin,
-    rpIdHash: message.subarray(0, 32),
   };
 }
 
@@ -89,7 +88,6 @@ export type WebAuthnSecp256r1Verification = {
   origin: string;
   crossOrigin: boolean;
   truncatedClientDataJson: Uint8Array;
-  domainConfig: Address;
 };
 
 export async function buildSecp256r1VerifyInstructionFromWebAuthn(input: {
@@ -103,6 +101,5 @@ export async function buildSecp256r1VerifyInstructionFromWebAuthn(input: {
     origin: parsed.origin,
     crossOrigin: parsed.crossOrigin,
     truncatedClientDataJson: parsed.truncatedClientDataJson,
-    domainConfig: await findDomainConfigPda(undefined, parsed.rpIdHash),
   };
 }
