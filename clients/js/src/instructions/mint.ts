@@ -3,15 +3,15 @@ import {
   type Instruction,
   type TransactionSigner,
 } from "@solana/kit";
-import { getMintTokenInstructionAsync } from "../generated/instructions/mintToken";
-import { findProgramAuthorityPda } from "../generated/pdas/programAuthority";
-import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey";
-import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts";
-import { findAssociatedTokenAddress } from "../utils/associatedToken";
-import { getCreateMintInstructionAsync } from "../generated/instructions/createMint";
-import { base64URLStringToBuffer } from "../utils/passkey/internal";
-import { findDomainConfigPda } from "../utils/pdas/domainConfig";
-import { findAssetPda } from "../utils/pdas/asset";
+import { getMintTokenInstructionAsync } from "../generated/instructions/mintToken.js";
+import { findProgramAuthorityPda } from "../generated/pdas/programAuthority.js";
+import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey.js";
+import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts.js";
+import { findAssociatedTokenAddress } from "../utils/associatedToken.js";
+import { getCreateMintInstructionAsync } from "../generated/instructions/createMint.js";
+import { base64URLStringToBuffer } from "../utils/passkey/internal.js";
+import { findDomainConfigPda } from "../utils/pdas/domainConfig.js";
+import { findAssetPda } from "../utils/pdas/asset.js";
 
 export const MAX_METADATA_NAME_LEN = 32;
 export const MAX_METADATA_SYMBOL_LEN = 10;
@@ -50,7 +50,7 @@ export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
   try {
     bytes = new Uint8Array(base64URLStringToBuffer(trimmed));
   } catch {
-    throw new Error("Pubkey must be valid base58.");
+    throw new Error("Pubkey must be valid base64url.");
   }
 
   if (bytes.length !== 33) {

@@ -1,5 +1,5 @@
 {
-  "idl": "idl/phygital_nfts.json",
+  "idl": "idl/phygital_token.json",
   "before": [],
   "scripts": {
     "js": {

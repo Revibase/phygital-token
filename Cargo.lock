@@ -2240,7 +2240,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "phygital-nfts"
+name = "phygital-token"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
@@ -2248,7 +2248,7 @@ dependencies = [
  "base64 0.22.1",
  "litesvm 0.12.0",
  "p256",
- "phygital-nfts-hook",
+ "phygital-token-hook",
  "rand 0.8.6",
  "sha2 0.11.0",
  "solana-instructions-sysvar 3.0.1",
@@ -2264,12 +2264,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "phygital-nfts-hook"
+name = "phygital-token-hook"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "litesvm 0.10.0",
- "phygital-nfts",
+ "phygital-token",
  "solana-keypair",
  "solana-message 3.1.0",
  "solana-signer 3.0.1",

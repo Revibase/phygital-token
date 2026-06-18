@@ -50,7 +50,7 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../programs";
+import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const UPDATE_DOMAIN_CONFIG_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([226, 144, 2, 120, 193, 130, 251, 31]);
@@ -62,7 +62,7 @@ export function getUpdateDomainConfigDiscriminatorBytes(): ReadonlyUint8Array {
 }
 
 export type UpdateDomainConfigInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountDomainConfig extends string | AccountMeta<string> = string,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
@@ -159,7 +159,7 @@ export function getUpdateDomainConfigInstruction<
   TAccountDomainConfig extends string,
   TAccountAuthority extends string,
   TAccountSystemProgram extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: UpdateDomainConfigInput<
     TAccountDomainConfig,
@@ -175,7 +175,7 @@ export function getUpdateDomainConfigInstruction<
 > {
   // Program address.
   const programAddress =
-    config?.programAddress ?? PHYGITAL_NFTS_PROGRAM_ADDRESS;
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -217,7 +217,7 @@ export function getUpdateDomainConfigInstruction<
 }
 
 export type ParsedUpdateDomainConfigInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;

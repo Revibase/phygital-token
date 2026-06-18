@@ -3,8 +3,8 @@
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "idl:sync": "cp target/idl/phygital_nfts.json idl/phygital_nfts.json && cp target/idl/phygital_nfts_hook.json idl/phygital_nfts_hook.json",
-    "generate:client": "codama run js",
+    "idl:sync": "cp target/idl/phygital_token.json idl/phygital_token.json && cp target/idl/phygital_token_hook.json idl/phygital_token_hook.json",
+    "generate:client": "codama run js && node clients/js/scripts/add-import-extensions.mjs",
     "build:client": "yarn --cwd clients/js build",
     "build:program": "NO_DNA=1 anchor build && yarn idl:sync && yarn generate:client && yarn build:client"
   },

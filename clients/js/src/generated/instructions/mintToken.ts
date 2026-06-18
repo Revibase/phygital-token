@@ -42,14 +42,14 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findProgramAuthorityPda } from "../pdas";
-import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../programs";
+import { findProgramAuthorityPda } from "../pdas/index.js";
+import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getSecp256r1PubkeyDecoder,
   getSecp256r1PubkeyEncoder,
   type Secp256r1Pubkey,
   type Secp256r1PubkeyArgs,
-} from "../types";
+} from "../types/index.js";
 
 export const MINT_TOKEN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
   172, 137, 183, 14, 207, 110, 234, 56,
@@ -60,7 +60,7 @@ export function getMintTokenDiscriminatorBytes(): ReadonlyUint8Array {
 }
 
 export type MintTokenInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountAsset extends string | AccountMeta<string> = string,
   TAccountMint extends string | AccountMeta<string> = string,
@@ -185,7 +185,7 @@ export async function getMintTokenInstructionAsync<
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
   TAccountDomainConfig extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: MintTokenAsyncInput<
     TAccountAuthority,
@@ -215,7 +215,7 @@ export async function getMintTokenInstructionAsync<
 > {
   // Program address.
   const programAddress =
-    config?.programAddress ?? PHYGITAL_NFTS_PROGRAM_ADDRESS;
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -331,7 +331,7 @@ export function getMintTokenInstruction<
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
   TAccountDomainConfig extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: MintTokenInput<
     TAccountAuthority,
@@ -359,7 +359,7 @@ export function getMintTokenInstruction<
 > {
   // Program address.
   const programAddress =
-    config?.programAddress ?? PHYGITAL_NFTS_PROGRAM_ADDRESS;
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -439,7 +439,7 @@ export function getMintTokenInstruction<
 }
 
 export type ParsedMintTokenInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;

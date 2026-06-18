@@ -6,8 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-phygital_nfts = "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1"
-phygital_nfts_hook = "FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G"
+phygital_token = "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1"
+phygital_token_hook = "FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G"
 
 [provider]
 cluster = "localnet"

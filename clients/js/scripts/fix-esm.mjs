@@ -1,5 +1,9 @@
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const distRoot = join(packageRoot, "dist");
 
 function walk(dir) {
   const files = [];
@@ -44,6 +48,6 @@ function fixFile(file) {
   }
 }
 
-for (const file of walk("dist")) {
+for (const file of walk(distRoot)) {
   fixFile(file);
 }

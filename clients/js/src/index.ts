@@ -1,9 +1,9 @@
 export {
-  authenticateAsset,
+  authenticateToken,
   beginTransfer,
   completeTransfer,
   type TransferSession,
-} from "./instructions/transfer";
+} from "./instructions/transfer.js";
 
 export {
   buildCreateMintInstructions,
@@ -14,16 +14,16 @@ export {
   parseSecp256r1Pubkey,
   validateMetadataFields,
   type MetadataFields,
-} from "./instructions/mint";
+} from "./instructions/mint.js";
 
 export {
-  fetchNftDisplayInfo,
+  fetchAssetDisplayInfo,
+  type AssetDisplayInfo,
   type VerifyMetadataCallback,
-  type NftDisplayInfo,
-} from "./utils/metadata";
+} from "./utils/metadata.js";
 
-export { verifyLocal, verifyWithServerCheck } from "./utils/verify";
+export { verifyLocal, verifyWithServerCheck } from "./utils/verify.js";
 
-export { findAssetPda, findDomainConfigPda } from "./utils/pdas";
+export { findAssetPda, findDomainConfigPda } from "./utils/pdas/index.js";
 
-export * from "./generated"
+export * from "./generated/index.js"

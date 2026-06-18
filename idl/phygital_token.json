@@ -1,0 +1,750 @@
+{
+  "address": "E6KubRhYXkWVegxS68od3C4DSEUJGUcuY68M2wdRJH3F",
+  "metadata": {
+    "name": "phygital_token",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "create_domain_config",
+      "discriminator": [
+        197,
+        81,
+        191,
+        2,
+        164,
+        140,
+        184,
+        90
+      ],
+      "accounts": [
+        {
+          "name": "domain_config",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CreateDomainConfigArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create_mint",
+      "discriminator": [
+        69,
+        44,
+        215,
+        132,
+        253,
+        214,
+        41,
+        45
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "group_mint",
+          "writable": true
+        },
+        {
+          "name": "group_mint_authority",
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program_authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CreateMintArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_transfer",
+      "discriminator": [
+        233,
+        126,
+        160,
+        184,
+        235,
+        206,
+        31,
+        119
+      ],
+      "accounts": [
+        {
+          "name": "recipient",
+          "signer": true
+        },
+        {
+          "name": "sender"
+        },
+        {
+          "name": "asset",
+          "writable": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "sender_token_account",
+          "writable": true
+        },
+        {
+          "name": "recipient_token_account",
+          "writable": true
+        },
+        {
+          "name": "program_authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "transfer_hook_program",
+          "address": "9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD"
+        },
+        {
+          "name": "domain_config"
+        }
+      ],
+      "args": [
+        {
+          "name": "secp256r1_verify_args",
+          "type": {
+            "defined": {
+              "name": "Secp256r1VerifyArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "mint_token",
+      "discriminator": [
+        172,
+        137,
+        183,
+        14,
+        207,
+        110,
+        234,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "asset",
+          "writable": true
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "program_authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_authority_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "domain_config"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "MintTokenArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_lock_state",
+      "discriminator": [
+        16,
+        40,
+        80,
+        140,
+        163,
+        156,
+        68,
+        120
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "asset",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "is_locked",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "update_domain_config",
+      "discriminator": [
+        226,
+        144,
+        2,
+        120,
+        193,
+        130,
+        251,
+        31
+      ],
+      "accounts": [
+        {
+          "name": "domain_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  111,
+                  109,
+                  97,
+                  105,
+                  110,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "domain_config.rp_id_hash",
+                "account": "DomainConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "UpdateDomainConfigArgs"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Asset",
+      "discriminator": [
+        234,
+        180,
+        241,
+        252,
+        139,
+        224,
+        160,
+        8
+      ]
+    },
+    {
+      "name": "DomainConfig",
+      "discriminator": [
+        201,
+        232,
+        212,
+        229,
+        59,
+        241,
+        106,
+        197
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidSecp256r1Instruction",
+      "msg": "The instruction preceding this program invocation is not a secp256r1 verification instruction"
+    },
+    {
+      "code": 6001,
+      "name": "SignatureIndexOutOfBounds",
+      "msg": "The signature index provided is out of bounds for the secp256r1 instruction"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidSignatureOffsets",
+      "msg": "Failed to deserialize secp256r1 signature offsets from the instruction data"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidSecp256r1PublicKey",
+      "msg": "Invalid secp256r1 public key"
+    },
+    {
+      "code": 6004,
+      "name": "Secp256r1PubkeyMismatch",
+      "msg": "secp256r1 pubkey does not match token record"
+    },
+    {
+      "code": 6005,
+      "name": "OwnerMismatch",
+      "msg": "Token owner mismatch"
+    },
+    {
+      "code": 6006,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidSlotHash",
+      "msg": "Slot not found in SlotHashes sysvar — signature has expired or is being replayed"
+    },
+    {
+      "code": 6008,
+      "name": "StaleTransferSlot",
+      "msg": "Transfer slot must be greater than the last successful transfer slot"
+    },
+    {
+      "code": 6009,
+      "name": "ClientDataHashMismatch",
+      "msg": "Client data hash mismatch"
+    },
+    {
+      "code": 6010,
+      "name": "MissingInstructionsSysvar",
+      "msg": "Missing instructions sysvar account"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidSysvarDataFormat",
+      "msg": "Invalid sysvar data format"
+    },
+    {
+      "code": 6012,
+      "name": "MaxLengthExceeded",
+      "msg": "Max length exceeded"
+    },
+    {
+      "code": 6013,
+      "name": "AuthorityMismatch",
+      "msg": "Authority does not match"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidCustodyTokenAccount",
+      "msg": "Custody token account must be the canonical ATA for program_authority"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidRecipient",
+      "msg": "Recipient cannot be program_authority"
+    },
+    {
+      "code": 6016,
+      "name": "AssetIsCurrentlyLocked",
+      "msg": "The owner needs to unlock the asset to enable transfer."
+    },
+    {
+      "code": 6017,
+      "name": "AssetIsNotConfigurable",
+      "msg": "This asset is not configurable."
+    },
+    {
+      "code": 6018,
+      "name": "RpIdMismatch",
+      "msg": "Invalid rp id."
+    },
+    {
+      "code": 6019,
+      "name": "OriginMismatch",
+      "msg": "Invalid origin."
+    },
+    {
+      "code": 6020,
+      "name": "DomainConfigMismatch",
+      "msg": "Invalid domain config."
+    }
+  ],
+  "types": [
+    {
+      "name": "Asset",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "domain_config",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_transfer_slot",
+            "type": "u64"
+          },
+          {
+            "name": "is_locked",
+            "type": {
+              "option": "bool"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateDomainConfigArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rp_id",
+            "type": "string"
+          },
+          {
+            "name": "origins",
+            "type": {
+              "vec": "string"
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateMintArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DomainConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "rp_id_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "rp_id",
+            "type": "string"
+          },
+          {
+            "name": "origins",
+            "type": {
+              "vec": "string"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MintTokenArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "secp256r1_pubkey",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "lock_asset_on_create",
+            "type": {
+              "option": "bool"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Secp256r1Pubkey",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "array": [
+              "u8",
+              33
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Secp256r1VerifyArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "signed_message_index",
+            "type": "u8"
+          },
+          {
+            "name": "slot_number",
+            "type": "u64"
+          },
+          {
+            "name": "origin",
+            "type": "string"
+          },
+          {
+            "name": "cross_origin",
+            "type": "bool"
+          },
+          {
+            "name": "truncated_client_data_json",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateDomainConfigArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_authority",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "new_origins",
+            "type": {
+              "option": {
+                "vec": "string"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

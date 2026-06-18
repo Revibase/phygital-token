@@ -48,8 +48,8 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findProgramAuthorityPda } from "../pdas";
-import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../programs";
+import { findProgramAuthorityPda } from "../pdas/index.js";
+import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const EXECUTE_TRANSFER_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([233, 126, 160, 184, 235, 206, 31, 119]);
@@ -61,7 +61,7 @@ export function getExecuteTransferDiscriminatorBytes(): ReadonlyUint8Array {
 }
 
 export type ExecuteTransferInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountRecipient extends string | AccountMeta<string> = string,
   TAccountSender extends string | AccountMeta<string> = string,
   TAccountAsset extends string | AccountMeta<string> = string,
@@ -80,7 +80,7 @@ export type ExecuteTransferInstruction<
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TAccountTransferHookProgram extends string | AccountMeta<string> =
-    "FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G",
+    "9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD",
   TAccountDomainConfig extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
@@ -244,7 +244,7 @@ export async function getExecuteTransferInstructionAsync<
   TAccountSystemProgram extends string,
   TAccountTransferHookProgram extends string,
   TAccountDomainConfig extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: ExecuteTransferAsyncInput<
     TAccountRecipient,
@@ -284,7 +284,7 @@ export async function getExecuteTransferInstructionAsync<
 > {
   // Program address.
   const programAddress =
-    config?.programAddress ?? PHYGITAL_NFTS_PROGRAM_ADDRESS;
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -355,7 +355,7 @@ export async function getExecuteTransferInstructionAsync<
   }
   if (!accounts.transferHookProgram.value) {
     accounts.transferHookProgram.value =
-      "FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G" as Address<"FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G">;
+      "9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD" as Address<"9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD">;
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
@@ -451,7 +451,7 @@ export function getExecuteTransferInstruction<
   TAccountSystemProgram extends string,
   TAccountTransferHookProgram extends string,
   TAccountDomainConfig extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: ExecuteTransferInput<
     TAccountRecipient,
@@ -489,7 +489,7 @@ export function getExecuteTransferInstruction<
 > {
   // Program address.
   const programAddress =
-    config?.programAddress ?? PHYGITAL_NFTS_PROGRAM_ADDRESS;
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -557,7 +557,7 @@ export function getExecuteTransferInstruction<
   }
   if (!accounts.transferHookProgram.value) {
     accounts.transferHookProgram.value =
-      "FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G" as Address<"FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G">;
+      "9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD" as Address<"9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD">;
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
@@ -602,7 +602,7 @@ export function getExecuteTransferInstruction<
 }
 
 export type ParsedExecuteTransferInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;

@@ -6,4 +6,4 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./secp256r1Pubkey";
+export * from "./secp256r1Pubkey.js";

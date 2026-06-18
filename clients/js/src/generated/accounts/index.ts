@@ -6,5 +6,5 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./asset";
-export * from "./domainConfig";
+export * from "./asset.js";
+export * from "./domainConfig.js";

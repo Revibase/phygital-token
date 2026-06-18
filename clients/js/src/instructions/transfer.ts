@@ -13,19 +13,19 @@ import {
   RP_ID,
   TOKEN_2022_PROGRAM_ADDRESS,
   TRANSFER_HOOK_PROGRAM_ADDRESS,
-} from "../utils/consts";
-import { type NftDisplayInfo } from "../utils/metadata";
+} from "../utils/consts.js";
+import { type AssetDisplayInfo } from "../utils/metadata.js";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthn,
   buildTransferChallenge,
-} from "../utils/passkey/secp256r1";
-import { getLatestSlotHash } from "../utils/slotHash";
-import { getExecuteTransferInstructionAsync } from "../generated";
-import { findAssociatedTokenAddress } from "../utils/associatedToken";
+} from "../utils/passkey/secp256r1.js";
+import { getLatestSlotHash } from "../utils/slotHash.js";
+import { getExecuteTransferInstructionAsync } from "../generated/index.js";
+import { findAssociatedTokenAddress } from "../utils/associatedToken.js";
 
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
-  nft: NftDisplayInfo;
+  displayInfo: AssetDisplayInfo;
   slotHash: Uint8Array;
   slotNumber: bigint;
   challenge: Uint8Array;
@@ -34,23 +34,23 @@ export type TransferSession = {
 /**
  * Prepares a transfer session with slot-bound challenge data.
  * Recipient is chosen later at wallet confirmation — not bound in the asset signature.
- * Must be followed promptly by authenticateAsset and completeTransfer.
+ * Must be followed promptly by authenticateToken and completeTransfer.
  */
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
-  nft: NftDisplayInfo;
+  displayInfo: AssetDisplayInfo;
 }): Promise<TransferSession> {
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
     tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
-    asset: input.nft.asset,
-    sender: input.nft.currentOwner,
+    asset: input.displayInfo.asset,
+    sender: input.displayInfo.currentOwner,
     slotHash,
   });
 
   return {
     rpc: input.rpc,
-    nft: input.nft,
+    displayInfo: input.displayInfo,
     slotHash,
     slotNumber,
     challenge,
@@ -58,7 +58,7 @@ export async function beginTransfer(input: {
 }
 
 /** Prompts the physical asset passkey (WebAuthn / NFC tap). */
-export async function authenticateAsset(
+export async function authenticateToken(
   session: TransferSession,
 ): Promise<AuthenticationResponseJSON> {
   return startAuthentication({
@@ -102,21 +102,21 @@ export async function completeTransfer(
 
   const recipientTokenAccount = await findAssociatedTokenAddress(
     recipient.address,
-    session.nft.mint,
+    session.displayInfo.mint,
     tokenProgram,
   );
   const senderTokenAccount = await findAssociatedTokenAddress(
-    session.nft.currentOwner,
-    session.nft.mint,
+    session.displayInfo.currentOwner,
+    session.displayInfo.mint,
     tokenProgram,
   );
 
   const executeTransfer = await getExecuteTransferInstructionAsync({
     domainConfig,
     recipient,
-    sender: session.nft.currentOwner,
-    asset: session.nft.asset,
-    mint: session.nft.mint,
+    sender: session.displayInfo.currentOwner,
+    asset: session.displayInfo.asset,
+    mint: session.displayInfo.mint,
     senderTokenAccount,
     recipientTokenAccount,
     transferHookProgram: TRANSFER_HOOK_PROGRAM_ADDRESS,

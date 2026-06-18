@@ -43,8 +43,8 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { findProgramAuthorityPda } from "../pdas";
-import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../programs";
+import { findProgramAuthorityPda } from "../pdas/index.js";
+import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const CREATE_MINT_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
   69, 44, 215, 132, 253, 214, 41, 45,
@@ -55,7 +55,7 @@ export function getCreateMintDiscriminatorBytes(): ReadonlyUint8Array {
 }
 
 export type CreateMintInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountPayer extends string | AccountMeta<string> = string,
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountGroupMint extends string | AccountMeta<string> = string,
@@ -178,7 +178,7 @@ export async function getCreateMintInstructionAsync<
   TAccountProgramAuthority extends string,
   TAccountTokenProgram extends string,
   TAccountSystemProgram extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: CreateMintAsyncInput<
     TAccountPayer,
@@ -206,7 +206,7 @@ export async function getCreateMintInstructionAsync<
 > {
   // Program address.
   const programAddress =
-    config?.programAddress ?? PHYGITAL_NFTS_PROGRAM_ADDRESS;
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -307,7 +307,7 @@ export function getCreateMintInstruction<
   TAccountProgramAuthority extends string,
   TAccountTokenProgram extends string,
   TAccountSystemProgram extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: CreateMintInput<
     TAccountPayer,
@@ -333,7 +333,7 @@ export function getCreateMintInstruction<
 > {
   // Program address.
   const programAddress =
-    config?.programAddress ?? PHYGITAL_NFTS_PROGRAM_ADDRESS;
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -400,7 +400,7 @@ export function getCreateMintInstruction<
 }
 
 export type ParsedCreateMintInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;

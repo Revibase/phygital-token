@@ -9,10 +9,10 @@ import {
   isExtension,
   type Extension,
 } from "@solana-program/token-2022";
-import { parseSecp256r1Pubkey } from "../instructions/mint";
-import { findAssetPda } from "./pdas/asset";
-import { RP_ID } from "./consts";
-import { fetchAsset } from "../generated";
+import { parseSecp256r1Pubkey } from "../instructions/mint.js";
+import { findAssetPda } from "./pdas/asset.js";
+import { RP_ID } from "./consts.js";
+import { fetchAsset } from "../generated/index.js";
 
 export const DEFAULT_VERIFY_METADATA_ENDPOINT = `https://${RP_ID}/api/metadata`;
 
@@ -127,7 +127,7 @@ async function fetchJsonMetadata(
   }
 }
 
-export type NftDisplayInfo = {
+export type AssetDisplayInfo = {
   /** Asset instance PDA — unique per physical asset. */
   publicKey: string;
   asset: Address;
@@ -152,10 +152,10 @@ export type NftDisplayInfo = {
   lastTransferSlot: bigint;
 };
 
-export async function fetchNftDisplayInfo(
+export async function fetchAssetDisplayInfo(
   rpc: Rpc<SolanaRpcApi>,
   publicKey: string,
-): Promise<NftDisplayInfo> {
+): Promise<AssetDisplayInfo> {
   const asset = await findAssetPda(parseSecp256r1Pubkey(publicKey));
   const instance = await fetchAsset(rpc, asset);
 

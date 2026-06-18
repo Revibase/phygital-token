@@ -5,13 +5,13 @@ import {
 import {
   base64URLStringToBuffer,
   normalizeSignatureToLowS,
-} from "./passkey/internal";
+} from "./passkey/internal.js";
 import { p256 } from "@noble/curves/nist.js";
 import {
   DEFAULT_VERIFY_METADATA_ENDPOINT,
   verifyMetadata,
   type VerifyMetadataCallback,
-} from "./metadata";
+} from "./metadata.js";
 
 /**
  * Verifies the request against the server.

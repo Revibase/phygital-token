@@ -5,7 +5,7 @@ import {
   type Rpc,
   type SolanaRpcApi,
 } from "@solana/kit";
-import { SLOT_HASHES_SYSVAR_ADDRESS } from "./consts";
+import { SLOT_HASHES_SYSVAR_ADDRESS } from "./consts.js";
 
 export function decodeBase64AccountData(
   data: string | [string, string] | Uint8Array,

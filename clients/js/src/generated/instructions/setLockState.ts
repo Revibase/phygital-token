@@ -37,7 +37,7 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/program-client-core";
-import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../programs";
+import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const SET_LOCK_STATE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
   16, 40, 80, 140, 163, 156, 68, 120,
@@ -50,7 +50,7 @@ export function getSetLockStateDiscriminatorBytes(): ReadonlyUint8Array {
 }
 
 export type SetLockStateInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountAsset extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -115,14 +115,14 @@ export type SetLockStateInput<
 export function getSetLockStateInstruction<
   TAccountOwner extends string,
   TAccountAsset extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: SetLockStateInput<TAccountOwner, TAccountAsset>,
   config?: { programAddress?: TProgramAddress },
 ): SetLockStateInstruction<TProgramAddress, TAccountOwner, TAccountAsset> {
   // Program address.
   const programAddress =
-    config?.programAddress ?? PHYGITAL_NFTS_PROGRAM_ADDRESS;
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -151,7 +151,7 @@ export function getSetLockStateInstruction<
 }
 
 export type ParsedSetLockStateInstruction<
-  TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
+  TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;

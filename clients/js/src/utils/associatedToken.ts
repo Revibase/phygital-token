@@ -3,7 +3,7 @@ import {
   getProgramDerivedAddress,
   type Address,
 } from "@solana/kit";
-import { ASSOCIATED_TOKEN_PROGRAM_ADDRESS } from "./consts";
+import { ASSOCIATED_TOKEN_PROGRAM_ADDRESS } from "./consts.js";
 
 export async function findAssociatedTokenAddress(
   owner: Address,

@@ -1,0 +1,51 @@
+{
+  "address": "9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD",
+  "metadata": {
+    "name": "phygital_token_hook",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Transfer hook for phygital-token (separate program id to avoid CPI reentrancy)"
+  },
+  "instructions": [
+    {
+      "name": "execute_transfer_hook",
+      "discriminator": [
+        105,
+        37,
+        101,
+        197,
+        75,
+        251,
+        102,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "source_token_account"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "destination_token_account"
+        },
+        {
+          "name": "authority"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidTransferAuthority",
+      "msg": "Transfer authority must be program_authority"
+    }
+  ]
+}

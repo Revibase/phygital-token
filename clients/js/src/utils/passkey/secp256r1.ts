@@ -1,15 +1,15 @@
 import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { getAddressEncoder, type Address, type Instruction } from "@solana/kit";
-import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify";
-import { SECP256R1_PROGRAM_ADDRESS, TRANSFER_ACTION_BYTES } from "../consts";
+import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify.js";
+import { SECP256R1_PROGRAM_ADDRESS, TRANSFER_ACTION_BYTES } from "../consts.js";
 import {
   base64URLStringToBuffer,
   convertSignatureDERtoRS,
   getSecp256r1Message,
   parseWebAuthnClientData,
-} from "./internal";
-import { TransferSession } from "../../instructions/transfer";
-import { findDomainConfigPda } from "../pdas/domainConfig";
+} from "./internal.js";
+import { type TransferSession } from "../../instructions/transfer.js";
+import { findDomainConfigPda } from "../pdas/domainConfig.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
@@ -42,7 +42,7 @@ function buildSecp256r1VerifyInputFromWebAuthn(input: {
   return {
     verifyInput: [
       {
-        publicKey: base64URLStringToBuffer(input.session.nft.publicKey),
+        publicKey: base64URLStringToBuffer(input.session.displayInfo.publicKey),
         signature,
         message,
       },
