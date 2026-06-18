@@ -17,8 +17,12 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -26,124 +30,125 @@ import {
   transformEncoder,
   type Account,
   type Address,
+  type Codec,
+  type Decoder,
   type EncodedAccount,
+  type Encoder,
   type FetchAccountConfig,
   type FetchAccountsConfig,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
   type MaybeAccount,
   type MaybeEncodedAccount,
+  type Option,
+  type OptionOrNullable,
   type ReadonlyUint8Array,
 } from "@solana/kit";
 
-export const CARD_INSTANCE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  250, 165, 184, 218, 79, 217, 254, 165,
+export const ASSET_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  234, 180, 241, 252, 139, 224, 160, 8,
 ]);
 
-export function getCardInstanceDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CARD_INSTANCE_DISCRIMINATOR,
-  );
+export function getAssetDiscriminatorBytes(): ReadonlyUint8Array {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(ASSET_DISCRIMINATOR);
 }
 
-export type CardInstance = {
+export type Asset = {
   discriminator: ReadonlyUint8Array;
   mint: Address;
   owner: Address;
+  domainConfig: Address;
   lastTransferSlot: bigint;
+  isLocked: Option<boolean>;
 };
 
-export type CardInstanceArgs = {
+export type AssetArgs = {
   mint: Address;
   owner: Address;
+  domainConfig: Address;
   lastTransferSlot: number | bigint;
+  isLocked: OptionOrNullable<boolean>;
 };
 
-/** Gets the encoder for {@link CardInstanceArgs} account data. */
-export function getCardInstanceEncoder(): FixedSizeEncoder<CardInstanceArgs> {
+/** Gets the encoder for {@link AssetArgs} account data. */
+export function getAssetEncoder(): Encoder<AssetArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["mint", getAddressEncoder()],
       ["owner", getAddressEncoder()],
+      ["domainConfig", getAddressEncoder()],
       ["lastTransferSlot", getU64Encoder()],
+      ["isLocked", getOptionEncoder(getBooleanEncoder())],
     ]),
-    (value) => ({ ...value, discriminator: CARD_INSTANCE_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: ASSET_DISCRIMINATOR }),
   );
 }
 
-/** Gets the decoder for {@link CardInstance} account data. */
-export function getCardInstanceDecoder(): FixedSizeDecoder<CardInstance> {
+/** Gets the decoder for {@link Asset} account data. */
+export function getAssetDecoder(): Decoder<Asset> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["mint", getAddressDecoder()],
     ["owner", getAddressDecoder()],
+    ["domainConfig", getAddressDecoder()],
     ["lastTransferSlot", getU64Decoder()],
+    ["isLocked", getOptionDecoder(getBooleanDecoder())],
   ]);
 }
 
-/** Gets the codec for {@link CardInstance} account data. */
-export function getCardInstanceCodec(): FixedSizeCodec<
-  CardInstanceArgs,
-  CardInstance
-> {
-  return combineCodec(getCardInstanceEncoder(), getCardInstanceDecoder());
+/** Gets the codec for {@link Asset} account data. */
+export function getAssetCodec(): Codec<AssetArgs, Asset> {
+  return combineCodec(getAssetEncoder(), getAssetDecoder());
 }
 
-export function decodeCardInstance<TAddress extends string = string>(
+export function decodeAsset<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress>,
-): Account<CardInstance, TAddress>;
-export function decodeCardInstance<TAddress extends string = string>(
+): Account<Asset, TAddress>;
+export function decodeAsset<TAddress extends string = string>(
   encodedAccount: MaybeEncodedAccount<TAddress>,
-): MaybeAccount<CardInstance, TAddress>;
-export function decodeCardInstance<TAddress extends string = string>(
+): MaybeAccount<Asset, TAddress>;
+export function decodeAsset<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>,
-): Account<CardInstance, TAddress> | MaybeAccount<CardInstance, TAddress> {
+): Account<Asset, TAddress> | MaybeAccount<Asset, TAddress> {
   return decodeAccount(
     encodedAccount as MaybeEncodedAccount<TAddress>,
-    getCardInstanceDecoder(),
+    getAssetDecoder(),
   );
 }
 
-export async function fetchCardInstance<TAddress extends string = string>(
+export async function fetchAsset<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
   address: Address<TAddress>,
   config?: FetchAccountConfig,
-): Promise<Account<CardInstance, TAddress>> {
-  const maybeAccount = await fetchMaybeCardInstance(rpc, address, config);
+): Promise<Account<Asset, TAddress>> {
+  const maybeAccount = await fetchMaybeAsset(rpc, address, config);
   assertAccountExists(maybeAccount);
   return maybeAccount;
 }
 
-export async function fetchMaybeCardInstance<TAddress extends string = string>(
+export async function fetchMaybeAsset<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
   address: Address<TAddress>,
   config?: FetchAccountConfig,
-): Promise<MaybeAccount<CardInstance, TAddress>> {
+): Promise<MaybeAccount<Asset, TAddress>> {
   const maybeAccount = await fetchEncodedAccount(rpc, address, config);
-  return decodeCardInstance(maybeAccount);
+  return decodeAsset(maybeAccount);
 }
 
-export async function fetchAllCardInstance(
+export async function fetchAllAsset(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
   addresses: Array<Address>,
   config?: FetchAccountsConfig,
-): Promise<Account<CardInstance>[]> {
-  const maybeAccounts = await fetchAllMaybeCardInstance(rpc, addresses, config);
+): Promise<Account<Asset>[]> {
+  const maybeAccounts = await fetchAllMaybeAsset(rpc, addresses, config);
   assertAccountsExist(maybeAccounts);
   return maybeAccounts;
 }
 
-export async function fetchAllMaybeCardInstance(
+export async function fetchAllMaybeAsset(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
   addresses: Array<Address>,
   config?: FetchAccountsConfig,
-): Promise<MaybeAccount<CardInstance>[]> {
+): Promise<MaybeAccount<Asset>[]> {
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
-  return maybeAccounts.map((maybeAccount) => decodeCardInstance(maybeAccount));
-}
-
-export function getCardInstanceSize(): number {
-  return 80;
+  return maybeAccounts.map((maybeAccount) => decodeAsset(maybeAccount));
 }

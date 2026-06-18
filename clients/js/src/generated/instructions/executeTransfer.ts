@@ -64,7 +64,7 @@ export type ExecuteTransferInstruction<
   TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
   TAccountRecipient extends string | AccountMeta<string> = string,
   TAccountSender extends string | AccountMeta<string> = string,
-  TAccountCardInstance extends string | AccountMeta<string> = string,
+  TAccountAsset extends string | AccountMeta<string> = string,
   TAccountMint extends string | AccountMeta<string> = string,
   TAccountSenderTokenAccount extends string | AccountMeta<string> = string,
   TAccountRecipientTokenAccount extends string | AccountMeta<string> = string,
@@ -81,6 +81,7 @@ export type ExecuteTransferInstruction<
     "11111111111111111111111111111111",
   TAccountTransferHookProgram extends string | AccountMeta<string> =
     "FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G",
+  TAccountDomainConfig extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -93,9 +94,9 @@ export type ExecuteTransferInstruction<
       TAccountSender extends string
         ? ReadonlyAccount<TAccountSender>
         : TAccountSender,
-      TAccountCardInstance extends string
-        ? WritableAccount<TAccountCardInstance>
-        : TAccountCardInstance,
+      TAccountAsset extends string
+        ? WritableAccount<TAccountAsset>
+        : TAccountAsset,
       TAccountMint extends string
         ? WritableAccount<TAccountMint>
         : TAccountMint,
@@ -126,6 +127,9 @@ export type ExecuteTransferInstruction<
       TAccountTransferHookProgram extends string
         ? ReadonlyAccount<TAccountTransferHookProgram>
         : TAccountTransferHookProgram,
+      TAccountDomainConfig extends string
+        ? ReadonlyAccount<TAccountDomainConfig>
+        : TAccountDomainConfig,
       ...TRemainingAccounts,
     ]
   >;
@@ -191,7 +195,7 @@ export function getExecuteTransferInstructionDataCodec(): Codec<
 export type ExecuteTransferAsyncInput<
   TAccountRecipient extends string = string,
   TAccountSender extends string = string,
-  TAccountCardInstance extends string = string,
+  TAccountAsset extends string = string,
   TAccountMint extends string = string,
   TAccountSenderTokenAccount extends string = string,
   TAccountRecipientTokenAccount extends string = string,
@@ -202,10 +206,11 @@ export type ExecuteTransferAsyncInput<
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
   TAccountTransferHookProgram extends string = string,
+  TAccountDomainConfig extends string = string,
 > = {
   recipient: TransactionSigner<TAccountRecipient>;
   sender: Address<TAccountSender>;
-  cardInstance: Address<TAccountCardInstance>;
+  asset: Address<TAccountAsset>;
   mint: Address<TAccountMint>;
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
@@ -216,6 +221,7 @@ export type ExecuteTransferAsyncInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   transferHookProgram?: Address<TAccountTransferHookProgram>;
+  domainConfig: Address<TAccountDomainConfig>;
   signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
   slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
   origin: ExecuteTransferInstructionDataArgs["origin"];
@@ -226,7 +232,7 @@ export type ExecuteTransferAsyncInput<
 export async function getExecuteTransferInstructionAsync<
   TAccountRecipient extends string,
   TAccountSender extends string,
-  TAccountCardInstance extends string,
+  TAccountAsset extends string,
   TAccountMint extends string,
   TAccountSenderTokenAccount extends string,
   TAccountRecipientTokenAccount extends string,
@@ -237,12 +243,13 @@ export async function getExecuteTransferInstructionAsync<
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
   TAccountTransferHookProgram extends string,
+  TAccountDomainConfig extends string,
   TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
 >(
   input: ExecuteTransferAsyncInput<
     TAccountRecipient,
     TAccountSender,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
@@ -252,7 +259,8 @@ export async function getExecuteTransferInstructionAsync<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram
+    TAccountTransferHookProgram,
+    TAccountDomainConfig
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
@@ -260,7 +268,7 @@ export async function getExecuteTransferInstructionAsync<
     TProgramAddress,
     TAccountRecipient,
     TAccountSender,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
@@ -270,7 +278,8 @@ export async function getExecuteTransferInstructionAsync<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram
+    TAccountTransferHookProgram,
+    TAccountDomainConfig
   >
 > {
   // Program address.
@@ -281,7 +290,7 @@ export async function getExecuteTransferInstructionAsync<
   const originalAccounts = {
     recipient: { value: input.recipient ?? null, isWritable: false },
     sender: { value: input.sender ?? null, isWritable: false },
-    cardInstance: { value: input.cardInstance ?? null, isWritable: true },
+    asset: { value: input.asset ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: true },
     senderTokenAccount: {
       value: input.senderTokenAccount ?? null,
@@ -310,6 +319,7 @@ export async function getExecuteTransferInstructionAsync<
       value: input.transferHookProgram ?? null,
       isWritable: false,
     },
+    domainConfig: { value: input.domainConfig ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -353,7 +363,7 @@ export async function getExecuteTransferInstructionAsync<
     accounts: [
       getAccountMeta("recipient", accounts.recipient),
       getAccountMeta("sender", accounts.sender),
-      getAccountMeta("cardInstance", accounts.cardInstance),
+      getAccountMeta("asset", accounts.asset),
       getAccountMeta("mint", accounts.mint),
       getAccountMeta("senderTokenAccount", accounts.senderTokenAccount),
       getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
@@ -364,6 +374,7 @@ export async function getExecuteTransferInstructionAsync<
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("transferHookProgram", accounts.transferHookProgram),
+      getAccountMeta("domainConfig", accounts.domainConfig),
     ],
     data: getExecuteTransferInstructionDataEncoder().encode(
       args as ExecuteTransferInstructionDataArgs,
@@ -373,7 +384,7 @@ export async function getExecuteTransferInstructionAsync<
     TProgramAddress,
     TAccountRecipient,
     TAccountSender,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
@@ -383,14 +394,15 @@ export async function getExecuteTransferInstructionAsync<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram
+    TAccountTransferHookProgram,
+    TAccountDomainConfig
   >);
 }
 
 export type ExecuteTransferInput<
   TAccountRecipient extends string = string,
   TAccountSender extends string = string,
-  TAccountCardInstance extends string = string,
+  TAccountAsset extends string = string,
   TAccountMint extends string = string,
   TAccountSenderTokenAccount extends string = string,
   TAccountRecipientTokenAccount extends string = string,
@@ -401,10 +413,11 @@ export type ExecuteTransferInput<
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
   TAccountTransferHookProgram extends string = string,
+  TAccountDomainConfig extends string = string,
 > = {
   recipient: TransactionSigner<TAccountRecipient>;
   sender: Address<TAccountSender>;
-  cardInstance: Address<TAccountCardInstance>;
+  asset: Address<TAccountAsset>;
   mint: Address<TAccountMint>;
   senderTokenAccount: Address<TAccountSenderTokenAccount>;
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
@@ -415,6 +428,7 @@ export type ExecuteTransferInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   transferHookProgram?: Address<TAccountTransferHookProgram>;
+  domainConfig: Address<TAccountDomainConfig>;
   signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
   slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
   origin: ExecuteTransferInstructionDataArgs["origin"];
@@ -425,7 +439,7 @@ export type ExecuteTransferInput<
 export function getExecuteTransferInstruction<
   TAccountRecipient extends string,
   TAccountSender extends string,
-  TAccountCardInstance extends string,
+  TAccountAsset extends string,
   TAccountMint extends string,
   TAccountSenderTokenAccount extends string,
   TAccountRecipientTokenAccount extends string,
@@ -436,12 +450,13 @@ export function getExecuteTransferInstruction<
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
   TAccountTransferHookProgram extends string,
+  TAccountDomainConfig extends string,
   TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
 >(
   input: ExecuteTransferInput<
     TAccountRecipient,
     TAccountSender,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
@@ -451,14 +466,15 @@ export function getExecuteTransferInstruction<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram
+    TAccountTransferHookProgram,
+    TAccountDomainConfig
   >,
   config?: { programAddress?: TProgramAddress },
 ): ExecuteTransferInstruction<
   TProgramAddress,
   TAccountRecipient,
   TAccountSender,
-  TAccountCardInstance,
+  TAccountAsset,
   TAccountMint,
   TAccountSenderTokenAccount,
   TAccountRecipientTokenAccount,
@@ -468,7 +484,8 @@ export function getExecuteTransferInstruction<
   TAccountTokenProgram,
   TAccountAssociatedTokenProgram,
   TAccountSystemProgram,
-  TAccountTransferHookProgram
+  TAccountTransferHookProgram,
+  TAccountDomainConfig
 > {
   // Program address.
   const programAddress =
@@ -478,7 +495,7 @@ export function getExecuteTransferInstruction<
   const originalAccounts = {
     recipient: { value: input.recipient ?? null, isWritable: false },
     sender: { value: input.sender ?? null, isWritable: false },
-    cardInstance: { value: input.cardInstance ?? null, isWritable: true },
+    asset: { value: input.asset ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: true },
     senderTokenAccount: {
       value: input.senderTokenAccount ?? null,
@@ -507,6 +524,7 @@ export function getExecuteTransferInstruction<
       value: input.transferHookProgram ?? null,
       isWritable: false,
     },
+    domainConfig: { value: input.domainConfig ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -547,7 +565,7 @@ export function getExecuteTransferInstruction<
     accounts: [
       getAccountMeta("recipient", accounts.recipient),
       getAccountMeta("sender", accounts.sender),
-      getAccountMeta("cardInstance", accounts.cardInstance),
+      getAccountMeta("asset", accounts.asset),
       getAccountMeta("mint", accounts.mint),
       getAccountMeta("senderTokenAccount", accounts.senderTokenAccount),
       getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
@@ -558,6 +576,7 @@ export function getExecuteTransferInstruction<
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("transferHookProgram", accounts.transferHookProgram),
+      getAccountMeta("domainConfig", accounts.domainConfig),
     ],
     data: getExecuteTransferInstructionDataEncoder().encode(
       args as ExecuteTransferInstructionDataArgs,
@@ -567,7 +586,7 @@ export function getExecuteTransferInstruction<
     TProgramAddress,
     TAccountRecipient,
     TAccountSender,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountSenderTokenAccount,
     TAccountRecipientTokenAccount,
@@ -577,7 +596,8 @@ export function getExecuteTransferInstruction<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram
+    TAccountTransferHookProgram,
+    TAccountDomainConfig
   >);
 }
 
@@ -589,7 +609,7 @@ export type ParsedExecuteTransferInstruction<
   accounts: {
     recipient: TAccountMetas[0];
     sender: TAccountMetas[1];
-    cardInstance: TAccountMetas[2];
+    asset: TAccountMetas[2];
     mint: TAccountMetas[3];
     senderTokenAccount: TAccountMetas[4];
     recipientTokenAccount: TAccountMetas[5];
@@ -600,6 +620,7 @@ export type ParsedExecuteTransferInstruction<
     associatedTokenProgram: TAccountMetas[10];
     systemProgram: TAccountMetas[11];
     transferHookProgram: TAccountMetas[12];
+    domainConfig: TAccountMetas[13];
   };
   data: ExecuteTransferInstructionData;
 };
@@ -612,12 +633,12 @@ export function parseExecuteTransferInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedExecuteTransferInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 13) {
+  if (instruction.accounts.length < 14) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 13,
+        expectedAccountMetas: 14,
       },
     );
   }
@@ -632,7 +653,7 @@ export function parseExecuteTransferInstruction<
     accounts: {
       recipient: getNextAccount(),
       sender: getNextAccount(),
-      cardInstance: getNextAccount(),
+      asset: getNextAccount(),
       mint: getNextAccount(),
       senderTokenAccount: getNextAccount(),
       recipientTokenAccount: getNextAccount(),
@@ -643,6 +664,7 @@ export function parseExecuteTransferInstruction<
       associatedTokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),
       transferHookProgram: getNextAccount(),
+      domainConfig: getNextAccount(),
     },
     data: getExecuteTransferInstructionDataDecoder().decode(instruction.data),
   };

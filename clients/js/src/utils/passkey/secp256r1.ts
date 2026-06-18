@@ -1,14 +1,7 @@
 import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
-import {
-  getAddressEncoder,
-  type Address,
-  type Instruction,
-} from "@solana/kit";
+import { getAddressEncoder, type Address, type Instruction } from "@solana/kit";
 import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify";
-import {
-  SECP256R1_PROGRAM_ADDRESS,
-  TRANSFER_ACTION_BYTES,
-} from "../consts";
+import { SECP256R1_PROGRAM_ADDRESS, TRANSFER_ACTION_BYTES } from "../consts";
 import {
   base64URLStringToBuffer,
   convertSignatureDERtoRS,
@@ -16,11 +9,8 @@ import {
   parseWebAuthnClientData,
 } from "./internal";
 import { TransferSession } from "../../instructions/transfer";
-
-async function sha256(data: Uint8Array): Promise<Uint8Array> {
-  const copy = new Uint8Array(data);
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", copy));
-}
+import { findDomainConfigPda } from "../pdas/domainConfig";
+import { sha256 } from "@noble/hashes/sha2.js";
 
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((sum, part) => sum + part.length, 0);
@@ -38,7 +28,7 @@ function encodeAddress(addressValue: Address): Uint8Array {
 }
 
 function buildSecp256r1VerifyInputFromWebAuthn(input: {
-  session: TransferSession,
+  session: TransferSession;
   response: AuthenticationResponseJSON;
 }) {
   const clientData = parseWebAuthnClientData(
@@ -60,26 +50,27 @@ function buildSecp256r1VerifyInputFromWebAuthn(input: {
     crossOrigin: clientData.crossOrigin,
     truncatedClientDataJson: clientData.truncatedClientDataJson,
     origin: clientData.origin,
+    rpIdHash: message.subarray(0, 32),
   };
 }
 
 export async function buildTransferMessageHash(input: {
-  cardInstance: Address;
+  asset: Address;
   sender: Address;
 }): Promise<Uint8Array> {
   return sha256(
-    concatBytes(encodeAddress(input.cardInstance), encodeAddress(input.sender)),
+    concatBytes(encodeAddress(input.asset), encodeAddress(input.sender)),
   );
 }
 
 export async function buildTransferChallenge(input: {
   tokenProgram: Address;
-  cardInstance: Address;
+  asset: Address;
   sender: Address;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
   const messageHash = await buildTransferMessageHash({
-    cardInstance: input.cardInstance,
+    asset: input.asset,
     sender: input.sender,
   });
 
@@ -98,10 +89,11 @@ export type WebAuthnSecp256r1Verification = {
   origin: string;
   crossOrigin: boolean;
   truncatedClientDataJson: Uint8Array;
+  domainConfig: Address;
 };
 
 export async function buildSecp256r1VerifyInstructionFromWebAuthn(input: {
-  session: TransferSession,
+  session: TransferSession;
   response: AuthenticationResponseJSON;
 }): Promise<WebAuthnSecp256r1Verification> {
   const parsed = buildSecp256r1VerifyInputFromWebAuthn(input);
@@ -111,5 +103,6 @@ export async function buildSecp256r1VerifyInstructionFromWebAuthn(input: {
     origin: parsed.origin,
     crossOrigin: parsed.crossOrigin,
     truncatedClientDataJson: parsed.truncatedClientDataJson,
+    domainConfig: await findDomainConfigPda(undefined, parsed.rpIdHash),
   };
 }

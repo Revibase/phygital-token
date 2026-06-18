@@ -10,8 +10,12 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getBooleanDecoder,
+  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -20,12 +24,14 @@ import {
   type AccountMeta,
   type AccountSignerMeta,
   type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
+  type Codec,
+  type Decoder,
+  type Encoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
+  type Option,
+  type OptionOrNullable,
   type ReadonlyAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
@@ -56,7 +62,7 @@ export function getMintTokenDiscriminatorBytes(): ReadonlyUint8Array {
 export type MintTokenInstruction<
   TProgram extends string = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> = string,
-  TAccountCardInstance extends string | AccountMeta<string> = string,
+  TAccountAsset extends string | AccountMeta<string> = string,
   TAccountMint extends string | AccountMeta<string> = string,
   TAccountProgramAuthority extends string | AccountMeta<string> = string,
   TAccountProgramAuthorityTokenAccount extends string | AccountMeta<string> =
@@ -67,6 +73,7 @@ export type MintTokenInstruction<
     "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
+  TAccountDomainConfig extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -76,9 +83,9 @@ export type MintTokenInstruction<
         ? WritableSignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
-      TAccountCardInstance extends string
-        ? WritableAccount<TAccountCardInstance>
-        : TAccountCardInstance,
+      TAccountAsset extends string
+        ? WritableAccount<TAccountAsset>
+        : TAccountAsset,
       TAccountMint extends string
         ? WritableAccount<TAccountMint>
         : TAccountMint,
@@ -97,6 +104,9 @@ export type MintTokenInstruction<
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
+      TAccountDomainConfig extends string
+        ? ReadonlyAccount<TAccountDomainConfig>
+        : TAccountDomainConfig,
       ...TRemainingAccounts,
     ]
   >;
@@ -104,30 +114,34 @@ export type MintTokenInstruction<
 export type MintTokenInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1Pubkey: Secp256r1Pubkey;
+  lockAssetOnCreate: Option<boolean>;
 };
 
 export type MintTokenInstructionDataArgs = {
   secp256r1Pubkey: Secp256r1PubkeyArgs;
+  lockAssetOnCreate: OptionOrNullable<boolean>;
 };
 
-export function getMintTokenInstructionDataEncoder(): FixedSizeEncoder<MintTokenInstructionDataArgs> {
+export function getMintTokenInstructionDataEncoder(): Encoder<MintTokenInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
+      ["lockAssetOnCreate", getOptionEncoder(getBooleanEncoder())],
     ]),
     (value) => ({ ...value, discriminator: MINT_TOKEN_DISCRIMINATOR }),
   );
 }
 
-export function getMintTokenInstructionDataDecoder(): FixedSizeDecoder<MintTokenInstructionData> {
+export function getMintTokenInstructionDataDecoder(): Decoder<MintTokenInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
+    ["lockAssetOnCreate", getOptionDecoder(getBooleanDecoder())],
   ]);
 }
 
-export function getMintTokenInstructionDataCodec(): FixedSizeCodec<
+export function getMintTokenInstructionDataCodec(): Codec<
   MintTokenInstructionDataArgs,
   MintTokenInstructionData
 > {
@@ -139,58 +153,64 @@ export function getMintTokenInstructionDataCodec(): FixedSizeCodec<
 
 export type MintTokenAsyncInput<
   TAccountAuthority extends string = string,
-  TAccountCardInstance extends string = string,
+  TAccountAsset extends string = string,
   TAccountMint extends string = string,
   TAccountProgramAuthority extends string = string,
   TAccountProgramAuthorityTokenAccount extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
+  TAccountDomainConfig extends string = string,
 > = {
   authority: TransactionSigner<TAccountAuthority>;
-  cardInstance: Address<TAccountCardInstance>;
+  asset: Address<TAccountAsset>;
   mint: Address<TAccountMint>;
   programAuthority?: Address<TAccountProgramAuthority>;
   programAuthorityTokenAccount: Address<TAccountProgramAuthorityTokenAccount>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
+  domainConfig: Address<TAccountDomainConfig>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
+  lockAssetOnCreate: MintTokenInstructionDataArgs["lockAssetOnCreate"];
 };
 
 export async function getMintTokenInstructionAsync<
   TAccountAuthority extends string,
-  TAccountCardInstance extends string,
+  TAccountAsset extends string,
   TAccountMint extends string,
   TAccountProgramAuthority extends string,
   TAccountProgramAuthorityTokenAccount extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
+  TAccountDomainConfig extends string,
   TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
 >(
   input: MintTokenAsyncInput<
     TAccountAuthority,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountDomainConfig
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
   MintTokenInstruction<
     TProgramAddress,
     TAccountAuthority,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountDomainConfig
   >
 > {
   // Program address.
@@ -200,7 +220,7 @@ export async function getMintTokenInstructionAsync<
   // Original accounts.
   const originalAccounts = {
     authority: { value: input.authority ?? null, isWritable: true },
-    cardInstance: { value: input.cardInstance ?? null, isWritable: true },
+    asset: { value: input.asset ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: true },
     programAuthority: {
       value: input.programAuthority ?? null,
@@ -216,6 +236,7 @@ export async function getMintTokenInstructionAsync<
       isWritable: false,
     },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    domainConfig: { value: input.domainConfig ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -246,7 +267,7 @@ export async function getMintTokenInstructionAsync<
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("cardInstance", accounts.cardInstance),
+      getAccountMeta("asset", accounts.asset),
       getAccountMeta("mint", accounts.mint),
       getAccountMeta("programAuthority", accounts.programAuthority),
       getAccountMeta(
@@ -256,6 +277,7 @@ export async function getMintTokenInstructionAsync<
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("domainConfig", accounts.domainConfig),
     ],
     data: getMintTokenInstructionDataEncoder().encode(
       args as MintTokenInstructionDataArgs,
@@ -264,69 +286,76 @@ export async function getMintTokenInstructionAsync<
   } as MintTokenInstruction<
     TProgramAddress,
     TAccountAuthority,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountDomainConfig
   >);
 }
 
 export type MintTokenInput<
   TAccountAuthority extends string = string,
-  TAccountCardInstance extends string = string,
+  TAccountAsset extends string = string,
   TAccountMint extends string = string,
   TAccountProgramAuthority extends string = string,
   TAccountProgramAuthorityTokenAccount extends string = string,
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
+  TAccountDomainConfig extends string = string,
 > = {
   authority: TransactionSigner<TAccountAuthority>;
-  cardInstance: Address<TAccountCardInstance>;
+  asset: Address<TAccountAsset>;
   mint: Address<TAccountMint>;
   programAuthority: Address<TAccountProgramAuthority>;
   programAuthorityTokenAccount: Address<TAccountProgramAuthorityTokenAccount>;
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
+  domainConfig: Address<TAccountDomainConfig>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
+  lockAssetOnCreate: MintTokenInstructionDataArgs["lockAssetOnCreate"];
 };
 
 export function getMintTokenInstruction<
   TAccountAuthority extends string,
-  TAccountCardInstance extends string,
+  TAccountAsset extends string,
   TAccountMint extends string,
   TAccountProgramAuthority extends string,
   TAccountProgramAuthorityTokenAccount extends string,
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
+  TAccountDomainConfig extends string,
   TProgramAddress extends Address = typeof PHYGITAL_NFTS_PROGRAM_ADDRESS,
 >(
   input: MintTokenInput<
     TAccountAuthority,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountDomainConfig
   >,
   config?: { programAddress?: TProgramAddress },
 ): MintTokenInstruction<
   TProgramAddress,
   TAccountAuthority,
-  TAccountCardInstance,
+  TAccountAsset,
   TAccountMint,
   TAccountProgramAuthority,
   TAccountProgramAuthorityTokenAccount,
   TAccountTokenProgram,
   TAccountAssociatedTokenProgram,
-  TAccountSystemProgram
+  TAccountSystemProgram,
+  TAccountDomainConfig
 > {
   // Program address.
   const programAddress =
@@ -335,7 +364,7 @@ export function getMintTokenInstruction<
   // Original accounts.
   const originalAccounts = {
     authority: { value: input.authority ?? null, isWritable: true },
-    cardInstance: { value: input.cardInstance ?? null, isWritable: true },
+    asset: { value: input.asset ?? null, isWritable: true },
     mint: { value: input.mint ?? null, isWritable: true },
     programAuthority: {
       value: input.programAuthority ?? null,
@@ -351,6 +380,7 @@ export function getMintTokenInstruction<
       isWritable: false,
     },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    domainConfig: { value: input.domainConfig ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -378,7 +408,7 @@ export function getMintTokenInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("cardInstance", accounts.cardInstance),
+      getAccountMeta("asset", accounts.asset),
       getAccountMeta("mint", accounts.mint),
       getAccountMeta("programAuthority", accounts.programAuthority),
       getAccountMeta(
@@ -388,6 +418,7 @@ export function getMintTokenInstruction<
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
+      getAccountMeta("domainConfig", accounts.domainConfig),
     ],
     data: getMintTokenInstructionDataEncoder().encode(
       args as MintTokenInstructionDataArgs,
@@ -396,13 +427,14 @@ export function getMintTokenInstruction<
   } as MintTokenInstruction<
     TProgramAddress,
     TAccountAuthority,
-    TAccountCardInstance,
+    TAccountAsset,
     TAccountMint,
     TAccountProgramAuthority,
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram
+    TAccountSystemProgram,
+    TAccountDomainConfig
   >);
 }
 
@@ -413,13 +445,14 @@ export type ParsedMintTokenInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     authority: TAccountMetas[0];
-    cardInstance: TAccountMetas[1];
+    asset: TAccountMetas[1];
     mint: TAccountMetas[2];
     programAuthority: TAccountMetas[3];
     programAuthorityTokenAccount: TAccountMetas[4];
     tokenProgram: TAccountMetas[5];
     associatedTokenProgram: TAccountMetas[6];
     systemProgram: TAccountMetas[7];
+    domainConfig: TAccountMetas[8];
   };
   data: MintTokenInstructionData;
 };
@@ -432,12 +465,12 @@ export function parseMintTokenInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedMintTokenInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 8) {
+  if (instruction.accounts.length < 9) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 8,
+        expectedAccountMetas: 9,
       },
     );
   }
@@ -451,13 +484,14 @@ export function parseMintTokenInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       authority: getNextAccount(),
-      cardInstance: getNextAccount(),
+      asset: getNextAccount(),
       mint: getNextAccount(),
       programAuthority: getNextAccount(),
       programAuthorityTokenAccount: getNextAccount(),
       tokenProgram: getNextAccount(),
       associatedTokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),
+      domainConfig: getNextAccount(),
     },
     data: getMintTokenInstructionDataDecoder().decode(instruction.data),
   };

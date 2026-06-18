@@ -1,3 +1,5 @@
-pub mod card_instance;
+pub mod asset;
+pub use asset::*;
 
-pub use card_instance::*;
+pub mod domain_config;
+pub use domain_config::*;

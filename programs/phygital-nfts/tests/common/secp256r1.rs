@@ -1,9 +1,9 @@
+use super::{TEST_ORIGIN, TEST_RP_ID};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
-use super::{TEST_ORIGIN, TEST_RP_ID};
 use phygital_nfts::utils::{
     build_transfer_message_hash, Secp256r1VerifyArgs, TransferActionType,
     COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
@@ -48,14 +48,14 @@ impl TestPasskey {
     pub fn secp256r1_verify_instruction(
         &self,
         token_program: Pubkey,
-        card_instance: Pubkey,
+        asset: Pubkey,
         sender: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
     ) -> (Instruction, Secp256r1VerifyArgs) {
         self.secp256r1_verify_instruction_with(
             token_program,
-            card_instance,
+            asset,
             sender,
             slot_number,
             slot_hash,
@@ -66,13 +66,13 @@ impl TestPasskey {
     pub fn secp256r1_verify_instruction_with(
         &self,
         token_program: Pubkey,
-        card_instance: Pubkey,
+        asset: Pubkey,
         sender: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(&card_instance, &sender);
+        let message_hash = build_transfer_message_hash(&asset, &sender);
 
         let mut challenge_buffer = Vec::new();
         challenge_buffer.extend_from_slice(TransferActionType::Transfer.to_bytes());
@@ -84,7 +84,10 @@ impl TestPasskey {
         let origin = TEST_ORIGIN;
         let mut client_data_json = Vec::new();
         client_data_json.extend_from_slice(br#"{"type":"webauthn.get","challenge":"#);
-        Self::ccd_to_string(&URL_SAFE_NO_PAD.encode(expected_challenge), &mut client_data_json);
+        Self::ccd_to_string(
+            &URL_SAFE_NO_PAD.encode(expected_challenge),
+            &mut client_data_json,
+        );
         client_data_json.extend_from_slice(br#","origin":"#);
         Self::ccd_to_string(origin, &mut client_data_json);
         client_data_json.extend_from_slice(br#","crossOrigin":false}"#);

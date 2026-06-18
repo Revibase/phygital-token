@@ -1,20 +1,17 @@
 import {
-  getBytesEncoder,
-  getProgramDerivedAddress,
   type Address,
   type Instruction,
   type TransactionSigner,
 } from "@solana/kit";
 import { getMintTokenInstructionAsync } from "../generated/instructions/mintToken";
 import { findProgramAuthorityPda } from "../generated/pdas/programAuthority";
-import { PHYGITAL_NFTS_PROGRAM_ADDRESS } from "../generated/programs/phygitalNfts";
 import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey";
 import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts";
 import { findAssociatedTokenAddress } from "../utils/associatedToken";
 import { getCreateMintInstructionAsync } from "../generated/instructions/createMint";
 import { base64URLStringToBuffer } from "../utils/passkey/internal";
-
-const CARD_INSTANCE_SEED = new TextEncoder().encode("card_instance");
+import { findDomainConfigPda } from "../utils/pdas/domainConfig";
+import { findAssetPda } from "../utils/pdas/asset";
 
 export const MAX_METADATA_NAME_LEN = 32;
 export const MAX_METADATA_SYMBOL_LEN = 10;
@@ -39,21 +36,9 @@ type MintTokenParams = {
   authority: TransactionSigner;
   mint: Address;
   secp256r1Pubkey: Secp256r1Pubkey;
+  lockAssetOnCreate: boolean;
+  rpId: string;
 };
-
-export async function findCardInstancePda(
-  secp256r1Pubkey: Secp256r1Pubkey,
-): Promise<Address> {
-  const [cardInstance] = await getProgramDerivedAddress({
-    programAddress: PHYGITAL_NFTS_PROGRAM_ADDRESS,
-    seeds: [
-      getBytesEncoder().encode(CARD_INSTANCE_SEED),
-      getBytesEncoder().encode(secp256r1Pubkey[0].slice(1)),
-    ],
-  });
-
-  return cardInstance;
-}
 
 export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
   const trimmed = input.trim();
@@ -81,10 +66,14 @@ export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
 
 export function validateMetadataFields(fields: MetadataFields): void {
   if (fields.name.length > MAX_METADATA_NAME_LEN) {
-    throw new Error(`Name must be at most ${MAX_METADATA_NAME_LEN} characters.`);
+    throw new Error(
+      `Name must be at most ${MAX_METADATA_NAME_LEN} characters.`,
+    );
   }
   if (fields.symbol.length > MAX_METADATA_SYMBOL_LEN) {
-    throw new Error(`Symbol must be at most ${MAX_METADATA_SYMBOL_LEN} characters.`);
+    throw new Error(
+      `Symbol must be at most ${MAX_METADATA_SYMBOL_LEN} characters.`,
+    );
   }
   if (fields.uri.length > MAX_METADATA_URI_LEN) {
     throw new Error(`URI must be at most ${MAX_METADATA_URI_LEN} characters.`);
@@ -113,8 +102,9 @@ export async function buildCreateMintInstructions(
 export async function buildMintTokenInstructions(
   input: MintTokenParams,
 ): Promise<Instruction[]> {
-  const cardInstance = await findCardInstancePda(input.secp256r1Pubkey);
+  const asset = await findAssetPda(input.secp256r1Pubkey);
   const [programAuthority] = await findProgramAuthorityPda();
+  const domainConfig = await findDomainConfigPda(input.rpId);
   const programAuthorityTokenAccount = await findAssociatedTokenAddress(
     programAuthority,
     input.mint,
@@ -122,11 +112,13 @@ export async function buildMintTokenInstructions(
   );
 
   const instruction = await getMintTokenInstructionAsync({
+    domainConfig,
     authority: input.authority,
-    cardInstance,
+    asset,
     mint: input.mint,
     programAuthorityTokenAccount,
     secp256r1Pubkey: input.secp256r1Pubkey,
+    lockAssetOnCreate: input.lockAssetOnCreate,
   });
 
   return [instruction];

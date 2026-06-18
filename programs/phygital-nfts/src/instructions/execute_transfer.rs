@@ -12,35 +12,36 @@ use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 
 use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
 use crate::error::PhygitalError;
-use crate::state::{find_card_instance_pda, CardInstance, LAST_TRANSFER_SLOT_NONE};
+use crate::state::{find_asset_pda, Asset, LAST_TRANSFER_SLOT_NONE};
 use crate::utils::{
     build_transfer_message_hash, ChallengeArgs, Secp256r1VerifyArgs, TransferActionType,
 };
+use crate::DomainConfig;
 
 #[derive(Accounts)]
 #[instruction(secp256r1_verify_args: Secp256r1VerifyArgs)]
 pub struct ExecuteTransfer<'info> {
     pub recipient: Signer<'info>,
 
-    /// CHECK: sender does not sign; validated against card_instance.owner and sender_token_account.owner
+    /// CHECK: sender does not sign; validated against asset.owner and sender_token_account.owner
     #[account(
-        constraint = sender.key() == card_instance.owner @ PhygitalError::OwnerMismatch,
-    )] 
+        constraint = sender.key() == asset.owner @ PhygitalError::OwnerMismatch,
+    )]
     pub sender: UncheckedAccount<'info>,
 
     #[account(
         mut,
         constraint = {
             let extracted_pubkey = secp256r1_verify_args.extract_public_key_from_instruction(&instructions_sysvar)?;
-            let (expected_pda, _) = find_card_instance_pda(&extracted_pubkey, &crate::ID);
-            card_instance.key() == expected_pda
+            let expected_pda = find_asset_pda(&extracted_pubkey);
+            asset.key() == expected_pda
         } @ PhygitalError::Secp256r1PubkeyMismatch,
     )]
-    pub card_instance: Account<'info, CardInstance>,
+    pub asset: Account<'info, Asset>,
 
     #[account(
         mut,
-        constraint = card_instance.mint == mint.key(),
+        constraint = asset.mint == mint.key(),
     )]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
 
@@ -81,6 +82,11 @@ pub struct ExecuteTransfer<'info> {
     /// CHECK: constrained to this program's id
     #[account(address = TRANSFER_HOOK_PROGRAM_ID)]
     pub transfer_hook_program: UncheckedAccount<'info>,
+
+    #[account(
+        constraint = domain_config.key() == asset.domain_config @PhygitalError::DomainConfigMismatch
+    )]
+    pub domain_config: Account<'info, DomainConfig>,
 }
 
 pub fn handler(
@@ -94,7 +100,7 @@ pub fn handler(
     let signer_seed_array = [authority_seeds];
     let signer_seeds: &[&[&[u8]]] = signer_seed_array.as_slice();
 
-    let last_transfer_slot = ctx.accounts.card_instance.last_transfer_slot;
+    let last_transfer_slot = ctx.accounts.asset.last_transfer_slot;
     if last_transfer_slot != LAST_TRANSFER_SLOT_NONE {
         require!(
             secp256r1_verify_args.slot_number > last_transfer_slot,
@@ -102,10 +108,20 @@ pub fn handler(
         );
     }
 
-    let message_hash = build_transfer_message_hash(
-        &ctx.accounts.card_instance.key(),
-        &ctx.accounts.sender.key(),
+    require!(
+        ctx.accounts.recipient.key() != ctx.accounts.program_authority.key(),
+        PhygitalError::InvalidRecipient
     );
+
+    if let Some(is_locked) = ctx.accounts.asset.is_locked {
+        require!(
+            ctx.accounts.sender.key() == ctx.accounts.program_authority.key() || !is_locked,
+            PhygitalError::AssetIsCurrentlyLocked
+        )
+    }
+
+    let message_hash =
+        build_transfer_message_hash(&ctx.accounts.asset.key(), &ctx.accounts.sender.key());
 
     secp256r1_verify_args.verify_webauthn(
         &ctx.accounts.slot_hashes,
@@ -115,6 +131,7 @@ pub fn handler(
             message_hash,
             action_type: TransferActionType::Transfer,
         },
+        &ctx.accounts.domain_config,
     )?;
 
     associated_token::create_idempotent(CpiContext::new_with_signer(
@@ -160,8 +177,8 @@ pub fn handler(
         signer_seeds,
     )?;
 
-    ctx.accounts.card_instance.last_transfer_slot = secp256r1_verify_args.slot_number;
-    ctx.accounts.card_instance.owner = ctx.accounts.recipient.key();
+    ctx.accounts.asset.last_transfer_slot = secp256r1_verify_args.slot_number;
+    ctx.accounts.asset.owner = ctx.accounts.recipient.key();
 
     if closing_sender_ata {
         close_account(CpiContext::new_with_signer(
@@ -192,7 +209,7 @@ pub fn handler(
         ctx.accounts.sender.key(),
         ctx.accounts.recipient.key(),
         ctx.accounts.mint.key(),
-        ctx.accounts.card_instance.key(),
+        ctx.accounts.asset.key(),
     );
 
     Ok(())

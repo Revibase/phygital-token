@@ -9,12 +9,10 @@ import {
   isExtension,
   type Extension,
 } from "@solana-program/token-2022";
-import { fetchCardInstance } from "../generated";
-import {
-  findCardInstancePda,
-  parseSecp256r1Pubkey,
-} from "../instructions/mint";
+import { parseSecp256r1Pubkey } from "../instructions/mint";
+import { findAssetPda } from "./pdas/asset";
 import { RP_ID } from "./consts";
+import { fetchAsset } from "../generated";
 
 export const DEFAULT_VERIFY_METADATA_ENDPOINT = `https://${RP_ID}/api/metadata`;
 
@@ -48,7 +46,7 @@ function findMintExtension(
   return null;
 }
 
-type CardAttribute = {
+type AssetAttribute = {
   traitType: string;
   value: string;
 };
@@ -58,7 +56,7 @@ export type TokenJsonMetadata = {
   symbol?: string;
   image?: string;
   description?: string;
-  /** Design mint public key this card instance belongs to. */
+  /** Design mint public key this asset instance belongs to. */
   mint?: string;
   attributes?: Array<{
     trait_type?: string;
@@ -67,9 +65,9 @@ export type TokenJsonMetadata = {
   }>;
 };
 
-function parseCardAttributes(
+function parseAssetAttributes(
   raw: TokenJsonMetadata["attributes"],
-): CardAttribute[] {
+): AssetAttribute[] {
   if (!raw?.length) {
     return [];
   }
@@ -89,7 +87,7 @@ function parseCardAttributes(
         value: String(attribute.value),
       };
     })
-    .filter((attribute): attribute is CardAttribute => attribute !== null);
+    .filter((attribute): attribute is AssetAttribute => attribute !== null);
 }
 
 export async function verifyMetadata(
@@ -130,9 +128,11 @@ async function fetchJsonMetadata(
 }
 
 export type NftDisplayInfo = {
-  /** Card instance PDA — unique per physical card. */
+  /** Asset instance PDA — unique per physical asset. */
   publicKey: string;
-  cardInstance: Address;
+  asset: Address;
+  domainConfig: Address;
+  isLocked: boolean | null;
   /** Shared design mint (SFT). */
   mint: Address;
   name: string;
@@ -141,7 +141,7 @@ export type NftDisplayInfo = {
   uri: string;
   image: string | null;
   description: string | null;
-  attributes: CardAttribute[];
+  attributes: AssetAttribute[];
   /** Collection Details. */
   collectionMint: Address | null;
   collectionName: string | null;
@@ -156,10 +156,8 @@ export async function fetchNftDisplayInfo(
   rpc: Rpc<SolanaRpcApi>,
   publicKey: string,
 ): Promise<NftDisplayInfo> {
-  const cardInstance = await findCardInstancePda(
-    parseSecp256r1Pubkey(publicKey),
-  );
-  const instance = await fetchCardInstance(rpc, cardInstance);
+  const asset = await findAssetPda(parseSecp256r1Pubkey(publicKey));
+  const instance = await fetchAsset(rpc, asset);
 
   const mintAccount = await fetchMint(rpc, instance.data.mint);
   const designExtensions = unwrapOption(mintAccount.data.extensions) ?? [];
@@ -185,14 +183,19 @@ export async function fetchNftDisplayInfo(
 
   return {
     publicKey,
-    cardInstance,
+    asset: asset,
+    domainConfig: instance.data.domainConfig,
+    isLocked:
+      instance.data.isLocked.__option === "Some"
+        ? instance.data.isLocked.value
+        : null,
     mint: instance.data.mint,
-    name: designMeta?.name ?? designJsonMeta?.name ?? "Unknown card",
+    name: designMeta?.name ?? designJsonMeta?.name ?? "Unknown asset",
     symbol: designMeta?.symbol ?? designJsonMeta?.symbol ?? "",
     uri: designMeta?.uri ?? "",
     image: designJsonMeta?.image ?? null,
     description: designJsonMeta?.description ?? null,
-    attributes: parseCardAttributes(designJsonMeta?.attributes),
+    attributes: parseAssetAttributes(designJsonMeta?.attributes),
     collectionMint,
     collectionName: collectionMeta?.name ?? collectionJsonMeta?.name ?? null,
     collectionSymbol:

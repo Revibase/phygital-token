@@ -1,20 +1,19 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer, Transfer};
 use anchor_spl::associated_token::{self, AssociatedToken, Create};
-use anchor_spl::token_2022::{
-    self, mint_to, MintTo,
-};
+use anchor_spl::token_2022::{self, mint_to, MintTo};
 use anchor_spl::token_interface::{Mint, TokenInterface};
 
-use crate::constants::{CARD_INSTANCE_SEED, PROGRAM_AUTHORITY_SEED};
+use crate::constants::{ASSET_SEED, PROGRAM_AUTHORITY_SEED};
 use crate::error::PhygitalError;
-use crate::state::CardInstance;
+use crate::state::Asset;
 use crate::utils::{mint_token_account_rent, secp256r1_pda_seed};
-use crate::Secp256r1Pubkey;
+use crate::{DomainConfig, Secp256r1Pubkey};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MintTokenArgs {
     pub secp256r1_pubkey: Secp256r1Pubkey,
+    pub lock_asset_on_create: Option<bool>,
 }
 
 #[derive(Accounts)]
@@ -26,11 +25,11 @@ pub struct MintToken<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + CardInstance::INIT_SPACE,
-        seeds = [CARD_INSTANCE_SEED, secp256r1_pda_seed(&args.secp256r1_pubkey)],
+        space = Asset::size(),
+        seeds = [ASSET_SEED, secp256r1_pda_seed(&args.secp256r1_pubkey)],
         bump,
     )]
-    pub card_instance: Account<'info, CardInstance>,
+    pub asset: Account<'info, Asset>,
 
     #[account(mut)]
     pub mint: Box<InterfaceAccount<'info, Mint>>,
@@ -52,19 +51,21 @@ pub struct MintToken<'info> {
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
+    #[account(
+        constraint = domain_config.authority == authority.key() @PhygitalError::AuthorityMismatch
+    )]
+    pub domain_config: Account<'info, DomainConfig>,
 }
 
-pub fn handler(ctx: Context<MintToken>, _args: MintTokenArgs) -> Result<()> {
-
-    #[cfg(feature = "mainnet")]
-    require!(ctx.accounts.authority.key() == crate::ADMIN, PhygitalError::AuthorityMismatch);
-
+pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
     let mint_key = ctx.accounts.mint.key();
     let mint_info = ctx.accounts.mint.to_account_info();
-  
-    ctx.accounts.card_instance.init(
+
+    ctx.accounts.asset.init(
         mint_key,
         ctx.accounts.program_authority.key(),
+        ctx.accounts.domain_config.key(),
+        args.lock_asset_on_create,
     );
 
     let program_authority_bump = ctx.bumps.program_authority;
@@ -93,8 +94,7 @@ pub fn handler(ctx: Context<MintToken>, _args: MintTokenArgs) -> Result<()> {
         .accounts
         .program_authority_token_account
         .to_account_info();
-    let custody_ata_exists =
-        custody_ata.owner == &token_program_id && !custody_ata.data_is_empty();
+    let custody_ata_exists = custody_ata.owner == &token_program_id && !custody_ata.data_is_empty();
     let token_account_rent = mint_token_account_rent()?;
 
     if custody_ata_exists {

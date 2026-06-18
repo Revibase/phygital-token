@@ -19,12 +19,14 @@ use anchor_spl::token_2022::spl_token_2022::instruction::transfer_checked;
 use anchor_spl::token_2022::spl_token_2022::state::Account as TokenAccountState;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use litesvm::LiteSVM;
-use phygital_nfts::constants::{
-    ADMIN, CARD_INSTANCE_SEED, PROGRAM_AUTHORITY_SEED,
-};
-use phygital_nfts::state::CardInstance;
+use phygital_nfts::constants::{ADMIN, ASSET_SEED, DOMAIN_CONFIG_SEED, PROGRAM_AUTHORITY_SEED};
+use phygital_nfts::state::{Asset, DomainConfig};
 use phygital_nfts::utils::secp256r1_pda_seed;
-use phygital_nfts::{CreateMintArgs, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs};
+use phygital_nfts::{
+    CreateDomainConfigArgs, CreateMintArgs, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs,
+    UpdateDomainConfigArgs,
+};
+use sha2::{Digest, Sha256};
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
 use solana_sdk_ids::sysvar::{
@@ -39,11 +41,11 @@ pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 pub const TEST_RP_ID: &str = "localhost";
 pub const TEST_ORIGIN: &str = "http://localhost:3000";
 
-pub struct MintedCard {
+pub struct MintedAsset {
     pub collection_owner: Keypair,
     pub holder: Keypair,
     pub mint: Pubkey,
-    pub card_instance: Pubkey,
+    pub asset: Pubkey,
     pub group_mint: Pubkey,
     pub passkey: TestPasskey,
 }
@@ -60,21 +62,13 @@ fn program_artifact_paths(manifest_dir: &std::path::Path, name: &str) -> Vec<std
     if let Ok(cargo_target_dir) = std::env::var("CARGO_TARGET_DIR") {
         let base = std::path::PathBuf::from(cargo_target_dir);
         paths.push(base.join(format!("deploy/{name}.so")));
-        paths.push(
-            base.join(format!("sbpf-solana-solana/release/{name}.so")),
-        );
-        paths.push(
-            base.join(format!("sbpf-solana-solana/release/deps/{name}.so")),
-        );
+        paths.push(base.join(format!("sbpf-solana-solana/release/{name}.so")));
+        paths.push(base.join(format!("sbpf-solana-solana/release/deps/{name}.so")));
     }
     let workspace_target = manifest_dir.join("../../target");
     paths.push(workspace_target.join(format!("deploy/{name}.so")));
-    paths.push(
-        workspace_target.join(format!("sbpf-solana-solana/release/{name}.so")),
-    );
-    paths.push(
-        workspace_target.join(format!("sbpf-solana-solana/release/deps/{name}.so")),
-    );
+    paths.push(workspace_target.join(format!("sbpf-solana-solana/release/{name}.so")));
+    paths.push(workspace_target.join(format!("sbpf-solana-solana/release/deps/{name}.so")));
     paths
 }
 
@@ -101,12 +95,111 @@ impl TestContext {
         svm.airdrop(&payer.pubkey(), 10 * LAMPORTS_PER_SOL)
             .expect("airdrop payer");
 
-        Self {
+        let mut ctx = Self {
             svm,
             payer,
             program_id,
             transfer_hook_program_id,
+        };
+        ctx.setup_default_domain_config();
+        ctx
+    }
+
+    pub fn domain_config_pda(&self, rp_id: &str) -> Pubkey {
+        let rp_id_hash = Sha256::digest(rp_id.as_bytes());
+        Pubkey::find_program_address(&[DOMAIN_CONFIG_SEED, rp_id_hash.as_ref()], &self.program_id).0
+    }
+
+    pub fn setup_default_domain_config(&mut self) {
+        let payer_pubkey = self.payer.pubkey();
+        let ix = self.create_domain_config_ix(
+            payer_pubkey,
+            payer_pubkey,
+            TEST_RP_ID,
+            vec![TEST_ORIGIN.to_string()],
+        );
+        let payer = &self.payer;
+        Self::send_instruction(&mut self.svm, ix, &[payer]).expect("create default domain config");
+    }
+
+    pub fn create_domain_config_ix(
+        &self,
+        admin: Pubkey,
+        authority: Pubkey,
+        rp_id: &str,
+        origins: Vec<String>,
+    ) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_nfts::accounts::CreateDomainConfig {
+                domain_config: self.domain_config_pda(rp_id),
+                admin,
+                system_program: anchor_lang::solana_program::system_program::ID,
+            }
+            .to_account_metas(None),
+            data: phygital_nfts::instruction::CreateDomainConfig {
+                args: CreateDomainConfigArgs {
+                    rp_id: rp_id.to_string(),
+                    origins,
+                    authority,
+                },
+            }
+            .data(),
         }
+    }
+
+    pub fn update_domain_config_ix(
+        &self,
+        authority: Pubkey,
+        rp_id: &str,
+        origins: Vec<String>,
+    ) -> Instruction {
+        self.update_domain_config_ix_with_args(
+            authority,
+            rp_id,
+            UpdateDomainConfigArgs {
+                new_authority: None,
+                new_origins: Some(origins),
+            },
+        )
+    }
+
+    pub fn update_domain_config_ix_with_args(
+        &self,
+        authority: Pubkey,
+        rp_id: &str,
+        args: UpdateDomainConfigArgs,
+    ) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_nfts::accounts::UpdateDomainConfig {
+                domain_config: self.domain_config_pda(rp_id),
+                authority,
+                system_program: anchor_lang::solana_program::system_program::ID,
+            }
+            .to_account_metas(None),
+            data: phygital_nfts::instruction::UpdateDomainConfig { args }.data(),
+        }
+    }
+
+    pub fn domain_config_fields(&self, rp_id: &str) -> (Pubkey, String, Vec<String>) {
+        let account = self
+            .svm
+            .get_account(&self.domain_config_pda(rp_id))
+            .expect("domain config account");
+        let config = DomainConfig::try_deserialize(&mut account.data.as_ref())
+            .expect("deserialize domain config");
+        (config.authority, config.rp_id, config.origins)
+    }
+
+    pub fn asset_domain_config(&self, asset: Pubkey) -> Pubkey {
+        let account = self
+            .svm
+            .get_account(&asset)
+            .expect("asset instance account");
+        let instance =
+            Asset::try_deserialize(&mut account.data.as_ref()).expect("deserialize asset instance");
+        instance.domain_config
     }
 
     fn deploy_program(
@@ -136,9 +229,9 @@ impl TestContext {
         Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &self.program_id).0
     }
 
-    pub fn card_instance_pda(&self, secp256r1_pubkey: &Secp256r1Pubkey) -> Pubkey {
+    pub fn asset_pda(&self, secp256r1_pubkey: &Secp256r1Pubkey) -> Pubkey {
         Pubkey::find_program_address(
-            &[CARD_INSTANCE_SEED, secp256r1_pda_seed(secp256r1_pubkey)],
+            &[ASSET_SEED, secp256r1_pda_seed(secp256r1_pubkey)],
             &self.program_id,
         )
         .0
@@ -180,9 +273,9 @@ impl TestContext {
         self.token_account_rent()
     }
 
-    pub fn mint_until_transfer_rent_funded(&mut self, card: &MintedCard) {
+    pub fn mint_until_transfer_rent_funded(&mut self, asset: &MintedAsset) {
         while self.program_authority_lamports() < self.recipient_ata_rent() {
-            self.mint_second_card_same_design(card, &TestPasskey::generate());
+            self.mint_second_asset_same_design(asset, &TestPasskey::generate());
         }
     }
 
@@ -194,18 +287,32 @@ impl TestContext {
         )
     }
 
-    pub fn card_instance_fields(&self, card_instance: Pubkey) -> (Pubkey, Pubkey, u64) {
+    pub fn asset_fields(&self, asset: Pubkey) -> (Pubkey, Pubkey, u64) {
         let account = self
             .svm
-            .get_account(&card_instance)
-            .expect("card instance account");
-        let instance = CardInstance::try_deserialize(&mut account.data.as_ref())
-            .expect("deserialize card instance");
-        (
-            instance.owner,
-            instance.mint,
-            instance.last_transfer_slot,
-        )
+            .get_account(&asset)
+            .expect("asset instance account");
+        let instance =
+            Asset::try_deserialize(&mut account.data.as_ref()).expect("deserialize asset instance");
+        (instance.owner, instance.mint, instance.last_transfer_slot)
+    }
+
+    pub fn asset_lock_state(&self, asset: Pubkey) -> Option<bool> {
+        let account = self
+            .svm
+            .get_account(&asset)
+            .expect("asset instance account");
+        let instance =
+            Asset::try_deserialize(&mut account.data.as_ref()).expect("deserialize asset instance");
+        instance.is_locked
+    }
+
+    pub fn set_lock_state_ix(&self, owner: Pubkey, asset: Pubkey, is_locked: bool) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_nfts::accounts::SetLockState { owner, asset }.to_account_metas(None),
+            data: phygital_nfts::instruction::SetLockState { is_locked }.data(),
+        }
     }
 
     pub fn recipient_close_authority(&self, recipient: Pubkey, mint: Pubkey) -> Option<Pubkey> {
@@ -287,17 +394,38 @@ impl TestContext {
         &self,
         recipient: Pubkey,
         sender: Pubkey,
-        card_instance: Pubkey,
+        asset: Pubkey,
         mint: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
     ) -> Instruction {
         self.execute_transfer_ix_with_hook(
             recipient,
             sender,
-            card_instance,
+            asset,
             mint,
             secp256r1_verify_args,
             self.transfer_hook_program_id,
+            self.asset_domain_config(asset),
+        )
+    }
+
+    pub fn execute_transfer_ix_with_domain_config(
+        &self,
+        recipient: Pubkey,
+        sender: Pubkey,
+        asset: Pubkey,
+        mint: Pubkey,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+        domain_config: Pubkey,
+    ) -> Instruction {
+        self.execute_transfer_ix_with_hook(
+            recipient,
+            sender,
+            asset,
+            mint,
+            secp256r1_verify_args,
+            self.transfer_hook_program_id,
+            domain_config,
         )
     }
 
@@ -305,17 +433,18 @@ impl TestContext {
         &self,
         recipient: Pubkey,
         sender: Pubkey,
-        card_instance: Pubkey,
+        asset: Pubkey,
         mint: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         transfer_hook_program: Pubkey,
+        domain_config: Pubkey,
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
             accounts: phygital_nfts::accounts::ExecuteTransfer {
                 recipient,
                 sender,
-                card_instance,
+                asset: asset,
                 mint: mint,
                 sender_token_account: get_associated_token_address_with_program_id(
                     &sender,
@@ -334,6 +463,7 @@ impl TestContext {
                 associated_token_program: ASSOCIATED_TOKEN_ID,
                 system_program: anchor_lang::solana_program::system_program::ID,
                 transfer_hook_program,
+                domain_config,
             }
             .to_account_metas(None),
             data: phygital_nfts::instruction::ExecuteTransfer {
@@ -380,15 +510,28 @@ impl TestContext {
         .expect("transfer_checked ix")
     }
 
-    pub fn mint_card_with_passkey_without_fund(&mut self, passkey: &TestPasskey) -> MintedCard {
-        self.mint_card_internal(passkey, false)
+    pub fn mint_asset_with_passkey_without_fund(&mut self, passkey: &TestPasskey) -> MintedAsset {
+        self.mint_asset_internal(passkey, false, None)
     }
 
-    pub fn mint_card_with_passkey(&mut self, passkey: &TestPasskey) -> MintedCard {
-        self.mint_card_internal(passkey, true)
+    pub fn mint_asset_with_passkey(&mut self, passkey: &TestPasskey) -> MintedAsset {
+        self.mint_asset_internal(passkey, true, None)
     }
 
-    fn mint_card_internal(&mut self, passkey: &TestPasskey, fund_authority: bool) -> MintedCard {
+    pub fn mint_asset_with_passkey_and_lock(
+        &mut self,
+        passkey: &TestPasskey,
+        lock_asset_on_create: Option<bool>,
+    ) -> MintedAsset {
+        self.mint_asset_internal(passkey, true, lock_asset_on_create)
+    }
+
+    fn mint_asset_internal(
+        &mut self,
+        passkey: &TestPasskey,
+        fund_authority: bool,
+        lock_asset_on_create: Option<bool>,
+    ) -> MintedAsset {
         let collection_owner = Keypair::new();
         let holder = Keypair::new();
 
@@ -424,56 +567,52 @@ impl TestContext {
         }
 
         let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
-        let card_instance = self.card_instance_pda(&secp256r1_pubkey);
-        let token_args = MintTokenArgs { secp256r1_pubkey };
+        let asset = self.asset_pda(&secp256r1_pubkey);
+        let token_args = MintTokenArgs {
+            secp256r1_pubkey,
+            lock_asset_on_create,
+        };
 
-        let token_ix = self.mint_token_ix(
-            self.payer.pubkey(),
-            card_instance,
-            mint,
-            token_args,
-        );
+        let token_ix = self.mint_token_ix(self.payer.pubkey(), asset, mint, token_args);
         TestContext::send_instruction(&mut self.svm, token_ix, &[&self.payer])
             .expect("create token");
 
-        MintedCard {
+        MintedAsset {
             collection_owner,
             holder,
             mint,
-            card_instance,
+            asset,
             group_mint,
             passkey: passkey.clone(),
         }
     }
 
-    pub fn mint_second_card_same_design(
+    pub fn mint_second_asset_same_design(
         &mut self,
-        card: &MintedCard,
+        asset: &MintedAsset,
         passkey: &TestPasskey,
     ) -> Pubkey {
         let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
-        let card_instance = self.card_instance_pda(&secp256r1_pubkey);
-        let token_args = MintTokenArgs { secp256r1_pubkey };
+        let asset_pda = self.asset_pda(&secp256r1_pubkey);
+        let token_args = MintTokenArgs {
+            secp256r1_pubkey,
+            lock_asset_on_create: None,
+        };
 
-        let token_ix = self.mint_token_ix(
-            self.payer.pubkey(),
-            card_instance,
-            card.mint,
-            token_args,
-        );
+        let token_ix = self.mint_token_ix(self.payer.pubkey(), asset_pda, asset.mint, token_args);
         TestContext::send_instruction(&mut self.svm, token_ix, &[&self.payer])
             .expect("create second token");
-        card_instance
+        asset_pda
     }
 
     pub fn send_execute_transfer(
         &mut self,
-        card: &MintedCard,
+        asset: &MintedAsset,
         recipient: &Keypair,
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
         self.send_execute_transfer_from(
-            card,
+            asset,
             self.program_authority(),
             recipient,
             include_secp_ix,
@@ -492,7 +631,7 @@ impl TestContext {
 
     pub fn send_execute_transfer_from(
         &mut self,
-        card: &MintedCard,
+        asset: &MintedAsset,
         sender: Pubkey,
         recipient: &Keypair,
         include_secp_ix: bool,
@@ -504,9 +643,9 @@ impl TestContext {
             _ => current_slot_entry(&self.svm),
         };
 
-        let (secp_ix, verify_args) = card.passkey.secp256r1_verify_instruction(
+        let (secp_ix, verify_args) = asset.passkey.secp256r1_verify_instruction(
             TOKEN_2022_ID,
-            card.card_instance,
+            asset.asset,
             sender,
             slot_number,
             slot_hash,
@@ -515,8 +654,8 @@ impl TestContext {
         let transfer_ix = self.execute_transfer_ix(
             recipient.pubkey(),
             sender,
-            card.card_instance,
-            card.mint,
+            asset.asset,
+            asset.mint,
             verify_args,
         );
 
@@ -535,7 +674,7 @@ impl TestContext {
 
     pub fn send_execute_transfer_for_mint(
         &mut self,
-        card: &MintedCard,
+        asset: &MintedAsset,
         sender: Pubkey,
         recipient: &Keypair,
         mint: Pubkey,
@@ -543,21 +682,16 @@ impl TestContext {
     ) -> litesvm::types::TransactionResult {
         let (slot_number, slot_hash) = current_slot_entry(&self.svm);
 
-        let (secp_ix, verify_args) = card.passkey.secp256r1_verify_instruction(
+        let (secp_ix, verify_args) = asset.passkey.secp256r1_verify_instruction(
             TOKEN_2022_ID,
-            card.card_instance,
+            asset.asset,
             sender,
             slot_number,
             slot_hash,
         );
 
-        let transfer_ix = self.execute_transfer_ix(
-            recipient.pubkey(),
-            sender,
-            card.card_instance,
-            mint,
-            verify_args,
-        );
+        let transfer_ix =
+            self.execute_transfer_ix(recipient.pubkey(), sender, asset.asset, mint, verify_args);
 
         let instructions = if include_secp_ix {
             vec![secp_ix, transfer_ix]
@@ -580,13 +714,13 @@ impl TestContext {
         self.svm.set_sysvar(&SlotHashes::new(&[(slot, hash)]));
     }
 
-    pub fn last_transfer_slot(&self, card_instance: Pubkey) -> u64 {
+    pub fn last_transfer_slot(&self, asset: Pubkey) -> u64 {
         let account = self
             .svm
-            .get_account(&card_instance)
-            .expect("card instance account");
-        let instance = CardInstance::try_deserialize(&mut account.data.as_ref())
-            .expect("deserialize card instance");
+            .get_account(&asset)
+            .expect("asset instance account");
+        let instance =
+            Asset::try_deserialize(&mut account.data.as_ref()).expect("deserialize asset instance");
         instance.last_transfer_slot
     }
 
@@ -610,15 +744,16 @@ impl TestContext {
     pub fn mint_token_ix(
         &self,
         payer: Pubkey,
-        card_instance: Pubkey,
+        asset: Pubkey,
         mint: Pubkey,
         args: MintTokenArgs,
     ) -> Instruction {
         self.mint_token_ix_with_custody_ata(
             payer,
-            card_instance,
+            asset,
             mint,
             self.custody_ata(mint),
+            self.domain_config_pda(TEST_RP_ID),
             args,
         )
     }
@@ -626,9 +761,10 @@ impl TestContext {
     pub fn mint_token_ix_with_custody_ata(
         &self,
         payer: Pubkey,
-        card_instance: Pubkey,
+        asset: Pubkey,
         mint: Pubkey,
         program_authority_token_account: Pubkey,
+        domain_config: Pubkey,
         args: MintTokenArgs,
     ) -> Instruction {
         let program_authority = self.program_authority();
@@ -636,13 +772,14 @@ impl TestContext {
             program_id: self.program_id,
             accounts: phygital_nfts::accounts::MintToken {
                 authority: payer,
-                card_instance,
+                asset: asset,
                 mint,
                 program_authority,
                 program_authority_token_account,
                 token_program: TOKEN_2022_ID,
                 associated_token_program: ASSOCIATED_TOKEN_ID,
                 system_program: anchor_lang::solana_program::system_program::ID,
+                domain_config,
             }
             .to_account_metas(None),
             data: phygital_nfts::instruction::MintToken { args }.data(),
@@ -690,7 +827,7 @@ pub fn sample_create_design_args() -> CreateMintArgs {
     }
 }
 
-pub const SAMPLE_CARD_URI: &str = "https://example.com/card.json";
+pub const SAMPLE_ASSET_URI: &str = "https://example.com/asset.json";
 
 pub fn unauthorized_payer() -> Keypair {
     Keypair::new()
@@ -706,5 +843,6 @@ pub fn admin_payer() -> Keypair {
 pub fn sample_mint_token_args() -> MintTokenArgs {
     MintTokenArgs {
         secp256r1_pubkey: Secp256r1Pubkey([0x02; 33]),
+        lock_asset_on_create: None,
     }
 }

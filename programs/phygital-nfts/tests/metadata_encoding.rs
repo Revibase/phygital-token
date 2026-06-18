@@ -4,8 +4,8 @@ use anchor_spl::token_2022::spl_token_2022::state::Account as SplTokenAccount;
 use phygital_nfts::constants::{
     MAX_METADATA_NAME_LEN, MAX_METADATA_SYMBOL_LEN, MAX_METADATA_URI_LEN,
 };
-use phygital_nfts::utils::{mint_metadata_tlv_size, validate_metadata_strings};
 use phygital_nfts::state::LAST_TRANSFER_SLOT_NONE;
+use phygital_nfts::utils::{mint_metadata_tlv_size, validate_metadata_strings};
 
 #[test]
 fn mint_token_account_rent_matches_transfer_hook_ata() {

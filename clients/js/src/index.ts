@@ -1,5 +1,5 @@
 export {
-  authenticateCard,
+  authenticateAsset,
   beginTransfer,
   completeTransfer,
   type TransferSession,
@@ -22,7 +22,8 @@ export {
   type NftDisplayInfo,
 } from "./utils/metadata";
 
-export {
-  verifyLocal,
-  verifyWithServerCheck
-} from "./utils/verify"
+export { verifyLocal, verifyWithServerCheck } from "./utils/verify";
+
+export { findAssetPda, findDomainConfigPda } from "./utils/pdas";
+
+export * from "./generated"

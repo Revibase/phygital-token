@@ -11,9 +11,9 @@ use common::{
     create_external_group_mint, sample_create_design_args, sample_mint_token_args, TestContext,
     TestPasskey,
 };
-use phygital_nfts::state::CardInstance;
-use phygital_nfts::{MintTokenArgs, Secp256r1Pubkey};
+use phygital_nfts::state::Asset;
 use phygital_nfts::utils::constants::MAX_METADATA_URI_LEN;
+use phygital_nfts::{find_asset_pda, MintTokenArgs, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 use spl_token_group_interface::state::TokenGroupMember;
@@ -122,7 +122,7 @@ fn create_mint_rejects_wrong_group_mint_authority() {
 }
 
 #[test]
-fn mint_token_mints_card_into_design() {
+fn mint_token_mints_asset_into_design() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
 
@@ -150,30 +150,20 @@ fn mint_token_mints_card_into_design() {
     ctx.fund_program_authority(None);
 
     let token_args = sample_mint_token_args();
-    let card_instance = ctx.card_instance_pda(&token_args.secp256r1_pubkey);
-    assert_eq!(
-        card_instance,
-        phygital_nfts::state::find_card_instance_pda(&token_args.secp256r1_pubkey, &ctx.program_id)
-            .0
-    );
+    let asset = find_asset_pda(&token_args.secp256r1_pubkey);
 
-    let token_ix = ctx.mint_token_ix(
-        ctx.payer.pubkey(),
-        card_instance,
-        mint,
-        token_args,
-    );
-    TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer])
-        .expect("mint token");
+    let token_ix = ctx.mint_token_ix(ctx.payer.pubkey(), asset, mint, token_args);
+    TestContext::send_instruction(&mut ctx.svm, token_ix, &[&ctx.payer]).expect("mint token");
 
-    let card_account = ctx
-        .svm
-        .get_account(&card_instance)
-        .expect("card instance account");
-    let instance = CardInstance::try_deserialize(&mut card_account.data.as_ref())
-        .expect("deserialize card instance");
+    let asset_account = ctx.svm.get_account(&asset).expect("asset instance account");
+    let instance = Asset::try_deserialize(&mut asset_account.data.as_ref())
+        .expect("deserialize asset instance");
     assert_eq!(instance.mint, mint);
     assert_eq!(instance.owner, ctx.program_authority());
+    assert_eq!(
+        instance.domain_config,
+        ctx.domain_config_pda(common::TEST_RP_ID)
+    );
 
     let ata = anchor_spl::associated_token::get_associated_token_address_with_program_id(
         &ctx.program_authority(),
@@ -256,19 +246,19 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
 
     let passkey_a = TestPasskey::generate();
     let passkey_b = TestPasskey::generate();
-    let card_a = ctx.card_instance_pda(&Secp256r1Pubkey(passkey_a.compressed_pubkey));
-    let card_b = ctx.card_instance_pda(&Secp256r1Pubkey(passkey_b.compressed_pubkey));
+    let asset_a = ctx.asset_pda(&Secp256r1Pubkey(passkey_a.compressed_pubkey));
+    let asset_b = ctx.asset_pda(&Secp256r1Pubkey(passkey_b.compressed_pubkey));
 
     let first_ix = ctx.mint_token_ix(
         ctx.payer.pubkey(),
-        card_a,
+        asset_a,
         mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_a.compressed_pubkey),
+            lock_asset_on_create: None,
         },
     );
-    TestContext::send_instruction(&mut ctx.svm, first_ix, &[&ctx.payer])
-        .expect("first mint");
+    TestContext::send_instruction(&mut ctx.svm, first_ix, &[&ctx.payer]).expect("first mint");
 
     let token_account_rent = ctx.recipient_ata_rent();
     let program_authority = ctx.program_authority();
@@ -280,14 +270,14 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
 
     let second_ix = ctx.mint_token_ix(
         ctx.payer.pubkey(),
-        card_b,
+        asset_b,
         mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_b.compressed_pubkey),
+            lock_asset_on_create: None,
         },
     );
-    TestContext::send_instruction(&mut ctx.svm, second_ix, &[&ctx.payer])
-        .expect("second mint");
+    TestContext::send_instruction(&mut ctx.svm, second_ix, &[&ctx.payer]).expect("second mint");
 
     let balance_after = ctx
         .svm

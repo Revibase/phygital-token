@@ -1,17 +1,12 @@
 import {
   Endian,
-  getBase64Encoder,
-  getU32Decoder,
   getU32Encoder,
-  Rpc,
-  SolanaRpcApi,
 } from "@solana/kit";
 import {
   base64URLStringToBuffer,
   normalizeSignatureToLowS,
 } from "./passkey/internal";
 import { p256 } from "@noble/curves/nist.js";
-import { parseSecp256r1Pubkey } from "../instructions/mint";
 import {
   DEFAULT_VERIFY_METADATA_ENDPOINT,
   verifyMetadata,
@@ -21,9 +16,9 @@ import {
 /**
  * Verifies the request against the server.
  *
- * The per-card URI is no longer stored on-chain, so card metadata is fetched
+ * The per-asset URI is no longer stored on-chain, so asset metadata is fetched
  * from a fixed endpoint by default. Pass `verifyMetadataCallback` to override
- * how (and from where) the card metadata is resolved.
+ * how (and from where) the asset metadata is resolved.
  */
 export async function verifyWithServerCheck(
   params: URLSearchParams,

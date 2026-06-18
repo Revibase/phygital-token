@@ -34,23 +34,38 @@ import {
   type SelfPlanAndSendFunctions,
 } from "@solana/program-client-core";
 import {
-  getCardInstanceCodec,
-  type CardInstance,
-  type CardInstanceArgs,
+  getAssetCodec,
+  getDomainConfigCodec,
+  type Asset,
+  type AssetArgs,
+  type DomainConfig,
+  type DomainConfigArgs,
 } from "../accounts";
 import {
+  getCreateDomainConfigInstruction,
   getCreateMintInstructionAsync,
   getExecuteTransferInstructionAsync,
   getMintTokenInstructionAsync,
+  getSetLockStateInstruction,
+  getUpdateDomainConfigInstruction,
+  parseCreateDomainConfigInstruction,
   parseCreateMintInstruction,
   parseExecuteTransferInstruction,
   parseMintTokenInstruction,
+  parseSetLockStateInstruction,
+  parseUpdateDomainConfigInstruction,
+  type CreateDomainConfigInput,
   type CreateMintAsyncInput,
   type ExecuteTransferAsyncInput,
   type MintTokenAsyncInput,
+  type ParsedCreateDomainConfigInstruction,
   type ParsedCreateMintInstruction,
   type ParsedExecuteTransferInstruction,
   type ParsedMintTokenInstruction,
+  type ParsedSetLockStateInstruction,
+  type ParsedUpdateDomainConfigInstruction,
+  type SetLockStateInput,
+  type UpdateDomainConfigInput,
 } from "../instructions";
 import { findProgramAuthorityPda } from "../pdas";
 
@@ -58,7 +73,8 @@ export const PHYGITAL_NFTS_PROGRAM_ADDRESS =
   "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1" as Address<"3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1">;
 
 export enum PhygitalNftsAccount {
-  CardInstance,
+  Asset,
+  DomainConfig,
 }
 
 export function identifyPhygitalNftsAccount(
@@ -69,12 +85,23 @@ export function identifyPhygitalNftsAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([250, 165, 184, 218, 79, 217, 254, 165]),
+        new Uint8Array([234, 180, 241, 252, 139, 224, 160, 8]),
       ),
       0,
     )
   ) {
-    return PhygitalNftsAccount.CardInstance;
+    return PhygitalNftsAccount.Asset;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([201, 232, 212, 229, 59, 241, 106, 197]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalNftsAccount.DomainConfig;
   }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
@@ -83,15 +110,29 @@ export function identifyPhygitalNftsAccount(
 }
 
 export enum PhygitalNftsInstruction {
+  CreateDomainConfig,
   CreateMint,
   ExecuteTransfer,
   MintToken,
+  SetLockState,
+  UpdateDomainConfig,
 }
 
 export function identifyPhygitalNftsInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): PhygitalNftsInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([197, 81, 191, 2, 164, 140, 184, 90]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalNftsInstruction.CreateDomainConfig;
+  }
   if (
     containsBytes(
       data,
@@ -125,6 +166,28 @@ export function identifyPhygitalNftsInstruction(
   ) {
     return PhygitalNftsInstruction.MintToken;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([16, 40, 80, 140, 163, 156, 68, 120]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalNftsInstruction.SetLockState;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([226, 144, 2, 120, 193, 130, 251, 31]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalNftsInstruction.UpdateDomainConfig;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "phygitalNfts" },
@@ -135,6 +198,9 @@ export type ParsedPhygitalNftsInstruction<
   TProgram extends string = "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1",
 > =
   | ({
+      instructionType: PhygitalNftsInstruction.CreateDomainConfig;
+    } & ParsedCreateDomainConfigInstruction<TProgram>)
+  | ({
       instructionType: PhygitalNftsInstruction.CreateMint;
     } & ParsedCreateMintInstruction<TProgram>)
   | ({
@@ -142,13 +208,26 @@ export type ParsedPhygitalNftsInstruction<
     } & ParsedExecuteTransferInstruction<TProgram>)
   | ({
       instructionType: PhygitalNftsInstruction.MintToken;
-    } & ParsedMintTokenInstruction<TProgram>);
+    } & ParsedMintTokenInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalNftsInstruction.SetLockState;
+    } & ParsedSetLockStateInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalNftsInstruction.UpdateDomainConfig;
+    } & ParsedUpdateDomainConfigInstruction<TProgram>);
 
 export function parsePhygitalNftsInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedPhygitalNftsInstruction<TProgram> {
   const instructionType = identifyPhygitalNftsInstruction(instruction);
   switch (instructionType) {
+    case PhygitalNftsInstruction.CreateDomainConfig: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalNftsInstruction.CreateDomainConfig,
+        ...parseCreateDomainConfigInstruction(instruction),
+      };
+    }
     case PhygitalNftsInstruction.CreateMint: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -170,6 +249,20 @@ export function parsePhygitalNftsInstruction<TProgram extends string>(
         ...parseMintTokenInstruction(instruction),
       };
     }
+    case PhygitalNftsInstruction.SetLockState: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalNftsInstruction.SetLockState,
+        ...parseSetLockStateInstruction(instruction),
+      };
+    }
+    case PhygitalNftsInstruction.UpdateDomainConfig: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalNftsInstruction.UpdateDomainConfig,
+        ...parseUpdateDomainConfigInstruction(instruction),
+      };
+    }
     default:
       throw new SolanaError(
         SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
@@ -188,11 +281,17 @@ export type PhygitalNftsPlugin = {
 };
 
 export type PhygitalNftsPluginAccounts = {
-  cardInstance: ReturnType<typeof getCardInstanceCodec> &
-    SelfFetchFunctions<CardInstanceArgs, CardInstance>;
+  asset: ReturnType<typeof getAssetCodec> &
+    SelfFetchFunctions<AssetArgs, Asset>;
+  domainConfig: ReturnType<typeof getDomainConfigCodec> &
+    SelfFetchFunctions<DomainConfigArgs, DomainConfig>;
 };
 
 export type PhygitalNftsPluginInstructions = {
+  createDomainConfig: (
+    input: CreateDomainConfigInput,
+  ) => ReturnType<typeof getCreateDomainConfigInstruction> &
+    SelfPlanAndSendFunctions;
   createMint: (
     input: MakeOptional<CreateMintAsyncInput, "payer">,
   ) => ReturnType<typeof getCreateMintInstructionAsync> &
@@ -204,6 +303,13 @@ export type PhygitalNftsPluginInstructions = {
   mintToken: (
     input: MintTokenAsyncInput,
   ) => ReturnType<typeof getMintTokenInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  setLockState: (
+    input: SetLockStateInput,
+  ) => ReturnType<typeof getSetLockStateInstruction> & SelfPlanAndSendFunctions;
+  updateDomainConfig: (
+    input: UpdateDomainConfigInput,
+  ) => ReturnType<typeof getUpdateDomainConfigInstruction> &
     SelfPlanAndSendFunctions;
 };
 
@@ -225,9 +331,15 @@ export function phygitalNftsProgram() {
     return extendClient(client, {
       phygitalNfts: <PhygitalNftsPlugin>{
         accounts: {
-          cardInstance: addSelfFetchFunctions(client, getCardInstanceCodec()),
+          asset: addSelfFetchFunctions(client, getAssetCodec()),
+          domainConfig: addSelfFetchFunctions(client, getDomainConfigCodec()),
         },
         instructions: {
+          createDomainConfig: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCreateDomainConfigInstruction(input),
+            ),
           createMint: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -245,6 +357,16 @@ export function phygitalNftsProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getMintTokenInstructionAsync(input),
+            ),
+          setLockState: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetLockStateInstruction(input),
+            ),
+          updateDomainConfig: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdateDomainConfigInstruction(input),
             ),
         },
         pdas: { programAuthority: findProgramAuthorityPda },

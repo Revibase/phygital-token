@@ -44,12 +44,28 @@ export const PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED = 0x177c; // 6012
 export const PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH = 0x177d; // 6013
 /** InvalidCustodyTokenAccount: Custody token account must be the canonical ATA for program_authority */
 export const PHYGITAL_NFTS_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT = 0x177e; // 6014
+/** InvalidRecipient: Recipient cannot be program_authority */
+export const PHYGITAL_NFTS_ERROR__INVALID_RECIPIENT = 0x177f; // 6015
+/** AssetIsCurrentlyLocked: The owner needs to unlock the asset to enable transfer. */
+export const PHYGITAL_NFTS_ERROR__ASSET_IS_CURRENTLY_LOCKED = 0x1780; // 6016
+/** AssetIsNotConfigurable: This asset is not configurable. */
+export const PHYGITAL_NFTS_ERROR__ASSET_IS_NOT_CONFIGURABLE = 0x1781; // 6017
+/** RpIdMismatch: Invalid rp id. */
+export const PHYGITAL_NFTS_ERROR__RP_ID_MISMATCH = 0x1782; // 6018
+/** OriginMismatch: Invalid origin. */
+export const PHYGITAL_NFTS_ERROR__ORIGIN_MISMATCH = 0x1783; // 6019
+/** DomainConfigMismatch: Invalid domain config. */
+export const PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_MISMATCH = 0x1784; // 6020
 
 export type PhygitalNftsError =
   | typeof PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW
+  | typeof PHYGITAL_NFTS_ERROR__ASSET_IS_CURRENTLY_LOCKED
+  | typeof PHYGITAL_NFTS_ERROR__ASSET_IS_NOT_CONFIGURABLE
   | typeof PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH
+  | typeof PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT
+  | typeof PHYGITAL_NFTS_ERROR__INVALID_RECIPIENT
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_INSTRUCTION
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SIGNATURE_OFFSETS
@@ -57,7 +73,9 @@ export type PhygitalNftsError =
   | typeof PHYGITAL_NFTS_ERROR__INVALID_SYSVAR_DATA_FORMAT
   | typeof PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED
   | typeof PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR
+  | typeof PHYGITAL_NFTS_ERROR__ORIGIN_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__OWNER_MISMATCH
+  | typeof PHYGITAL_NFTS_ERROR__RP_ID_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__SECP256R1_PUBKEY_MISMATCH
   | typeof PHYGITAL_NFTS_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
   | typeof PHYGITAL_NFTS_ERROR__STALE_TRANSFER_SLOT;
@@ -66,9 +84,13 @@ let phygitalNftsErrorMessages: Record<PhygitalNftsError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
   phygitalNftsErrorMessages = {
     [PHYGITAL_NFTS_ERROR__ARITHMETIC_OVERFLOW]: `Arithmetic overflow`,
+    [PHYGITAL_NFTS_ERROR__ASSET_IS_CURRENTLY_LOCKED]: `The owner needs to unlock the asset to enable transfer.`,
+    [PHYGITAL_NFTS_ERROR__ASSET_IS_NOT_CONFIGURABLE]: `This asset is not configurable.`,
     [PHYGITAL_NFTS_ERROR__AUTHORITY_MISMATCH]: `Authority does not match`,
     [PHYGITAL_NFTS_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
+    [PHYGITAL_NFTS_ERROR__DOMAIN_CONFIG_MISMATCH]: `Invalid domain config.`,
     [PHYGITAL_NFTS_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT]: `Custody token account must be the canonical ATA for program_authority`,
+    [PHYGITAL_NFTS_ERROR__INVALID_RECIPIENT]: `Recipient cannot be program_authority`,
     [PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_INSTRUCTION]: `The instruction preceding this program invocation is not a secp256r1 verification instruction`,
     [PHYGITAL_NFTS_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,
     [PHYGITAL_NFTS_ERROR__INVALID_SIGNATURE_OFFSETS]: `Failed to deserialize secp256r1 signature offsets from the instruction data`,
@@ -76,7 +98,9 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_NFTS_ERROR__INVALID_SYSVAR_DATA_FORMAT]: `Invalid sysvar data format`,
     [PHYGITAL_NFTS_ERROR__MAX_LENGTH_EXCEEDED]: `Max length exceeded`,
     [PHYGITAL_NFTS_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
+    [PHYGITAL_NFTS_ERROR__ORIGIN_MISMATCH]: `Invalid origin.`,
     [PHYGITAL_NFTS_ERROR__OWNER_MISMATCH]: `Token owner mismatch`,
+    [PHYGITAL_NFTS_ERROR__RP_ID_MISMATCH]: `Invalid rp id.`,
     [PHYGITAL_NFTS_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match token record`,
     [PHYGITAL_NFTS_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
     [PHYGITAL_NFTS_ERROR__STALE_TRANSFER_SLOT]: `Transfer slot must be greater than the last successful transfer slot`,

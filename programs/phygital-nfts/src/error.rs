@@ -46,4 +46,22 @@ pub enum PhygitalError {
 
     #[msg("Custody token account must be the canonical ATA for program_authority")]
     InvalidCustodyTokenAccount,
+
+    #[msg("Recipient cannot be program_authority")]
+    InvalidRecipient,
+
+    #[msg("The owner needs to unlock the asset to enable transfer.")]
+    AssetIsCurrentlyLocked,
+
+    #[msg("This asset is not configurable.")]
+    AssetIsNotConfigurable,
+
+    #[msg("Invalid rp id.")]
+    RpIdMismatch,
+
+    #[msg("Invalid origin.")]
+    OriginMismatch,
+
+    #[msg("Invalid domain config.")]
+    DomainConfigMismatch,
 }

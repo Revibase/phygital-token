@@ -6,6 +6,9 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./createDomainConfig";
 export * from "./createMint";
 export * from "./executeTransfer";
 export * from "./mintToken";
+export * from "./setLockState";
+export * from "./updateDomainConfig";

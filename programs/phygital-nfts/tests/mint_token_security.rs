@@ -4,10 +4,22 @@ use common::{
     assert_token_program_error, create_external_group_mint, sample_create_design_args,
     sample_mint_token_args, unauthorized_payer, TestContext, TestPasskey,
 };
-use phygital_nfts::{MintTokenArgs, Secp256r1Pubkey};
 use phygital_nfts::constants::ADMIN;
+use phygital_nfts::{MintTokenArgs, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
+
+#[test]
+fn mint_token_records_domain_config_on_asset() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.mint_asset_with_passkey_without_fund(&passkey);
+
+    assert_eq!(
+        ctx.asset_domain_config(asset.asset),
+        ctx.domain_config_pda(common::TEST_RP_ID)
+    );
+}
 
 #[test]
 fn mint_token_rejects_wrong_custody_ata() {
@@ -36,15 +48,19 @@ fn mint_token_rejects_wrong_custody_ata() {
 
     let passkey = TestPasskey::generate();
     let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
-    let card_instance = ctx.card_instance_pda(&secp256r1_pubkey);
+    let asset = ctx.asset_pda(&secp256r1_pubkey);
     let wrong_ata = Keypair::new().pubkey();
-    let args = MintTokenArgs { secp256r1_pubkey };
+    let args = MintTokenArgs {
+        secp256r1_pubkey,
+        lock_asset_on_create: None,
+    };
 
     let ix = ctx.mint_token_ix_with_custody_ata(
         ctx.payer.pubkey(),
-        card_instance,
+        asset,
         mint,
         wrong_ata,
+        ctx.domain_config_pda(common::TEST_RP_ID),
         args,
     );
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]);
@@ -55,9 +71,9 @@ fn mint_token_rejects_wrong_custody_ata() {
 fn mint_token_first_mint_succeeds_without_funding_program_authority() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let card = ctx.mint_card_with_passkey_without_fund(&passkey);
+    let asset = ctx.mint_asset_with_passkey_without_fund(&passkey);
 
-    assert_eq!(ctx.token_balance(ctx.program_authority(), card.mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), asset.mint), 1);
     assert_eq!(ctx.program_authority_lamports(), 0);
 }
 
@@ -66,38 +82,39 @@ fn mint_token_subsequent_mint_tops_up_program_authority_rent() {
     let mut ctx = TestContext::new();
     let passkey_a = TestPasskey::generate();
     let passkey_b = TestPasskey::generate();
-    let card = ctx.mint_card_with_passkey_without_fund(&passkey_a);
+    let asset = ctx.mint_asset_with_passkey_without_fund(&passkey_a);
     let rent = ctx.token_account_rent();
     let balance_after_first = ctx.program_authority_lamports();
 
-    ctx.mint_second_card_same_design(&card, &passkey_b);
+    ctx.mint_second_asset_same_design(&asset, &passkey_b);
     assert_eq!(ctx.program_authority_lamports(), balance_after_first + rent);
 
     let passkey_c = TestPasskey::generate();
-    ctx.mint_second_card_same_design(&card, &passkey_c);
-    assert_eq!(ctx.program_authority_lamports(), balance_after_first + rent * 2);
+    ctx.mint_second_asset_same_design(&asset, &passkey_c);
+    assert_eq!(
+        ctx.program_authority_lamports(),
+        balance_after_first + rent * 2
+    );
 }
 
 #[test]
 fn mint_token_rejects_duplicate_secp256r1_pubkey() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let card = ctx.mint_card_with_passkey_without_fund(&passkey);
+    let asset = ctx.mint_asset_with_passkey_without_fund(&passkey);
 
     let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
-    let args = MintTokenArgs { secp256r1_pubkey };
-    let ix = ctx.mint_token_ix(
-        ctx.payer.pubkey(),
-        card.card_instance,
-        card.mint,
-        args,
-    );
+    let args = MintTokenArgs {
+        secp256r1_pubkey,
+        lock_asset_on_create: None,
+    };
+    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), asset.asset, asset.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer])
-        .expect_err("duplicate card_instance init should fail");
+        .expect_err("duplicate asset init should fail");
 }
 
 #[test]
-fn mint_token_allows_permissionless_inflation_on_existing_design() {
+fn mint_token_rejects_non_domain_authority() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     let attacker = unauthorized_payer();
@@ -127,11 +144,15 @@ fn mint_token_allows_permissionless_inflation_on_existing_design() {
 
     let passkey = TestPasskey::generate();
     let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
-    let card_instance = ctx.card_instance_pda(&secp256r1_pubkey);
-    let args = MintTokenArgs { secp256r1_pubkey };
-    let ix = ctx.mint_token_ix(attacker.pubkey(), card_instance, mint, args);
-    TestContext::send_instruction(&mut ctx.svm, ix, &[&attacker]).expect("attacker mint succeeds");
-    assert_eq!(ctx.token_balance(ctx.program_authority(), mint), 1);
+    let asset = ctx.asset_pda(&secp256r1_pubkey);
+    let args = MintTokenArgs {
+        secp256r1_pubkey,
+        lock_asset_on_create: None,
+    };
+    let ix = ctx.mint_token_ix(attacker.pubkey(), asset, mint, args);
+    let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&attacker]);
+    assert_token_program_error(err, "AuthorityMismatch");
+    assert_eq!(ctx.token_balance(ctx.program_authority(), mint), 0);
 }
 
 #[test]
@@ -139,22 +160,24 @@ fn mint_token_documents_secp256r1_pda_squatting_risk() {
     let mut ctx = TestContext::new();
     let victim_passkey = TestPasskey::generate();
     let attacker_passkey = TestPasskey::generate();
-    let card = ctx.mint_card_with_passkey_without_fund(&attacker_passkey);
+    let asset = ctx.mint_asset_with_passkey_without_fund(&attacker_passkey);
 
     let victim_pubkey = Secp256r1Pubkey(victim_passkey.compressed_pubkey);
-    let victim_card = ctx.card_instance_pda(&victim_pubkey);
+    let victim_asset = ctx.asset_pda(&victim_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
+        lock_asset_on_create: None,
     };
-    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_card, card.mint, args);
+    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_asset, asset.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]).expect("squatter mints first");
 
     let ix2 = ctx.mint_token_ix(
         ctx.payer.pubkey(),
-        victim_card,
-        card.mint,
+        victim_asset,
+        asset.mint,
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
+            lock_asset_on_create: None,
         },
     );
     TestContext::send_instruction(&mut ctx.svm, ix2, &[&ctx.payer])
@@ -193,9 +216,9 @@ fn mint_token_rejects_non_admin_payer() {
 
     let passkey = TestPasskey::generate();
     let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
-    let card_instance = ctx.card_instance_pda(&secp256r1_pubkey);
+    let asset = ctx.asset_pda(&secp256r1_pubkey);
     let token_args = sample_mint_token_args();
-    let ix = ctx.mint_token_ix(non_admin.pubkey(), card_instance, mint, token_args);
+    let ix = ctx.mint_token_ix(non_admin.pubkey(), asset, mint, token_args);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&non_admin]);
     assert_token_program_error(err, "AuthorityMismatch");
     let _ = ADMIN;

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::Pubkey;
-use anchor_lang::{InstructionData, ToAccountMetas};
 use anchor_lang::solana_program::instruction::Instruction;
+use anchor_lang::{InstructionData, ToAccountMetas};
 use litesvm::LiteSVM;
 use phygital_nfts::constants::PROGRAM_AUTHORITY_SEED;
 use phygital_nfts_hook::accounts::ExecuteTransferHook;
@@ -42,11 +42,15 @@ fn hook_ix(authority: Pubkey) -> Instruction {
     }
 }
 
-fn send_ix(svm: &mut LiteSVM, ix: Instruction, payer: &Keypair) -> litesvm::types::TransactionResult {
+fn send_ix(
+    svm: &mut LiteSVM,
+    ix: Instruction,
+    payer: &Keypair,
+) -> litesvm::types::TransactionResult {
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[ix], Some(&payer.pubkey()), &blockhash);
-    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[payer])
-        .expect("build tx");
+    let tx =
+        VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[payer]).expect("build tx");
     let result = svm.send_transaction(tx);
     svm.expire_blockhash();
     result

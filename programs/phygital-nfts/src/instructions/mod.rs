@@ -1,8 +1,11 @@
 pub mod create_mint;
 pub use create_mint::*;
 
-pub mod mint_token;
-pub use mint_token::*;
+pub mod admin;
+pub use admin::*;
 
 pub mod execute_transfer;
 pub use execute_transfer::*;
+
+pub mod set_lock_state;
+pub use set_lock_state::*;

@@ -1,8 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{create_account, CreateAccount};
-use anchor_spl::token_2022::{
-    self, initialize_mint2, InitializeMint2,
-};
+use anchor_spl::token_2022::{self, initialize_mint2, InitializeMint2};
 use anchor_spl::token_2022_extensions::{
     group_member_pointer_initialize, metadata_pointer_initialize, permanent_delegate_initialize,
     token_member_initialize, token_metadata_initialize, transfer_hook_initialize,
@@ -12,15 +10,13 @@ use anchor_spl::token_2022_extensions::{
 use anchor_spl::token_interface::{Mint, TokenInterface};
 
 use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
-use crate::utils::{
-    mint_layout, mint_metadata_tlv_size, validate_metadata_strings,
-};
+use crate::utils::{mint_layout, mint_metadata_tlv_size, validate_metadata_strings};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct CreateMintArgs {
     pub name: String,
     pub symbol: String,
-    pub uri: String
+    pub uri: String,
 }
 
 #[derive(Accounts)]
@@ -73,7 +69,7 @@ pub fn handler(ctx: Context<CreateMint>, args: CreateMintArgs) -> Result<()> {
             CreateAccount {
                 from: ctx.accounts.payer.to_account_info(),
                 to: ctx.accounts.mint.to_account_info(),
-            }
+            },
         ),
         layout.rent_lamports,
         layout.initial_data_len as u64,

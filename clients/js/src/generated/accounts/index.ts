@@ -6,4 +6,5 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./cardInstance";
+export * from "./asset";
+export * from "./domainConfig";
