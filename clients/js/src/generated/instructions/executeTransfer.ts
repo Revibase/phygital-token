@@ -80,7 +80,7 @@ export type ExecuteTransferInstruction<
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TAccountTransferHookProgram extends string | AccountMeta<string> =
-    "9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD",
+    "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR",
   TAccountDomainConfig extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
@@ -355,7 +355,7 @@ export async function getExecuteTransferInstructionAsync<
   }
   if (!accounts.transferHookProgram.value) {
     accounts.transferHookProgram.value =
-      "9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD" as Address<"9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD">;
+      "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR" as Address<"2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR">;
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
@@ -557,7 +557,7 @@ export function getExecuteTransferInstruction<
   }
   if (!accounts.transferHookProgram.value) {
     accounts.transferHookProgram.value =
-      "9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD" as Address<"9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD">;
+      "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR" as Address<"2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR">;
   }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");

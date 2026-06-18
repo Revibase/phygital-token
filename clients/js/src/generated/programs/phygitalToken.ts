@@ -70,7 +70,7 @@ import {
 import { findProgramAuthorityPda } from "../pdas/index.js";
 
 export const PHYGITAL_TOKEN_PROGRAM_ADDRESS =
-  "E6KubRhYXkWVegxS68od3C4DSEUJGUcuY68M2wdRJH3F" as Address<"E6KubRhYXkWVegxS68od3C4DSEUJGUcuY68M2wdRJH3F">;
+  "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A" as Address<"DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A">;
 
 export enum PhygitalTokenAccount {
   Asset,
@@ -195,7 +195,7 @@ export function identifyPhygitalTokenInstruction(
 }
 
 export type ParsedPhygitalTokenInstruction<
-  TProgram extends string = "E6KubRhYXkWVegxS68od3C4DSEUJGUcuY68M2wdRJH3F",
+  TProgram extends string = "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A",
 > =
   | ({
       instructionType: PhygitalTokenInstruction.CreateDomainConfig;

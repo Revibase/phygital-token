@@ -1,5 +1,5 @@
 {
-  "address": "E6KubRhYXkWVegxS68od3C4DSEUJGUcuY68M2wdRJH3F",
+  "address": "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A",
   "metadata": {
     "name": "phygital_token",
     "version": "0.1.0",
@@ -218,7 +218,7 @@
         },
         {
           "name": "transfer_hook_program",
-          "address": "9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD"
+          "address": "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR"
         },
         {
           "name": "domain_config"

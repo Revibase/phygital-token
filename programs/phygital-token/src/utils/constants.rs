@@ -5,9 +5,9 @@ pub const ASSET_SEED: &[u8] = b"asset";
 pub const DOMAIN_CONFIG_SEED: &[u8] = b"domain_config";
 
 pub const TRANSFER_HOOK_PROGRAM_ID: Pubkey =
-    pubkey!("9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD");
+    pubkey!("2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR");
 
-pub const ADMIN: Pubkey = pubkey!("AMn21jT5RMZrv5hSvtkrWCMJFp3cUyeAx4AxKvF59xJZ");
+pub const ADMIN: Pubkey = pubkey!("EwPqdbs6G64VRvnpHg6sG9SqXLuG9BnyhzCSpZn7e1SP");
 
 /// On-chain metadata limits — mirror in clients before building transactions.
 pub const MAX_METADATA_NAME_LEN: usize = 32;

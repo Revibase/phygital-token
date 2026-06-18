@@ -6,8 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-phygital_token = "3qr6jpvHGuJ1tDk49gRtPH8rndTRfa1M7PpqMVmx1un1"
-phygital_token_hook = "FCBG7gTThZ9hg4axra4UqWBerBhdjhdBLqxD1jicg84G"
+phygital_token = "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A"
+phygital_token_hook = "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR"
 
 [provider]
 cluster = "localnet"

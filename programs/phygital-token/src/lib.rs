@@ -10,7 +10,7 @@ pub use state::*;
 pub use utils::*;
 
 use anchor_lang::prelude::*;
-declare_id!("E6KubRhYXkWVegxS68od3C4DSEUJGUcuY68M2wdRJH3F");
+declare_id!("DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A");
 
 #[program]
 pub mod phygital_token {

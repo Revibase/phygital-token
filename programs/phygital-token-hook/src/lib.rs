@@ -12,7 +12,7 @@ pub use constants::*;
 pub use error::*;
 pub use execute_transfer_hook::*;
 
-declare_id!("9AUxsArUPc5XGxDJV3gPCpyXh1k8ytBDmxNPw4vyphjD");
+declare_id!("2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR");
 
 #[program]
 pub mod phygital_token_hook {

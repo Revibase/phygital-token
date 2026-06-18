@@ -117,7 +117,8 @@ pub fn handler(
         require!(
             ctx.accounts.sender.key() == ctx.accounts.program_authority.key() || !is_locked,
             PhygitalError::AssetIsCurrentlyLocked
-        )
+        );
+        ctx.accounts.asset.is_locked = Some(true)
     }
 
     let message_hash =

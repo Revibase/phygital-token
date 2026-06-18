@@ -36,8 +36,8 @@ type MintTokenParams = {
   authority: TransactionSigner;
   mint: Address;
   secp256r1Pubkey: Secp256r1Pubkey;
-  lockAssetOnCreate: boolean;
-  rpId: string;
+  lockAssetOnCreate: boolean | null;
+  domainConfig: Address
 };
 
 export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
@@ -104,7 +104,6 @@ export async function buildMintTokenInstructions(
 ): Promise<Instruction[]> {
   const asset = await findAssetPda(input.secp256r1Pubkey);
   const [programAuthority] = await findProgramAuthorityPda();
-  const domainConfig = await findDomainConfigPda(input.rpId);
   const programAuthorityTokenAccount = await findAssociatedTokenAddress(
     programAuthority,
     input.mint,
@@ -112,7 +111,7 @@ export async function buildMintTokenInstructions(
   );
 
   const instruction = await getMintTokenInstructionAsync({
-    domainConfig,
+    domainConfig: input.domainConfig,
     authority: input.authority,
     asset,
     mint: input.mint,
