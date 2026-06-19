@@ -205,13 +205,5 @@ pub fn handler(
         Some(ctx.accounts.program_authority.key()),
     )?;
 
-    msg!(
-        "execute_transfer: {} → {} for mint {} (instance {})",
-        ctx.accounts.sender.key(),
-        ctx.accounts.recipient.key(),
-        ctx.accounts.mint.key(),
-        ctx.accounts.asset.key(),
-    );
-
     Ok(())
 }

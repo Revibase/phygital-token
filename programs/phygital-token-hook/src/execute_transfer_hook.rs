@@ -27,10 +27,5 @@ pub fn handler(ctx: Context<ExecuteTransferHook>, _amount: u64) -> Result<()> {
         TransferHookError::InvalidTransferAuthority,
     );
 
-    msg!(
-        "Hook: mint {} transferred via program_authority",
-        ctx.accounts.mint.key(),
-    );
-
     Ok(())
 }
