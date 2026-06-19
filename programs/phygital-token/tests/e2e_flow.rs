@@ -10,7 +10,7 @@ use common::{
     create_external_group_mint, current_slot_entry, sample_create_mint_args, MintedAsset,
     TestContext, TestPasskey, LAMPORTS_PER_SOL,
 };
-use phygital_token::MintTokenArgs;
+use phygital_token::{AssetType, MintTokenArgs};
 use phygital_token::Secp256r1Pubkey;
 use solana_keypair::Keypair;
 use solana_signer::Signer;
@@ -65,7 +65,8 @@ fn setup_e2e_asset(ctx: &mut TestContext, passkey: &TestPasskey) -> MintedAsset 
     let asset = ctx.asset_pda(&secp256r1_pubkey);
     let token_args = MintTokenArgs {
         secp256r1_pubkey,
-        lock_asset_on_create: None,
+        asset_type: AssetType::Fixed,
+        credential_id: passkey.credential_id.clone(),
     };
 
     let token_ix = ctx.mint_token_ix(ctx.payer.pubkey(), asset, mint, token_args);

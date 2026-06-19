@@ -9,7 +9,6 @@ import {
   parseWebAuthnClientData,
 } from "./internal.js";
 import { type TransferSession } from "../../instructions/transfer.js";
-import { findDomainConfigPda } from "../pdas/domainConfig.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 
 function concatBytes(...parts: Uint8Array[]): Uint8Array {

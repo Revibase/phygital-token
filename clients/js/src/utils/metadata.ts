@@ -11,20 +11,8 @@ import {
 } from "@solana-program/token-2022";
 import { parseSecp256r1Pubkey } from "../instructions/mint.js";
 import { findAssetPda } from "./pdas/asset.js";
-import { RP_ID } from "./consts.js";
-import { fetchAsset } from "../generated/index.js";
-
-export const DEFAULT_VERIFY_METADATA_ENDPOINT = `https://${RP_ID}/api/metadata`;
-
-export type VerifyMetadataResult = {
-  publicKey: string;
-  isVerified: boolean;
-  counter: number;
-};
-
-export type VerifyMetadataCallback = (
-  params: URLSearchParams,
-) => Promise<VerifyMetadataResult>;
+import { AssetType, fetchAsset } from "../generated/index.js";
+import { bufferToBase64URLString } from "@simplewebauthn/browser";
 
 function findMintExtension(
   extensions: readonly Extension[],
@@ -110,7 +98,9 @@ function mimeFromUri(uri: string): string | null {
 }
 
 /** Map a MIME type to the Phantom collectible category it renders as. */
-function categoryForMime(type: string | undefined | null): MediaCategory | null {
+function categoryForMime(
+  type: string | undefined | null,
+): MediaCategory | null {
   if (!type) return null;
   if (type.startsWith("video/")) return "video";
   if (type.startsWith("audio/")) return "audio";
@@ -139,7 +129,12 @@ export type ResolvedMedia = {
  */
 export function resolveMedia(json: TokenJsonMetadata | null): ResolvedMedia {
   if (!json) {
-    return { image: null, animationUrl: null, animationType: null, category: null };
+    return {
+      image: null,
+      animationUrl: null,
+      animationType: null,
+      category: null,
+    };
   }
 
   const files = json.properties?.files ?? [];
@@ -152,7 +147,8 @@ export function resolveMedia(json: TokenJsonMetadata | null): ResolvedMedia {
   let animationType: string | null = null;
   if (animationUrl) {
     animationType =
-      files.find((f) => f.uri === animationUrl)?.type ?? mimeFromUri(animationUrl);
+      files.find((f) => f.uri === animationUrl)?.type ??
+      mimeFromUri(animationUrl);
   } else {
     // No animation_url: fall back to the first audio/video/3D file, preferring
     // CDN-served entries (Phantom's tie-breaker).
@@ -207,26 +203,6 @@ function parseAssetAttributes(
     .filter((attribute): attribute is AssetAttribute => attribute !== null);
 }
 
-export async function verifyMetadata(
-  uri: string,
-  params: URLSearchParams,
-): Promise<VerifyMetadataResult> {
-  try {
-    const url = new URL(uri);
-    for (const [key, value] of params.entries()) {
-      url.searchParams.set(key, value);
-    }
-    const response = await fetch(`${url.toString()}`);
-    if (!response.ok) {
-      const error = (await response.json()) as { error: string };
-      throw new Error(error.error);
-    }
-    return (await response.json()) as VerifyMetadataResult;
-  } catch (error) {
-    throw error;
-  }
-}
-
 async function fetchJsonMetadata(
   uri: string,
 ): Promise<TokenJsonMetadata | null> {
@@ -245,27 +221,21 @@ async function fetchJsonMetadata(
 }
 
 export type AssetDisplayInfo = {
-  /** Asset instance PDA — unique per physical asset. */
+  assetType: AssetType;
   publicKey: string;
+  credentialId: string;
   asset: Address;
-  domainConfig: Address;
-  isLocked: boolean | null;
-  /** Shared design mint (SFT). */
+  isLocked: boolean;
   mint: Address;
   name: string;
   symbol: string;
-  /** Design metadata URI (shared visual/name info). */
   uri: string;
   image: string | null;
-  /** Animated/interactive asset (video/audio/3D), per Phantom media-selection. */
   animationUrl: string | null;
-  /** MIME type of `animationUrl` (e.g. "video/mp4"), when known. */
   animationType: string | null;
-  /** Primary media category Phantom renders the card as. */
   mediaCategory: MediaCategory | null;
   description: string | null;
   attributes: AssetAttribute[];
-  /** Collection Details. */
   collectionMint: Address | null;
   collectionName: string | null;
   collectionSymbol: string | null;
@@ -307,13 +277,14 @@ export async function fetchAssetDisplayInfo(
   const designMedia = resolveMedia(designJsonMeta);
 
   return {
+    assetType: instance.data.assetType,
     publicKey,
+    credentialId: bufferToBase64URLString(
+      instance.data.credentialId[0].buffer as ArrayBuffer,
+    ),
     asset: asset,
-    domainConfig: instance.data.domainConfig,
     isLocked:
-      instance.data.isLocked.__option === "Some"
-        ? instance.data.isLocked.value
-        : null,
+      instance.data.isLocked,
     mint: instance.data.mint,
     name: designMeta?.name ?? designJsonMeta?.name ?? "Unknown asset",
     symbol: designMeta?.symbol ?? designJsonMeta?.symbol ?? "",

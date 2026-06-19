@@ -10,8 +10,8 @@ import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts.js";
 import { findAssociatedTokenAddress } from "../utils/associatedToken.js";
 import { getCreateMintInstructionAsync } from "../generated/instructions/createMint.js";
 import { base64URLStringToBuffer } from "../utils/passkey/internal.js";
-import { findDomainConfigPda } from "../utils/pdas/domainConfig.js";
 import { findAssetPda } from "../utils/pdas/asset.js";
+import type { AssetType, CredentialId } from "../generated/index.js";
 
 export const MAX_METADATA_NAME_LEN = 32;
 export const MAX_METADATA_SYMBOL_LEN = 10;
@@ -36,8 +36,8 @@ type MintTokenParams = {
   authority: TransactionSigner;
   mint: Address;
   secp256r1Pubkey: Secp256r1Pubkey;
-  lockAssetOnCreate: boolean | null;
-  domainConfig: Address
+  credentialId: CredentialId;
+  assetType: AssetType;
 };
 
 export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
@@ -63,6 +63,28 @@ export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
 
   return [bytes];
 }
+
+
+export function parseCredentialId(input: Base64URLString): CredentialId {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    throw new Error("Credential Id is required.");
+  }
+
+  let bytes: Uint8Array;
+  try {
+    bytes = new Uint8Array(base64URLStringToBuffer(trimmed));
+  } catch {
+    throw new Error("CredentialId must be valid base64url.");
+  }
+
+  if (bytes.length !== 80) {
+    throw new Error("Credential Id must decode to 80 bytes.");
+  }
+
+  return [bytes];
+}
+
 
 export function validateMetadataFields(fields: MetadataFields): void {
   if (fields.name.length > MAX_METADATA_NAME_LEN) {
@@ -111,13 +133,13 @@ export async function buildMintTokenInstructions(
   );
 
   const instruction = await getMintTokenInstructionAsync({
-    domainConfig: input.domainConfig,
+    credentialId: input.credentialId,
     authority: input.authority,
     asset,
     mint: input.mint,
     programAuthorityTokenAccount,
     secp256r1Pubkey: input.secp256r1Pubkey,
-    lockAssetOnCreate: input.lockAssetOnCreate,
+    assetType: input.assetType,
   });
 
   return [instruction];

@@ -1,6 +1,7 @@
 mod common;
 
 use common::{assert_token_program_error, current_slot_entry, TestContext, TestPasskey};
+use phygital_token::AssetType;
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -8,28 +9,24 @@ use solana_signer::Signer;
 fn set_lock_state_owner_can_toggle_lock() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, Some(false));
+    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Configurable);
     let holder = Keypair::new();
 
     ctx.send_execute_transfer(&asset, &holder, true)
         .expect("initial claim transfer");
 
-    assert_eq!(ctx.asset_lock_state(asset.asset), Some(false));
-
-    let lock_ix = ctx.set_lock_state_ix(holder.pubkey(), asset.asset, true);
-    TestContext::send_instruction(&mut ctx.svm, lock_ix, &[&holder]).expect("lock asset");
-    assert_eq!(ctx.asset_lock_state(asset.asset), Some(true));
+    assert_eq!(ctx.asset_lock_state(asset.asset), true);
 
     let unlock_ix = ctx.set_lock_state_ix(holder.pubkey(), asset.asset, false);
     TestContext::send_instruction(&mut ctx.svm, unlock_ix, &[&holder]).expect("unlock asset");
-    assert_eq!(ctx.asset_lock_state(asset.asset), Some(false));
+    assert_eq!(ctx.asset_lock_state(asset.asset), false);
 }
 
 #[test]
 fn set_lock_state_rejects_non_owner() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, Some(false));
+    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Configurable);
     let holder = Keypair::new();
     let attacker = Keypair::new();
 
@@ -39,10 +36,10 @@ fn set_lock_state_rejects_non_owner() {
         .airdrop(&attacker.pubkey(), common::LAMPORTS_PER_SOL)
         .unwrap();
 
-    let ix = ctx.set_lock_state_ix(attacker.pubkey(), asset.asset, true);
+    let ix = ctx.set_lock_state_ix(attacker.pubkey(), asset.asset, false);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&attacker]);
     assert_token_program_error(err, "OwnerMismatch");
-    assert_eq!(ctx.asset_lock_state(asset.asset), Some(false));
+    assert_eq!(ctx.asset_lock_state(asset.asset), true);
 }
 
 #[test]
@@ -54,19 +51,19 @@ fn set_lock_state_rejects_non_configurable_asset() {
 
     ctx.send_execute_transfer(&asset, &holder, true)
         .expect("initial claim transfer");
-    assert_eq!(ctx.asset_lock_state(asset.asset), None);
+    assert_eq!(ctx.asset_lock_state(asset.asset), false);
 
     let ix = ctx.set_lock_state_ix(holder.pubkey(), asset.asset, true);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&holder]);
     assert_token_program_error(err, "AssetIsNotConfigurable");
-    assert_eq!(ctx.asset_lock_state(asset.asset), None);
+    assert_eq!(ctx.asset_lock_state(asset.asset), false);
 }
 
 #[test]
 fn locked_holder_cannot_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, Some(true));
+    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Configurable);
     let holder = Keypair::new();
     let next_recipient = Keypair::new();
 
@@ -97,7 +94,7 @@ fn locked_holder_cannot_transfer() {
 fn unlock_enables_holder_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, Some(true));
+    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Configurable);
     let holder = Keypair::new();
     let next_recipient = Keypair::new();
 
@@ -120,17 +117,4 @@ fn unlock_enables_holder_transfer() {
 
     assert_eq!(ctx.token_balance(holder.pubkey(), asset.mint), 0);
     assert_eq!(ctx.token_balance(next_recipient.pubkey(), asset.mint), 1);
-}
-
-#[test]
-fn custody_transfer_succeeds_while_locked() {
-    let mut ctx = TestContext::new();
-    let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, Some(true));
-    let recipient = Keypair::new();
-
-    assert_eq!(ctx.asset_lock_state(asset.asset), Some(true));
-    ctx.send_execute_transfer(&asset, &recipient, true)
-        .expect("program authority can transfer locked asset from custody");
-    assert_eq!(ctx.token_balance(recipient.pubkey(), asset.mint), 1);
 }

@@ -10,7 +10,6 @@ import {
   type AuthenticationResponseJSON,
 } from "@simplewebauthn/browser";
 import {
-  RP_ID,
   TOKEN_2022_PROGRAM_ADDRESS,
 } from "../utils/consts.js";
 import { type AssetDisplayInfo } from "../utils/metadata.js";
@@ -65,13 +64,11 @@ export async function authenticateToken(
       challenge: bufferToBase64URLString(
         new Uint8Array(session.challenge).buffer as ArrayBuffer,
       ),
-      rpId: RP_ID,
+      rpId: window.location.hostname,
       userVerification: "preferred",
       allowCredentials: [
         {
-          id: bufferToBase64URLString(
-            crypto.getRandomValues(new Uint8Array(32)).buffer,
-          ),
+          id: session.displayInfo.credentialId,
           type: "public-key",
           transports: ["nfc"],
         },
@@ -110,7 +107,6 @@ export async function completeTransfer(
   );
 
   const executeTransfer = await getExecuteTransferInstructionAsync({
-    domainConfig: session.displayInfo.domainConfig,
     recipient,
     sender: session.displayInfo.currentOwner,
     asset: session.displayInfo.asset,

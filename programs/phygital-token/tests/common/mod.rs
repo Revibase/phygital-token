@@ -19,14 +19,10 @@ use anchor_spl::token_2022::spl_token_2022::instruction::transfer_checked;
 use anchor_spl::token_2022::spl_token_2022::state::Account as TokenAccountState;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use litesvm::LiteSVM;
-use phygital_token::constants::{ADMIN, ASSET_SEED, DOMAIN_CONFIG_SEED, PROGRAM_AUTHORITY_SEED};
-use phygital_token::state::{Asset, DomainConfig};
+use phygital_token::constants::{ADMIN, ASSET_SEED, PROGRAM_AUTHORITY_SEED};
+use phygital_token::state::Asset;
 use phygital_token::utils::secp256r1_pda_seed;
-use phygital_token::{
-    CreateDomainConfigArgs, CreateMintArgs, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs,
-    UpdateDomainConfigArgs,
-};
-use sha2::{Digest, Sha256};
+use phygital_token::{AssetType, COMPRESSED_PUBKEY_SERIALIZED_SIZE, CREDENTIAL_ID_SERIALIZED_SIZE, CreateMintArgs, CredentialId, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs};
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
 use solana_sdk_ids::sysvar::{
@@ -109,105 +105,7 @@ impl TestContext {
             program_id,
             transfer_hook_program_id,
         };
-        ctx.setup_default_domain_config();
         ctx
-    }
-
-    pub fn domain_config_pda(&self, rp_id: &str) -> Pubkey {
-        let rp_id_hash = Sha256::digest(rp_id.as_bytes());
-        Pubkey::find_program_address(&[DOMAIN_CONFIG_SEED, rp_id_hash.as_ref()], &self.program_id).0
-    }
-
-    pub fn setup_default_domain_config(&mut self) {
-        let payer_pubkey = self.payer.pubkey();
-        let ix = self.create_domain_config_ix(
-            payer_pubkey,
-            payer_pubkey,
-            TEST_RP_ID,
-            vec![TEST_ORIGIN.to_string()],
-        );
-        let payer = &self.payer;
-        Self::send_instruction(&mut self.svm, ix, &[payer]).expect("create default domain config");
-    }
-
-    pub fn create_domain_config_ix(
-        &self,
-        admin: Pubkey,
-        authority: Pubkey,
-        rp_id: &str,
-        origins: Vec<String>,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::CreateDomainConfig {
-                domain_config: self.domain_config_pda(rp_id),
-                admin,
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::CreateDomainConfig {
-                args: CreateDomainConfigArgs {
-                    rp_id: rp_id.to_string(),
-                    origins,
-                    authority,
-                },
-            }
-            .data(),
-        }
-    }
-
-    pub fn update_domain_config_ix(
-        &self,
-        authority: Pubkey,
-        rp_id: &str,
-        origins: Vec<String>,
-    ) -> Instruction {
-        self.update_domain_config_ix_with_args(
-            authority,
-            rp_id,
-            UpdateDomainConfigArgs {
-                new_authority: None,
-                new_origins: Some(origins),
-            },
-        )
-    }
-
-    pub fn update_domain_config_ix_with_args(
-        &self,
-        authority: Pubkey,
-        rp_id: &str,
-        args: UpdateDomainConfigArgs,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::UpdateDomainConfig {
-                domain_config: self.domain_config_pda(rp_id),
-                authority,
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::UpdateDomainConfig { args }.data(),
-        }
-    }
-
-    pub fn domain_config_fields(&self, rp_id: &str) -> (Pubkey, String, Vec<String>) {
-        let account = self
-            .svm
-            .get_account(&self.domain_config_pda(rp_id))
-            .expect("domain config account");
-        let config = DomainConfig::try_deserialize(&mut account.data.as_ref())
-            .expect("deserialize domain config");
-        (config.authority, config.rp_id, config.origins)
-    }
-
-    pub fn asset_domain_config(&self, asset: Pubkey) -> Pubkey {
-        let account = self
-            .svm
-            .get_account(&asset)
-            .expect("asset instance account");
-        let instance =
-            Asset::try_deserialize(&mut account.data.as_ref()).expect("deserialize asset instance");
-        instance.domain_config
     }
 
     fn deploy_program(
@@ -305,7 +203,7 @@ impl TestContext {
         (instance.owner, instance.mint, instance.last_transfer_slot)
     }
 
-    pub fn asset_lock_state(&self, asset: Pubkey) -> Option<bool> {
+    pub fn asset_lock_state(&self, asset: Pubkey) -> bool {
         let account = self
             .svm
             .get_account(&asset)
@@ -318,7 +216,8 @@ impl TestContext {
     pub fn set_lock_state_ix(&self, owner: Pubkey, asset: Pubkey, is_locked: bool) -> Instruction {
         Instruction {
             program_id: self.program_id,
-            accounts: phygital_token::accounts::SetLockState { owner, asset }.to_account_metas(None),
+            accounts: phygital_token::accounts::SetLockState { owner, asset }
+                .to_account_metas(None),
             data: phygital_token::instruction::SetLockState { is_locked }.data(),
         }
     }
@@ -413,27 +312,6 @@ impl TestContext {
             mint,
             secp256r1_verify_args,
             self.transfer_hook_program_id,
-            self.asset_domain_config(asset),
-        )
-    }
-
-    pub fn execute_transfer_ix_with_domain_config(
-        &self,
-        recipient: Pubkey,
-        sender: Pubkey,
-        asset: Pubkey,
-        mint: Pubkey,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-        domain_config: Pubkey,
-    ) -> Instruction {
-        self.execute_transfer_ix_with_hook(
-            recipient,
-            sender,
-            asset,
-            mint,
-            secp256r1_verify_args,
-            self.transfer_hook_program_id,
-            domain_config,
         )
     }
 
@@ -445,7 +323,6 @@ impl TestContext {
         mint: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         transfer_hook_program: Pubkey,
-        domain_config: Pubkey,
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
@@ -471,7 +348,6 @@ impl TestContext {
                 associated_token_program: ASSOCIATED_TOKEN_ID,
                 system_program: anchor_lang::solana_program::system_program::ID,
                 transfer_hook_program,
-                domain_config,
             }
             .to_account_metas(None),
             data: phygital_token::instruction::ExecuteTransfer {
@@ -519,26 +395,26 @@ impl TestContext {
     }
 
     pub fn mint_asset_with_passkey_without_fund(&mut self, passkey: &TestPasskey) -> MintedAsset {
-        self.mint_asset_internal(passkey, false, None)
+        self.mint_asset_internal(passkey, false, AssetType::Fixed)
     }
 
     pub fn mint_asset_with_passkey(&mut self, passkey: &TestPasskey) -> MintedAsset {
-        self.mint_asset_internal(passkey, true, None)
+        self.mint_asset_internal(passkey, true, AssetType::Fixed)
     }
 
     pub fn mint_asset_with_passkey_and_lock(
         &mut self,
         passkey: &TestPasskey,
-        lock_asset_on_create: Option<bool>,
+        asset_type: AssetType,
     ) -> MintedAsset {
-        self.mint_asset_internal(passkey, true, lock_asset_on_create)
+        self.mint_asset_internal(passkey, true, asset_type)
     }
 
     fn mint_asset_internal(
         &mut self,
         passkey: &TestPasskey,
         fund_authority: bool,
-        lock_asset_on_create: Option<bool>,
+        asset_type: AssetType,
     ) -> MintedAsset {
         let design_owner = Keypair::new();
         let recipient = Keypair::new();
@@ -578,7 +454,8 @@ impl TestContext {
         let asset = self.asset_pda(&secp256r1_pubkey);
         let token_args = MintTokenArgs {
             secp256r1_pubkey,
-            lock_asset_on_create,
+            asset_type,
+            credential_id: passkey.credential_id,
         };
 
         let token_ix = self.mint_token_ix(self.payer.pubkey(), asset, mint, token_args);
@@ -604,7 +481,8 @@ impl TestContext {
         let asset_pda = self.asset_pda(&secp256r1_pubkey);
         let token_args = MintTokenArgs {
             secp256r1_pubkey,
-            lock_asset_on_create: None,
+            asset_type: AssetType::Fixed,
+            credential_id: passkey.credential_id,
         };
 
         let token_ix = self.mint_token_ix(self.payer.pubkey(), asset_pda, asset.mint, token_args);
@@ -756,14 +634,7 @@ impl TestContext {
         mint: Pubkey,
         args: MintTokenArgs,
     ) -> Instruction {
-        self.mint_token_ix_with_custody_ata(
-            payer,
-            asset,
-            mint,
-            self.custody_ata(mint),
-            self.domain_config_pda(TEST_RP_ID),
-            args,
-        )
+        self.mint_token_ix_with_custody_ata(payer, asset, mint, self.custody_ata(mint), args)
     }
 
     pub fn mint_token_ix_with_custody_ata(
@@ -772,7 +643,6 @@ impl TestContext {
         asset: Pubkey,
         mint: Pubkey,
         program_authority_token_account: Pubkey,
-        domain_config: Pubkey,
         args: MintTokenArgs,
     ) -> Instruction {
         let program_authority = self.program_authority();
@@ -787,7 +657,6 @@ impl TestContext {
                 token_program: TOKEN_2022_ID,
                 associated_token_program: ASSOCIATED_TOKEN_ID,
                 system_program: anchor_lang::solana_program::system_program::ID,
-                domain_config,
             }
             .to_account_metas(None),
             data: phygital_token::instruction::MintToken { args }.data(),
@@ -850,7 +719,8 @@ pub fn admin_payer() -> Keypair {
 
 pub fn sample_mint_token_args() -> MintTokenArgs {
     MintTokenArgs {
-        secp256r1_pubkey: Secp256r1Pubkey([0x02; 33]),
-        lock_asset_on_create: None,
+        secp256r1_pubkey: Secp256r1Pubkey([0x02; COMPRESSED_PUBKEY_SERIALIZED_SIZE]),
+        asset_type: AssetType::Fixed,
+        credential_id: CredentialId([0x02; CREDENTIAL_ID_SERIALIZED_SIZE]),
     }
 }

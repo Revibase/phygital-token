@@ -8,44 +8,6 @@
   },
   "instructions": [
     {
-      "name": "create_domain_config",
-      "discriminator": [
-        197,
-        81,
-        191,
-        2,
-        164,
-        140,
-        184,
-        90
-      ],
-      "accounts": [
-        {
-          "name": "domain_config",
-          "writable": true
-        },
-        {
-          "name": "admin",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": {
-              "name": "CreateDomainConfigArgs"
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "create_mint",
       "discriminator": [
         69,
@@ -219,9 +181,6 @@
         {
           "name": "transfer_hook_program",
           "address": "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR"
-        },
-        {
-          "name": "domain_config"
         }
       ],
       "args": [
@@ -306,9 +265,6 @@
         {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "domain_config"
         }
       ],
       "args": [
@@ -350,71 +306,6 @@
           "type": "bool"
         }
       ]
-    },
-    {
-      "name": "update_domain_config",
-      "discriminator": [
-        226,
-        144,
-        2,
-        120,
-        193,
-        130,
-        251,
-        31
-      ],
-      "accounts": [
-        {
-          "name": "domain_config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  100,
-                  111,
-                  109,
-                  97,
-                  105,
-                  110,
-                  95,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "domain_config.rp_id_hash",
-                "account": "DomainConfig"
-              }
-            ]
-          }
-        },
-        {
-          "name": "authority",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": {
-              "name": "UpdateDomainConfigArgs"
-            }
-          }
-        }
-      ]
     }
   ],
   "accounts": [
@@ -430,18 +321,20 @@
         160,
         8
       ]
-    },
+    }
+  ],
+  "events": [
     {
-      "name": "DomainConfig",
+      "name": "TransferEvent",
       "discriminator": [
-        201,
-        232,
-        212,
-        229,
-        59,
-        241,
-        106,
-        197
+        100,
+        10,
+        46,
+        113,
+        8,
+        28,
+        179,
+        125
       ]
     }
   ],
@@ -535,21 +428,6 @@
       "code": 6017,
       "name": "AssetIsNotConfigurable",
       "msg": "This asset is not configurable."
-    },
-    {
-      "code": 6018,
-      "name": "RpIdMismatch",
-      "msg": "Invalid rp id."
-    },
-    {
-      "code": 6019,
-      "name": "OriginMismatch",
-      "msg": "Invalid origin."
-    },
-    {
-      "code": 6020,
-      "name": "DomainConfigMismatch",
-      "msg": "Invalid domain config."
     }
   ],
   "types": [
@@ -559,6 +437,14 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "asset_type",
+            "type": {
+              "defined": {
+                "name": "AssetType"
+              }
+            }
+          },
+          {
             "name": "mint",
             "type": "pubkey"
           },
@@ -567,40 +453,42 @@
             "type": "pubkey"
           },
           {
-            "name": "domain_config",
-            "type": "pubkey"
-          },
-          {
             "name": "last_transfer_slot",
             "type": "u64"
           },
           {
             "name": "is_locked",
+            "type": "bool"
+          },
+          {
+            "name": "public_key",
             "type": {
-              "option": "bool"
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "credential_id",
+            "type": {
+              "defined": {
+                "name": "CredentialId"
+              }
             }
           }
         ]
       }
     },
     {
-      "name": "CreateDomainConfigArgs",
+      "name": "AssetType",
       "type": {
-        "kind": "struct",
-        "fields": [
+        "kind": "enum",
+        "variants": [
           {
-            "name": "rp_id",
-            "type": "string"
+            "name": "Configurable"
           },
           {
-            "name": "origins",
-            "type": {
-              "vec": "string"
-            }
-          },
-          {
-            "name": "authority",
-            "type": "pubkey"
+            "name": "Fixed"
           }
         ]
       }
@@ -626,36 +514,15 @@
       }
     },
     {
-      "name": "DomainConfig",
+      "name": "CredentialId",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "rp_id_hash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          },
-          {
-            "name": "rp_id",
-            "type": "string"
-          },
-          {
-            "name": "origins",
-            "type": {
-              "vec": "string"
-            }
+            "array": [
+              "u8",
+              64
+            ]
           }
         ]
       }
@@ -674,9 +541,19 @@
             }
           },
           {
-            "name": "lock_asset_on_create",
+            "name": "credential_id",
             "type": {
-              "option": "bool"
+              "defined": {
+                "name": "CredentialId"
+              }
+            }
+          },
+          {
+            "name": "asset_type",
+            "type": {
+              "defined": {
+                "name": "AssetType"
+              }
             }
           }
         ]
@@ -725,23 +602,29 @@
       }
     },
     {
-      "name": "UpdateDomainConfigArgs",
+      "name": "TransferEvent",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "new_authority",
-            "type": {
-              "option": "pubkey"
-            }
+            "name": "sender",
+            "type": "pubkey"
           },
           {
-            "name": "new_origins",
-            "type": {
-              "option": {
-                "vec": "string"
-              }
-            }
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "origin",
+            "type": "string"
           }
         ]
       }

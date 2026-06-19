@@ -33,39 +33,24 @@ import {
   type SelfFetchFunctions,
   type SelfPlanAndSendFunctions,
 } from "@solana/program-client-core";
+import { getAssetCodec, type Asset, type AssetArgs } from "../accounts/index.js";
 import {
-  getAssetCodec,
-  getDomainConfigCodec,
-  type Asset,
-  type AssetArgs,
-  type DomainConfig,
-  type DomainConfigArgs,
-} from "../accounts/index.js";
-import {
-  getCreateDomainConfigInstruction,
   getCreateMintInstructionAsync,
   getExecuteTransferInstructionAsync,
   getMintTokenInstructionAsync,
   getSetLockStateInstruction,
-  getUpdateDomainConfigInstruction,
-  parseCreateDomainConfigInstruction,
   parseCreateMintInstruction,
   parseExecuteTransferInstruction,
   parseMintTokenInstruction,
   parseSetLockStateInstruction,
-  parseUpdateDomainConfigInstruction,
-  type CreateDomainConfigInput,
   type CreateMintAsyncInput,
   type ExecuteTransferAsyncInput,
   type MintTokenAsyncInput,
-  type ParsedCreateDomainConfigInstruction,
   type ParsedCreateMintInstruction,
   type ParsedExecuteTransferInstruction,
   type ParsedMintTokenInstruction,
   type ParsedSetLockStateInstruction,
-  type ParsedUpdateDomainConfigInstruction,
   type SetLockStateInput,
-  type UpdateDomainConfigInput,
 } from "../instructions/index.js";
 import { findProgramAuthorityPda } from "../pdas/index.js";
 
@@ -74,7 +59,6 @@ export const PHYGITAL_TOKEN_PROGRAM_ADDRESS =
 
 export enum PhygitalTokenAccount {
   Asset,
-  DomainConfig,
 }
 
 export function identifyPhygitalTokenAccount(
@@ -92,17 +76,6 @@ export function identifyPhygitalTokenAccount(
   ) {
     return PhygitalTokenAccount.Asset;
   }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([201, 232, 212, 229, 59, 241, 106, 197]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenAccount.DomainConfig;
-  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
     { accountData: data, programName: "phygitalToken" },
@@ -110,29 +83,16 @@ export function identifyPhygitalTokenAccount(
 }
 
 export enum PhygitalTokenInstruction {
-  CreateDomainConfig,
   CreateMint,
   ExecuteTransfer,
   MintToken,
   SetLockState,
-  UpdateDomainConfig,
 }
 
 export function identifyPhygitalTokenInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): PhygitalTokenInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([197, 81, 191, 2, 164, 140, 184, 90]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.CreateDomainConfig;
-  }
   if (
     containsBytes(
       data,
@@ -177,17 +137,6 @@ export function identifyPhygitalTokenInstruction(
   ) {
     return PhygitalTokenInstruction.SetLockState;
   }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([226, 144, 2, 120, 193, 130, 251, 31]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.UpdateDomainConfig;
-  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "phygitalToken" },
@@ -197,9 +146,6 @@ export function identifyPhygitalTokenInstruction(
 export type ParsedPhygitalTokenInstruction<
   TProgram extends string = "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A",
 > =
-  | ({
-      instructionType: PhygitalTokenInstruction.CreateDomainConfig;
-    } & ParsedCreateDomainConfigInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.CreateMint;
     } & ParsedCreateMintInstruction<TProgram>)
@@ -211,23 +157,13 @@ export type ParsedPhygitalTokenInstruction<
     } & ParsedMintTokenInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.SetLockState;
-    } & ParsedSetLockStateInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalTokenInstruction.UpdateDomainConfig;
-    } & ParsedUpdateDomainConfigInstruction<TProgram>);
+    } & ParsedSetLockStateInstruction<TProgram>);
 
 export function parsePhygitalTokenInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
 ): ParsedPhygitalTokenInstruction<TProgram> {
   const instructionType = identifyPhygitalTokenInstruction(instruction);
   switch (instructionType) {
-    case PhygitalTokenInstruction.CreateDomainConfig: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.CreateDomainConfig,
-        ...parseCreateDomainConfigInstruction(instruction),
-      };
-    }
     case PhygitalTokenInstruction.CreateMint: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -256,13 +192,6 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseSetLockStateInstruction(instruction),
       };
     }
-    case PhygitalTokenInstruction.UpdateDomainConfig: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.UpdateDomainConfig,
-        ...parseUpdateDomainConfigInstruction(instruction),
-      };
-    }
     default:
       throw new SolanaError(
         SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
@@ -283,15 +212,9 @@ export type PhygitalTokenPlugin = {
 export type PhygitalTokenPluginAccounts = {
   asset: ReturnType<typeof getAssetCodec> &
     SelfFetchFunctions<AssetArgs, Asset>;
-  domainConfig: ReturnType<typeof getDomainConfigCodec> &
-    SelfFetchFunctions<DomainConfigArgs, DomainConfig>;
 };
 
 export type PhygitalTokenPluginInstructions = {
-  createDomainConfig: (
-    input: CreateDomainConfigInput,
-  ) => ReturnType<typeof getCreateDomainConfigInstruction> &
-    SelfPlanAndSendFunctions;
   createMint: (
     input: MakeOptional<CreateMintAsyncInput, "payer">,
   ) => ReturnType<typeof getCreateMintInstructionAsync> &
@@ -307,10 +230,6 @@ export type PhygitalTokenPluginInstructions = {
   setLockState: (
     input: SetLockStateInput,
   ) => ReturnType<typeof getSetLockStateInstruction> & SelfPlanAndSendFunctions;
-  updateDomainConfig: (
-    input: UpdateDomainConfigInput,
-  ) => ReturnType<typeof getUpdateDomainConfigInstruction> &
-    SelfPlanAndSendFunctions;
 };
 
 export type PhygitalTokenPluginPdas = {
@@ -330,16 +249,8 @@ export function phygitalTokenProgram() {
   ): Omit<T, "phygitalToken"> & { phygitalToken: PhygitalTokenPlugin } => {
     return extendClient(client, {
       phygitalToken: <PhygitalTokenPlugin>{
-        accounts: {
-          asset: addSelfFetchFunctions(client, getAssetCodec()),
-          domainConfig: addSelfFetchFunctions(client, getDomainConfigCodec()),
-        },
+        accounts: { asset: addSelfFetchFunctions(client, getAssetCodec()) },
         instructions: {
-          createDomainConfig: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCreateDomainConfigInstruction(input),
-            ),
           createMint: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -362,11 +273,6 @@ export function phygitalTokenProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getSetLockStateInstruction(input),
-            ),
-          updateDomainConfig: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getUpdateDomainConfigInstruction(input),
             ),
         },
         pdas: { programAuthority: findProgramAuthorityPda },

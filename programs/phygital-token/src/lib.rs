@@ -28,20 +28,6 @@ pub mod phygital_token {
         set_lock_state::handler(ctx, is_locked)
     }
 
-    pub fn create_domain_config(
-        ctx: Context<CreateDomainConfig>,
-        args: CreateDomainConfigArgs,
-    ) -> Result<()> {
-        create_domain_config::handler(ctx, args)
-    }
-
-    pub fn update_domain_config(
-        ctx: Context<UpdateDomainConfig>,
-        args: UpdateDomainConfigArgs,
-    ) -> Result<()> {
-        update_domain_config::handler(ctx, args)
-    }
-
     pub fn execute_transfer(
         ctx: Context<ExecuteTransfer>,
         secp256r1_verify_args: Secp256r1VerifyArgs,

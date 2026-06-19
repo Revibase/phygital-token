@@ -1,7 +1,5 @@
 import { address } from "@solana/kit";
 
-export const RP_ID = "revibase.com";
-
 export const TOKEN_2022_PROGRAM_ADDRESS = address(
   "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
 );

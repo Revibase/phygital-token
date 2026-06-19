@@ -180,7 +180,6 @@ fn execute_transfer_rejects_wrong_transfer_hook_program() {
         asset.mint,
         verify_args,
         wrong_hook,
-        ctx.domain_config_pda(common::TEST_RP_ID),
     );
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)

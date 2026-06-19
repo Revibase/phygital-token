@@ -55,13 +55,4 @@ pub enum PhygitalError {
 
     #[msg("This asset is not configurable.")]
     AssetIsNotConfigurable,
-
-    #[msg("Invalid rp id.")]
-    RpIdMismatch,
-
-    #[msg("Invalid origin.")]
-    OriginMismatch,
-
-    #[msg("Invalid domain config.")]
-    DomainConfigMismatch,
 }

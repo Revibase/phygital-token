@@ -4,6 +4,7 @@ use anchor_lang::solana_program::instruction::Instruction;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
+use phygital_token::CredentialId;
 use phygital_token::utils::{
     build_transfer_message_hash, Secp256r1VerifyArgs, TransferActionType,
     COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
@@ -27,6 +28,7 @@ const SECP256R1_ORDER: [u8; 32] = [
 pub struct TestPasskey {
     signing_key: SigningKey,
     pub compressed_pubkey: [u8; 33],
+    pub credential_id: CredentialId,
 }
 
 impl TestPasskey {
@@ -38,10 +40,11 @@ impl TestPasskey {
             .as_bytes()
             .try_into()
             .expect("compressed secp256r1 pubkey");
-
+        let credential_id = CredentialId::default();
         Self {
             signing_key,
             compressed_pubkey,
+            credential_id,
         }
     }
 

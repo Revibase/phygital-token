@@ -50,12 +50,6 @@ export const PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT = 0x177f; // 6015
 export const PHYGITAL_TOKEN_ERROR__ASSET_IS_CURRENTLY_LOCKED = 0x1780; // 6016
 /** AssetIsNotConfigurable: This asset is not configurable. */
 export const PHYGITAL_TOKEN_ERROR__ASSET_IS_NOT_CONFIGURABLE = 0x1781; // 6017
-/** RpIdMismatch: Invalid rp id. */
-export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1782; // 6018
-/** OriginMismatch: Invalid origin. */
-export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1783; // 6019
-/** DomainConfigMismatch: Invalid domain config. */
-export const PHYGITAL_TOKEN_ERROR__DOMAIN_CONFIG_MISMATCH = 0x1784; // 6020
 
 export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__ARITHMETIC_OVERFLOW
@@ -63,7 +57,6 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__ASSET_IS_NOT_CONFIGURABLE
   | typeof PHYGITAL_TOKEN_ERROR__AUTHORITY_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH
-  | typeof PHYGITAL_TOKEN_ERROR__DOMAIN_CONFIG_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION
@@ -73,9 +66,7 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT
   | typeof PHYGITAL_TOKEN_ERROR__MAX_LENGTH_EXCEEDED
   | typeof PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR
-  | typeof PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH
-  | typeof PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
   | typeof PHYGITAL_TOKEN_ERROR__STALE_TRANSFER_SLOT;
@@ -88,7 +79,6 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__ASSET_IS_NOT_CONFIGURABLE]: `This asset is not configurable.`,
     [PHYGITAL_TOKEN_ERROR__AUTHORITY_MISMATCH]: `Authority does not match`,
     [PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
-    [PHYGITAL_TOKEN_ERROR__DOMAIN_CONFIG_MISMATCH]: `Invalid domain config.`,
     [PHYGITAL_TOKEN_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT]: `Custody token account must be the canonical ATA for program_authority`,
     [PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT]: `Recipient cannot be program_authority`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION]: `The instruction preceding this program invocation is not a secp256r1 verification instruction`,
@@ -98,9 +88,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT]: `Invalid sysvar data format`,
     [PHYGITAL_TOKEN_ERROR__MAX_LENGTH_EXCEEDED]: `Max length exceeded`,
     [PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
-    [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH]: `Invalid origin.`,
     [PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH]: `Token owner mismatch`,
-    [PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH]: `Invalid rp id.`,
     [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match token record`,
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
     [PHYGITAL_TOKEN_ERROR__STALE_TRANSFER_SLOT]: `Transfer slot must be greater than the last successful transfer slot`,

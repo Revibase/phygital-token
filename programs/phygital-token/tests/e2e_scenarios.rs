@@ -3,7 +3,7 @@ mod common;
 use common::{
     assert_transaction_failed, current_slot_entry, MintedAsset, TestContext, TestPasskey,
 };
-use phygital_token::{MintTokenArgs, Secp256r1Pubkey};
+use phygital_token::{AssetType, MintTokenArgs, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -128,7 +128,8 @@ fn e2e_asset_pda_squatting_blocks_victim() {
     let victim_asset = ctx.asset_pda(&victim_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
-        lock_asset_on_create: None,
+        asset_type: AssetType::Fixed,
+        credential_id: victim_passkey.credential_id,
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_asset, asset.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]).expect("squatter mint");
@@ -139,7 +140,8 @@ fn e2e_asset_pda_squatting_blocks_victim() {
         asset.mint,
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
-            lock_asset_on_create: None,
+            asset_type: AssetType::Fixed,
+            credential_id: victim_passkey.credential_id,
         },
     );
     TestContext::send_instruction(&mut ctx.svm, ix2, &[&ctx.payer]).expect_err("victim blocked");

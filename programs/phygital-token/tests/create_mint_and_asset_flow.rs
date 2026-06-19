@@ -13,7 +13,7 @@ use common::{
 };
 use phygital_token::state::Asset;
 use phygital_token::utils::constants::MAX_METADATA_URI_LEN;
-use phygital_token::{find_asset_pda, MintTokenArgs, Secp256r1Pubkey};
+use phygital_token::{AssetType, MintTokenArgs, Secp256r1Pubkey, find_asset_pda};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 use spl_token_group_interface::state::TokenGroupMember;
@@ -160,10 +160,6 @@ fn mint_token_mints_asset_into_design() {
         .expect("deserialize asset instance");
     assert_eq!(instance.mint, mint);
     assert_eq!(instance.owner, ctx.program_authority());
-    assert_eq!(
-        instance.domain_config,
-        ctx.domain_config_pda(common::TEST_RP_ID)
-    );
 
     let ata = anchor_spl::associated_token::get_associated_token_address_with_program_id(
         &ctx.program_authority(),
@@ -255,7 +251,8 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
         mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_a.compressed_pubkey),
-            lock_asset_on_create: None,
+            asset_type: AssetType::Fixed,
+            credential_id: passkey_a.credential_id,
         },
     );
     TestContext::send_instruction(&mut ctx.svm, first_ix, &[&ctx.payer]).expect("first mint");
@@ -274,7 +271,8 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
         mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_b.compressed_pubkey),
-            lock_asset_on_create: None,
+            asset_type: AssetType::Fixed,
+            credential_id: passkey_b.credential_id,
         },
     );
     TestContext::send_instruction(&mut ctx.svm, second_ix, &[&ctx.payer]).expect("second mint");

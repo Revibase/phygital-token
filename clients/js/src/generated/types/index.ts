@@ -6,4 +6,6 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./assetType.js";
+export * from "./credentialId.js";
 export * from "./secp256r1Pubkey.js";

@@ -10,12 +10,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getOptionDecoder,
-  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -24,14 +20,12 @@ import {
   type AccountMeta,
   type AccountSignerMeta,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
-  type Option,
-  type OptionOrNullable,
   type ReadonlyAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
@@ -45,8 +39,16 @@ import {
 import { findProgramAuthorityPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
+  getAssetTypeDecoder,
+  getAssetTypeEncoder,
+  getCredentialIdDecoder,
+  getCredentialIdEncoder,
   getSecp256r1PubkeyDecoder,
   getSecp256r1PubkeyEncoder,
+  type AssetType,
+  type AssetTypeArgs,
+  type CredentialId,
+  type CredentialIdArgs,
   type Secp256r1Pubkey,
   type Secp256r1PubkeyArgs,
 } from "../types/index.js";
@@ -73,7 +75,6 @@ export type MintTokenInstruction<
     "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
-  TAccountDomainConfig extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -104,9 +105,6 @@ export type MintTokenInstruction<
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
-      TAccountDomainConfig extends string
-        ? ReadonlyAccount<TAccountDomainConfig>
-        : TAccountDomainConfig,
       ...TRemainingAccounts,
     ]
   >;
@@ -114,34 +112,38 @@ export type MintTokenInstruction<
 export type MintTokenInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1Pubkey: Secp256r1Pubkey;
-  lockAssetOnCreate: Option<boolean>;
+  credentialId: CredentialId;
+  assetType: AssetType;
 };
 
 export type MintTokenInstructionDataArgs = {
   secp256r1Pubkey: Secp256r1PubkeyArgs;
-  lockAssetOnCreate: OptionOrNullable<boolean>;
+  credentialId: CredentialIdArgs;
+  assetType: AssetTypeArgs;
 };
 
-export function getMintTokenInstructionDataEncoder(): Encoder<MintTokenInstructionDataArgs> {
+export function getMintTokenInstructionDataEncoder(): FixedSizeEncoder<MintTokenInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
-      ["lockAssetOnCreate", getOptionEncoder(getBooleanEncoder())],
+      ["credentialId", getCredentialIdEncoder()],
+      ["assetType", getAssetTypeEncoder()],
     ]),
     (value) => ({ ...value, discriminator: MINT_TOKEN_DISCRIMINATOR }),
   );
 }
 
-export function getMintTokenInstructionDataDecoder(): Decoder<MintTokenInstructionData> {
+export function getMintTokenInstructionDataDecoder(): FixedSizeDecoder<MintTokenInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
-    ["lockAssetOnCreate", getOptionDecoder(getBooleanDecoder())],
+    ["credentialId", getCredentialIdDecoder()],
+    ["assetType", getAssetTypeDecoder()],
   ]);
 }
 
-export function getMintTokenInstructionDataCodec(): Codec<
+export function getMintTokenInstructionDataCodec(): FixedSizeCodec<
   MintTokenInstructionDataArgs,
   MintTokenInstructionData
 > {
@@ -160,7 +162,6 @@ export type MintTokenAsyncInput<
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
-  TAccountDomainConfig extends string = string,
 > = {
   authority: TransactionSigner<TAccountAuthority>;
   asset: Address<TAccountAsset>;
@@ -170,9 +171,9 @@ export type MintTokenAsyncInput<
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  domainConfig: Address<TAccountDomainConfig>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
-  lockAssetOnCreate: MintTokenInstructionDataArgs["lockAssetOnCreate"];
+  credentialId: MintTokenInstructionDataArgs["credentialId"];
+  assetType: MintTokenInstructionDataArgs["assetType"];
 };
 
 export async function getMintTokenInstructionAsync<
@@ -184,7 +185,6 @@ export async function getMintTokenInstructionAsync<
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
-  TAccountDomainConfig extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: MintTokenAsyncInput<
@@ -195,8 +195,7 @@ export async function getMintTokenInstructionAsync<
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountDomainConfig
+    TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
@@ -209,8 +208,7 @@ export async function getMintTokenInstructionAsync<
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountDomainConfig
+    TAccountSystemProgram
   >
 > {
   // Program address.
@@ -236,7 +234,6 @@ export async function getMintTokenInstructionAsync<
       isWritable: false,
     },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-    domainConfig: { value: input.domainConfig ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -277,7 +274,6 @@ export async function getMintTokenInstructionAsync<
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
-      getAccountMeta("domainConfig", accounts.domainConfig),
     ],
     data: getMintTokenInstructionDataEncoder().encode(
       args as MintTokenInstructionDataArgs,
@@ -292,8 +288,7 @@ export async function getMintTokenInstructionAsync<
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountDomainConfig
+    TAccountSystemProgram
   >);
 }
 
@@ -306,7 +301,6 @@ export type MintTokenInput<
   TAccountTokenProgram extends string = string,
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
-  TAccountDomainConfig extends string = string,
 > = {
   authority: TransactionSigner<TAccountAuthority>;
   asset: Address<TAccountAsset>;
@@ -316,9 +310,9 @@ export type MintTokenInput<
   tokenProgram?: Address<TAccountTokenProgram>;
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
-  domainConfig: Address<TAccountDomainConfig>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
-  lockAssetOnCreate: MintTokenInstructionDataArgs["lockAssetOnCreate"];
+  credentialId: MintTokenInstructionDataArgs["credentialId"];
+  assetType: MintTokenInstructionDataArgs["assetType"];
 };
 
 export function getMintTokenInstruction<
@@ -330,7 +324,6 @@ export function getMintTokenInstruction<
   TAccountTokenProgram extends string,
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
-  TAccountDomainConfig extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: MintTokenInput<
@@ -341,8 +334,7 @@ export function getMintTokenInstruction<
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountDomainConfig
+    TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): MintTokenInstruction<
@@ -354,8 +346,7 @@ export function getMintTokenInstruction<
   TAccountProgramAuthorityTokenAccount,
   TAccountTokenProgram,
   TAccountAssociatedTokenProgram,
-  TAccountSystemProgram,
-  TAccountDomainConfig
+  TAccountSystemProgram
 > {
   // Program address.
   const programAddress =
@@ -380,7 +371,6 @@ export function getMintTokenInstruction<
       isWritable: false,
     },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-    domainConfig: { value: input.domainConfig ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -418,7 +408,6 @@ export function getMintTokenInstruction<
       getAccountMeta("tokenProgram", accounts.tokenProgram),
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
-      getAccountMeta("domainConfig", accounts.domainConfig),
     ],
     data: getMintTokenInstructionDataEncoder().encode(
       args as MintTokenInstructionDataArgs,
@@ -433,8 +422,7 @@ export function getMintTokenInstruction<
     TAccountProgramAuthorityTokenAccount,
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountDomainConfig
+    TAccountSystemProgram
   >);
 }
 
@@ -452,7 +440,6 @@ export type ParsedMintTokenInstruction<
     tokenProgram: TAccountMetas[5];
     associatedTokenProgram: TAccountMetas[6];
     systemProgram: TAccountMetas[7];
-    domainConfig: TAccountMetas[8];
   };
   data: MintTokenInstructionData;
 };
@@ -465,12 +452,12 @@ export function parseMintTokenInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedMintTokenInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 8) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 8,
       },
     );
   }
@@ -491,7 +478,6 @@ export function parseMintTokenInstruction<
       tokenProgram: getNextAccount(),
       associatedTokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),
-      domainConfig: getNextAccount(),
     },
     data: getMintTokenInstructionDataDecoder().decode(instruction.data),
   };

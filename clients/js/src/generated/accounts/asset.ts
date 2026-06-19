@@ -21,8 +21,6 @@ import {
   getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
-  getOptionDecoder,
-  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
@@ -30,18 +28,30 @@ import {
   transformEncoder,
   type Account,
   type Address,
-  type Codec,
-  type Decoder,
   type EncodedAccount,
-  type Encoder,
   type FetchAccountConfig,
   type FetchAccountsConfig,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type MaybeAccount,
   type MaybeEncodedAccount,
-  type Option,
-  type OptionOrNullable,
   type ReadonlyUint8Array,
 } from "@solana/kit";
+import {
+  getAssetTypeDecoder,
+  getAssetTypeEncoder,
+  getCredentialIdDecoder,
+  getCredentialIdEncoder,
+  getSecp256r1PubkeyDecoder,
+  getSecp256r1PubkeyEncoder,
+  type AssetType,
+  type AssetTypeArgs,
+  type CredentialId,
+  type CredentialIdArgs,
+  type Secp256r1Pubkey,
+  type Secp256r1PubkeyArgs,
+} from "../types/index.js";
 
 export const ASSET_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
   234, 180, 241, 252, 139, 224, 160, 8,
@@ -53,50 +63,58 @@ export function getAssetDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type Asset = {
   discriminator: ReadonlyUint8Array;
+  assetType: AssetType;
   mint: Address;
   owner: Address;
-  domainConfig: Address;
   lastTransferSlot: bigint;
-  isLocked: Option<boolean>;
+  isLocked: boolean;
+  publicKey: Secp256r1Pubkey;
+  credentialId: CredentialId;
 };
 
 export type AssetArgs = {
+  assetType: AssetTypeArgs;
   mint: Address;
   owner: Address;
-  domainConfig: Address;
   lastTransferSlot: number | bigint;
-  isLocked: OptionOrNullable<boolean>;
+  isLocked: boolean;
+  publicKey: Secp256r1PubkeyArgs;
+  credentialId: CredentialIdArgs;
 };
 
 /** Gets the encoder for {@link AssetArgs} account data. */
-export function getAssetEncoder(): Encoder<AssetArgs> {
+export function getAssetEncoder(): FixedSizeEncoder<AssetArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
+      ["assetType", getAssetTypeEncoder()],
       ["mint", getAddressEncoder()],
       ["owner", getAddressEncoder()],
-      ["domainConfig", getAddressEncoder()],
       ["lastTransferSlot", getU64Encoder()],
-      ["isLocked", getOptionEncoder(getBooleanEncoder())],
+      ["isLocked", getBooleanEncoder()],
+      ["publicKey", getSecp256r1PubkeyEncoder()],
+      ["credentialId", getCredentialIdEncoder()],
     ]),
     (value) => ({ ...value, discriminator: ASSET_DISCRIMINATOR }),
   );
 }
 
 /** Gets the decoder for {@link Asset} account data. */
-export function getAssetDecoder(): Decoder<Asset> {
+export function getAssetDecoder(): FixedSizeDecoder<Asset> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
+    ["assetType", getAssetTypeDecoder()],
     ["mint", getAddressDecoder()],
     ["owner", getAddressDecoder()],
-    ["domainConfig", getAddressDecoder()],
     ["lastTransferSlot", getU64Decoder()],
-    ["isLocked", getOptionDecoder(getBooleanDecoder())],
+    ["isLocked", getBooleanDecoder()],
+    ["publicKey", getSecp256r1PubkeyDecoder()],
+    ["credentialId", getCredentialIdDecoder()],
   ]);
 }
 
 /** Gets the codec for {@link Asset} account data. */
-export function getAssetCodec(): Codec<AssetArgs, Asset> {
+export function getAssetCodec(): FixedSizeCodec<AssetArgs, Asset> {
   return combineCodec(getAssetEncoder(), getAssetDecoder());
 }
 
@@ -151,4 +169,8 @@ export async function fetchAllMaybeAsset(
 ): Promise<MaybeAccount<Asset>[]> {
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
   return maybeAccounts.map((maybeAccount) => decodeAsset(maybeAccount));
+}
+
+export function getAssetSize(): number {
+  return 179;
 }

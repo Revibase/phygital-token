@@ -143,6 +143,7 @@ export function parseWebAuthnClientData(clientDataJSON: string) {
     new TextDecoder().decode(base64URLStringToBuffer(clientDataJSON)),
   ) as Record<string, unknown>;
   return {
+    challenge: String(parsed.challenge),
     origin: String(parsed.origin),
     crossOrigin: Boolean(parsed.crossOrigin),
     truncatedClientDataJson: extractAdditionalFields(parsed),

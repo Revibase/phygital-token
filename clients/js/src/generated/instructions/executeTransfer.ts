@@ -81,7 +81,6 @@ export type ExecuteTransferInstruction<
     "11111111111111111111111111111111",
   TAccountTransferHookProgram extends string | AccountMeta<string> =
     "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR",
-  TAccountDomainConfig extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -127,9 +126,6 @@ export type ExecuteTransferInstruction<
       TAccountTransferHookProgram extends string
         ? ReadonlyAccount<TAccountTransferHookProgram>
         : TAccountTransferHookProgram,
-      TAccountDomainConfig extends string
-        ? ReadonlyAccount<TAccountDomainConfig>
-        : TAccountDomainConfig,
       ...TRemainingAccounts,
     ]
   >;
@@ -206,7 +202,6 @@ export type ExecuteTransferAsyncInput<
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
   TAccountTransferHookProgram extends string = string,
-  TAccountDomainConfig extends string = string,
 > = {
   recipient: TransactionSigner<TAccountRecipient>;
   sender: Address<TAccountSender>;
@@ -221,7 +216,6 @@ export type ExecuteTransferAsyncInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   transferHookProgram?: Address<TAccountTransferHookProgram>;
-  domainConfig: Address<TAccountDomainConfig>;
   signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
   slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
   origin: ExecuteTransferInstructionDataArgs["origin"];
@@ -243,7 +237,6 @@ export async function getExecuteTransferInstructionAsync<
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
   TAccountTransferHookProgram extends string,
-  TAccountDomainConfig extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: ExecuteTransferAsyncInput<
@@ -259,8 +252,7 @@ export async function getExecuteTransferInstructionAsync<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram,
-    TAccountDomainConfig
+    TAccountTransferHookProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
@@ -278,8 +270,7 @@ export async function getExecuteTransferInstructionAsync<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram,
-    TAccountDomainConfig
+    TAccountTransferHookProgram
   >
 > {
   // Program address.
@@ -319,7 +310,6 @@ export async function getExecuteTransferInstructionAsync<
       value: input.transferHookProgram ?? null,
       isWritable: false,
     },
-    domainConfig: { value: input.domainConfig ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -374,7 +364,6 @@ export async function getExecuteTransferInstructionAsync<
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("transferHookProgram", accounts.transferHookProgram),
-      getAccountMeta("domainConfig", accounts.domainConfig),
     ],
     data: getExecuteTransferInstructionDataEncoder().encode(
       args as ExecuteTransferInstructionDataArgs,
@@ -394,8 +383,7 @@ export async function getExecuteTransferInstructionAsync<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram,
-    TAccountDomainConfig
+    TAccountTransferHookProgram
   >);
 }
 
@@ -413,7 +401,6 @@ export type ExecuteTransferInput<
   TAccountAssociatedTokenProgram extends string = string,
   TAccountSystemProgram extends string = string,
   TAccountTransferHookProgram extends string = string,
-  TAccountDomainConfig extends string = string,
 > = {
   recipient: TransactionSigner<TAccountRecipient>;
   sender: Address<TAccountSender>;
@@ -428,7 +415,6 @@ export type ExecuteTransferInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   transferHookProgram?: Address<TAccountTransferHookProgram>;
-  domainConfig: Address<TAccountDomainConfig>;
   signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
   slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
   origin: ExecuteTransferInstructionDataArgs["origin"];
@@ -450,7 +436,6 @@ export function getExecuteTransferInstruction<
   TAccountAssociatedTokenProgram extends string,
   TAccountSystemProgram extends string,
   TAccountTransferHookProgram extends string,
-  TAccountDomainConfig extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: ExecuteTransferInput<
@@ -466,8 +451,7 @@ export function getExecuteTransferInstruction<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram,
-    TAccountDomainConfig
+    TAccountTransferHookProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): ExecuteTransferInstruction<
@@ -484,8 +468,7 @@ export function getExecuteTransferInstruction<
   TAccountTokenProgram,
   TAccountAssociatedTokenProgram,
   TAccountSystemProgram,
-  TAccountTransferHookProgram,
-  TAccountDomainConfig
+  TAccountTransferHookProgram
 > {
   // Program address.
   const programAddress =
@@ -524,7 +507,6 @@ export function getExecuteTransferInstruction<
       value: input.transferHookProgram ?? null,
       isWritable: false,
     },
-    domainConfig: { value: input.domainConfig ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -576,7 +558,6 @@ export function getExecuteTransferInstruction<
       getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
       getAccountMeta("systemProgram", accounts.systemProgram),
       getAccountMeta("transferHookProgram", accounts.transferHookProgram),
-      getAccountMeta("domainConfig", accounts.domainConfig),
     ],
     data: getExecuteTransferInstructionDataEncoder().encode(
       args as ExecuteTransferInstructionDataArgs,
@@ -596,8 +577,7 @@ export function getExecuteTransferInstruction<
     TAccountTokenProgram,
     TAccountAssociatedTokenProgram,
     TAccountSystemProgram,
-    TAccountTransferHookProgram,
-    TAccountDomainConfig
+    TAccountTransferHookProgram
   >);
 }
 
@@ -620,7 +600,6 @@ export type ParsedExecuteTransferInstruction<
     associatedTokenProgram: TAccountMetas[10];
     systemProgram: TAccountMetas[11];
     transferHookProgram: TAccountMetas[12];
-    domainConfig: TAccountMetas[13];
   };
   data: ExecuteTransferInstructionData;
 };
@@ -633,12 +612,12 @@ export function parseExecuteTransferInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedExecuteTransferInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 14) {
+  if (instruction.accounts.length < 13) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 14,
+        expectedAccountMetas: 13,
       },
     );
   }
@@ -664,7 +643,6 @@ export function parseExecuteTransferInstruction<
       associatedTokenProgram: getNextAccount(),
       systemProgram: getNextAccount(),
       transferHookProgram: getNextAccount(),
-      domainConfig: getNextAccount(),
     },
     data: getExecuteTransferInstructionDataDecoder().decode(instruction.data),
   };

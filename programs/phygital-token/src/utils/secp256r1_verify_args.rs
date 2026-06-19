@@ -13,7 +13,6 @@ use crate::{
         },
         transfer_action_type::TransferActionType,
     },
-    DomainConfig,
 };
 
 // `#[repr(C)]` pins field order to match the secp256r1 program's on-wire offset
@@ -245,7 +244,7 @@ impl Secp256r1VerifyArgs {
     fn extract_client_data_hash_from_instruction(
         &self,
         instructions_sysvar: &UncheckedAccount,
-    ) -> Result<([u8; 32], [u8; 32])> {
+    ) -> Result<[u8; 32]> {
         require!(
             instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
             PhygitalError::MissingInstructionsSysvar
@@ -273,15 +272,11 @@ impl Secp256r1VerifyArgs {
 
         let message = Self::extract_message_data(data, &offsets)?;
 
-        let rp_id_hash: [u8; 32] = message[..32]
-            .try_into()
-            .map_err(|_| PhygitalError::InvalidSignatureOffsets)?;
-
         let client_data_hash: [u8; 32] = message[(message.len() - 32)..]
             .try_into()
             .map_err(|_| PhygitalError::InvalidSignatureOffsets)?;
 
-        Ok((rp_id_hash, client_data_hash))
+        Ok(client_data_hash)
     }
 
     pub fn extract_public_key_from_instruction(
@@ -326,25 +321,14 @@ impl Secp256r1VerifyArgs {
         slot_hashes: &UncheckedAccount<'info>,
         instructions_sysvar: &UncheckedAccount<'info>,
         challenge_args: ChallengeArgs,
-        domain_config: &Account<'info, DomainConfig>,
     ) -> Result<()> {
         require!(
             !self.origin.is_empty() && self.origin.len() <= MAX_ORIGIN_LEN,
             PhygitalError::MaxLengthExceeded
         );
 
-        let (rp_id_hash, client_data_hash) =
+        let client_data_hash =
             self.extract_client_data_hash_from_instruction(instructions_sysvar)?;
-
-        require!(
-            domain_config.rp_id_hash.eq(&rp_id_hash),
-            PhygitalError::RpIdMismatch
-        );
-
-        require!(
-            domain_config.origins.contains(&self.origin),
-            PhygitalError::OriginMismatch
-        );
 
         let slot_hash = self.fetch_slot_hash(slot_hashes)?;
 

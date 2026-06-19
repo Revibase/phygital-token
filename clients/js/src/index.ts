@@ -24,11 +24,19 @@ export {
   type ResolvedMedia,
   type TokenJsonMetadata,
   type TokenMediaFile,
-  type VerifyMetadataCallback,
 } from "./utils/metadata.js";
 
-export { verifyLocal, verifyWithServerCheck } from "./utils/verify.js";
+export {
+  verifyDynamicUrlWithoutCounterCheck,
+  verifyDynamicUrl,
+  verifyWithChallengeResponse,
+  verifyWithChallengeResponseOverNfc,
+  type VerifyDynamicUrlCallback,
+  type VerifyDynamicUrlResult,
+  type VerifyWithChallengeResponseResult,
+  type GetPublicKeyFromCredentialIdCallback,
+} from "./utils/verify.js";
 
-export { findAssetPda, findDomainConfigPda } from "./utils/pdas/index.js";
+export { findAssetPda } from "./utils/pdas/index.js";
 
-export * from "./generated/index.js"
+export * from "./generated/index.js";

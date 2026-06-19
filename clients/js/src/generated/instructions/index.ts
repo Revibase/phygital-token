@@ -6,9 +6,7 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./createDomainConfig.js";
 export * from "./createMint.js";
 export * from "./executeTransfer.js";
 export * from "./mintToken.js";
 export * from "./setLockState.js";
-export * from "./updateDomainConfig.js";

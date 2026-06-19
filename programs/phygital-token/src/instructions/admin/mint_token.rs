@@ -8,12 +8,13 @@ use crate::constants::{ASSET_SEED, PROGRAM_AUTHORITY_SEED};
 use crate::error::PhygitalError;
 use crate::state::Asset;
 use crate::utils::{mint_token_account_rent, secp256r1_pda_seed};
-use crate::{DomainConfig, Secp256r1Pubkey};
+use crate::{AssetType, CredentialId, Secp256r1Pubkey};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MintTokenArgs {
     pub secp256r1_pubkey: Secp256r1Pubkey,
-    pub lock_asset_on_create: Option<bool>,
+    pub credential_id: CredentialId,
+    pub asset_type: AssetType,
 }
 
 #[derive(Accounts)]
@@ -51,21 +52,24 @@ pub struct MintToken<'info> {
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
-    #[account(
-        constraint = domain_config.authority == authority.key() @PhygitalError::AuthorityMismatch
-    )]
-    pub domain_config: Account<'info, DomainConfig>,
 }
 
 pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
+    #[cfg(feature = "mainnet")]
+    require!(
+        ctx.accounts.authority.key() == crate::ADMIN,
+        crate::error::PhygitalError::AuthorityMismatch
+    );
+
     let mint_key = ctx.accounts.mint.key();
     let mint_info = ctx.accounts.mint.to_account_info();
 
     ctx.accounts.asset.init(
         mint_key,
         ctx.accounts.program_authority.key(),
-        ctx.accounts.domain_config.key(),
-        args.lock_asset_on_create,
+        args.asset_type,
+        args.secp256r1_pubkey,
+        args.credential_id,
     );
 
     let program_authority_bump = ctx.bumps.program_authority;

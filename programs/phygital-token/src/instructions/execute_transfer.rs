@@ -10,13 +10,22 @@ use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 
+use crate::AssetType;
 use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
 use crate::error::PhygitalError;
 use crate::state::{find_asset_pda, Asset, LAST_TRANSFER_SLOT_NONE};
 use crate::utils::{
     build_transfer_message_hash, ChallengeArgs, Secp256r1VerifyArgs, TransferActionType,
 };
-use crate::DomainConfig;
+
+#[event]
+pub struct TransferEvent {
+    pub sender: Pubkey,
+    pub recipient: Pubkey,
+    pub mint: Pubkey,
+    pub asset: Pubkey,
+    pub origin: String,
+}
 
 #[derive(Accounts)]
 #[instruction(secp256r1_verify_args: Secp256r1VerifyArgs)]
@@ -82,11 +91,6 @@ pub struct ExecuteTransfer<'info> {
     /// CHECK: constrained to this program's id
     #[account(address = TRANSFER_HOOK_PROGRAM_ID)]
     pub transfer_hook_program: UncheckedAccount<'info>,
-
-    #[account(
-        constraint = domain_config.key() == asset.domain_config @PhygitalError::DomainConfigMismatch
-    )]
-    pub domain_config: Account<'info, DomainConfig>,
 }
 
 pub fn handler(
@@ -113,12 +117,12 @@ pub fn handler(
         PhygitalError::InvalidRecipient
     );
 
-    if let Some(is_locked) = ctx.accounts.asset.is_locked {
+    if ctx.accounts.asset.asset_type == AssetType::Configurable {
         require!(
-            ctx.accounts.sender.key() == ctx.accounts.program_authority.key() || !is_locked,
+            !ctx.accounts.asset.is_locked,
             PhygitalError::AssetIsCurrentlyLocked
         );
-        ctx.accounts.asset.is_locked = Some(true)
+        ctx.accounts.asset.is_locked = true
     }
 
     let message_hash =
@@ -132,7 +136,6 @@ pub fn handler(
             message_hash,
             action_type: TransferActionType::Transfer,
         },
-        &ctx.accounts.domain_config,
     )?;
 
     associated_token::create_idempotent(CpiContext::new_with_signer(
@@ -204,6 +207,14 @@ pub fn handler(
         AuthorityType::CloseAccount,
         Some(ctx.accounts.program_authority.key()),
     )?;
+
+    emit!(TransferEvent {
+        sender: ctx.accounts.sender.key(),
+        recipient: ctx.accounts.recipient.key(),
+        mint: ctx.accounts.mint.key(),
+        asset: ctx.accounts.asset.key(),
+        origin: secp256r1_verify_args.origin,
+    });
 
     Ok(())
 }
