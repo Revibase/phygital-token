@@ -18,7 +18,12 @@ export {
 
 export {
   fetchAssetDisplayInfo,
+  resolveMedia,
   type AssetDisplayInfo,
+  type MediaCategory,
+  type ResolvedMedia,
+  type TokenJsonMetadata,
+  type TokenMediaFile,
   type VerifyMetadataCallback,
 } from "./utils/metadata.js";
 

@@ -51,11 +51,26 @@ type AssetAttribute = {
   value: string;
 };
 
+/** Phantom collectible media categories (Metaplex `properties.category`). */
+export type MediaCategory = "image" | "video" | "audio" | "vr";
+
+/** A single asset referenced from `properties.files` in the off-chain JSON. */
+export type TokenMediaFile = {
+  uri?: string;
+  /** MIME type, e.g. "image/png", "video/mp4", "model/gltf-binary". */
+  type?: string;
+  /** Served through a CDN — Phantom prefers these when selecting media. */
+  cdn?: boolean;
+};
+
 export type TokenJsonMetadata = {
   name?: string;
   symbol?: string;
   image?: string;
   description?: string;
+  /** Primary animated/interactive asset (video/audio/3D) — Phantom's top media pick. */
+  animation_url?: string;
+  external_url?: string;
   /** Design mint public key this asset instance belongs to. */
   mint?: string;
   attributes?: Array<{
@@ -63,7 +78,109 @@ export type TokenJsonMetadata = {
     traitType?: string;
     value?: string | number;
   }>;
+  properties?: {
+    category?: MediaCategory | string;
+    files?: TokenMediaFile[];
+  };
 };
+
+const MEDIA_TYPE_BY_EXT: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  flac: "audio/flac",
+  glb: "model/gltf-binary",
+  gltf: "model/gltf+json",
+};
+
+/** Best-effort MIME type for a media URI, inferred from its path extension. */
+function mimeFromUri(uri: string): string | null {
+  const clean = uri.split("?")[0].split("#")[0];
+  const ext = clean.split(".").pop()?.toLowerCase() ?? "";
+  return MEDIA_TYPE_BY_EXT[ext] ?? null;
+}
+
+/** Map a MIME type to the Phantom collectible category it renders as. */
+function categoryForMime(type: string | undefined | null): MediaCategory | null {
+  if (!type) return null;
+  if (type.startsWith("video/")) return "video";
+  if (type.startsWith("audio/")) return "audio";
+  if (type.startsWith("model/")) return "vr";
+  if (type.startsWith("image/")) return "image";
+  return null;
+}
+
+export type ResolvedMedia = {
+  /** Still image / poster — Phantom resizes this to 256×256. */
+  image: string | null;
+  /** Animated/interactive asset (video/audio/3D), if any. */
+  animationUrl: string | null;
+  /** MIME type of `animationUrl`. */
+  animationType: string | null;
+  /** The collectible's primary media category. */
+  category: MediaCategory | null;
+};
+
+/**
+ * Resolve which media to display from an off-chain Token-Metadata JSON,
+ * following Phantom's collectible-rendering spec: `animation_url` is the top
+ * pick, then the first non-image entry in `properties.files`; `image` (or the
+ * first image file) is the still/poster. Mirrors how Phantom itself selects
+ * media so the in-app card matches the wallet.
+ */
+export function resolveMedia(json: TokenJsonMetadata | null): ResolvedMedia {
+  if (!json) {
+    return { image: null, animationUrl: null, animationType: null, category: null };
+  }
+
+  const files = json.properties?.files ?? [];
+  const image =
+    json.image ??
+    files.find((f) => f.uri && categoryForMime(f.type) === "image")?.uri ??
+    null;
+
+  let animationUrl = json.animation_url ?? null;
+  let animationType: string | null = null;
+  if (animationUrl) {
+    animationType =
+      files.find((f) => f.uri === animationUrl)?.type ?? mimeFromUri(animationUrl);
+  } else {
+    // No animation_url: fall back to the first audio/video/3D file, preferring
+    // CDN-served entries (Phantom's tie-breaker).
+    const ranked = [...files].sort(
+      (a, b) => Number(Boolean(b.cdn)) - Number(Boolean(a.cdn)),
+    );
+    const media = ranked.find((f) => {
+      const c = categoryForMime(f.type ?? mimeFromUri(f.uri ?? ""));
+      return f.uri && (c === "video" || c === "audio" || c === "vr");
+    });
+    if (media?.uri) {
+      animationUrl = media.uri;
+      animationType = media.type ?? mimeFromUri(media.uri);
+    }
+  }
+
+  const rawCategory = json.properties?.category;
+  const declaredCategory =
+    rawCategory && ["image", "video", "audio", "vr"].includes(rawCategory)
+      ? (rawCategory as MediaCategory)
+      : null;
+  const category =
+    declaredCategory ??
+    categoryForMime(animationType) ??
+    (image ? "image" : null);
+
+  return { image, animationUrl, animationType, category };
+}
 
 function parseAssetAttributes(
   raw: TokenJsonMetadata["attributes"],
@@ -140,6 +257,12 @@ export type AssetDisplayInfo = {
   /** Design metadata URI (shared visual/name info). */
   uri: string;
   image: string | null;
+  /** Animated/interactive asset (video/audio/3D), per Phantom media-selection. */
+  animationUrl: string | null;
+  /** MIME type of `animationUrl` (e.g. "video/mp4"), when known. */
+  animationType: string | null;
+  /** Primary media category Phantom renders the card as. */
+  mediaCategory: MediaCategory | null;
   description: string | null;
   attributes: AssetAttribute[];
   /** Collection Details. */
@@ -181,6 +304,8 @@ export async function fetchAssetDisplayInfo(
       : Promise.resolve(null),
   ]);
 
+  const designMedia = resolveMedia(designJsonMeta);
+
   return {
     publicKey,
     asset: asset,
@@ -193,7 +318,10 @@ export async function fetchAssetDisplayInfo(
     name: designMeta?.name ?? designJsonMeta?.name ?? "Unknown asset",
     symbol: designMeta?.symbol ?? designJsonMeta?.symbol ?? "",
     uri: designMeta?.uri ?? "",
-    image: designJsonMeta?.image ?? null,
+    image: designMedia.image,
+    animationUrl: designMedia.animationUrl,
+    animationType: designMedia.animationType,
+    mediaCategory: designMedia.category,
     description: designJsonMeta?.description ?? null,
     attributes: parseAssetAttributes(designJsonMeta?.attributes),
     collectionMint,
