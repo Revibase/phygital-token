@@ -1,10 +1,8 @@
-// Vendored from @revibase/ctap2-js (authentication branch only).
 import { utf8ToBytes } from "@noble/hashes/utils.js";
-import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
+import { bufferToBase64URLString, type AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import type { AuthenticatorGetAssertionResponse } from "./getAssertion.js";
 import { ApduError } from "./errors.js";
 import { parseAuthenticatorDataExtensions } from "./authDataExtensions.js";
-import { bufferToBase64URLString } from "./base64url.js";
 
 export function toAuthenticationResponseJSON(input: {
   assertion: AuthenticatorGetAssertionResponse;
@@ -26,7 +24,7 @@ export function toAuthenticationResponseJSON(input: {
       );
     })();
 
-  const idStr = bufferToBase64URLString(credBytes);
+  const idStr = bufferToBase64URLString(credBytes.buffer as ArrayBuffer);
 
   return {
     id: idStr,
@@ -34,12 +32,12 @@ export function toAuthenticationResponseJSON(input: {
     type: "public-key",
     clientExtensionResults,
     response: {
-      clientDataJSON: bufferToBase64URLString(utf8ToBytes(clientDataJSON)),
-      authenticatorData: bufferToBase64URLString(assertion.authData),
-      signature: bufferToBase64URLString(assertion.signature),
+      clientDataJSON: bufferToBase64URLString(utf8ToBytes(clientDataJSON).buffer),
+      authenticatorData: bufferToBase64URLString(assertion.authData.buffer as ArrayBuffer),
+      signature: bufferToBase64URLString(assertion.signature.buffer as ArrayBuffer),
       userHandle:
         assertion.user?.id !== undefined
-          ? bufferToBase64URLString(assertion.user.id)
+          ? bufferToBase64URLString(assertion.user.id.buffer as ArrayBuffer)
           : undefined,
     },
   };

@@ -1,4 +1,3 @@
-// Vendored from @revibase/ctap2-js (authenticateWithNfc only).
 import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import {
   buildCborCommandApdu,

@@ -1,4 +1,3 @@
-// Vendored from @revibase/ctap2-js.
 import {
   FIDO_AID,
   NFC_TX_CHUNK_SIZE,

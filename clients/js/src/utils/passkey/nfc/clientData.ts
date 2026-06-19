@@ -1,4 +1,3 @@
-// Vendored from @revibase/ctap2-js.
 interface CollectedClientDataInput {
   challenge: string;
   origin: string;

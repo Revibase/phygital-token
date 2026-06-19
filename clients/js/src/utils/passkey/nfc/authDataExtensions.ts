@@ -1,4 +1,3 @@
-// Vendored from @revibase/ctap2-js.
 import { decodeCbor } from "./cbor.js";
 
 /** WebAuthn authenticator data flags (byte index 32). */

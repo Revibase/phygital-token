@@ -1,4 +1,3 @@
-// Vendored from @revibase/ctap2-js (request side only).
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
 
 type NfcWebAuthnClientFields = {

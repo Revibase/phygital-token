@@ -1,4 +1,3 @@
-// Vendored from @revibase/ctap2-js (authentication branch only).
 import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { parseAuthenticatorGetAssertionResponse } from "./getAssertion.js";
 import { buildCollectedClientDataJSON } from "./clientData.js";

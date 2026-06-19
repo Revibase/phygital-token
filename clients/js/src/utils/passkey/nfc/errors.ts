@@ -1,4 +1,3 @@
-// Vendored from @revibase/ctap2-js.
 export class ApduError extends Error {
   declare readonly cause?: unknown;
 

@@ -1,4 +1,3 @@
-// Vendored from @revibase/ctap2-js (getAssertion path only).
 export const NFC_TX_CHUNK_SIZE = 240;
 
 export const FIDO_AID = Uint8Array.from([

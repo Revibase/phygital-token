@@ -1,4 +1,3 @@
-// Vendored from @revibase/ctap2-js (getAssertion only).
 import {
   parseCtaphidCborFromApduResponse,
   unwrapCtaphidCborBody,
