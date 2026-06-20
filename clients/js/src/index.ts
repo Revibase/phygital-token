@@ -12,6 +12,7 @@ export {
   MAX_METADATA_SYMBOL_LEN,
   MAX_METADATA_URI_LEN,
   parseSecp256r1Pubkey,
+  parseCredentialId,
   validateMetadataFields,
   type MetadataFields,
 } from "./instructions/mint.js";
