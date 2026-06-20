@@ -1,6 +1,6 @@
 {
   "name": "phygital-token-sdk",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "TypeScript client for the Phygital Token Solana program (generated via Codama)",
   "license": "ISC",
   "type": "module",

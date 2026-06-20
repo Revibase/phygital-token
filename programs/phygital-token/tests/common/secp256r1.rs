@@ -4,12 +4,12 @@ use anchor_lang::solana_program::instruction::Instruction;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
-use phygital_token::CredentialId;
 use phygital_token::utils::{
     build_transfer_message_hash, Secp256r1VerifyArgs, TransferActionType,
     COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
     SIGNATURE_OFFSETS_START,
 };
+use phygital_token::CredentialId;
 use rand::rngs::OsRng;
 use sha2::{Digest, Sha256};
 

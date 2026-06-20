@@ -14,7 +14,10 @@ pub struct SetLockState<'info> {
 
 pub fn handler(ctx: Context<SetLockState>, is_locked: bool) -> Result<()> {
     require!(
-        ctx.accounts.asset.asset_type.eq(&crate::AssetType::Configurable),
+        ctx.accounts
+            .asset
+            .asset_type
+            .eq(&crate::AssetType::Configurable),
         PhygitalError::AssetIsNotConfigurable
     );
     ctx.accounts.asset.is_locked = is_locked;

@@ -10,13 +10,13 @@ use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 
-use crate::AssetType;
 use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
 use crate::error::PhygitalError;
 use crate::state::{find_asset_pda, Asset, LAST_TRANSFER_SLOT_NONE};
 use crate::utils::{
     build_transfer_message_hash, ChallengeArgs, Secp256r1VerifyArgs, TransferActionType,
 };
+use crate::AssetType;
 
 #[event]
 pub struct TransferEvent {

@@ -10,8 +10,8 @@ use common::{
     create_external_group_mint, current_slot_entry, sample_create_mint_args, MintedAsset,
     TestContext, TestPasskey, LAMPORTS_PER_SOL,
 };
-use phygital_token::{AssetType, MintTokenArgs};
 use phygital_token::Secp256r1Pubkey;
+use phygital_token::{AssetType, MintTokenArgs};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 use spl_token_group_interface::state::TokenGroupMember;

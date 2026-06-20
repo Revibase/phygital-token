@@ -9,7 +9,7 @@ pub const LAST_TRANSFER_SLOT_NONE: u64 = u64::MAX;
 #[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone)]
 pub enum AssetType {
     Configurable,
-    Fixed
+    Fixed,
 }
 
 #[account]
