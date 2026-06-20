@@ -26,7 +26,6 @@ import {
 } from "../generated/index.js";
 import {
   authenticateWithNfc,
-  type PublicKeyCredentialRequestOptionsJSONWithNfc,
 } from "./passkey/nfc/index.js";
 
 const DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT = `https://revibase.com/api/verifyDynamicUrl`;

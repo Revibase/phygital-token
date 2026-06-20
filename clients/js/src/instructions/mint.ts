@@ -78,7 +78,7 @@ export function parseCredentialId(input: Base64URLString): CredentialId {
     throw new Error("CredentialId must be valid base64url.");
   }
 
-  if (bytes.length !== 80) {
+  if (bytes.length !== 64) {
     throw new Error("Credential Id must decode to 80 bytes.");
   }
 
