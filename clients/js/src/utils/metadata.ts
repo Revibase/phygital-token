@@ -35,8 +35,9 @@ function findMintExtension(
 }
 
 type AssetAttribute = {
-  traitType: string;
-  value: string;
+  trait_type?: string;
+  traitType?: string;
+  value?: string | number;
 };
 
 /**
@@ -44,9 +45,10 @@ type AssetAttribute = {
  * (Phantom Shortcuts schema v2). Rendered as an action button on the card.
  */
 export type Shortcut = {
-  label: string;
-  uri: string;
+  label?: string;
+  uri?: string;
   icon?: string;
+  type?: string;
 };
 
 /** Phantom collectible media categories (Metaplex `properties.category`). */
@@ -71,25 +73,13 @@ export type TokenJsonMetadata = {
   external_url?: string;
   /** Design mint public key this asset instance belongs to. */
   mint?: string;
-  attributes?: Array<{
-    trait_type?: string;
-    traitType?: string;
-    value?: string | number;
-  }>;
+  attributes?: Array<AssetAttribute>;
   properties?: {
     category?: MediaCategory | string;
     files?: TokenMediaFile[];
   };
   /** Embedded Phantom Shortcuts (schema v2): `{ version, shortcuts }`. */
-  shortcuts?: {
-    version?: number;
-    shortcuts?: Array<{
-      label?: string;
-      uri?: string;
-      icon?: string;
-      type?: string;
-    }>;
-  };
+  shortcuts?: Array<Shortcut>;
 };
 
 const MEDIA_TYPE_BY_EXT: Record<string, string> = {
@@ -198,46 +188,6 @@ export function resolveMedia(json: TokenJsonMetadata | null): ResolvedMedia {
   return { image, animationUrl, animationType, category };
 }
 
-function parseAssetAttributes(
-  raw: TokenJsonMetadata["attributes"],
-): AssetAttribute[] {
-  if (!raw?.length) {
-    return [];
-  }
-
-  return raw
-    .map((attribute) => {
-      const traitType = attribute.trait_type ?? attribute.traitType;
-      if (
-        !traitType ||
-        attribute.value === undefined ||
-        attribute.value === null
-      ) {
-        return null;
-      }
-      return {
-        traitType,
-        value: String(attribute.value),
-      };
-    })
-    .filter((attribute): attribute is AssetAttribute => attribute !== null);
-}
-
-/** Extract valid Phantom Shortcuts (schema v2) from the off-chain JSON. */
-function parseShortcuts(meta: TokenJsonMetadata | null): Shortcut[] {
-  const raw = meta?.shortcuts?.shortcuts;
-  if (!raw?.length) {
-    return [];
-  }
-  return raw
-    .map((s) =>
-      s.label && s.uri
-        ? { label: s.label, uri: s.uri, ...(s.icon ? { icon: s.icon } : {}) }
-        : null,
-    )
-    .filter((s): s is Shortcut => s !== null);
-}
-
 async function fetchJsonMetadata(
   uri: string,
 ): Promise<TokenJsonMetadata | null> {
@@ -320,8 +270,7 @@ export async function fetchAssetDisplayInfo(
       instance.data.credentialId[0].buffer as ArrayBuffer,
     ),
     asset: asset,
-    isLocked:
-      instance.data.isLocked,
+    isLocked: instance.data.isLocked,
     mint: instance.data.mint,
     name: designMeta?.name ?? designJsonMeta?.name ?? "Unknown asset",
     symbol: designMeta?.symbol ?? designJsonMeta?.symbol ?? "",
@@ -331,8 +280,8 @@ export async function fetchAssetDisplayInfo(
     animationType: designMedia.animationType,
     mediaCategory: designMedia.category,
     description: designJsonMeta?.description ?? null,
-    attributes: parseAssetAttributes(designJsonMeta?.attributes),
-    shortcuts: parseShortcuts(designJsonMeta),
+    attributes: designJsonMeta?.attributes ?? [],
+    shortcuts: designJsonMeta?.shortcuts ?? [],
     collectionMint,
     collectionName: collectionMeta?.name ?? collectionJsonMeta?.name ?? null,
     collectionSymbol:
