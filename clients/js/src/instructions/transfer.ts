@@ -9,12 +9,10 @@ import {
   startAuthentication,
   type AuthenticationResponseJSON,
 } from "@simplewebauthn/browser";
-import {
-  TOKEN_2022_PROGRAM_ADDRESS,
-} from "../utils/consts.js";
+import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts.js";
 import { type AssetDisplayInfo } from "../utils/metadata.js";
 import {
-  buildSecp256r1VerifyInstructionFromWebAuthn,
+  buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
@@ -40,8 +38,6 @@ export async function beginTransfer(input: {
 }): Promise<TransferSession> {
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
-    tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
-    asset: input.displayInfo.asset,
     sender: input.displayInfo.currentOwner,
     slotHash,
   });
@@ -85,15 +81,11 @@ export async function completeTransfer(
 ): Promise<Instruction[]> {
   const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
 
-  const {
-    secp256r1Verify,
-    origin,
-    crossOrigin,
-    truncatedClientDataJson,
-  } = await buildSecp256r1VerifyInstructionFromWebAuthn({
-    response,
-    session,
-  });
+  const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
+    await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
+      response,
+      publicKey: session.displayInfo.publicKey,
+    });
 
   const recipientTokenAccount = await findAssociatedTokenAddress(
     recipient.address,
@@ -114,11 +106,13 @@ export async function completeTransfer(
     senderTokenAccount,
     recipientTokenAccount,
     tokenProgram,
-    signedMessageIndex: 0,
-    slotNumber: session.slotNumber,
-    origin,
-    crossOrigin,
-    truncatedClientDataJson,
+    secp256r1VerifyArgs: {
+      signedMessageIndex: 0,
+      slotNumber: session.slotNumber,
+      origin,
+      crossOrigin,
+      truncatedClientDataJson,
+    },
   });
 
   return [secp256r1Verify, executeTransfer];

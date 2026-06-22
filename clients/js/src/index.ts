@@ -23,6 +23,7 @@ export {
   type AssetDisplayInfo,
   type MediaCategory,
   type ResolvedMedia,
+  type Shortcut,
   type TokenJsonMetadata,
   type TokenMediaFile,
 } from "./utils/metadata.js";
@@ -35,6 +36,7 @@ export {
   type VerifyDynamicUrlCallback,
   type VerifyDynamicUrlResult,
   type VerifyWithChallengeResponseResult,
+  type VerifyWithChallengeResponseOptions,
   type GetPublicKeyFromCredentialIdCallback,
 } from "./utils/verify.js";
 

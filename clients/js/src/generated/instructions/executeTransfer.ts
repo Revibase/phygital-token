@@ -7,25 +7,13 @@
  */
 
 import {
-  addDecoderSizePrefix,
-  addEncoderSizePrefix,
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU32Decoder,
-  getU32Encoder,
-  getU64Decoder,
-  getU64Encoder,
-  getU8Decoder,
-  getU8Encoder,
-  getUtf8Decoder,
-  getUtf8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -50,6 +38,12 @@ import {
 } from "@solana/program-client-core";
 import { findProgramAuthorityPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
+import {
+  getSecp256r1VerifyArgsDecoder,
+  getSecp256r1VerifyArgsEncoder,
+  type Secp256r1VerifyArgs,
+  type Secp256r1VerifyArgsArgs,
+} from "../types/index.js";
 
 export const EXECUTE_TRANSFER_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([233, 126, 160, 184, 235, 206, 31, 119]);
@@ -132,33 +126,18 @@ export type ExecuteTransferInstruction<
 
 export type ExecuteTransferInstructionData = {
   discriminator: ReadonlyUint8Array;
-  signedMessageIndex: number;
-  slotNumber: bigint;
-  origin: string;
-  crossOrigin: boolean;
-  truncatedClientDataJson: ReadonlyUint8Array;
+  secp256r1VerifyArgs: Secp256r1VerifyArgs;
 };
 
 export type ExecuteTransferInstructionDataArgs = {
-  signedMessageIndex: number;
-  slotNumber: number | bigint;
-  origin: string;
-  crossOrigin: boolean;
-  truncatedClientDataJson: ReadonlyUint8Array;
+  secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
 };
 
 export function getExecuteTransferInstructionDataEncoder(): Encoder<ExecuteTransferInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["signedMessageIndex", getU8Encoder()],
-      ["slotNumber", getU64Encoder()],
-      ["origin", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["crossOrigin", getBooleanEncoder()],
-      [
-        "truncatedClientDataJson",
-        addEncoderSizePrefix(getBytesEncoder(), getU32Encoder()),
-      ],
+      ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
     ]),
     (value) => ({ ...value, discriminator: EXECUTE_TRANSFER_DISCRIMINATOR }),
   );
@@ -167,14 +146,7 @@ export function getExecuteTransferInstructionDataEncoder(): Encoder<ExecuteTrans
 export function getExecuteTransferInstructionDataDecoder(): Decoder<ExecuteTransferInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["signedMessageIndex", getU8Decoder()],
-    ["slotNumber", getU64Decoder()],
-    ["origin", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["crossOrigin", getBooleanDecoder()],
-    [
-      "truncatedClientDataJson",
-      addDecoderSizePrefix(getBytesDecoder(), getU32Decoder()),
-    ],
+    ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
   ]);
 }
 
@@ -216,11 +188,7 @@ export type ExecuteTransferAsyncInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   transferHookProgram?: Address<TAccountTransferHookProgram>;
-  signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
-  slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
-  origin: ExecuteTransferInstructionDataArgs["origin"];
-  crossOrigin: ExecuteTransferInstructionDataArgs["crossOrigin"];
-  truncatedClientDataJson: ExecuteTransferInstructionDataArgs["truncatedClientDataJson"];
+  secp256r1VerifyArgs: ExecuteTransferInstructionDataArgs["secp256r1VerifyArgs"];
 };
 
 export async function getExecuteTransferInstructionAsync<
@@ -415,11 +383,7 @@ export type ExecuteTransferInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   transferHookProgram?: Address<TAccountTransferHookProgram>;
-  signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
-  slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
-  origin: ExecuteTransferInstructionDataArgs["origin"];
-  crossOrigin: ExecuteTransferInstructionDataArgs["crossOrigin"];
-  truncatedClientDataJson: ExecuteTransferInstructionDataArgs["truncatedClientDataJson"];
+  secp256r1VerifyArgs: ExecuteTransferInstructionDataArgs["secp256r1VerifyArgs"];
 };
 
 export function getExecuteTransferInstruction<

@@ -494,6 +494,58 @@ impl TestContext {
         asset_pda
     }
 
+    pub fn verify_asset_ix(
+        &self,
+        asset: Pubkey,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+        message: String,
+    ) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_token::accounts::VerifyAsset {
+                asset,
+                slot_hashes: SLOT_HASHES_SYSVAR_ID,
+                instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
+            }
+            .to_account_metas(None),
+            data: phygital_token::instruction::VerifyAsset {
+                secp256r1_verify_args,
+                message,
+            }
+            .data(),
+        }
+    }
+
+    pub fn send_verify_asset(
+        &mut self,
+        asset: &MintedAsset,
+        message: &str,
+        include_secp_ix: bool,
+        slot_number: Option<u64>,
+        slot_hash: Option<[u8; 32]>,
+    ) -> litesvm::types::TransactionResult {
+        let (slot_number, slot_hash) = match (slot_number, slot_hash) {
+            (Some(slot), Some(hash)) => (slot, hash),
+            _ => current_slot_entry(&self.svm),
+        };
+
+        let (secp_ix, verify_args) = asset.passkey.verify_asset_secp256r1_instruction(
+            message,
+            slot_number,
+            slot_hash,
+        );
+
+        let verify_ix = self.verify_asset_ix(asset.asset, verify_args, message.to_string());
+
+        let instructions = if include_secp_ix {
+            vec![secp_ix, verify_ix]
+        } else {
+            vec![verify_ix]
+        };
+
+        Self::send_instructions(&mut self.svm, &instructions, &[&self.payer])
+    }
+
     pub fn send_execute_transfer(
         &mut self,
         asset: &MintedAsset,
@@ -533,8 +585,6 @@ impl TestContext {
         };
 
         let (secp_ix, verify_args) = asset.passkey.secp256r1_verify_instruction(
-            TOKEN_2022_ID,
-            asset.asset,
             sender,
             slot_number,
             slot_hash,
@@ -572,8 +622,6 @@ impl TestContext {
         let (slot_number, slot_hash) = current_slot_entry(&self.svm);
 
         let (secp_ix, verify_args) = asset.passkey.secp256r1_verify_instruction(
-            TOKEN_2022_ID,
-            asset.asset,
             sender,
             slot_number,
             slot_hash,

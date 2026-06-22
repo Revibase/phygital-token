@@ -7,11 +7,11 @@ use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use crate::{
     error::PhygitalError,
     utils::{
+        action_type::ActionType,
         secp256r1_pubkey::{
             Secp256r1Pubkey, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
             SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
         },
-        transfer_action_type::TransferActionType,
     },
 };
 
@@ -42,9 +42,8 @@ pub struct Secp256r1VerifyArgs {
 }
 
 pub struct ChallengeArgs {
-    pub domain_account: Pubkey,
     pub message_hash: [u8; 32],
-    pub action_type: TransferActionType,
+    pub action_type: ActionType,
 }
 
 impl Secp256r1VerifyArgs {
@@ -334,7 +333,6 @@ impl Secp256r1VerifyArgs {
 
         let mut buffer = Vec::new();
         buffer.extend_from_slice(challenge_args.action_type.to_bytes());
-        buffer.extend_from_slice(challenge_args.domain_account.as_ref());
         buffer.extend_from_slice(&challenge_args.message_hash);
         buffer.extend_from_slice(&slot_hash);
 

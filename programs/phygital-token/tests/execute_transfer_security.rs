@@ -1,7 +1,6 @@
 mod common;
 
 use anchor_lang::solana_program::system_instruction;
-use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use common::{
     assert_token_program_error, assert_transaction_failed, current_slot_entry, MintedAsset,
     TestContext, TestPasskey, LAMPORTS_PER_SOL,
@@ -20,8 +19,6 @@ fn execute_transfer_rejects_wrong_signature() {
 
     let bad_sig = [0u8; 64];
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with(
-        TOKEN_2022_ID,
-        asset.asset,
         ctx.program_authority(),
         slot_number,
         slot_hash,
@@ -54,8 +51,6 @@ fn execute_transfer_rejects_passkey_for_different_asset() {
 
     let asset_b_instance = ctx.asset_pda(&Secp256r1Pubkey(passkey_b.compressed_pubkey));
     let (secp_ix, verify_args) = passkey_a.secp256r1_verify_instruction(
-        TOKEN_2022_ID,
-        asset_b_instance,
         ctx.program_authority(),
         slot_number,
         slot_hash,
@@ -85,8 +80,6 @@ fn execute_transfer_rejects_wrong_sender_in_message_hash() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
-        TOKEN_2022_ID,
-        asset.asset,
         wrong_sender.pubkey(),
         slot_number,
         slot_hash,
@@ -115,8 +108,6 @@ fn execute_transfer_rejects_secp_not_preceding() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
-        TOKEN_2022_ID,
-        asset.asset,
         ctx.program_authority(),
         slot_number,
         slot_hash,
@@ -166,8 +157,6 @@ fn execute_transfer_rejects_wrong_transfer_hook_program() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
-        TOKEN_2022_ID,
-        asset.asset,
         ctx.program_authority(),
         slot_number,
         slot_hash,

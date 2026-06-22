@@ -3,9 +3,12 @@ import {
   getBase64Decoder,
   getBase64Encoder,
   getU32Encoder,
+  type Address,
   type Base64EncodedBytes,
   type Rpc,
+  type Signature,
   type SolanaRpcApi,
+  type TransactionSigner,
 } from "@solana/kit";
 import {
   base64URLStringToBuffer,
@@ -19,21 +22,44 @@ import {
   startAuthentication,
   bufferToBase64URLString,
   type AuthenticationResponseJSON,
+  type Base64URLString,
 } from "@simplewebauthn/browser";
 import {
   getAssetDecoder,
+  getVerifyAssetInstruction,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 } from "../generated/index.js";
+import { authenticateWithNfc } from "./passkey/nfc/index.js";
+import { sendInstructions } from "./sendInstructions.js";
 import {
-  authenticateWithNfc,
-} from "./passkey/nfc/index.js";
+  buildSecp256r1VerifyInstructionFromWebAuthnResponse,
+  buildVerifyMessage,
+} from "./passkey/secp256r1.js";
+import { getLatestSlotHash } from "./slotHash.js";
+import { findAssetPda } from "./pdas/index.js";
+import { parseSecp256r1Pubkey } from "../instructions/mint.js";
 
 const DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT = `https://revibase.com/api/verifyDynamicUrl`;
 
 export type VerifyWithChallengeResponseResult = {
   publicKey: string;
   isVerified: boolean;
+  signature?: Signature;
 };
+
+export type VerifyWithChallengeResponseOptions =
+  | {
+      rpc?: Rpc<SolanaRpcApi>;
+      fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
+      postVerificationOnChain: false;
+    }
+  | {
+      rpc: Rpc<SolanaRpcApi>;
+      fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
+      postVerificationOnChain: true;
+      message?: string;
+      feePayer: TransactionSigner;
+    };
 
 export type VerifyDynamicUrlResult = VerifyWithChallengeResponseResult & {
   counter: number;
@@ -185,11 +211,10 @@ export type GetPublicKeyFromCredentialIdCallback = (
   credentialId: Base64URLString,
 ) => Promise<Base64URLString>;
 
-async function fetchPublicKeyFromCredentialId(
+async function fetchAssetCredentialFromCredentialId(
   credentialId: Base64URLString,
-  rpc?: Rpc<SolanaRpcApi>,
-): Promise<Base64URLString | null> {
-  if (!rpc) return null;
+  rpc: Rpc<SolanaRpcApi>,
+): Promise<{ publicKey: Base64URLString; asset: Address }> {
   const data = await rpc
     .getProgramAccounts(PHYGITAL_TOKEN_PROGRAM_ADDRESS, {
       encoding: "base64",
@@ -215,7 +240,24 @@ async function fetchPublicKeyFromCredentialId(
   const asset = getAssetDecoder().decode(
     getBase64Encoder().encode(data[0].account.data[0]),
   );
-  return bufferToBase64URLString(new Uint8Array(asset.publicKey[0]).buffer);
+  return {
+    publicKey: bufferToBase64URLString(
+      new Uint8Array(asset.publicKey[0]).buffer,
+    ),
+    asset: data[0].pubkey,
+  };
+}
+
+async function fetchPublicKeyFromCredentialId(
+  credentialId: Base64URLString,
+  rpc?: Rpc<SolanaRpcApi>,
+): Promise<Base64URLString | null> {
+  if (!rpc) return null;
+  const resolved = await fetchAssetCredentialFromCredentialId(
+    credentialId,
+    rpc,
+  );
+  return resolved.publicKey;
 }
 
 /**
@@ -311,24 +353,44 @@ async function verifyAuthenticationResponse({
  * over a caller-supplied IsoDep transport.
  *
  * @param rpc - Solana RPC used to look up the public key on-chain when no
- *   callback is supplied.
+ *   callback is supplied. Required when `postVerificationOnChain` is true.
  * @param fetchPublicKeyFromCredentialIdCallback - optional override for
  *   resolving the public key from the credential id (e.g. from your own index).
+ * @param message - optional message to bind into the on-chain `verify_asset`
+ *   instruction. Required when `postVerificationOnChain` is true.
+ * @param postVerificationOnChain - when true, uses a slot-bound challenge and
+ *   submits a `verify_asset` transaction after local verification succeeds.
+ * @param feePayer - pays for the on-chain verification transaction. Required
+ *   when `postVerificationOnChain` is true.
  * @throws "Invalid Signature." if the returned challenge does not match the one
  *   we issued, or if signature verification fails.
  */
-export async function verifyWithChallengeResponse({
-  rpc,
-  fetchPublicKeyFromCredentialIdCallback,
-}: {
-  rpc?: Rpc<SolanaRpcApi>;
-  fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
-}): Promise<VerifyWithChallengeResponseResult> {
-  const challenge = crypto.getRandomValues(new Uint8Array(32));
-  const expectedChallenge = bufferToBase64URLString(challenge.buffer);
+export async function verifyWithChallengeResponse(
+  input: VerifyWithChallengeResponseOptions,
+): Promise<VerifyWithChallengeResponseResult> {
+  const { fetchPublicKeyFromCredentialIdCallback, postVerificationOnChain } =
+    input;
+  let expectedChallenge: Uint8Array | null = null;
+  let slotNumber: bigint | null = null;
+  let message: string | undefined = undefined;
+  if (postVerificationOnChain) {
+    message = input.message ?? crypto.randomUUID();
+    const { slotHash, slotNumber: generatedSlotNumber } =
+      await getLatestSlotHash(input.rpc);
+    expectedChallenge = await buildVerifyMessage({
+      message,
+      slotHash,
+    });
+    slotNumber = generatedSlotNumber;
+  } else {
+    expectedChallenge = crypto.getRandomValues(new Uint8Array(32));
+  }
+
   const response = await startAuthentication({
     optionsJSON: {
-      challenge: expectedChallenge,
+      challenge: bufferToBase64URLString(
+        expectedChallenge.buffer as ArrayBuffer,
+      ),
       rpId: window.location.hostname,
       userVerification: "preferred",
       allowCredentials: [
@@ -341,12 +403,47 @@ export async function verifyWithChallengeResponse({
     },
   });
 
-  return verifyAuthenticationResponse({
+  const result = await verifyAuthenticationResponse({
     response,
-    expectedChallenge,
-    rpc,
+    expectedChallenge: bufferToBase64URLString(
+      expectedChallenge.buffer as ArrayBuffer,
+    ),
+    rpc: input.rpc,
     fetchPublicKeyFromCredentialIdCallback,
   });
+
+  if (postVerificationOnChain) {
+    if (!slotNumber) {
+      throw new Error("slotNumber is missing.");
+    }
+    if (!message) {
+      throw new Error("message is missing.");
+    }
+    const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
+      await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
+        response,
+        publicKey: result.publicKey,
+      });
+    const verifyAssetInstruction = getVerifyAssetInstruction({
+      asset: await findAssetPda(parseSecp256r1Pubkey(result.publicKey)),
+      secp256r1VerifyArgs: {
+        signedMessageIndex: 0,
+        slotNumber,
+        origin,
+        crossOrigin,
+        truncatedClientDataJson,
+      },
+      message,
+    });
+    const signature = await sendInstructions({
+      rpc: input.rpc,
+      feePayer: input.feePayer,
+      instructions: [secp256r1Verify, verifyAssetInstruction],
+    });
+    result.signature = signature;
+  }
+
+  return result;
 }
 
 /**
@@ -374,26 +471,46 @@ export async function verifyWithChallengeResponse({
  * @param transceive - sends a command APDU and resolves with the raw response
  *   APDU (including SW1/SW2). The caller owns the NFC session lifecycle.
  * @param rpc - Solana RPC used to look up the public key on-chain when no
- *   callback is supplied.
+ *   callback is supplied. Required when `postVerificationOnChain` is true.
  * @param fetchPublicKeyFromCredentialIdCallback - optional override for
  *   resolving the public key from the credential id.
+ * @param message - optional message to bind into the on-chain `verify_asset`
+ *   instruction. Required when `postVerificationOnChain` is true.
+ * @param postVerificationOnChain - when true, uses a slot-bound challenge and
+ *   submits a `verify_asset` transaction after local verification succeeds.
+ * @param feePayer - pays for the on-chain verification transaction. Required
+ *   when `postVerificationOnChain` is true.
  * @throws "Invalid Signature." if the challenge does not match or the signature
  *   fails; `ApduError` on NFC/CTAP transport failures.
  */
-export async function verifyWithChallengeResponseOverNfc({
-  transceive,
-  rpc,
-  fetchPublicKeyFromCredentialIdCallback,
-}: {
-  transceive: (apdu: Uint8Array) => Promise<Uint8Array>;
-  rpc?: Rpc<SolanaRpcApi>;
-  fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
-}): Promise<VerifyWithChallengeResponseResult> {
-  const challenge = crypto.getRandomValues(new Uint8Array(32));
-  const expectedChallenge = bufferToBase64URLString(challenge.buffer);
+export async function verifyWithChallengeResponseOverNfc(
+  input: VerifyWithChallengeResponseOptions & {
+    transceive: (apdu: Uint8Array) => Promise<Uint8Array>;
+  },
+): Promise<VerifyWithChallengeResponseResult> {
+  const { fetchPublicKeyFromCredentialIdCallback, postVerificationOnChain } =
+    input;
+  let expectedChallenge: Uint8Array | null = null;
+  let slotNumber: bigint | null = null;
+  let message: string | undefined = undefined;
+  if (postVerificationOnChain) {
+    message = input.message ?? crypto.randomUUID();
+    const { slotHash, slotNumber: generatedSlotNumber } =
+      await getLatestSlotHash(input.rpc);
+    expectedChallenge = await buildVerifyMessage({
+      message,
+      slotHash,
+    });
+    slotNumber = generatedSlotNumber;
+  } else {
+    expectedChallenge = crypto.getRandomValues(new Uint8Array(32));
+  }
+
   const response = await authenticateWithNfc(
     {
-      challenge: expectedChallenge,
+      challenge: bufferToBase64URLString(
+        expectedChallenge.buffer as ArrayBuffer,
+      ),
       rpId: "revibase.com",
       userVerification: "preferred",
       origin: "https://revibase.com",
@@ -405,14 +522,47 @@ export async function verifyWithChallengeResponseOverNfc({
         },
       ],
     },
-    transceive,
+    input.transceive,
   );
 
-  return verifyAuthenticationResponse({
+  const result = await verifyAuthenticationResponse({
     response,
-    expectedChallenge,
-    rpc,
+    expectedChallenge: bufferToBase64URLString(
+      expectedChallenge.buffer as ArrayBuffer,
+    ),
+    rpc: input.rpc,
     fetchPublicKeyFromCredentialIdCallback,
   });
-}
+  if (postVerificationOnChain) {
+    if (!slotNumber) {
+      throw new Error("slotNumber is missing.");
+    }
+    if (!message) {
+      throw new Error("message is missing.");
+    }
+    const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
+      await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
+        response,
+        publicKey: result.publicKey,
+      });
+    const verifyAssetInstruction = getVerifyAssetInstruction({
+      asset: await findAssetPda(parseSecp256r1Pubkey(result.publicKey)),
+      secp256r1VerifyArgs: {
+        signedMessageIndex: 0,
+        slotNumber,
+        origin,
+        crossOrigin,
+        truncatedClientDataJson,
+      },
+      message,
+    });
+    const signature = await sendInstructions({
+      rpc: input.rpc,
+      feePayer: input.feePayer,
+      instructions: [secp256r1Verify, verifyAssetInstruction],
+    });
+    result.signature = signature;
+  }
 
+  return result;
+}

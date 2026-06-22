@@ -1,7 +1,6 @@
 mod common;
 
 use anchor_lang::AccountDeserialize;
-use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use common::{
     assert_token_program_error, current_slot_entry, TestContext, TestPasskey, LAMPORTS_PER_SOL,
 };
@@ -20,8 +19,6 @@ fn execute_transfer_rejects_signature_index_out_of_bounds() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
-        TOKEN_2022_ID,
-        asset.asset,
         ctx.program_authority(),
         slot_number,
         slot_hash,
@@ -55,8 +52,6 @@ fn execute_transfer_rejects_empty_origin() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
-        TOKEN_2022_ID,
-        asset.asset,
         ctx.program_authority(),
         slot_number,
         slot_hash,
@@ -89,8 +84,6 @@ fn execute_transfer_rejects_overlong_origin() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
-        TOKEN_2022_ID,
-        asset.asset,
         ctx.program_authority(),
         slot_number,
         slot_hash,
@@ -130,8 +123,6 @@ fn execute_transfer_bearer_signature_claimable_by_any_recipient() {
 
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
-        TOKEN_2022_ID,
-        asset.asset,
         ctx.program_authority(),
         slot_number,
         slot_hash,

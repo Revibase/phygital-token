@@ -39,6 +39,16 @@ type AssetAttribute = {
   value: string;
 };
 
+/**
+ * A wallet action shortcut embedded in the off-chain metadata
+ * (Phantom Shortcuts schema v2). Rendered as an action button on the card.
+ */
+export type Shortcut = {
+  label: string;
+  uri: string;
+  icon?: string;
+};
+
 /** Phantom collectible media categories (Metaplex `properties.category`). */
 export type MediaCategory = "image" | "video" | "audio" | "vr";
 
@@ -69,6 +79,16 @@ export type TokenJsonMetadata = {
   properties?: {
     category?: MediaCategory | string;
     files?: TokenMediaFile[];
+  };
+  /** Embedded Phantom Shortcuts (schema v2): `{ version, shortcuts }`. */
+  shortcuts?: {
+    version?: number;
+    shortcuts?: Array<{
+      label?: string;
+      uri?: string;
+      icon?: string;
+      type?: string;
+    }>;
   };
 };
 
@@ -203,6 +223,21 @@ function parseAssetAttributes(
     .filter((attribute): attribute is AssetAttribute => attribute !== null);
 }
 
+/** Extract valid Phantom Shortcuts (schema v2) from the off-chain JSON. */
+function parseShortcuts(meta: TokenJsonMetadata | null): Shortcut[] {
+  const raw = meta?.shortcuts?.shortcuts;
+  if (!raw?.length) {
+    return [];
+  }
+  return raw
+    .map((s) =>
+      s.label && s.uri
+        ? { label: s.label, uri: s.uri, ...(s.icon ? { icon: s.icon } : {}) }
+        : null,
+    )
+    .filter((s): s is Shortcut => s !== null);
+}
+
 async function fetchJsonMetadata(
   uri: string,
 ): Promise<TokenJsonMetadata | null> {
@@ -236,6 +271,8 @@ export type AssetDisplayInfo = {
   mediaCategory: MediaCategory | null;
   description: string | null;
   attributes: AssetAttribute[];
+  /** Wallet action shortcuts embedded in the off-chain metadata. */
+  shortcuts: Shortcut[];
   collectionMint: Address | null;
   collectionName: string | null;
   collectionSymbol: string | null;
@@ -295,6 +332,7 @@ export async function fetchAssetDisplayInfo(
     mediaCategory: designMedia.category,
     description: designJsonMeta?.description ?? null,
     attributes: parseAssetAttributes(designJsonMeta?.attributes),
+    shortcuts: parseShortcuts(designJsonMeta),
     collectionMint,
     collectionName: collectionMeta?.name ?? collectionJsonMeta?.name ?? null,
     collectionSymbol:

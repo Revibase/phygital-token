@@ -13,18 +13,17 @@ use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 use crate::constants::{PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID};
 use crate::error::PhygitalError;
 use crate::state::{find_asset_pda, Asset, LAST_TRANSFER_SLOT_NONE};
-use crate::utils::{
-    build_transfer_message_hash, ChallengeArgs, Secp256r1VerifyArgs, TransferActionType,
-};
-use crate::AssetType;
+use crate::utils::{build_transfer_message_hash, ActionType, ChallengeArgs, Secp256r1VerifyArgs};
+use crate::{AssetType, Secp256r1Pubkey};
 
 #[event]
 pub struct TransferEvent {
-    pub sender: Pubkey,
     pub recipient: Pubkey,
+    pub owner: Pubkey,
+    pub public_key: Secp256r1Pubkey,
     pub mint: Pubkey,
-    pub asset: Pubkey,
     pub origin: String,
+    pub time: i64,
 }
 
 #[derive(Accounts)]
@@ -125,16 +124,14 @@ pub fn handler(
         ctx.accounts.asset.is_locked = true
     }
 
-    let message_hash =
-        build_transfer_message_hash(&ctx.accounts.asset.key(), &ctx.accounts.sender.key());
+    let message_hash = build_transfer_message_hash(&ctx.accounts.sender.key());
 
     secp256r1_verify_args.verify_webauthn(
         &ctx.accounts.slot_hashes,
         &ctx.accounts.instructions_sysvar,
         ChallengeArgs {
-            domain_account: ctx.accounts.token_program.key(),
             message_hash,
-            action_type: TransferActionType::Transfer,
+            action_type: ActionType::Transfer,
         },
     )?;
 
@@ -209,11 +206,12 @@ pub fn handler(
     )?;
 
     emit!(TransferEvent {
-        sender: ctx.accounts.sender.key(),
+        owner: ctx.accounts.sender.key(),
         recipient: ctx.accounts.recipient.key(),
         mint: ctx.accounts.mint.key(),
-        asset: ctx.accounts.asset.key(),
+        public_key: ctx.accounts.asset.public_key,
         origin: secp256r1_verify_args.origin,
+        time: Clock::get()?.unix_timestamp,
     });
 
     Ok(())

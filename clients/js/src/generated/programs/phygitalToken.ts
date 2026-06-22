@@ -39,10 +39,12 @@ import {
   getExecuteTransferInstructionAsync,
   getMintTokenInstructionAsync,
   getSetLockStateInstruction,
+  getVerifyAssetInstruction,
   parseCreateMintInstruction,
   parseExecuteTransferInstruction,
   parseMintTokenInstruction,
   parseSetLockStateInstruction,
+  parseVerifyAssetInstruction,
   type CreateMintAsyncInput,
   type ExecuteTransferAsyncInput,
   type MintTokenAsyncInput,
@@ -50,7 +52,9 @@ import {
   type ParsedExecuteTransferInstruction,
   type ParsedMintTokenInstruction,
   type ParsedSetLockStateInstruction,
+  type ParsedVerifyAssetInstruction,
   type SetLockStateInput,
+  type VerifyAssetInput,
 } from "../instructions/index.js";
 import { findProgramAuthorityPda } from "../pdas/index.js";
 
@@ -87,6 +91,7 @@ export enum PhygitalTokenInstruction {
   ExecuteTransfer,
   MintToken,
   SetLockState,
+  VerifyAsset,
 }
 
 export function identifyPhygitalTokenInstruction(
@@ -137,6 +142,17 @@ export function identifyPhygitalTokenInstruction(
   ) {
     return PhygitalTokenInstruction.SetLockState;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([136, 51, 110, 228, 129, 94, 141, 179]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.VerifyAsset;
+  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "phygitalToken" },
@@ -157,7 +173,10 @@ export type ParsedPhygitalTokenInstruction<
     } & ParsedMintTokenInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.SetLockState;
-    } & ParsedSetLockStateInstruction<TProgram>);
+    } & ParsedSetLockStateInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalTokenInstruction.VerifyAsset;
+    } & ParsedVerifyAssetInstruction<TProgram>);
 
 export function parsePhygitalTokenInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -190,6 +209,13 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
       return {
         instructionType: PhygitalTokenInstruction.SetLockState,
         ...parseSetLockStateInstruction(instruction),
+      };
+    }
+    case PhygitalTokenInstruction.VerifyAsset: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.VerifyAsset,
+        ...parseVerifyAssetInstruction(instruction),
       };
     }
     default:
@@ -230,6 +256,9 @@ export type PhygitalTokenPluginInstructions = {
   setLockState: (
     input: SetLockStateInput,
   ) => ReturnType<typeof getSetLockStateInstruction> & SelfPlanAndSendFunctions;
+  verifyAsset: (
+    input: VerifyAssetInput,
+  ) => ReturnType<typeof getVerifyAssetInstruction> & SelfPlanAndSendFunctions;
 };
 
 export type PhygitalTokenPluginPdas = {
@@ -273,6 +302,11 @@ export function phygitalTokenProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getSetLockStateInstruction(input),
+            ),
+          verifyAsset: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifyAssetInstruction(input),
             ),
         },
         pdas: { programAuthority: findProgramAuthorityPda },
