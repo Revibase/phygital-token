@@ -419,7 +419,7 @@ export async function verifyWithChallengeResponse(
     if (!message) {
       throw new Error("message is missing.");
     }
-    const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
+    const { secp256r1Verify, clientDataJson } =
       await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
         response,
         publicKey: result.publicKey,
@@ -429,9 +429,7 @@ export async function verifyWithChallengeResponse(
       secp256r1VerifyArgs: {
         signedMessageIndex: 0,
         slotNumber,
-        origin,
-        crossOrigin,
-        truncatedClientDataJson,
+        clientDataJson,
       },
       message,
     });
@@ -540,7 +538,7 @@ export async function verifyWithChallengeResponseOverNfc(
     if (!message) {
       throw new Error("message is missing.");
     }
-    const { secp256r1Verify, origin, crossOrigin, truncatedClientDataJson } =
+    const { secp256r1Verify, clientDataJson } =
       await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
         response,
         publicKey: result.publicKey,
@@ -550,9 +548,7 @@ export async function verifyWithChallengeResponseOverNfc(
       secp256r1VerifyArgs: {
         signedMessageIndex: 0,
         slotNumber,
-        origin,
-        crossOrigin,
-        truncatedClientDataJson,
+        clientDataJson,
       },
       message,
     });

@@ -32,13 +32,18 @@ struct Secp256r1SignatureOffsets {
 
 pub const MAX_ORIGIN_LEN: usize = 256;
 
+/// Minimum WebAuthn authenticator data: rpIdHash (32) + flags (1) + signCount (4).
+pub const AUTH_DATA_MIN_LEN: usize = 37;
+const AUTH_DATA_FLAGS_OFFSET: usize = 32;
+const CLIENT_DATA_HASH_LEN: usize = 32;
+const FLAG_USER_PRESENT: u8 = 0x01;
+const MIN_SIGNED_MESSAGE_LEN: usize = AUTH_DATA_MIN_LEN + CLIENT_DATA_HASH_LEN;
+
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Debug, Clone)]
 pub struct Secp256r1VerifyArgs {
     pub signed_message_index: u8,
     pub slot_number: u64,
-    pub origin: String,
-    pub cross_origin: bool,
-    pub truncated_client_data_json: Vec<u8>,
+    pub client_data_json: Vec<u8>,
 }
 
 pub struct ChallengeArgs {
@@ -93,11 +98,65 @@ impl Secp256r1VerifyArgs {
             message_end <= data.len(),
             PhygitalError::InvalidSignatureOffsets
         );
-        require!(message_size >= 64, PhygitalError::InvalidSignatureOffsets);
+        require!(
+            message_size >= MIN_SIGNED_MESSAGE_LEN,
+            PhygitalError::InvalidSignatureOffsets
+        );
 
         Ok(data
             .get(message_offset..message_end)
             .ok_or(PhygitalError::InvalidSignatureOffsets)?)
+    }
+
+    fn verify_user_presence_from_instruction(
+        &self,
+        instructions_sysvar: &UncheckedAccount,
+    ) -> Result<()> {
+        require!(
+            instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
+            PhygitalError::MissingInstructionsSysvar
+        );
+
+        let instruction = get_instruction_relative(-1, instructions_sysvar)?;
+
+        require!(
+            instruction.program_id == SECP256R1_PROGRAM_ID,
+            PhygitalError::InvalidSecp256r1Instruction
+        );
+
+        let data = instruction.data.as_slice();
+        let num_signatures = *data
+            .first()
+            .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
+
+        require!(
+            self.signed_message_index < num_signatures,
+            PhygitalError::SignatureIndexOutOfBounds
+        );
+
+        let offsets = Self::read_signature_offsets(data, self.signed_message_index)?;
+        let message_offset = offsets.message_data_offset as usize;
+        let message_size = offsets.message_data_size as usize;
+
+        require!(
+            message_size >= MIN_SIGNED_MESSAGE_LEN,
+            PhygitalError::InvalidAuthenticatorData
+        );
+
+        let flags_offset = message_offset
+            .checked_add(AUTH_DATA_FLAGS_OFFSET)
+            .ok_or(PhygitalError::InvalidAuthenticatorData)?;
+
+        let flags = *data
+            .get(flags_offset)
+            .ok_or(PhygitalError::InvalidAuthenticatorData)?;
+
+        require!(
+            flags & FLAG_USER_PRESENT != 0,
+            PhygitalError::UserPresenceNotVerified
+        );
+
+        Ok(())
     }
 
     fn extract_public_key_data<'a>(
@@ -119,67 +178,30 @@ impl Secp256r1VerifyArgs {
             .ok_or(PhygitalError::InvalidSecp256r1PublicKey)?)
     }
 
-    fn ccd_to_string(value: &str, output: &mut Vec<u8>) {
-        output.push(b'"');
+    fn extract_challenge_from_client_data_json(&self) -> Result<[u8; 32]> {
+        let client_data_str = std::str::from_utf8(&self.client_data_json)
+            .map_err(|_| PhygitalError::UnableToParseClientData)?;
 
-        for ch in value.chars() {
-            match ch {
-                '\u{0020}'..='\u{0021}' | '\u{0023}'..='\u{005B}' | '\u{005D}'..='\u{10FFFF}' => {
-                    let mut buf = [0u8; 4];
-                    let s = ch.encode_utf8(&mut buf);
-                    output.extend_from_slice(s.as_bytes());
-                }
-                '"' => output.extend_from_slice(br#"\""#),
-                '\\' => output.extend_from_slice(br#"\\"#),
-                _ => {
-                    output.extend_from_slice(b"\\u");
-                    let code = ch as u32;
-                    let hex = [
-                        Self::hex_digit((code >> 12) & 0xF),
-                        Self::hex_digit((code >> 8) & 0xF),
-                        Self::hex_digit((code >> 4) & 0xF),
-                        Self::hex_digit(code & 0xF),
-                    ];
-                    output.extend_from_slice(&hex);
-                }
-            }
-        }
+        let client_data: serde_json::Value = serde_json::from_str(client_data_str)
+            .map_err(|_| PhygitalError::UnableToParseClientData)?;
 
-        output.push(b'"');
-    }
+        let challenge_b64 = client_data
+            .get("challenge")
+            .and_then(|v| v.as_str())
+            .ok_or(PhygitalError::UnableToParseClientData)?;
 
-    #[inline]
-    fn hex_digit(n: u32) -> u8 {
-        match n {
-            0..=9 => b'0' + (n as u8),
-            10..=15 => b'a' + ((n as u8) - 10),
-            _ => unreachable!(),
-        }
-    }
+        let challenge_bytes = URL_SAFE_NO_PAD
+            .decode(challenge_b64)
+            .map_err(|_| PhygitalError::UnableToParseClientData)?;
 
-    fn generate_client_data_json(
-        &self,
-        expected_origin: &String,
-        expected_challenge: [u8; 32],
-    ) -> Result<Vec<u8>> {
-        let mut result = Vec::new();
-        result.extend_from_slice(br#"{"type":"webauthn.get""#);
-        result.extend_from_slice(br#","challenge":"#);
-        Self::ccd_to_string(&URL_SAFE_NO_PAD.encode(expected_challenge), &mut result);
-        result.extend_from_slice(br#","origin":"#);
-        Self::ccd_to_string(expected_origin, &mut result);
-        if self.cross_origin {
-            result.extend_from_slice(br#","crossOrigin":true"#);
-        } else {
-            result.extend_from_slice(br#","crossOrigin":false"#);
-        }
-        if !self.truncated_client_data_json.is_empty() {
-            result.push(b',');
-            result.extend_from_slice(&self.truncated_client_data_json);
-        }
-        result.push(b'}');
+        require!(
+            challenge_bytes.len() == 32,
+            PhygitalError::UnableToParseClientData
+        );
 
-        Ok(result)
+        Ok(challenge_bytes
+            .try_into()
+            .map_err(|_| PhygitalError::UnableToParseClientData)?)
     }
 
     fn fetch_slot_hash(&self, slot_hashes_account: &UncheckedAccount) -> Result<[u8; 32]> {
@@ -271,7 +293,7 @@ impl Secp256r1VerifyArgs {
 
         let message = Self::extract_message_data(data, &offsets)?;
 
-        let client_data_hash: [u8; 32] = message[(message.len() - 32)..]
+        let client_data_hash: [u8; 32] = message[(message.len() - CLIENT_DATA_HASH_LEN)..]
             .try_into()
             .map_err(|_| PhygitalError::InvalidSignatureOffsets)?;
 
@@ -321,14 +343,6 @@ impl Secp256r1VerifyArgs {
         instructions_sysvar: &UncheckedAccount<'info>,
         challenge_args: ChallengeArgs,
     ) -> Result<()> {
-        require!(
-            !self.origin.is_empty() && self.origin.len() <= MAX_ORIGIN_LEN,
-            PhygitalError::MaxLengthExceeded
-        );
-
-        let client_data_hash =
-            self.extract_client_data_hash_from_instruction(instructions_sysvar)?;
-
         let slot_hash = self.fetch_slot_hash(slot_hashes)?;
 
         let mut buffer = Vec::new();
@@ -338,11 +352,20 @@ impl Secp256r1VerifyArgs {
 
         let expected_challenge: [u8; 32] = Sha256::digest(&buffer).into();
 
-        let generated_client_data_json =
-            self.generate_client_data_json(&self.origin, expected_challenge)?;
+        let extracted_challenge = self.extract_challenge_from_client_data_json()?;
+        
+        require!(
+            extracted_challenge == expected_challenge,
+            PhygitalError::ChallengeHashMismatch
+        );
+
+        self.verify_user_presence_from_instruction(instructions_sysvar)?;
+
+        let client_data_hash =
+            self.extract_client_data_hash_from_instruction(instructions_sysvar)?;
 
         let expected_client_data_hash: [u8; 32] =
-            Sha256::digest(&generated_client_data_json).into();
+            Sha256::digest(&self.client_data_json).into();
 
         require!(
             client_data_hash == expected_client_data_hash,

@@ -8,8 +8,11 @@ pub const LAST_TRANSFER_SLOT_NONE: u64 = u64::MAX;
 
 #[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone)]
 pub enum AssetType {
-    Configurable,
-    Fixed,
+    /// Has a lock that the holder must release (`set_lock_state`) before transfer;
+    /// re-locks automatically after each transfer.
+    Lockable,
+    /// Freely transferable; whoever holds the physical item owns the asset. No lock.
+    Transferable,
 }
 
 #[account]

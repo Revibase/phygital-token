@@ -9,7 +9,7 @@ use solana_signer::Signer;
 fn set_lock_state_owner_can_toggle_lock() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Configurable);
+    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Lockable);
     let holder = Keypair::new();
 
     ctx.send_execute_transfer(&asset, &holder, true)
@@ -26,7 +26,7 @@ fn set_lock_state_owner_can_toggle_lock() {
 fn set_lock_state_rejects_non_owner() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Configurable);
+    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Lockable);
     let holder = Keypair::new();
     let attacker = Keypair::new();
 
@@ -55,7 +55,7 @@ fn set_lock_state_rejects_non_configurable_asset() {
 
     let ix = ctx.set_lock_state_ix(holder.pubkey(), asset.asset, true);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&holder]);
-    assert_token_program_error(err, "AssetIsNotConfigurable");
+    assert_token_program_error(err, "AssetIsNotLockable");
     assert_eq!(ctx.asset_lock_state(asset.asset), false);
 }
 
@@ -63,7 +63,7 @@ fn set_lock_state_rejects_non_configurable_asset() {
 fn locked_holder_cannot_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Configurable);
+    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Lockable);
     let holder = Keypair::new();
     let next_recipient = Keypair::new();
 
@@ -94,7 +94,7 @@ fn locked_holder_cannot_transfer() {
 fn unlock_enables_holder_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Configurable);
+    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Lockable);
     let holder = Keypair::new();
     let next_recipient = Keypair::new();
 

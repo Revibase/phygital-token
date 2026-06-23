@@ -18,12 +18,8 @@ fn execute_transfer_rejects_signature_index_out_of_bounds() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
-        ctx.program_authority(),
-        slot_number,
-        slot_hash,
-    );
-    // The secp256r1 instruction carries exactly one signature (index 0).
+    let (secp_ix, mut verify_args) =
+        passkey.secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
     verify_args.signed_message_index = 1;
 
     let transfer_ix = ctx.execute_transfer_ix(
@@ -41,22 +37,18 @@ fn execute_transfer_rejects_signature_index_out_of_bounds() {
     assert_token_program_error(err, "SignatureIndexOutOfBounds");
 }
 
-/// An empty `origin` is rejected before any hash comparison (covers the
-/// `MaxLengthExceeded` guard at the top of `verify_webauthn`).
+/// Malformed `client_data_json` must be rejected before hash comparison.
 #[test]
-fn execute_transfer_rejects_empty_origin() {
+fn execute_transfer_rejects_unparseable_client_data() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.mint_asset_with_passkey(&passkey);
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
-        ctx.program_authority(),
-        slot_number,
-        slot_hash,
-    );
-    verify_args.origin = String::new();
+    let (secp_ix, mut verify_args) =
+        passkey.secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
+    verify_args.client_data_json = b"not-json".to_vec();
 
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
@@ -70,25 +62,21 @@ fn execute_transfer_rejects_empty_origin() {
         .ok();
     let err =
         ctx.send_execute_transfer_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
-    assert_token_program_error(err, "MaxLengthExceeded");
+    assert_token_program_error(err, "UnableToParseClientData");
 }
 
-/// An `origin` longer than `MAX_ORIGIN_LEN` is rejected (covers the upper bound
-/// of the `verify_webauthn` length guard).
+/// `client_data_json` must hash to the value embedded in the secp256r1 instruction.
 #[test]
-fn execute_transfer_rejects_overlong_origin() {
+fn execute_transfer_rejects_client_data_hash_mismatch() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.mint_asset_with_passkey(&passkey);
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
-        ctx.program_authority(),
-        slot_number,
-        slot_hash,
-    );
-    verify_args.origin = "a".repeat(257);
+    let (secp_ix, mut verify_args) =
+        passkey.secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
+    verify_args.client_data_json.push(b' ');
 
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
@@ -102,7 +90,39 @@ fn execute_transfer_rejects_overlong_origin() {
         .ok();
     let err =
         ctx.send_execute_transfer_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
-    assert_token_program_error(err, "MaxLengthExceeded");
+    assert_token_program_error(err, "ClientDataHashMismatch");
+}
+
+/// Authenticator data without the WebAuthn UP flag must be rejected.
+#[test]
+fn execute_transfer_rejects_missing_user_presence() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.mint_asset_with_passkey(&passkey);
+    let recipient = Keypair::new();
+    let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
+
+    let (secp_ix, verify_args) =
+        passkey.secp256r1_verify_instruction_with_auth_flags(
+            recipient.pubkey(),
+            slot_number,
+            slot_hash,
+            0x00,
+        );
+
+    let transfer_ix = ctx.execute_transfer_ix(
+        recipient.pubkey(),
+        ctx.program_authority(),
+        asset.asset,
+        asset.mint,
+        verify_args,
+    );
+    ctx.svm
+        .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
+        .ok();
+    let err =
+        ctx.send_execute_transfer_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
+    assert_token_program_error(err, "UserPresenceNotVerified");
 }
 
 /// Documents the intended bearer/claim semantics: the passkey signs over
@@ -122,11 +142,8 @@ fn execute_transfer_bearer_signature_claimable_by_any_recipient() {
     let other_recipient = Keypair::new();
 
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
-    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
-        ctx.program_authority(),
-        slot_number,
-        slot_hash,
-    );
+    let (secp_ix, verify_args) =
+        passkey.secp256r1_verify_instruction(other_recipient.pubkey(), slot_number, slot_hash);
 
     // A different recipient than the (conceptually) intended one claims the asset.
     let transfer_ix = ctx.execute_transfer_ix(

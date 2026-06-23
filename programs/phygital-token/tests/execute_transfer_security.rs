@@ -50,11 +50,8 @@ fn execute_transfer_rejects_passkey_for_different_asset() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let asset_b_instance = ctx.asset_pda(&Secp256r1Pubkey(passkey_b.compressed_pubkey));
-    let (secp_ix, verify_args) = passkey_a.secp256r1_verify_instruction(
-        ctx.program_authority(),
-        slot_number,
-        slot_hash,
-    );
+    let (secp_ix, verify_args) =
+        passkey_a.secp256r1_verify_instruction(ctx.program_authority(), slot_number, slot_hash);
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
         ctx.program_authority(),
@@ -79,11 +76,8 @@ fn execute_transfer_rejects_wrong_sender_in_message_hash() {
     let wrong_sender = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
-        wrong_sender.pubkey(),
-        slot_number,
-        slot_hash,
-    );
+    let (secp_ix, verify_args) =
+        passkey.secp256r1_verify_instruction(wrong_sender.pubkey(), slot_number, slot_hash);
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
         ctx.program_authority(),
@@ -96,7 +90,7 @@ fn execute_transfer_rejects_wrong_sender_in_message_hash() {
         .ok();
     let err =
         ctx.send_execute_transfer_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
-    assert_token_program_error(err, "ClientDataHashMismatch");
+    assert_token_program_error(err, "ChallengeHashMismatch");
 }
 
 #[test]
@@ -107,11 +101,8 @@ fn execute_transfer_rejects_secp_not_preceding() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
-        ctx.program_authority(),
-        slot_number,
-        slot_hash,
-    );
+    let (secp_ix, verify_args) =
+        passkey.secp256r1_verify_instruction(ctx.program_authority(), slot_number, slot_hash);
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
         ctx.program_authority(),
@@ -156,11 +147,8 @@ fn execute_transfer_rejects_wrong_transfer_hook_program() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
-        ctx.program_authority(),
-        slot_number,
-        slot_hash,
-    );
+    let (secp_ix, verify_args) =
+        passkey.secp256r1_verify_instruction(ctx.program_authority(), slot_number, slot_hash);
     let wrong_hook = Keypair::new().pubkey();
     let transfer_ix = ctx.execute_transfer_ix_with_hook(
         recipient.pubkey(),

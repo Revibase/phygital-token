@@ -42,4 +42,12 @@ pub mod phygital_token {
     ) -> Result<()> {
         verify_asset::handler(ctx, secp256r1_verify_args, message)
     }
+
+    pub fn execute_spend(
+        ctx: Context<ExecuteSpend>,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+        amount: u64,
+    ) -> Result<()> {
+        execute_spend::handler(ctx, secp256r1_verify_args, amount)
+    }
 }

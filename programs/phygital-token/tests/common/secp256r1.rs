@@ -5,9 +5,9 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use phygital_token::utils::{
-    build_transfer_message_hash, build_verify_message_hash, ActionType, Secp256r1VerifyArgs,
-    COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
-    SIGNATURE_OFFSETS_START,
+    build_spend_message_hash, build_transfer_message_hash, build_verify_message_hash, ActionType,
+    Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
+    SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
 };
 use phygital_token::CredentialId;
 use rand::rngs::OsRng;
@@ -50,27 +50,46 @@ impl TestPasskey {
 
     pub fn secp256r1_verify_instruction(
         &self,
-        sender: Pubkey,
+        recipient: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.secp256r1_verify_instruction_with(sender, slot_number, slot_hash, None)
+        self.secp256r1_verify_instruction_with(recipient, slot_number, slot_hash, None)
     }
 
     pub fn secp256r1_verify_instruction_with(
         &self,
-        sender: Pubkey,
+        recipient: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(&sender);
+        let message_hash = build_transfer_message_hash(&recipient);
         self.build_secp256r1_verify_instruction(
             ActionType::Transfer,
             message_hash,
             slot_number,
             slot_hash,
             signature_override,
+            None,
+        )
+    }
+
+    pub fn secp256r1_verify_instruction_with_auth_flags(
+        &self,
+        recipient: Pubkey,
+        slot_number: u64,
+        slot_hash: [u8; 32],
+        auth_flags: u8,
+    ) -> (Instruction, Secp256r1VerifyArgs) {
+        let message_hash = build_transfer_message_hash(&recipient);
+        self.build_secp256r1_verify_instruction(
+            ActionType::Transfer,
+            message_hash,
+            slot_number,
+            slot_hash,
+            None,
+            Some(auth_flags),
         )
     }
 
@@ -97,6 +116,26 @@ impl TestPasskey {
             slot_number,
             slot_hash,
             signature_override,
+            None,
+        )
+    }
+
+    pub fn spend_secp256r1_instruction(
+        &self,
+        recipient: Pubkey,
+        mint: Pubkey,
+        amount: u64,
+        slot_number: u64,
+        slot_hash: [u8; 32],
+    ) -> (Instruction, Secp256r1VerifyArgs) {
+        let message_hash = build_spend_message_hash(&recipient, &mint, amount);
+        self.build_secp256r1_verify_instruction(
+            ActionType::Spend,
+            message_hash,
+            slot_number,
+            slot_hash,
+            None,
+            None,
         )
     }
 
@@ -107,6 +146,7 @@ impl TestPasskey {
         slot_number: u64,
         slot_hash: [u8; 32],
         signature_override: Option<[u8; 64]>,
+        auth_flags: Option<u8>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
         let mut challenge_buffer = Vec::new();
         challenge_buffer.extend_from_slice(action_type.to_bytes());
@@ -128,8 +168,13 @@ impl TestPasskey {
         let client_data_hash: [u8; 32] = Sha256::digest(&client_data_json).into();
         let rp_id_hash: [u8; 32] = Sha256::digest(TEST_RP_ID.as_bytes()).into();
 
-        let mut signed_message = Vec::with_capacity(64);
-        signed_message.extend_from_slice(&rp_id_hash);
+        let mut authenticator_data = Vec::with_capacity(37);
+        authenticator_data.extend_from_slice(&rp_id_hash);
+        authenticator_data.push(auth_flags.unwrap_or(0x01));
+        authenticator_data.extend_from_slice(&[0u8; 4]); // sign count
+
+        let mut signed_message = Vec::with_capacity(authenticator_data.len() + 32);
+        signed_message.extend_from_slice(&authenticator_data);
         signed_message.extend_from_slice(&client_data_hash);
 
         let signature_bytes = if let Some(bytes) = signature_override {
@@ -148,9 +193,7 @@ impl TestPasskey {
         let verify_args = Secp256r1VerifyArgs {
             signed_message_index: 0,
             slot_number,
-            origin: origin.to_string(),
-            cross_origin: false,
-            truncated_client_data_json: vec![],
+            client_data_json,
         };
 
         (ix, verify_args)

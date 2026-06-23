@@ -125,6 +125,12 @@ export function convertSignatureDERtoRS(signature: Uint8Array): Uint8Array {
   return normalizeSignatureToLowS(rawSig);
 }
 
+export function getClientDataJsonBytes(
+  authResponse: AuthenticationResponseJSON,
+): Uint8Array {
+  return base64URLStringToBuffer(authResponse.response.clientDataJSON);
+}
+
 export function getSecp256r1Message(
   authResponse: AuthenticationResponseJSON,
 ): Uint8Array {

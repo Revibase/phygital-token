@@ -16,8 +16,8 @@ import {
 } from "@solana/kit";
 
 export enum AssetType {
-  Configurable,
-  Fixed,
+  Lockable,
+  Transferable,
 }
 
 export type AssetTypeArgs = AssetType;

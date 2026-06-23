@@ -7,6 +7,9 @@ pub use admin::*;
 pub mod execute_transfer;
 pub use execute_transfer::*;
 
+pub mod execute_spend;
+pub use execute_spend::*;
+
 pub mod set_lock_state;
 pub use set_lock_state::*;
 

@@ -36,19 +36,23 @@ import {
 import { getAssetCodec, type Asset, type AssetArgs } from "../accounts/index.js";
 import {
   getCreateMintInstructionAsync,
+  getExecuteSpendInstructionAsync,
   getExecuteTransferInstructionAsync,
   getMintTokenInstructionAsync,
   getSetLockStateInstruction,
   getVerifyAssetInstruction,
   parseCreateMintInstruction,
+  parseExecuteSpendInstruction,
   parseExecuteTransferInstruction,
   parseMintTokenInstruction,
   parseSetLockStateInstruction,
   parseVerifyAssetInstruction,
   type CreateMintAsyncInput,
+  type ExecuteSpendAsyncInput,
   type ExecuteTransferAsyncInput,
   type MintTokenAsyncInput,
   type ParsedCreateMintInstruction,
+  type ParsedExecuteSpendInstruction,
   type ParsedExecuteTransferInstruction,
   type ParsedMintTokenInstruction,
   type ParsedSetLockStateInstruction,
@@ -56,7 +60,7 @@ import {
   type SetLockStateInput,
   type VerifyAssetInput,
 } from "../instructions/index.js";
-import { findProgramAuthorityPda } from "../pdas/index.js";
+import { findProgramAuthorityPda, findSpendAuthorityPda } from "../pdas/index.js";
 
 export const PHYGITAL_TOKEN_PROGRAM_ADDRESS =
   "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A" as Address<"DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A">;
@@ -88,6 +92,7 @@ export function identifyPhygitalTokenAccount(
 
 export enum PhygitalTokenInstruction {
   CreateMint,
+  ExecuteSpend,
   ExecuteTransfer,
   MintToken,
   SetLockState,
@@ -108,6 +113,17 @@ export function identifyPhygitalTokenInstruction(
     )
   ) {
     return PhygitalTokenInstruction.CreateMint;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([97, 195, 2, 242, 205, 203, 109, 210]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.ExecuteSpend;
   }
   if (
     containsBytes(
@@ -166,6 +182,9 @@ export type ParsedPhygitalTokenInstruction<
       instructionType: PhygitalTokenInstruction.CreateMint;
     } & ParsedCreateMintInstruction<TProgram>)
   | ({
+      instructionType: PhygitalTokenInstruction.ExecuteSpend;
+    } & ParsedExecuteSpendInstruction<TProgram>)
+  | ({
       instructionType: PhygitalTokenInstruction.ExecuteTransfer;
     } & ParsedExecuteTransferInstruction<TProgram>)
   | ({
@@ -188,6 +207,13 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
       return {
         instructionType: PhygitalTokenInstruction.CreateMint,
         ...parseCreateMintInstruction(instruction),
+      };
+    }
+    case PhygitalTokenInstruction.ExecuteSpend: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.ExecuteSpend,
+        ...parseExecuteSpendInstruction(instruction),
       };
     }
     case PhygitalTokenInstruction.ExecuteTransfer: {
@@ -245,6 +271,10 @@ export type PhygitalTokenPluginInstructions = {
     input: MakeOptional<CreateMintAsyncInput, "payer">,
   ) => ReturnType<typeof getCreateMintInstructionAsync> &
     SelfPlanAndSendFunctions;
+  executeSpend: (
+    input: ExecuteSpendAsyncInput,
+  ) => ReturnType<typeof getExecuteSpendInstructionAsync> &
+    SelfPlanAndSendFunctions;
   executeTransfer: (
     input: ExecuteTransferAsyncInput,
   ) => ReturnType<typeof getExecuteTransferInstructionAsync> &
@@ -263,6 +293,7 @@ export type PhygitalTokenPluginInstructions = {
 
 export type PhygitalTokenPluginPdas = {
   programAuthority: typeof findProgramAuthorityPda;
+  spendAuthority: typeof findSpendAuthorityPda;
 };
 
 export type PhygitalTokenPluginRequirements = ClientWithRpc<
@@ -288,6 +319,11 @@ export function phygitalTokenProgram() {
                 payer: input.payer ?? client.payer,
               }),
             ),
+          executeSpend: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteSpendInstructionAsync(input),
+            ),
           executeTransfer: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -309,7 +345,10 @@ export function phygitalTokenProgram() {
               getVerifyAssetInstruction(input),
             ),
         },
-        pdas: { programAuthority: findProgramAuthorityPda },
+        pdas: {
+          programAuthority: findProgramAuthorityPda,
+          spendAuthority: findSpendAuthorityPda,
+        },
       },
     });
   };

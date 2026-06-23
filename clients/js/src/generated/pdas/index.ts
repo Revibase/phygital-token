@@ -7,3 +7,4 @@
  */
 
 export * from "./programAuthority.js";
+export * from "./spendAuthority.js";

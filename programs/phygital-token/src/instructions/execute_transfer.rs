@@ -22,7 +22,6 @@ pub struct TransferEvent {
     pub owner: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub mint: Pubkey,
-    pub origin: String,
     pub time: i64,
 }
 
@@ -116,7 +115,7 @@ pub fn handler(
         PhygitalError::InvalidRecipient
     );
 
-    if ctx.accounts.asset.asset_type == AssetType::Configurable {
+    if ctx.accounts.asset.asset_type == AssetType::Lockable {
         require!(
             !ctx.accounts.asset.is_locked,
             PhygitalError::AssetIsCurrentlyLocked
@@ -124,7 +123,7 @@ pub fn handler(
         ctx.accounts.asset.is_locked = true
     }
 
-    let message_hash = build_transfer_message_hash(&ctx.accounts.sender.key());
+    let message_hash = build_transfer_message_hash(&ctx.accounts.recipient.key());
 
     secp256r1_verify_args.verify_webauthn(
         &ctx.accounts.slot_hashes,
@@ -210,7 +209,6 @@ pub fn handler(
         recipient: ctx.accounts.recipient.key(),
         mint: ctx.accounts.mint.key(),
         public_key: ctx.accounts.asset.public_key,
-        origin: secp256r1_verify_args.origin,
         time: Clock::get()?.unix_timestamp,
     });
 

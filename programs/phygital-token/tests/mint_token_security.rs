@@ -40,7 +40,7 @@ fn mint_token_rejects_wrong_custody_ata() {
     let wrong_ata = Keypair::new().pubkey();
     let args = MintTokenArgs {
         secp256r1_pubkey,
-        asset_type: AssetType::Fixed,
+        asset_type: AssetType::Transferable,
         credential_id: passkey.credential_id,
     };
 
@@ -88,7 +88,7 @@ fn mint_token_rejects_duplicate_secp256r1_pubkey() {
     let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey,
-        asset_type: AssetType::Fixed,
+        asset_type: AssetType::Transferable,
         credential_id: passkey.credential_id,
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), asset.asset, asset.mint, args);
@@ -107,7 +107,7 @@ fn mint_token_documents_secp256r1_pda_squatting_risk() {
     let victim_asset = ctx.asset_pda(&victim_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
-        asset_type: AssetType::Fixed,
+        asset_type: AssetType::Transferable,
         credential_id: victim_passkey.credential_id,
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_asset, asset.mint, args);
@@ -119,7 +119,7 @@ fn mint_token_documents_secp256r1_pda_squatting_risk() {
         asset.mint,
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
-            asset_type: AssetType::Fixed,
+            asset_type: AssetType::Transferable,
             credential_id: victim_passkey.credential_id,
         },
     );

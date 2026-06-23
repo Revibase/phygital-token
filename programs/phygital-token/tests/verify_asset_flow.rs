@@ -67,21 +67,13 @@ fn verify_asset_rejects_mismatched_message() {
     let asset = ctx.mint_asset_with_passkey(&passkey);
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) = passkey.verify_asset_secp256r1_instruction(
-        TEST_MESSAGE,
-        slot_number,
-        slot_hash,
-    );
-    let verify_ix = ctx.verify_asset_ix(
-        asset.asset,
-        verify_args,
-        "different message".to_string(),
-    );
+    let (secp_ix, verify_args) =
+        passkey.verify_asset_secp256r1_instruction(TEST_MESSAGE, slot_number, slot_hash);
+    let verify_ix = ctx.verify_asset_ix(asset.asset, verify_args, "different message".to_string());
 
     let payer = &ctx.payer;
-    let err =
-        TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
-    assert_token_program_error(err, "ClientDataHashMismatch");
+    let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
+    assert_token_program_error(err, "ChallengeHashMismatch");
 }
 
 #[test]
@@ -92,16 +84,12 @@ fn verify_asset_rejects_wrong_passkey() {
     let asset = ctx.mint_asset_with_passkey(&passkey_a);
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) = passkey_b.verify_asset_secp256r1_instruction(
-        TEST_MESSAGE,
-        slot_number,
-        slot_hash,
-    );
+    let (secp_ix, verify_args) =
+        passkey_b.verify_asset_secp256r1_instruction(TEST_MESSAGE, slot_number, slot_hash);
     let verify_ix = ctx.verify_asset_ix(asset.asset, verify_args, TEST_MESSAGE.to_string());
 
     let payer = &ctx.payer;
-    let err =
-        TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
+    let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
     assert_token_program_error(err, "Secp256r1PubkeyMismatch");
 }
 

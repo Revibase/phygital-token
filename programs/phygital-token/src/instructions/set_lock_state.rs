@@ -17,8 +17,8 @@ pub fn handler(ctx: Context<SetLockState>, is_locked: bool) -> Result<()> {
         ctx.accounts
             .asset
             .asset_type
-            .eq(&crate::AssetType::Configurable),
-        PhygitalError::AssetIsNotConfigurable
+            .eq(&crate::AssetType::Lockable),
+        PhygitalError::AssetIsNotLockable
     );
     ctx.accounts.asset.is_locked = is_locked;
     Ok(())

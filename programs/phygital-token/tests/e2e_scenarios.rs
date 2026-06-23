@@ -128,7 +128,7 @@ fn e2e_asset_pda_squatting_blocks_victim() {
     let victim_asset = ctx.asset_pda(&victim_pubkey);
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
-        asset_type: AssetType::Fixed,
+        asset_type: AssetType::Transferable,
         credential_id: victim_passkey.credential_id,
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_asset, asset.mint, args);
@@ -140,7 +140,7 @@ fn e2e_asset_pda_squatting_blocks_victim() {
         asset.mint,
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
-            asset_type: AssetType::Fixed,
+            asset_type: AssetType::Transferable,
             credential_id: victim_passkey.credential_id,
         },
     );

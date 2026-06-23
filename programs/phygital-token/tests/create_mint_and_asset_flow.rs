@@ -251,7 +251,7 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
         mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_a.compressed_pubkey),
-            asset_type: AssetType::Fixed,
+            asset_type: AssetType::Transferable,
             credential_id: passkey_a.credential_id,
         },
     );
@@ -271,7 +271,7 @@ fn mint_token_funds_program_authority_when_custody_ata_exists() {
         mint,
         MintTokenArgs {
             secp256r1_pubkey: Secp256r1Pubkey(passkey_b.compressed_pubkey),
-            asset_type: AssetType::Fixed,
+            asset_type: AssetType::Transferable,
             credential_id: passkey_b.credential_id,
         },
     );

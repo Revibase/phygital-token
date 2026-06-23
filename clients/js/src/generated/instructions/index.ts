@@ -7,6 +7,7 @@
  */
 
 export * from "./createMint.js";
+export * from "./executeSpend.js";
 export * from "./executeTransfer.js";
 export * from "./mintToken.js";
 export * from "./setLockState.js";

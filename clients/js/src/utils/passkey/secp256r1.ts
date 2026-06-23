@@ -5,8 +5,8 @@ import { SECP256R1_PROGRAM_ADDRESS, TRANSFER_ACTION_BYTES, VERIFY_ACTION_BYTES }
 import {
   base64URLStringToBuffer,
   convertSignatureDERtoRS,
+  getClientDataJsonBytes,
   getSecp256r1Message,
-  parseWebAuthnClientData,
 } from "./internal.js";
 import { type TransferSession } from "../../instructions/transfer.js";
 import { sha256 } from "@noble/hashes/sha2.js";
@@ -30,9 +30,6 @@ function buildSecp256r1VerifyInputFromWebAuthn(input: {
   publicKey: string;
   response: AuthenticationResponseJSON;
 }) {
-  const clientData = parseWebAuthnClientData(
-    input.response.response.clientDataJSON,
-  );
   const signature = convertSignatureDERtoRS(
     base64URLStringToBuffer(input.response.response.signature),
   );
@@ -46,17 +43,14 @@ function buildSecp256r1VerifyInputFromWebAuthn(input: {
         message,
       },
     ],
-    crossOrigin: clientData.crossOrigin,
-    truncatedClientDataJson: clientData.truncatedClientDataJson,
-    origin: clientData.origin,
   };
 }
 
 async function buildTransferMessageHash(input: {
-  sender: Address;
+  recipient: Address;
 }): Promise<Uint8Array> {
   return sha256(
-    concatBytes(encodeAddress(input.sender)),
+    concatBytes(encodeAddress(input.recipient)),
   );
 }
 
@@ -69,11 +63,11 @@ async function buildVerifyMessageHash(input: {
 }
 
 export async function buildTransferChallenge(input: {
-  sender: Address;
+  recipient: Address;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
   const messageHash = await buildTransferMessageHash({
-    sender: input.sender,
+    recipient: input.recipient,
   });
 
   return sha256(
@@ -106,9 +100,7 @@ export async function buildVerifyMessage(input: {
 
 export type WebAuthnSecp256r1Verification = {
   secp256r1Verify: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
-  origin: string;
-  crossOrigin: boolean;
-  truncatedClientDataJson: Uint8Array;
+  clientDataJson: Uint8Array;
 };
 
 export async function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input: {
@@ -119,8 +111,6 @@ export async function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input:
 
   return {
     secp256r1Verify: getSecp256r1VerifyInstruction(parsed.verifyInput),
-    origin: parsed.origin,
-    crossOrigin: parsed.crossOrigin,
-    truncatedClientDataJson: parsed.truncatedClientDataJson,
+    clientDataJson: getClientDataJsonBytes(input.response),
   };
 }

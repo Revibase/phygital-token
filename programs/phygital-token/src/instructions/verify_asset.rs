@@ -13,7 +13,6 @@ pub struct VerifyAssetEvent {
     pub owner: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub mint: Pubkey,
-    pub origin: String,
     pub time: i64,
 }
 
@@ -70,7 +69,6 @@ pub fn handler(
         owner: ctx.accounts.asset.owner,
         mint: ctx.accounts.asset.mint,
         public_key: ctx.accounts.asset.public_key,
-        origin: secp256r1_verify_args.origin,
         time: Clock::get()?.unix_timestamp,
     });
 
