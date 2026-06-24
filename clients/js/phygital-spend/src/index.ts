@@ -7,15 +7,10 @@ export {
 
 export {
   getApproveSpendInstruction,
-  getRevokeSpendInstruction,
   type ApproveSpendInput,
-  type RevokeSpendInput,
-} from "./instructions/spend.js";
+} from "./instructions/approveSpend.js";
 
 export {
-  buildSpendChallenge,
-  buildSpendVerifyMessage,
-  SPEND_MESSAGE_TAG,
-} from "./utils/message.js";
-
-export * from "./generated/index.js";
+  getRevokeSpendInstruction,
+  type RevokeSpendInput,
+} from "./instructions/revokeSpend.js";
