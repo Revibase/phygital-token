@@ -5,13 +5,11 @@
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "idl:sync": "cp target/idl/phygital_token.json idl/phygital_token.json && cp target/idl/phygital_token_hook.json idl/phygital_token_hook.json && cp target/idl/phygital_spend.json idl/phygital_spend.json",
+    "idl:sync": "cp target/idl/phygital_token.json idl/phygital_token.json && cp target/idl/phygital_token_hook.json idl/phygital_token_hook.json",
     "generate:client": "codama run js && node clients/js/phygital-token/scripts/add-import-extensions.mjs",
     "generate:rust-client": "codama run rust && node clients/rust/phygital-token/scripts/patch-anchor-types.mjs",
-    "generate:spend-client": "codama run js -c codama.phygital-spend.json && node clients/js/phygital-spend/scripts/add-import-extensions.mjs",
     "build:client": "pnpm --filter phygital-token-sdk build",
-    "build:spend-client": "pnpm --filter phygital-spend-sdk build",
-    "build:program": "NO_DNA=1 anchor build && pnpm idl:sync && pnpm generate:client && pnpm generate:rust-client && pnpm generate:spend-client && pnpm build:client && pnpm build:spend-client"
+    "build:program": "NO_DNA=1 anchor build && pnpm idl:sync && pnpm generate:client && pnpm generate:rust-client && pnpm build:client"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.0.2"
