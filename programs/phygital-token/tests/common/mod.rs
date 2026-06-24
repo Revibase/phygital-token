@@ -10,20 +10,16 @@ pub use external_group_mint::{
 pub use plain_token_mint::create_plain_token2022_mint;
 
 use anchor_lang::solana_program::instruction::Instruction;
-use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::solana_program::system_instruction;
 use anchor_lang::{prelude::*, InstructionData, ToAccountMetas};
 use anchor_spl::associated_token::get_associated_token_address_with_program_id;
-use anchor_spl::associated_token::spl_associated_token_account::instruction::{create_associated_token_account_idempotent};
 use anchor_spl::associated_token::ID as ASSOCIATED_TOKEN_ID;
-use anchor_spl::token_2022::spl_token_2022::instruction::{
-    approve_checked, initialize_mint2, mint_to, revoke, transfer_checked,
+use anchor_spl::token_2022::spl_token_2022::instruction::{ transfer_checked,
 };
 use anchor_spl::token_2022::spl_token_2022::state::Account as TokenAccountState;
-use anchor_spl::token_2022::spl_token_2022::state::Mint as SplMint;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use litesvm::LiteSVM;
-use phygital_token::constants::{ADMIN, ASSET_SEED, PROGRAM_AUTHORITY_SEED, SPEND_AUTHORITY_SEED};
+use phygital_token::constants::{ADMIN, ASSET_SEED, PROGRAM_AUTHORITY_SEED};
 use phygital_token::state::Asset;
 use phygital_token::utils::secp256r1_pda_seed;
 use phygital_token::{
@@ -502,7 +498,7 @@ impl TestContext {
         &self,
         asset: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
-        message: String,
+        message: impl AsRef<[u8]>,
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
@@ -514,7 +510,7 @@ impl TestContext {
             .to_account_metas(None),
             data: phygital_token::instruction::VerifyAsset {
                 secp256r1_verify_args,
-                message,
+                message: message.as_ref().to_vec(),
             }
             .data(),
         }
@@ -523,11 +519,12 @@ impl TestContext {
     pub fn send_verify_asset(
         &mut self,
         asset: &MintedAsset,
-        message: &str,
+        message: impl AsRef<[u8]>,
         include_secp_ix: bool,
         slot_number: Option<u64>,
         slot_hash: Option<[u8; 32]>,
     ) -> litesvm::types::TransactionResult {
+        let message = message.as_ref();
         let (slot_number, slot_hash) = match (slot_number, slot_hash) {
             (Some(slot), Some(hash)) => (slot, hash),
             _ => current_slot_entry(&self.svm),
@@ -538,7 +535,7 @@ impl TestContext {
                 .passkey
                 .verify_asset_secp256r1_instruction(message, slot_number, slot_hash);
 
-        let verify_ix = self.verify_asset_ix(asset.asset, verify_args, message.to_string());
+        let verify_ix = self.verify_asset_ix(asset.asset, verify_args, message);
 
         let instructions = if include_secp_ix {
             vec![secp_ix, verify_ix]
@@ -745,191 +742,6 @@ impl TestContext {
         self.token_account_rent()
             .checked_mul(10)
             .expect("rent pool target")
-    }
-
-    // ---- Spend (passkey-gated USDC) helpers --------------------------------
-
-    /// Per-asset SPL delegate PDA `[SPEND_AUTHORITY_SEED, asset]` that owners approve.
-    pub fn spend_authority_pda(&self, asset: Pubkey) -> Pubkey {
-        Pubkey::find_program_address(&[SPEND_AUTHORITY_SEED, asset.as_ref()], &self.program_id).0
-    }
-
-    /// Creates a plain Token-2022 mint (USDC stand-in) and returns its pubkey + mint authority.
-    pub fn create_spendable_mint(&mut self, decimals: u8) -> (Pubkey, Keypair) {
-        let mint = Keypair::new();
-        let authority = Keypair::new();
-        self.svm
-            .airdrop(&authority.pubkey(), LAMPORTS_PER_SOL)
-            .unwrap();
-        let rent: Rent = self.svm.get_sysvar();
-        let rent_lamports = rent.minimum_balance(SplMint::LEN);
-        let create_ix = system_instruction::create_account(
-            &self.payer.pubkey(),
-            &mint.pubkey(),
-            rent_lamports,
-            SplMint::LEN as u64,
-            &TOKEN_2022_ID,
-        );
-        {
-            let payer = &self.payer;
-            Self::send_instruction(&mut self.svm, create_ix, &[payer, &mint])
-                .expect("create spendable mint");
-        }
-        let init_ix = initialize_mint2(
-            &TOKEN_2022_ID,
-            &mint.pubkey(),
-            &authority.pubkey(),
-            None,
-            decimals,
-        )
-        .expect("init mint2");
-        Self::send_instruction(&mut self.svm, init_ix, &[&authority]).expect("init mint2");
-        (mint.pubkey(), authority)
-    }
-
-    /// Creates `owner`'s ATA for `mint` and mints `amount` base units into it.
-    pub fn mint_spendable_to(
-        &mut self,
-        mint: Pubkey,
-        mint_authority: &Keypair,
-        owner: Pubkey,
-        amount: u64,
-    ) {
-        let create_ata =
-            create_associated_token_account_idempotent(&self.payer.pubkey(), &owner, &mint, &TOKEN_2022_ID);
-        {
-            let payer = &self.payer;
-            Self::send_instruction(&mut self.svm, create_ata, &[payer]).expect("create owner ata");
-        }
-        let ata = get_associated_token_address_with_program_id(&owner, &mint, &TOKEN_2022_ID);
-        let mint_ix = mint_to(
-            &TOKEN_2022_ID,
-            &mint,
-            &ata,
-            &mint_authority.pubkey(),
-            &[],
-            amount,
-        )
-        .expect("mint_to ix");
-        Self::send_instruction(&mut self.svm, mint_ix, &[mint_authority]).expect("mint to owner");
-    }
-
-    /// SPL `approve_checked` delegating this asset's `spend_authority` for `amount` (owner-signed).
-    pub fn approve_spend_ix(
-        &self,
-        owner: Pubkey,
-        mint: Pubkey,
-        asset: Pubkey,
-        amount: u64,
-        decimals: u8,
-    ) -> Instruction {
-        let owner_ata = get_associated_token_address_with_program_id(&owner, &mint, &TOKEN_2022_ID);
-        let spend_authority = self.spend_authority_pda(asset);
-        approve_checked(
-            &TOKEN_2022_ID,
-            &owner_ata,
-            &mint,
-            &spend_authority,
-            &owner,
-            &[],
-            amount,
-            decimals,
-        )
-        .expect("approve_checked ix")
-    }
-
-    /// SPL `revoke` clearing the delegate on the owner's token account (owner-signed).
-    pub fn revoke_spend_ix(&self, owner: Pubkey, mint: Pubkey) -> Instruction {
-        let owner_ata = get_associated_token_address_with_program_id(&owner, &mint, &TOKEN_2022_ID);
-        revoke(&TOKEN_2022_ID, &owner_ata, &owner, &[]).expect("revoke ix")
-    }
-
-    /// Reads the (delegate, delegated_amount) of an owner's token account.
-    pub fn token_delegate_info(&self, owner: Pubkey, mint: Pubkey) -> (Option<Pubkey>, u64) {
-        use anchor_lang::solana_program::program_option::COption;
-        use anchor_spl::token_2022::spl_token_2022::extension::StateWithExtensions;
-
-        let ata = get_associated_token_address_with_program_id(&owner, &mint, &TOKEN_2022_ID);
-        let account = self.svm.get_account(&ata).expect("token account");
-        let state = StateWithExtensions::<TokenAccountState>::unpack(&account.data)
-            .expect("unpack token account");
-        let delegate = match state.base.delegate {
-            COption::Some(pk) => Some(pk),
-            COption::None => None,
-        };
-        (delegate, state.base.delegated_amount)
-    }
-
-    pub fn execute_spend_ix(
-        &self,
-        asset: Pubkey,
-        owner: Pubkey,
-        mint: Pubkey,
-        recipient: Pubkey,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-        amount: u64,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::ExecuteSpend {
-                asset,
-                owner,
-                mint,
-                owner_token_account: get_associated_token_address_with_program_id(
-                    &owner,
-                    &mint,
-                    &TOKEN_2022_ID,
-                ),
-                recipient,
-                recipient_token_account: get_associated_token_address_with_program_id(
-                    &recipient,
-                    &mint,
-                    &TOKEN_2022_ID,
-                ),
-                spend_authority: self.spend_authority_pda(asset),
-                slot_hashes: SLOT_HASHES_SYSVAR_ID,
-                instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
-                token_program: TOKEN_2022_ID,
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::ExecuteSpend {
-                secp256r1_verify_args,
-                amount,
-            }
-            .data(),
-        }
-    }
-
-    /// Signs a spend with the asset's passkey and submits `[secp_ix, execute_spend_ix]`,
-    /// paid by `self.payer` (the relayer). Returns the transaction result.
-    pub fn send_execute_spend(
-        &mut self,
-        asset: &MintedAsset,
-        owner: Pubkey,
-        mint: Pubkey,
-        recipient: Pubkey,
-        amount: u64,
-        slot_number: u64,
-        slot_hash: [u8; 32],
-    ) -> litesvm::types::TransactionResult {
-        let ata_ix = create_associated_token_account_idempotent(
-            &self.payer.pubkey(),
-            &recipient,
-            &mint,
-            &TOKEN_2022_ID,
-        );
-        let (secp_ix, verify_args) = asset.passkey.spend_secp256r1_instruction(
-            recipient,
-            mint,
-            amount,
-            slot_number,
-            slot_hash,
-        );
-        let spend_ix =
-            self.execute_spend_ix(asset.asset, owner, mint, recipient, verify_args, amount);
-        let payer = &self.payer;
-        Self::send_instructions(&mut self.svm, &[ata_ix, secp_ix, spend_ix], &[payer])
     }
 }
 

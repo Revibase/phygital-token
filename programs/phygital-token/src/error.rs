@@ -20,9 +20,6 @@ pub enum PhygitalError {
     #[msg("Token owner mismatch")]
     OwnerMismatch,
 
-    #[msg("Token recipient mismatch")]
-    RecipientMismatch,
-
     #[msg("Arithmetic overflow")]
     ArithmeticOverflow,
 
@@ -58,27 +55,6 @@ pub enum PhygitalError {
 
     #[msg("This asset is not lockable.")]
     AssetIsNotLockable,
-
-    #[msg("The asset must be locked to spend its delegated allowance.")]
-    AssetIsNotLocked,
-
-    #[msg("Spend amount exceeds the delegated allowance.")]
-    InsufficientSpendAllowance,
-
-    #[msg("The token account's delegate is not this asset's spend authority.")]
-    SpendDelegateMismatch,
-
-    #[msg("The token account mint does not match the spend mint.")]
-    SpendMintMismatch,
-
-    #[msg("Invalid spend recipient.")]
-    InvalidSpendRecipient,
-
-    #[msg("Spend amount must be greater than zero.")]
-    SpendAmountZero,
-
-    #[msg("Spend slot must be greater than the last recorded slot.")]
-    StaleSpendSlot,
 
     #[msg("Unable to parse client data JSON.")]
     UnableToParseClientData,

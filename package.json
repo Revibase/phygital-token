@@ -3,10 +3,13 @@
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "idl:sync": "cp target/idl/phygital_token.json idl/phygital_token.json && cp target/idl/phygital_token_hook.json idl/phygital_token_hook.json",
-    "generate:client": "codama run js && node clients/js/scripts/add-import-extensions.mjs",
-    "build:client": "yarn --cwd clients/js build",
-    "build:program": "NO_DNA=1 anchor build && yarn idl:sync && yarn generate:client && yarn build:client"
+    "idl:sync": "cp target/idl/phygital_token.json idl/phygital_token.json && cp target/idl/phygital_token_hook.json idl/phygital_token_hook.json && cp target/idl/phygital_spend.json idl/phygital_spend.json",
+    "generate:client": "codama run js && node clients/js/phygital-token/scripts/add-import-extensions.mjs",
+    "generate:rust-client": "codama run rust",
+    "generate:spend-client": "codama run js -c codama.phygital-spend.json && node clients/js/phygital-spend/scripts/add-import-extensions.mjs",
+    "build:client": "yarn --cwd clients/js/phygital-token build",
+    "build:spend-client": "yarn --cwd clients/js/phygital-spend build",
+    "build:program": "NO_DNA=1 anchor build && yarn idl:sync && yarn generate:client && yarn generate:rust-client && yarn generate:spend-client && yarn build:client && yarn build:spend-client"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.0.2"
@@ -14,6 +17,7 @@
   "devDependencies": {
     "@codama/nodes-from-anchor": "^1.5.0",
     "@codama/renderers-js": "^2.2.0",
+    "@codama/renderers-rust": "^3.1.0",
     "@types/bn.js": "^5.1.0",
     "@types/chai": "^4.3.0",
     "@types/mocha": "^9.0.0",

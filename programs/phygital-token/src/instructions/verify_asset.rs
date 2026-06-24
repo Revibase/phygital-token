@@ -9,7 +9,7 @@ use crate::{build_verify_message_hash, Secp256r1Pubkey};
 
 #[event]
 pub struct VerifyAssetEvent {
-    pub message: String,
+    pub message: Vec<u8>,
     pub owner: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub mint: Pubkey,
@@ -41,7 +41,7 @@ pub struct VerifyAsset<'info> {
 pub fn handler(
     ctx: Context<VerifyAsset>,
     secp256r1_verify_args: Secp256r1VerifyArgs,
-    message: String,
+    message: Vec<u8>,
 ) -> Result<()> {
     let last_transfer_slot = ctx.accounts.asset.last_transfer_slot;
     if last_transfer_slot != LAST_TRANSFER_SLOT_NONE {

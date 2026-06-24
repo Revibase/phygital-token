@@ -1,0 +1,31 @@
+[package]
+name = "phygital-spend"
+version = "0.1.0"
+description = "Passkey-gated SPL spending, composed with phygital-token verify_asset"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "phygital_spend"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = "1.0.2"
+anchor-spl = { version = "1.0.2", features = ["token_2022_extensions"] }
+phygital-token-client = { path = "../../clients/rust/phygital-token" }
+borsh = "1"
+solana-instructions-sysvar = "3.0"
+solana-sdk-ids = "3"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

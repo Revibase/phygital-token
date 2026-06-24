@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "programs/*"
+    "programs/*",
+    "clients/rust/phygital-token",
 ]
 resolver = "2"
 

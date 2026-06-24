@@ -30,8 +30,6 @@ struct Secp256r1SignatureOffsets {
     message_instruction_index: u16,
 }
 
-pub const MAX_ORIGIN_LEN: usize = 256;
-
 /// Minimum WebAuthn authenticator data: rpIdHash (32) + flags (1) + signCount (4).
 pub const AUTH_DATA_MIN_LEN: usize = 37;
 const AUTH_DATA_FLAGS_OFFSET: usize = 32;

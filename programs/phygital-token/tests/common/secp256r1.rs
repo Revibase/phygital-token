@@ -5,9 +5,9 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use phygital_token::utils::{
-    build_spend_message_hash, build_transfer_message_hash, build_verify_message_hash, ActionType,
-    Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
-    SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
+    build_transfer_message_hash, build_verify_message_hash, ActionType, Secp256r1VerifyArgs,
+    COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
+    SIGNATURE_OFFSETS_START,
 };
 use phygital_token::CredentialId;
 use rand::rngs::OsRng;
@@ -95,7 +95,7 @@ impl TestPasskey {
 
     pub fn verify_asset_secp256r1_instruction(
         &self,
-        message: &str,
+        message: impl AsRef<[u8]>,
         slot_number: u64,
         slot_hash: [u8; 32],
     ) -> (Instruction, Secp256r1VerifyArgs) {
@@ -104,37 +104,18 @@ impl TestPasskey {
 
     pub fn verify_asset_secp256r1_instruction_with(
         &self,
-        message: &str,
+        message: impl AsRef<[u8]>,
         slot_number: u64,
         slot_hash: [u8; 32],
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_verify_message_hash(&message.to_string());
+        let message_hash = build_verify_message_hash(message.as_ref());
         self.build_secp256r1_verify_instruction(
             ActionType::Verify,
             message_hash,
             slot_number,
             slot_hash,
             signature_override,
-            None,
-        )
-    }
-
-    pub fn spend_secp256r1_instruction(
-        &self,
-        recipient: Pubkey,
-        mint: Pubkey,
-        amount: u64,
-        slot_number: u64,
-        slot_hash: [u8; 32],
-    ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_spend_message_hash(&recipient, &mint, amount);
-        self.build_secp256r1_verify_instruction(
-            ActionType::Spend,
-            message_hash,
-            slot_number,
-            slot_hash,
-            None,
             None,
         )
     }
