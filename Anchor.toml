@@ -8,7 +8,6 @@ skip-lint = false
 [programs.localnet]
 phygital_token = "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A"
 phygital_token_hook = "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR"
-phygital_spend = "Gkst75NEFq6ojS9s9MCKtKcmEbGVL3SkcFxm3eVysxRF"
 
 [provider]
 cluster = "localnet"

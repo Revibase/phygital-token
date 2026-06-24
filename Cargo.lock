@@ -2680,33 +2680,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phygital-spend"
-version = "0.1.0"
-dependencies = [
- "anchor-lang",
- "anchor-spl",
- "base64 0.22.1",
- "borsh 1.7.0",
- "litesvm",
- "p256",
- "phygital-token",
- "phygital-token-client",
- "phygital-token-hook",
- "rand 0.8.6",
- "sha2 0.11.0",
- "solana-instructions-sysvar 3.0.1",
- "solana-keypair",
- "solana-message 3.1.0",
- "solana-sdk-ids 3.1.0",
- "solana-signer 3.0.1",
- "solana-slot-hashes 3.0.2",
- "solana-transaction",
- "spl-token-2022-interface",
- "spl-token-group-interface",
- "spl-token-metadata-interface",
-]
-
-[[package]]
 name = "phygital-token"
 version = "0.1.0"
 dependencies = [

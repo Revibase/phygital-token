@@ -1,11 +1,17 @@
 import {
+  getAddressDecoder,
+  getAddressEncoder,
   getBase64Decoder,
   getBase64Encoder,
+  type Address,
   type Base64EncodedBytes,
   type Rpc,
   type SolanaRpcApi,
 } from "@solana/kit";
-import { bufferToBase64URLString, type Base64URLString } from "@simplewebauthn/browser";
+import {
+  bufferToBase64URLString,
+  type Base64URLString,
+} from "@simplewebauthn/browser";
 import {
   getAssetDecoder,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
@@ -18,6 +24,8 @@ const ASSET_ACCOUNT_DATA_SIZE = 179;
 
 /** Credential id field offset inside the on-chain asset account. */
 const ASSET_CREDENTIAL_ID_OFFSET = 115;
+
+const ASSET_OWNER_OFF_SET = 41;
 
 /**
  * Resolves a passkey credential id to its on-chain asset account and secp256r1 public key.
@@ -57,4 +65,36 @@ export async function fetchAssetCredentialFromCredentialId(
     ),
     asset,
   };
+}
+
+export async function fetchAllAssetsFromOwner(
+  owner: Address,
+  rpc: Rpc<SolanaRpcApi>,
+): Promise<Asset[]> {
+  const data = await rpc
+    .getProgramAccounts(PHYGITAL_TOKEN_PROGRAM_ADDRESS, {
+      encoding: "base64",
+      filters: [
+        { dataSize: BigInt(ASSET_ACCOUNT_DATA_SIZE) },
+        {
+          memcmp: {
+            encoding: "base64" as const,
+            offset: BigInt(ASSET_OWNER_OFF_SET),
+            bytes: getBase64Decoder().decode(
+              getAddressEncoder().encode(owner),
+            ) as Base64EncodedBytes,
+          },
+        },
+      ],
+    })
+    .send();
+
+  if (!data.length) {
+    return []
+  }
+
+  const assets = data.map((x) =>
+    getAssetDecoder().decode(getBase64Encoder().encode(x.account.data[0])),
+  );
+  return assets;
 }

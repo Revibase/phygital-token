@@ -42,7 +42,10 @@ export {
   type TokenMediaFile,
 } from "./utils/metadata.js";
 
-export { fetchAssetCredentialFromCredentialId } from "./utils/assetCredential.js";
+export {
+  fetchAssetCredentialFromCredentialId,
+  fetchAllAssetsFromOwner,
+} from "./utils/assetCredential.js";
 
 export {
   verifyDynamicUrlWithoutCounterCheck,
