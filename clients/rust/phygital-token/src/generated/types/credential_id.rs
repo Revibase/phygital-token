@@ -7,6 +7,6 @@
 
 
 
-pub type CredentialId = [u8; 64];
+pub type CredentialId = ([u8; 64]);
 
 

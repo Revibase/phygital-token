@@ -7,6 +7,6 @@
 
 
 
-pub type Secp256r1Pubkey = [u8; 33];
+pub type Secp256r1Pubkey = ([u8; 33]);
 
 
