@@ -8,7 +8,6 @@ import {
 import {
   authenticateDiscoverablePasskey,
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
-  fetchAsset,
   fetchAssetCredentialFromCredentialId,
   findAssetPda,
   findAssociatedTokenAddress,

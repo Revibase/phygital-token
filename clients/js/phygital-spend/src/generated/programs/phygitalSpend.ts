@@ -18,6 +18,7 @@ import {
   type Address,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
+  type ExtendedClient,
   type Instruction,
   type InstructionWithData,
   type ReadonlyUint8Array,
@@ -94,6 +95,8 @@ export function parsePhygitalSpendInstruction<TProgram extends string>(
 export type PhygitalSpendPlugin = {
   instructions: PhygitalSpendPluginInstructions;
   pdas: PhygitalSpendPluginPdas;
+  identifyInstruction: typeof identifyPhygitalSpendInstruction;
+  parseInstruction: typeof parsePhygitalSpendInstruction;
 };
 
 export type PhygitalSpendPluginInstructions = {
@@ -113,7 +116,7 @@ export type PhygitalSpendPluginRequirements = ClientWithTransactionPlanning &
 export function phygitalSpendProgram() {
   return <T extends PhygitalSpendPluginRequirements>(
     client: T,
-  ): Omit<T, "phygitalSpend"> & { phygitalSpend: PhygitalSpendPlugin } => {
+  ): ExtendedClient<T, { phygitalSpend: PhygitalSpendPlugin }> => {
     return extendClient(client, {
       phygitalSpend: <PhygitalSpendPlugin>{
         instructions: {
@@ -124,6 +127,8 @@ export function phygitalSpendProgram() {
             ),
         },
         pdas: { spendAuthority: findSpendAuthorityPda },
+        identifyInstruction: identifyPhygitalSpendInstruction,
+        parseInstruction: parsePhygitalSpendInstruction,
       },
     });
   };

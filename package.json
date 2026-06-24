@@ -1,4 +1,6 @@
 {
+  "name": "phygital-token-monorepo",
+  "private": true,
   "license": "ISC",
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
@@ -7,9 +9,9 @@
     "generate:client": "codama run js && node clients/js/phygital-token/scripts/add-import-extensions.mjs",
     "generate:rust-client": "codama run rust && node clients/rust/phygital-token/scripts/patch-anchor-types.mjs",
     "generate:spend-client": "codama run js -c codama.phygital-spend.json && node clients/js/phygital-spend/scripts/add-import-extensions.mjs",
-    "build:client": "yarn --cwd clients/js/phygital-token build",
-    "build:spend-client": "yarn --cwd clients/js/phygital-spend build",
-    "build:program": "NO_DNA=1 anchor build && yarn idl:sync && yarn generate:client && yarn generate:rust-client && yarn generate:spend-client && yarn build:client && yarn build:spend-client"
+    "build:client": "pnpm --filter phygital-token-sdk build",
+    "build:spend-client": "pnpm --filter phygital-spend-sdk build",
+    "build:program": "NO_DNA=1 anchor build && pnpm idl:sync && pnpm generate:client && pnpm generate:rust-client && pnpm generate:spend-client && pnpm build:client && pnpm build:spend-client"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.0.2"
@@ -28,5 +30,5 @@
     "ts-mocha": "^10.0.0",
     "typescript": "^5.7.3"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "pnpm@11.9.0"
 }

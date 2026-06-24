@@ -21,6 +21,7 @@ import {
   type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
+  type ExtendedClient,
   type GetAccountInfoApi,
   type GetMultipleAccountsApi,
   type Instruction,
@@ -233,6 +234,9 @@ export type PhygitalTokenPlugin = {
   accounts: PhygitalTokenPluginAccounts;
   instructions: PhygitalTokenPluginInstructions;
   pdas: PhygitalTokenPluginPdas;
+  identifyAccount: typeof identifyPhygitalTokenAccount;
+  identifyInstruction: typeof identifyPhygitalTokenInstruction;
+  parseInstruction: typeof parsePhygitalTokenInstruction;
 };
 
 export type PhygitalTokenPluginAccounts = {
@@ -275,7 +279,7 @@ export type PhygitalTokenPluginRequirements = ClientWithRpc<
 export function phygitalTokenProgram() {
   return <T extends PhygitalTokenPluginRequirements>(
     client: T,
-  ): Omit<T, "phygitalToken"> & { phygitalToken: PhygitalTokenPlugin } => {
+  ): ExtendedClient<T, { phygitalToken: PhygitalTokenPlugin }> => {
     return extendClient(client, {
       phygitalToken: <PhygitalTokenPlugin>{
         accounts: { asset: addSelfFetchFunctions(client, getAssetCodec()) },
@@ -310,6 +314,9 @@ export function phygitalTokenProgram() {
             ),
         },
         pdas: { programAuthority: findProgramAuthorityPda },
+        identifyAccount: identifyPhygitalTokenAccount,
+        identifyInstruction: identifyPhygitalTokenInstruction,
+        parseInstruction: parsePhygitalTokenInstruction,
       },
     });
   };
