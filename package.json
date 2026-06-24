@@ -5,7 +5,7 @@
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "idl:sync": "cp target/idl/phygital_token.json idl/phygital_token.json && cp target/idl/phygital_token_hook.json idl/phygital_token_hook.json && cp target/idl/phygital_spend.json idl/phygital_spend.json",
     "generate:client": "codama run js && node clients/js/phygital-token/scripts/add-import-extensions.mjs",
-    "generate:rust-client": "codama run rust",
+    "generate:rust-client": "codama run rust && node clients/rust/phygital-token/scripts/patch-anchor-types.mjs",
     "generate:spend-client": "codama run js -c codama.phygital-spend.json && node clients/js/phygital-spend/scripts/add-import-extensions.mjs",
     "build:client": "yarn --cwd clients/js/phygital-token build",
     "build:spend-client": "yarn --cwd clients/js/phygital-spend build",

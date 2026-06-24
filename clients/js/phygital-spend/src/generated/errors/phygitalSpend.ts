@@ -30,8 +30,8 @@ export const PHYGITAL_SPEND_ERROR__SPEND_DELEGATE_MISMATCH = 0x1775; // 6005
 export const PHYGITAL_SPEND_ERROR__INSUFFICIENT_SPEND_ALLOWANCE = 0x1776; // 6006
 /** InvalidSpendRecipient: Invalid spend recipient */
 export const PHYGITAL_SPEND_ERROR__INVALID_SPEND_RECIPIENT = 0x1777; // 6007
-/** MissingVerifyAsset: No matching phygital-token verify_asset instruction found in this transaction */
-export const PHYGITAL_SPEND_ERROR__MISSING_VERIFY_ASSET = 0x1778; // 6008
+/** InvalidPhygitalTokenProgram: The phygital-token program account does not match the expected program id */
+export const PHYGITAL_SPEND_ERROR__INVALID_PHYGITAL_TOKEN_PROGRAM = 0x1778; // 6008
 /** InvalidAssetAccount: The asset account is not a valid phygital-token asset */
 export const PHYGITAL_SPEND_ERROR__INVALID_ASSET_ACCOUNT = 0x1779; // 6009
 
@@ -39,8 +39,8 @@ export type PhygitalSpendError =
   | typeof PHYGITAL_SPEND_ERROR__ASSET_IS_NOT_LOCKED
   | typeof PHYGITAL_SPEND_ERROR__INSUFFICIENT_SPEND_ALLOWANCE
   | typeof PHYGITAL_SPEND_ERROR__INVALID_ASSET_ACCOUNT
+  | typeof PHYGITAL_SPEND_ERROR__INVALID_PHYGITAL_TOKEN_PROGRAM
   | typeof PHYGITAL_SPEND_ERROR__INVALID_SPEND_RECIPIENT
-  | typeof PHYGITAL_SPEND_ERROR__MISSING_VERIFY_ASSET
   | typeof PHYGITAL_SPEND_ERROR__OWNER_MISMATCH
   | typeof PHYGITAL_SPEND_ERROR__RECIPIENT_MISMATCH
   | typeof PHYGITAL_SPEND_ERROR__SPEND_AMOUNT_ZERO
@@ -53,8 +53,8 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_SPEND_ERROR__ASSET_IS_NOT_LOCKED]: `The asset must be locked to spend its delegated allowance`,
     [PHYGITAL_SPEND_ERROR__INSUFFICIENT_SPEND_ALLOWANCE]: `Spend amount exceeds the delegated allowance`,
     [PHYGITAL_SPEND_ERROR__INVALID_ASSET_ACCOUNT]: `The asset account is not a valid phygital-token asset`,
+    [PHYGITAL_SPEND_ERROR__INVALID_PHYGITAL_TOKEN_PROGRAM]: `The phygital-token program account does not match the expected program id`,
     [PHYGITAL_SPEND_ERROR__INVALID_SPEND_RECIPIENT]: `Invalid spend recipient`,
-    [PHYGITAL_SPEND_ERROR__MISSING_VERIFY_ASSET]: `No matching phygital-token verify_asset instruction found in this transaction`,
     [PHYGITAL_SPEND_ERROR__OWNER_MISMATCH]: `Token owner mismatch`,
     [PHYGITAL_SPEND_ERROR__RECIPIENT_MISMATCH]: `Token recipient mismatch`,
     [PHYGITAL_SPEND_ERROR__SPEND_AMOUNT_ZERO]: `Spend amount must be greater than zero`,

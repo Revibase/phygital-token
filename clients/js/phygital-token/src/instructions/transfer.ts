@@ -54,25 +54,61 @@ export async function beginTransfer(input: {
   };
 }
 
-/** Prompts the physical asset passkey (WebAuthn / NFC tap). */
-export async function authenticateToken(
-  session: TransferSession,
-): Promise<AuthenticationResponseJSON> {
+/**
+ * Discoverable passkey tap — the credential id is returned in the response
+ * and can be resolved on-chain via `fetchAssetCredentialFromCredentialId`.
+ */
+export async function authenticateDiscoverablePasskey(input: {
+  challenge: Uint8Array;
+}): Promise<AuthenticationResponseJSON> {
   return startAuthentication({
     optionsJSON: {
       challenge: bufferToBase64URLString(
-        new Uint8Array(session.challenge).buffer as ArrayBuffer,
+        new Uint8Array(input.challenge).buffer as ArrayBuffer,
       ),
       rpId: window.location.hostname,
       userVerification: "preferred",
       allowCredentials: [
         {
-          id: session.displayInfo.credentialId,
+          id: "",
           type: "public-key",
           transports: ["nfc"],
         },
       ],
     },
+  });
+}
+
+/** Prompts the physical asset passkey (WebAuthn / NFC tap). */
+export async function authenticatePasskey(input: {
+  challenge: Uint8Array;
+  credentialId: string;
+}): Promise<AuthenticationResponseJSON> {
+  return startAuthentication({
+    optionsJSON: {
+      challenge: bufferToBase64URLString(
+        new Uint8Array(input.challenge).buffer as ArrayBuffer,
+      ),
+      rpId: window.location.hostname,
+      userVerification: "preferred",
+      allowCredentials: [
+        {
+          id: input.credentialId,
+          type: "public-key",
+          transports: ["nfc"],
+        },
+      ],
+    },
+  });
+}
+
+/** Prompts the physical asset passkey (WebAuthn / NFC tap). */
+export async function authenticateToken(
+  session: TransferSession,
+): Promise<AuthenticationResponseJSON> {
+  return authenticatePasskey({
+    challenge: session.challenge,
+    credentialId: session.displayInfo.credentialId,
   });
 }
 

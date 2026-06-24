@@ -3,14 +3,12 @@ use anchor_lang::solana_program::program_option::COption;
 use anchor_spl::token_interface::{
     transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked,
 };
-use borsh::BorshDeserialize;
-use solana_instructions_sysvar::{load_current_index_checked, load_instruction_at_checked};
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
+use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 
-// All phygital-token types come from the codama-generated Rust client, not the program crate.
 use phygital_token_client::{
-    Asset, AssetType, VerifyAssetInstructionArgs, ASSET_DISCRIMINATOR, PHYGITAL_TOKEN_ID,
-    VERIFY_ASSET_DISCRIMINATOR,
+    Asset, AssetType, Secp256r1VerifyArgs, VerifyAssetCpi, VerifyAssetCpiAccounts,
+    VerifyAssetInstructionArgs, PHYGITAL_TOKEN_ID,
 };
 
 use crate::constants::SPEND_AUTHORITY_SEED;
@@ -19,9 +17,12 @@ use crate::message::build_spend_verify_message;
 
 #[derive(Accounts)]
 pub struct ExecuteSpend<'info> {
-    /// CHECK: a phygital-token `Asset`; ownership, discriminator, and fields are validated in the
-    /// handler by decoding it with the generated client.
-    pub asset: UncheckedAccount<'info>,
+    #[account(
+        mut,
+        constraint = asset.owner == owner.key() @SpendError::OwnerMismatch,
+        constraint = asset.asset_type == AssetType::Lockable && asset.is_locked @SpendError::AssetIsNotLocked
+    )]
+    pub asset: Account<'info, Asset>,
 
     /// CHECK: does not sign; validated against the decoded asset's owner in the handler.
     pub owner: UncheckedAccount<'info>,
@@ -52,42 +53,28 @@ pub struct ExecuteSpend<'info> {
     )]
     pub spend_authority: SystemAccount<'info>,
 
-    /// CHECK: validated as the instructions sysvar; read to find the verify_asset instruction.
+    /// CHECK: validated as the phygital-token program id; target of the verify_asset CPI.
+    #[account(
+        address = PHYGITAL_TOKEN_ID
+    )]
+    pub phygital_token_program: UncheckedAccount<'info>,
+
+    /// CHECK: validated as the SlotHashes sysvar; forwarded to verify_asset.
+    #[account(address = SLOT_HASHES_SYSVAR_ID)]
+    pub slot_hashes: UncheckedAccount<'info>,
+
+    /// CHECK: validated as the instructions sysvar; forwarded to verify_asset.
     #[account(address = INSTRUCTIONS_SYSVAR_ID)]
     pub instructions_sysvar: UncheckedAccount<'info>,
 
     pub token_program: Interface<'info, TokenInterface>,
 }
 
-pub fn handler(ctx: Context<ExecuteSpend>, amount: u64) -> Result<()> {
-    // Decode and validate the phygital-token asset via the generated client. The account must be
-    // owned by the phygital-token program and carry the Asset discriminator.
-    let asset_info = ctx.accounts.asset.to_account_info();
-    require!(
-        asset_info.owner.as_ref() == PHYGITAL_TOKEN_ID.as_ref(),
-        SpendError::InvalidAssetAccount
-    );
-    let asset = {
-        let data = asset_info.try_borrow_data()?;
-        Asset::from_bytes(&data[..]).map_err(|_| error!(SpendError::InvalidAssetAccount))?
-    };
-    require!(
-        asset.discriminator == ASSET_DISCRIMINATOR,
-        SpendError::InvalidAssetAccount
-    );
-
-    // The passed `owner` must be the asset's owner, and the funding token account must be theirs.
-    require!(
-        ctx.accounts.owner.key().as_ref() == asset.owner.as_ref(),
-        SpendError::OwnerMismatch
-    );
-
-    // Spending is only enabled while a Lockable asset is locked.
-    require!(
-        asset.asset_type == AssetType::Lockable && asset.is_locked,
-        SpendError::AssetIsNotLocked
-    );
-
+pub fn handler(
+    ctx: Context<ExecuteSpend>,
+    secp256r1_verify_args: Secp256r1VerifyArgs,
+    amount: u64,
+) -> Result<()> {
     let asset_key = ctx.accounts.asset.key();
     let bump_seed = [ctx.bumps.spend_authority];
     let authority_seed_array = [SPEND_AUTHORITY_SEED, asset_key.as_ref(), &bump_seed[..]];
@@ -95,8 +82,6 @@ pub fn handler(ctx: Context<ExecuteSpend>, amount: u64) -> Result<()> {
     let signer_seed_array = [authority_seeds];
     let signer_seeds: &[&[&[u8]]] = signer_seed_array.as_slice();
 
-    // Budget is enforced by SPL: the owner must have approved this asset's spend_authority and the
-    // requested amount must fit within the live delegated_amount.
     require!(amount > 0, SpendError::SpendAmountZero);
     require!(
         ctx.accounts.owner_token_account.delegate
@@ -114,17 +99,28 @@ pub fn handler(ctx: Context<ExecuteSpend>, amount: u64) -> Result<()> {
         SpendError::InvalidSpendRecipient
     );
 
-    // WebAuthn verification is delegated to phygital_token::verify_asset. Require that a
-    // verify_asset for THIS asset, bound to recipient|mint|amount, ran earlier in this transaction.
-    // Since instructions execute in order and the tx aborts on any failure, reaching this point
-    // means that verify_asset succeeded (passkey verified, freshness/replay enforced there).
-    let expected_message =
-        build_spend_verify_message(&ctx.accounts.recipient.key(), &ctx.accounts.mint.key(), amount);
-    require_matching_verify_asset(
-        &ctx.accounts.instructions_sysvar.to_account_info(),
-        &asset_key,
-        expected_message.as_slice(),
-    )?;
+    let message = build_spend_verify_message(
+        &ctx.accounts.recipient.key(),
+        &ctx.accounts.mint.key(),
+        amount,
+    );
+
+    // WebAuthn verification is delegated to phygital_token::verify_asset via CPI. The transaction
+    // must include a matching secp256r1 verify instruction earlier in the same transaction.
+    VerifyAssetCpi::new(
+        &ctx.accounts.phygital_token_program.to_account_info(),
+        VerifyAssetCpiAccounts {
+            asset: &ctx.accounts.asset.to_account_info(),
+            slot_hashes: &ctx.accounts.slot_hashes.to_account_info(),
+            instructions_sysvar: &ctx.accounts.instructions_sysvar.to_account_info(),
+        },
+        VerifyAssetInstructionArgs {
+            secp256r1_verify_args,
+            message,
+        },
+    )
+    .invoke()
+    .map_err(|e| anchor_lang::error::Error::from(anchor_lang::prelude::ProgramError::from(e)))?;
 
     transfer_checked(
         CpiContext::new_with_signer(
@@ -142,42 +138,4 @@ pub fn handler(ctx: Context<ExecuteSpend>, amount: u64) -> Result<()> {
     )?;
 
     Ok(())
-}
-
-/// Scans the instructions sysvar for a `phygital_token::verify_asset` instruction that ran before
-/// this one in the same transaction, references `asset` as its first account, and carries
-/// `expected_message`. Returns `MissingVerifyAsset` if none matches.
-///
-/// Uses the generated client's program id, discriminator, and args decoder. All cross-crate
-/// pubkey comparisons go through raw bytes so the client's solana-crate versions need not match
-/// this program's exactly.
-fn require_matching_verify_asset(
-    instructions_sysvar: &AccountInfo,
-    asset: &Pubkey,
-    expected_message: &[u8],
-) -> Result<()> {
-    let current_index = load_current_index_checked(instructions_sysvar)? as usize;
-    for i in 0..current_index {
-        let ix = load_instruction_at_checked(i, instructions_sysvar)?;
-        if ix.program_id.as_ref() != PHYGITAL_TOKEN_ID.as_ref() {
-            continue;
-        }
-        if !ix.data.starts_with(&VERIFY_ASSET_DISCRIMINATOR) {
-            continue;
-        }
-        // verify_asset accounts: [asset, slot_hashes, instructions_sysvar]
-        let Some(meta) = ix.accounts.first() else {
-            continue;
-        };
-        if meta.pubkey.as_ref() != asset.as_ref() {
-            continue;
-        }
-        let args_data = &ix.data[VERIFY_ASSET_DISCRIMINATOR.len()..];
-        if let Ok(args) = VerifyAssetInstructionArgs::try_from_slice(args_data) {
-            if args.message.as_slice() == expected_message {
-                return Ok(());
-            }
-        }
-    }
-    Err(error!(SpendError::MissingVerifyAsset))
 }

@@ -396,7 +396,7 @@
     {
       "code": 6000,
       "name": "InvalidSecp256r1Instruction",
-      "msg": "The instruction preceding this program invocation is not a secp256r1 verification instruction"
+      "msg": "No prior secp256r1 verification instruction in this transaction matches the provided client data"
     },
     {
       "code": 6001,

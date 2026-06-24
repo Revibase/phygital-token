@@ -2720,6 +2720,7 @@ dependencies = [
 name = "phygital-token-client"
 version = "0.1.0"
 dependencies = [
+ "anchor-lang",
  "borsh 1.7.0",
  "num-derive",
  "num-traits",

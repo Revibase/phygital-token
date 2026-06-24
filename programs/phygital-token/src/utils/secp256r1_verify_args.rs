@@ -14,7 +14,6 @@ use crate::{
         },
     },
 };
-
 // `#[repr(C)]` pins field order to match the secp256r1 program's on-wire offset
 // layout, which is read via an unaligned pointer cast below. Without it, Rust may
 // reorder the fields and the cast would map them incorrectly.
@@ -106,23 +105,7 @@ impl Secp256r1VerifyArgs {
             .ok_or(PhygitalError::InvalidSignatureOffsets)?)
     }
 
-    fn verify_user_presence_from_instruction(
-        &self,
-        instructions_sysvar: &UncheckedAccount,
-    ) -> Result<()> {
-        require!(
-            instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
-            PhygitalError::MissingInstructionsSysvar
-        );
-
-        let instruction = get_instruction_relative(-1, instructions_sysvar)?;
-
-        require!(
-            instruction.program_id == SECP256R1_PROGRAM_ID,
-            PhygitalError::InvalidSecp256r1Instruction
-        );
-
-        let data = instruction.data.as_slice();
+    fn verify_user_presence_from_instruction_data(&self, data: &[u8]) -> Result<()> {
         let num_signatures = *data
             .first()
             .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
@@ -155,6 +138,53 @@ impl Secp256r1VerifyArgs {
         );
 
         Ok(())
+    }
+
+    fn claim_secp256r1_instruction_data(&self, data: Vec<u8>) -> Result<Vec<u8>> {
+        let num_signatures = *data
+            .first()
+            .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
+
+        require!(
+            self.signed_message_index < num_signatures,
+            PhygitalError::SignatureIndexOutOfBounds
+        );
+
+        Self::read_signature_offsets(data.as_slice(), self.signed_message_index)?;
+        Ok(data)
+    }
+
+    /// Finds the most recent prior secp256r1 verify instruction, checking the immediately
+    /// preceding instruction first (the common case) then scanning further back.
+    fn find_secp256r1_instruction_data(
+        &self,
+        instructions_sysvar: &UncheckedAccount,
+    ) -> Result<Vec<u8>> {
+        require!(
+            instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
+            PhygitalError::MissingInstructionsSysvar
+        );
+
+        let account_info = instructions_sysvar.to_account_info();
+        let mut relative_index: i64 = -1;
+
+        loop {
+            let instruction = match get_instruction_relative(relative_index, &account_info) {
+                Ok(ix) => ix,
+                Err(_) => break,
+            };
+
+            if instruction.program_id.as_ref() == SECP256R1_PROGRAM_ID.as_ref() {
+                return self.claim_secp256r1_instruction_data(instruction.data);
+            }
+
+            if relative_index == i64::MIN {
+                break;
+            }
+            relative_index -= 1;
+        }
+
+        err!(PhygitalError::InvalidSecp256r1Instruction)
     }
 
     fn extract_public_key_data<'a>(
@@ -264,19 +294,7 @@ impl Secp256r1VerifyArgs {
         &self,
         instructions_sysvar: &UncheckedAccount,
     ) -> Result<[u8; 32]> {
-        require!(
-            instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
-            PhygitalError::MissingInstructionsSysvar
-        );
-
-        let instruction = get_instruction_relative(-1, instructions_sysvar)?;
-
-        require!(
-            instruction.program_id == SECP256R1_PROGRAM_ID,
-            PhygitalError::InvalidSecp256r1Instruction
-        );
-
-        let data = instruction.data.as_slice();
+        let data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
 
         let num_signatures = *data
             .first()
@@ -287,9 +305,8 @@ impl Secp256r1VerifyArgs {
             PhygitalError::SignatureIndexOutOfBounds
         );
 
-        let offsets = Self::read_signature_offsets(data, self.signed_message_index)?;
-
-        let message = Self::extract_message_data(data, &offsets)?;
+        let offsets = Self::read_signature_offsets(&data, self.signed_message_index)?;
+        let message = Self::extract_message_data(&data, &offsets)?;
 
         let client_data_hash: [u8; 32] = message[(message.len() - CLIENT_DATA_HASH_LEN)..]
             .try_into()
@@ -302,19 +319,8 @@ impl Secp256r1VerifyArgs {
         &self,
         instructions_sysvar: &UncheckedAccount,
     ) -> Result<Secp256r1Pubkey> {
-        require!(
-            instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
-            PhygitalError::MissingInstructionsSysvar
-        );
+        let data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
 
-        let instruction = get_instruction_relative(-1, instructions_sysvar)?;
-
-        require!(
-            instruction.program_id == SECP256R1_PROGRAM_ID,
-            PhygitalError::InvalidSecp256r1Instruction
-        );
-
-        let data = instruction.data.as_slice();
         let num_signatures = *data
             .first()
             .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
@@ -324,9 +330,8 @@ impl Secp256r1VerifyArgs {
             PhygitalError::SignatureIndexOutOfBounds
         );
 
-        let offsets = Self::read_signature_offsets(data, self.signed_message_index)?;
-
-        let public_key_bytes = Self::extract_public_key_data(data, &offsets)?;
+        let offsets = Self::read_signature_offsets(&data, self.signed_message_index)?;
+        let public_key_bytes = Self::extract_public_key_data(&data, &offsets)?;
 
         let extracted_pubkey: [u8; COMPRESSED_PUBKEY_SERIALIZED_SIZE] = public_key_bytes
             .try_into()
@@ -351,19 +356,23 @@ impl Secp256r1VerifyArgs {
         let expected_challenge: [u8; 32] = Sha256::digest(&buffer).into();
 
         let extracted_challenge = self.extract_challenge_from_client_data_json()?;
-        
+
         require!(
             extracted_challenge == expected_challenge,
             PhygitalError::ChallengeHashMismatch
         );
 
-        self.verify_user_presence_from_instruction(instructions_sysvar)?;
+        let secp256r1_data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
 
-        let client_data_hash =
-            self.extract_client_data_hash_from_instruction(instructions_sysvar)?;
+        self.verify_user_presence_from_instruction_data(&secp256r1_data)?;
 
-        let expected_client_data_hash: [u8; 32] =
-            Sha256::digest(&self.client_data_json).into();
+        let offsets = Self::read_signature_offsets(&secp256r1_data, self.signed_message_index)?;
+        let message = Self::extract_message_data(&secp256r1_data, &offsets)?;
+        let client_data_hash: [u8; 32] = message[(message.len() - CLIENT_DATA_HASH_LEN)..]
+            .try_into()
+            .map_err(|_| PhygitalError::InvalidSignatureOffsets)?;
+
+        let expected_client_data_hash: [u8; 32] = Sha256::digest(&self.client_data_json).into();
 
         require!(
             client_data_hash == expected_client_data_hash,

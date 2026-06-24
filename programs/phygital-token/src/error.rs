@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum PhygitalError {
-    #[msg("The instruction preceding this program invocation is not a secp256r1 verification instruction")]
+    #[msg("No prior secp256r1 verification instruction in this transaction matches the provided client data")]
     InvalidSecp256r1Instruction,
 
     #[msg("The signature index provided is out of bounds for the secp256r1 instruction")]

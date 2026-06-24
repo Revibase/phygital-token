@@ -1,9 +1,23 @@
 export {
+  authenticateDiscoverablePasskey,
+  authenticatePasskey,
   authenticateToken,
   beginTransfer,
   completeTransfer,
   type TransferSession,
 } from "./instructions/transfer.js";
+
+export {
+  buildSecp256r1VerifyInstructionFromWebAuthnResponse,
+  buildTransferChallenge,
+  buildVerifyChallenge,
+  buildVerifyMessage,
+  type WebAuthnSecp256r1Verification,
+} from "./utils/passkey/secp256r1.js";
+
+export { getLatestSlotHash } from "./utils/slotHash.js";
+export { findAssociatedTokenAddress } from "./utils/associatedToken.js";
+export { TOKEN_2022_PROGRAM_ADDRESS } from "./utils/consts.js";
 
 export {
   buildCreateMintInstructions,
@@ -27,6 +41,8 @@ export {
   type TokenJsonMetadata,
   type TokenMediaFile,
 } from "./utils/metadata.js";
+
+export { fetchAssetCredentialFromCredentialId } from "./utils/assetCredential.js";
 
 export {
   verifyDynamicUrlWithoutCounterCheck,

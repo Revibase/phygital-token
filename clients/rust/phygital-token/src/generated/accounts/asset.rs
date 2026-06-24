@@ -105,4 +105,31 @@ pub fn fetch_all_maybe_asset(
   Ok(decoded_accounts)
 }
 
+  #[cfg(feature = "anchor")]
+  impl anchor_lang::AccountDeserialize for Asset {
+      fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_lang::Result<Self> {
+        Ok(Self::deserialize(buf)?)
+      }
+  }
+
+  #[cfg(feature = "anchor")]
+  impl anchor_lang::AccountSerialize for Asset {}
+
+  #[cfg(feature = "anchor")]
+  impl anchor_lang::Owner for Asset {
+      fn owner() -> anchor_lang::solana_program::pubkey::Pubkey {
+        anchor_lang::solana_program::pubkey::Pubkey::from(
+          crate::PHYGITAL_TOKEN_ID.to_bytes()
+        )
+      }
+  }
+
+  #[cfg(feature = "anchor-idl-build")]
+  impl anchor_lang::IdlBuild for Asset {}
+
+  
+  #[cfg(feature = "anchor-idl-build")]
+  impl anchor_lang::Discriminator for Asset {
+    const DISCRIMINATOR: &[u8] = &[0; 8];
+  }
 

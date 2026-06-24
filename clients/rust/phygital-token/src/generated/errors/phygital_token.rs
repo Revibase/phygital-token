@@ -10,8 +10,8 @@ use thiserror::Error;
 
 #[derive(Clone, Debug, Eq, Error, FromPrimitive, PartialEq)]
 pub enum PhygitalTokenError {
-    /// 6000 - The instruction preceding this program invocation is not a secp256r1 verification instruction
-    #[error("The instruction preceding this program invocation is not a secp256r1 verification instruction")]
+    /// 6000 - No prior secp256r1 verification instruction in this transaction matches the provided client data
+    #[error("No prior secp256r1 verification instruction in this transaction matches the provided client data")]
     InvalidSecp256r1Instruction = 0x1770,
     /// 6001 - The signature index provided is out of bounds for the secp256r1 instruction
     #[error("The signature index provided is out of bounds for the secp256r1 instruction")]

@@ -12,11 +12,10 @@
       "docs": [
         "Spends `amount` of the delegated SPL token from the asset owner's wallet to `recipient`.",
         "",
-        "WebAuthn verification is NOT performed here — it is delegated to",
-        "`phygital_token::verify_asset`. This instruction requires that the same transaction already",
-        "contains a `verify_asset` for the same `asset`, whose message binds `recipient | mint |",
-        "amount` (see [`build_spend_verify_message`]). The owner must have approved this program's",
-        "per-asset `spend_authority` PDA as the SPL delegate."
+        "WebAuthn verification is performed via CPI to `phygital_token::verify_asset`, binding the",
+        "spend to `recipient | mint | amount` (see [`build_spend_verify_message`]). The transaction",
+        "must include a matching secp256r1 verify instruction earlier in the same transaction.",
+        "The owner must have approved this program's per-asset `spend_authority` PDA as the SPL delegate."
       ],
       "discriminator": [
         97,
@@ -31,9 +30,7 @@
       "accounts": [
         {
           "name": "asset",
-          "docs": [
-            "handler by decoding it with the generated client."
-          ]
+          "writable": true
         },
         {
           "name": "owner"
@@ -87,6 +84,14 @@
           }
         },
         {
+          "name": "phygital_token_program",
+          "address": "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A"
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
           "name": "instructions_sysvar",
           "address": "Sysvar1nstructions1111111111111111111111111"
         },
@@ -95,6 +100,14 @@
         }
       ],
       "args": [
+        {
+          "name": "secp256r1_verify_args",
+          "type": {
+            "defined": {
+              "name": "Secp256r1VerifyArgs"
+            }
+          }
+        },
         {
           "name": "amount",
           "type": "u64"
@@ -145,13 +158,35 @@
     },
     {
       "code": 6008,
-      "name": "MissingVerifyAsset",
-      "msg": "No matching phygital-token verify_asset instruction found in this transaction"
+      "name": "InvalidPhygitalTokenProgram",
+      "msg": "The phygital-token program account does not match the expected program id"
     },
     {
       "code": 6009,
       "name": "InvalidAssetAccount",
       "msg": "The asset account is not a valid phygital-token asset"
+    }
+  ],
+  "types": [
+    {
+      "name": "Secp256r1VerifyArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "signed_message_index",
+            "type": "u8"
+          },
+          {
+            "name": "slot_number",
+            "type": "u64"
+          },
+          {
+            "name": "client_data_json",
+            "type": "bytes"
+          }
+        ]
+      }
     }
   ]
 }

@@ -26,8 +26,8 @@ pub enum SpendError {
     #[msg("Invalid spend recipient")]
     InvalidSpendRecipient,
 
-    #[msg("No matching phygital-token verify_asset instruction found in this transaction")]
-    MissingVerifyAsset,
+    #[msg("The phygital-token program account does not match the expected program id")]
+    InvalidPhygitalTokenProgram,
 
     #[msg("The asset account is not a valid phygital-token asset")]
     InvalidAssetAccount,

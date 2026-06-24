@@ -14,8 +14,7 @@ use anchor_lang::solana_program::system_instruction;
 use anchor_lang::{prelude::*, InstructionData, ToAccountMetas};
 use anchor_spl::associated_token::get_associated_token_address_with_program_id;
 use anchor_spl::associated_token::ID as ASSOCIATED_TOKEN_ID;
-use anchor_spl::token_2022::spl_token_2022::instruction::{ transfer_checked,
-};
+use anchor_spl::token_2022::spl_token_2022::instruction::transfer_checked;
 use anchor_spl::token_2022::spl_token_2022::state::Account as TokenAccountState;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use litesvm::LiteSVM;

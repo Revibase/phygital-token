@@ -14,7 +14,7 @@ import {
 } from "@solana/kit";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
-/** InvalidSecp256r1Instruction: The instruction preceding this program invocation is not a secp256r1 verification instruction */
+/** InvalidSecp256r1Instruction: No prior secp256r1 verification instruction in this transaction matches the provided client data */
 export const PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION = 0x1770; // 6000
 /** SignatureIndexOutOfBounds: The signature index provided is out of bounds for the secp256r1 instruction */
 export const PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS = 0x1771; // 6001
@@ -95,7 +95,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA]: `Authenticator data is too short to contain WebAuthn flags.`,
     [PHYGITAL_TOKEN_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT]: `Custody token account must be the canonical ATA for program_authority`,
     [PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT]: `Recipient cannot be program_authority`,
-    [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION]: `The instruction preceding this program invocation is not a secp256r1 verification instruction`,
+    [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION]: `No prior secp256r1 verification instruction in this transaction matches the provided client data`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS]: `Failed to deserialize secp256r1 signature offsets from the instruction data`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH]: `Slot not found in SlotHashes sysvar — signature has expired or is being replayed`,

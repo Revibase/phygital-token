@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@solana-program/token-2022": "^0.11.0",
-    "@solana/program-client-core": "^6.4.0"
+    "@solana/program-client-core": "^6.4.0",
+    "phygital-token-sdk": "file:../phygital-token"
   }
 }

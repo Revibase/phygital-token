@@ -7,6 +7,8 @@
  */
 
 import {
+  addDecoderSizePrefix,
+  addEncoderSizePrefix,
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
@@ -14,16 +16,20 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  getU32Decoder,
+  getU32Encoder,
   getU64Decoder,
   getU64Encoder,
+  getU8Decoder,
+  getU8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
   type AccountMeta,
   type Address,
-  type FixedSizeCodec,
-  type FixedSizeDecoder,
-  type FixedSizeEncoder,
+  type Codec,
+  type Decoder,
+  type Encoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
@@ -58,6 +64,10 @@ export type ExecuteSpendInstruction<
   TAccountRecipient extends string | AccountMeta<string> = string,
   TAccountRecipientTokenAccount extends string | AccountMeta<string> = string,
   TAccountSpendAuthority extends string | AccountMeta<string> = string,
+  TAccountPhygitalTokenProgram extends string | AccountMeta<string> =
+    "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A",
+  TAccountSlotHashes extends string | AccountMeta<string> =
+    "SysvarS1otHashes111111111111111111111111111",
   TAccountInstructionsSysvar extends string | AccountMeta<string> =
     "Sysvar1nstructions1111111111111111111111111",
   TAccountTokenProgram extends string | AccountMeta<string> =
@@ -68,7 +78,7 @@ export type ExecuteSpendInstruction<
   InstructionWithAccounts<
     [
       TAccountAsset extends string
-        ? ReadonlyAccount<TAccountAsset>
+        ? WritableAccount<TAccountAsset>
         : TAccountAsset,
       TAccountOwner extends string
         ? ReadonlyAccount<TAccountOwner>
@@ -88,6 +98,12 @@ export type ExecuteSpendInstruction<
       TAccountSpendAuthority extends string
         ? ReadonlyAccount<TAccountSpendAuthority>
         : TAccountSpendAuthority,
+      TAccountPhygitalTokenProgram extends string
+        ? ReadonlyAccount<TAccountPhygitalTokenProgram>
+        : TAccountPhygitalTokenProgram,
+      TAccountSlotHashes extends string
+        ? ReadonlyAccount<TAccountSlotHashes>
+        : TAccountSlotHashes,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
@@ -100,29 +116,49 @@ export type ExecuteSpendInstruction<
 
 export type ExecuteSpendInstructionData = {
   discriminator: ReadonlyUint8Array;
+  signedMessageIndex: number;
+  slotNumber: bigint;
+  clientDataJson: ReadonlyUint8Array;
   amount: bigint;
 };
 
-export type ExecuteSpendInstructionDataArgs = { amount: number | bigint };
+export type ExecuteSpendInstructionDataArgs = {
+  signedMessageIndex: number;
+  slotNumber: number | bigint;
+  clientDataJson: ReadonlyUint8Array;
+  amount: number | bigint;
+};
 
-export function getExecuteSpendInstructionDataEncoder(): FixedSizeEncoder<ExecuteSpendInstructionDataArgs> {
+export function getExecuteSpendInstructionDataEncoder(): Encoder<ExecuteSpendInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
+      ["signedMessageIndex", getU8Encoder()],
+      ["slotNumber", getU64Encoder()],
+      [
+        "clientDataJson",
+        addEncoderSizePrefix(getBytesEncoder(), getU32Encoder()),
+      ],
       ["amount", getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: EXECUTE_SPEND_DISCRIMINATOR }),
   );
 }
 
-export function getExecuteSpendInstructionDataDecoder(): FixedSizeDecoder<ExecuteSpendInstructionData> {
+export function getExecuteSpendInstructionDataDecoder(): Decoder<ExecuteSpendInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
+    ["signedMessageIndex", getU8Decoder()],
+    ["slotNumber", getU64Decoder()],
+    [
+      "clientDataJson",
+      addDecoderSizePrefix(getBytesDecoder(), getU32Decoder()),
+    ],
     ["amount", getU64Decoder()],
   ]);
 }
 
-export function getExecuteSpendInstructionDataCodec(): FixedSizeCodec<
+export function getExecuteSpendInstructionDataCodec(): Codec<
   ExecuteSpendInstructionDataArgs,
   ExecuteSpendInstructionData
 > {
@@ -140,10 +176,11 @@ export type ExecuteSpendAsyncInput<
   TAccountRecipient extends string = string,
   TAccountRecipientTokenAccount extends string = string,
   TAccountSpendAuthority extends string = string,
+  TAccountPhygitalTokenProgram extends string = string,
+  TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  /** handler by decoding it with the generated client. */
   asset: Address<TAccountAsset>;
   owner: Address<TAccountOwner>;
   mint: Address<TAccountMint>;
@@ -152,8 +189,13 @@ export type ExecuteSpendAsyncInput<
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
   /** Per-asset SPL delegate (this program's PDA) the owner approved; signs the delegated transfer. */
   spendAuthority?: Address<TAccountSpendAuthority>;
+  phygitalTokenProgram?: Address<TAccountPhygitalTokenProgram>;
+  slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
+  signedMessageIndex: ExecuteSpendInstructionDataArgs["signedMessageIndex"];
+  slotNumber: ExecuteSpendInstructionDataArgs["slotNumber"];
+  clientDataJson: ExecuteSpendInstructionDataArgs["clientDataJson"];
   amount: ExecuteSpendInstructionDataArgs["amount"];
 };
 
@@ -165,6 +207,8 @@ export async function getExecuteSpendInstructionAsync<
   TAccountRecipient extends string,
   TAccountRecipientTokenAccount extends string,
   TAccountSpendAuthority extends string,
+  TAccountPhygitalTokenProgram extends string,
+  TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_SPEND_PROGRAM_ADDRESS,
@@ -177,6 +221,8 @@ export async function getExecuteSpendInstructionAsync<
     TAccountRecipient,
     TAccountRecipientTokenAccount,
     TAccountSpendAuthority,
+    TAccountPhygitalTokenProgram,
+    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram
   >,
@@ -191,6 +237,8 @@ export async function getExecuteSpendInstructionAsync<
     TAccountRecipient,
     TAccountRecipientTokenAccount,
     TAccountSpendAuthority,
+    TAccountPhygitalTokenProgram,
+    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram
   >
@@ -201,7 +249,7 @@ export async function getExecuteSpendInstructionAsync<
 
   // Original accounts.
   const originalAccounts = {
-    asset: { value: input.asset ?? null, isWritable: false },
+    asset: { value: input.asset ?? null, isWritable: true },
     owner: { value: input.owner ?? null, isWritable: false },
     mint: { value: input.mint ?? null, isWritable: false },
     ownerTokenAccount: {
@@ -214,6 +262,11 @@ export async function getExecuteSpendInstructionAsync<
       isWritable: true,
     },
     spendAuthority: { value: input.spendAuthority ?? null, isWritable: false },
+    phygitalTokenProgram: {
+      value: input.phygitalTokenProgram ?? null,
+      isWritable: false,
+    },
+    slotHashes: { value: input.slotHashes ?? null, isWritable: false },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
       isWritable: false,
@@ -237,6 +290,14 @@ export async function getExecuteSpendInstructionAsync<
       ),
     });
   }
+  if (!accounts.phygitalTokenProgram.value) {
+    accounts.phygitalTokenProgram.value =
+      "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A" as Address<"DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A">;
+  }
+  if (!accounts.slotHashes.value) {
+    accounts.slotHashes.value =
+      "SysvarS1otHashes111111111111111111111111111" as Address<"SysvarS1otHashes111111111111111111111111111">;
+  }
   if (!accounts.instructionsSysvar.value) {
     accounts.instructionsSysvar.value =
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
@@ -256,6 +317,8 @@ export async function getExecuteSpendInstructionAsync<
       getAccountMeta("recipient", accounts.recipient),
       getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
       getAccountMeta("spendAuthority", accounts.spendAuthority),
+      getAccountMeta("phygitalTokenProgram", accounts.phygitalTokenProgram),
+      getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
@@ -272,6 +335,8 @@ export async function getExecuteSpendInstructionAsync<
     TAccountRecipient,
     TAccountRecipientTokenAccount,
     TAccountSpendAuthority,
+    TAccountPhygitalTokenProgram,
+    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram
   >);
@@ -285,10 +350,11 @@ export type ExecuteSpendInput<
   TAccountRecipient extends string = string,
   TAccountRecipientTokenAccount extends string = string,
   TAccountSpendAuthority extends string = string,
+  TAccountPhygitalTokenProgram extends string = string,
+  TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
   TAccountTokenProgram extends string = string,
 > = {
-  /** handler by decoding it with the generated client. */
   asset: Address<TAccountAsset>;
   owner: Address<TAccountOwner>;
   mint: Address<TAccountMint>;
@@ -297,8 +363,13 @@ export type ExecuteSpendInput<
   recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
   /** Per-asset SPL delegate (this program's PDA) the owner approved; signs the delegated transfer. */
   spendAuthority: Address<TAccountSpendAuthority>;
+  phygitalTokenProgram?: Address<TAccountPhygitalTokenProgram>;
+  slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   tokenProgram?: Address<TAccountTokenProgram>;
+  signedMessageIndex: ExecuteSpendInstructionDataArgs["signedMessageIndex"];
+  slotNumber: ExecuteSpendInstructionDataArgs["slotNumber"];
+  clientDataJson: ExecuteSpendInstructionDataArgs["clientDataJson"];
   amount: ExecuteSpendInstructionDataArgs["amount"];
 };
 
@@ -310,6 +381,8 @@ export function getExecuteSpendInstruction<
   TAccountRecipient extends string,
   TAccountRecipientTokenAccount extends string,
   TAccountSpendAuthority extends string,
+  TAccountPhygitalTokenProgram extends string,
+  TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TAccountTokenProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_SPEND_PROGRAM_ADDRESS,
@@ -322,6 +395,8 @@ export function getExecuteSpendInstruction<
     TAccountRecipient,
     TAccountRecipientTokenAccount,
     TAccountSpendAuthority,
+    TAccountPhygitalTokenProgram,
+    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram
   >,
@@ -335,6 +410,8 @@ export function getExecuteSpendInstruction<
   TAccountRecipient,
   TAccountRecipientTokenAccount,
   TAccountSpendAuthority,
+  TAccountPhygitalTokenProgram,
+  TAccountSlotHashes,
   TAccountInstructionsSysvar,
   TAccountTokenProgram
 > {
@@ -344,7 +421,7 @@ export function getExecuteSpendInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    asset: { value: input.asset ?? null, isWritable: false },
+    asset: { value: input.asset ?? null, isWritable: true },
     owner: { value: input.owner ?? null, isWritable: false },
     mint: { value: input.mint ?? null, isWritable: false },
     ownerTokenAccount: {
@@ -357,6 +434,11 @@ export function getExecuteSpendInstruction<
       isWritable: true,
     },
     spendAuthority: { value: input.spendAuthority ?? null, isWritable: false },
+    phygitalTokenProgram: {
+      value: input.phygitalTokenProgram ?? null,
+      isWritable: false,
+    },
+    slotHashes: { value: input.slotHashes ?? null, isWritable: false },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
       isWritable: false,
@@ -372,6 +454,14 @@ export function getExecuteSpendInstruction<
   const args = { ...input };
 
   // Resolve default values.
+  if (!accounts.phygitalTokenProgram.value) {
+    accounts.phygitalTokenProgram.value =
+      "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A" as Address<"DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A">;
+  }
+  if (!accounts.slotHashes.value) {
+    accounts.slotHashes.value =
+      "SysvarS1otHashes111111111111111111111111111" as Address<"SysvarS1otHashes111111111111111111111111111">;
+  }
   if (!accounts.instructionsSysvar.value) {
     accounts.instructionsSysvar.value =
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
@@ -391,6 +481,8 @@ export function getExecuteSpendInstruction<
       getAccountMeta("recipient", accounts.recipient),
       getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
       getAccountMeta("spendAuthority", accounts.spendAuthority),
+      getAccountMeta("phygitalTokenProgram", accounts.phygitalTokenProgram),
+      getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
       getAccountMeta("tokenProgram", accounts.tokenProgram),
     ],
@@ -407,6 +499,8 @@ export function getExecuteSpendInstruction<
     TAccountRecipient,
     TAccountRecipientTokenAccount,
     TAccountSpendAuthority,
+    TAccountPhygitalTokenProgram,
+    TAccountSlotHashes,
     TAccountInstructionsSysvar,
     TAccountTokenProgram
   >);
@@ -418,7 +512,6 @@ export type ParsedExecuteSpendInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    /** handler by decoding it with the generated client. */
     asset: TAccountMetas[0];
     owner: TAccountMetas[1];
     mint: TAccountMetas[2];
@@ -427,8 +520,10 @@ export type ParsedExecuteSpendInstruction<
     recipientTokenAccount: TAccountMetas[5];
     /** Per-asset SPL delegate (this program's PDA) the owner approved; signs the delegated transfer. */
     spendAuthority: TAccountMetas[6];
-    instructionsSysvar: TAccountMetas[7];
-    tokenProgram: TAccountMetas[8];
+    phygitalTokenProgram: TAccountMetas[7];
+    slotHashes: TAccountMetas[8];
+    instructionsSysvar: TAccountMetas[9];
+    tokenProgram: TAccountMetas[10];
   };
   data: ExecuteSpendInstructionData;
 };
@@ -441,12 +536,12 @@ export function parseExecuteSpendInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedExecuteSpendInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 9) {
+  if (instruction.accounts.length < 11) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 9,
+        expectedAccountMetas: 11,
       },
     );
   }
@@ -466,6 +561,8 @@ export function parseExecuteSpendInstruction<
       recipient: getNextAccount(),
       recipientTokenAccount: getNextAccount(),
       spendAuthority: getNextAccount(),
+      phygitalTokenProgram: getNextAccount(),
+      slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
       tokenProgram: getNextAccount(),
     },

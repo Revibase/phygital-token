@@ -1,10 +1,6 @@
 import {
   Endian,
-  getBase64Decoder,
-  getBase64Encoder,
   getU32Encoder,
-  type Address,
-  type Base64EncodedBytes,
   type Rpc,
   type Signature,
   type SolanaRpcApi,
@@ -25,7 +21,6 @@ import {
   type Base64URLString,
 } from "@simplewebauthn/browser";
 import {
-  getAssetDecoder,
   getVerifyAssetInstruction,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 } from "../generated/index.js";
@@ -38,6 +33,7 @@ import {
 import { getLatestSlotHash } from "./slotHash.js";
 import { findAssetPda } from "./pdas/index.js";
 import { parseSecp256r1Pubkey } from "../instructions/mint.js";
+import { fetchAssetCredentialFromCredentialId } from "./assetCredential.js";
 
 const DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT = `https://revibase.com/api/verifyDynamicUrl`;
 
@@ -210,43 +206,6 @@ export function verifyDynamicUrlWithoutCounterCheck(
 export type GetPublicKeyFromCredentialIdCallback = (
   credentialId: Base64URLString,
 ) => Promise<Base64URLString>;
-
-async function fetchAssetCredentialFromCredentialId(
-  credentialId: Base64URLString,
-  rpc: Rpc<SolanaRpcApi>,
-): Promise<{ publicKey: Base64URLString; asset: Address }> {
-  const data = await rpc
-    .getProgramAccounts(PHYGITAL_TOKEN_PROGRAM_ADDRESS, {
-      encoding: "base64",
-      filters: [
-        { dataSize: BigInt(179) },
-        {
-          memcmp: {
-            encoding: "base64" as const,
-            offset: BigInt(115),
-            bytes: getBase64Decoder().decode(
-              base64URLStringToBuffer(credentialId),
-            ) as Base64EncodedBytes,
-          },
-        },
-      ],
-    })
-    .send();
-
-  if (!data.length) {
-    throw new Error("No account found.");
-  }
-
-  const asset = getAssetDecoder().decode(
-    getBase64Encoder().encode(data[0].account.data[0]),
-  );
-  return {
-    publicKey: bufferToBase64URLString(
-      new Uint8Array(asset.publicKey[0]).buffer,
-    ),
-    asset: data[0].pubkey,
-  };
-}
 
 async function fetchPublicKeyFromCredentialId(
   credentialId: Base64URLString,

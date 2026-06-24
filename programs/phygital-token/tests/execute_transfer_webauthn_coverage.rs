@@ -102,13 +102,12 @@ fn execute_transfer_rejects_missing_user_presence() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction_with_auth_flags(
-            recipient.pubkey(),
-            slot_number,
-            slot_hash,
-            0x00,
-        );
+    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with_auth_flags(
+        recipient.pubkey(),
+        slot_number,
+        slot_hash,
+        0x00,
+    );
 
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),

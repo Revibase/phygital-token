@@ -9,10 +9,13 @@ name = "phygital_token_client"
 
 [features]
 default = []
+anchor = ["dep:anchor-lang"]
+anchor-idl-build = ["anchor", "anchor-lang/idl-build"]
 # Off-chain account fetching helpers; not used on-chain.
 fetch = ["dep:solana-account", "dep:solana-rpc-client"]
 
 [dependencies]
+anchor-lang = { version = "1.0.2", optional = true }
 borsh = { version = "1", features = ["derive"] }
 num-derive = "0.4"
 num-traits = "0.2"

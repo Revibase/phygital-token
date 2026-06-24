@@ -8,7 +8,9 @@
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(not(feature = "anchor"), derive(borsh::BorshSerialize, borsh::BorshDeserialize))]
+#[cfg_attr(feature = "anchor", derive(anchor_lang::AnchorSerialize, anchor_lang::AnchorDeserialize))]
 pub struct Secp256r1VerifyArgs {
 pub signed_message_index: u8,
 pub slot_number: u64,

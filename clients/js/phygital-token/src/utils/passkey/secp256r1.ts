@@ -8,7 +8,6 @@ import {
   getClientDataJsonBytes,
   getSecp256r1Message,
 } from "./internal.js";
-import { type TransferSession } from "../../instructions/transfer.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
@@ -54,14 +53,6 @@ async function buildTransferMessageHash(input: {
   );
 }
 
-async function buildVerifyMessageHash(input: {
-  message: string;
-}): Promise<Uint8Array> {
-  return sha256(
-    concatBytes(new TextEncoder().encode(input.message)),
-  );
-}
-
 export async function buildTransferChallenge(input: {
   recipient: Address;
   slotHash: Uint8Array;
@@ -80,13 +71,11 @@ export async function buildTransferChallenge(input: {
 }
 
 
-export async function buildVerifyMessage(input: {
-  message: string;
+export async function buildVerifyChallenge(input: {
+  message: Uint8Array;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
-  const messageHash = await buildVerifyMessageHash({
-    message: input.message,
-  });
+  const messageHash = sha256(input.message);
 
   return sha256(
     concatBytes(
@@ -95,6 +84,16 @@ export async function buildVerifyMessage(input: {
       new Uint8Array(input.slotHash),
     ),
   );
+}
+
+export async function buildVerifyMessage(input: {
+  message: string;
+  slotHash: Uint8Array;
+}): Promise<Uint8Array> {
+  return buildVerifyChallenge({
+    message: new TextEncoder().encode(input.message),
+    slotHash: input.slotHash,
+  });
 }
 
 

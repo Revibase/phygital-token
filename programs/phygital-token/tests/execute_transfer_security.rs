@@ -94,7 +94,7 @@ fn execute_transfer_rejects_wrong_sender_in_message_hash() {
 }
 
 #[test]
-fn execute_transfer_rejects_secp_not_preceding() {
+fn execute_transfer_succeeds_when_secp_not_immediately_preceding() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.mint_asset_with_passkey(&passkey);
@@ -102,7 +102,7 @@ fn execute_transfer_rejects_secp_not_preceding() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(ctx.program_authority(), slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
         ctx.program_authority(),
@@ -114,9 +114,8 @@ fn execute_transfer_rejects_secp_not_preceding() {
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    let err = ctx
-        .send_execute_transfer_with_instructions(vec![secp_ix, noop, transfer_ix], &[&recipient]);
-    assert_token_program_error(err, "InvalidSecp256r1Instruction");
+    ctx.send_execute_transfer_with_instructions(vec![secp_ix, noop, transfer_ix], &[&recipient])
+        .expect("transfer should succeed when secp256r1 ix is not immediately preceding");
 }
 
 #[test]
