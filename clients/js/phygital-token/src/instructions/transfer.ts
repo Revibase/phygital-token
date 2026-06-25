@@ -25,7 +25,6 @@ export type TransferSession = {
   slotHash: Uint8Array;
   slotNumber: bigint;
   challenge: Uint8Array;
-  recipient: TransactionSigner,
 };
 
 /**
@@ -36,11 +35,10 @@ export type TransferSession = {
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
   displayInfo: AssetDisplayInfo;
-  recipient: TransactionSigner;
 }): Promise<TransferSession> {
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
-    recipient: input.recipient.address,
+    asset: input.displayInfo.asset,
     slotHash,
   });
 
@@ -50,7 +48,6 @@ export async function beginTransfer(input: {
     slotHash,
     slotNumber,
     challenge,
-    recipient: input.recipient,
   };
 }
 
@@ -116,6 +113,7 @@ export async function authenticateToken(
 export async function completeTransfer(
   session: TransferSession,
   response: AuthenticationResponseJSON,
+  recipient: TransactionSigner,
 ): Promise<Instruction[]> {
   const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
 
@@ -126,7 +124,7 @@ export async function completeTransfer(
     });
 
   const recipientTokenAccount = await findAssociatedTokenAddress(
-    session.recipient.address,
+    recipient.address,
     session.displayInfo.mint,
     tokenProgram,
   );
@@ -137,7 +135,7 @@ export async function completeTransfer(
   );
 
   const executeTransfer = await getExecuteTransferInstructionAsync({
-    recipient: session.recipient,
+    recipient,
     sender: session.displayInfo.currentOwner,
     asset: session.displayInfo.asset,
     mint: session.displayInfo.mint,

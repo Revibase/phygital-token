@@ -586,7 +586,7 @@ impl TestContext {
         let (secp_ix, verify_args) =
             asset
                 .passkey
-                .secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
+                .secp256r1_verify_instruction(asset.asset.key(), slot_number, slot_hash);
 
         let transfer_ix = self.execute_transfer_ix(
             recipient.pubkey(),
@@ -622,7 +622,7 @@ impl TestContext {
         let (secp_ix, verify_args) =
             asset
                 .passkey
-                .secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
+                .secp256r1_verify_instruction(asset.asset.key(), slot_number, slot_hash);
 
         let transfer_ix =
             self.execute_transfer_ix(recipient.pubkey(), sender, asset.asset, mint, verify_args);

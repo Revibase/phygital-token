@@ -19,7 +19,7 @@ fn execute_transfer_rejects_signature_index_out_of_bounds() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
     verify_args.signed_message_index = 1;
 
     let transfer_ix = ctx.execute_transfer_ix(
@@ -47,7 +47,7 @@ fn execute_transfer_rejects_unparseable_client_data() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
     verify_args.client_data_json = b"not-json".to_vec();
 
     let transfer_ix = ctx.execute_transfer_ix(
@@ -75,7 +75,7 @@ fn execute_transfer_rejects_client_data_hash_mismatch() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
     verify_args.client_data_json.push(b' ');
 
     let transfer_ix = ctx.execute_transfer_ix(
@@ -103,7 +103,7 @@ fn execute_transfer_rejects_missing_user_presence() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with_auth_flags(
-        recipient.pubkey(),
+        asset.asset,
         slot_number,
         slot_hash,
         0x00,
@@ -142,7 +142,7 @@ fn execute_transfer_bearer_signature_claimable_by_any_recipient() {
 
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
     let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(other_recipient.pubkey(), slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
 
     // A different recipient than the (conceptually) intended one claims the asset.
     let transfer_ix = ctx.execute_transfer_ix(

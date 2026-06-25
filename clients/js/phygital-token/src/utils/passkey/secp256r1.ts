@@ -46,19 +46,19 @@ function buildSecp256r1VerifyInputFromWebAuthn(input: {
 }
 
 async function buildTransferMessageHash(input: {
-  recipient: Address;
+  asset: Address;
 }): Promise<Uint8Array> {
   return sha256(
-    concatBytes(encodeAddress(input.recipient)),
+    concatBytes(encodeAddress(input.asset)),
   );
 }
 
 export async function buildTransferChallenge(input: {
-  recipient: Address;
+  asset: Address;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
   const messageHash = await buildTransferMessageHash({
-    recipient: input.recipient,
+    asset: input.asset,
   });
 
   return sha256(

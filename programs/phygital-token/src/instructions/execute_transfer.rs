@@ -123,7 +123,7 @@ pub fn handler(
         ctx.accounts.asset.is_locked = true
     }
 
-    let message_hash = build_transfer_message_hash(&ctx.accounts.recipient.key());
+    let message_hash = build_transfer_message_hash(&ctx.accounts.asset.key());
 
     secp256r1_verify_args.verify_webauthn(
         &ctx.accounts.slot_hashes,

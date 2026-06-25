@@ -1,6 +1,10 @@
 mod common;
 
 use anchor_lang::solana_program::system_instruction;
+use anchor_spl::associated_token::{
+    spl_associated_token_account::instruction::create_associated_token_account_idempotent,
+};
+use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use common::{
     assert_token_program_error, assert_transaction_failed, current_slot_entry, MintedAsset,
     TestContext, TestPasskey, LAMPORTS_PER_SOL,
@@ -51,7 +55,7 @@ fn execute_transfer_rejects_passkey_for_different_asset() {
 
     let asset_b_instance = ctx.asset_pda(&Secp256r1Pubkey(passkey_b.compressed_pubkey));
     let (secp_ix, verify_args) =
-        passkey_a.secp256r1_verify_instruction(ctx.program_authority(), slot_number, slot_hash);
+        passkey_a.secp256r1_verify_instruction(asset_a.asset, slot_number, slot_hash);
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
         ctx.program_authority(),
@@ -68,19 +72,24 @@ fn execute_transfer_rejects_passkey_for_different_asset() {
 }
 
 #[test]
-fn execute_transfer_rejects_wrong_sender_in_message_hash() {
+fn execute_transfer_rejects_wrong_sender() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.mint_asset_with_passkey(&passkey);
     let recipient = Keypair::new();
     let wrong_sender = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
-
+    let ata_ix = create_associated_token_account_idempotent(
+        &recipient.pubkey(),
+        &wrong_sender.pubkey(),
+        &asset.mint,
+        &TOKEN_2022_ID,
+    );
     let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(wrong_sender.pubkey(), slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
-        ctx.program_authority(),
+        wrong_sender.pubkey(),
         asset.asset,
         asset.mint,
         verify_args,
@@ -88,9 +97,9 @@ fn execute_transfer_rejects_wrong_sender_in_message_hash() {
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    let err =
-        ctx.send_execute_transfer_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
-    assert_token_program_error(err, "ChallengeHashMismatch");
+    let err = ctx
+        .send_execute_transfer_with_instructions(vec![ata_ix, secp_ix, transfer_ix], &[&recipient]);
+    assert_token_program_error(err, "OwnerMismatch");
 }
 
 #[test]
@@ -102,7 +111,7 @@ fn execute_transfer_succeeds_when_secp_not_immediately_preceding() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(recipient.pubkey(), slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
         ctx.program_authority(),
@@ -147,7 +156,7 @@ fn execute_transfer_rejects_wrong_transfer_hook_program() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(ctx.program_authority(), slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
     let wrong_hook = Keypair::new().pubkey();
     let transfer_ix = ctx.execute_transfer_ix_with_hook(
         recipient.pubkey(),

@@ -50,21 +50,21 @@ impl TestPasskey {
 
     pub fn secp256r1_verify_instruction(
         &self,
-        recipient: Pubkey,
+        asset: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.secp256r1_verify_instruction_with(recipient, slot_number, slot_hash, None)
+        self.secp256r1_verify_instruction_with(asset, slot_number, slot_hash, None)
     }
 
     pub fn secp256r1_verify_instruction_with(
         &self,
-        recipient: Pubkey,
+        asset: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(&recipient);
+        let message_hash = build_transfer_message_hash(&asset);
         self.build_secp256r1_verify_instruction(
             ActionType::Transfer,
             message_hash,
@@ -77,12 +77,12 @@ impl TestPasskey {
 
     pub fn secp256r1_verify_instruction_with_auth_flags(
         &self,
-        recipient: Pubkey,
+        asset: Pubkey,
         slot_number: u64,
         slot_hash: [u8; 32],
         auth_flags: u8,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(&recipient);
+        let message_hash = build_transfer_message_hash(&asset);
         self.build_secp256r1_verify_instruction(
             ActionType::Transfer,
             message_hash,
