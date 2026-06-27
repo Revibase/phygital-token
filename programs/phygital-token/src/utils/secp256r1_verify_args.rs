@@ -290,31 +290,6 @@ impl Secp256r1VerifyArgs {
         err!(PhygitalError::InvalidSlotHash)
     }
 
-    fn extract_client_data_hash_from_instruction(
-        &self,
-        instructions_sysvar: &UncheckedAccount,
-    ) -> Result<[u8; 32]> {
-        let data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
-
-        let num_signatures = *data
-            .first()
-            .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
-
-        require!(
-            self.signed_message_index < num_signatures,
-            PhygitalError::SignatureIndexOutOfBounds
-        );
-
-        let offsets = Self::read_signature_offsets(&data, self.signed_message_index)?;
-        let message = Self::extract_message_data(&data, &offsets)?;
-
-        let client_data_hash: [u8; 32] = message[(message.len() - CLIENT_DATA_HASH_LEN)..]
-            .try_into()
-            .map_err(|_| PhygitalError::InvalidSignatureOffsets)?;
-
-        Ok(client_data_hash)
-    }
-
     pub fn extract_public_key_from_instruction(
         &self,
         instructions_sysvar: &UncheckedAccount,

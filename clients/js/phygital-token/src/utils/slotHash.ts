@@ -1,7 +1,6 @@
 import {
   getBase64Encoder,
   getU64Decoder,
-  type Address,
   type Rpc,
   type SolanaRpcApi,
 } from "@solana/kit";
@@ -38,22 +37,4 @@ export async function getLatestSlotHash(rpc: Rpc<SolanaRpcApi>) {
   const estimatedSlotHashExpiry = Date.now() + 512 * 400;
 
   return { slotHash, slotNumber, estimatedSlotHashExpiry };
-}
-
-export async function fetchAccountData(
-  rpc: Rpc<SolanaRpcApi>,
-  account: Address,
-): Promise<Uint8Array> {
-  const response = await rpc
-    .getAccountInfo(account, {
-      encoding: "base64",
-      commitment: "confirmed",
-    })
-    .send();
-
-  if (!response.value?.data) {
-    throw new Error(`Account not found: ${account}`);
-  }
-
-  return decodeBase64AccountData(response.value.data);
 }

@@ -5,7 +5,7 @@ use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 use crate::error::PhygitalError;
 use crate::state::{find_asset_pda, Asset, LAST_TRANSFER_SLOT_NONE};
 use crate::utils::{ActionType, ChallengeArgs, Secp256r1VerifyArgs};
-use crate::{build_verify_message_hash, Secp256r1Pubkey};
+use crate::{build_verify_asset_message_hash, Secp256r1Pubkey};
 
 #[event]
 pub struct VerifyAssetEvent {
@@ -51,14 +51,14 @@ pub fn handler(
         );
     }
 
-    let message_hash = build_verify_message_hash(&message);
+    let message_hash = build_verify_asset_message_hash(&message);
 
     secp256r1_verify_args.verify_webauthn(
         &ctx.accounts.slot_hashes,
         &ctx.accounts.instructions_sysvar,
         ChallengeArgs {
             message_hash,
-            action_type: ActionType::Verify,
+            action_type: ActionType::VerifyAsset,
         },
     )?;
 

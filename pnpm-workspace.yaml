@@ -1,5 +1,6 @@
 packages:
   - "clients/js/*"
+  - "mcp/*"
 
 # Build-script approval (pnpm asks for an explicit decision per dependency).
 # esbuild ships a required platform binary via its install script.

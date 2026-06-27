@@ -14,6 +14,7 @@ import { type AssetDisplayInfo } from "../utils/metadata.js";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
+  type Secp256r1VerifyInput,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
 import { getExecuteTransferInstructionAsync } from "../generated/index.js";
@@ -51,61 +52,25 @@ export async function beginTransfer(input: {
   };
 }
 
-/**
- * Discoverable passkey tap — the credential id is returned in the response
- * and can be resolved on-chain via `fetchAssetCredentialFromCredentialId`.
- */
-export async function authenticateDiscoverablePasskey(input: {
-  challenge: Uint8Array;
-}): Promise<AuthenticationResponseJSON> {
-  return startAuthentication({
-    optionsJSON: {
-      challenge: bufferToBase64URLString(
-        new Uint8Array(input.challenge).buffer as ArrayBuffer,
-      ),
-      rpId: window.location.hostname,
-      userVerification: "preferred",
-      allowCredentials: [
-        {
-          id: "",
-          type: "public-key",
-          transports: ["nfc"],
-        },
-      ],
-    },
-  });
-}
-
 /** Prompts the physical asset passkey (WebAuthn / NFC tap). */
-export async function authenticatePasskey(input: {
-  challenge: Uint8Array;
-  credentialId: string;
-}): Promise<AuthenticationResponseJSON> {
-  return startAuthentication({
-    optionsJSON: {
-      challenge: bufferToBase64URLString(
-        new Uint8Array(input.challenge).buffer as ArrayBuffer,
-      ),
-      rpId: window.location.hostname,
-      userVerification: "preferred",
-      allowCredentials: [
-        {
-          id: input.credentialId,
-          type: "public-key",
-          transports: ["nfc"],
-        },
-      ],
-    },
-  });
-}
-
-/** Prompts the physical asset passkey (WebAuthn / NFC tap). */
-export async function authenticateToken(
+export async function authenticatePasskeyForTransfer(
   session: TransferSession,
 ): Promise<AuthenticationResponseJSON> {
-  return authenticatePasskey({
-    challenge: session.challenge,
-    credentialId: session.displayInfo.credentialId,
+  return startAuthentication({
+    optionsJSON: {
+      challenge: bufferToBase64URLString(
+        new Uint8Array(session.challenge).buffer as ArrayBuffer,
+      ),
+      rpId: window.location.hostname,
+      userVerification: "preferred",
+      allowCredentials: [
+        {
+          id: session.displayInfo.credentialId,
+          type: "public-key",
+          transports: ["nfc"],
+        },
+      ],
+    },
   });
 }
 
@@ -114,13 +79,15 @@ export async function completeTransfer(
   session: TransferSession,
   response: AuthenticationResponseJSON,
   recipient: TransactionSigner,
+  existingSecp256r1VerifyInputs?: Secp256r1VerifyInput[],
 ): Promise<Instruction[]> {
   const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
 
-  const { secp256r1Verify, clientDataJson } =
+  const { secp256r1Verify, signedMessageIndex, clientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       response,
       publicKey: session.displayInfo.publicKey,
+      existingSecp256r1VerifyInputs,
     });
 
   const recipientTokenAccount = await findAssociatedTokenAddress(
@@ -143,7 +110,7 @@ export async function completeTransfer(
     recipientTokenAccount,
     tokenProgram,
     secp256r1VerifyArgs: {
-      signedMessageIndex: 0,
+      signedMessageIndex,
       slotNumber: session.slotNumber,
       clientDataJson,
     },

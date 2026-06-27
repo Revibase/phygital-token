@@ -5,7 +5,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use phygital_token::utils::{
-    build_transfer_message_hash, build_verify_message_hash, ActionType, Secp256r1VerifyArgs,
+    build_transfer_message_hash, build_verify_asset_message_hash, ActionType, Secp256r1VerifyArgs,
     COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
     SIGNATURE_OFFSETS_START,
 };
@@ -109,9 +109,9 @@ impl TestPasskey {
         slot_hash: [u8; 32],
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_verify_message_hash(message.as_ref());
+        let message_hash = build_verify_asset_message_hash(message.as_ref());
         self.build_secp256r1_verify_instruction(
-            ActionType::Verify,
+            ActionType::VerifyAsset,
             message_hash,
             slot_number,
             slot_hash,

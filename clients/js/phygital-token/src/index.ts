@@ -1,30 +1,21 @@
 export {
-  authenticateDiscoverablePasskey,
-  authenticatePasskey,
-  authenticateToken,
   beginTransfer,
   completeTransfer,
+  authenticatePasskeyForTransfer,
   type TransferSession,
 } from "./instructions/transfer.js";
 
 export {
-  buildSecp256r1VerifyInstructionFromWebAuthnResponse,
-  buildTransferChallenge,
-  buildVerifyChallenge,
-  buildVerifyMessage,
-  type WebAuthnSecp256r1Verification,
-} from "./utils/passkey/secp256r1.js";
-
-export { getLatestSlotHash } from "./utils/slotHash.js";
-export { findAssociatedTokenAddress } from "./utils/associatedToken.js";
-export { TOKEN_2022_PROGRAM_ADDRESS } from "./utils/consts.js";
+  beginVerifyAsset,
+  completeVerifyAsset,
+  buildVerifyAssetArgs,
+  authenticatePasskeyForVerifyAsset,
+  type VerifyAssetSession,
+} from "./instructions/verifyAsset.js";
 
 export {
   buildCreateMintInstructions,
   buildMintTokenInstructions,
-  MAX_METADATA_NAME_LEN,
-  MAX_METADATA_SYMBOL_LEN,
-  MAX_METADATA_URI_LEN,
   parseSecp256r1Pubkey,
   parseCredentialId,
   validateMetadataFields,
@@ -43,13 +34,13 @@ export {
 } from "./utils/metadata.js";
 
 export {
-  fetchAssetCredentialFromCredentialId,
+  fetchAssetFromCredentialId,
   fetchAllAssetsFromOwner,
 } from "./utils/assetCredential.js";
 
 export {
-  verifyDynamicUrlWithoutCounterCheck,
   verifyDynamicUrl,
+  verifyDynamicUrlWithoutCounterCheck,
   verifyWithChallengeResponse,
   verifyWithChallengeResponseOverNfc,
   type VerifyDynamicUrlCallback,
@@ -60,5 +51,26 @@ export {
 } from "./utils/verify.js";
 
 export { findAssetPda } from "./utils/pdas/index.js";
+
+export {
+  evaluateAssetGating,
+  evaluateGatingTiers,
+  evaluateGatingFilter,
+  assetMatchesPredicate,
+  Gating,
+  GatingTraitValue,
+  formatGatingPredicate,
+  summarizeGatingEvaluationFailure,
+  summarizeGatingFailure,
+  summarizeGatingTierFailure,
+  type EvaluateAssetGatingOptions,
+  type GatingAssetPredicate,
+  type GatingEvaluationResult,
+  type GatingFilter,
+  type GatingFilterResult,
+  type GatingTier,
+  type GatingTierEvaluationResult,
+  type GatingTiersEvaluationResult,
+} from "./utils/gating.js";
 
 export * from "./generated/index.js";

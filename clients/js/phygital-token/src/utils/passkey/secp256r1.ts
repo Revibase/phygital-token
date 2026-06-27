@@ -1,7 +1,11 @@
 import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { getAddressEncoder, type Address, type Instruction } from "@solana/kit";
 import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify.js";
-import { SECP256R1_PROGRAM_ADDRESS, TRANSFER_ACTION_BYTES, VERIFY_ACTION_BYTES } from "../consts.js";
+import {
+  SECP256R1_PROGRAM_ADDRESS,
+  TRANSFER_ACTION_BYTES,
+  VERIFY_ASSET_ACTION_BYTES,
+} from "../consts.js";
 import {
   base64URLStringToBuffer,
   convertSignatureDERtoRS,
@@ -9,6 +13,12 @@ import {
   getSecp256r1Message,
 } from "./internal.js";
 import { sha256 } from "@noble/hashes/sha2.js";
+
+export type Secp256r1VerifyInput = {
+  publicKey: Uint8Array;
+  signature: Uint8Array;
+  message: Uint8Array;
+};
 
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((sum, part) => sum + part.length, 0);
@@ -28,38 +38,24 @@ function encodeAddress(addressValue: Address): Uint8Array {
 function buildSecp256r1VerifyInputFromWebAuthn(input: {
   publicKey: string;
   response: AuthenticationResponseJSON;
-}) {
+}): Secp256r1VerifyInput {
   const signature = convertSignatureDERtoRS(
     base64URLStringToBuffer(input.response.response.signature),
   );
   const message = getSecp256r1Message(input.response);
 
   return {
-    verifyInput: [
-      {
-        publicKey: base64URLStringToBuffer(input.publicKey),
-        signature,
-        message,
-      },
-    ],
+    publicKey: base64URLStringToBuffer(input.publicKey),
+    signature,
+    message,
   };
-}
-
-async function buildTransferMessageHash(input: {
-  asset: Address;
-}): Promise<Uint8Array> {
-  return sha256(
-    concatBytes(encodeAddress(input.asset)),
-  );
 }
 
 export async function buildTransferChallenge(input: {
   asset: Address;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
-  const messageHash = await buildTransferMessageHash({
-    asset: input.asset,
-  });
+  const messageHash = sha256(encodeAddress(input.asset));
 
   return sha256(
     concatBytes(
@@ -70,8 +66,7 @@ export async function buildTransferChallenge(input: {
   );
 }
 
-
-export async function buildVerifyChallenge(input: {
+export async function buildVerifyAssetChallenge(input: {
   message: Uint8Array;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
@@ -79,25 +74,15 @@ export async function buildVerifyChallenge(input: {
 
   return sha256(
     concatBytes(
-      VERIFY_ACTION_BYTES,
+      VERIFY_ASSET_ACTION_BYTES,
       messageHash,
       new Uint8Array(input.slotHash),
     ),
   );
 }
 
-export async function buildVerifyMessage(input: {
-  message: string;
-  slotHash: Uint8Array;
-}): Promise<Uint8Array> {
-  return buildVerifyChallenge({
-    message: new TextEncoder().encode(input.message),
-    slotHash: input.slotHash,
-  });
-}
-
-
 export type WebAuthnSecp256r1Verification = {
+  signedMessageIndex: number;
   secp256r1Verify: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
   clientDataJson: Uint8Array;
 };
@@ -105,11 +90,17 @@ export type WebAuthnSecp256r1Verification = {
 export async function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input: {
   publicKey: string;
   response: AuthenticationResponseJSON;
+  existingSecp256r1VerifyInputs?: Secp256r1VerifyInput[];
 }): Promise<WebAuthnSecp256r1Verification> {
   const parsed = buildSecp256r1VerifyInputFromWebAuthn(input);
-
+  let signedMessageIndex = 0;
+  if (input.existingSecp256r1VerifyInputs?.length) {
+    signedMessageIndex = input.existingSecp256r1VerifyInputs.length;
+    input.existingSecp256r1VerifyInputs.push(parsed);
+  }
   return {
-    secp256r1Verify: getSecp256r1VerifyInstruction(parsed.verifyInput),
+    signedMessageIndex,
+    secp256r1Verify: getSecp256r1VerifyInstruction(input.existingSecp256r1VerifyInputs ?? [parsed]),
     clientDataJson: getClientDataJsonBytes(input.response),
   };
 }

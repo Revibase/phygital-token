@@ -64,7 +64,7 @@ function skipOneCborItem(buf: Uint8Array, i: number): number {
   }
 
   if (mt === 6) {
-    const { next } = readTagNumber(ai, buf, p);
+    const { next } = readTagNumber(ai, p);
     return skipOneCborItem(buf, next);
   }
 
@@ -130,11 +130,7 @@ function readLength(
   throw new Error("CBOR: invalid length encoding");
 }
 
-function readTagNumber(
-  ai: number,
-  buf: Uint8Array,
-  p: number,
-): { next: number } {
+function readTagNumber(ai: number, p: number): { next: number } {
   if (ai < 24) {
     return { next: p };
   }

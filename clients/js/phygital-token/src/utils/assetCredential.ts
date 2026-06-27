@@ -1,5 +1,4 @@
 import {
-  getAddressDecoder,
   getAddressEncoder,
   getBase64Decoder,
   getBase64Encoder,
@@ -30,7 +29,7 @@ const ASSET_OWNER_OFF_SET = 41;
 /**
  * Resolves a passkey credential id to its on-chain asset account and secp256r1 public key.
  */
-export async function fetchAssetCredentialFromCredentialId(
+export async function fetchAssetFromCredentialId(
   credentialId: Base64URLString,
   rpc: Rpc<SolanaRpcApi>,
 ): Promise<{ publicKey: Base64URLString; asset: Asset }> {

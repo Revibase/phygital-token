@@ -2,9 +2,7 @@ import {
   Endian,
   getU32Encoder,
   type Rpc,
-  type Signature,
   type SolanaRpcApi,
-  type TransactionSigner,
 } from "@solana/kit";
 import {
   base64URLStringToBuffer,
@@ -20,47 +18,58 @@ import {
   type AuthenticationResponseJSON,
   type Base64URLString,
 } from "@simplewebauthn/browser";
-import {
-  getVerifyAssetInstruction,
-  PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-} from "../generated/index.js";
 import { authenticateWithNfc } from "./passkey/nfc/index.js";
-import { sendInstructions } from "./sendInstructions.js";
-import {
-  buildSecp256r1VerifyInstructionFromWebAuthnResponse,
-  buildVerifyMessage,
-} from "./passkey/secp256r1.js";
-import { getLatestSlotHash } from "./slotHash.js";
-import { findAssetPda } from "./pdas/index.js";
-import { parseSecp256r1Pubkey } from "../instructions/mint.js";
-import { fetchAssetCredentialFromCredentialId } from "./assetCredential.js";
+import { fetchAssetFromCredentialId } from "./assetCredential.js";
 
-const DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT = `https://revibase.com/api/verifyDynamicUrl`;
+const DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT = `https://revibase.com/api/verifyAsset`;
+
+/**
+ * Two ways to check a phygital asset — **identification** vs **authentication**.
+ *
+ * ## Identification (`verifyDynamicUrl`) — no second tap
+ *
+ * Answers: **"Which asset is this?"**
+ *
+ * The user already tapped once and you have a signed link. You can confirm which
+ * asset it belongs to **without asking them to tap again**. Think of it like
+ * checking an ID card someone scanned earlier.
+ *
+ * ## Authentication (`verifyWithChallengeResponse`) — tap required
+ *
+ * Answers: **"Is the person with the key here right now?"**
+ *
+ * Ask the user to **tap their NFC key now**. The key must sign something fresh,
+ * so you know the holder is physically present. Think of it like logging in with
+ * a physical key, not just reading a badge from a photo.
+ *
+ * | | Identification | Authentication |
+ * |---|---|---|
+ * | Question | Which asset is this? | Is the holder here now? |
+ * | User taps again? | No | Yes |
+ * | What you pass in | URL params from an earlier scan | Nothing — the function handles the tap |
+ * | Typical use | Product pages, ownership lookup, links | Transfers, high-value actions, login |
+ *
+ * @packageDocumentation
+ */
 
 export type VerifyWithChallengeResponseResult = {
   publicKey: string;
   isVerified: boolean;
-  signature?: Signature;
 };
 
-export type VerifyWithChallengeResponseOptions =
-  | {
-      rpc?: Rpc<SolanaRpcApi>;
-      fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
-      postVerificationOnChain: false;
-    }
-  | {
-      rpc: Rpc<SolanaRpcApi>;
-      fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
-      postVerificationOnChain: true;
-      message?: string;
-      feePayer: TransactionSigner;
-    };
+/** Options for {@link verifyWithChallengeResponse} and {@link verifyWithChallengeResponseOverNfc}. */
+export type VerifyWithChallengeResponseOptions = {
+  rpc: Rpc<SolanaRpcApi>;
+  message?: string;
+  fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
+};
 
 export type VerifyDynamicUrlResult = VerifyWithChallengeResponseResult & {
+  /** Included in the scanned URL; the server uses this to reject reused links. */
   counter: number;
 };
 
+/** Override where {@link verifyDynamicUrl} sends the scanned params (default: Revibase). */
 export type VerifyDynamicUrlCallback = (
   params: URLSearchParams,
 ) => Promise<VerifyDynamicUrlResult>;
@@ -81,35 +90,16 @@ const defaultVerifyDynamicUrlCallback: VerifyDynamicUrlCallback = async (
 };
 
 /**
- * Verifies a scanned dynamic URL against the server.
+ * **Identification** — confirm which asset a scan belongs to, with no second tap.
  *
- * By default the params are sent to a fixed endpoint. Pass `callback` to fully
- * override how (and where) verification is performed — e.g. to hit your own
- * backend, add auth headers, or verify against a different service.
+ * Pass the query params from a signed link (e.g. `url.searchParams`). By default
+ * they are sent to Revibase; pass `callback` to use your own server.
  *
- * ## Threat model
+ * Use this when you need to **identify** an asset — show product info, look up
+ * ownership, or validate a link — not when you need to **authenticate** that the
+ * holder is present (use {@link verifyWithChallengeResponse} for that).
  *
- * The signed message (`counter || nonce`) is produced by the **chip**, not by
- * the verifier. The URL is therefore a self-contained **bearer proof**: anyone
- * holding it can present it. The server adds an **anti-replay counter check**
- * (it tracks the last-seen counter per key and rejects stale ones), so the
- * *same* URL cannot be accepted twice.
- *
- * What this does NOT protect against:
- * - **Pre-play / race:** an attacker who intercepts a freshly-signed URL before
- *   the genuine request reaches the server can submit it first. The server sees
- *   a new counter, accepts it, and bumps the stored counter — the genuine
- *   request is then rejected as stale.
- * - **Liveness:** it only proves the key signed *some* message at *some* time,
- *   not that the credential is physically present right now.
- *
- * Use this when you only have a scanned URL and are online. If the credential
- * is physically present and you can run an interactive session, prefer
- * {@link verifyWithChallengeResponse}, which is replay-proof because the
- * verifier chooses a fresh challenge.
- *
- * @see verifyDynamicUrlWithoutCounterCheck for the offline variant (no replay protection at all).
- * @see verifyWithChallengeResponse for the strongest, liveness-proving flow.
+ * @see {@link verifyDynamicUrlWithoutCounterCheck} for the offline variant.
  */
 export async function verifyDynamicUrl(
   params: URLSearchParams,
@@ -119,33 +109,14 @@ export async function verifyDynamicUrl(
 }
 
 /**
- * Verifies a scanned dynamic URL **entirely client-side**, with no server call.
+ * **Identification, offline** — same as {@link verifyDynamicUrl}, but no server.
  *
- * Reconstructs the signed message from `counter (4 bytes, big-endian) || nonce
- * (8 bytes)` and checks the secp256r1/P-256 signature against the compressed
- * public key embedded in the URL. The signature is normalized to low-S form to
- * reject malleated signatures before verifying.
+ * Checks the signature in the scanned link on the device only. Still identifies
+ * which asset the link belongs to, but a copied link can be reused — so prefer
+ * {@link verifyDynamicUrl} when online, or {@link verifyWithChallengeResponse}
+ * when you need to authenticate the holder with a live tap.
  *
- * ## Threat model — WEAKEST option, read before using
- *
- * This proves only that the embedded key signed this exact `counter || nonce`
- * message. It has **no anti-replay protection whatsoever**: there is no server
- * state, so it cannot tell whether the counter has been seen before. A captured
- * URL can be replayed indefinitely and will keep verifying.
- *
- * Like {@link verifyDynamicUrl}, the challenge is chosen by the chip, not the
- * verifier, so this also proves nothing about **liveness**.
- *
- * Use this only when:
- * - you are offline / have no backend, AND
- * - signature validity alone is sufficient, OR you track and reject seen
- *   counters yourself in the caller.
- *
- * For anything trust-sensitive, prefer {@link verifyDynamicUrl} (adds the
- * server counter check) or {@link verifyWithChallengeResponse} (replay-proof).
- *
- * @throws if any required param (`pk`, `s`, `c`, `n`) is missing or malformed
- *   (wrong key/signature/nonce length, or out-of-range counter).
+ * @throws if the link is missing required params or they look wrong.
  */
 export function verifyDynamicUrlWithoutCounterCheck(
   params: URLSearchParams,
@@ -207,34 +178,8 @@ export type GetPublicKeyFromCredentialIdCallback = (
   credentialId: Base64URLString,
 ) => Promise<Base64URLString>;
 
-async function fetchPublicKeyFromCredentialId(
-  credentialId: Base64URLString,
-  rpc?: Rpc<SolanaRpcApi>,
-): Promise<Base64URLString | null> {
-  if (!rpc) return null;
-  const resolved = await fetchAssetCredentialFromCredentialId(
-    credentialId,
-    rpc,
-  );
-  return resolved.publicKey;
-}
-
 /**
- * Transport-agnostic verification core for a WebAuthn authentication response.
- *
- * Confirms the response answers the challenge we issued, then verifies the
- * secp256r1 signature over `authenticatorData || sha256(clientDataJSON)` against
- * the credential's public key. Shared by the browser
- * ({@link verifyWithChallengeResponse}) and native NFC
- * ({@link verifyWithChallengeResponseOverNfc}) flows — both obtain an
- * `AuthenticationResponseJSON`, they just differ in how the ceremony is driven.
- *
- * `expectedChallenge` must be the base64url-encoded random challenge the caller
- * generated for *this* attempt. Verifying it here is what makes the flow
- * replay-proof; callers must never reuse a challenge.
- *
- * @throws "Invalid Signature." if the challenge does not match or the signature
- *   fails; "Rpc is missing." if the public key cannot be resolved.
+ * Internal helper for the tap-to-verify flows.
  */
 async function verifyAuthenticationResponse({
   response,
@@ -244,7 +189,7 @@ async function verifyAuthenticationResponse({
 }: {
   response: AuthenticationResponseJSON;
   expectedChallenge: Base64URLString;
-  rpc?: Rpc<SolanaRpcApi>;
+  rpc: Rpc<SolanaRpcApi>;
   fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
 }): Promise<VerifyWithChallengeResponseResult> {
   const clientData = parseWebAuthnClientData(response.response.clientDataJSON);
@@ -260,10 +205,10 @@ async function verifyAuthenticationResponse({
 
   const publicKey = await (fetchPublicKeyFromCredentialIdCallback?.(
     response.id,
-  ) ?? fetchPublicKeyFromCredentialId(response.id, rpc));
+  ) ?? (await fetchAssetFromCredentialId(response.id, rpc)).publicKey);
 
   if (!publicKey) {
-    throw new Error("Rpc is missing.");
+    throw new Error("Public key can't be found.");
   }
 
   const isVerified = p256.verify(
@@ -283,67 +228,24 @@ async function verifyAuthenticationResponse({
 }
 
 /**
- * Verifies the credential with a fresh, interactive WebAuthn challenge-response
- * **in the browser**.
+ * **Authentication** — prove the holder is here now (web apps).
  *
- * The **verifier** generates a random 32-byte challenge, runs a WebAuthn
- * authentication ceremony (`startAuthentication`, NFC transport), and checks
- * that the returned signature is valid for that challenge. The public key is
- * resolved from `fetchPublicKeyFromCredentialIdCallback` if provided, otherwise
- * read from the on-chain asset account via `rpc`.
+ * Prompts the user to tap their NFC key and checks a fresh signature. Use this
+ * when you need to **authenticate** someone — before a transfer, a purchase, or
+ * any action that requires the key holder to be physically present.
  *
- * ## Threat model — STRONGEST option
+ * Do not use this just to **identify** an asset from an old scan; for that use
+ * {@link verifyDynamicUrl}.
  *
- * Because the challenge is chosen by the verifier at verification time (and the
- * returned `clientData.challenge` is compared against it before verifying), this
- * is inherently **replay-proof** and proves **liveness**: it shows the
- * credential is physically present and responding to *this* request *right now*.
- * A recorded response cannot be reused — it was bound to a one-time challenge.
- *
- * This is unlike the dynamic-URL flows, where the chip chooses the signed
- * message and the proof is a reusable bearer token. Prefer this whenever the
- * credential is present and you can run an interactive session.
- *
- * Trade-off: requires a live, interactive WebAuthn/NFC round-trip — it cannot
- * verify an asynchronously-scanned URL. For that case use {@link verifyDynamicUrl}.
- *
- * For native apps (React Native / no `window` or WebAuthn API) use
- * {@link verifyWithChallengeResponseOverNfc}, which drives the same ceremony
- * over a caller-supplied IsoDep transport.
- *
- * @param rpc - Solana RPC used to look up the public key on-chain when no
- *   callback is supplied. Required when `postVerificationOnChain` is true.
- * @param fetchPublicKeyFromCredentialIdCallback - optional override for
- *   resolving the public key from the credential id (e.g. from your own index).
- * @param message - optional message to bind into the on-chain `verify_asset`
- *   instruction. Required when `postVerificationOnChain` is true.
- * @param postVerificationOnChain - when true, uses a slot-bound challenge and
- *   submits a `verify_asset` transaction after local verification succeeds.
- * @param feePayer - pays for the on-chain verification transaction. Required
- *   when `postVerificationOnChain` is true.
- * @throws "Invalid Signature." if the returned challenge does not match the one
- *   we issued, or if signature verification fails.
+ * For React Native / native apps, use {@link verifyWithChallengeResponseOverNfc}.
  */
 export async function verifyWithChallengeResponse(
   input: VerifyWithChallengeResponseOptions,
 ): Promise<VerifyWithChallengeResponseResult> {
-  const { fetchPublicKeyFromCredentialIdCallback, postVerificationOnChain } =
-    input;
-  let expectedChallenge: Uint8Array | null = null;
-  let slotNumber: bigint | null = null;
-  let message: string | undefined = undefined;
-  if (postVerificationOnChain) {
-    message = input.message ?? crypto.randomUUID();
-    const { slotHash, slotNumber: generatedSlotNumber } =
-      await getLatestSlotHash(input.rpc);
-    expectedChallenge = await buildVerifyMessage({
-      message,
-      slotHash,
-    });
-    slotNumber = generatedSlotNumber;
-  } else {
-    expectedChallenge = crypto.getRandomValues(new Uint8Array(32));
-  }
+  const expectedChallenge =
+    input.message !== undefined
+      ? new TextEncoder().encode(input.message)
+      : crypto.getRandomValues(new Uint8Array(32));
 
   const response = await startAuthentication({
     optionsJSON: {
@@ -368,101 +270,30 @@ export async function verifyWithChallengeResponse(
       expectedChallenge.buffer as ArrayBuffer,
     ),
     rpc: input.rpc,
-    fetchPublicKeyFromCredentialIdCallback,
+    fetchPublicKeyFromCredentialIdCallback:
+      input.fetchPublicKeyFromCredentialIdCallback,
   });
-
-  if (postVerificationOnChain) {
-    if (!slotNumber) {
-      throw new Error("slotNumber is missing.");
-    }
-    if (!message) {
-      throw new Error("message is missing.");
-    }
-    const { secp256r1Verify, clientDataJson } =
-      await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
-        response,
-        publicKey: result.publicKey,
-      });
-    const verifyAssetInstruction = getVerifyAssetInstruction({
-      asset: await findAssetPda(parseSecp256r1Pubkey(result.publicKey)),
-      secp256r1VerifyArgs: {
-        signedMessageIndex: 0,
-        slotNumber,
-        clientDataJson,
-      },
-      // on-chain `verify_asset` now takes raw bytes; UTF-8 matches the hashed challenge.
-      message: new TextEncoder().encode(message),
-    });
-    const signature = await sendInstructions({
-      rpc: input.rpc,
-      feePayer: input.feePayer,
-      instructions: [secp256r1Verify, verifyAssetInstruction],
-    });
-    result.signature = signature;
-  }
 
   return result;
 }
 
 /**
- * Native-app variant of {@link verifyWithChallengeResponse}: runs the same fresh
- * challenge-response ceremony, but drives a **direct CTAP2/FIDO2 getAssertion
- * over IsoDep** instead of the browser WebAuthn API.
+ * **Authentication** — prove the holder is here now (React Native / native apps).
  *
- * The caller supplies `transceive`, an APDU→APDU callback wired to their own NFC
- * stack (e.g. `react-native-nfc-manager`'s `NfcTech.IsoDep`). This function
- * generates the random challenge, builds the WebAuthn request, runs SELECT +
- * getAssertion via `transceive`, parses the APDU response into an
- * `AuthenticationResponseJSON`, and verifies it with the shared core.
+ * Same as {@link verifyWithChallengeResponse}, but for apps that talk to the key
+ * over NFC directly (e.g. via `react-native-nfc-manager`) instead of the browser.
  *
- * ## Threat model
- *
- * Identical to {@link verifyWithChallengeResponse}: the verifier-chosen
- * challenge makes it **replay-proof** and proves **liveness**. The challenge is
- * generated here and checked against the signed `clientData`, so freshness does
- * not depend on the caller.
- *
- * Because there is no browser, the caller must supply `rpId` and `origin`
- * (used to build `clientDataJSON`); the signed message binds to them exactly as
- * a browser ceremony would.
- *
- * @param transceive - sends a command APDU and resolves with the raw response
- *   APDU (including SW1/SW2). The caller owns the NFC session lifecycle.
- * @param rpc - Solana RPC used to look up the public key on-chain when no
- *   callback is supplied. Required when `postVerificationOnChain` is true.
- * @param fetchPublicKeyFromCredentialIdCallback - optional override for
- *   resolving the public key from the credential id.
- * @param message - optional message to bind into the on-chain `verify_asset`
- *   instruction. Required when `postVerificationOnChain` is true.
- * @param postVerificationOnChain - when true, uses a slot-bound challenge and
- *   submits a `verify_asset` transaction after local verification succeeds.
- * @param feePayer - pays for the on-chain verification transaction. Required
- *   when `postVerificationOnChain` is true.
- * @throws "Invalid Signature." if the challenge does not match or the signature
- *   fails; `ApduError` on NFC/CTAP transport failures.
+ * @param transceive - your NFC read/write function that sends and receives APDUs.
  */
 export async function verifyWithChallengeResponseOverNfc(
   input: VerifyWithChallengeResponseOptions & {
     transceive: (apdu: Uint8Array) => Promise<Uint8Array>;
   },
 ): Promise<VerifyWithChallengeResponseResult> {
-  const { fetchPublicKeyFromCredentialIdCallback, postVerificationOnChain } =
-    input;
-  let expectedChallenge: Uint8Array | null = null;
-  let slotNumber: bigint | null = null;
-  let message: string | undefined = undefined;
-  if (postVerificationOnChain) {
-    message = input.message ?? crypto.randomUUID();
-    const { slotHash, slotNumber: generatedSlotNumber } =
-      await getLatestSlotHash(input.rpc);
-    expectedChallenge = await buildVerifyMessage({
-      message,
-      slotHash,
-    });
-    slotNumber = generatedSlotNumber;
-  } else {
-    expectedChallenge = crypto.getRandomValues(new Uint8Array(32));
-  }
+  const expectedChallenge =
+    input.message !== undefined
+      ? new TextEncoder().encode(input.message)
+      : crypto.getRandomValues(new Uint8Array(32));
 
   const response = await authenticateWithNfc(
     {
@@ -489,37 +320,9 @@ export async function verifyWithChallengeResponseOverNfc(
       expectedChallenge.buffer as ArrayBuffer,
     ),
     rpc: input.rpc,
-    fetchPublicKeyFromCredentialIdCallback,
+    fetchPublicKeyFromCredentialIdCallback:
+      input.fetchPublicKeyFromCredentialIdCallback,
   });
-  if (postVerificationOnChain) {
-    if (!slotNumber) {
-      throw new Error("slotNumber is missing.");
-    }
-    if (!message) {
-      throw new Error("message is missing.");
-    }
-    const { secp256r1Verify, clientDataJson } =
-      await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
-        response,
-        publicKey: result.publicKey,
-      });
-    const verifyAssetInstruction = getVerifyAssetInstruction({
-      asset: await findAssetPda(parseSecp256r1Pubkey(result.publicKey)),
-      secp256r1VerifyArgs: {
-        signedMessageIndex: 0,
-        slotNumber,
-        clientDataJson,
-      },
-      // on-chain `verify_asset` now takes raw bytes; UTF-8 matches the hashed challenge.
-      message: new TextEncoder().encode(message),
-    });
-    const signature = await sendInstructions({
-      rpc: input.rpc,
-      feePayer: input.feePayer,
-      instructions: [secp256r1Verify, verifyAssetInstruction],
-    });
-    result.signature = signature;
-  }
 
   return result;
 }
