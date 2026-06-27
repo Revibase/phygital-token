@@ -1,11 +1,8 @@
 {
   "mcpServers": {
     "phygital-token": {
-      "command": "node",
-      "args": ["REPLACE_WITH_ABSOLUTE_PATH/phygital-token/mcp/phygital-token/dist/index.js"],
-      "env": {
-        "PHYGITAL_TOKEN_RPC_URL": "https://mainnet.helius-rpc.com/?api-key=YOUR_KEY"
-      }
+      "command": "npx",
+      "args": ["-y", "phygital-token-mcp"]
     }
   }
 }

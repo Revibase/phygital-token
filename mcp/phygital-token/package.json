@@ -1,27 +1,53 @@
 {
   "name": "phygital-token-mcp",
-  "version": "0.4.0",
-  "private": true,
-  "description": "MCP server for the phygital-token SDK and Solana program",
+  "version": "0.1.1",
+  "description": "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jychab/phygital-nfts.git",
+    "directory": "mcp/phygital-token"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "solana",
+    "phygital",
+    "webauthn",
+    "nft"
+  ],
   "type": "module",
+  "main": "./dist/index.js",
   "bin": {
     "phygital-token-mcp": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "cursor-mcp.example.json"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/add-shebang.mjs",
     "dev": "tsc -p tsconfig.json --watch",
+    "prepublishOnly": "pnpm build",
     "start": "node dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@noble/hashes": "^2.0.1",
     "@solana/kit": "^6.4.0",
-    "phygital-token-sdk": "workspace:*",
+    "phygital-token-sdk": "^0.6.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
     "typescript": "^5.7.3"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

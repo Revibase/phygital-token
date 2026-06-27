@@ -1,34 +1,37 @@
 # phygital-token MCP Server
 
-Model Context Protocol server for the phygital-token Solana program, TypeScript SDK, and Rust client.
+[Model Context Protocol](https://modelcontextprotocol.io) server for the phygital-token Solana program, TypeScript SDK, and Rust client.
 
-## Gating tools
+**Docs, schema reference, and offline planning only** — no live RPC or on-chain calls. Use [`phygital-token-sdk`](https://www.npmjs.com/package/phygital-token-sdk) in your app for `evaluateAssetGating`, `fetchAssetDisplayInfo`, and transaction building.
 
-| Tool | Purpose |
-|------|---------|
-| `explain_gating` | Mental model, dimensions, flow, pitfalls |
-| `gating_filter_schema` | JSON schema for filters, predicates, builders |
-| `list_gating_recipes` / `gating_recipe` | Copy-paste patterns and footguns |
-| `evaluate_gating` | Full tier evaluation for asset owner |
-| `evaluate_gating_filter` | Single filter evaluation |
-| `summarize_gating_result` | Human-readable failure reasons |
-| `format_gating_predicate` | Format predicate JSON as readable text |
-| `list_gating_docs` | All gating doc ids |
-| `gating_tier_example` | Example tier JSON |
+## Install
 
-Gating docs: `gating:overview`, `gating:predicates`, `gating:recipes`, `gating:tiers`, `gating:filters-and-composition`, `gating:evaluation-and-errors`.
+Add to Cursor MCP config (`~/.cursor/mcp.json` or project `.cursor/mcp.json`):
 
-## Verification tools
+```json
+{
+  "mcpServers": {
+    "phygital-token": {
+      "command": "npx",
+      "args": ["-y", "phygital-token-mcp"]
+    }
+  }
+}
+```
 
-| Tool | Purpose |
-|------|---------|
-| `recommend_verification` | Pick identification vs authentication vs on-chain pattern |
-| `explain_verification` | Decision tree and method reference |
-| `plan_verify_asset` | Pattern A (inspect) or B (CPI) planning |
+Requires **Node.js 20+**. See [`cursor-mcp.example.json`](./cursor-mcp.example.json).
 
-`verifyWithChallengeResponse` accepts optional `message` (off-chain WebAuthn challenge binding). On-chain message binding uses `beginVerifyAsset`.
+## Tools
 
-## Setup
+| Area | Tools |
+|------|-------|
+| **Docs** | `search_docs`, `read_doc`, `list_docs` |
+| **Gating** | `explain_gating`, `gating_filter_schema`, `gating_recipe`, `format_gating_predicate`, `summarize_gating_result` |
+| **Verification** | `recommend_verification`, `plan_verify_asset`, `explain_verification` |
+| **Planning** | `plan_create_mint`, `plan_mint_token`, `plan_transfer`, `find_asset_pda` |
+| **SDK** | `list_sdk_exports` |
+
+## Optional: monorepo contributors
 
 ```bash
 pnpm install
@@ -36,11 +39,20 @@ pnpm --filter phygital-token-sdk build
 pnpm --filter phygital-token-mcp build
 ```
 
-```bash
-export PHYGITAL_TOKEN_RPC_URL="https://mainnet.helius-rpc.com/?api-key=YOUR_KEY"
-```
+**Contributor-only** (repo clone + `PHYGITAL_TOKEN_REPO_ROOT`):
 
-Reload MCP servers in Cursor after rebuilding.
+| Tool | Requires |
+|------|----------|
+| `query_codebase` | `graphify` CLI + `graphify update .` in the repo |
+| `read_sdk_source` | Cloned repo or `PHYGITAL_TOKEN_REPO_ROOT` |
+
+## Publish
+
+```bash
+cd mcp/phygital-token
+pnpm build
+npm publish --access public
+```
 
 ## License
 

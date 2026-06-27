@@ -3,17 +3,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
-  evaluateAssetGating,
-  fetchAllAssetsFromOwner,
-  fetchAssetDisplayInfo,
-  fetchAssetFromCredentialId,
   findAssetPda,
   formatGatingPredicate,
   parseSecp256r1Pubkey,
   summarizeGatingEvaluationFailure,
   summarizeGatingFailure,
 } from "phygital-token-sdk";
-import { address } from "@solana/kit";
 import { z } from "zod";
 import { listDocs, readDocById, searchDocs } from "./lib/docs.js";
 import { jsonResult, textResult } from "./lib/format.js";
@@ -23,8 +18,6 @@ import {
   GATING_RECIPES,
   GATING_TIER_EXAMPLE,
   getGatingRecipe,
-  parseGatingFilter,
-  parseGatingTiers,
 } from "./lib/gating-json.js";
 import { runGraphify } from "./lib/graphify.js";
 import {
@@ -34,7 +27,6 @@ import {
   planTransfer,
   planVerifyAsset,
 } from "./lib/instructions.js";
-import { createRpc } from "./lib/rpc.js";
 import { SDK_SURFACE, readSourceExcerpt } from "./lib/sdk-surface.js";
 import {
   ON_CHAIN_PATTERNS,
@@ -46,20 +38,19 @@ import {
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
+  "Docs, schema reference, and offline planning only — no live on-chain RPC calls.",
   "",
   "Routing:",
-  "- Which verification to use (identification vs authentication) → recommend_verification or explain_verification",
-  "- Composable verify_asset / buildVerifyAssetArgs → plan_verify_asset, read_doc verify-asset-composable",
-  "- Building on phygital (CPI, custom programs) → read_doc building-on-phygital/*, rust_cpi_verify_asset_guide",
-  "- Full SDK export map → list_sdk_exports",
-  "- Gating (wallet holdings) → explain_gating, gating_filter_schema, gating_recipe, evaluate_gating, summarize_gating_result",
+  "- Which verification to use → recommend_verification or explain_verification",
+  "- Composable verify_asset → plan_verify_asset, read_doc verify-asset-composable",
+  "- Building on phygital (CPI) → read_doc building-on-phygital/*, rust_cpi_verify_asset_guide",
+  "- SDK export map → list_sdk_exports",
+  "- Gating rules → explain_gating, gating_filter_schema, gating_recipe, format_gating_predicate",
   "- Mint / transfer flows → plan_create_mint, plan_mint_token, plan_transfer",
-  "- Code architecture → query_codebase (graphify)",
+  "- Code architecture (repo clone) → query_codebase (graphify)",
   "",
-  "Key distinction: verifyDynamicUrl = identification (no tap). verifyWithChallengeResponse = off-chain authentication only (no chain tx).",
-  "On-chain proof: Pattern A = client posts verify_asset, your program inspects sysvar. Pattern B = buildVerifyAssetArgs, your program CPIs verify_asset.",
-  "",
-  "Set PHYGITAL_TOKEN_RPC_URL for chain tools.",
+  "Live gating evaluation and asset fetch: use phygital-token-sdk in your app (evaluateAssetGating, fetchAssetDisplayInfo).",
+  "query_codebase and read_sdk_source need PHYGITAL_TOKEN_REPO_ROOT when not running from a clone.",
 ].join("\n");
 
 function registerTools(server: McpServer) {
@@ -94,7 +85,7 @@ function registerTools(server: McpServer) {
 
   server.tool(
     "query_codebase",
-    "Query the phygital-token knowledge graph via graphify (architecture, call paths, concepts).",
+    "Query the phygital-token knowledge graph via graphify (architecture, call paths, concepts). Requires a repo clone.",
     {
       question: z.string().describe("Natural-language question about the codebase"),
       mode: z
@@ -124,65 +115,8 @@ function registerTools(server: McpServer) {
   );
 
   server.tool(
-    "evaluate_gating",
-    "Evaluate wallet-based gating tiers for a phygital asset owner. Requires a DAS-capable RPC (e.g. Helius).",
-    {
-      assetPublicKey: z
-        .string()
-        .describe("Base64url-encoded secp256r1 public key for the phygital asset"),
-      tiers: z
-        .unknown()
-        .describe(
-          'JSON array of tiers: [{ "id": "bronze", "filter": { ... } }]. See gating docs or gating_tier_example.',
-        ),
-      rpcUrl: z
-        .string()
-        .optional()
-        .describe("Solana RPC URL (defaults to PHYGITAL_TOKEN_RPC_URL)"),
-    },
-    async ({ assetPublicKey, tiers, rpcUrl }) => {
-      const rpc = createRpc(rpcUrl);
-      const parsedTiers = parseGatingTiers(tiers);
-      const result = await evaluateAssetGating({
-        assetPublicKey,
-        rpc,
-        tiers: parsedTiers,
-      });
-
-      const failureSummary = summarizeGatingEvaluationFailure(result);
-
-      return jsonResult({
-        owner: result.owner,
-        passed: result.passed,
-        passedTierIds: result.passedTierIds,
-        tiers: result.tiers,
-        failureSummary,
-      });
-    },
-  );
-
-  server.tool(
-    "fetch_asset_display",
-    "Fetch on-chain display metadata for a phygital asset from its secp256r1 public key.",
-    {
-      assetPublicKey: z
-        .string()
-        .describe("Base64url-encoded secp256r1 public key for the phygital asset"),
-      rpcUrl: z
-        .string()
-        .optional()
-        .describe("Solana RPC URL (defaults to PHYGITAL_TOKEN_RPC_URL)"),
-    },
-    async ({ assetPublicKey, rpcUrl }) => {
-      const rpc = createRpc(rpcUrl);
-      const info = await fetchAssetDisplayInfo(rpc, assetPublicKey);
-      return jsonResult(info);
-    },
-  );
-
-  server.tool(
     "find_asset_pda",
-    "Derive the on-chain asset PDA address from a secp256r1 passkey public key.",
+    "Derive the on-chain asset PDA address from a secp256r1 passkey public key (offline).",
     {
       assetPublicKey: z
         .string()
@@ -197,7 +131,7 @@ function registerTools(server: McpServer) {
 
   server.tool(
     "gating_tier_example",
-    "Return a copy-paste JSON example for evaluate_gating tier configuration.",
+    "Return a copy-paste JSON example for evaluateAssetGating tier configuration.",
     {},
     async () => jsonResult({ tiers: GATING_TIER_EXAMPLE }),
   );
@@ -240,7 +174,7 @@ function registerTools(server: McpServer) {
 
   server.tool(
     "gating_recipe",
-    "Return a gating recipe by id (JSON filter or tiers for evaluate_gating).",
+    "Return a gating recipe by id (JSON filter or tiers for evaluateAssetGating).",
     {
       recipeId: z.string().describe("Recipe id from list_gating_recipes"),
     },
@@ -248,36 +182,10 @@ function registerTools(server: McpServer) {
   );
 
   server.tool(
-    "evaluate_gating_filter",
-    "Evaluate a single GatingFilter against a phygital asset owner's wallet (no tier wrapper).",
-    {
-      assetPublicKey: z.string().describe("Base64url secp256r1 public key for the phygital asset"),
-      filter: z.unknown().describe("GatingFilter JSON object"),
-      rpcUrl: z.string().optional(),
-    },
-    async ({ assetPublicKey, filter, rpcUrl }) => {
-      const rpc = createRpc(rpcUrl);
-      const parsedFilter = parseGatingFilter(filter);
-      const result = await evaluateAssetGating({
-        assetPublicKey,
-        rpc,
-        tiers: [{ id: "__eval__", filter: parsedFilter }],
-      });
-      const tier = result.tiers[0];
-      return jsonResult({
-        owner: result.owner,
-        passed: tier?.passed ?? false,
-        filterResult: tier?.filterResult,
-        failureSummary: tier ? summarizeGatingFailure(tier.filterResult) : [],
-      });
-    },
-  );
-
-  server.tool(
     "summarize_gating_result",
-    "Human-readable failure reasons from evaluate_gating or evaluate_gating_filter output.",
+    "Human-readable failure reasons from evaluateAssetGating output (pass the SDK result JSON).",
     {
-      evaluationJson: z.unknown().describe("JSON result from evaluate_gating tools"),
+      evaluationJson: z.unknown().describe("JSON result from evaluateAssetGating"),
     },
     async ({ evaluationJson }) => {
       const data = evaluationJson as Record<string, unknown>;
@@ -298,7 +206,7 @@ function registerTools(server: McpServer) {
         });
       }
       throw new Error(
-        "Unrecognized evaluation JSON. Pass output from evaluate_gating or evaluate_gating_filter.",
+        "Unrecognized evaluation JSON. Pass output from evaluateAssetGating in your app.",
       );
     },
   );
@@ -373,57 +281,25 @@ function registerTools(server: McpServer) {
 
   server.tool(
     "plan_transfer",
-    "Plan a passkey-authorized transfer: flow steps, derived accounts, and slot-bound challenge.",
+    "Plan a passkey-authorized transfer: flow steps, derived accounts, and challenge formula (offline).",
     {
       assetPublicKey: z
         .string()
         .describe("Base64url-encoded secp256r1 public key for the phygital asset"),
       recipient: z.string().describe("Recipient wallet address"),
-      rpcUrl: z
+      mint: z
         .string()
         .optional()
-        .describe("Solana RPC URL (defaults to PHYGITAL_TOKEN_RPC_URL)"),
-    },
-    async ({ assetPublicKey, recipient, rpcUrl }) => {
-      const rpc = createRpc(rpcUrl);
-      return jsonResult(
-        await planTransfer({ rpc, assetPublicKey, recipient }),
-      );
-    },
-  );
-
-  server.tool(
-    "fetch_asset_by_credential",
-    "Look up on-chain asset account and secp256r1 pubkey from a passkey credential id.",
-    {
-      credentialId: z.string().describe("Base64url WebAuthn credential id"),
-      rpcUrl: z
+        .describe("Design mint address — enables ATA derivation when combined with currentOwner"),
+      currentOwner: z
         .string()
         .optional()
-        .describe("Solana RPC URL (defaults to PHYGITAL_TOKEN_RPC_URL)"),
+        .describe("Current asset owner wallet — enables ATA derivation when combined with mint"),
     },
-    async ({ credentialId, rpcUrl }) => {
-      const rpc = createRpc(rpcUrl);
-      const result = await fetchAssetFromCredentialId(credentialId, rpc);
-      return jsonResult(result);
-    },
-  );
-
-  server.tool(
-    "list_owner_assets",
-    "List all phygital asset accounts owned by a Solana wallet address.",
-    {
-      owner: z.string().describe("Owner wallet address"),
-      rpcUrl: z
-        .string()
-        .optional()
-        .describe("Solana RPC URL (defaults to PHYGITAL_TOKEN_RPC_URL)"),
-    },
-    async ({ owner, rpcUrl }) => {
-      const rpc = createRpc(rpcUrl);
-      const assets = await fetchAllAssetsFromOwner(address(owner), rpc);
-      return jsonResult({ owner, count: assets.length, assets });
-    },
+    async ({ assetPublicKey, recipient, mint, currentOwner }) =>
+      jsonResult(
+        await planTransfer({ assetPublicKey, recipient, mint, currentOwner }),
+      ),
   );
 
   server.tool(
@@ -490,7 +366,7 @@ function registerTools(server: McpServer) {
 
   server.tool(
     "plan_verify_asset",
-    "Plan on-chain verify_asset flow. Pattern A: client posts verify_asset, program inspects. Pattern B: buildVerifyAssetArgs, program CPIs.",
+    "Plan on-chain verify_asset flow (offline). Pattern A: client posts verify_asset. Pattern B: program CPIs.",
     {
       message: z
         .string()
@@ -501,28 +377,21 @@ function registerTools(server: McpServer) {
         .enum(["inspect", "cpi", "standalone"])
         .optional()
         .describe(
-          "inspect = Pattern A (client posts verify_asset, program inspects sysvar). cpi = Pattern B (program CPIs verify_asset). standalone = verify_asset only.",
+          "inspect = Pattern A. cpi = Pattern B. standalone = verify_asset only.",
         ),
       assetPublicKey: z
         .string()
         .optional()
         .describe("Optional base64url secp256r1 pubkey to pre-derive asset PDA"),
-      rpcUrl: z
-        .string()
-        .optional()
-        .describe("Solana RPC URL (defaults to PHYGITAL_TOKEN_RPC_URL)"),
     },
-    async ({ message, onChainPattern, assetPublicKey, rpcUrl }) => {
-      const rpc = createRpc(rpcUrl);
-      return jsonResult(
+    async ({ message, onChainPattern, assetPublicKey }) =>
+      jsonResult(
         await planVerifyAsset({
-          rpc,
           message,
           assetPublicKey,
           onChainPattern: onChainPattern ?? "inspect",
         }),
-      );
-    },
+      ),
   );
 
   server.tool(
@@ -534,7 +403,7 @@ function registerTools(server: McpServer) {
 
   server.tool(
     "read_sdk_source",
-    "Read an excerpt from key SDK source files (verify.ts, verifyAsset.ts, Rust verify_asset CPI).",
+    "Read an excerpt from key SDK source files (requires PHYGITAL_TOKEN_REPO_ROOT or monorepo clone).",
     {
       file: z.enum(["verify.ts", "verifyAsset.ts", "rust_verify_asset.rs"]),
       maxLines: z.number().int().min(20).max(300).optional(),
@@ -549,9 +418,7 @@ function registerTools(server: McpServer) {
       pattern: z
         .enum(["inspect", "cpi"])
         .optional()
-        .describe(
-          "inspect = Pattern A: client posts verify_asset, your program inspects sysvar. cpi = Pattern B: your program CPIs verify_asset.",
-        ),
+        .describe("inspect = Pattern A. cpi = Pattern B."),
     },
     async ({ pattern = "inspect" }) =>
       jsonResult({
@@ -559,7 +426,7 @@ function registerTools(server: McpServer) {
         ...(pattern === "inspect" ? ON_CHAIN_PATTERNS.inspect : ON_CHAIN_PATTERNS.cpi),
         rustCrate: "phygital-token-client",
         path: "clients/rust/phygital-token",
-        dependency: 'phygital-token-client = { path = "...", features = ["anchor"] }',
+        dependency: 'phygital-token-client = { version = "0.1", features = ["anchor"] }',
         cpiTypes: ["VerifyAssetCpiBuilder", "VerifyAssetInstructionArgs", "Secp256r1VerifyArgs"],
         clientTypeScript:
           pattern === "inspect"
@@ -824,7 +691,7 @@ function registerPrompts(server: McpServer) {
               "Use the Gating filter tree (count, totalBalance, and/or/not).",
               "Search docs with search_docs and return:",
               "1) recommended tier ids",
-              "2) JSON tiers array for evaluate_gating",
+              "2) JSON tiers array for evaluateAssetGating in the SDK",
               "3) pitfalls (same asset vs same wallet)",
             ]
               .filter(Boolean)
@@ -841,7 +708,7 @@ function registerPrompts(server: McpServer) {
     {
       evaluationJson: z
         .string()
-        .describe("JSON output from evaluate_gating or failureSummary field"),
+        .describe("JSON output from evaluateAssetGating or failureSummary field"),
     },
     async ({ evaluationJson }) => ({
       messages: [
@@ -867,7 +734,7 @@ async function main() {
   const server = new McpServer(
     {
       name: "phygital-token",
-      version: "0.4.0",
+      version: "0.1.0",
     },
     {
       instructions: SERVER_INSTRUCTIONS,

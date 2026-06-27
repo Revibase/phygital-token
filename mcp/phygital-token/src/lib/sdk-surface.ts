@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import {
-  RUST_CLIENT_VERIFY_ASSET_PATH,
-  VERIFY_ASSET_TS_PATH,
-  VERIFY_TS_PATH,
   pathExists,
+  resolveRustVerifyAssetPath,
+  resolveVerifyAssetTsPath,
+  resolveVerifyTsPath,
 } from "./paths.js";
 
 export const SDK_SURFACE = {
@@ -51,16 +51,13 @@ export const SDK_SURFACE = {
     "resolveMedia",
   ],
   gating: [
-    "evaluateAssetGating",
-    "evaluateGatingTiers",
-    "evaluateGatingFilter",
-    "assetMatchesPredicate",
     "Gating",
     "GatingTraitValue",
     "formatGatingPredicate",
     "summarizeGatingEvaluationFailure",
     "summarizeGatingFailure",
     "summarizeGatingTierFailure",
+    "evaluateAssetGating",
   ],
   gatingTypes: [
     "EvaluateAssetGatingOptions",
@@ -96,14 +93,16 @@ export async function readSourceExcerpt(
   maxLines = 120,
 ): Promise<{ path: string; excerpt: string }> {
   const paths = {
-    "verify.ts": VERIFY_TS_PATH,
-    "verifyAsset.ts": VERIFY_ASSET_TS_PATH,
-    "rust_verify_asset.rs": RUST_CLIENT_VERIFY_ASSET_PATH,
+    "verify.ts": resolveVerifyTsPath(),
+    "verifyAsset.ts": resolveVerifyAssetTsPath(),
+    "rust_verify_asset.rs": resolveRustVerifyAssetPath(),
   };
 
   const filePath = paths[which];
   if (!(await pathExists(filePath))) {
-    throw new Error(`Source file not found: ${filePath}`);
+    throw new Error(
+      `Source file not found: ${filePath}. Set PHYGITAL_TOKEN_REPO_ROOT to a cloned phygital-token repo to use read_sdk_source.`,
+    );
   }
 
   const content = await readFile(filePath, "utf8");

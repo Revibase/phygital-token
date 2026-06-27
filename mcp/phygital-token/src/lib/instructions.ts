@@ -1,12 +1,8 @@
 import {
   address,
   getAddressEncoder,
-  getBase64Encoder,
   getProgramDerivedAddress,
-  getU64Decoder,
   type Address,
-  type Rpc,
-  type SolanaRpcApi,
 } from "@solana/kit";
 import {
   AssetType,
@@ -15,7 +11,6 @@ import {
   parseSecp256r1Pubkey,
   validateMetadataFields,
   findAssetPda,
-  fetchAssetDisplayInfo,
   type MetadataFields,
 } from "phygital-token-sdk";
 import { sha256 } from "@noble/hashes/sha2.js";
@@ -27,14 +22,6 @@ const TOKEN_2022_PROGRAM_ADDRESS = address(
 const ASSOCIATED_TOKEN_PROGRAM_ADDRESS = address(
   "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
 );
-const SLOT_HASHES_SYSVAR_ADDRESS = address(
-  "SysvarS1otHashes111111111111111111111111111",
-);
-const TRANSFER_ACTION_BYTES = new TextEncoder().encode("transfer");
-
-function toBase64(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("base64");
-}
 
 async function findAssociatedTokenAddress(
   owner: Address,
@@ -50,51 +37,6 @@ async function findAssociatedTokenAddress(
     ],
   });
   return ata;
-}
-
-async function getLatestSlotHash(rpc: Rpc<SolanaRpcApi>) {
-  const slotSysvarData = (
-    await rpc
-      .getAccountInfo(SLOT_HASHES_SYSVAR_ADDRESS, {
-        encoding: "base64",
-        commitment: "confirmed",
-        dataSlice: { offset: 8, length: 40 },
-      })
-      .send()
-  ).value?.data;
-
-  if (!slotSysvarData) {
-    throw new Error("Unable to fetch slot hashes sysvar");
-  }
-
-  const base64 = Array.isArray(slotSysvarData) ? slotSysvarData[0] : slotSysvarData;
-  const slotHashData = new Uint8Array(getBase64Encoder().encode(base64));
-  const slotNumber = getU64Decoder().decode(slotHashData.subarray(0, 8));
-  const slotHash = slotHashData.subarray(8, 40);
-
-  return { slotHash, slotNumber };
-}
-
-function buildTransferChallenge(input: {
-  asset: Address;
-  slotHash: Uint8Array;
-}): Uint8Array {
-  const assetBytes = new Uint8Array(getAddressEncoder().encode(input.asset));
-  const messageHash = sha256(assetBytes);
-  return sha256(
-    concatBytes(TRANSFER_ACTION_BYTES, messageHash, new Uint8Array(input.slotHash)),
-  );
-}
-
-function concatBytes(...parts: Uint8Array[]): Uint8Array {
-  const total = parts.reduce((sum, part) => sum + part.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const part of parts) {
-    out.set(part, offset);
-    offset += part.length;
-  }
-  return out;
 }
 
 export function planCreateMint(fields: MetadataFields) {
@@ -167,28 +109,30 @@ export async function planMintToken(input: {
 }
 
 export async function planTransfer(input: {
-  rpc: Rpc<SolanaRpcApi>;
   assetPublicKey: string;
   recipient: string;
+  mint?: string;
+  currentOwner?: string;
 }) {
-  const displayInfo = await fetchAssetDisplayInfo(input.rpc, input.assetPublicKey);
+  const assetPda = await findAssetPda(parseSecp256r1Pubkey(input.assetPublicKey));
   const recipient = address(input.recipient);
-  const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
-  const challenge = buildTransferChallenge({
-    asset: displayInfo.asset,
-    slotHash,
-  });
 
-  const senderTokenAccount = await findAssociatedTokenAddress(
-    displayInfo.currentOwner,
-    displayInfo.mint,
-    TOKEN_2022_PROGRAM_ADDRESS,
-  );
-  const recipientTokenAccount = await findAssociatedTokenAddress(
-    recipient,
-    displayInfo.mint,
-    TOKEN_2022_PROGRAM_ADDRESS,
-  );
+  let senderTokenAccount: Address | undefined;
+  let recipientTokenAccount: Address | undefined;
+  if (input.mint && input.currentOwner) {
+    const mint = address(input.mint);
+    const owner = address(input.currentOwner);
+    senderTokenAccount = await findAssociatedTokenAddress(
+      owner,
+      mint,
+      TOKEN_2022_PROGRAM_ADDRESS,
+    );
+    recipientTokenAccount = await findAssociatedTokenAddress(
+      recipient,
+      mint,
+      TOKEN_2022_PROGRAM_ADDRESS,
+    );
+  }
 
   return {
     flow: [
@@ -201,23 +145,25 @@ export async function planTransfer(input: {
       authenticate: "authenticatePasskeyForTransfer",
       complete: "completeTransfer",
     },
-    slot: {
-      slotNumber: slotNumber.toString(),
-      challengeBase64: toBase64(challenge),
-      expiresInSlots: 512,
+    challenge: {
+      formula: "SHA256('transfer' || SHA256(assetPda) || slotHash)",
+      fetchedAt: "beginTransfer reads slot_hashes sysvar (~512 slot window)",
+      note: "Run beginTransfer with a live rpc to get challengeBase64 and slotNumber.",
     },
-    asset: {
-      assetPda: displayInfo.asset,
-      mint: displayInfo.mint,
-      currentOwner: displayInfo.currentOwner,
-      credentialId: displayInfo.credentialId,
-      publicKey: displayInfo.publicKey,
+    derived: {
+      assetPda,
+      assetPublicKey: input.assetPublicKey,
     },
     transferAccounts: {
-      sender: displayInfo.currentOwner,
+      sender: input.currentOwner ?? "(fetch via fetchAssetDisplayInfo or on-chain asset account)",
       recipient: input.recipient,
-      senderTokenAccount,
-      recipientTokenAccount,
+      mint: input.mint ?? "(from asset / display info)",
+      senderTokenAccount:
+        senderTokenAccount ??
+        "(ATA for currentOwner + mint — derive when mint and owner are known)",
+      recipientTokenAccount:
+        recipientTokenAccount ??
+        "(ATA for recipient + mint — derive when mint is known)",
       tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
@@ -225,35 +171,23 @@ export async function planTransfer(input: {
     notes: [
       "Recipient is chosen at wallet confirmation — not bound in the passkey signature.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
+      "Optional mint and currentOwner inputs enable ATA derivation in this plan output.",
     ],
   };
 }
 
-const VERIFY_ASSET_ACTION_BYTES = new TextEncoder().encode("verify_asset");
-
-function buildVerifyAssetChallenge(input: {
-  message: Uint8Array;
-  slotHash: Uint8Array;
-}): Uint8Array {
-  const messageHash = sha256(input.message);
-  return sha256(
-    concatBytes(
-      VERIFY_ASSET_ACTION_BYTES,
-      messageHash,
-      new Uint8Array(input.slotHash),
-    ),
-  );
+function buildVerifyAssetChallengeDescription(message: string): string {
+  const messageBytes = new TextEncoder().encode(message);
+  const messageHash = sha256(messageBytes);
+  return `SHA256('verify_asset' || SHA256(message[${messageBytes.length} bytes]) || slotHash) — messageHash prefix: ${Buffer.from(messageHash.subarray(0, 8)).toString("hex")}…`;
 }
 
 export async function planVerifyAsset(input: {
-  rpc: Rpc<SolanaRpcApi>;
   message: string;
   assetPublicKey?: string;
   onChainPattern?: OnChainCompositionPattern;
 }) {
   const messageBytes = new TextEncoder().encode(input.message);
-  const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
-  const challenge = buildVerifyAssetChallenge({ message: messageBytes, slotHash });
 
   let assetPda: string | undefined;
   if (input.assetPublicKey) {
@@ -322,10 +256,10 @@ export async function planVerifyAsset(input: {
       byteLength: messageBytes.length,
       onChainHash: "SHA256(message) — must match bytes passed to verify_asset",
     },
-    slot: {
-      slotNumber: slotNumber.toString(),
-      challengeBase64: toBase64(challenge),
-      expiresInSlots: 512,
+    challenge: {
+      formula: buildVerifyAssetChallengeDescription(input.message),
+      fetchedAt: "beginVerifyAsset reads slot_hashes sysvar (~512 slot window)",
+      note: "Run beginVerifyAsset with a live rpc to get challengeBase64 and slotNumber.",
     },
     derived: assetPda ? { assetPda, assetPublicKey: input.assetPublicKey } : undefined,
     transactionLayout: {

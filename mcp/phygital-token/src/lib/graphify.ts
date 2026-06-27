@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { GRAPHIFY_GRAPH_PATH, pathExists, resolveRepoRoot } from "./paths.js";
+import { pathExists, resolveGraphifyGraphPath, resolveRepoRoot } from "./paths.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -11,11 +11,12 @@ export async function runGraphify(
   args: string[],
 ): Promise<string> {
   const repoRoot = resolveRepoRoot();
-  const graphExists = await pathExists(GRAPHIFY_GRAPH_PATH);
+  const graphPath = resolveGraphifyGraphPath();
+  const graphExists = await pathExists(graphPath);
 
   if (!graphExists) {
     throw new Error(
-      `Graphify graph not found at ${GRAPHIFY_GRAPH_PATH}. Run "graphify update ." from the repo root first.`,
+      `Graphify graph not found at ${graphPath}. Clone the phygital-token repo, run "graphify update .", and set PHYGITAL_TOKEN_REPO_ROOT to the repo root — or use search_docs / read_doc instead.`,
     );
   }
 

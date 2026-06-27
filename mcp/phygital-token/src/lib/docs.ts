@@ -3,9 +3,9 @@ import path from "node:path";
 import {
   GLOSSARY_PATH,
   MCP_DOCS_DIR,
-  SDK_DOCS_DIR,
-  SDK_README_PATH,
   pathExists,
+  resolveSdkDocsDir,
+  resolveSdkReadmePath,
 } from "./paths.js";
 
 export type DocCategory =
@@ -59,8 +59,9 @@ async function collectMarkdownFiles(
 export async function listDocs(): Promise<DocEntry[]> {
   const docs: DocEntry[] = [];
 
-  if (await pathExists(SDK_DOCS_DIR)) {
-    const gatingDir = path.join(SDK_DOCS_DIR, "gating");
+  const sdkDocsDir = await resolveSdkDocsDir();
+  if (sdkDocsDir) {
+    const gatingDir = path.join(sdkDocsDir, "gating");
     if (await pathExists(gatingDir)) {
       docs.push(...(await collectMarkdownFiles(gatingDir, "gating")));
     }
@@ -91,11 +92,12 @@ export async function listDocs(): Promise<DocEntry[]> {
     });
   }
 
-  if (await pathExists(SDK_README_PATH)) {
+  const sdkReadmePath = await resolveSdkReadmePath();
+  if (sdkReadmePath) {
     docs.push({
       id: "readme",
       title: "SDK README",
-      path: SDK_README_PATH,
+      path: sdkReadmePath,
       category: "readme",
     });
   }

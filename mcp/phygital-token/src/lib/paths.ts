@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,39 +8,97 @@ const PACKAGE_ROOT = path.resolve(
   "../..",
 );
 
-/** Monorepo root (phygital-token/). */
-export const REPO_ROOT = path.resolve(PACKAGE_ROOT, "../..");
+const require = createRequire(import.meta.url);
 
-export const SDK_DOCS_DIR = path.join(
-  REPO_ROOT,
-  "clients/js/phygital-token/docs",
-);
-
-export const GLOSSARY_PATH = path.join(REPO_ROOT, "GLOSSARY.md");
-
-export const SDK_README_PATH = path.join(
-  REPO_ROOT,
-  "clients/js/phygital-token/README.md",
-);
+/** MCP package root (`mcp/phygital-token/`). */
+export const MCP_PACKAGE_ROOT = PACKAGE_ROOT;
 
 export const MCP_DOCS_DIR = path.join(PACKAGE_ROOT, "docs");
 
-export const VERIFY_TS_PATH = path.join(
-  REPO_ROOT,
-  "clients/js/phygital-token/src/utils/verify.ts",
-);
+export const GLOSSARY_PATH = path.join(MCP_DOCS_DIR, "glossary.md");
 
-export const VERIFY_ASSET_TS_PATH = path.join(
-  REPO_ROOT,
-  "clients/js/phygital-token/src/instructions/verifyAsset.ts",
-);
+/** Monorepo root when developing in-tree; override with PHYGITAL_TOKEN_REPO_ROOT. */
+export function resolveRepoRoot(): string {
+  const override = process.env.PHYGITAL_TOKEN_REPO_ROOT?.trim();
+  if (override) {
+    return override;
+  }
+  return path.resolve(PACKAGE_ROOT, "../..");
+}
 
-export const RUST_CLIENT_VERIFY_ASSET_PATH = path.join(
-  REPO_ROOT,
-  "clients/rust/phygital-token/src/generated/instructions/verify_asset.rs",
-);
+function resolveSdkPackageRoot(): string | undefined {
+  try {
+    return path.dirname(require.resolve("phygital-token-sdk/package.json"));
+  } catch {
+    return undefined;
+  }
+}
 
-export const GRAPHIFY_GRAPH_PATH = path.join(REPO_ROOT, "graphify-out/graph.json");
+/** SDK docs from the installed npm package, or monorepo fallback. */
+export async function resolveSdkDocsDir(): Promise<string | undefined> {
+  const sdkRoot = resolveSdkPackageRoot();
+  if (sdkRoot) {
+    const docsDir = path.join(sdkRoot, "docs");
+    if (await pathExists(docsDir)) {
+      return docsDir;
+    }
+  }
+
+  const monorepoDocs = path.join(
+    resolveRepoRoot(),
+    "clients/js/phygital-token/docs",
+  );
+  if (await pathExists(monorepoDocs)) {
+    return monorepoDocs;
+  }
+
+  return undefined;
+}
+
+export async function resolveSdkReadmePath(): Promise<string | undefined> {
+  const sdkRoot = resolveSdkPackageRoot();
+  if (sdkRoot) {
+    const readmePath = path.join(sdkRoot, "README.md");
+    if (await pathExists(readmePath)) {
+      return readmePath;
+    }
+  }
+
+  const monorepoReadme = path.join(
+    resolveRepoRoot(),
+    "clients/js/phygital-token/README.md",
+  );
+  if (await pathExists(monorepoReadme)) {
+    return monorepoReadme;
+  }
+
+  return undefined;
+}
+
+export function resolveGraphifyGraphPath(): string {
+  return path.join(resolveRepoRoot(), "graphify-out/graph.json");
+}
+
+export function resolveVerifyTsPath(): string {
+  return path.join(
+    resolveRepoRoot(),
+    "clients/js/phygital-token/src/utils/verify.ts",
+  );
+}
+
+export function resolveVerifyAssetTsPath(): string {
+  return path.join(
+    resolveRepoRoot(),
+    "clients/js/phygital-token/src/instructions/verifyAsset.ts",
+  );
+}
+
+export function resolveRustVerifyAssetPath(): string {
+  return path.join(
+    resolveRepoRoot(),
+    "clients/rust/phygital-token/src/generated/instructions/verify_asset.rs",
+  );
+}
 
 export async function pathExists(filePath: string): Promise<boolean> {
   try {
@@ -48,8 +107,4 @@ export async function pathExists(filePath: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-export function resolveRepoRoot(): string {
-  return process.env.PHYGITAL_TOKEN_REPO_ROOT?.trim() || REPO_ROOT;
 }
