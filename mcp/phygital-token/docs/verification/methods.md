@@ -14,36 +14,53 @@ All exports from `clients/js/phygital-token/src/utils/verify.ts`.
 
 ## Authentication — off-chain only (live tap)
 
-### `verifyWithChallengeResponse({ rpc, message?, fetchPublicKeyFromCredentialIdCallback? })`
+Off-chain authentication is **split**: NFC tap on the client, signature verification on your server.
 
-**Use when:** Browser web app; prove holder is present **without** an on-chain transaction.
+### `startAuthenticationWithChallengeResponse(message, transceive?)`
 
-Optional `message` sets the WebAuthn challenge (UTF-8 encoded). When omitted, a random 32-byte challenge is used. This lets you bind the tap to app-specific context (e.g. session id, action label) without going on-chain.
+**Client — trigger the tap.**
+
+Opens the system NFC modal (browser) or talks to an NFC reader via `transceive` (kiosk / native). Returns a WebAuthn `AuthenticationResponseJSON`.
 
 ```ts
-// Random challenge
-await verifyWithChallengeResponse({ rpc });
+// Browser
+const response = await startAuthenticationWithChallengeResponse(message);
 
-// Bound challenge (still off-chain)
-await verifyWithChallengeResponse({
+// Kiosk / native reader
+const response = await startAuthenticationWithChallengeResponse(message, transceive);
+```
+
+`message` must be the same string your server issued as the challenge (store server-side with a short TTL).
+
+### `verifyWithChallengeResponse({ rpc, expectedMessage, response, ... })`
+
+**Server — verify the tap.**
+
+Checks the WebAuthn signature against `expectedMessage`, resolves the vault `publicKey` via RPC (or `fetchPublicKeyFromCredentialIdCallback`). Returns `{ publicKey, isVerified }`. Does **not** submit `verify_asset`.
+
+```ts
+// API route after client POSTs { message, response }
+const { publicKey, isVerified } = await verifyWithChallengeResponse({
   rpc,
-  message: `login:${sessionId}`,
+  expectedMessage: message,
+  response,
 });
 ```
 
-Returns `{ publicKey, isVerified }`. Does **not** submit `verify_asset`.
+Typical flow:
+
+1. Server issues `message` (e.g. `randomUUID()`), stores it for the session.
+2. Client calls `startAuthenticationWithChallengeResponse(message)` → user taps vault.
+3. Client POSTs `{ message, response }` to your verify API.
+4. Server calls `verifyWithChallengeResponse`, then runs your business logic (e.g. `evaluateAssetGating`).
 
 For on-chain proof with a bound message, use `beginVerifyAsset({ message: Uint8Array })` instead.
-
-### `verifyWithChallengeResponseOverNfc({ rpc, message?, transceive, ... })`
-
-Same as above for React Native / native NFC apps. Optional `message` binds the challenge the same way.
 
 ## Off-chain auth vs on-chain composable
 
 | Need | Use |
 |------|-----|
-| UI login, bound or random challenge, no tx | `verifyWithChallengeResponse({ message? })` |
+| UI login / vault gate, no tx | `startAuthenticationWithChallengeResponse` + `verifyWithChallengeResponse` |
 | On-chain proof — Pattern A | `completeVerifyAsset` + your ix |
 | On-chain proof — Pattern B | `buildVerifyAssetArgs` + your ix |
 | Transfer ownership | `beginTransfer` → `completeTransfer` |
@@ -52,7 +69,7 @@ Same as above for React Native / native NFC apps. Optional `message` binds the c
 
 | Context | `message` type | Effect |
 |---------|----------------|--------|
-| `verifyWithChallengeResponse` | optional `string` | WebAuthn challenge bytes (UTF-8) |
+| `startAuthenticationWithChallengeResponse` / `verifyWithChallengeResponse` | `string` (`expectedMessage`) | WebAuthn challenge bytes (UTF-8); must match on client and server |
 | `beginVerifyAsset` | `Uint8Array` | Hashed into slot-bound on-chain challenge |
 
-An off-chain `message` in `verifyWithChallengeResponse` does **not** produce an on-chain `verify_asset` record. Use the composable flow when your program must inspect or CPI `verify_asset`.
+An off-chain `expectedMessage` does **not** produce an on-chain `verify_asset` record. Use the composable flow when your program must inspect or CPI `verify_asset`.

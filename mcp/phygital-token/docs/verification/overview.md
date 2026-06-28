@@ -19,14 +19,21 @@ Do you need the holder physically present right now?
 │   ├─ Online, replay protection → verifyDynamicUrl
 │   └─ Offline / no backend → verifyDynamicUrlWithoutCounterCheck (weaker)
 └─ YES → Authentication
-    ├─ Off-chain only (UI login, no chain) → verifyWithChallengeResponse / OverNfc
+    ├─ Off-chain only (UI login, vault gate, no chain tx)
+    │     Server issues challenge → startAuthenticationWithChallengeResponse (client tap)
+    │     → verifyWithChallengeResponse (server verify) → your logic (e.g. evaluateAssetGating)
     ├─ On-chain proof for your program → beginVerifyAsset composable flow (see below)
     └─ Transfer ownership → beginTransfer → completeTransfer (NOT verify_asset)
 ```
 
 ## Off-chain vs on-chain authentication
 
-`verifyWithChallengeResponse` and `verifyWithChallengeResponseOverNfc` are **off-chain only**. They prompt an NFC tap and verify the WebAuthn signature in the client. They do **not** submit a transaction.
+Off-chain authentication uses two SDK functions:
+
+- **`startAuthenticationWithChallengeResponse`** — client only; opens NFC and returns a WebAuthn response.
+- **`verifyWithChallengeResponse`** — server only; checks the signature and resolves `publicKey`.
+
+Neither submits a transaction. Verification should run on your backend so the client cannot fake a successful tap.
 
 For on-chain proof that a passkey holder signed a specific message at a specific slot, use the composable `beginVerifyAsset` flow.
 
@@ -56,6 +63,7 @@ The client uses `buildVerifyAssetArgs` to get `secp256r1Verify` and the verify a
 - **Transfer** challenge binds the asset PDA (recipient chosen later at wallet confirm).
 - **Verify asset** challenge binds arbitrary `message` bytes. Hash on-chain: `SHA256(message)`.
 - **Dynamic URL** binds `counter || nonce` (uint32 BE + 8 random bytes).
+- **Off-chain tap** binds `expectedMessage` (UTF-8) into the WebAuthn challenge.
 
 Embed domain-specific bytes in `message` so a proof for one action cannot authorize another.
 

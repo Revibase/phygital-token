@@ -41,8 +41,8 @@ export {
 export {
   verifyDynamicUrl,
   verifyDynamicUrlWithoutCounterCheck,
+  startAuthenticationWithChallengeResponse,
   verifyWithChallengeResponse,
-  verifyWithChallengeResponseOverNfc,
   type VerifyDynamicUrlCallback,
   type VerifyDynamicUrlResult,
   type VerifyWithChallengeResponseResult,

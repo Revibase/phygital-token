@@ -311,6 +311,7 @@ function registerTools(server: McpServer) {
         "deep_link_from_prior_scan",
         "offline_identification",
         "login_ui_only",
+        "vault_gated_experience",
         "onchain_standalone_verify",
         "onchain_inspect_verify_asset",
         "onchain_cpi_verify_asset",
@@ -345,8 +346,8 @@ function registerTools(server: McpServer) {
         methods: {
           identification: ["verifyDynamicUrl", "verifyDynamicUrlWithoutCounterCheck"],
           authenticationOffChain: [
+            "startAuthenticationWithChallengeResponse",
             "verifyWithChallengeResponse",
-            "verifyWithChallengeResponseOverNfc",
           ],
           onChainComposable: [
             "beginVerifyAsset",
@@ -440,7 +441,7 @@ function registerTools(server: McpServer) {
             : "clients/rust/phygital-token — VerifyAssetCpiBuilder",
         docIds: ["building-on-phygital:overview", "building-on-phygital:rust-cpi"],
         testing: "programs/phygital-token/tests/verify_asset_flow.rs",
-        note: "verifyWithChallengeResponse accepts optional message (off-chain challenge binding only). On-chain message binding uses beginVerifyAsset.",
+        note: "Off-chain tap: startAuthenticationWithChallengeResponse (client) + verifyWithChallengeResponse (server, expectedMessage + response). On-chain message binding uses beginVerifyAsset.",
       }),
   );
 }
@@ -618,7 +619,7 @@ function registerPrompts(server: McpServer) {
               isNativeApp != null ? `Native app: ${isNativeApp}` : "",
               hasPriorScanUrl != null ? `Has prior scan URL params: ${hasPriorScanUrl}` : "",
               "",
-              "verifyWithChallengeResponse is off-chain only (no verify_asset tx).",
+              "Off-chain tap: startAuthenticationWithChallengeResponse (client) + verifyWithChallengeResponse (server). No verify_asset tx.",
               "On-chain: Pattern A = client posts verify_asset, program inspects sysvar.",
               "On-chain: Pattern B = buildVerifyAssetArgs, program CPIs verify_asset.",
               "Use recommend_verification, explain_verification, plan_verify_asset.",

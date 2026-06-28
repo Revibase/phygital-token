@@ -46,7 +46,7 @@ const DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT = `https://revibase.com/api/verifyAsse
  * |---|---|---|
  * | Question | Which asset is this? | Is the holder here now? |
  * | User taps again? | No | Yes |
- * | What you pass in | URL params from an earlier scan | Nothing — the function handles the tap |
+ * | What you pass in | URL params from an earlier scan | Challenge + WebAuthn response from {@link startAuthenticationWithChallengeResponse} |
  * | Typical use | Product pages, ownership lookup, links | Transfers, high-value actions, login |
  *
  * @packageDocumentation
@@ -57,10 +57,11 @@ export type VerifyWithChallengeResponseResult = {
   isVerified: boolean;
 };
 
-/** Options for {@link verifyWithChallengeResponse} and {@link verifyWithChallengeResponseOverNfc}. */
+/** Options for {@link verifyWithChallengeResponse}. */
 export type VerifyWithChallengeResponseOptions = {
   rpc: Rpc<SolanaRpcApi>;
-  message?: string;
+  expectedMessage: string;
+  response: AuthenticationResponseJSON;
   fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
 };
 
@@ -178,20 +179,69 @@ export type GetPublicKeyFromCredentialIdCallback = (
   credentialId: Base64URLString,
 ) => Promise<Base64URLString>;
 
+export async function startAuthenticationWithChallengeResponse(
+  message: string,
+  transceive?: (apdu: Uint8Array) => Promise<Uint8Array>,
+): Promise<AuthenticationResponseJSON> {
+  const challenge = bufferToBase64URLString(
+    new TextEncoder().encode(message).buffer as ArrayBuffer,
+  );
+
+  if (transceive) {
+    return authenticateWithNfc(
+      {
+        challenge,
+        rpId: "",
+        userVerification: "preferred",
+        origin: "",
+        allowCredentials: [
+          {
+            id: "",
+            type: "public-key",
+            transports: ["nfc"],
+          },
+        ],
+      },
+      transceive,
+    );
+  }
+
+  return startAuthentication({
+    optionsJSON: {
+      challenge,
+      rpId: window.location.hostname,
+      userVerification: "preferred",
+      allowCredentials: [
+        {
+          id: "",
+          type: "public-key",
+          transports: ["nfc"],
+        },
+      ],
+    },
+  });
+}
+
 /**
- * Internal helper for the tap-to-verify flows.
+ * **Authentication** — verify a fresh tap signature (server-side).
+ *
+ * Call after {@link startAuthenticationWithChallengeResponse} on the client.
+ * Pass the same `expectedMessage` you issued as the challenge and the WebAuthn
+ * `response` from the tap. Resolves the vault `publicKey` and checks the signature.
+ *
+ * Do not use this just to **identify** an asset from an old scan; for that use
+ * {@link verifyDynamicUrl}.
  */
-async function verifyAuthenticationResponse({
+export async function verifyWithChallengeResponse({
+  expectedMessage,
   response,
-  expectedChallenge,
-  rpc,
   fetchPublicKeyFromCredentialIdCallback,
-}: {
-  response: AuthenticationResponseJSON;
-  expectedChallenge: Base64URLString;
-  rpc: Rpc<SolanaRpcApi>;
-  fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
-}): Promise<VerifyWithChallengeResponseResult> {
+  rpc,
+}: VerifyWithChallengeResponseOptions): Promise<VerifyWithChallengeResponseResult> {
+  const expectedChallenge = bufferToBase64URLString(
+    new TextEncoder().encode(expectedMessage).buffer as ArrayBuffer,
+  );
+
   const clientData = parseWebAuthnClientData(response.response.clientDataJSON);
 
   if (clientData.challenge !== expectedChallenge) {
@@ -225,104 +275,4 @@ async function verifyAuthenticationResponse({
     isVerified,
     publicKey,
   };
-}
-
-/**
- * **Authentication** — prove the holder is here now (web apps).
- *
- * Prompts the user to tap their NFC key and checks a fresh signature. Use this
- * when you need to **authenticate** someone — before a transfer, a purchase, or
- * any action that requires the key holder to be physically present.
- *
- * Do not use this just to **identify** an asset from an old scan; for that use
- * {@link verifyDynamicUrl}.
- *
- * For React Native / native apps, use {@link verifyWithChallengeResponseOverNfc}.
- */
-export async function verifyWithChallengeResponse(
-  input: VerifyWithChallengeResponseOptions,
-): Promise<VerifyWithChallengeResponseResult> {
-  const expectedChallenge =
-    input.message !== undefined
-      ? new TextEncoder().encode(input.message)
-      : crypto.getRandomValues(new Uint8Array(32));
-
-  const response = await startAuthentication({
-    optionsJSON: {
-      challenge: bufferToBase64URLString(
-        expectedChallenge.buffer as ArrayBuffer,
-      ),
-      rpId: window.location.hostname,
-      userVerification: "preferred",
-      allowCredentials: [
-        {
-          id: "",
-          type: "public-key",
-          transports: ["nfc"],
-        },
-      ],
-    },
-  });
-
-  const result = await verifyAuthenticationResponse({
-    response,
-    expectedChallenge: bufferToBase64URLString(
-      expectedChallenge.buffer as ArrayBuffer,
-    ),
-    rpc: input.rpc,
-    fetchPublicKeyFromCredentialIdCallback:
-      input.fetchPublicKeyFromCredentialIdCallback,
-  });
-
-  return result;
-}
-
-/**
- * **Authentication** — prove the holder is here now (React Native / native apps).
- *
- * Same as {@link verifyWithChallengeResponse}, but for apps that talk to the key
- * over NFC directly (e.g. via `react-native-nfc-manager`) instead of the browser.
- *
- * @param transceive - your NFC read/write function that sends and receives APDUs.
- */
-export async function verifyWithChallengeResponseOverNfc(
-  input: VerifyWithChallengeResponseOptions & {
-    transceive: (apdu: Uint8Array) => Promise<Uint8Array>;
-  },
-): Promise<VerifyWithChallengeResponseResult> {
-  const expectedChallenge =
-    input.message !== undefined
-      ? new TextEncoder().encode(input.message)
-      : crypto.getRandomValues(new Uint8Array(32));
-
-  const response = await authenticateWithNfc(
-    {
-      challenge: bufferToBase64URLString(
-        expectedChallenge.buffer as ArrayBuffer,
-      ),
-      rpId: "revibase.com",
-      userVerification: "preferred",
-      origin: "https://revibase.com",
-      allowCredentials: [
-        {
-          id: "",
-          type: "public-key",
-          transports: ["nfc"],
-        },
-      ],
-    },
-    input.transceive,
-  );
-
-  const result = await verifyAuthenticationResponse({
-    response,
-    expectedChallenge: bufferToBase64URLString(
-      expectedChallenge.buffer as ArrayBuffer,
-    ),
-    rpc: input.rpc,
-    fetchPublicKeyFromCredentialIdCallback:
-      input.fetchPublicKeyFromCredentialIdCallback,
-  });
-
-  return result;
 }

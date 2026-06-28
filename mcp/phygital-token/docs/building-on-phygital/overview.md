@@ -29,7 +29,12 @@ Best when your program orchestrates verification as part of its own instruction.
 
 ## Off-chain authentication (no `verify_asset`)
 
-`verifyWithChallengeResponse` proves presence in the client only. It does **not** write to chain. Use for UI login when no program needs to inspect `verify_asset`.
+Off-chain tap auth is split:
+
+1. **Client:** `startAuthenticationWithChallengeResponse(expectedMessage)` — NFC tap.
+2. **Server:** `verifyWithChallengeResponse({ expectedMessage, response, rpc })` — signature check → `publicKey`.
+
+Does **not** write to chain. Use for UI login, vault gates, and `evaluateAssetGating` when no program needs to inspect `verify_asset`.
 
 ## Message design checklist
 

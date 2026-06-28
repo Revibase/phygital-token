@@ -35,8 +35,10 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 |--------|---------|
 | `verifyDynamicUrl` | Identification via signed URL (server) |
 | `verifyDynamicUrlWithoutCounterCheck` | Identification offline |
-| `verifyWithChallengeResponse` | Off-chain authentication (browser); does not submit `verify_asset` |
-| `verifyWithChallengeResponseOverNfc` | Off-chain authentication (native NFC) |
+| `startAuthenticationWithChallengeResponse` | Client: NFC tap trigger; returns WebAuthn response |
+| `verifyWithChallengeResponse` | Server: verify tap signature; returns `publicKey` |
+
+Pair `startAuthenticationWithChallengeResponse` (client) with `verifyWithChallengeResponse` (server). Pass optional `transceive` for kiosk / native NFC readers.
 
 On-chain proof always uses `beginVerifyAsset` / `buildVerifyAssetArgs` / `completeVerifyAsset`.
 

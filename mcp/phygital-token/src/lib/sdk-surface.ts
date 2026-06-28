@@ -28,8 +28,8 @@ export const SDK_SURFACE = {
   verification: [
     "verifyDynamicUrl",
     "verifyDynamicUrlWithoutCounterCheck",
+    "startAuthenticationWithChallengeResponse",
     "verifyWithChallengeResponse",
-    "verifyWithChallengeResponseOverNfc",
   ],
   onChainComposition: {
     patternA_inspect: {
