@@ -119,6 +119,114 @@ fn e2e_multi_asset_same_design_custody() {
 }
 
 #[test]
+fn e2e_remove_ownership_then_reclaim() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.mint_asset_with_passkey(&passkey);
+    let first_holder = Keypair::new();
+    let second_holder = Keypair::new();
+
+    let (first_slot, _) = current_slot_entry(&ctx.svm);
+    ctx.send_execute_transfer(&asset, &first_holder, true)
+        .expect("initial claim");
+    assert_eq!(ctx.last_transfer_slot(asset.asset), first_slot);
+    assert_eq!(ctx.asset_fields(asset.asset).0, first_holder.pubkey());
+
+    ctx.send_remove_ownership(&asset, &first_holder)
+        .expect("holder relinquishes ownership");
+    assert_eq!(ctx.token_balance(ctx.program_authority(), asset.mint), 1);
+    assert_eq!(ctx.token_balance(first_holder.pubkey(), asset.mint), 0);
+    assert_eq!(ctx.asset_fields(asset.asset).0, ctx.program_authority());
+
+    let second_slot = first_slot.saturating_add(1);
+    ctx.set_current_slot(second_slot);
+    let (second_slot, _second_hash) = current_slot_entry(&ctx.svm);
+
+    ctx.send_execute_transfer(&asset, &second_holder, true)
+        .expect("re-claim after remove ownership");
+    assert_eq!(ctx.last_transfer_slot(asset.asset), second_slot);
+    assert_eq!(ctx.asset_fields(asset.asset).0, second_holder.pubkey());
+    assert_eq!(ctx.token_balance(second_holder.pubkey(), asset.mint), 1);
+    assert_eq!(ctx.token_balance(ctx.program_authority(), asset.mint), 0);
+}
+
+#[test]
+fn e2e_remove_ownership_from_custody_is_impossible() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.mint_asset_with_passkey(&passkey);
+
+    assert_eq!(ctx.asset_fields(asset.asset).0, ctx.program_authority());
+    assert_eq!(ctx.token_balance(ctx.program_authority(), asset.mint), 1);
+
+    let fake_owner = Keypair::new();
+    ctx.svm
+        .airdrop(&fake_owner.pubkey(), common::LAMPORTS_PER_SOL)
+        .unwrap();
+
+    let err = ctx.send_remove_ownership(&asset, &fake_owner);
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains("OwnerMismatch")
+            || err_str.contains("AccountNotInitialized")
+            || err_str.contains("3012"),
+        "unexpected error: {err_str}"
+    );
+    assert_eq!(ctx.token_balance(ctx.program_authority(), asset.mint), 1);
+}
+
+#[test]
+fn e2e_locked_holder_can_forfeit_via_remove_ownership() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.mint_asset_with_passkey_and_lock(&passkey, AssetType::Lockable);
+    let holder = Keypair::new();
+    let next_recipient = Keypair::new();
+
+    let (first_slot, _) = current_slot_entry(&ctx.svm);
+    ctx.send_execute_transfer(&asset, &holder, true)
+        .expect("claim locked asset");
+    assert_eq!(ctx.asset_lock_state(asset.asset), true);
+
+    ctx.set_current_slot(first_slot.saturating_add(1));
+
+    let held = MintedAsset {
+        passkey: passkey.clone(),
+        recipient: holder.insecure_clone(),
+        design_owner: Keypair::new(),
+        mint: asset.mint,
+        asset: asset.asset,
+        group_mint: asset.group_mint,
+    };
+    let err = ctx.send_execute_transfer_from(
+        &held,
+        holder.pubkey(),
+        &next_recipient,
+        true,
+        None,
+        None,
+    );
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains("AssetIsCurrentlyLocked")
+            || err_str.contains("6018")
+            || err_str.contains("StaleTransferSlot")
+            || err_str.contains("6008"),
+        "locked holder should not transfer: {err_str}"
+    );
+
+    ctx.send_remove_ownership(&held, &holder)
+        .expect("forfeit locked asset");
+    assert_eq!(ctx.asset_lock_state(asset.asset), false);
+    assert_eq!(ctx.asset_fields(asset.asset).0, ctx.program_authority());
+    assert_eq!(ctx.token_balance(ctx.program_authority(), asset.mint), 1);
+
+    ctx.send_execute_transfer(&asset, &next_recipient, true)
+        .expect("new holder claims from custody");
+    assert_eq!(ctx.asset_fields(asset.asset).0, next_recipient.pubkey());
+}
+
+#[test]
 fn e2e_asset_pda_squatting_blocks_victim() {
     let mut ctx = TestContext::new();
     let victim_passkey = TestPasskey::generate();

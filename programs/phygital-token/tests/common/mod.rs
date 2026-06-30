@@ -215,6 +215,54 @@ impl TestContext {
         instance.is_locked
     }
 
+    pub fn remove_ownership_ix(
+        &self,
+        owner: Pubkey,
+        asset: Pubkey,
+        mint: Pubkey,
+    ) -> Instruction {
+        self.remove_ownership_ix_with_hook(owner, asset, mint, self.transfer_hook_program_id)
+    }
+
+    pub fn remove_ownership_ix_with_hook(
+        &self,
+        owner: Pubkey,
+        asset: Pubkey,
+        mint: Pubkey,
+        transfer_hook_program: Pubkey,
+    ) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_token::accounts::RemoveOwnership {
+                owner,
+                asset,
+                program_authority: self.program_authority(),
+                mint,
+                program_authority_token_account: self.custody_ata(mint),
+                owner_token_account: get_associated_token_address_with_program_id(
+                    &owner,
+                    &mint,
+                    &TOKEN_2022_ID,
+                ),
+                token_program: TOKEN_2022_ID,
+                associated_token_program: ASSOCIATED_TOKEN_ID,
+                system_program: anchor_lang::solana_program::system_program::ID,
+                transfer_hook_program,
+            }
+            .to_account_metas(None),
+            data: phygital_token::instruction::RemoveOwnership {}.data(),
+        }
+    }
+
+    pub fn send_remove_ownership(
+        &mut self,
+        asset: &MintedAsset,
+        owner: &Keypair,
+    ) -> litesvm::types::TransactionResult {
+        let ix = self.remove_ownership_ix(owner.pubkey(), asset.asset, asset.mint);
+        Self::send_instruction(&mut self.svm, ix, &[owner])
+    }
+
     pub fn set_lock_state_ix(&self, owner: Pubkey, asset: Pubkey, is_locked: bool) -> Instruction {
         Instruction {
             program_id: self.program_id,

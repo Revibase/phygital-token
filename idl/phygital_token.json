@@ -279,6 +279,88 @@
       ]
     },
     {
+      "name": "remove_ownership",
+      "discriminator": [
+        58,
+        70,
+        125,
+        46,
+        39,
+        24,
+        46,
+        240
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "asset",
+          "writable": true
+        },
+        {
+          "name": "program_authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "program_authority_token_account",
+          "writable": true
+        },
+        {
+          "name": "owner_token_account",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "transfer_hook_program",
+          "address": "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "set_lock_state",
       "discriminator": [
         16,
@@ -365,6 +447,19 @@
     }
   ],
   "events": [
+    {
+      "name": "RemoveOwnershipEvent",
+      "discriminator": [
+        61,
+        189,
+        181,
+        181,
+        66,
+        180,
+        172,
+        3
+      ]
+    },
     {
       "name": "TransferEvent",
       "discriminator": [
@@ -629,6 +724,34 @@
                 "name": "AssetType"
               }
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RemoveOwnershipEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "time",
+            "type": "i64"
           }
         ]
       }

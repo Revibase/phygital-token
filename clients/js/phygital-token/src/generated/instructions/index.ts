@@ -9,5 +9,6 @@
 export * from "./createMint.js";
 export * from "./executeTransfer.js";
 export * from "./mintToken.js";
+export * from "./removeOwnership.js";
 export * from "./setLockState.js";
 export * from "./verifyAsset.js";

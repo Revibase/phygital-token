@@ -168,7 +168,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     rationale: "Wallet holdings via DAS given an asset publicKey. Pair with off-chain tap auth when you need live presence.",
     docIds: ["gating:overview"],
     cautions: [
-      "For Revi Vault / live presence: startAuthenticationWithChallengeResponse + verifyWithChallengeResponse first, then evaluateAssetGating.",
+      "For Revi Ring / live presence: startAuthenticationWithChallengeResponse + verifyWithChallengeResponse first, then evaluateAssetGating.",
     ],
   },
   native_mobile_app: {
@@ -201,7 +201,7 @@ export function listVerificationUseCases(): Array<{
     { id: "deep_link_from_prior_scan", summary: "App opens from signed deep link" },
     { id: "offline_identification", summary: "Identify asset offline (weak replay)" },
     { id: "login_ui_only", summary: "Off-chain tap-to-login (no chain tx)" },
-    { id: "vault_gated_experience", summary: "Revi Vault gate: tap + wallet holdings check" },
+    { id: "vault_gated_experience", summary: "Revi Ring gate: tap + wallet holdings check" },
     { id: "onchain_standalone_verify", summary: "On-chain verify_asset only" },
     {
       id: "onchain_inspect_verify_asset",

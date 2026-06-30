@@ -134,6 +134,11 @@ pub fn handler(
         },
     )?;
 
+    let token_program_id = ctx.accounts.token_program.key();
+    let recipient_ata = ctx.accounts.recipient_token_account.to_account_info();
+    let creating_recipient_ata =
+        recipient_ata.owner != &token_program_id || recipient_ata.data_is_empty();
+
     associated_token::create_idempotent(CpiContext::new_with_signer(
         ctx.accounts.associated_token_program.key(),
         Create {
@@ -192,17 +197,19 @@ pub fn handler(
         ))?;
     }
 
-    set_authority(
-        CpiContext::new(
-            ctx.accounts.token_program.key(),
-            SetAuthority {
-                account_or_mint: ctx.accounts.recipient_token_account.to_account_info(),
-                current_authority: ctx.accounts.recipient.to_account_info(),
-            },
-        ),
-        AuthorityType::CloseAccount,
-        Some(ctx.accounts.program_authority.key()),
-    )?;
+    if creating_recipient_ata {
+        set_authority(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                SetAuthority {
+                    account_or_mint: ctx.accounts.recipient_token_account.to_account_info(),
+                    current_authority: ctx.accounts.recipient.to_account_info(),
+                },
+            ),
+            AuthorityType::CloseAccount,
+            Some(ctx.accounts.program_authority.key()),
+        )?;
+    }
 
     emit!(TransferEvent {
         owner: ctx.accounts.sender.key(),

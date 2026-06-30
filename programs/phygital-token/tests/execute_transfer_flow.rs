@@ -256,3 +256,46 @@ fn execute_transfer_allows_next_transfer_with_higher_slot() {
     assert_eq!(ctx.last_transfer_slot(asset.asset), second_slot);
     assert_eq!(ctx.token_balance(second_recipient.pubkey(), asset.mint), 1);
 }
+
+#[test]
+fn execute_transfer_claims_multiple_assets_to_same_recipient_ata() {
+    let mut ctx = TestContext::new();
+    let passkey_a = TestPasskey::generate();
+    let passkey_b = TestPasskey::generate();
+    let asset = ctx.mint_asset_with_passkey(&passkey_a);
+    ctx.mint_second_asset_same_design(&asset, &passkey_b);
+
+    let recipient = Keypair::new();
+    let asset_a = MintedAsset {
+        passkey: passkey_a.clone(),
+        ..asset
+    };
+    let asset_b = MintedAsset {
+        passkey: passkey_b.clone(),
+        design_owner: Keypair::new(),
+        recipient: Keypair::new(),
+        mint: asset.mint,
+        asset: ctx.asset_pda(&phygital_token::Secp256r1Pubkey(passkey_b.compressed_pubkey)),
+        group_mint: asset.group_mint,
+    };
+
+    ctx.send_execute_transfer(&asset_a, &recipient, true)
+        .expect("claim first asset");
+    assert_eq!(
+        ctx.recipient_close_authority(recipient.pubkey(), asset.mint),
+        Some(ctx.program_authority())
+    );
+
+    let (first_slot, _) = current_slot_entry(&ctx.svm);
+    ctx.set_current_slot(first_slot.saturating_add(1));
+
+    ctx.send_execute_transfer(&asset_b, &recipient, true)
+        .expect("claim second asset to same recipient ata");
+
+    assert_eq!(ctx.token_balance(recipient.pubkey(), asset.mint), 2);
+    assert_eq!(
+        ctx.recipient_close_authority(recipient.pubkey(), asset.mint),
+        Some(ctx.program_authority())
+    );
+    assert!(ctx.sender_ata_exists(recipient.pubkey(), asset.mint));
+}

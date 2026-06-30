@@ -8,12 +8,14 @@
   pub(crate) mod r#create_mint;
   pub(crate) mod r#execute_transfer;
   pub(crate) mod r#mint_token;
+  pub(crate) mod r#remove_ownership;
   pub(crate) mod r#set_lock_state;
   pub(crate) mod r#verify_asset;
 
   pub use self::r#create_mint::*;
   pub use self::r#execute_transfer::*;
   pub use self::r#mint_token::*;
+  pub use self::r#remove_ownership::*;
   pub use self::r#set_lock_state::*;
   pub use self::r#verify_asset::*;
 
