@@ -28,6 +28,7 @@ Collection (group_mint)
 | `create_mint` | Creates a **design** mint (member of a collection `group_mint`). |
 | `mint_token` | Mints one SPL token into custody and initializes an **asset** PDA. |
 | `execute_transfer` | Passkey-authorized claim/transfer from current owner to recipient. |
+| `remove_ownership` | Wallet-signed forfeiture — returns token to custody and resets `asset.owner`. |
 | `set_lock_state` | Owner toggles transfer lock on a configurable asset. |
 | `create_domain_config` / `update_domain_config` | WebAuthn RP ID and origin allowlist. |
 

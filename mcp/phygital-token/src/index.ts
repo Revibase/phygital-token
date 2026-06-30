@@ -24,6 +24,7 @@ import {
   parseAssetType,
   planCreateMint,
   planMintToken,
+  planRemoveOwnership,
   planTransfer,
   planVerifyAsset,
 } from "./lib/instructions.js";
@@ -46,7 +47,7 @@ const SERVER_INSTRUCTIONS = [
   "- Building on phygital (CPI) → read_doc building-on-phygital/*, rust_cpi_verify_asset_guide",
   "- SDK export map → list_sdk_exports",
   "- Gating rules → explain_gating, gating_filter_schema, gating_recipe, format_gating_predicate",
-  "- Mint / transfer flows → plan_create_mint, plan_mint_token, plan_transfer",
+  "- Mint / transfer / forfeiture flows → plan_create_mint, plan_mint_token, plan_transfer, plan_remove_ownership",
   "- Code architecture (repo clone) → query_codebase (graphify)",
   "",
   "Live gating evaluation and asset fetch: use phygital-token-sdk in your app (evaluateAssetGating, fetchAssetDisplayInfo).",
@@ -276,6 +277,24 @@ function registerTools(server: McpServer) {
           assetType: parseAssetType(assetType),
           credentialId,
         }),
+      ),
+  );
+
+  server.tool(
+    "plan_remove_ownership",
+    "Plan a wallet-signed forfeiture: return token to custody and reset asset.owner (offline).",
+    {
+      assetPublicKey: z
+        .string()
+        .describe("Base64url-encoded secp256r1 public key for the phygital asset"),
+      owner: z
+        .string()
+        .describe("Current asset owner wallet — must match asset.owner on-chain"),
+      mint: z.string().describe("Design mint address for the asset"),
+    },
+    async ({ assetPublicKey, owner, mint }) =>
+      jsonResult(
+        await planRemoveOwnership({ assetPublicKey, owner, mint }),
       ),
   );
 

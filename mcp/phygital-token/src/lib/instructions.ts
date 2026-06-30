@@ -22,6 +22,9 @@ const TOKEN_2022_PROGRAM_ADDRESS = address(
 const ASSOCIATED_TOKEN_PROGRAM_ADDRESS = address(
   "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
 );
+const TRANSFER_HOOK_PROGRAM_ADDRESS = address(
+  "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR",
+);
 
 async function findAssociatedTokenAddress(
   owner: Address,
@@ -288,6 +291,69 @@ export async function planVerifyAsset(input: {
       "Pattern A: client includes verify_asset; your program inspects instructions sysvar.",
       "Pattern B: client uses buildVerifyAssetArgs; your program CPIs verify_asset.",
       "verify_asset updates asset.last_transfer_slot; slot must be strictly increasing.",
+    ],
+  };
+}
+
+export async function planRemoveOwnership(input: {
+  assetPublicKey: string;
+  owner: string;
+  mint: string;
+}) {
+  const assetPda = await findAssetPda(parseSecp256r1Pubkey(input.assetPublicKey));
+  const [programAuthority] = await findProgramAuthorityPda();
+  const mint = address(input.mint);
+  const owner = address(input.owner);
+  const programAuthorityTokenAccount = await findAssociatedTokenAddress(
+    programAuthority,
+    mint,
+    TOKEN_2022_PROGRAM_ADDRESS,
+  );
+  const ownerTokenAccount = await findAssociatedTokenAddress(
+    owner,
+    mint,
+    TOKEN_2022_PROGRAM_ADDRESS,
+  );
+
+  return {
+    instruction: "remove_ownership",
+    sdk: "getRemoveOwnershipInstructionAsync",
+    flow: [
+      "1. Confirm the connected wallet is asset.owner on-chain",
+      "2. Build remove_ownership with getRemoveOwnershipInstructionAsync",
+      "3. Owner signs and submits the transaction (no passkey tap required)",
+    ],
+    derivedAccounts: {
+      assetPda,
+      assetPublicKey: input.assetPublicKey,
+      programAuthority,
+      mint: input.mint,
+      owner: input.owner,
+      programAuthorityTokenAccount,
+      ownerTokenAccount,
+      tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
+      transferHookProgram: TRANSFER_HOOK_PROGRAM_ADDRESS,
+      program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+    },
+    requiredSigners: [
+      {
+        name: "owner",
+        role: "Current asset owner wallet — must match asset.owner on-chain",
+      },
+    ],
+    onChainEffects: [
+      "Transfers one SPL token from owner ATA back to program custody",
+      "Sets asset.owner to program_authority (unclaimed / custody state)",
+      "Clears asset.is_locked (forfeiture unlocks lockable assets)",
+      "Closes owner ATA when balance was exactly 1 on that mint",
+      "Preserves asset.last_transfer_slot",
+    ],
+    notes: [
+      "Wallet-signed forfeiture — unlike execute_transfer, no secp256r1_verify or passkey tap.",
+      "Owner must hold at least one token in their ATA for the design mint.",
+      "Fails if asset is already in custody (program_authority is owner).",
+      "Fails if signer is not asset.owner or mint does not match the asset record.",
+      "Program authority custody ATA is created idempotently when needed.",
     ],
   };
 }

@@ -19,6 +19,7 @@ export const SDK_SURFACE = {
     "authenticatePasskeyForTransfer",
     "completeTransfer",
   ],
+  removeOwnership: ["getRemoveOwnershipInstructionAsync"],
   verifyAssetComposable: [
     "beginVerifyAsset",
     "authenticatePasskeyForVerifyAsset",
@@ -75,6 +76,7 @@ export const SDK_SURFACE = {
     "getExecuteTransferInstructionAsync",
     "getVerifyAssetInstruction",
     "getSetLockStateInstruction",
+    "getRemoveOwnershipInstructionAsync",
     "fetchAsset",
     "findProgramAuthorityPda",
     "PHYGITAL_TOKEN_PROGRAM_ADDRESS",
@@ -83,7 +85,13 @@ export const SDK_SURFACE = {
     crate: "phygital-token-client",
     path: "clients/rust/phygital-token",
     features: ["anchor", "fetch"],
-    cpi: ["VerifyAssetCpi", "VerifyAssetCpiBuilder", "VerifyAssetInstructionArgs"],
+    cpi: [
+      "VerifyAssetCpi",
+      "VerifyAssetCpiBuilder",
+      "VerifyAssetInstructionArgs",
+      "RemoveOwnershipCpi",
+      "RemoveOwnershipCpiBuilder",
+    ],
     types: ["Asset", "Secp256r1VerifyArgs", "AssetType"],
   },
 } as const;

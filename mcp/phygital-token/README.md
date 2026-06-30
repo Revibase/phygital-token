@@ -28,7 +28,7 @@ Requires **Node.js 20+**. See [`cursor-mcp.example.json`](./cursor-mcp.example.j
 | **Docs** | `search_docs`, `read_doc`, `list_docs` |
 | **Gating** | `explain_gating`, `gating_filter_schema`, `gating_recipe`, `format_gating_predicate`, `summarize_gating_result` |
 | **Verification** | `recommend_verification`, `plan_verify_asset`, `explain_verification` |
-| **Planning** | `plan_create_mint`, `plan_mint_token`, `plan_transfer`, `find_asset_pda` |
+| **Planning** | `plan_create_mint`, `plan_mint_token`, `plan_transfer`, `plan_remove_ownership`, `find_asset_pda` |
 | **SDK** | `list_sdk_exports` |
 
 ## Optional: monorepo contributors

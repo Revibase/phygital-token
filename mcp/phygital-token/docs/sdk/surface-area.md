@@ -20,6 +20,12 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 | `authenticatePasskeyForTransfer` | WebAuthn NFC tap |
 | `completeTransfer` | `secp256r1_verify` + `execute_transfer` |
 
+## Remove ownership
+
+| Export | Purpose |
+|--------|---------|
+| `getRemoveOwnershipInstructionAsync` | Wallet-signed forfeiture — return token to custody and reset `asset.owner` |
+
 ## Verify asset (composable)
 
 | Export | Purpose |
@@ -65,7 +71,7 @@ On-chain proof always uses `beginVerifyAsset` / `buildVerifyAssetArgs` / `comple
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getCreateMintInstructionAsync`, `getMintTokenInstructionAsync`, `getExecuteTransferInstructionAsync`, `getVerifyAssetInstruction`, `getSetLockStateInstruction`, ...
+- Instructions: `getCreateMintInstructionAsync`, `getMintTokenInstructionAsync`, `getExecuteTransferInstructionAsync`, `getRemoveOwnershipInstructionAsync`, `getVerifyAssetInstruction`, `getSetLockStateInstruction`, ...
 - Accounts: `fetchAsset`, `Asset`, ...
 - Types: `AssetType`, `Secp256r1VerifyArgs`, `CredentialId`, ...
 - PDAs: `findProgramAuthorityPda`, ...
