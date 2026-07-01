@@ -20,8 +20,7 @@ import {
 } from "@simplewebauthn/browser";
 import { authenticateWithNfc } from "./passkey/nfc/index.js";
 import { fetchAssetFromCredentialId } from "./assetCredential.js";
-
-const DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT = `https://revibase.com/api/verifyAsset`;
+import { DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT } from "./consts.js";
 
 /**
  * Two ways to check a phygital asset — **identification** vs **authentication**.

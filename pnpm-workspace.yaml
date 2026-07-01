@@ -13,4 +13,4 @@ allowBuilds:
   utf-8-validate: false
 
 minimumReleaseAgeExclude:
-  - phygital-token-sdk@0.6.1 || 0.7.0
+  - phygital-token-sdk@0.6.1 || 0.7.0 || 0.7.1
