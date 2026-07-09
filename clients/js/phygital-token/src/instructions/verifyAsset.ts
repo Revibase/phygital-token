@@ -58,7 +58,7 @@ export async function authenticatePasskeyForVerifyAsset(
       userVerification: "preferred",
       allowCredentials: [
         {
-          id: "",
+          id: bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(64)).buffer as ArrayBuffer),
           type: "public-key",
           transports: ["nfc"],
         },
