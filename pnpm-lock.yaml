@@ -89,8 +89,8 @@ importers:
         specifier: ^6.4.0
         version: 6.10.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
       phygital-token-sdk:
-        specifier: ^0.7.1
-        version: 0.7.1(@solana/kit@6.10.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@solana/sysvars@6.10.0(typescript@5.9.3))(typescript@5.9.3)
+        specifier: ^0.7.2
+        version: 0.7.2(@solana/kit@6.10.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@solana/sysvars@6.10.0(typescript@5.9.3))(typescript@5.9.3)
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -1814,8 +1814,8 @@ packages:
     resolution: {integrity: sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ==}
     engines: {node: '>= 14.16'}
 
-  phygital-token-sdk@0.7.1:
-    resolution: {integrity: sha512-062FbZr9BpS15y/NPVR6Z2pDJCaOLdZjTAYwVYl0WiNyHBuzms3tmULSfzMXnyrhnUXbAqHlTPV+GbQakhKIVw==}
+  phygital-token-sdk@0.7.2:
+    resolution: {integrity: sha512-KkoHCLUX8pgs8i4VZ16/0Eshr8D9DMUOtWwHet10ToepVw3+njde8vYoRJhcZfVaOm7VQLxTormx5PdT1DpP5w==}
     peerDependencies:
       '@solana/kit': ^6.4.0
 
@@ -4002,7 +4002,7 @@ snapshots:
 
   pathval@2.0.1: {}
 
-  phygital-token-sdk@0.7.1(@solana/kit@6.10.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@solana/sysvars@6.10.0(typescript@5.9.3))(typescript@5.9.3):
+  phygital-token-sdk@0.7.2(@solana/kit@6.10.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@solana/sysvars@6.10.0(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
       '@noble/curves': 2.2.0
       '@noble/hashes': 2.2.0

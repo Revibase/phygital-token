@@ -1,6 +1,6 @@
 {
   "name": "phygital-token-mcp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client",
   "license": "ISC",
   "repository": {
@@ -40,7 +40,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@noble/hashes": "^2.0.1",
     "@solana/kit": "^6.4.0",
-    "phygital-token-sdk": "^0.7.1",
+    "phygital-token-sdk": "^0.7.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {
