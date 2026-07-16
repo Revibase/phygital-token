@@ -14,7 +14,7 @@ import { type AssetDisplayInfo } from "../utils/metadata.js";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
-  type Secp256r1VerifyInput,
+  type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
 import { getExecuteTransferInstructionAsync } from "../generated/index.js";
@@ -79,7 +79,7 @@ export async function completeTransfer(
   session: TransferSession,
   response: AuthenticationResponseJSON,
   recipient: TransactionSigner,
-  existingSecp256r1VerifyInputs?: Secp256r1VerifyInput[],
+  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
   const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
 

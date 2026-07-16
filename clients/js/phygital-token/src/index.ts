@@ -74,3 +74,17 @@ export {
 } from "./utils/gating.js";
 
 export * from "./generated/index.js";
+
+export {
+  getSecp256r1VerifyInstruction,
+  type Secp256r1VerifyEntry,
+  type Secp256r1VerifyInstruction,
+} from "./instructions/internal/secp256r1Verify.js";
+
+export {
+  buildSecp256r1VerifyInstructionFromWebAuthnResponse,
+  buildVerifyAssetChallenge,
+  buildTransferChallenge,
+  buildVerifyInputFromWebAuthn,
+  type WebAuthnSecp256r1Verification,
+} from "./utils/passkey/secp256r1.js";

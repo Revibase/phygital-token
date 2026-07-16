@@ -7,7 +7,7 @@ import type { Address, Instruction, Rpc, SolanaRpcApi } from "@solana/kit";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildVerifyAssetChallenge,
-  type Secp256r1VerifyInput,
+  type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
 import { getVerifyAssetInstruction, type Asset } from "../generated/index.js";
@@ -70,7 +70,7 @@ export async function authenticatePasskeyForVerifyAsset(
 export async function buildVerifyAssetArgs(
   session: VerifyAssetSession,
   response: AuthenticationResponseJSON,
-  existingSecp256r1VerifyInputs?: Secp256r1VerifyInput[],
+  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<{
   asset: Asset;
   assetPda: Address;
@@ -100,7 +100,7 @@ export async function buildVerifyAssetArgs(
 export async function completeVerifyAsset(
   session: VerifyAssetSession,
   response: AuthenticationResponseJSON,
-  existingSecp256r1VerifyInputs?: Secp256r1VerifyInput[],
+  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
   const { assetPda, secp256r1Verify, signedMessageIndex, clientDataJson } =
     await buildVerifyAssetArgs(

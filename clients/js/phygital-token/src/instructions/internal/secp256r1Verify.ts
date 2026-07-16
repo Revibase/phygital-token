@@ -28,11 +28,12 @@ const SIGNATURE_SERIALIZED_SIZE = 64;
 const SIGNATURE_OFFSETS_SERIALIZED_SIZE = 14;
 const SIGNATURE_OFFSETS_START = 2;
 
-export type Secp256r1VerifyInput = {
+/** One secp256r1 signature slot in a combined verify instruction. */
+export type Secp256r1VerifyEntry = {
   publicKey: ReadonlyUint8Array;
   signature: ReadonlyUint8Array;
   message: ReadonlyUint8Array;
-}[];
+};
 
 export type Secp256r1VerifyInstruction<
   TProgram extends string = typeof SECP256R1_PROGRAM_ADDRESS,
@@ -54,7 +55,7 @@ export type Secp256r1VerifyInstructionData = {
   numSignatures: number;
   padding: number;
   offsets: Secp256r1SignatureOffsetsDataArgs[];
-  payload: Secp256r1VerifyInput;
+  payload: Secp256r1VerifyEntry[];
 };
 
 export type Secp256r1VerifyInstructionDataArgs = Secp256r1VerifyInstructionData;
@@ -142,7 +143,7 @@ function getSecp256r1VerifyInstructionDataDecoder(): Decoder<Secp256r1VerifyInst
         offset += SIGNATURE_OFFSETS_SERIALIZED_SIZE;
       }
 
-      const payload: Secp256r1VerifyInput = [];
+      const payload: Secp256r1VerifyEntry[] = [];
       for (let i = 0; i < numSignatures; i += 1) {
         const publicKey = fixDecoderSize(
           getBytesDecoder(),
@@ -192,16 +193,16 @@ export function getSecp256r1VerifyInstructionDataCodec(): Codec<
 export function getSecp256r1VerifyInstruction<
   TProgramAddress extends Address = typeof SECP256R1_PROGRAM_ADDRESS,
 >(
-  input: Secp256r1VerifyInput,
+  entries: Secp256r1VerifyEntry[],
   config?: { programAddress?: TProgramAddress },
 ): Secp256r1VerifyInstruction<TProgramAddress> {
-  const numSignatures = input.length;
+  const numSignatures = entries.length;
   let currentOffset =
     SIGNATURE_OFFSETS_START + numSignatures * SIGNATURE_OFFSETS_SERIALIZED_SIZE;
   const offsets: Secp256r1SignatureOffsetsDataArgs[] = [];
 
   for (let i = 0; i < numSignatures; i += 1) {
-    const { message } = input[i];
+    const { message } = entries[i];
     const publicKeyOffset = currentOffset;
     const signatureOffset = publicKeyOffset + COMPRESSED_PUBKEY_SERIALIZED_SIZE;
     const messageDataOffset = signatureOffset + SIGNATURE_SERIALIZED_SIZE;
@@ -225,7 +226,7 @@ export function getSecp256r1VerifyInstruction<
     numSignatures,
     padding: 0,
     offsets,
-    payload: input,
+    payload: entries,
   };
 
   return {

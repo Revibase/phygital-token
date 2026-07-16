@@ -1,6 +1,9 @@
 import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { getAddressEncoder, type Address, type Instruction } from "@solana/kit";
-import { getSecp256r1VerifyInstruction } from "../../instructions/internal/secp256r1Verify.js";
+import {
+  getSecp256r1VerifyInstruction,
+  type Secp256r1VerifyEntry,
+} from "../../instructions/internal/secp256r1Verify.js";
 import {
   SECP256R1_PROGRAM_ADDRESS,
   TRANSFER_ACTION_BYTES,
@@ -14,11 +17,7 @@ import {
 } from "./internal.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 
-export type Secp256r1VerifyInput = {
-  publicKey: Uint8Array;
-  signature: Uint8Array;
-  message: Uint8Array;
-};
+export type { Secp256r1VerifyEntry };
 
 function concatBytes(...parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((sum, part) => sum + part.length, 0);
@@ -35,10 +34,10 @@ function encodeAddress(addressValue: Address): Uint8Array {
   return new Uint8Array(getAddressEncoder().encode(addressValue));
 }
 
-function buildSecp256r1VerifyInputFromWebAuthn(input: {
+export function buildVerifyInputFromWebAuthn(input: {
   publicKey: string;
   response: AuthenticationResponseJSON;
-}): Secp256r1VerifyInput {
+}): Secp256r1VerifyEntry {
   const signature = convertSignatureDERtoRS(
     base64URLStringToBuffer(input.response.response.signature),
   );
@@ -90,17 +89,18 @@ export type WebAuthnSecp256r1Verification = {
 export async function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input: {
   publicKey: string;
   response: AuthenticationResponseJSON;
-  existingSecp256r1VerifyInputs?: Secp256r1VerifyInput[];
+  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[];
 }): Promise<WebAuthnSecp256r1Verification> {
-  const parsed = buildSecp256r1VerifyInputFromWebAuthn(input);
+  const existing = input.existingSecp256r1VerifyInputs;
+  const parsed = buildVerifyInputFromWebAuthn(input);
   let signedMessageIndex = 0;
-  if (input.existingSecp256r1VerifyInputs?.length) {
-    signedMessageIndex = input.existingSecp256r1VerifyInputs.length;
-    input.existingSecp256r1VerifyInputs.push(parsed);
+  if (existing?.length) {
+    signedMessageIndex = existing.length;
+    existing.push(parsed);
   }
   return {
     signedMessageIndex,
-    secp256r1Verify: getSecp256r1VerifyInstruction(input.existingSecp256r1VerifyInputs ?? [parsed]),
+    secp256r1Verify: getSecp256r1VerifyInstruction(existing ?? [parsed]),
     clientDataJson: getClientDataJsonBytes(input.response),
   };
 }
