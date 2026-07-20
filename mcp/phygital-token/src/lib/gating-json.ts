@@ -1,74 +1,3 @@
-import type { GatingFilter, GatingTier } from "phygital-token-sdk";
-
-type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | bigint
-  | JsonValue[]
-  | { [key: string]: JsonValue };
-
-function reviveBigInts(value: JsonValue): JsonValue {
-  if (Array.isArray(value)) {
-    return value.map(reviveBigInts);
-  }
-
-  if (value && typeof value === "object") {
-    const next: Record<string, JsonValue> = {};
-    for (const [key, child] of Object.entries(value)) {
-      if (key === "min" || key === "max") {
-        if (typeof child === "string" && /^-?\d+n?$/.test(child)) {
-          next[key] = BigInt(child.replace(/n$/, ""));
-          continue;
-        }
-        if (typeof child === "number" && Number.isInteger(child)) {
-          next[key] = BigInt(child);
-          continue;
-        }
-      }
-      next[key] = reviveBigInts(child);
-    }
-    return next;
-  }
-
-  return value;
-}
-
-export function parseGatingFilter(raw: unknown): GatingFilter {
-  if (!raw || typeof raw !== "object") {
-    throw new Error("filter must be a JSON object (GatingFilter tree).");
-  }
-  return reviveBigInts(raw as JsonValue) as GatingFilter;
-}
-
-export function parseGatingTiers(raw: unknown): GatingTier[] {
-  if (!Array.isArray(raw)) {
-    throw new Error("tiers must be a JSON array of { id, filter } objects.");
-  }
-
-  const tiers: GatingTier[] = [];
-
-  for (const item of raw) {
-    if (!item || typeof item !== "object") {
-      throw new Error("Each tier must be an object with id and filter.");
-    }
-
-    const { id, filter } = item as { id?: unknown; filter?: unknown };
-
-    if (typeof id !== "string" || !id.trim()) {
-      throw new Error("Each tier requires a non-empty string id.");
-    }
-
-    tiers.push({
-      id,
-      filter: parseGatingFilter(filter),
-    });
-  }
-
-  return tiers;
-}
-
 export const GATING_FILTER_SCHEMA = {
   description: "Composable GatingFilter tree evaluated against wallet DAS assets",
   predicate: {
@@ -335,7 +264,7 @@ export function getGatingRecipe(id: string): GatingRecipe {
   const recipe = GATING_RECIPES.find((r) => r.id === id);
   if (!recipe) {
     throw new Error(
-      `Unknown recipe "${id}". Use list_gating_recipes for available ids.`,
+      `Unknown recipe "${id}". Call gating_recipe with no id to list them.`,
     );
   }
   return recipe;

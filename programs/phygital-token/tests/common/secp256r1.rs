@@ -172,6 +172,7 @@ impl TestPasskey {
         );
 
         let verify_args = Secp256r1VerifyArgs {
+            verify_args_relative_index: -1,
             signed_message_index: 0,
             slot_number,
             client_data_json,

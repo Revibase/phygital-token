@@ -110,8 +110,9 @@ fn execute_transfer_succeeds_when_secp_not_immediately_preceding() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) =
+    let (secp_ix, mut verify_args) =
         passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
+    verify_args.verify_args_relative_index = -2;
     let transfer_ix = ctx.execute_transfer_ix(
         recipient.pubkey(),
         ctx.program_authority(),

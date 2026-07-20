@@ -10,7 +10,10 @@ import {
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
-import { getVerifyAssetInstruction, type Asset } from "../generated/index.js";
+import {
+  getVerifyAssetInstruction,
+  type Asset,
+} from "../generated/index.js";
 import { findAssetPda } from "../utils/pdas/index.js";
 import { parseSecp256r1Pubkey } from "./mint.js";
 import { fetchAssetFromCredentialId } from "../utils/assetCredential.js";
@@ -112,6 +115,7 @@ export async function completeVerifyAsset(
   const verifyAssetInstruction = getVerifyAssetInstruction({
     asset: assetPda,
     secp256r1VerifyArgs: {
+      verifyArgsRelativeIndex: -1,
       signedMessageIndex,
       slotNumber: session.slotNumber,
       clientDataJson,

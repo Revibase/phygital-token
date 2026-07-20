@@ -42,13 +42,14 @@ The client obtains `secp256r1_verify_args` from TypeScript `buildVerifyAssetArgs
 
 ```rust
 pub struct Secp256r1VerifyArgs {
+    pub verify_args_relative_index: i64,
     pub signed_message_index: u8,
     pub slot_number: u64,
     pub client_data_json: Vec<u8>,
 }
 ```
 
-Mirrors `buildVerifyAssetArgs` output in TypeScript.
+`verify_args_relative_index` is the index of the secp256r1 verify instruction relative to the phygital instruction (typically `-1` when secp immediately precedes verify/transfer).
 
 ## Testing
 

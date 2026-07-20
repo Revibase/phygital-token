@@ -17,7 +17,9 @@ import {
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
-import { getExecuteTransferInstructionAsync } from "../generated/index.js";
+import {
+  getExecuteTransferInstructionAsync,
+} from "../generated/index.js";
 import { findAssociatedTokenAddress } from "../utils/associatedToken.js";
 
 export type TransferSession = {
@@ -110,6 +112,7 @@ export async function completeTransfer(
     recipientTokenAccount,
     tokenProgram,
     secp256r1VerifyArgs: {
+      verifyArgsRelativeIndex: -1,
       signedMessageIndex,
       slotNumber: session.slotNumber,
       clientDataJson,

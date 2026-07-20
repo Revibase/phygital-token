@@ -10,9 +10,6 @@ const PACKAGE_ROOT = path.resolve(
 
 const require = createRequire(import.meta.url);
 
-/** MCP package root (`mcp/phygital-token/`). */
-export const MCP_PACKAGE_ROOT = PACKAGE_ROOT;
-
 export const MCP_DOCS_DIR = path.join(PACKAGE_ROOT, "docs");
 
 export const GLOSSARY_PATH = path.join(MCP_DOCS_DIR, "glossary.md");
@@ -73,31 +70,6 @@ export async function resolveSdkReadmePath(): Promise<string | undefined> {
   }
 
   return undefined;
-}
-
-export function resolveGraphifyGraphPath(): string {
-  return path.join(resolveRepoRoot(), "graphify-out/graph.json");
-}
-
-export function resolveVerifyTsPath(): string {
-  return path.join(
-    resolveRepoRoot(),
-    "clients/js/phygital-token/src/utils/verify.ts",
-  );
-}
-
-export function resolveVerifyAssetTsPath(): string {
-  return path.join(
-    resolveRepoRoot(),
-    "clients/js/phygital-token/src/instructions/verifyAsset.ts",
-  );
-}
-
-export function resolveRustVerifyAssetPath(): string {
-  return path.join(
-    resolveRepoRoot(),
-    "clients/rust/phygital-token/src/generated/instructions/verify_asset.rs",
-  );
 }
 
 export async function pathExists(filePath: string): Promise<boolean> {

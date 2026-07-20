@@ -38,6 +38,7 @@ const MIN_SIGNED_MESSAGE_LEN: usize = AUTH_DATA_MIN_LEN + CLIENT_DATA_HASH_LEN;
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Debug, Clone)]
 pub struct Secp256r1VerifyArgs {
+    pub verify_args_relative_index: i64,
     pub signed_message_index: u8,
     pub slot_number: u64,
     pub client_data_json: Vec<u8>,
@@ -166,22 +167,11 @@ impl Secp256r1VerifyArgs {
         );
 
         let account_info = instructions_sysvar.to_account_info();
-        let mut relative_index: i64 = -1;
 
-        loop {
-            let instruction = match get_instruction_relative(relative_index, &account_info) {
-                Ok(ix) => ix,
-                Err(_) => break,
-            };
+        let instruction = get_instruction_relative(self.verify_args_relative_index, &account_info)?;
 
-            if instruction.program_id.as_ref() == SECP256R1_PROGRAM_ID.as_ref() {
-                return self.claim_secp256r1_instruction_data(instruction.data);
-            }
-
-            if relative_index == i64::MIN {
-                break;
-            }
-            relative_index -= 1;
+        if instruction.program_id.as_ref() == SECP256R1_PROGRAM_ID.as_ref() {
+            return self.claim_secp256r1_instruction_data(instruction.data);
         }
 
         err!(PhygitalError::InvalidSecp256r1Instruction)

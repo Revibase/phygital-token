@@ -24,32 +24,6 @@ export type VerificationRecommendation = {
   cautions?: string[];
 };
 
-export const ON_CHAIN_PATTERNS = {
-  inspect: {
-    id: "inspect" as const,
-    name: "Pattern A — client posts verify_asset, program inspects",
-    clientTransaction: ["secp256r1_verify", "verify_asset", "your_program_ix"],
-    clientSdk: ["beginVerifyAsset", "completeVerifyAsset", "getVerifyAssetInstruction"],
-    programRust: "Scan instructions sysvar for preceding verify_asset; check message bytes",
-    reference: "programs/phygital-spend",
-  },
-  cpi: {
-    id: "cpi" as const,
-    name: "Pattern B — client posts secp256r1_verify, program CPIs verify_asset",
-    clientTransaction: ["secp256r1_verify", "your_program_ix"],
-    clientSdk: ["beginVerifyAsset", "buildVerifyAssetArgs"],
-    programRust: "VerifyAssetCpiBuilder from phygital-token-client",
-    reference: "clients/rust/phygital-token",
-  },
-  standalone: {
-    id: "standalone" as const,
-    name: "Standalone on-chain verify_asset (no custom program)",
-    clientTransaction: ["secp256r1_verify", "verify_asset"],
-    clientSdk: ["beginVerifyAsset", "completeVerifyAsset"],
-    programRust: "N/A",
-  },
-} as const;
-
 const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> = {
   product_page_lookup: {
     method: "identification — verifyDynamicUrl",

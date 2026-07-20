@@ -448,6 +448,19 @@
   ],
   "events": [
     {
+      "name": "MintTokenEvent",
+      "discriminator": [
+        244,
+        9,
+        85,
+        49,
+        190,
+        66,
+        241,
+        138
+      ]
+    },
+    {
       "name": "RemoveOwnershipEvent",
       "discriminator": [
         61,
@@ -458,6 +471,19 @@
         180,
         172,
         3
+      ]
+    },
+    {
+      "name": "SetLockStateEvent",
+      "discriminator": [
+        195,
+        170,
+        202,
+        64,
+        128,
+        89,
+        252,
+        209
       ]
     },
     {
@@ -729,6 +755,34 @@
       }
     },
     {
+      "name": "MintTokenEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "RemoveOwnershipEvent",
       "type": {
         "kind": "struct",
@@ -776,6 +830,10 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "verify_args_relative_index",
+            "type": "i64"
+          },
+          {
             "name": "signed_message_index",
             "type": "u8"
           },
@@ -786,6 +844,38 @@
           {
             "name": "client_data_json",
             "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetLockStateEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_locked",
+            "type": "bool"
+          },
+          {
+            "name": "time",
+            "type": "i64"
           }
         ]
       }

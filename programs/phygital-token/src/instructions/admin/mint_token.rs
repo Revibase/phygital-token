@@ -10,6 +10,14 @@ use crate::state::Asset;
 use crate::utils::{mint_token_account_rent, secp256r1_pda_seed};
 use crate::{AssetType, CredentialId, Secp256r1Pubkey};
 
+#[event]
+pub struct MintTokenEvent {
+    pub mint: Pubkey,
+    pub authority: Pubkey,
+    pub public_key: Secp256r1Pubkey,
+    pub time: i64,
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MintTokenArgs {
     pub secp256r1_pubkey: Secp256r1Pubkey,
@@ -141,6 +149,13 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
         ),
         1,
     )?;
+
+    emit!(MintTokenEvent {
+        mint: mint_key,
+        authority: ctx.accounts.authority.key(),
+        public_key: args.secp256r1_pubkey,
+        time: Clock::get()?.unix_timestamp,
+    });
 
     Ok(())
 }

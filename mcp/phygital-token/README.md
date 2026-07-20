@@ -6,7 +6,7 @@
 
 ## Install
 
-Add to Cursor MCP config (`~/.cursor/mcp.json` or project `.cursor/mcp.json`):
+Add to your MCP client config (`~/.cursor/mcp.json` or project `.cursor/mcp.json`):
 
 ```json
 {
@@ -25,13 +25,15 @@ Requires **Node.js 20+**. See [`cursor-mcp.example.json`](./cursor-mcp.example.j
 
 | Area | Tools |
 |------|-------|
-| **Docs** | `search_docs`, `read_doc`, `list_docs` |
-| **Gating** | `explain_gating`, `gating_filter_schema`, `gating_recipe`, `format_gating_predicate`, `summarize_gating_result` |
-| **Verification** | `recommend_verification`, `plan_verify_asset`, `explain_verification` |
+| **Docs** | `search_docs` (omit query to list all), `read_doc` |
+| **Verification** | `recommend_verification` (omit useCase for the decision tree), `plan_verify_asset` |
 | **Planning** | `plan_create_mint`, `plan_mint_token`, `plan_transfer`, `plan_remove_ownership`, `find_asset_pda` |
+| **Gating** | `explain_gating`, `gating_recipe` (omit id to list) |
 | **SDK** | `list_sdk_exports` |
 
-## Optional: monorepo contributors
+All tools are offline and read-only.
+
+## Develop
 
 ```bash
 pnpm install
@@ -39,19 +41,15 @@ pnpm --filter phygital-token-sdk build
 pnpm --filter phygital-token-mcp build
 ```
 
-**Contributor-only** (repo clone + `PHYGITAL_TOKEN_REPO_ROOT`):
-
-| Tool | Requires |
-|------|----------|
-| `query_codebase` | `graphify` CLI + `graphify update .` in the repo |
-| `read_sdk_source` | Cloned repo or `PHYGITAL_TOKEN_REPO_ROOT` |
+The SDK is consumed via `workspace:*`, so the server always builds against the in-repo SDK.
 
 ## Publish
 
+`workspace:*` is rewritten to the SDK's published version at pack time, so publish with pnpm:
+
 ```bash
-cd mcp/phygital-token
-pnpm build
-npm publish --access public
+pnpm --filter phygital-token-mcp build
+pnpm --filter phygital-token-mcp publish --access public
 ```
 
 ## License

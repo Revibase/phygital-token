@@ -1,11 +1,3 @@
-import { readFile } from "node:fs/promises";
-import {
-  pathExists,
-  resolveRustVerifyAssetPath,
-  resolveVerifyAssetTsPath,
-  resolveVerifyTsPath,
-} from "./paths.js";
-
 export const SDK_SURFACE = {
   mint: [
     "buildCreateMintInstructions",
@@ -95,29 +87,3 @@ export const SDK_SURFACE = {
     types: ["Asset", "Secp256r1VerifyArgs", "AssetType"],
   },
 } as const;
-
-export async function readSourceExcerpt(
-  which: "verify.ts" | "verifyAsset.ts" | "rust_verify_asset.rs",
-  maxLines = 120,
-): Promise<{ path: string; excerpt: string }> {
-  const paths = {
-    "verify.ts": resolveVerifyTsPath(),
-    "verifyAsset.ts": resolveVerifyAssetTsPath(),
-    "rust_verify_asset.rs": resolveRustVerifyAssetPath(),
-  };
-
-  const filePath = paths[which];
-  if (!(await pathExists(filePath))) {
-    throw new Error(
-      `Source file not found: ${filePath}. Set PHYGITAL_TOKEN_REPO_ROOT to a cloned phygital-token repo to use read_sdk_source.`,
-    );
-  }
-
-  const content = await readFile(filePath, "utf8");
-  const lines = content.split("\n").slice(0, maxLines);
-
-  return {
-    path: filePath,
-    excerpt: lines.join("\n") + (content.split("\n").length > maxLines ? "\n// ..." : ""),
-  };
-}

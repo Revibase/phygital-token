@@ -12,6 +12,8 @@ import {
   combineCodec,
   getBytesDecoder,
   getBytesEncoder,
+  getI64Decoder,
+  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
   getU32Decoder,
@@ -27,12 +29,14 @@ import {
 } from "@solana/kit";
 
 export type Secp256r1VerifyArgs = {
+  verifyArgsRelativeIndex: bigint;
   signedMessageIndex: number;
   slotNumber: bigint;
   clientDataJson: ReadonlyUint8Array;
 };
 
 export type Secp256r1VerifyArgsArgs = {
+  verifyArgsRelativeIndex: number | bigint;
   signedMessageIndex: number;
   slotNumber: number | bigint;
   clientDataJson: ReadonlyUint8Array;
@@ -40,6 +44,7 @@ export type Secp256r1VerifyArgsArgs = {
 
 export function getSecp256r1VerifyArgsEncoder(): Encoder<Secp256r1VerifyArgsArgs> {
   return getStructEncoder([
+    ["verifyArgsRelativeIndex", getI64Encoder()],
     ["signedMessageIndex", getU8Encoder()],
     ["slotNumber", getU64Encoder()],
     [
@@ -51,6 +56,7 @@ export function getSecp256r1VerifyArgsEncoder(): Encoder<Secp256r1VerifyArgsArgs
 
 export function getSecp256r1VerifyArgsDecoder(): Decoder<Secp256r1VerifyArgs> {
   return getStructDecoder([
+    ["verifyArgsRelativeIndex", getI64Decoder()],
     ["signedMessageIndex", getU8Decoder()],
     ["slotNumber", getU64Decoder()],
     [

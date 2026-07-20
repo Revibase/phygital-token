@@ -12,6 +12,7 @@ use borsh::BorshDeserialize;
 #[cfg_attr(not(feature = "anchor"), derive(borsh::BorshSerialize, borsh::BorshDeserialize))]
 #[cfg_attr(feature = "anchor", derive(anchor_lang::AnchorSerialize, anchor_lang::AnchorDeserialize))]
 pub struct Secp256r1VerifyArgs {
+pub verify_args_relative_index: i64,
 pub signed_message_index: u8,
 pub slot_number: u64,
 pub client_data_json: Vec<u8>,

@@ -110,7 +110,9 @@ export async function readDocById(docId: string): Promise<string> {
   const match = docs.find((doc) => doc.id === docId);
 
   if (!match) {
-    throw new Error(`Unknown doc id "${docId}". Use list_docs or search_docs to discover ids.`);
+    throw new Error(
+      `Unknown doc id "${docId}". Call search_docs with no query to list every available id.`,
+    );
   }
 
   return readFile(match.path, "utf8");
