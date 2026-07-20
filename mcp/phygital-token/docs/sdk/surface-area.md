@@ -55,7 +55,8 @@ On-chain proof always uses `beginVerifyAsset` / `buildVerifyAssetArgs` / `comple
 | `findAssetPda` | Derive asset PDA from secp256r1 pubkey |
 | `fetchAssetFromCredentialId` | Resolve asset + pubkey from credential |
 | `fetchAllAssetsFromOwner` | List assets by wallet owner |
-| `fetchAssetDisplayInfo` | Rich display metadata |
+| `fetchAssetDisplayInfo` | Rich display metadata (incl. Phantom Shortcuts via `external_url/shortcuts.json`) |
+| `fetchShortcutsFromExternalUrl` | Load Phantom Shortcuts schema v2 from `{external_url}/shortcuts.json` |
 | `resolveMedia` | Resolve media URLs from token metadata |
 
 ## Gating

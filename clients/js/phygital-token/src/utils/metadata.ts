@@ -41,14 +41,28 @@ type AssetAttribute = {
 };
 
 /**
- * A wallet action shortcut embedded in the off-chain metadata
- * (Phantom Shortcuts schema v2). Rendered as an action button on the card.
+ * A wallet action shortcut from Phantom Shortcuts schema v2
+ * (`{external_url}/shortcuts.json`). Rendered as an action button.
+ * @see https://github.com/phantom/shortcuts
  */
 export type Shortcut = {
   label?: string;
   uri?: string;
+  /** Icon enum (e.g. `discord`, `x`, `generic-link`) — not a URL. */
   icon?: string;
-  type?: string;
+  /** Token kind this shortcut applies to. Defaults to `collectible`. */
+  type?: "fungible" | "collectible" | string;
+  prefersExternalTarget?: boolean;
+  preferredPresentation?: "default" | "immerse" | string;
+  limitToCollections?: string[];
+  limitToTokenAddresses?: string[];
+  platform?: "desktop" | "mobile" | "all" | string;
+};
+
+/** Phantom Shortcuts schema v2 document hosted at `{external_url}/shortcuts.json`. */
+export type ShortcutsDocument = {
+  version: number;
+  shortcuts: Shortcut[];
 };
 
 /** Phantom collectible media categories (Metaplex `properties.category`). */
@@ -70,6 +84,10 @@ export type TokenJsonMetadata = {
   description?: string;
   /** Primary animated/interactive asset (video/audio/3D) — Phantom's top media pick. */
   animation_url?: string;
+  /**
+   * Base URL for Phantom Shortcuts discovery. Wallets fetch
+   * `{external_url}/shortcuts.json`.
+   */
   external_url?: string;
   /** Design mint public key this asset instance belongs to. */
   mint?: string;
@@ -78,8 +96,6 @@ export type TokenJsonMetadata = {
     category?: MediaCategory | string;
     files?: TokenMediaFile[];
   };
-  /** Embedded Phantom Shortcuts (schema v2): `{ version, shortcuts }`. */
-  shortcuts?: Array<Shortcut>;
 };
 
 const MEDIA_TYPE_BY_EXT: Record<string, string> = {
@@ -205,6 +221,28 @@ async function fetchJsonMetadata(
   }
 }
 
+export async function fetchShortcutsFromExternalUrl(
+  externalUrl: string | undefined | null,
+): Promise<Shortcut[]> {
+  if (!externalUrl?.trim()) {
+    return [];
+  }
+  try {
+    const base = externalUrl.replace(/\/$/, "");
+    const response = await fetch(`${base}/shortcuts.json`);
+    if (!response.ok) {
+      return [];
+    }
+    const doc = (await response.json()) as ShortcutsDocument;
+    if (!Array.isArray(doc?.shortcuts)) {
+      return [];
+    }
+    return doc.shortcuts;
+  } catch {
+    return [];
+  }
+}
+
 export type AssetDisplayInfo = {
   assetType: AssetType;
   publicKey: string;
@@ -221,8 +259,8 @@ export type AssetDisplayInfo = {
   mediaCategory: MediaCategory | null;
   description: string | null;
   attributes: AssetAttribute[];
-  /** Wallet action shortcuts embedded in the off-chain metadata. */
   shortcuts: Shortcut[];
+  externalUrl: string | null;
   collectionMint: Address | null;
   collectionName: string | null;
   collectionSymbol: string | null;
@@ -262,6 +300,8 @@ export async function fetchAssetDisplayInfo(
   ]);
 
   const designMedia = resolveMedia(designJsonMeta);
+  const externalUrl = designJsonMeta?.external_url?.trim() || null;
+  const shortcuts = await fetchShortcutsFromExternalUrl(externalUrl);
 
   return {
     assetType: instance.data.assetType,
@@ -281,7 +321,8 @@ export async function fetchAssetDisplayInfo(
     mediaCategory: designMedia.category,
     description: designJsonMeta?.description ?? null,
     attributes: designJsonMeta?.attributes ?? [],
-    shortcuts: designJsonMeta?.shortcuts ?? [],
+    shortcuts,
+    externalUrl,
     collectionMint,
     collectionName: collectionMeta?.name ?? collectionJsonMeta?.name ?? null,
     collectionSymbol:

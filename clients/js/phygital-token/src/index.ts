@@ -24,11 +24,13 @@ export {
 
 export {
   fetchAssetDisplayInfo,
+  fetchShortcutsFromExternalUrl,
   resolveMedia,
   type AssetDisplayInfo,
   type MediaCategory,
   type ResolvedMedia,
   type Shortcut,
+  type ShortcutsDocument,
   type TokenJsonMetadata,
   type TokenMediaFile,
 } from "./utils/metadata.js";

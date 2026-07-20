@@ -41,6 +41,7 @@ export const SDK_SURFACE = {
     "fetchAssetFromCredentialId",
     "fetchAllAssetsFromOwner",
     "fetchAssetDisplayInfo",
+    "fetchShortcutsFromExternalUrl",
     "resolveMedia",
   ],
   gating: [

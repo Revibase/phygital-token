@@ -65,7 +65,7 @@ if (result.passedTierIds.includes("gold")) {
 | **Mint** | `buildCreateMintInstructions`, `buildMintTokenInstructions`, `parseSecp256r1Pubkey` |
 | **Verify** | `verifyWithChallengeResponse`, `verifyDynamicUrl`, `verifyWithChallengeResponseOverNfc` |
 | **Transfer** | `beginTransfer`, `completeTransfer`, `authenticatePasskey` |
-| **Metadata** | `fetchAssetDisplayInfo`, `resolveMedia` |
+| **Metadata** | `fetchAssetDisplayInfo`, `fetchShortcutsFromExternalUrl`, `resolveMedia` |
 | **Gating** | `evaluateAssetGating`, `Gating`, `GatingTraitValue` |
 | **Generated** | Program instructions, accounts, types (Codama) |
 
