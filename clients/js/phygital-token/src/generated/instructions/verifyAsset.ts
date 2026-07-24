@@ -36,7 +36,7 @@ import {
 import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
-} from "@solana/program-client-core";
+} from "@solana/kit/program-client-core";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getSecp256r1VerifyArgsDecoder,

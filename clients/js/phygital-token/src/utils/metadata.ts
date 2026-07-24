@@ -11,8 +11,8 @@ import {
 } from "@solana-program/token-2022";
 import { parseSecp256r1Pubkey } from "../instructions/mint.js";
 import { findAssetPda } from "./pdas/asset.js";
-import { AssetType, fetchAsset } from "../generated/index.js";
-import { bufferToBase64URLString } from "@simplewebauthn/browser";
+import { AssetType, fetchAsset, type Asset } from "../generated/index.js";
+import { bufferToBase64URLString } from "./passkey/webauthn.js";
 
 function findMintExtension(
   extensions: readonly Extension[],
@@ -243,10 +243,13 @@ export async function fetchShortcutsFromExternalUrl(
   }
 }
 
+/** Rich display metadata for a phygital asset (design + collection + shortcuts). */
 export type AssetDisplayInfo = {
   assetType: AssetType;
+  /** Base64url secp256r1 vault public key. */
   publicKey: string;
   credentialId: string;
+  /** On-chain asset PDA address. */
   asset: Address;
   isLocked: boolean;
   mint: Address;
@@ -270,14 +273,30 @@ export type AssetDisplayInfo = {
   lastTransferSlot: bigint;
 };
 
-export async function fetchAssetDisplayInfo(
+/**
+ * Fetch {@link AssetDisplayInfo} from a base64url secp256r1 public key.
+ * Derives the asset PDA, loads the on-chain account, then calls
+ * {@link fetchAssetDisplayInfo}.
+ */
+export async function fetchAssetDisplayInfoFromPublicKey(
   rpc: Rpc<SolanaRpcApi>,
   publicKey: string,
 ): Promise<AssetDisplayInfo> {
   const asset = await findAssetPda(parseSecp256r1Pubkey(publicKey));
   const instance = await fetchAsset(rpc, asset);
+  return fetchAssetDisplayInfo(rpc, instance.data);
+}
 
-  const mintAccount = await fetchMint(rpc, instance.data.mint);
+/**
+ * Build {@link AssetDisplayInfo} from an already-decoded on-chain {@link Asset}.
+ * Prefer this when you already have the account (e.g. after
+ * `verifyResponse`).
+ */
+export async function fetchAssetDisplayInfo(
+  rpc: Rpc<SolanaRpcApi>,
+  asset: Asset,
+): Promise<AssetDisplayInfo> {
+  const mintAccount = await fetchMint(rpc, asset.mint);
   const designExtensions = unwrapOption(mintAccount.data.extensions) ?? [];
   const designMeta = findMintExtension(designExtensions, "TokenMetadata");
   const groupMember = findMintExtension(designExtensions, "TokenGroupMember");
@@ -304,14 +323,12 @@ export async function fetchAssetDisplayInfo(
   const shortcuts = await fetchShortcutsFromExternalUrl(externalUrl);
 
   return {
-    assetType: instance.data.assetType,
-    publicKey,
-    credentialId: bufferToBase64URLString(
-      instance.data.credentialId[0].buffer as ArrayBuffer,
-    ),
-    asset: asset,
-    isLocked: instance.data.isLocked,
-    mint: instance.data.mint,
+    assetType: asset.assetType,
+    publicKey: bufferToBase64URLString(asset.publicKey[0]),
+    credentialId: bufferToBase64URLString(asset.credentialId[0]),
+    asset: await findAssetPda(asset.publicKey),
+    isLocked: asset.isLocked,
+    mint: asset.mint,
     name: designMeta?.name ?? designJsonMeta?.name ?? "Unknown asset",
     symbol: designMeta?.symbol ?? designJsonMeta?.symbol ?? "",
     uri: designMeta?.uri ?? "",
@@ -329,7 +346,7 @@ export async function fetchAssetDisplayInfo(
       collectionMeta?.symbol ?? collectionJsonMeta?.symbol ?? null,
     collectionImage: collectionJsonMeta?.image ?? null,
     collectionUri: collectionMeta?.uri ?? null,
-    currentOwner: instance.data.owner,
-    lastTransferSlot: instance.data.lastTransferSlot,
+    currentOwner: asset.owner,
+    lastTransferSlot: asset.lastTransferSlot,
   };
 }

@@ -1,6 +1,6 @@
 # Composable `verify_asset` (TypeScript)
 
-On-chain passkey authentication for custom programs. **Not** the same as off-chain `startAuthenticationWithChallengeResponse` + `verifyWithChallengeResponse`.
+On-chain passkey authentication for custom programs. **Not** the same as off-chain `startAuthentication` + `verifyResponse`.
 
 ## Session flow
 

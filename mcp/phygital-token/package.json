@@ -39,7 +39,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@noble/hashes": "^2.0.1",
-    "@solana/kit": "^6.4.0",
+    "@solana/kit": "^7.0.0",
     "phygital-token-sdk": "workspace:*",
     "zod": "^3.25.76"
   },

@@ -1,6 +1,4 @@
 import { sha256 } from "@noble/hashes/sha2.js";
-import { utf8ToBytes } from "@noble/hashes/utils.js";
-import type { UserVerificationRequirement } from "@simplewebauthn/browser";
 import { base64URLStringToBuffer } from "../internal.js";
 import { ApduError } from "./errors.js";
 import type { AuthenticatorGetAssertionRequest } from "./getAssertion.js";
@@ -60,7 +58,7 @@ export function authenticatorGetAssertionRequestFromPublicKeyCredentialRequestOp
     crossOrigin,
     topOrigin,
   });
-  const clientDataHash = sha256(utf8ToBytes(clientDataJSON));
+  const clientDataHash = sha256(new TextEncoder().encode(clientDataJSON));
 
   const uv = userVerificationToOptionalUvBool(userVerification);
   const uvOpts = uv === undefined ? undefined : { up: true as const, uv };

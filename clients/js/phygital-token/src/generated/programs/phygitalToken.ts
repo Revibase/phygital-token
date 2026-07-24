@@ -33,7 +33,7 @@ import {
   addSelfPlanAndSendFunctions,
   type SelfFetchFunctions,
   type SelfPlanAndSendFunctions,
-} from "@solana/program-client-core";
+} from "@solana/kit/program-client-core";
 import { getAssetCodec, type Asset, type AssetArgs } from "../accounts/index.js";
 import {
   getCreateMintInstructionAsync,

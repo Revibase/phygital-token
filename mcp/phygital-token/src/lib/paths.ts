@@ -31,27 +31,7 @@ function resolveSdkPackageRoot(): string | undefined {
   }
 }
 
-/** SDK docs from the installed npm package, or monorepo fallback. */
-export async function resolveSdkDocsDir(): Promise<string | undefined> {
-  const sdkRoot = resolveSdkPackageRoot();
-  if (sdkRoot) {
-    const docsDir = path.join(sdkRoot, "docs");
-    if (await pathExists(docsDir)) {
-      return docsDir;
-    }
-  }
-
-  const monorepoDocs = path.join(
-    resolveRepoRoot(),
-    "clients/js/phygital-token/docs",
-  );
-  if (await pathExists(monorepoDocs)) {
-    return monorepoDocs;
-  }
-
-  return undefined;
-}
-
+/** SDK README from the installed npm package, or monorepo fallback. */
 export async function resolveSdkReadmePath(): Promise<string | undefined> {
   const sdkRoot = resolveSdkPackageRoot();
   if (sdkRoot) {

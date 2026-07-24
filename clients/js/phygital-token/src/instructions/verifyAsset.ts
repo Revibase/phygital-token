@@ -1,8 +1,9 @@
 import {
   type AuthenticationResponseJSON,
-  startAuthentication,
+  authenticateWithWebauthn,
   bufferToBase64URLString,
-} from "@simplewebauthn/browser";
+  nfcWebAuthnRequestOptions,
+} from "../utils/passkey/webauthn.js";
 import type { Address, Instruction, Rpc, SolanaRpcApi } from "@solana/kit";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
@@ -15,7 +16,6 @@ import {
   type Asset,
 } from "../generated/index.js";
 import { findAssetPda } from "../utils/pdas/index.js";
-import { parseSecp256r1Pubkey } from "./mint.js";
 import { fetchAssetFromCredentialId } from "../utils/assetCredential.js";
 
 export type VerifyAssetSession = {
@@ -26,9 +26,9 @@ export type VerifyAssetSession = {
   message: Uint8Array;
 };
 /**
- * Prepares a verify asset session with slot-bound challenge data.
- * Recipient is chosen later at wallet confirmation — not bound in the asset signature.
- * Must be followed promptly by authenticateToken and completeTransfer.
+ * Prepares a verify-asset session with a slot-bound challenge for `message`.
+ * Must be followed promptly by {@link authenticatePasskeyForVerifyAsset} and
+ * {@link buildVerifyAssetArgs} / {@link completeVerifyAsset}.
  */
 export async function beginVerifyAsset(input: {
   rpc: Rpc<SolanaRpcApi>;
@@ -49,25 +49,16 @@ export async function beginVerifyAsset(input: {
   };
 }
 
+/**
+ * Prompts an NFC / WebAuthn tap for the session challenge from
+ * {@link beginVerifyAsset}.
+ */
 export async function authenticatePasskeyForVerifyAsset(
   session: VerifyAssetSession,
 ): Promise<AuthenticationResponseJSON> {
-  return startAuthentication({
-    optionsJSON: {
-      challenge: bufferToBase64URLString(
-        new Uint8Array(session.challenge).buffer as ArrayBuffer,
-      ),
-      rpId: window.location.hostname,
-      userVerification: "preferred",
-      allowCredentials: [
-        {
-          id: bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(64)).buffer as ArrayBuffer),
-          type: "public-key",
-          transports: ["nfc"],
-        },
-      ],
-    },
-  });
+  return authenticateWithWebauthn(
+    nfcWebAuthnRequestOptions(bufferToBase64URLString(session.challenge)),
+  );
 }
 
 export async function buildVerifyAssetArgs(
@@ -81,19 +72,19 @@ export async function buildVerifyAssetArgs(
   signedMessageIndex: number;
   clientDataJson: Uint8Array;
 }> {
-  const { asset, publicKey } = await fetchAssetFromCredentialId(
+  const { asset } = await fetchAssetFromCredentialId(
     response.id,
     session.rpc,
   );
   const { secp256r1Verify, signedMessageIndex, clientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
-      publicKey,
+      publicKey: asset.publicKey,
       response,
       existingSecp256r1VerifyInputs,
     });
   return {
     asset,
-    assetPda: await findAssetPda(parseSecp256r1Pubkey(publicKey)),
+    assetPda: await findAssetPda(asset.publicKey),
     secp256r1Verify,
     signedMessageIndex,
     clientDataJson,

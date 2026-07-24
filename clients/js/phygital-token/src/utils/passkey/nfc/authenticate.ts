@@ -1,4 +1,4 @@
-import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
+import type { AuthenticationResponseJSON } from "../webauthn.js";
 import {
   buildCborCommandApdu,
   buildSelectFidoApduSegments,
@@ -19,7 +19,7 @@ function nfcTransceiveFor(
   transceive: (apdu: Uint8Array) => Promise<Uint8Array>,
   phase: string,
 ): (apdu: Uint8Array) => Promise<Uint8Array> {
-  const label = `authenticateWithNfc (${phase})`;
+  const label = `authenticateWithApdu (${phase})`;
   return async (apdu) => {
     try {
       const resp = await transceive(apdu);
@@ -65,13 +65,15 @@ async function runAuthenticateWithNfc(
 }
 
 /**
- * NFC against a Java Card FIDO2 applet: SELECT FIDO AID, then getAssertion with
- * short APDU chaining + GET RESPONSE.
+ * Native / kiosk NFC against a Java Card FIDO2 applet: SELECT FIDO AID, then
+ * getAssertion with short APDU chaining + GET RESPONSE.
  *
- * `transceive` is the caller-supplied IsoDep transport: it receives a command
- * APDU and resolves with the raw response APDU (including SW1/SW2).
+ * Prefer the browser path (`authenticateWithNfc` in `webauthn.ts`) when
+ * `navigator.credentials` is available. Use this when you have a raw IsoDep
+ * `transceive` that receives a command APDU and resolves with the response
+ * APDU (including SW1/SW2).
  */
-export async function authenticateWithNfc(
+export async function authenticateWithApdu(
   args: PublicKeyCredentialRequestOptionsJSONWithNfc,
   transceive: (apdu: Uint8Array) => Promise<Uint8Array>,
 ): Promise<AuthenticationResponseJSON> {
@@ -82,7 +84,7 @@ export async function authenticateWithNfc(
       throw e;
     }
     throw new ApduError(
-      `authenticateWithNfc: ${e instanceof Error ? e.message : String(e)}`,
+      `authenticateWithApdu: ${e instanceof Error ? e.message : String(e)}`,
       { cause: e },
     );
   }

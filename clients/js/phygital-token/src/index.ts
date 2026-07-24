@@ -23,6 +23,7 @@ export {
 } from "./instructions/mint.js";
 
 export {
+  fetchAssetDisplayInfoFromPublicKey,
   fetchAssetDisplayInfo,
   fetchShortcutsFromExternalUrl,
   resolveMedia,
@@ -43,37 +44,16 @@ export {
 export {
   verifyDynamicUrl,
   verifyDynamicUrlWithoutCounterCheck,
-  startAuthenticationWithChallengeResponse,
-  verifyWithChallengeResponse,
+  startAuthentication,
+  verifyResponse,
   type VerifyDynamicUrlCallback,
   type VerifyDynamicUrlResult,
-  type VerifyWithChallengeResponseResult,
-  type VerifyWithChallengeResponseOptions,
-  type GetPublicKeyFromCredentialIdCallback,
+  type VerifyResponseResult,
+  type VerifyResponseOptions,
+  type GetAssetFromCredentialIdCallback,
 } from "./utils/verify.js";
 
 export { findAssetPda } from "./utils/pdas/index.js";
-
-export {
-  evaluateAssetGating,
-  evaluateGatingTiers,
-  evaluateGatingFilter,
-  assetMatchesPredicate,
-  Gating,
-  GatingTraitValue,
-  formatGatingPredicate,
-  summarizeGatingEvaluationFailure,
-  summarizeGatingFailure,
-  summarizeGatingTierFailure,
-  type EvaluateAssetGatingOptions,
-  type GatingAssetPredicate,
-  type GatingEvaluationResult,
-  type GatingFilter,
-  type GatingFilterResult,
-  type GatingTier,
-  type GatingTierEvaluationResult,
-  type GatingTiersEvaluationResult,
-} from "./utils/gating.js";
 
 export * from "./generated/index.js";
 

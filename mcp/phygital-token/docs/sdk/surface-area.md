@@ -41,10 +41,10 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 |--------|---------|
 | `verifyDynamicUrl` | Identification via signed URL (server) |
 | `verifyDynamicUrlWithoutCounterCheck` | Identification offline |
-| `startAuthenticationWithChallengeResponse` | Client: NFC tap trigger; returns WebAuthn response |
-| `verifyWithChallengeResponse` | Server: verify tap signature; returns `publicKey` |
+| `startAuthentication` | Client: NFC tap trigger; returns WebAuthn response |
+| `verifyResponse` | Server: verify tap signature; returns `{ isVerified, asset }` |
 
-Pair `startAuthenticationWithChallengeResponse` (client) with `verifyWithChallengeResponse` (server). Pass optional `transceive` for kiosk / native NFC readers.
+Pair `startAuthentication` (client) with `verifyResponse` (server). Pass optional `transceive` for kiosk / native NFC readers. Optional `fetchAssetFromCredentialIdCallback` must return an `Asset`. Owner wallet is `asset.owner`.
 
 On-chain proof always uses `beginVerifyAsset` / `buildVerifyAssetArgs` / `completeVerifyAsset`.
 
@@ -55,18 +55,10 @@ On-chain proof always uses `beginVerifyAsset` / `buildVerifyAssetArgs` / `comple
 | `findAssetPda` | Derive asset PDA from secp256r1 pubkey |
 | `fetchAssetFromCredentialId` | Resolve asset + pubkey from credential |
 | `fetchAllAssetsFromOwner` | List assets by wallet owner |
-| `fetchAssetDisplayInfo` | Rich display metadata (incl. Phantom Shortcuts via `external_url/shortcuts.json`) |
+| `fetchAssetDisplayInfoFromPublicKey` | Rich display metadata from base64url pubkey |
+| `fetchAssetDisplayInfo` | Rich display metadata from a decoded `Asset` account |
 | `fetchShortcutsFromExternalUrl` | Load Phantom Shortcuts schema v2 from `{external_url}/shortcuts.json` |
 | `resolveMedia` | Resolve media URLs from token metadata |
-
-## Gating
-
-| Export | Purpose |
-|--------|---------|
-| `evaluateAssetGating` | Full tier evaluation for asset owner wallet |
-| `evaluateGatingTiers` / `evaluateGatingFilter` | Lower-level evaluators |
-| `Gating` / `GatingTraitValue` | Filter builders |
-| `summarizeGatingEvaluationFailure` | Human-readable failure reasons |
 
 ## Generated (Codama)
 

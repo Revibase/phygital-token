@@ -2,7 +2,7 @@
 
 Third-party developers can:
 
-- **Gate off-chain** by wallet holdings → `evaluateAssetGating`
+- **Authenticate off-chain** with a live NFC tap → `startAuthentication` + `verifyResponse`
 - **Require live passkey presence on-chain** → composable `verify_asset` (two patterns below)
 
 ## Two on-chain composition patterns
@@ -31,10 +31,10 @@ Best when your program orchestrates verification as part of its own instruction.
 
 Off-chain tap auth is split:
 
-1. **Client:** `startAuthenticationWithChallengeResponse(expectedMessage)` — NFC tap.
-2. **Server:** `verifyWithChallengeResponse({ expectedMessage, response, rpc })` — signature check → `publicKey`.
+1. **Client:** `startAuthentication(expectedMessage)` — NFC tap.
+2. **Server:** `verifyResponse({ expectedMessage, response, rpc })` — signature check → `{ isVerified, asset }` (`asset.owner` is the wallet).
 
-Does **not** write to chain. Use for UI login, vault gates, and `evaluateAssetGating` when no program needs to inspect `verify_asset`.
+Does **not** write to chain. Use for UI login and vault presence checks when no program needs to inspect `verify_asset`.
 
 ## Message design checklist
 

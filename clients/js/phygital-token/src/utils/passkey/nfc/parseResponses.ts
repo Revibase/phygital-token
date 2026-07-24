@@ -1,4 +1,4 @@
-import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
+import type { AuthenticationResponseJSON } from "../webauthn.js";
 import { parseAuthenticatorGetAssertionResponse } from "./getAssertion.js";
 import { buildCollectedClientDataJSON } from "./clientData.js";
 import { toAuthenticationResponseJSON } from "./webauthnResponses.js";

@@ -4,6 +4,14 @@ import {
   type Rpc,
   type SolanaRpcApi,
 } from "@solana/kit";
+import { p256 } from "@noble/curves/nist.js";
+import {
+  authenticateWithWebauthn,
+  nfcWebAuthnRequestOptions,
+  utf8ToBase64URLString,
+  type AuthenticationResponseJSON,
+  type Base64URLString,
+} from "./passkey/webauthn.js";
 import {
   base64URLStringToBuffer,
   convertSignatureDERtoRS,
@@ -11,16 +19,10 @@ import {
   normalizeSignatureToLowS,
   parseWebAuthnClientData,
 } from "./passkey/internal.js";
-import { p256 } from "@noble/curves/nist.js";
-import {
-  startAuthentication,
-  bufferToBase64URLString,
-  type AuthenticationResponseJSON,
-  type Base64URLString,
-} from "@simplewebauthn/browser";
-import { authenticateWithNfc } from "./passkey/nfc/index.js";
+import { authenticateWithApdu } from "./passkey/nfc/index.js";
 import { fetchAssetFromCredentialId } from "./assetCredential.js";
 import { DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT } from "./consts.js";
+import type { Asset } from "../generated/index.js";
 
 /**
  * Two ways to check a phygital asset — **identification** vs **authentication**.
@@ -33,7 +35,7 @@ import { DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT } from "./consts.js";
  * asset it belongs to **without asking them to tap again**. Think of it like
  * checking an ID card someone scanned earlier.
  *
- * ## Authentication (`verifyWithChallengeResponse`) — tap required
+ * ## Authentication (`startAuthentication` + `verifyResponse`) — tap required
  *
  * Answers: **"Is the person with the key here right now?"**
  *
@@ -45,26 +47,30 @@ import { DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT } from "./consts.js";
  * |---|---|---|
  * | Question | Which asset is this? | Is the holder here now? |
  * | User taps again? | No | Yes |
- * | What you pass in | URL params from an earlier scan | Challenge + WebAuthn response from {@link startAuthenticationWithChallengeResponse} |
+ * | What you pass in | URL params from an earlier scan | Challenge + WebAuthn response from {@link startAuthentication} |
  * | Typical use | Product pages, ownership lookup, links | Transfers, high-value actions, login |
  *
  * @packageDocumentation
  */
 
-export type VerifyWithChallengeResponseResult = {
-  publicKey: string;
+/** Result of {@link verifyResponse}. */
+export type VerifyResponseResult = {
   isVerified: boolean;
+  /** Decoded on-chain asset account (owner wallet is `asset.owner`). */
+  asset: Asset;
 };
 
-/** Options for {@link verifyWithChallengeResponse}. */
-export type VerifyWithChallengeResponseOptions = {
+/** Options for {@link verifyResponse}. */
+export type VerifyResponseOptions = {
   rpc: Rpc<SolanaRpcApi>;
   expectedMessage: string;
   response: AuthenticationResponseJSON;
-  fetchPublicKeyFromCredentialIdCallback?: GetPublicKeyFromCredentialIdCallback;
+  fetchAssetFromCredentialIdCallback?: GetAssetFromCredentialIdCallback;
 };
 
-export type VerifyDynamicUrlResult = VerifyWithChallengeResponseResult & {
+export type VerifyDynamicUrlResult = {
+  isVerified: boolean;
+  publicKey: string;
   /** Included in the scanned URL; the server uses this to reject reused links. */
   counter: number;
 };
@@ -97,7 +103,7 @@ const defaultVerifyDynamicUrlCallback: VerifyDynamicUrlCallback = async (
  *
  * Use this when you need to **identify** an asset — show product info, look up
  * ownership, or validate a link — not when you need to **authenticate** that the
- * holder is present (use {@link verifyWithChallengeResponse} for that).
+ * holder is present (use {@link verifyResponse} for that).
  *
  * @see {@link verifyDynamicUrlWithoutCounterCheck} for the offline variant.
  */
@@ -113,7 +119,7 @@ export async function verifyDynamicUrl(
  *
  * Checks the signature in the scanned link on the device only. Still identifies
  * which asset the link belongs to, but a copied link can be reused — so prefer
- * {@link verifyDynamicUrl} when online, or {@link verifyWithChallengeResponse}
+ * {@link verifyDynamicUrl} when online, or {@link verifyResponse}
  * when you need to authenticate the holder with a live tap.
  *
  * @throws if the link is missing required params or they look wrong.
@@ -174,20 +180,27 @@ export function verifyDynamicUrlWithoutCounterCheck(
   };
 }
 
-export type GetPublicKeyFromCredentialIdCallback = (
+/**
+ * Optional override for resolving the on-chain asset from a WebAuthn credential id.
+ */
+export type GetAssetFromCredentialIdCallback = (
   credentialId: Base64URLString,
-) => Promise<Base64URLString>;
+) => Promise<Asset>;
 
-export async function startAuthenticationWithChallengeResponse(
+/**
+ * **Authentication (client)** — prompt an NFC tap for `message`.
+ *
+ * Browser: opens the system WebAuthn/NFC modal.
+ * Native / kiosk: pass `transceive` to talk to an IsoDep reader via APDUs.
+ */
+export async function startAuthentication(
   message: string,
   transceive?: (apdu: Uint8Array) => Promise<Uint8Array>,
 ): Promise<AuthenticationResponseJSON> {
-  const challenge = bufferToBase64URLString(
-    new TextEncoder().encode(message).buffer as ArrayBuffer,
-  );
+  const challenge = utf8ToBase64URLString(message);
 
   if (transceive) {
-    return authenticateWithNfc(
+    return authenticateWithApdu(
       {
         challenge,
         rpId: "",
@@ -205,46 +218,35 @@ export async function startAuthenticationWithChallengeResponse(
     );
   }
 
-  return startAuthentication({
-    optionsJSON: {
-      challenge,
-      rpId: window.location.hostname,
-      userVerification: "preferred",
-      allowCredentials: [
-        {
-          id: bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(64)).buffer as ArrayBuffer),
-          type: "public-key",
-          transports: ["nfc"],
-        },
-      ],
-    },
-  });
+  return authenticateWithWebauthn(nfcWebAuthnRequestOptions(challenge));
 }
 
 /**
- * **Authentication** — verify a fresh tap signature (server-side).
+ * **Authentication (server)** — verify a fresh tap signature.
  *
- * Call after {@link startAuthenticationWithChallengeResponse} on the client.
- * Pass the same `expectedMessage` you issued as the challenge and the WebAuthn
- * `response` from the tap. Resolves the vault `publicKey` and checks the signature.
+ * Call after {@link startAuthentication} on the client. Pass the same
+ * `expectedMessage` you issued as the challenge and the WebAuthn `response`
+ * from the tap. Resolves the on-chain {@link Asset} and checks the signature.
+ *
+ * Returns `{ isVerified, asset }`. Owner wallet is `asset.owner`. Throws on
+ * challenge mismatch (`Message mismatch.`); a bad signature returns
+ * `isVerified: false` instead of throwing.
  *
  * Do not use this just to **identify** an asset from an old scan; for that use
  * {@link verifyDynamicUrl}.
  */
-export async function verifyWithChallengeResponse({
+export async function verifyResponse({
   expectedMessage,
   response,
-  fetchPublicKeyFromCredentialIdCallback,
+  fetchAssetFromCredentialIdCallback,
   rpc,
-}: VerifyWithChallengeResponseOptions): Promise<VerifyWithChallengeResponseResult> {
-  const expectedChallenge = bufferToBase64URLString(
-    new TextEncoder().encode(expectedMessage).buffer as ArrayBuffer,
-  );
+}: VerifyResponseOptions): Promise<VerifyResponseResult> {
+  const expectedChallenge = utf8ToBase64URLString(expectedMessage);
 
   const clientData = parseWebAuthnClientData(response.response.clientDataJSON);
 
   if (clientData.challenge !== expectedChallenge) {
-    throw new Error("Invalid Signature.");
+    throw new Error("Message mismatch.");
   }
 
   const signature = convertSignatureDERtoRS(
@@ -252,26 +254,18 @@ export async function verifyWithChallengeResponse({
   );
   const message = getSecp256r1Message(response);
 
-  const publicKey = await (fetchPublicKeyFromCredentialIdCallback?.(
-    response.id,
-  ) ?? (await fetchAssetFromCredentialId(response.id, rpc)).publicKey);
-
-  if (!publicKey) {
-    throw new Error("Public key can't be found.");
-  }
+  const asset = fetchAssetFromCredentialIdCallback
+    ? await fetchAssetFromCredentialIdCallback(response.id)
+    : (await fetchAssetFromCredentialId(response.id, rpc)).asset;
 
   const isVerified = p256.verify(
     signature,
     message,
-    base64URLStringToBuffer(publicKey),
+    new Uint8Array(asset.publicKey[0]),
   );
-
-  if (!isVerified) {
-    throw new Error("Invalid Signature.");
-  }
 
   return {
     isVerified,
-    publicKey,
+    asset,
   };
 }

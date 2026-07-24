@@ -1,4 +1,4 @@
-import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
+import type { AuthenticationResponseJSON } from "./webauthn.js";
 import { getAddressEncoder, type Address, type Instruction } from "@solana/kit";
 import {
   getSecp256r1VerifyInstruction,
@@ -16,6 +16,7 @@ import {
   getSecp256r1Message,
 } from "./internal.js";
 import { sha256 } from "@noble/hashes/sha2.js";
+import type { Secp256r1Pubkey } from "../../generated/index.js";
 
 export type { Secp256r1VerifyEntry };
 
@@ -35,7 +36,7 @@ function encodeAddress(addressValue: Address): Uint8Array {
 }
 
 export function buildVerifyInputFromWebAuthn(input: {
-  publicKey: string;
+  publicKey: Secp256r1Pubkey;
   response: AuthenticationResponseJSON;
 }): Secp256r1VerifyEntry {
   const signature = convertSignatureDERtoRS(
@@ -44,7 +45,7 @@ export function buildVerifyInputFromWebAuthn(input: {
   const message = getSecp256r1Message(input.response);
 
   return {
-    publicKey: base64URLStringToBuffer(input.publicKey),
+    publicKey: input.publicKey[0],
     signature,
     message,
   };
@@ -87,7 +88,7 @@ export type WebAuthnSecp256r1Verification = {
 };
 
 export async function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input: {
-  publicKey: string;
+  publicKey: Secp256r1Pubkey;
   response: AuthenticationResponseJSON;
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[];
 }): Promise<WebAuthnSecp256r1Verification> {

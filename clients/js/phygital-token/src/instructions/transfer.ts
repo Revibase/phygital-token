@@ -6,9 +6,10 @@ import {
 } from "@solana/kit";
 import {
   bufferToBase64URLString,
-  startAuthentication,
+  authenticateWithWebauthn,
+  nfcWebAuthnRequestOptions,
   type AuthenticationResponseJSON,
-} from "@simplewebauthn/browser";
+} from "../utils/passkey/webauthn.js";
 import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts.js";
 import { type AssetDisplayInfo } from "../utils/metadata.js";
 import {
@@ -21,6 +22,7 @@ import {
   getExecuteTransferInstructionAsync,
 } from "../generated/index.js";
 import { findAssociatedTokenAddress } from "../utils/associatedToken.js";
+import { parseSecp256r1Pubkey } from "./mint.js";
 
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
@@ -33,7 +35,8 @@ export type TransferSession = {
 /**
  * Prepares a transfer session with slot-bound challenge data.
  * Recipient is chosen later at wallet confirmation — not bound in the asset signature.
- * Must be followed promptly by authenticateToken and completeTransfer.
+ * Must be followed promptly by {@link authenticatePasskeyForTransfer} and
+ * {@link completeTransfer}.
  */
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
@@ -58,22 +61,12 @@ export async function beginTransfer(input: {
 export async function authenticatePasskeyForTransfer(
   session: TransferSession,
 ): Promise<AuthenticationResponseJSON> {
-  return startAuthentication({
-    optionsJSON: {
-      challenge: bufferToBase64URLString(
-        new Uint8Array(session.challenge).buffer as ArrayBuffer,
-      ),
-      rpId: window.location.hostname,
-      userVerification: "preferred",
-      allowCredentials: [
-        {
-          id: session.displayInfo.credentialId,
-          type: "public-key",
-          transports: ["nfc"],
-        },
-      ],
-    },
-  });
+  return authenticateWithWebauthn(
+    nfcWebAuthnRequestOptions(
+      bufferToBase64URLString(session.challenge),
+      session.displayInfo.credentialId,
+    ),
+  );
 }
 
 /** Builds the two on-chain instructions after asset authentication. */
@@ -88,7 +81,7 @@ export async function completeTransfer(
   const { secp256r1Verify, signedMessageIndex, clientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       response,
-      publicKey: session.displayInfo.publicKey,
+      publicKey: parseSecp256r1Pubkey(session.displayInfo.publicKey),
       existingSecp256r1VerifyInputs,
     });
 

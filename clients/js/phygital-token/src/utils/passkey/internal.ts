@@ -1,6 +1,11 @@
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
+import {
+  base64URLStringToBuffer,
+  type AuthenticationResponseJSON,
+} from "./webauthn.js";
+
+export { base64URLStringToBuffer } from "./webauthn.js";
 
 function uint8ArrayToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -12,19 +17,6 @@ function hexToUint8Array(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < bytes.length; i += 1) {
     bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  }
-  return bytes;
-}
-
-export function base64URLStringToBuffer(base64URLString: string): Uint8Array {
-  const base64 = base64URLString.replace(/-/g, "+").replace(/_/g, "/");
-  const padLength = (4 - (base64.length % 4)) % 4;
-  const padded = base64.padEnd(base64.length + padLength, "=");
-  const binary = atob(padded);
-  const buffer = new ArrayBuffer(binary.length);
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
   }
   return bytes;
 }

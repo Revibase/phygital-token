@@ -21,8 +21,8 @@ export const SDK_SURFACE = {
   verification: [
     "verifyDynamicUrl",
     "verifyDynamicUrlWithoutCounterCheck",
-    "startAuthenticationWithChallengeResponse",
-    "verifyWithChallengeResponse",
+    "startAuthentication",
+    "verifyResponse",
   ],
   onChainComposition: {
     patternA_inspect: {
@@ -40,28 +40,10 @@ export const SDK_SURFACE = {
     "findAssetPda",
     "fetchAssetFromCredentialId",
     "fetchAllAssetsFromOwner",
+    "fetchAssetDisplayInfoFromPublicKey",
     "fetchAssetDisplayInfo",
     "fetchShortcutsFromExternalUrl",
     "resolveMedia",
-  ],
-  gating: [
-    "Gating",
-    "GatingTraitValue",
-    "formatGatingPredicate",
-    "summarizeGatingEvaluationFailure",
-    "summarizeGatingFailure",
-    "summarizeGatingTierFailure",
-    "evaluateAssetGating",
-  ],
-  gatingTypes: [
-    "EvaluateAssetGatingOptions",
-    "GatingFilter",
-    "GatingAssetPredicate",
-    "GatingTier",
-    "GatingEvaluationResult",
-    "GatingFilterResult",
-    "GatingTierEvaluationResult",
-    "GatingTiersEvaluationResult",
   ],
   generated: [
     "getCreateMintInstructionAsync",

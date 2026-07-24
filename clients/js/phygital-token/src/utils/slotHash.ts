@@ -34,7 +34,6 @@ export async function getLatestSlotHash(rpc: Rpc<SolanaRpcApi>) {
   const slotHashData = decodeBase64AccountData(slotSysvarData);
   const slotNumber = getU64Decoder().decode(slotHashData.subarray(0, 8));
   const slotHash = slotHashData.subarray(8, 40);
-  const estimatedSlotHashExpiry = Date.now() + 512 * 400;
 
-  return { slotHash, slotNumber, estimatedSlotHashExpiry };
+  return { slotHash, slotNumber };
 }

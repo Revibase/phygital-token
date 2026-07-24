@@ -9,10 +9,9 @@
         {
           "formatCode": true,
           "syncPackageJson": true,
-          "kitImportStrategy": "preferRoot",
+          "kitImportStrategy": "rootOnly",
           "dependencyVersions": {
-            "@solana/kit": "^6.4.0",
-            "@solana/program-client-core": "^6.4.0"
+            "@solana/kit": "^6.4.0"
           }
         }
       ]

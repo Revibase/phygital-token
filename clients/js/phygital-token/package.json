@@ -17,7 +17,6 @@
   },
   "files": [
     "dist",
-    "docs",
     "README.md"
   ],
   "scripts": {
@@ -26,18 +25,16 @@
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
-    "@solana/kit": "^6.4.0"
+    "@solana/kit": "^7.0.0"
   },
   "devDependencies": {
-    "@solana/kit": "^6.4.0",
+    "@solana/kit": "^7.0.0",
     "typescript": "^5.7.3",
     "vitest": "^3.2.4"
   },
   "dependencies": {
     "@noble/curves": "^2.0.1",
     "@noble/hashes": "^2.0.1",
-    "@simplewebauthn/browser": "^13.3.0",
-    "@solana-program/token-2022": "^0.11.0",
-    "@solana/program-client-core": "^6.4.0"
+    "@solana-program/token-2022": "^0.13.0"
   }
 }

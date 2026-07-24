@@ -1,5 +1,7 @@
-import { utf8ToBytes } from "@noble/hashes/utils.js";
-import { bufferToBase64URLString, type AuthenticationResponseJSON } from "@simplewebauthn/browser";
+import {
+  bufferToBase64URLString,
+  type AuthenticationResponseJSON,
+} from "../webauthn.js";
 import type { AuthenticatorGetAssertionResponse } from "./getAssertion.js";
 import { ApduError } from "./errors.js";
 import { parseAuthenticatorDataExtensions } from "./authDataExtensions.js";
@@ -24,7 +26,7 @@ export function toAuthenticationResponseJSON(input: {
       );
     })();
 
-  const idStr = bufferToBase64URLString(credBytes.buffer as ArrayBuffer);
+  const idStr = bufferToBase64URLString(credBytes);
 
   return {
     id: idStr,
@@ -32,12 +34,14 @@ export function toAuthenticationResponseJSON(input: {
     type: "public-key",
     clientExtensionResults,
     response: {
-      clientDataJSON: bufferToBase64URLString(utf8ToBytes(clientDataJSON).buffer),
-      authenticatorData: bufferToBase64URLString(assertion.authData.buffer as ArrayBuffer),
-      signature: bufferToBase64URLString(assertion.signature.buffer as ArrayBuffer),
+      clientDataJSON: bufferToBase64URLString(
+        new TextEncoder().encode(clientDataJSON),
+      ),
+      authenticatorData: bufferToBase64URLString(assertion.authData),
+      signature: bufferToBase64URLString(assertion.signature),
       userHandle:
         assertion.user?.id !== undefined
-          ? bufferToBase64URLString(assertion.user.id.buffer as ArrayBuffer)
+          ? bufferToBase64URLString(assertion.user.id)
           : undefined,
     },
   };

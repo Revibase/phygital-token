@@ -4,12 +4,10 @@ import {
   GLOSSARY_PATH,
   MCP_DOCS_DIR,
   pathExists,
-  resolveSdkDocsDir,
   resolveSdkReadmePath,
 } from "./paths.js";
 
 export type DocCategory =
-  | "gating"
   | "verification"
   | "building-on-phygital"
   | "sdk"
@@ -58,14 +56,6 @@ async function collectMarkdownFiles(
 
 export async function listDocs(): Promise<DocEntry[]> {
   const docs: DocEntry[] = [];
-
-  const sdkDocsDir = await resolveSdkDocsDir();
-  if (sdkDocsDir) {
-    const gatingDir = path.join(sdkDocsDir, "gating");
-    if (await pathExists(gatingDir)) {
-      docs.push(...(await collectMarkdownFiles(gatingDir, "gating")));
-    }
-  }
 
   if (await pathExists(MCP_DOCS_DIR)) {
     const verificationDir = path.join(MCP_DOCS_DIR, "verification");

@@ -7,13 +7,6 @@ import { z } from "zod";
 import { listDocs, readDocById, searchDocs } from "./lib/docs.js";
 import { jsonResult, textResult } from "./lib/format.js";
 import {
-  GATING_FILTER_SCHEMA,
-  GATING_OVERVIEW,
-  GATING_RECIPES,
-  GATING_TIER_EXAMPLE,
-  getGatingRecipe,
-} from "./lib/gating-json.js";
-import {
   parseAssetType,
   planCreateMint,
   planMintToken,
@@ -38,13 +31,12 @@ const SERVER_INSTRUCTIONS = [
   "Routing:",
   "- Which verification method to use → recommend_verification",
   "- On-chain verify_asset (standalone, sysvar inspect, or CPI) → plan_verify_asset",
-  "- Gating rules → explain_gating, then gating_recipe",
   "- Mint / transfer / forfeiture flows → plan_create_mint, plan_mint_token, plan_transfer, plan_remove_ownership",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
   "",
-  "Live gating evaluation and asset fetch: call phygital-token-sdk directly in your app",
-  "(evaluateAssetGating, fetchAssetDisplayInfo, summarizeGatingEvaluationFailure).",
+  "Live asset fetch and auth: call phygital-token-sdk directly in your app",
+  "(verifyResponse, fetchAssetDisplayInfo, etc.).",
 ].join("\n");
 
 /** Every tool here is offline and side-effect free. */
@@ -60,7 +52,7 @@ function registerTools(server: McpServer) {
     "search_docs",
     {
       description:
-        "Search phygital-token docs (gating, verification, building-on-phygital, SDK surface, glossary). Omit query to list every doc id.",
+        "Search phygital-token docs (verification, building-on-phygital, SDK surface, glossary). Omit query to list every doc id.",
       inputSchema: {
         query: z
           .string()
@@ -88,7 +80,7 @@ function registerTools(server: McpServer) {
       inputSchema: {
         docId: z
           .string()
-          .describe('Document id, e.g. "gating:overview" or "verification:methods"'),
+          .describe('Document id, e.g. "verification:methods" or "sdk:surface-area"'),
       },
       annotations: { title: "Read doc", ...READ_ONLY },
     },
@@ -107,12 +99,10 @@ function registerTools(server: McpServer) {
             "deep_link_from_prior_scan",
             "offline_identification",
             "login_ui_only",
-            "vault_gated_experience",
             "onchain_standalone_verify",
             "onchain_inspect_verify_asset",
             "onchain_cpi_verify_asset",
             "transfer_ownership",
-            "wallet_holdings_gate",
             "native_mobile_app",
           ] as [VerificationUseCase, ...VerificationUseCase[]])
           .optional()
@@ -265,47 +255,6 @@ function registerTools(server: McpServer) {
     async ({ assetPublicKey }) => {
       const assetPda = await findAssetPda(parseSecp256r1Pubkey(assetPublicKey));
       return jsonResult({ assetPublicKey, assetPda });
-    },
-  );
-
-  server.registerTool(
-    "explain_gating",
-    {
-      description:
-        "Gating mental model plus the GatingFilter JSON schema and a tier example: dimensions, evaluation flow, aggregations, same-asset vs wallet-wide pitfalls.",
-      inputSchema: {},
-      annotations: { title: "Explain gating", ...READ_ONLY },
-    },
-    async () =>
-      jsonResult({
-        ...GATING_OVERVIEW,
-        filterSchema: GATING_FILTER_SCHEMA,
-        tierExample: GATING_TIER_EXAMPLE,
-      }),
-  );
-
-  server.registerTool(
-    "gating_recipe",
-    {
-      description:
-        "Copy-paste gating recipes (filter trees, tiers, footguns) for evaluateAssetGating. Omit recipeId to list them.",
-      inputSchema: {
-        recipeId: z.string().optional().describe("Recipe id. Omit to list all recipes."),
-      },
-      annotations: { title: "Gating recipe", ...READ_ONLY },
-    },
-    async ({ recipeId }) => {
-      if (!recipeId) {
-        return jsonResult({
-          recipes: GATING_RECIPES.map(({ id, title, description, footgun }) => ({
-            id,
-            title,
-            description,
-            footgun: footgun ?? false,
-          })),
-        });
-      }
-      return jsonResult(getGatingRecipe(recipeId));
     },
   );
 

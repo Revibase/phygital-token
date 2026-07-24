@@ -20,8 +20,8 @@ Do you need the holder physically present right now?
 │   └─ Offline / no backend → verifyDynamicUrlWithoutCounterCheck (weaker)
 └─ YES → Authentication
     ├─ Off-chain only (UI login, vault gate, no chain tx)
-    │     Server issues challenge → startAuthenticationWithChallengeResponse (client tap)
-    │     → verifyWithChallengeResponse (server verify) → your logic (e.g. evaluateAssetGating)
+    │     Server issues challenge → startAuthentication (client tap)
+    │     → verifyResponse (server verify) → your logic
     ├─ On-chain proof for your program → beginVerifyAsset composable flow (see below)
     └─ Transfer ownership → beginTransfer → completeTransfer (NOT verify_asset)
 ```
@@ -30,8 +30,8 @@ Do you need the holder physically present right now?
 
 Off-chain authentication uses two SDK functions:
 
-- **`startAuthenticationWithChallengeResponse`** — client only; opens NFC and returns a WebAuthn response.
-- **`verifyWithChallengeResponse`** — server only; checks the signature and resolves `publicKey`.
+- **`startAuthentication`** — client only; opens NFC and returns a WebAuthn response.
+- **`verifyResponse`** — server only; checks the signature and returns `{ isVerified, asset }` (`asset.owner` is the wallet).
 
 Neither submits a transaction. Verification should run on your backend so the client cannot fake a successful tap.
 

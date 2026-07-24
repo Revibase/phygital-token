@@ -3,12 +3,10 @@ export type VerificationUseCase =
   | "deep_link_from_prior_scan"
   | "offline_identification"
   | "login_ui_only"
-  | "vault_gated_experience"
   | "onchain_standalone_verify"
   | "onchain_inspect_verify_asset"
   | "onchain_cpi_verify_asset"
   | "transfer_ownership"
-  | "wallet_holdings_gate"
   | "native_mobile_app";
 
 export type OnChainCompositionPattern = "inspect" | "cpi" | "standalone";
@@ -52,32 +50,17 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     cautions: ["Copied links can be replayed."],
   },
   login_ui_only: {
-    method: "authentication off-chain — startAuthentication + verifyWithChallengeResponse",
+    method: "authentication off-chain — startAuthentication + verifyResponse",
     sdkExports: [
-      "startAuthenticationWithChallengeResponse",
-      "verifyWithChallengeResponse",
+      "startAuthentication",
+      "verifyResponse",
     ],
     requiresTap: true,
     onChain: false,
     rationale:
-      "Server issues challenge; client taps NFC via startAuthenticationWithChallengeResponse; server verifies with verifyWithChallengeResponse. No on-chain transaction.",
+      "Server issues challenge; client taps NFC via startAuthentication; server verifies with verifyResponse. No on-chain transaction.",
     docIds: ["verification:methods", "verification:overview"],
-    cautions: ["Run verifyWithChallengeResponse on your server, not in the browser."],
-  },
-  vault_gated_experience: {
-    method: "vault gate — server-verified tap + evaluateAssetGating",
-    sdkExports: [
-      "startAuthenticationWithChallengeResponse",
-      "verifyWithChallengeResponse",
-      "evaluateAssetGating",
-      "Gating",
-      "GatingTraitValue",
-    ],
-    requiresTap: true,
-    onChain: false,
-    rationale:
-      "Prove vault holder is present (server-verified tap), then check owner wallet holdings for tiered unlock.",
-    docIds: ["verification:methods", "verification:overview", "gating:overview"],
+    cautions: ["Run verifyResponse on your server, not in the browser."],
   },
   onchain_standalone_verify: {
     method: "on-chain verify_asset only",
@@ -134,29 +117,18 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     docIds: ["verification:overview"],
     cautions: ["Do not use verifyDynamicUrl for transfers."],
   },
-  wallet_holdings_gate: {
-    method: "gating — evaluateAssetGating",
-    sdkExports: ["evaluateAssetGating", "Gating", "GatingTraitValue"],
-    requiresTap: false,
-    onChain: false,
-    rationale: "Wallet holdings via DAS given an asset publicKey. Pair with off-chain tap auth when you need live presence.",
-    docIds: ["gating:overview"],
-    cautions: [
-      "startAuthenticationWithChallengeResponse + verifyWithChallengeResponse first, then evaluateAssetGating.",
-    ],
-  },
   native_mobile_app: {
-    method: "authentication off-chain — startAuthentication (transceive) + verifyWithChallengeResponse",
+    method: "authentication off-chain — startAuthentication (transceive) + verifyResponse",
     sdkExports: [
-      "startAuthenticationWithChallengeResponse",
-      "verifyWithChallengeResponse",
+      "startAuthentication",
+      "verifyResponse",
     ],
     requiresTap: true,
     onChain: false,
     rationale:
-      "Pass transceive to startAuthenticationWithChallengeResponse for native NFC readers; verify on server. Use beginVerifyAsset for on-chain proof.",
+      "Pass transceive to startAuthentication for native NFC readers; verify on server. Use beginVerifyAsset for on-chain proof.",
     docIds: ["verification:methods"],
-    cautions: ["Run verifyWithChallengeResponse on your server, not in the native client."],
+    cautions: ["Run verifyResponse on your server, not in the native client."],
   },
 };
 
@@ -175,7 +147,6 @@ export function listVerificationUseCases(): Array<{
     { id: "deep_link_from_prior_scan", summary: "App opens from signed deep link" },
     { id: "offline_identification", summary: "Identify asset offline (weak replay)" },
     { id: "login_ui_only", summary: "Off-chain tap-to-login (no chain tx)" },
-    { id: "vault_gated_experience", summary: "tap + wallet holdings check" },
     { id: "onchain_standalone_verify", summary: "On-chain verify_asset only" },
     {
       id: "onchain_inspect_verify_asset",
@@ -186,7 +157,6 @@ export function listVerificationUseCases(): Array<{
       summary: "Pattern B: buildVerifyAssetArgs, your program CPIs verify_asset",
     },
     { id: "transfer_ownership", summary: "Claim/transfer token to new owner" },
-    { id: "wallet_holdings_gate", summary: "Gate by wallet NFTs/tokens" },
     { id: "native_mobile_app", summary: "Native app off-chain authentication" },
   ];
 }
@@ -196,12 +166,12 @@ Identification vs Authentication
 ├── Need holder present NOW?
 │   NO → verifyDynamicUrl / verifyDynamicUrlWithoutCounterCheck
 │   YES → Need on-chain proof?
-│         NO → startAuthenticationWithChallengeResponse (client tap)
-│              → verifyWithChallengeResponse (server verify) — off-chain only
+│         NO → startAuthentication (client tap)
+│              → verifyResponse (server verify) — off-chain only
 │         YES → beginVerifyAsset composable flow:
 │               Pattern A: [secp256r1_verify, verify_asset, your_ix] — program inspects sysvar
 │               Pattern B: [secp256r1_verify, your_ix] — program CPIs verify_asset
 └── Transfer ownership? → beginTransfer → completeTransfer
 
-verifyWithChallengeResponse never submits verify_asset. Run it on your server. On-chain proof always uses beginVerifyAsset.
+verifyResponse never submits verify_asset. Returns { isVerified, asset } (owner is asset.owner). Run it on your server. On-chain proof always uses beginVerifyAsset.
 `.trim();

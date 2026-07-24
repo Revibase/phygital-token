@@ -1,4 +1,4 @@
-import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
+import type { PublicKeyCredentialRequestOptionsJSON } from "../webauthn.js";
 
 type NfcWebAuthnClientFields = {
   origin: string;

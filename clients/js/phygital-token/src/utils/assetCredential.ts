@@ -10,7 +10,7 @@ import {
 import {
   bufferToBase64URLString,
   type Base64URLString,
-} from "@simplewebauthn/browser";
+} from "./passkey/webauthn.js";
 import {
   getAssetDecoder,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
@@ -59,9 +59,7 @@ export async function fetchAssetFromCredentialId(
     getBase64Encoder().encode(data[0].account.data[0]),
   );
   return {
-    publicKey: bufferToBase64URLString(
-      new Uint8Array(asset.publicKey[0]).buffer,
-    ),
+    publicKey: bufferToBase64URLString(asset.publicKey[0]),
     asset,
   };
 }

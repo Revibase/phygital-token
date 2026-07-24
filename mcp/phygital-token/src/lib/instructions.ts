@@ -253,7 +253,7 @@ export async function planVerifyAsset(input: {
       complete: "completeVerifyAsset",
       instruction: "getVerifyAssetInstruction",
       offChainAuthOnly:
-        "startAuthenticationWithChallengeResponse (client) + verifyWithChallengeResponse (server); does NOT submit verify_asset",
+        "startAuthentication (client) + verifyResponse (server); does NOT submit verify_asset",
     },
     message: {
       utf8: input.message,
@@ -287,7 +287,7 @@ export async function planVerifyAsset(input: {
       clientDataJson: "Uint8Array",
     },
     notes: [
-      "startAuthenticationWithChallengeResponse + verifyWithChallengeResponse is off-chain only — it does not submit verify_asset. Verify on your server.",
+      "startAuthentication + verifyResponse is off-chain only — it does not submit verify_asset. Verify on your server.",
       "Pattern A: client includes verify_asset; your program inspects instructions sysvar.",
       "Pattern B: client uses buildVerifyAssetArgs; your program CPIs verify_asset.",
       "verify_asset updates asset.last_transfer_slot; slot must be strictly increasing.",
