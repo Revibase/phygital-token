@@ -22,8 +22,8 @@ use phygital_token::constants::{ADMIN, ASSET_SEED, PROGRAM_AUTHORITY_SEED};
 use phygital_token::state::Asset;
 use phygital_token::utils::secp256r1_pda_seed;
 use phygital_token::{
-    AssetType, CreateMintArgs, CredentialId, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs,
-    COMPRESSED_PUBKEY_SERIALIZED_SIZE, CREDENTIAL_ID_SERIALIZED_SIZE,
+    AssetType, CreateMintArgs, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs,
+    COMPRESSED_PUBKEY_SERIALIZED_SIZE,
 };
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
@@ -215,12 +215,7 @@ impl TestContext {
         instance.is_locked
     }
 
-    pub fn remove_ownership_ix(
-        &self,
-        owner: Pubkey,
-        asset: Pubkey,
-        mint: Pubkey,
-    ) -> Instruction {
+    pub fn remove_ownership_ix(&self, owner: Pubkey, asset: Pubkey, mint: Pubkey) -> Instruction {
         self.remove_ownership_ix_with_hook(owner, asset, mint, self.transfer_hook_program_id)
     }
 
@@ -505,7 +500,6 @@ impl TestContext {
         let token_args = MintTokenArgs {
             secp256r1_pubkey,
             asset_type,
-            credential_id: passkey.credential_id,
         };
 
         let token_ix = self.mint_token_ix(self.payer.pubkey(), asset, mint, token_args);
@@ -532,7 +526,6 @@ impl TestContext {
         let token_args = MintTokenArgs {
             secp256r1_pubkey,
             asset_type: AssetType::Transferable,
-            credential_id: passkey.credential_id,
         };
 
         let token_ix = self.mint_token_ix(self.payer.pubkey(), asset_pda, asset.mint, token_args);
@@ -817,6 +810,5 @@ pub fn sample_mint_token_args() -> MintTokenArgs {
     MintTokenArgs {
         secp256r1_pubkey: Secp256r1Pubkey([0x02; COMPRESSED_PUBKEY_SERIALIZED_SIZE]),
         asset_type: AssetType::Transferable,
-        credential_id: CredentialId([0x02; CREDENTIAL_ID_SERIALIZED_SIZE]),
     }
 }

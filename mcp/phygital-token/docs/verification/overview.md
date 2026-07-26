@@ -31,7 +31,7 @@ Do you need the holder physically present right now?
 Off-chain authentication uses two SDK functions:
 
 - **`startAuthentication`** — client only; opens NFC and returns a WebAuthn response.
-- **`verifyResponse`** — server only; checks the signature and returns `{ isVerified, asset }` (`asset.owner` is the wallet).
+- **`verifyResponse`** — server only; checks the signature and returns `{ isVerified, secp256r1PublicKey }`. `response.id` / `secp256r1PublicKey` is the compressed secp256r1 vault key (also used as the WebAuthn credential id). Load on-chain state with `fetchAssetDisplayInfoFromSecp256r1PublicKey` or `fetchAsset` when needed.
 
 Neither submits a transaction. Verification should run on your backend so the client cannot fake a successful tap.
 

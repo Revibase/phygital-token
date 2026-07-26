@@ -41,14 +41,10 @@ import {
 import {
   getAssetTypeDecoder,
   getAssetTypeEncoder,
-  getCredentialIdDecoder,
-  getCredentialIdEncoder,
   getSecp256r1PubkeyDecoder,
   getSecp256r1PubkeyEncoder,
   type AssetType,
   type AssetTypeArgs,
-  type CredentialId,
-  type CredentialIdArgs,
   type Secp256r1Pubkey,
   type Secp256r1PubkeyArgs,
 } from "../types/index.js";
@@ -69,7 +65,6 @@ export type Asset = {
   lastTransferSlot: bigint;
   isLocked: boolean;
   publicKey: Secp256r1Pubkey;
-  credentialId: CredentialId;
 };
 
 export type AssetArgs = {
@@ -79,7 +74,6 @@ export type AssetArgs = {
   lastTransferSlot: number | bigint;
   isLocked: boolean;
   publicKey: Secp256r1PubkeyArgs;
-  credentialId: CredentialIdArgs;
 };
 
 /** Gets the encoder for {@link AssetArgs} account data. */
@@ -93,7 +87,6 @@ export function getAssetEncoder(): FixedSizeEncoder<AssetArgs> {
       ["lastTransferSlot", getU64Encoder()],
       ["isLocked", getBooleanEncoder()],
       ["publicKey", getSecp256r1PubkeyEncoder()],
-      ["credentialId", getCredentialIdEncoder()],
     ]),
     (value) => ({ ...value, discriminator: ASSET_DISCRIMINATOR }),
   );
@@ -109,7 +102,6 @@ export function getAssetDecoder(): FixedSizeDecoder<Asset> {
     ["lastTransferSlot", getU64Decoder()],
     ["isLocked", getBooleanDecoder()],
     ["publicKey", getSecp256r1PubkeyDecoder()],
-    ["credentialId", getCredentialIdDecoder()],
   ]);
 }
 
@@ -172,5 +164,5 @@ export async function fetchAllMaybeAsset(
 }
 
 export function getAssetSize(): number {
-  return 179;
+  return 115;
 }

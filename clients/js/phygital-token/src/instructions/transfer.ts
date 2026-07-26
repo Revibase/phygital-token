@@ -64,7 +64,7 @@ export async function authenticatePasskeyForTransfer(
   return authenticateWithWebauthn(
     nfcWebAuthnRequestOptions(
       bufferToBase64URLString(session.challenge),
-      session.displayInfo.credentialId,
+      session.displayInfo.secp256r1PublicKey,
     ),
   );
 }
@@ -81,7 +81,9 @@ export async function completeTransfer(
   const { secp256r1Verify, signedMessageIndex, clientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       response,
-      publicKey: parseSecp256r1Pubkey(session.displayInfo.publicKey),
+      secp256r1PublicKey: parseSecp256r1Pubkey(
+        session.displayInfo.secp256r1PublicKey,
+      ),
       existingSecp256r1VerifyInputs,
     });
 

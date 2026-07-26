@@ -173,5 +173,5 @@ Identification vs Authentication
 │               Pattern B: [secp256r1_verify, your_ix] — program CPIs verify_asset
 └── Transfer ownership? → beginTransfer → completeTransfer
 
-verifyResponse never submits verify_asset. Returns { isVerified, asset } (owner is asset.owner). Run it on your server. On-chain proof always uses beginVerifyAsset.
+verifyResponse never submits verify_asset. Returns { isVerified, secp256r1PublicKey } (response.id is the secp256r1 vault key, also the WebAuthn credential id). Run it on your server. Load on-chain state with fetchAssetDisplayInfoFromSecp256r1PublicKey when needed. On-chain proof always uses beginVerifyAsset.
 `.trim();

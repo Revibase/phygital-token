@@ -3,7 +3,6 @@ export const SDK_SURFACE = {
     "buildCreateMintInstructions",
     "buildMintTokenInstructions",
     "parseSecp256r1Pubkey",
-    "parseCredentialId",
     "validateMetadataFields",
   ],
   transfer: [
@@ -38,9 +37,8 @@ export const SDK_SURFACE = {
   },
   assetLookup: [
     "findAssetPda",
-    "fetchAssetFromCredentialId",
     "fetchAllAssetsFromOwner",
-    "fetchAssetDisplayInfoFromPublicKey",
+    "fetchAssetDisplayInfoFromSecp256r1PublicKey",
     "fetchAssetDisplayInfo",
     "fetchShortcutsFromExternalUrl",
     "resolveMedia",

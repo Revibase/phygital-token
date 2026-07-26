@@ -18,6 +18,7 @@ Collection (group_mint)
 | **Collection** | `group_mint` | Token-2022 TokenGroup parent mint. Groups related designs. |
 | **Design** | `mint` (in `create_mint`) | Shared SFT template — one metadata set, many physical instances. |
 | **Asset** | `asset` account | Per-physical-item record keyed by secp256r1 passkey pubkey. |
+| **Passkey pubkey** | `asset.public_key` | Compressed secp256r1 key. The custom authenticator also uses it as WebAuthn `credential.id` and `user.id`, so `response.id` after a tap is this key — there is no separate on-chain credential id. |
 | **Owner** | `asset.owner` | Current custodian after a successful `execute_transfer` claim. |
 | **Custody** | `program_authority` | PDA that holds unclaimed tokens and acts as permanent delegate. |
 

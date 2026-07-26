@@ -8,7 +8,7 @@ use crate::constants::{ASSET_SEED, PROGRAM_AUTHORITY_SEED};
 use crate::error::PhygitalError;
 use crate::state::Asset;
 use crate::utils::{mint_token_account_rent, secp256r1_pda_seed};
-use crate::{AssetType, CredentialId, Secp256r1Pubkey};
+use crate::{AssetType, Secp256r1Pubkey};
 
 #[event]
 pub struct MintTokenEvent {
@@ -21,7 +21,6 @@ pub struct MintTokenEvent {
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct MintTokenArgs {
     pub secp256r1_pubkey: Secp256r1Pubkey,
-    pub credential_id: CredentialId,
     pub asset_type: AssetType,
 }
 
@@ -77,7 +76,6 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
         ctx.accounts.program_authority.key(),
         args.asset_type,
         args.secp256r1_pubkey,
-        args.credential_id,
     );
 
     let program_authority_bump = ctx.bumps.program_authority;

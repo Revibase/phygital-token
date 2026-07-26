@@ -66,7 +66,6 @@ fn setup_e2e_asset(ctx: &mut TestContext, passkey: &TestPasskey) -> MintedAsset 
     let token_args = MintTokenArgs {
         secp256r1_pubkey,
         asset_type: AssetType::Transferable,
-        credential_id: passkey.credential_id.clone(),
     };
 
     let token_ix = ctx.mint_token_ix(ctx.payer.pubkey(), asset, mint, token_args);

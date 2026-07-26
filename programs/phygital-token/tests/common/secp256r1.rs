@@ -9,7 +9,6 @@ use phygital_token::utils::{
     COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
     SIGNATURE_OFFSETS_START,
 };
-use phygital_token::CredentialId;
 use rand::rngs::OsRng;
 use sha2::{Digest, Sha256};
 
@@ -28,7 +27,6 @@ const SECP256R1_ORDER: [u8; 32] = [
 pub struct TestPasskey {
     signing_key: SigningKey,
     pub compressed_pubkey: [u8; 33],
-    pub credential_id: CredentialId,
 }
 
 impl TestPasskey {
@@ -40,11 +38,9 @@ impl TestPasskey {
             .as_bytes()
             .try_into()
             .expect("compressed secp256r1 pubkey");
-        let credential_id = CredentialId::default();
         Self {
             signing_key,
             compressed_pubkey,
-            credential_id,
         }
     }
 

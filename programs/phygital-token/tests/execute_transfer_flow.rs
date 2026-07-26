@@ -275,7 +275,9 @@ fn execute_transfer_claims_multiple_assets_to_same_recipient_ata() {
         design_owner: Keypair::new(),
         recipient: Keypair::new(),
         mint: asset.mint,
-        asset: ctx.asset_pda(&phygital_token::Secp256r1Pubkey(passkey_b.compressed_pubkey)),
+        asset: ctx.asset_pda(&phygital_token::Secp256r1Pubkey(
+            passkey_b.compressed_pubkey,
+        )),
         group_mint: asset.group_mint,
     };
 

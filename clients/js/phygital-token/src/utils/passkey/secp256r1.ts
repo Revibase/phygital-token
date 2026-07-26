@@ -36,7 +36,7 @@ function encodeAddress(addressValue: Address): Uint8Array {
 }
 
 export function buildVerifyInputFromWebAuthn(input: {
-  publicKey: Secp256r1Pubkey;
+  secp256r1PublicKey: Secp256r1Pubkey;
   response: AuthenticationResponseJSON;
 }): Secp256r1VerifyEntry {
   const signature = convertSignatureDERtoRS(
@@ -45,7 +45,7 @@ export function buildVerifyInputFromWebAuthn(input: {
   const message = getSecp256r1Message(input.response);
 
   return {
-    publicKey: input.publicKey[0],
+    publicKey: input.secp256r1PublicKey[0],
     signature,
     message,
   };
@@ -88,7 +88,7 @@ export type WebAuthnSecp256r1Verification = {
 };
 
 export async function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input: {
-  publicKey: Secp256r1Pubkey;
+  secp256r1PublicKey: Secp256r1Pubkey;
   response: AuthenticationResponseJSON;
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[];
 }): Promise<WebAuthnSecp256r1Verification> {

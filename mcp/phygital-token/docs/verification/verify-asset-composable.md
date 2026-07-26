@@ -22,7 +22,7 @@ Slot-bound challenge: `SHA256("verify_asset" || SHA256(message) || slotHash)`.
 
 ### `buildVerifyAssetArgs(session, response)`
 
-Returns `secp256r1Verify`, `signedMessageIndex`, `clientDataJson`, `asset`, `assetPda`.
+Resolves the asset PDA from `response.id` (compressed secp256r1 public key / WebAuthn credential id). Returns `secp256r1Verify`, `signedMessageIndex`, `clientDataJson`, `asset`, `assetPda`.
 
 ### `completeVerifyAsset(session, response)`
 

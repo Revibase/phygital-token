@@ -69,7 +69,6 @@ export async function planMintToken(input: {
   assetPublicKey: string;
   mint: string;
   assetType: "Lockable" | "Transferable";
-  credentialId?: string;
 }) {
   const secp256r1Pubkey = parseSecp256r1Pubkey(input.assetPublicKey);
   const assetPda = await findAssetPda(secp256r1Pubkey);
@@ -101,7 +100,6 @@ export async function planMintToken(input: {
     ],
     requiredInputs: {
       secp256r1Pubkey: input.assetPublicKey,
-      credentialId: input.credentialId ?? "(base64url, 64 bytes when decoded)",
       assetType,
     },
     notes: [

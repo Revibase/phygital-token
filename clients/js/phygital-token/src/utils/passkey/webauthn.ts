@@ -109,8 +109,10 @@ function toPublicKeyCredentialDescriptor(
 
 /**
  * Browser WebAuthn request options for an NFC passkey assertion.
- * When `credentialId` is omitted, a random placeholder id is used (discoverable /
- * scanner flows that do not know the credential up front).
+ * When known, pass the asset's compressed secp256r1 public key as `credentialId`
+ * (the authenticator uses that key as WebAuthn `credential.id` / `user.id`).
+ * When omitted, a random placeholder id is used (discoverable / scanner flows
+ * that do not know the key up front).
  */
 export function nfcWebAuthnRequestOptions(
   challenge: Base64URLString,

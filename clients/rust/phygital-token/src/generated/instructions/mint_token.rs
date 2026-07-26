@@ -6,7 +6,6 @@
 //!
 
 use crate::generated::types::Secp256r1Pubkey;
-use crate::generated::types::CredentialId;
 use crate::generated::types::AssetType;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
@@ -98,13 +97,13 @@ impl MintToken {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
  pub struct MintTokenInstructionData {
             discriminator: [u8; 8],
-                        }
+                  }
 
 impl MintTokenInstructionData {
   pub fn new() -> Self {
     Self {
                         discriminator: [172, 137, 183, 14, 207, 110, 234, 56],
-                                                            }
+                                              }
   }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
@@ -121,7 +120,6 @@ impl Default for MintTokenInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
  pub struct MintTokenInstructionArgs {
                   pub secp256r1_pubkey: Secp256r1Pubkey,
-                pub credential_id: CredentialId,
                 pub asset_type: AssetType,
       }
 
@@ -155,7 +153,6 @@ pub struct MintTokenBuilder {
                 associated_token_program: Option<solana_address::Address>,
                 system_program: Option<solana_address::Address>,
                         secp256r1_pubkey: Option<Secp256r1Pubkey>,
-                credential_id: Option<CredentialId>,
                 asset_type: Option<AssetType>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
@@ -213,11 +210,6 @@ impl MintTokenBuilder {
         self
       }
                 #[inline(always)]
-      pub fn credential_id(&mut self, credential_id: CredentialId) -> &mut Self {
-        self.credential_id = Some(credential_id);
-        self
-      }
-                #[inline(always)]
       pub fn asset_type(&mut self, asset_type: AssetType) -> &mut Self {
         self.asset_type = Some(asset_type);
         self
@@ -248,7 +240,6 @@ impl MintTokenBuilder {
                       };
           let args = MintTokenInstructionArgs {
                                                               secp256r1_pubkey: self.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
-                                                                  credential_id: self.credential_id.clone().expect("credential_id is not set"),
                                                                   asset_type: self.asset_type.clone().expect("asset_type is not set"),
                                     };
     
@@ -454,7 +445,6 @@ impl<'a, 'b> MintTokenCpiBuilder<'a, 'b> {
               associated_token_program: None,
               system_program: None,
                                             secp256r1_pubkey: None,
-                                credential_id: None,
                                 asset_type: None,
                     __remaining_accounts: Vec::new(),
     });
@@ -506,11 +496,6 @@ impl<'a, 'b> MintTokenCpiBuilder<'a, 'b> {
         self
       }
                 #[inline(always)]
-      pub fn credential_id(&mut self, credential_id: CredentialId) -> &mut Self {
-        self.instruction.credential_id = Some(credential_id);
-        self
-      }
-                #[inline(always)]
       pub fn asset_type(&mut self, asset_type: AssetType) -> &mut Self {
         self.instruction.asset_type = Some(asset_type);
         self
@@ -539,7 +524,6 @@ impl<'a, 'b> MintTokenCpiBuilder<'a, 'b> {
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
           let args = MintTokenInstructionArgs {
                                                               secp256r1_pubkey: self.instruction.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
-                                                                  credential_id: self.instruction.credential_id.clone().expect("credential_id is not set"),
                                                                   asset_type: self.instruction.asset_type.clone().expect("asset_type is not set"),
                                     };
         let instruction = MintTokenCpi {
@@ -578,7 +562,6 @@ struct MintTokenCpiBuilderInstruction<'a, 'b> {
                 associated_token_program: Option<&'b solana_account_info::AccountInfo<'a>>,
                 system_program: Option<&'b solana_account_info::AccountInfo<'a>>,
                         secp256r1_pubkey: Option<Secp256r1Pubkey>,
-                credential_id: Option<CredentialId>,
                 asset_type: Option<AssetType>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,

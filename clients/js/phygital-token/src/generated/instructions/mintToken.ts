@@ -41,14 +41,10 @@ import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getAssetTypeDecoder,
   getAssetTypeEncoder,
-  getCredentialIdDecoder,
-  getCredentialIdEncoder,
   getSecp256r1PubkeyDecoder,
   getSecp256r1PubkeyEncoder,
   type AssetType,
   type AssetTypeArgs,
-  type CredentialId,
-  type CredentialIdArgs,
   type Secp256r1Pubkey,
   type Secp256r1PubkeyArgs,
 } from "../types/index.js";
@@ -112,13 +108,11 @@ export type MintTokenInstruction<
 export type MintTokenInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1Pubkey: Secp256r1Pubkey;
-  credentialId: CredentialId;
   assetType: AssetType;
 };
 
 export type MintTokenInstructionDataArgs = {
   secp256r1Pubkey: Secp256r1PubkeyArgs;
-  credentialId: CredentialIdArgs;
   assetType: AssetTypeArgs;
 };
 
@@ -127,7 +121,6 @@ export function getMintTokenInstructionDataEncoder(): FixedSizeEncoder<MintToken
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
-      ["credentialId", getCredentialIdEncoder()],
       ["assetType", getAssetTypeEncoder()],
     ]),
     (value) => ({ ...value, discriminator: MINT_TOKEN_DISCRIMINATOR }),
@@ -138,7 +131,6 @@ export function getMintTokenInstructionDataDecoder(): FixedSizeDecoder<MintToken
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
-    ["credentialId", getCredentialIdDecoder()],
     ["assetType", getAssetTypeDecoder()],
   ]);
 }
@@ -172,7 +164,6 @@ export type MintTokenAsyncInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
-  credentialId: MintTokenInstructionDataArgs["credentialId"];
   assetType: MintTokenInstructionDataArgs["assetType"];
 };
 
@@ -311,7 +302,6 @@ export type MintTokenInput<
   associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
   systemProgram?: Address<TAccountSystemProgram>;
   secp256r1Pubkey: MintTokenInstructionDataArgs["secp256r1Pubkey"];
-  credentialId: MintTokenInstructionDataArgs["credentialId"];
   assetType: MintTokenInstructionDataArgs["assetType"];
 };
 

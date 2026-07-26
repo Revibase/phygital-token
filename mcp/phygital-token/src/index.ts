@@ -179,20 +179,15 @@ function registerTools(server: McpServer) {
           .describe("Base64url-encoded secp256r1 public key for the new asset"),
         mint: z.string().describe("Design mint address"),
         assetType: z.enum(["Lockable", "Transferable"]).describe("Asset transfer lock behavior"),
-        credentialId: z
-          .string()
-          .optional()
-          .describe("Base64url passkey credential id (echoed in the plan output)"),
       },
       annotations: { title: "Plan mint_token", ...READ_ONLY },
     },
-    async ({ assetPublicKey, mint, assetType, credentialId }) =>
+    async ({ assetPublicKey, mint, assetType }) =>
       jsonResult(
         await planMintToken({
           assetPublicKey,
           mint,
           assetType: parseAssetType(assetType),
-          credentialId,
         }),
       ),
   );

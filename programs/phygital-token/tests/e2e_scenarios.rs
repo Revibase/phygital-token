@@ -198,14 +198,8 @@ fn e2e_locked_holder_can_forfeit_via_remove_ownership() {
         asset: asset.asset,
         group_mint: asset.group_mint,
     };
-    let err = ctx.send_execute_transfer_from(
-        &held,
-        holder.pubkey(),
-        &next_recipient,
-        true,
-        None,
-        None,
-    );
+    let err =
+        ctx.send_execute_transfer_from(&held, holder.pubkey(), &next_recipient, true, None, None);
     let err_str = format!("{err:?}");
     assert!(
         err_str.contains("AssetIsCurrentlyLocked")
@@ -237,7 +231,6 @@ fn e2e_asset_pda_squatting_blocks_victim() {
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
         asset_type: AssetType::Transferable,
-        credential_id: victim_passkey.credential_id,
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_asset, asset.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]).expect("squatter mint");
@@ -249,7 +242,6 @@ fn e2e_asset_pda_squatting_blocks_victim() {
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
             asset_type: AssetType::Transferable,
-            credential_id: victim_passkey.credential_id,
         },
     );
     TestContext::send_instruction(&mut ctx.svm, ix2, &[&ctx.payer]).expect_err("victim blocked");

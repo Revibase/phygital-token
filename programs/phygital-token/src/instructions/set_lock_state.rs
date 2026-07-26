@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{Asset, Secp256r1Pubkey, error::PhygitalError};
+use crate::{error::PhygitalError, Asset, Secp256r1Pubkey};
 
 #[event]
 pub struct SetLockStateEvent {

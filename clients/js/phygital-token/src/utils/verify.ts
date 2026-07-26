@@ -20,9 +20,8 @@ import {
   parseWebAuthnClientData,
 } from "./passkey/internal.js";
 import { authenticateWithApdu } from "./passkey/nfc/index.js";
-import { fetchAssetFromCredentialId } from "./assetCredential.js";
 import { DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT } from "./consts.js";
-import type { Asset } from "../generated/index.js";
+import { parseSecp256r1Pubkey } from "../instructions/mint.js";
 
 /**
  * Two ways to check a phygital asset — **identification** vs **authentication**.
@@ -56,21 +55,17 @@ import type { Asset } from "../generated/index.js";
 /** Result of {@link verifyResponse}. */
 export type VerifyResponseResult = {
   isVerified: boolean;
-  /** Decoded on-chain asset account (owner wallet is `asset.owner`). */
-  asset: Asset;
+  /** Base64url compressed secp256r1 vault key (not a Solana ed25519 address). */
+  secp256r1PublicKey: string;
 };
 
 /** Options for {@link verifyResponse}. */
 export type VerifyResponseOptions = {
-  rpc: Rpc<SolanaRpcApi>;
   expectedMessage: string;
   response: AuthenticationResponseJSON;
-  fetchAssetFromCredentialIdCallback?: GetAssetFromCredentialIdCallback;
 };
 
-export type VerifyDynamicUrlResult = {
-  isVerified: boolean;
-  publicKey: string;
+export type VerifyDynamicUrlResult = VerifyResponseResult & {
   /** Included in the scanned URL; the server uses this to reject reused links. */
   counter: number;
 };
@@ -127,14 +122,14 @@ export async function verifyDynamicUrl(
 export function verifyDynamicUrlWithoutCounterCheck(
   params: URLSearchParams,
 ): VerifyDynamicUrlResult {
-  const publicKey = params.get("pk");
+  const secp256r1PublicKey = params.get("pk");
   const signature = params.get("s");
   const counter = params.get("c");
   const nonce = params.get("n");
-  if (!publicKey || !signature || !counter || !nonce)
+  if (!secp256r1PublicKey || !signature || !counter || !nonce)
     throw new Error("Missing query params");
 
-  const compressedPk = base64URLStringToBuffer(publicKey);
+  const compressedPk = base64URLStringToBuffer(secp256r1PublicKey);
   if (compressedPk.length !== 33) {
     throw new Error(
       `pk must be 33-byte compressed P-256 key, got ${compressedPk.length} bytes`,
@@ -175,17 +170,10 @@ export function verifyDynamicUrlWithoutCounterCheck(
 
   return {
     isVerified,
-    publicKey,
+    secp256r1PublicKey,
     counter: currentCounter,
   };
 }
-
-/**
- * Optional override for resolving the on-chain asset from a WebAuthn credential id.
- */
-export type GetAssetFromCredentialIdCallback = (
-  credentialId: Base64URLString,
-) => Promise<Asset>;
 
 /**
  * **Authentication (client)** — prompt an NFC tap for `message`.
@@ -226,21 +214,20 @@ export async function startAuthentication(
  *
  * Call after {@link startAuthentication} on the client. Pass the same
  * `expectedMessage` you issued as the challenge and the WebAuthn `response`
- * from the tap. Resolves the on-chain {@link Asset} and checks the signature.
+ * from the tap. Treats `response.id` as the compressed secp256r1 public key
+ * and checks the signature.
  *
- * Returns `{ isVerified, asset }`. Owner wallet is `asset.owner`. Throws on
- * challenge mismatch (`Message mismatch.`); a bad signature returns
- * `isVerified: false` instead of throwing.
+ * Returns `{ isVerified, secp256r1PublicKey }`. Throws on challenge mismatch
+ * (`Message mismatch.`); a bad signature returns `isVerified: false` instead
+ * of throwing.
  *
  * Do not use this just to **identify** an asset from an old scan; for that use
  * {@link verifyDynamicUrl}.
  */
-export async function verifyResponse({
+export function verifyResponse({
   expectedMessage,
   response,
-  fetchAssetFromCredentialIdCallback,
-  rpc,
-}: VerifyResponseOptions): Promise<VerifyResponseResult> {
+}: VerifyResponseOptions): VerifyResponseResult {
   const expectedChallenge = utf8ToBase64URLString(expectedMessage);
 
   const clientData = parseWebAuthnClientData(response.response.clientDataJSON);
@@ -254,18 +241,14 @@ export async function verifyResponse({
   );
   const message = getSecp256r1Message(response);
 
-  const asset = fetchAssetFromCredentialIdCallback
-    ? await fetchAssetFromCredentialIdCallback(response.id)
-    : (await fetchAssetFromCredentialId(response.id, rpc)).asset;
-
   const isVerified = p256.verify(
     signature,
     message,
-    new Uint8Array(asset.publicKey[0]),
+    new Uint8Array(parseSecp256r1Pubkey(response.id)[0]),
   );
 
   return {
     isVerified,
-    asset,
+    secp256r1PublicKey: response.id,
   };
 }

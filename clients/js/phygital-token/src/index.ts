@@ -17,13 +17,12 @@ export {
   buildCreateMintInstructions,
   buildMintTokenInstructions,
   parseSecp256r1Pubkey,
-  parseCredentialId,
   validateMetadataFields,
   type MetadataFields,
 } from "./instructions/mint.js";
 
 export {
-  fetchAssetDisplayInfoFromPublicKey,
+  fetchAssetDisplayInfoFromSecp256r1PublicKey,
   fetchAssetDisplayInfo,
   fetchShortcutsFromExternalUrl,
   resolveMedia,
@@ -37,7 +36,6 @@ export {
 } from "./utils/metadata.js";
 
 export {
-  fetchAssetFromCredentialId,
   fetchAllAssetsFromOwner,
 } from "./utils/assetCredential.js";
 
@@ -50,7 +48,6 @@ export {
   type VerifyDynamicUrlResult,
   type VerifyResponseResult,
   type VerifyResponseOptions,
-  type GetAssetFromCredentialIdCallback,
 } from "./utils/verify.js";
 
 export { findAssetPda } from "./utils/pdas/index.js";

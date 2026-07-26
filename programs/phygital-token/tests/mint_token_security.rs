@@ -41,7 +41,6 @@ fn mint_token_rejects_wrong_custody_ata() {
     let args = MintTokenArgs {
         secp256r1_pubkey,
         asset_type: AssetType::Transferable,
-        credential_id: passkey.credential_id,
     };
 
     let ix = ctx.mint_token_ix_with_custody_ata(ctx.payer.pubkey(), asset, mint, wrong_ata, args);
@@ -89,7 +88,6 @@ fn mint_token_rejects_duplicate_secp256r1_pubkey() {
     let args = MintTokenArgs {
         secp256r1_pubkey,
         asset_type: AssetType::Transferable,
-        credential_id: passkey.credential_id,
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), asset.asset, asset.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer])
@@ -108,7 +106,6 @@ fn mint_token_documents_secp256r1_pda_squatting_risk() {
     let args = MintTokenArgs {
         secp256r1_pubkey: victim_pubkey,
         asset_type: AssetType::Transferable,
-        credential_id: victim_passkey.credential_id,
     };
     let ix = ctx.mint_token_ix(ctx.payer.pubkey(), victim_asset, asset.mint, args);
     TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]).expect("squatter mints first");
@@ -120,7 +117,6 @@ fn mint_token_documents_secp256r1_pda_squatting_risk() {
         MintTokenArgs {
             secp256r1_pubkey: victim_pubkey,
             asset_type: AssetType::Transferable,
-            credential_id: victim_passkey.credential_id,
         },
     );
     TestContext::send_instruction(&mut ctx.svm, ix2, &[&ctx.payer])

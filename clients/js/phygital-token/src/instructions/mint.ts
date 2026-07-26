@@ -11,7 +11,8 @@ import { findAssociatedTokenAddress } from "../utils/associatedToken.js";
 import { getCreateMintInstructionAsync } from "../generated/instructions/createMint.js";
 import { base64URLStringToBuffer } from "../utils/passkey/internal.js";
 import { findAssetPda } from "../utils/pdas/asset.js";
-import type { AssetType, CredentialId } from "../generated/index.js";
+import type { AssetType } from "../generated/index.js";
+import type { Base64URLString } from "../utils/passkey/webauthn.js";
 
 export const MAX_METADATA_NAME_LEN = 32;
 export const MAX_METADATA_SYMBOL_LEN = 10;
@@ -36,7 +37,6 @@ type MintTokenParams = {
   authority: TransactionSigner;
   mint: Address;
   secp256r1Pubkey: Secp256r1Pubkey;
-  credentialId: CredentialId;
   assetType: AssetType;
 };
 
@@ -63,28 +63,6 @@ export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
 
   return [bytes];
 }
-
-
-export function parseCredentialId(input: Base64URLString): CredentialId {
-  const trimmed = input.trim();
-  if (!trimmed) {
-    throw new Error("Credential Id is required.");
-  }
-
-  let bytes: Uint8Array;
-  try {
-    bytes = new Uint8Array(base64URLStringToBuffer(trimmed));
-  } catch {
-    throw new Error("CredentialId must be valid base64url.");
-  }
-
-  if (bytes.length !== 64) {
-    throw new Error("Credential Id must decode to 80 bytes.");
-  }
-
-  return [bytes];
-}
-
 
 export function validateMetadataFields(fields: MetadataFields): void {
   if (fields.name.length > MAX_METADATA_NAME_LEN) {
@@ -133,7 +111,6 @@ export async function buildMintTokenInstructions(
   );
 
   const instruction = await getMintTokenInstructionAsync({
-    credentialId: input.credentialId,
     authority: input.authority,
     asset,
     mint: input.mint,

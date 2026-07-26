@@ -1,9 +1,7 @@
 mod common;
 
 use anchor_lang::solana_program::system_instruction;
-use anchor_spl::associated_token::{
-    spl_associated_token_account::instruction::create_associated_token_account_idempotent,
-};
+use anchor_spl::associated_token::spl_associated_token_account::instruction::create_associated_token_account_idempotent;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use common::{
     assert_token_program_error, assert_transaction_failed, current_slot_entry, MintedAsset,

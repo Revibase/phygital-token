@@ -662,14 +662,6 @@
                 "name": "Secp256r1Pubkey"
               }
             }
-          },
-          {
-            "name": "credential_id",
-            "type": {
-              "defined": {
-                "name": "CredentialId"
-              }
-            }
           }
         ]
       }
@@ -709,20 +701,6 @@
       }
     },
     {
-      "name": "CredentialId",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "array": [
-              "u8",
-              64
-            ]
-          }
-        ]
-      }
-    },
-    {
       "name": "MintTokenArgs",
       "type": {
         "kind": "struct",
@@ -732,14 +710,6 @@
             "type": {
               "defined": {
                 "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "credential_id",
-            "type": {
-              "defined": {
-                "name": "CredentialId"
               }
             }
           },

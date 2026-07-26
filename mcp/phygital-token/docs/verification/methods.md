@@ -32,24 +32,22 @@ const response = await startAuthentication(message, transceive);
 
 `message` must be the same string your server issued as the challenge (store server-side with a short TTL).
 
-### `verifyResponse({ rpc, expectedMessage, response, ... })`
+### `verifyResponse({ expectedMessage, response })`
 
 **Server — verify the tap.**
 
-Checks the WebAuthn signature against `expectedMessage`, resolves the vault via RPC (or `fetchAssetFromCredentialIdCallback`). Returns `{ isVerified, asset }`. Owner wallet is `asset.owner`. Challenge mismatch throws (`Message mismatch.`); a bad signature returns `isVerified: false`. Does **not** submit `verify_asset`.
-
-`fetchAssetFromCredentialIdCallback` must return a decoded on-chain `Asset`.
+Checks the WebAuthn signature against `expectedMessage`. Treats `response.id` as the compressed secp256r1 public key (the authenticator reuses that key as WebAuthn `credential.id` / `user.id`). Returns `{ isVerified, secp256r1PublicKey }` — no RPC. Challenge mismatch throws (`Message mismatch.`); a bad signature returns `isVerified: false`. Does **not** submit `verify_asset`.
 
 ```ts
 // API route after client POSTs { message, response }
-const { isVerified, asset } = await verifyResponse({
-  rpc,
+const { isVerified, secp256r1PublicKey } = verifyResponse({
   expectedMessage: message,
   response,
 });
 
 if (isVerified) {
-  // use asset.owner / asset fields
+  // optional: load on-chain state
+  // await fetchAssetDisplayInfoFromSecp256r1PublicKey(rpc, secp256r1PublicKey)
 }
 ```
 

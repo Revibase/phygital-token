@@ -32,7 +32,7 @@ Best when your program orchestrates verification as part of its own instruction.
 Off-chain tap auth is split:
 
 1. **Client:** `startAuthentication(expectedMessage)` — NFC tap.
-2. **Server:** `verifyResponse({ expectedMessage, response, rpc })` — signature check → `{ isVerified, asset }` (`asset.owner` is the wallet).
+2. **Server:** `verifyResponse({ expectedMessage, response })` — signature check → `{ isVerified, secp256r1PublicKey }` (`response.id` is the compressed secp256r1 key, reused as the WebAuthn credential id). Fetch on-chain owner/metadata with `fetchAssetDisplayInfoFromSecp256r1PublicKey(rpc, secp256r1PublicKey)` when needed.
 
 Does **not** write to chain. Use for UI login and vault presence checks when no program needs to inspect `verify_asset`.
 

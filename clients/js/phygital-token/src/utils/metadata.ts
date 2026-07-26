@@ -246,9 +246,8 @@ export async function fetchShortcutsFromExternalUrl(
 /** Rich display metadata for a phygital asset (design + collection + shortcuts). */
 export type AssetDisplayInfo = {
   assetType: AssetType;
-  /** Base64url secp256r1 vault public key. */
-  publicKey: string;
-  credentialId: string;
+  /** Base64url compressed secp256r1 vault key (not a Solana ed25519 address). */
+  secp256r1PublicKey: string;
   /** On-chain asset PDA address. */
   asset: Address;
   isLocked: boolean;
@@ -274,23 +273,22 @@ export type AssetDisplayInfo = {
 };
 
 /**
- * Fetch {@link AssetDisplayInfo} from a base64url secp256r1 public key.
+ * Fetch {@link AssetDisplayInfo} from a base64url compressed secp256r1 public key.
  * Derives the asset PDA, loads the on-chain account, then calls
  * {@link fetchAssetDisplayInfo}.
  */
-export async function fetchAssetDisplayInfoFromPublicKey(
+export async function fetchAssetDisplayInfoFromSecp256r1PublicKey(
   rpc: Rpc<SolanaRpcApi>,
-  publicKey: string,
+  secp256r1PublicKey: string,
 ): Promise<AssetDisplayInfo> {
-  const asset = await findAssetPda(parseSecp256r1Pubkey(publicKey));
+  const asset = await findAssetPda(parseSecp256r1Pubkey(secp256r1PublicKey));
   const instance = await fetchAsset(rpc, asset);
   return fetchAssetDisplayInfo(rpc, instance.data);
 }
 
 /**
  * Build {@link AssetDisplayInfo} from an already-decoded on-chain {@link Asset}.
- * Prefer this when you already have the account (e.g. after
- * `verifyResponse`).
+ * Prefer this when you already have the account (e.g. after `fetchAsset`).
  */
 export async function fetchAssetDisplayInfo(
   rpc: Rpc<SolanaRpcApi>,
@@ -324,8 +322,7 @@ export async function fetchAssetDisplayInfo(
 
   return {
     assetType: asset.assetType,
-    publicKey: bufferToBase64URLString(asset.publicKey[0]),
-    credentialId: bufferToBase64URLString(asset.credentialId[0]),
+    secp256r1PublicKey: bufferToBase64URLString(asset.publicKey[0]),
     asset: await findAssetPda(asset.publicKey),
     isLocked: asset.isLocked,
     mint: asset.mint,

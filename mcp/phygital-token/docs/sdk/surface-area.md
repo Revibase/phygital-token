@@ -9,7 +9,6 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 | `buildCreateMintInstructions` | Create design mint in a collection |
 | `buildMintTokenInstructions` | Mint token + initialize asset PDA |
 | `parseSecp256r1Pubkey` | Parse base64url compressed P-256 key |
-| `parseCredentialId` | Parse base64url credential id |
 | `validateMetadataFields` | Name/symbol/uri length checks |
 
 ## Transfer
@@ -42,9 +41,9 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 | `verifyDynamicUrl` | Identification via signed URL (server) |
 | `verifyDynamicUrlWithoutCounterCheck` | Identification offline |
 | `startAuthentication` | Client: NFC tap trigger; returns WebAuthn response |
-| `verifyResponse` | Server: verify tap signature; returns `{ isVerified, asset }` |
+| `verifyResponse` | Server: verify tap signature; returns `{ isVerified, secp256r1PublicKey }` |
 
-Pair `startAuthentication` (client) with `verifyResponse` (server). Pass optional `transceive` for kiosk / native NFC readers. Optional `fetchAssetFromCredentialIdCallback` must return an `Asset`. Owner wallet is `asset.owner`.
+Pair `startAuthentication` (client) with `verifyResponse` (server). Pass optional `transceive` for kiosk / native NFC readers. The authenticator uses the secp256r1 public key as WebAuthn `credential.id` and `user.id`, so `response.id` is that key — there is no separate on-chain credential id.
 
 On-chain proof always uses `beginVerifyAsset` / `buildVerifyAssetArgs` / `completeVerifyAsset`.
 
@@ -53,9 +52,8 @@ On-chain proof always uses `beginVerifyAsset` / `buildVerifyAssetArgs` / `comple
 | Export | Purpose |
 |--------|---------|
 | `findAssetPda` | Derive asset PDA from secp256r1 pubkey |
-| `fetchAssetFromCredentialId` | Resolve asset + pubkey from credential |
 | `fetchAllAssetsFromOwner` | List assets by wallet owner |
-| `fetchAssetDisplayInfoFromPublicKey` | Rich display metadata from base64url pubkey |
+| `fetchAssetDisplayInfoFromSecp256r1PublicKey` | Rich display metadata from base64url secp256r1 pubkey |
 | `fetchAssetDisplayInfo` | Rich display metadata from a decoded `Asset` account |
 | `fetchShortcutsFromExternalUrl` | Load Phantom Shortcuts schema v2 from `{external_url}/shortcuts.json` |
 | `resolveMedia` | Resolve media URLs from token metadata |
@@ -66,7 +64,7 @@ Re-exported from `./generated/index.js`:
 
 - Instructions: `getCreateMintInstructionAsync`, `getMintTokenInstructionAsync`, `getExecuteTransferInstructionAsync`, `getRemoveOwnershipInstructionAsync`, `getVerifyAssetInstruction`, `getSetLockStateInstruction`, ...
 - Accounts: `fetchAsset`, `Asset`, ...
-- Types: `AssetType`, `Secp256r1VerifyArgs`, `CredentialId`, ...
+- Types: `AssetType`, `Secp256r1VerifyArgs`, ...
 - PDAs: `findProgramAuthorityPda`, ...
 
 ## Rust client

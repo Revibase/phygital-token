@@ -12,11 +12,12 @@ import {
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
 import {
+  fetchAsset,
   getVerifyAssetInstruction,
   type Asset,
 } from "../generated/index.js";
 import { findAssetPda } from "../utils/pdas/index.js";
-import { fetchAssetFromCredentialId } from "../utils/assetCredential.js";
+import { parseSecp256r1Pubkey } from "./mint.js";
 
 export type VerifyAssetSession = {
   rpc: Rpc<SolanaRpcApi>;
@@ -72,13 +73,15 @@ export async function buildVerifyAssetArgs(
   signedMessageIndex: number;
   clientDataJson: Uint8Array;
 }> {
-  const { asset } = await fetchAssetFromCredentialId(
-    response.id,
-    session.rpc,
-  );
+  const asset = (
+    await fetchAsset(
+      session.rpc,
+      await findAssetPda(parseSecp256r1Pubkey(response.id)),
+    )
+  ).data;
   const { secp256r1Verify, signedMessageIndex, clientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
-      publicKey: asset.publicKey,
+      secp256r1PublicKey: asset.publicKey,
       response,
       existingSecp256r1VerifyInputs,
     });

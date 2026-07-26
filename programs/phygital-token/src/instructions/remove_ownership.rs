@@ -1,14 +1,15 @@
+use crate::{
+    error::PhygitalError, Asset, Secp256r1Pubkey, PROGRAM_AUTHORITY_SEED, TRANSFER_HOOK_PROGRAM_ID,
+};
 use anchor_lang::{prelude::*, solana_program::program::invoke_signed};
+use anchor_spl::token_2022::{
+    close_account, spl_token_2022::instruction::transfer_checked as spl_transfer_checked,
+    CloseAccount,
+};
 use anchor_spl::{
     associated_token::{self, AssociatedToken, Create},
     token_interface::{Mint, TokenAccount, TokenInterface},
 };
-use anchor_spl::token_2022::{
-    close_account,
-    spl_token_2022::instruction::{transfer_checked as spl_transfer_checked},
-    CloseAccount,
-};
-use crate::{Asset, PROGRAM_AUTHORITY_SEED, Secp256r1Pubkey, TRANSFER_HOOK_PROGRAM_ID, error::PhygitalError};
 
 #[event]
 pub struct RemoveOwnershipEvent {
@@ -106,7 +107,9 @@ pub fn handler(ctx: Context<RemoveOwnership>) -> Result<()> {
         &[
             ctx.accounts.owner_token_account.to_account_info(),
             ctx.accounts.mint.to_account_info(),
-            ctx.accounts.program_authority_token_account.to_account_info(),
+            ctx.accounts
+                .program_authority_token_account
+                .to_account_info(),
             ctx.accounts.program_authority.to_account_info(),
             hook_program,
         ],
