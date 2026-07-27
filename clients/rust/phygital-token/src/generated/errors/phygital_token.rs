@@ -55,27 +55,30 @@ pub enum PhygitalTokenError {
     /// 6014 - Custody token account must be the canonical ATA for program_authority
     #[error("Custody token account must be the canonical ATA for program_authority")]
     InvalidCustodyTokenAccount = 0x177E,
-    /// 6015 - Recipient cannot be program_authority
+    /// 6015 - Mint is not shaped like a phygital design mint (extensions/authorities mismatch)
+    #[error("Mint is not shaped like a phygital design mint (extensions/authorities mismatch)")]
+    InvalidMintShape = 0x177F,
+    /// 6016 - Recipient cannot be program_authority
     #[error("Recipient cannot be program_authority")]
-    InvalidRecipient = 0x177F,
-    /// 6016 - The owner needs to unlock the asset to enable transfer.
+    InvalidRecipient = 0x1780,
+    /// 6017 - The owner needs to unlock the asset to enable transfer.
     #[error("The owner needs to unlock the asset to enable transfer.")]
-    AssetIsCurrentlyLocked = 0x1780,
-    /// 6017 - This asset is not lockable.
+    AssetIsCurrentlyLocked = 0x1781,
+    /// 6018 - This asset is not lockable.
     #[error("This asset is not lockable.")]
-    AssetIsNotLockable = 0x1781,
-    /// 6018 - Unable to parse client data JSON.
+    AssetIsNotLockable = 0x1782,
+    /// 6019 - Unable to parse client data JSON.
     #[error("Unable to parse client data JSON.")]
-    UnableToParseClientData = 0x1782,
-    /// 6019 - Challenge hash mismatch.
+    UnableToParseClientData = 0x1783,
+    /// 6020 - Challenge hash mismatch.
     #[error("Challenge hash mismatch.")]
-    ChallengeHashMismatch = 0x1783,
-    /// 6020 - Authenticator data is too short to contain WebAuthn flags.
+    ChallengeHashMismatch = 0x1784,
+    /// 6021 - Authenticator data is too short to contain WebAuthn flags.
     #[error("Authenticator data is too short to contain WebAuthn flags.")]
-    InvalidAuthenticatorData = 0x1784,
-    /// 6021 - WebAuthn user presence flag (UP) was not set by the authenticator.
+    InvalidAuthenticatorData = 0x1785,
+    /// 6022 - WebAuthn user presence flag (UP) was not set by the authenticator.
     #[error("WebAuthn user presence flag (UP) was not set by the authenticator.")]
-    UserPresenceNotVerified = 0x1785,
+    UserPresenceNotVerified = 0x1786,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {

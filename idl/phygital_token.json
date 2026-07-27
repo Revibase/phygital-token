@@ -8,91 +8,6 @@
   },
   "instructions": [
     {
-      "name": "create_mint",
-      "discriminator": [
-        69,
-        44,
-        215,
-        132,
-        253,
-        214,
-        41,
-        45
-      ],
-      "accounts": [
-        {
-          "name": "payer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "group_mint",
-          "writable": true
-        },
-        {
-          "name": "group_mint_authority",
-          "signer": true
-        },
-        {
-          "name": "mint",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "program_authority",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  103,
-                  114,
-                  97,
-                  109,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": {
-              "name": "CreateMintArgs"
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "execute_transfer",
       "discriminator": [
         233,
@@ -591,36 +506,41 @@
     },
     {
       "code": 6015,
+      "name": "InvalidMintShape",
+      "msg": "Mint is not shaped like a phygital design mint (extensions/authorities mismatch)"
+    },
+    {
+      "code": 6016,
       "name": "InvalidRecipient",
       "msg": "Recipient cannot be program_authority"
     },
     {
-      "code": 6016,
+      "code": 6017,
       "name": "AssetIsCurrentlyLocked",
       "msg": "The owner needs to unlock the asset to enable transfer."
     },
     {
-      "code": 6017,
+      "code": 6018,
       "name": "AssetIsNotLockable",
       "msg": "This asset is not lockable."
     },
     {
-      "code": 6018,
+      "code": 6019,
       "name": "UnableToParseClientData",
       "msg": "Unable to parse client data JSON."
     },
     {
-      "code": 6019,
+      "code": 6020,
       "name": "ChallengeHashMismatch",
       "msg": "Challenge hash mismatch."
     },
     {
-      "code": 6020,
+      "code": 6021,
       "name": "InvalidAuthenticatorData",
       "msg": "Authenticator data is too short to contain WebAuthn flags."
     },
     {
-      "code": 6021,
+      "code": 6022,
       "name": "UserPresenceNotVerified",
       "msg": "WebAuthn user presence flag (UP) was not set by the authenticator."
     }
@@ -676,26 +596,6 @@
           },
           {
             "name": "Transferable"
-          }
-        ]
-      }
-    },
-    {
-      "name": "CreateMintArgs",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "name",
-            "type": "string"
-          },
-          {
-            "name": "symbol",
-            "type": "string"
-          },
-          {
-            "name": "uri",
-            "type": "string"
           }
         ]
       }

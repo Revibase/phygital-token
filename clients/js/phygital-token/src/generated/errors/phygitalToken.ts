@@ -44,20 +44,22 @@ export const PHYGITAL_TOKEN_ERROR__MAX_LENGTH_EXCEEDED = 0x177c; // 6012
 export const PHYGITAL_TOKEN_ERROR__AUTHORITY_MISMATCH = 0x177d; // 6013
 /** InvalidCustodyTokenAccount: Custody token account must be the canonical ATA for program_authority */
 export const PHYGITAL_TOKEN_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT = 0x177e; // 6014
+/** InvalidMintShape: Mint is not shaped like a phygital design mint (extensions/authorities mismatch) */
+export const PHYGITAL_TOKEN_ERROR__INVALID_MINT_SHAPE = 0x177f; // 6015
 /** InvalidRecipient: Recipient cannot be program_authority */
-export const PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT = 0x177f; // 6015
+export const PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT = 0x1780; // 6016
 /** AssetIsCurrentlyLocked: The owner needs to unlock the asset to enable transfer. */
-export const PHYGITAL_TOKEN_ERROR__ASSET_IS_CURRENTLY_LOCKED = 0x1780; // 6016
+export const PHYGITAL_TOKEN_ERROR__ASSET_IS_CURRENTLY_LOCKED = 0x1781; // 6017
 /** AssetIsNotLockable: This asset is not lockable. */
-export const PHYGITAL_TOKEN_ERROR__ASSET_IS_NOT_LOCKABLE = 0x1781; // 6017
+export const PHYGITAL_TOKEN_ERROR__ASSET_IS_NOT_LOCKABLE = 0x1782; // 6018
 /** UnableToParseClientData: Unable to parse client data JSON. */
-export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x1782; // 6018
+export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x1783; // 6019
 /** ChallengeHashMismatch: Challenge hash mismatch. */
-export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x1783; // 6019
+export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x1784; // 6020
 /** InvalidAuthenticatorData: Authenticator data is too short to contain WebAuthn flags. */
-export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x1784; // 6020
+export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x1785; // 6021
 /** UserPresenceNotVerified: WebAuthn user presence flag (UP) was not set by the authenticator. */
-export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x1785; // 6021
+export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x1786; // 6022
 
 export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__ARITHMETIC_OVERFLOW
@@ -68,6 +70,7 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT
+  | typeof PHYGITAL_TOKEN_ERROR__INVALID_MINT_SHAPE
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY
@@ -94,6 +97,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
     [PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA]: `Authenticator data is too short to contain WebAuthn flags.`,
     [PHYGITAL_TOKEN_ERROR__INVALID_CUSTODY_TOKEN_ACCOUNT]: `Custody token account must be the canonical ATA for program_authority`,
+    [PHYGITAL_TOKEN_ERROR__INVALID_MINT_SHAPE]: `Mint is not shaped like a phygital design mint (extensions/authorities mismatch)`,
     [PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT]: `Recipient cannot be program_authority`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION]: `No prior secp256r1 verification instruction in this transaction matches the provided client data`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,

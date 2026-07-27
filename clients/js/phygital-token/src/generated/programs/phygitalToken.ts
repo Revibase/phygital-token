@@ -17,7 +17,6 @@ import {
   SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
   SolanaError,
   type Address,
-  type ClientWithPayer,
   type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
@@ -36,22 +35,18 @@ import {
 } from "@solana/kit/program-client-core";
 import { getAssetCodec, type Asset, type AssetArgs } from "../accounts/index.js";
 import {
-  getCreateMintInstructionAsync,
   getExecuteTransferInstructionAsync,
   getMintTokenInstructionAsync,
   getRemoveOwnershipInstructionAsync,
   getSetLockStateInstruction,
   getVerifyAssetInstruction,
-  parseCreateMintInstruction,
   parseExecuteTransferInstruction,
   parseMintTokenInstruction,
   parseRemoveOwnershipInstruction,
   parseSetLockStateInstruction,
   parseVerifyAssetInstruction,
-  type CreateMintAsyncInput,
   type ExecuteTransferAsyncInput,
   type MintTokenAsyncInput,
-  type ParsedCreateMintInstruction,
   type ParsedExecuteTransferInstruction,
   type ParsedMintTokenInstruction,
   type ParsedRemoveOwnershipInstruction,
@@ -92,7 +87,6 @@ export function identifyPhygitalTokenAccount(
 }
 
 export enum PhygitalTokenInstruction {
-  CreateMint,
   ExecuteTransfer,
   MintToken,
   RemoveOwnership,
@@ -104,17 +98,6 @@ export function identifyPhygitalTokenInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): PhygitalTokenInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([69, 44, 215, 132, 253, 214, 41, 45]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.CreateMint;
-  }
   if (
     containsBytes(
       data,
@@ -180,9 +163,6 @@ export type ParsedPhygitalTokenInstruction<
   TProgram extends string = "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A",
 > =
   | ({
-      instructionType: PhygitalTokenInstruction.CreateMint;
-    } & ParsedCreateMintInstruction<TProgram>)
-  | ({
       instructionType: PhygitalTokenInstruction.ExecuteTransfer;
     } & ParsedExecuteTransferInstruction<TProgram>)
   | ({
@@ -203,13 +183,6 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
 ): ParsedPhygitalTokenInstruction<TProgram> {
   const instructionType = identifyPhygitalTokenInstruction(instruction);
   switch (instructionType) {
-    case PhygitalTokenInstruction.CreateMint: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.CreateMint,
-        ...parseCreateMintInstruction(instruction),
-      };
-    }
     case PhygitalTokenInstruction.ExecuteTransfer: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -271,10 +244,6 @@ export type PhygitalTokenPluginAccounts = {
 };
 
 export type PhygitalTokenPluginInstructions = {
-  createMint: (
-    input: MakeOptional<CreateMintAsyncInput, "payer">,
-  ) => ReturnType<typeof getCreateMintInstructionAsync> &
-    SelfPlanAndSendFunctions;
   executeTransfer: (
     input: ExecuteTransferAsyncInput,
   ) => ReturnType<typeof getExecuteTransferInstructionAsync> &
@@ -302,7 +271,6 @@ export type PhygitalTokenPluginPdas = {
 export type PhygitalTokenPluginRequirements = ClientWithRpc<
   GetAccountInfoApi & GetMultipleAccountsApi
 > &
-  ClientWithPayer &
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
@@ -314,14 +282,6 @@ export function phygitalTokenProgram() {
       phygitalToken: <PhygitalTokenPlugin>{
         accounts: { asset: addSelfFetchFunctions(client, getAssetCodec()) },
         instructions: {
-          createMint: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCreateMintInstructionAsync({
-                ...input,
-                payer: input.payer ?? client.payer,
-              }),
-            ),
           executeTransfer: (input) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -356,5 +316,3 @@ export function phygitalTokenProgram() {
     });
   };
 }
-
-type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

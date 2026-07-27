@@ -16,10 +16,6 @@ declare_id!("DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A");
 pub mod phygital_token {
     use super::*;
 
-    pub fn create_mint(ctx: Context<CreateMint>, args: CreateMintArgs) -> Result<()> {
-        create_mint::handler(ctx, args)
-    }
-
     pub fn mint_token(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
         mint_token::handler(ctx, args)
     }

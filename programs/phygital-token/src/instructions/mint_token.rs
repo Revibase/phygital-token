@@ -7,7 +7,7 @@ use anchor_spl::token_interface::{Mint, TokenInterface};
 use crate::constants::{ASSET_SEED, PROGRAM_AUTHORITY_SEED};
 use crate::error::PhygitalError;
 use crate::state::Asset;
-use crate::utils::{mint_token_account_rent, secp256r1_pda_seed};
+use crate::utils::{mint_token_account_rent, secp256r1_pda_seed, verify_program_mint};
 use crate::{AssetType, Secp256r1Pubkey};
 
 #[event]
@@ -62,14 +62,12 @@ pub struct MintToken<'info> {
 }
 
 pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
-    #[cfg(feature = "mainnet")]
-    require!(
-        ctx.accounts.authority.key() == crate::ADMIN,
-        crate::error::PhygitalError::AuthorityMismatch
-    );
-
     let mint_key = ctx.accounts.mint.key();
     let mint_info = ctx.accounts.mint.to_account_info();
+
+    // Gate: the mint must match the phygital design-mint shape
+    // (program-controlled permanent delegate, transfer hook, and pointers).
+    verify_program_mint(&mint_info, &ctx.accounts.program_authority.key())?;
 
     ctx.accounts.asset.init(
         mint_key,
@@ -77,13 +75,6 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
         args.asset_type,
         args.secp256r1_pubkey,
     );
-
-    let program_authority_bump = ctx.bumps.program_authority;
-    let bump_seed = [program_authority_bump];
-    let authority_seed_array = [PROGRAM_AUTHORITY_SEED, bump_seed.as_ref()];
-    let authority_seeds: &[&[u8]] = authority_seed_array.as_slice();
-    let signer_seed_array = [authority_seeds];
-    let signer_seeds: &[&[&[u8]]] = signer_seed_array.as_slice();
 
     let token_program_id = ctx.accounts.token_program.key();
     let mint = mint_info;
@@ -133,7 +124,7 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
     }
 
     mint_to(
-        CpiContext::new_with_signer(
+        CpiContext::new(
             token_program_id,
             MintTo {
                 mint: mint.clone(),
@@ -141,9 +132,8 @@ pub fn handler(ctx: Context<MintToken>, args: MintTokenArgs) -> Result<()> {
                     .accounts
                     .program_authority_token_account
                     .to_account_info(),
-                authority: program_authority.clone(),
+                authority: ctx.accounts.authority.to_account_info(),
             },
-            signer_seeds,
         ),
         1,
     )?;

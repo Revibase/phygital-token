@@ -1,9 +1,13 @@
 mod assertions;
+mod design_mint;
 mod external_group_mint;
 mod plain_token_mint;
 mod secp256r1;
 
 pub use assertions::{assert_token_program_error, assert_transaction_failed};
+pub use design_mint::{
+    build_design_mint_instructions, create_design_mint, CreateMintArgs, DesignMintSigners,
+};
 pub use external_group_mint::{
     create_external_group_mint, create_group_mint_without_update_authority, ExternalGroupMint,
 };
@@ -18,11 +22,11 @@ use anchor_spl::token_2022::spl_token_2022::instruction::transfer_checked;
 use anchor_spl::token_2022::spl_token_2022::state::Account as TokenAccountState;
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use litesvm::LiteSVM;
-use phygital_token::constants::{ADMIN, ASSET_SEED, PROGRAM_AUTHORITY_SEED};
+use phygital_token::constants::{ASSET_SEED, PROGRAM_AUTHORITY_SEED};
 use phygital_token::state::Asset;
 use phygital_token::utils::secp256r1_pda_seed;
 use phygital_token::{
-    AssetType, CreateMintArgs, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs,
+    AssetType, MintTokenArgs, Secp256r1Pubkey, Secp256r1VerifyArgs,
     COMPRESSED_PUBKEY_SERIALIZED_SIZE,
 };
 use solana_keypair::Keypair;
@@ -41,12 +45,12 @@ pub const TEST_ORIGIN: &str = "http://localhost:3000";
 
 // Domain vocabulary (see GLOSSARY.md at repo root):
 //   Collection = group_mint (Token-2022 TokenGroup parent)
-//   Design     = mint created by create_mint
+//   Design     = mint created off-chain with the phygital design-mint shape
 //   Asset      = asset PDA created by mint_token (1:1 with passkey)
 //   Owner      = asset.owner (current custodian after claim)
 
 pub struct MintedAsset {
-    /// Signer that created the design mint (`create_mint` owner).
+    /// Signer that created the design mint (metadata update authority).
     pub design_owner: Keypair,
     /// Pre-funded wallet used as transfer recipient in tests.
     pub recipient: Keypair,
@@ -280,33 +284,6 @@ impl TestContext {
         }
     }
 
-    pub fn create_mint_ix(
-        &self,
-        payer: Pubkey,
-        owner: Pubkey,
-        group_mint_authority: Pubkey,
-        mint: Pubkey,
-        group_mint: Pubkey,
-        args: CreateMintArgs,
-    ) -> Instruction {
-        let accounts = phygital_token::accounts::CreateMint {
-            payer,
-            owner,
-            group_mint,
-            group_mint_authority,
-            mint,
-            program_authority: self.program_authority(),
-            token_program: TOKEN_2022_ID,
-            system_program: anchor_lang::solana_program::system_program::ID,
-        }
-        .to_account_metas(None);
-        Instruction {
-            program_id: self.program_id,
-            accounts,
-            data: phygital_token::instruction::CreateMint { args }.data(),
-        }
-    }
-
     pub fn create_mint(
         svm: &mut LiteSVM,
         program_id: Pubkey,
@@ -315,31 +292,7 @@ impl TestContext {
         group: &ExternalGroupMint,
         mint_args: CreateMintArgs,
     ) -> Pubkey {
-        let program_authority =
-            Pubkey::find_program_address(&[PROGRAM_AUTHORITY_SEED], &program_id).0;
-        let group_mint = group.mint.pubkey();
-        // The mint is now a caller-provided keypair rather than a PDA.
-        let mint = Keypair::new();
-
-        let accounts = phygital_token::accounts::CreateMint {
-            payer: payer.pubkey(),
-            owner: owner.pubkey(),
-            group_mint,
-            group_mint_authority: group.authority.pubkey(),
-            mint: mint.pubkey(),
-            program_authority,
-            token_program: TOKEN_2022_ID,
-            system_program: anchor_lang::solana_program::system_program::ID,
-        }
-        .to_account_metas(None);
-        let ix = Instruction {
-            program_id,
-            accounts,
-            data: phygital_token::instruction::CreateMint { args: mint_args }.data(),
-        };
-        Self::send_instruction(svm, ix, &[payer, owner, &group.authority, &mint])
-            .expect("create mint");
-        mint.pubkey()
+        create_design_mint(svm, program_id, payer, owner, group, mint_args)
     }
 
     pub fn execute_transfer_ix(
@@ -796,13 +749,6 @@ pub fn sample_create_mint_args() -> CreateMintArgs {
 pub const SAMPLE_ASSET_URI: &str = "https://example.com/asset.json";
 
 pub fn unauthorized_payer() -> Keypair {
-    Keypair::new()
-}
-
-pub fn admin_payer() -> Keypair {
-    // ADMIN is a fixed pubkey — tests use the real admin keypair when gating lands.
-    // For now this is a placeholder; #[ignore] tests document expected behavior.
-    let _ = ADMIN;
     Keypair::new()
 }
 

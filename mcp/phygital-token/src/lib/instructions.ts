@@ -46,21 +46,24 @@ export function planCreateMint(fields: MetadataFields) {
   validateMetadataFields(fields);
 
   return {
-    instruction: "create_mint",
+    flow: "off-chain Token-2022 mint creation",
     sdk: "buildCreateMintInstructions",
     metadata: fields,
     requiredSigners: [
       { name: "payer", role: "Pays rent and transaction fees" },
-      { name: "owner", role: "Design mint owner / update authority" },
+      { name: "owner", role: "Design mint owner / metadata update authority" },
       { name: "groupMintAuthority", role: "Authority over the collection group mint" },
       { name: "mint", role: "New design mint keypair (caller-supplied signer)" },
+      { name: "mintAuthority", role: "Set as the design mint's mint authority; the only signer that can later mint_token" },
     ],
     requiredAccounts: [
       { name: "groupMint", role: "Token-2022 collection (group) parent mint" },
+      { name: "rpc", role: "Solana RPC client for rent-exemption lookup" },
     ],
     notes: [
-      "Creates a shared design mint (SFT template) within a collection.",
+      "Creates a shared design mint (SFT template) within a collection via Token-2022 instructions — not a phygital-token program instruction.",
       "Metadata name ≤ 32, symbol ≤ 10, uri ≤ 200 characters.",
+      "The mint must match the phygital design-mint shape before mint_token will accept it.",
     ],
   };
 }

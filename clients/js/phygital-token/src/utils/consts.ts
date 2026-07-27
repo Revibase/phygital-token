@@ -20,4 +20,8 @@ export const TRANSFER_ACTION_BYTES = new TextEncoder().encode("transfer");
 
 export const VERIFY_ASSET_ACTION_BYTES = new TextEncoder().encode("verify_asset");
 
+export const TRANSFER_HOOK_PROGRAM_ADDRESS = address(
+  "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR",
+);
+
 export const DEFAULT_VERIFY_DYNAMIC_URL_ENDPOINT = `https://app.revibase.com/api/verifyAsset`;

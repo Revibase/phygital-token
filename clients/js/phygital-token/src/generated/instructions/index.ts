@@ -6,7 +6,6 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./createMint.js";
 export * from "./executeTransfer.js";
 export * from "./mintToken.js";
 export * from "./removeOwnership.js";

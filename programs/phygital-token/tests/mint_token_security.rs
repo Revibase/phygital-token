@@ -1,10 +1,10 @@
 mod common;
 
 use common::{
-    assert_token_program_error, create_external_group_mint, sample_create_mint_args,
-    sample_mint_token_args, unauthorized_payer, TestContext, TestPasskey,
+    assert_token_program_error, assert_transaction_failed, create_external_group_mint,
+    create_plain_token2022_mint, sample_create_mint_args, sample_mint_token_args,
+    unauthorized_payer, TestContext, TestPasskey,
 };
-use phygital_token::constants::ADMIN;
 use phygital_token::{AssetType, MintTokenArgs, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
@@ -124,16 +124,38 @@ fn mint_token_documents_secp256r1_pda_squatting_risk() {
 }
 
 #[test]
-#[ignore = "enable when mint_token payer is gated to ADMIN on mainnet"]
-fn mint_token_rejects_non_admin_payer() {
+fn mint_token_rejects_mint_without_program_shape() {
+    // A plain Token-2022 mint lacks the permanent-delegate / transfer-hook / pointer
+    // extensions that the phygital design-mint shape requires, so `mint_token`'s shape check rejects it.
+    let mut ctx = TestContext::new();
+    let foreign_mint = create_plain_token2022_mint(&mut ctx.svm, &ctx.payer);
+
+    let passkey = TestPasskey::generate();
+    let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
+    let asset = ctx.asset_pda(&secp256r1_pubkey);
+    let args = MintTokenArgs {
+        secp256r1_pubkey,
+        asset_type: AssetType::Transferable,
+    };
+
+    let ix = ctx.mint_token_ix(ctx.payer.pubkey(), asset, foreign_mint.pubkey(), args);
+    let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&ctx.payer]);
+    assert_transaction_failed(err);
+}
+
+#[test]
+fn mint_token_rejects_non_mint_authority() {
+    // Minting is permissionless w.r.t. the program, but token-2022 still requires
+    // the mint's `mint_authority` to authorize `mint_to`. A signer that isn't the
+    // mint authority (here the harness sets it to `ctx.payer`) must be rejected.
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
-    let non_admin = unauthorized_payer();
+    let non_authority = unauthorized_payer();
     ctx.svm
         .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
         .unwrap();
     ctx.svm
-        .airdrop(&non_admin.pubkey(), 2 * common::LAMPORTS_PER_SOL)
+        .airdrop(&non_authority.pubkey(), 2 * common::LAMPORTS_PER_SOL)
         .unwrap();
 
     let group = create_external_group_mint(
@@ -153,12 +175,9 @@ fn mint_token_rejects_non_admin_payer() {
         sample_create_mint_args(),
     );
 
-    let passkey = TestPasskey::generate();
-    let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
-    let asset = ctx.asset_pda(&secp256r1_pubkey);
     let token_args = sample_mint_token_args();
-    let ix = ctx.mint_token_ix(non_admin.pubkey(), asset, mint, token_args);
-    let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&non_admin]);
-    assert_token_program_error(err, "AuthorityMismatch");
-    let _ = ADMIN;
+    let asset = ctx.asset_pda(&token_args.secp256r1_pubkey);
+    let ix = ctx.mint_token_ix(non_authority.pubkey(), asset, mint, token_args);
+    let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&non_authority]);
+    assert_transaction_failed(err);
 }

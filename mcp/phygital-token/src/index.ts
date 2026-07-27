@@ -157,7 +157,7 @@ function registerTools(server: McpServer) {
     "plan_create_mint",
     {
       description:
-        "Validate design metadata and return the accounts/signers for create_mint (buildCreateMintInstructions).",
+        "Validate design metadata and return the accounts/signers for off-chain design mint creation (buildCreateMintInstructions).",
       inputSchema: {
         name: z.string().describe("Token metadata name (max 32 chars)"),
         symbol: z.string().describe("Token metadata symbol (max 10 chars)"),

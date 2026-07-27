@@ -47,6 +47,9 @@ pub enum PhygitalError {
     #[msg("Custody token account must be the canonical ATA for program_authority")]
     InvalidCustodyTokenAccount,
 
+    #[msg("Mint is not shaped like a phygital design mint (extensions/authorities mismatch)")]
+    InvalidMintShape,
+
     #[msg("Recipient cannot be program_authority")]
     InvalidRecipient,
 

@@ -1,6 +1,7 @@
 mod common;
 
 use anchor_lang::prelude::*;
+use anchor_lang::prelude::Rent;
 use anchor_spl::token_2022::spl_token_2022::extension::{
     BaseStateWithExtensions, StateWithExtensions,
 };
@@ -8,8 +9,8 @@ use anchor_spl::token_2022::spl_token_2022::state::{Account as SplAccount, Mint 
 use anchor_spl::token_2022::ID as TOKEN_2022_ID;
 use anchor_spl::token_2022_extensions::spl_token_metadata_interface::state::TokenMetadata;
 use common::{
-    create_external_group_mint, sample_create_mint_args, sample_mint_token_args, TestContext,
-    TestPasskey,
+    build_design_mint_instructions, create_external_group_mint, sample_create_mint_args,
+    sample_mint_token_args, DesignMintSigners, TestContext, TestPasskey,
 };
 use phygital_token::state::Asset;
 use phygital_token::utils::constants::MAX_METADATA_URI_LEN;
@@ -87,6 +88,7 @@ fn create_mint_rejects_wrong_group_mint_authority() {
     let mut ctx = TestContext::new();
     let owner = Keypair::new();
     let wrong_authority = Keypair::new();
+    let payer = &ctx.payer;
 
     ctx.svm
         .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
@@ -103,20 +105,27 @@ fn create_mint_rejects_wrong_group_mint_authority() {
     let args = sample_create_mint_args();
     let mint = Keypair::new();
 
-    let ix = ctx.create_mint_ix(
-        ctx.payer.pubkey(),
-        owner.pubkey(),
-        wrong_authority.pubkey(),
-        mint.pubkey(),
+    let instructions = build_design_mint_instructions(
+        ctx.program_id,
+        &ctx.svm.get_sysvar(),
+        DesignMintSigners {
+            payer,
+            owner: &owner,
+            mint_authority: &owner,
+            group_mint_authority: &wrong_authority,
+            mint: &mint,
+        },
         group.mint.pubkey(),
-        args,
-    );
+        &args,
+    )
+    .expect("build design mint instructions");
+
     // token-2022's token-group member init requires the group's real update
     // authority to sign, so a wrong authority still makes the tx fail.
-    TestContext::send_instruction(
+    TestContext::send_instructions(
         &mut ctx.svm,
-        ix,
-        &[&ctx.payer, &owner, &wrong_authority, &mint],
+        &instructions,
+        &[payer, &owner, &wrong_authority, &mint],
     )
     .expect_err("wrong group mint authority should fail");
 }
@@ -174,42 +183,31 @@ fn mint_token_mints_asset_into_design() {
 
 #[test]
 fn create_mint_rejects_metadata_exceeding_max_lengths() {
-    let mut ctx = TestContext::new();
     let owner = Keypair::new();
-
-    ctx.svm
-        .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
-        .unwrap();
-
-    let group = create_external_group_mint(
-        &mut ctx.svm,
-        &ctx.payer,
-        "Test Collection",
-        "TCOL",
-        "https://example.com/collection.json",
-        100,
-    );
+    let payer = Keypair::new();
+    let group_authority = Keypair::new();
+    let mint = Keypair::new();
+    let group_mint = Keypair::new();
 
     let mut args = sample_create_mint_args();
     args.uri = "u".repeat(MAX_METADATA_URI_LEN + 1);
-    let mint = Keypair::new();
 
-    let ix = ctx.create_mint_ix(
-        ctx.payer.pubkey(),
-        owner.pubkey(),
-        group.authority.pubkey(),
-        mint.pubkey(),
-        group.mint.pubkey(),
-        args,
-    );
-    let err = TestContext::send_instruction(
-        &mut ctx.svm,
-        ix,
-        &[&ctx.payer, &owner, &group.authority, &mint],
+    let err = build_design_mint_instructions(
+        phygital_token::ID,
+        &Rent::default(),
+        DesignMintSigners {
+            payer: &payer,
+            owner: &owner,
+            mint_authority: &owner,
+            group_mint_authority: &group_authority,
+            mint: &mint,
+        },
+        group_mint.pubkey(),
+        &args,
     )
-    .expect_err("long uri should fail");
+    .expect_err("long uri should fail validation");
     assert!(
-        format!("{err:?}").contains("MaxLengthExceeded") || format!("{err:?}").contains("6082"),
+        format!("{err:?}").contains("MaxLengthExceeded"),
         "unexpected error: {err:?}"
     );
 }

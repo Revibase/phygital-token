@@ -44,7 +44,6 @@ export const SDK_SURFACE = {
     "resolveMedia",
   ],
   generated: [
-    "getCreateMintInstructionAsync",
     "getMintTokenInstructionAsync",
     "getExecuteTransferInstructionAsync",
     "getVerifyAssetInstruction",

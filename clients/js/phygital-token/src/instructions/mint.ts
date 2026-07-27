@@ -1,14 +1,27 @@
+import { getCreateAccountInstruction } from "@solana-program/system";
+import {
+  getInitializeMintInstruction,
+  getInitializeTokenGroupMemberInstruction,
+  getMintSize,
+  getPostInitializeInstructionsForMintExtensions,
+  getPreInitializeInstructionsForMintExtensions,
+  type ExtensionArgs,
+} from "@solana-program/token-2022";
 import {
   type Address,
   type Instruction,
+  type Rpc,
+  type SolanaRpcApi,
   type TransactionSigner,
 } from "@solana/kit";
 import { getMintTokenInstructionAsync } from "../generated/instructions/mintToken.js";
 import { findProgramAuthorityPda } from "../generated/pdas/programAuthority.js";
 import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey.js";
-import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts.js";
+import {
+  TOKEN_2022_PROGRAM_ADDRESS,
+  TRANSFER_HOOK_PROGRAM_ADDRESS,
+} from "../utils/consts.js";
 import { findAssociatedTokenAddress } from "../utils/associatedToken.js";
-import { getCreateMintInstructionAsync } from "../generated/instructions/createMint.js";
 import { base64URLStringToBuffer } from "../utils/passkey/internal.js";
 import { findAssetPda } from "../utils/pdas/asset.js";
 import type { AssetType } from "../generated/index.js";
@@ -18,6 +31,12 @@ export const MAX_METADATA_NAME_LEN = 32;
 export const MAX_METADATA_SYMBOL_LEN = 10;
 export const MAX_METADATA_URI_LEN = 200;
 
+const POST_INITIALIZE_MINT_EXTENSIONS: ExtensionArgs["__kind"][] = [
+  "TokenMetadata",
+  "TokenGroup",
+  "TokenGroupMember",
+];
+
 export type MetadataFields = {
   name: string;
   symbol: string;
@@ -25,12 +44,13 @@ export type MetadataFields = {
 };
 
 type CreateMintParams = MetadataFields & {
+  rpc: Rpc<SolanaRpcApi>;
   payer: TransactionSigner;
   owner: TransactionSigner;
   groupMint: Address;
   groupMintAuthority: TransactionSigner;
-  // The mint is now a caller-supplied keypair rather than a program-derived address.
   mint: TransactionSigner;
+  mintAuthority: TransactionSigner;
 };
 
 type MintTokenParams = {
@@ -39,6 +59,51 @@ type MintTokenParams = {
   secp256r1Pubkey: Secp256r1Pubkey;
   assetType: AssetType;
 };
+
+function designMintExtensions(
+  programAuthority: Address,
+  mint: Address,
+  owner: Address,
+  groupMint: Address,
+  fields: MetadataFields,
+): ExtensionArgs[] {
+  return [
+    {
+      __kind: "MetadataPointer",
+      authority: programAuthority,
+      metadataAddress: mint,
+    },
+    {
+      __kind: "TransferHook",
+      authority: programAuthority,
+      programId: TRANSFER_HOOK_PROGRAM_ADDRESS,
+    },
+    {
+      __kind: "PermanentDelegate",
+      delegate: programAuthority,
+    },
+    {
+      __kind: "GroupMemberPointer",
+      authority: programAuthority,
+      memberAddress: mint,
+    },
+    {
+      __kind: "TokenGroupMember",
+      mint,
+      group: groupMint,
+      memberNumber: 0n,
+    },
+    {
+      __kind: "TokenMetadata",
+      updateAuthority: owner,
+      mint,
+      name: fields.name,
+      symbol: fields.symbol,
+      uri: fields.uri,
+      additionalMetadata: new Map(),
+    },
+  ];
+}
 
 export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
   const trimmed = input.trim();
@@ -85,18 +150,54 @@ export async function buildCreateMintInstructions(
 ): Promise<{ instructions: Instruction[]; mint: Address }> {
   validateMetadataFields(input);
 
-  const instruction = await getCreateMintInstructionAsync({
-    payer: input.payer,
-    owner: input.owner,
-    groupMint: input.groupMint,
-    groupMintAuthority: input.groupMintAuthority,
-    mint: input.mint,
-    name: input.name,
-    symbol: input.symbol,
-    uri: input.uri,
-  });
+  const [programAuthority] = await findProgramAuthorityPda();
+  const mint = input.mint.address;
+  const extensions = designMintExtensions(
+    programAuthority,
+    mint,
+    input.owner.address,
+    input.groupMint,
+    input,
+  );
+  const initialExtensions = extensions.filter(
+    (extension) => !POST_INITIALIZE_MINT_EXTENSIONS.includes(extension.__kind),
+  );
+  const space = getMintSize(initialExtensions);
+  const rentSpace = getMintSize(extensions);
+  const lamports = await input.rpc.getMinimumBalanceForRentExemption(
+    BigInt(rentSpace),
+  ).send();
 
-  return { instructions: [instruction], mint: input.mint.address };
+  const instructions: Instruction[] = [
+    getCreateAccountInstruction({
+      payer: input.payer,
+      newAccount: input.mint,
+      lamports,
+      space,
+      programAddress: TOKEN_2022_PROGRAM_ADDRESS,
+    }),
+    ...getPreInitializeInstructionsForMintExtensions(mint, extensions),
+    getInitializeMintInstruction({
+      mint,
+      decimals: 0,
+      mintAuthority: input.mintAuthority.address,
+      freezeAuthority: null,
+    }),
+    getInitializeTokenGroupMemberInstruction({
+      member: mint,
+      memberMint: mint,
+      memberMintAuthority: input.mintAuthority,
+      group: input.groupMint,
+      groupUpdateAuthority: input.groupMintAuthority,
+    }),
+    ...getPostInitializeInstructionsForMintExtensions(
+      mint,
+      input.mintAuthority,
+      extensions,
+    ),
+  ];
+
+  return { instructions, mint };
 }
 
 export async function buildMintTokenInstructions(
