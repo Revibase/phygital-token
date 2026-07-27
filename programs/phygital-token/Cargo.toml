@@ -10,7 +10,6 @@ name = "phygital_token"
 
 [features]
 default = []
-mainnet = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
