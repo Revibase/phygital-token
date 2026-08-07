@@ -35,31 +35,26 @@ import {
 } from "@solana/kit/program-client-core";
 import { getAssetCodec, type Asset, type AssetArgs } from "../accounts/index.js";
 import {
-  getExecuteTransferInstructionAsync,
-  getMintTokenInstructionAsync,
-  getRemoveOwnershipInstructionAsync,
+  getExecuteTransferInstruction,
+  getInitializeInstruction,
+  getRemoveOwnershipInstruction,
   getSetLockStateInstruction,
-  getVerifyAssetInstruction,
   parseExecuteTransferInstruction,
-  parseMintTokenInstruction,
+  parseInitializeInstruction,
   parseRemoveOwnershipInstruction,
   parseSetLockStateInstruction,
-  parseVerifyAssetInstruction,
-  type ExecuteTransferAsyncInput,
-  type MintTokenAsyncInput,
+  type ExecuteTransferInput,
+  type InitializeInput,
   type ParsedExecuteTransferInstruction,
-  type ParsedMintTokenInstruction,
+  type ParsedInitializeInstruction,
   type ParsedRemoveOwnershipInstruction,
   type ParsedSetLockStateInstruction,
-  type ParsedVerifyAssetInstruction,
-  type RemoveOwnershipAsyncInput,
+  type RemoveOwnershipInput,
   type SetLockStateInput,
-  type VerifyAssetInput,
 } from "../instructions/index.js";
-import { findProgramAuthorityPda } from "../pdas/index.js";
 
 export const PHYGITAL_TOKEN_PROGRAM_ADDRESS =
-  "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A" as Address<"DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A">;
+  "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ" as Address<"DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ">;
 
 export enum PhygitalTokenAccount {
   Asset,
@@ -88,10 +83,9 @@ export function identifyPhygitalTokenAccount(
 
 export enum PhygitalTokenInstruction {
   ExecuteTransfer,
-  MintToken,
+  Initialize,
   RemoveOwnership,
   SetLockState,
-  VerifyAsset,
 }
 
 export function identifyPhygitalTokenInstruction(
@@ -113,12 +107,12 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([172, 137, 183, 14, 207, 110, 234, 56]),
+        new Uint8Array([175, 175, 109, 31, 13, 152, 155, 237]),
       ),
       0,
     )
   ) {
-    return PhygitalTokenInstruction.MintToken;
+    return PhygitalTokenInstruction.Initialize;
   }
   if (
     containsBytes(
@@ -142,17 +136,6 @@ export function identifyPhygitalTokenInstruction(
   ) {
     return PhygitalTokenInstruction.SetLockState;
   }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([136, 51, 110, 228, 129, 94, 141, 179]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.VerifyAsset;
-  }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
     { instructionData: data, programName: "phygitalToken" },
@@ -160,23 +143,20 @@ export function identifyPhygitalTokenInstruction(
 }
 
 export type ParsedPhygitalTokenInstruction<
-  TProgram extends string = "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A",
+  TProgram extends string = "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
 > =
   | ({
       instructionType: PhygitalTokenInstruction.ExecuteTransfer;
     } & ParsedExecuteTransferInstruction<TProgram>)
   | ({
-      instructionType: PhygitalTokenInstruction.MintToken;
-    } & ParsedMintTokenInstruction<TProgram>)
+      instructionType: PhygitalTokenInstruction.Initialize;
+    } & ParsedInitializeInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.RemoveOwnership;
     } & ParsedRemoveOwnershipInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.SetLockState;
-    } & ParsedSetLockStateInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalTokenInstruction.VerifyAsset;
-    } & ParsedVerifyAssetInstruction<TProgram>);
+    } & ParsedSetLockStateInstruction<TProgram>);
 
 export function parsePhygitalTokenInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -190,11 +170,11 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseExecuteTransferInstruction(instruction),
       };
     }
-    case PhygitalTokenInstruction.MintToken: {
+    case PhygitalTokenInstruction.Initialize: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: PhygitalTokenInstruction.MintToken,
-        ...parseMintTokenInstruction(instruction),
+        instructionType: PhygitalTokenInstruction.Initialize,
+        ...parseInitializeInstruction(instruction),
       };
     }
     case PhygitalTokenInstruction.RemoveOwnership: {
@@ -211,13 +191,6 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseSetLockStateInstruction(instruction),
       };
     }
-    case PhygitalTokenInstruction.VerifyAsset: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.VerifyAsset,
-        ...parseVerifyAssetInstruction(instruction),
-      };
-    }
     default:
       throw new SolanaError(
         SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
@@ -232,7 +205,6 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
 export type PhygitalTokenPlugin = {
   accounts: PhygitalTokenPluginAccounts;
   instructions: PhygitalTokenPluginInstructions;
-  pdas: PhygitalTokenPluginPdas;
   identifyAccount: typeof identifyPhygitalTokenAccount;
   identifyInstruction: typeof identifyPhygitalTokenInstruction;
   parseInstruction: typeof parsePhygitalTokenInstruction;
@@ -245,27 +217,19 @@ export type PhygitalTokenPluginAccounts = {
 
 export type PhygitalTokenPluginInstructions = {
   executeTransfer: (
-    input: ExecuteTransferAsyncInput,
-  ) => ReturnType<typeof getExecuteTransferInstructionAsync> &
+    input: ExecuteTransferInput,
+  ) => ReturnType<typeof getExecuteTransferInstruction> &
     SelfPlanAndSendFunctions;
-  mintToken: (
-    input: MintTokenAsyncInput,
-  ) => ReturnType<typeof getMintTokenInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  initialize: (
+    input: InitializeInput,
+  ) => ReturnType<typeof getInitializeInstruction> & SelfPlanAndSendFunctions;
   removeOwnership: (
-    input: RemoveOwnershipAsyncInput,
-  ) => ReturnType<typeof getRemoveOwnershipInstructionAsync> &
+    input: RemoveOwnershipInput,
+  ) => ReturnType<typeof getRemoveOwnershipInstruction> &
     SelfPlanAndSendFunctions;
   setLockState: (
     input: SetLockStateInput,
   ) => ReturnType<typeof getSetLockStateInstruction> & SelfPlanAndSendFunctions;
-  verifyAsset: (
-    input: VerifyAssetInput,
-  ) => ReturnType<typeof getVerifyAssetInstruction> & SelfPlanAndSendFunctions;
-};
-
-export type PhygitalTokenPluginPdas = {
-  programAuthority: typeof findProgramAuthorityPda;
 };
 
 export type PhygitalTokenPluginRequirements = ClientWithRpc<
@@ -285,30 +249,24 @@ export function phygitalTokenProgram() {
           executeTransfer: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getExecuteTransferInstructionAsync(input),
+              getExecuteTransferInstruction(input),
             ),
-          mintToken: (input) =>
+          initialize: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getMintTokenInstructionAsync(input),
+              getInitializeInstruction(input),
             ),
           removeOwnership: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getRemoveOwnershipInstructionAsync(input),
+              getRemoveOwnershipInstruction(input),
             ),
           setLockState: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getSetLockStateInstruction(input),
             ),
-          verifyAsset: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getVerifyAssetInstruction(input),
-            ),
         },
-        pdas: { programAuthority: findProgramAuthorityPda },
         identifyAccount: identifyPhygitalTokenAccount,
         identifyInstruction: identifyPhygitalTokenInstruction,
         parseInstruction: parsePhygitalTokenInstruction,

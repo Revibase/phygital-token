@@ -1,6 +1,6 @@
 {
   "name": "phygital-token-sdk",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "TypeScript client for the Phygital Token Solana program (generated via Codama)",
   "license": "ISC",
   "type": "module",
@@ -34,8 +34,6 @@
   },
   "dependencies": {
     "@noble/curves": "^2.0.1",
-    "@noble/hashes": "^2.0.1",
-    "@solana-program/system": "^0.13.0",
-    "@solana-program/token-2022": "^0.13.0"
+    "@noble/hashes": "^2.0.1"
   }
 }

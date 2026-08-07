@@ -1,8 +1,8 @@
 import {
+  type Address,
   type Instruction,
   type Rpc,
   type SolanaRpcApi,
-  type TransactionSigner,
 } from "@solana/kit";
 import {
   bufferToBase64URLString,
@@ -10,23 +10,18 @@ import {
   nfcWebAuthnRequestOptions,
   type AuthenticationResponseJSON,
 } from "../utils/passkey/webauthn.js";
-import { TOKEN_2022_PROGRAM_ADDRESS } from "../utils/consts.js";
-import { type AssetDisplayInfo } from "../utils/metadata.js";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
-import {
-  getExecuteTransferInstructionAsync,
-} from "../generated/index.js";
-import { findAssociatedTokenAddress } from "../utils/associatedToken.js";
-import { parseSecp256r1Pubkey } from "./mint.js";
+import { getExecuteTransferInstruction } from "../generated/index.js";
+import { parseSecp256r1Pubkey } from "./initialize.js";
 
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
-  displayInfo: AssetDisplayInfo;
+  asset: Address;
   slotHash: Uint8Array;
   slotNumber: bigint;
   challenge: Uint8Array;
@@ -40,17 +35,17 @@ export type TransferSession = {
  */
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
-  displayInfo: AssetDisplayInfo;
+  asset: Address;
 }): Promise<TransferSession> {
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
-    asset: input.displayInfo.asset,
+    asset: input.asset,
     slotHash,
   });
 
   return {
     rpc: input.rpc,
-    displayInfo: input.displayInfo,
+    asset: input.asset,
     slotHash,
     slotNumber,
     challenge,
@@ -64,54 +59,34 @@ export async function authenticatePasskeyForTransfer(
   return authenticateWithWebauthn(
     nfcWebAuthnRequestOptions(
       bufferToBase64URLString(session.challenge),
-      session.displayInfo.secp256r1PublicKey,
     ),
   );
 }
 
-/** Builds the two on-chain instructions after asset authentication. */
+/**
+ * Builds the two on-chain instructions after asset authentication.
+ * Ownership is updated on the asset PDA only — no SPL token transfer.
+ */
 export async function completeTransfer(
   session: TransferSession,
   response: AuthenticationResponseJSON,
-  recipient: TransactionSigner,
+  recipient: Address,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
-  const tokenProgram = TOKEN_2022_PROGRAM_ADDRESS;
-
   const { secp256r1Verify, signedMessageIndex, clientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       response,
-      secp256r1PublicKey: parseSecp256r1Pubkey(
-        session.displayInfo.secp256r1PublicKey,
-      ),
+      secp256r1PublicKey: parseSecp256r1Pubkey(response.id),
       existingSecp256r1VerifyInputs,
     });
 
-  const recipientTokenAccount = await findAssociatedTokenAddress(
-    recipient.address,
-    session.displayInfo.mint,
-    tokenProgram,
-  );
-  const senderTokenAccount = await findAssociatedTokenAddress(
-    session.displayInfo.currentOwner,
-    session.displayInfo.mint,
-    tokenProgram,
-  );
-
-  const executeTransfer = await getExecuteTransferInstructionAsync({
+  const executeTransfer = getExecuteTransferInstruction({
     recipient,
-    sender: session.displayInfo.currentOwner,
-    asset: session.displayInfo.asset,
-    mint: session.displayInfo.mint,
-    senderTokenAccount,
-    recipientTokenAccount,
-    tokenProgram,
-    secp256r1VerifyArgs: {
-      verifyArgsRelativeIndex: -1,
-      signedMessageIndex,
-      slotNumber: session.slotNumber,
-      clientDataJson,
-    },
+    asset: session.asset,
+    verifyArgsRelativeIndex: -1,
+    signedMessageIndex,
+    slotNumber: session.slotNumber,
+    clientDataJson,
   });
 
   return [secp256r1Verify, executeTransfer];

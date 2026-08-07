@@ -57,12 +57,6 @@ importers:
       '@noble/hashes':
         specifier: ^2.0.1
         version: 2.2.0
-      '@solana-program/system':
-        specifier: ^0.13.0
-        version: 0.13.0(@solana/kit@7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))
-      '@solana-program/token-2022':
-        specifier: ^0.13.0
-        version: 0.13.0(@solana/kit@7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@solana/sysvars@7.0.0(typescript@5.9.3))
     devDependencies:
       '@solana/kit':
         specifier: ^7.0.0
@@ -79,9 +73,6 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@3.25.76)
-      '@noble/hashes':
-        specifier: ^2.0.1
-        version: 2.2.0
       '@solana/kit':
         specifier: ^7.0.0
         version: 7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
@@ -490,27 +481,6 @@ packages:
     resolution: {integrity: sha512-BfzEnDJOt9T8M989/lA37EcJgat01wLRnoi5dQf3QzOH7jzpqTAzdDbVfRljVr5r+jzKqpbHeyOfAaXxAd0PAA==}
     cpu: [x64]
     os: [win32]
-
-  '@solana-program/system@0.13.0':
-    resolution: {integrity: sha512-Id6QQxCG7ByImXPD5X/c3Ag2kySD+49aJ9waIkfxyUFyokhMQgxYQAx2rKuaygaBlaBQY6VVfBS46pqxZV+99A==}
-    peerDependencies:
-      '@solana/kit': ^7.0.0
-
-  '@solana-program/token-2022@0.13.0':
-    resolution: {integrity: sha512-qfZ8SAGCkq7siG0WlaJerQIM54vT1+tMIvMMe8BV5zPf8cYk72k41qgr/zWDhzKAz02YdZ6YZPE05U+n2QVDdA==}
-    engines: {node: '>=24.0.0'}
-    peerDependencies:
-      '@solana/kit': ^7.0.0
-      '@solana/sysvars': ^7.0.0
-      '@solana/zk-sdk': ^0.4.2
-    peerDependenciesMeta:
-      '@solana/zk-sdk':
-        optional: true
-
-  '@solana-program/zk-elgamal-proof@0.3.2':
-    resolution: {integrity: sha512-bCiRVKtqYZpajgC2RVypZL4A0xHjQYVEsVSNMTtPJ1jjE5KOUvsXhnngGMYShK6BHv+fQP4F8QKvEVW/HOSFAg==}
-    peerDependencies:
-      '@solana/kit': ^7.0.0
 
   '@solana/accounts@7.0.0':
     resolution: {integrity: sha512-RfbinkhuWxcObxZIdjeWEn/mzLqRp/h2hAk/ZQCUxPdDBW8h4XxEybK9GBItGOAcrUz5HuusXTD+cXXnlIxWcg==}
@@ -2626,22 +2596,6 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.62.2':
     optional: true
-
-  '@solana-program/system@0.13.0(@solana/kit@7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))':
-    dependencies:
-      '@solana/kit': 7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
-
-  '@solana-program/token-2022@0.13.0(@solana/kit@7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))(@solana/sysvars@7.0.0(typescript@5.9.3))':
-    dependencies:
-      '@noble/curves': 1.9.7
-      '@solana-program/zk-elgamal-proof': 0.3.2(@solana/kit@7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))
-      '@solana/kit': 7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
-      '@solana/sysvars': 7.0.0(typescript@5.9.3)
-
-  '@solana-program/zk-elgamal-proof@0.3.2(@solana/kit@7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))':
-    dependencies:
-      '@solana-program/system': 0.13.0(@solana/kit@7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6))
-      '@solana/kit': 7.0.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
 
   '@solana/accounts@7.0.0(typescript@5.9.3)':
     dependencies:

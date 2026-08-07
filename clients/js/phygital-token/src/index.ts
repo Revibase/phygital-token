@@ -6,46 +6,20 @@ export {
 } from "./instructions/transfer.js";
 
 export {
-  beginVerifyAsset,
-  completeVerifyAsset,
-  buildVerifyAssetArgs,
-  authenticatePasskeyForVerifyAsset,
-  type VerifyAssetSession,
-} from "./instructions/verifyAsset.js";
-
-export {
-  buildCreateMintInstructions,
-  buildMintTokenInstructions,
+  buildInitializeInstruction,
   parseSecp256r1Pubkey,
-  validateMetadataFields,
-  type MetadataFields,
-} from "./instructions/mint.js";
+  parseIdentifier,
+  type InitializeParams,
+} from "./instructions/initialize.js";
 
 export {
-  fetchAssetDisplayInfoFromSecp256r1PublicKey,
-  fetchAssetDisplayInfo,
-  fetchShortcutsFromExternalUrl,
-  resolveMedia,
-  type AssetDisplayInfo,
-  type MediaCategory,
-  type ResolvedMedia,
-  type Shortcut,
-  type ShortcutsDocument,
-  type TokenJsonMetadata,
-  type TokenMediaFile,
+  fetchAssetsByPublicKey,
+  fetchAllAssetsFromOwner,
 } from "./utils/metadata.js";
 
 export {
-  fetchAllAssetsFromOwner,
-} from "./utils/assetCredential.js";
-
-export {
-  verifyDynamicUrl,
-  verifyDynamicUrlWithoutCounterCheck,
   startAuthentication,
   verifyResponse,
-  type VerifyDynamicUrlCallback,
-  type VerifyDynamicUrlResult,
   type VerifyResponseResult,
   type VerifyResponseOptions,
 } from "./utils/verify.js";
@@ -62,7 +36,6 @@ export {
 
 export {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
-  buildVerifyAssetChallenge,
   buildTransferChallenge,
   buildVerifyInputFromWebAuthn,
   type WebAuthnSecp256r1Verification,

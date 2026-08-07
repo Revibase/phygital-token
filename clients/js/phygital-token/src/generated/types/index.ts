@@ -8,4 +8,3 @@
 
 export * from "./assetType.js";
 export * from "./secp256r1Pubkey.js";
-export * from "./secp256r1VerifyArgs.js";

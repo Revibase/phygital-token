@@ -26,7 +26,6 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
-  type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
@@ -36,7 +35,6 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/kit/program-client-core";
-import { findProgramAuthorityPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const REMOVE_OWNERSHIP_DISCRIMINATOR: ReadonlyUint8Array =
@@ -52,19 +50,6 @@ export type RemoveOwnershipInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountAsset extends string | AccountMeta<string> = string,
-  TAccountProgramAuthority extends string | AccountMeta<string> = string,
-  TAccountMint extends string | AccountMeta<string> = string,
-  TAccountProgramAuthorityTokenAccount extends string | AccountMeta<string> =
-    string,
-  TAccountOwnerTokenAccount extends string | AccountMeta<string> = string,
-  TAccountTokenProgram extends string | AccountMeta<string> =
-    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
-  TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
-    "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
-  TAccountTransferHookProgram extends string | AccountMeta<string> =
-    "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -77,30 +62,6 @@ export type RemoveOwnershipInstruction<
       TAccountAsset extends string
         ? WritableAccount<TAccountAsset>
         : TAccountAsset,
-      TAccountProgramAuthority extends string
-        ? WritableAccount<TAccountProgramAuthority>
-        : TAccountProgramAuthority,
-      TAccountMint extends string
-        ? WritableAccount<TAccountMint>
-        : TAccountMint,
-      TAccountProgramAuthorityTokenAccount extends string
-        ? WritableAccount<TAccountProgramAuthorityTokenAccount>
-        : TAccountProgramAuthorityTokenAccount,
-      TAccountOwnerTokenAccount extends string
-        ? WritableAccount<TAccountOwnerTokenAccount>
-        : TAccountOwnerTokenAccount,
-      TAccountTokenProgram extends string
-        ? ReadonlyAccount<TAccountTokenProgram>
-        : TAccountTokenProgram,
-      TAccountAssociatedTokenProgram extends string
-        ? ReadonlyAccount<TAccountAssociatedTokenProgram>
-        : TAccountAssociatedTokenProgram,
-      TAccountSystemProgram extends string
-        ? ReadonlyAccount<TAccountSystemProgram>
-        : TAccountSystemProgram,
-      TAccountTransferHookProgram extends string
-        ? ReadonlyAccount<TAccountTransferHookProgram>
-        : TAccountTransferHookProgram,
       ...TRemainingAccounts,
     ]
   >;
@@ -134,226 +95,22 @@ export function getRemoveOwnershipInstructionDataCodec(): FixedSizeCodec<
   );
 }
 
-export type RemoveOwnershipAsyncInput<
-  TAccountOwner extends string = string,
-  TAccountAsset extends string = string,
-  TAccountProgramAuthority extends string = string,
-  TAccountMint extends string = string,
-  TAccountProgramAuthorityTokenAccount extends string = string,
-  TAccountOwnerTokenAccount extends string = string,
-  TAccountTokenProgram extends string = string,
-  TAccountAssociatedTokenProgram extends string = string,
-  TAccountSystemProgram extends string = string,
-  TAccountTransferHookProgram extends string = string,
-> = {
-  owner: TransactionSigner<TAccountOwner>;
-  asset: Address<TAccountAsset>;
-  programAuthority?: Address<TAccountProgramAuthority>;
-  mint: Address<TAccountMint>;
-  programAuthorityTokenAccount: Address<TAccountProgramAuthorityTokenAccount>;
-  ownerTokenAccount: Address<TAccountOwnerTokenAccount>;
-  tokenProgram?: Address<TAccountTokenProgram>;
-  associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
-  systemProgram?: Address<TAccountSystemProgram>;
-  transferHookProgram?: Address<TAccountTransferHookProgram>;
-};
-
-export async function getRemoveOwnershipInstructionAsync<
-  TAccountOwner extends string,
-  TAccountAsset extends string,
-  TAccountProgramAuthority extends string,
-  TAccountMint extends string,
-  TAccountProgramAuthorityTokenAccount extends string,
-  TAccountOwnerTokenAccount extends string,
-  TAccountTokenProgram extends string,
-  TAccountAssociatedTokenProgram extends string,
-  TAccountSystemProgram extends string,
-  TAccountTransferHookProgram extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
->(
-  input: RemoveOwnershipAsyncInput<
-    TAccountOwner,
-    TAccountAsset,
-    TAccountProgramAuthority,
-    TAccountMint,
-    TAccountProgramAuthorityTokenAccount,
-    TAccountOwnerTokenAccount,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
-  >,
-  config?: { programAddress?: TProgramAddress },
-): Promise<
-  RemoveOwnershipInstruction<
-    TProgramAddress,
-    TAccountOwner,
-    TAccountAsset,
-    TAccountProgramAuthority,
-    TAccountMint,
-    TAccountProgramAuthorityTokenAccount,
-    TAccountOwnerTokenAccount,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
-  >
-> {
-  // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
-
-  // Original accounts.
-  const originalAccounts = {
-    owner: { value: input.owner ?? null, isWritable: false },
-    asset: { value: input.asset ?? null, isWritable: true },
-    programAuthority: {
-      value: input.programAuthority ?? null,
-      isWritable: true,
-    },
-    mint: { value: input.mint ?? null, isWritable: true },
-    programAuthorityTokenAccount: {
-      value: input.programAuthorityTokenAccount ?? null,
-      isWritable: true,
-    },
-    ownerTokenAccount: {
-      value: input.ownerTokenAccount ?? null,
-      isWritable: true,
-    },
-    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
-    associatedTokenProgram: {
-      value: input.associatedTokenProgram ?? null,
-      isWritable: false,
-    },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-    transferHookProgram: {
-      value: input.transferHookProgram ?? null,
-      isWritable: false,
-    },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedInstructionAccount
-  >;
-
-  // Resolve default values.
-  if (!accounts.programAuthority.value) {
-    accounts.programAuthority.value = await findProgramAuthorityPda();
-  }
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
-  }
-  if (!accounts.associatedTokenProgram.value) {
-    accounts.associatedTokenProgram.value =
-      "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" as Address<"ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL">;
-  }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-  if (!accounts.transferHookProgram.value) {
-    accounts.transferHookProgram.value =
-      "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR" as Address<"2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR">;
-  }
-
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
-  return Object.freeze({
-    accounts: [
-      getAccountMeta("owner", accounts.owner),
-      getAccountMeta("asset", accounts.asset),
-      getAccountMeta("programAuthority", accounts.programAuthority),
-      getAccountMeta("mint", accounts.mint),
-      getAccountMeta(
-        "programAuthorityTokenAccount",
-        accounts.programAuthorityTokenAccount,
-      ),
-      getAccountMeta("ownerTokenAccount", accounts.ownerTokenAccount),
-      getAccountMeta("tokenProgram", accounts.tokenProgram),
-      getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
-      getAccountMeta("systemProgram", accounts.systemProgram),
-      getAccountMeta("transferHookProgram", accounts.transferHookProgram),
-    ],
-    data: getRemoveOwnershipInstructionDataEncoder().encode({}),
-    programAddress,
-  } as RemoveOwnershipInstruction<
-    TProgramAddress,
-    TAccountOwner,
-    TAccountAsset,
-    TAccountProgramAuthority,
-    TAccountMint,
-    TAccountProgramAuthorityTokenAccount,
-    TAccountOwnerTokenAccount,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
-  >);
-}
-
 export type RemoveOwnershipInput<
   TAccountOwner extends string = string,
   TAccountAsset extends string = string,
-  TAccountProgramAuthority extends string = string,
-  TAccountMint extends string = string,
-  TAccountProgramAuthorityTokenAccount extends string = string,
-  TAccountOwnerTokenAccount extends string = string,
-  TAccountTokenProgram extends string = string,
-  TAccountAssociatedTokenProgram extends string = string,
-  TAccountSystemProgram extends string = string,
-  TAccountTransferHookProgram extends string = string,
 > = {
   owner: TransactionSigner<TAccountOwner>;
   asset: Address<TAccountAsset>;
-  programAuthority: Address<TAccountProgramAuthority>;
-  mint: Address<TAccountMint>;
-  programAuthorityTokenAccount: Address<TAccountProgramAuthorityTokenAccount>;
-  ownerTokenAccount: Address<TAccountOwnerTokenAccount>;
-  tokenProgram?: Address<TAccountTokenProgram>;
-  associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
-  systemProgram?: Address<TAccountSystemProgram>;
-  transferHookProgram?: Address<TAccountTransferHookProgram>;
 };
 
 export function getRemoveOwnershipInstruction<
   TAccountOwner extends string,
   TAccountAsset extends string,
-  TAccountProgramAuthority extends string,
-  TAccountMint extends string,
-  TAccountProgramAuthorityTokenAccount extends string,
-  TAccountOwnerTokenAccount extends string,
-  TAccountTokenProgram extends string,
-  TAccountAssociatedTokenProgram extends string,
-  TAccountSystemProgram extends string,
-  TAccountTransferHookProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: RemoveOwnershipInput<
-    TAccountOwner,
-    TAccountAsset,
-    TAccountProgramAuthority,
-    TAccountMint,
-    TAccountProgramAuthorityTokenAccount,
-    TAccountOwnerTokenAccount,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
-  >,
+  input: RemoveOwnershipInput<TAccountOwner, TAccountAsset>,
   config?: { programAddress?: TProgramAddress },
-): RemoveOwnershipInstruction<
-  TProgramAddress,
-  TAccountOwner,
-  TAccountAsset,
-  TAccountProgramAuthority,
-  TAccountMint,
-  TAccountProgramAuthorityTokenAccount,
-  TAccountOwnerTokenAccount,
-  TAccountTokenProgram,
-  TAccountAssociatedTokenProgram,
-  TAccountSystemProgram,
-  TAccountTransferHookProgram
-> {
+): RemoveOwnershipInstruction<TProgramAddress, TAccountOwner, TAccountAsset> {
   // Program address.
   const programAddress =
     config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
@@ -362,84 +119,24 @@ export function getRemoveOwnershipInstruction<
   const originalAccounts = {
     owner: { value: input.owner ?? null, isWritable: false },
     asset: { value: input.asset ?? null, isWritable: true },
-    programAuthority: {
-      value: input.programAuthority ?? null,
-      isWritable: true,
-    },
-    mint: { value: input.mint ?? null, isWritable: true },
-    programAuthorityTokenAccount: {
-      value: input.programAuthorityTokenAccount ?? null,
-      isWritable: true,
-    },
-    ownerTokenAccount: {
-      value: input.ownerTokenAccount ?? null,
-      isWritable: true,
-    },
-    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
-    associatedTokenProgram: {
-      value: input.associatedTokenProgram ?? null,
-      isWritable: false,
-    },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-    transferHookProgram: {
-      value: input.transferHookProgram ?? null,
-      isWritable: false,
-    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
 
-  // Resolve default values.
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
-  }
-  if (!accounts.associatedTokenProgram.value) {
-    accounts.associatedTokenProgram.value =
-      "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" as Address<"ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL">;
-  }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-  if (!accounts.transferHookProgram.value) {
-    accounts.transferHookProgram.value =
-      "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR" as Address<"2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR">;
-  }
-
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("asset", accounts.asset),
-      getAccountMeta("programAuthority", accounts.programAuthority),
-      getAccountMeta("mint", accounts.mint),
-      getAccountMeta(
-        "programAuthorityTokenAccount",
-        accounts.programAuthorityTokenAccount,
-      ),
-      getAccountMeta("ownerTokenAccount", accounts.ownerTokenAccount),
-      getAccountMeta("tokenProgram", accounts.tokenProgram),
-      getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
-      getAccountMeta("systemProgram", accounts.systemProgram),
-      getAccountMeta("transferHookProgram", accounts.transferHookProgram),
     ],
     data: getRemoveOwnershipInstructionDataEncoder().encode({}),
     programAddress,
   } as RemoveOwnershipInstruction<
     TProgramAddress,
     TAccountOwner,
-    TAccountAsset,
-    TAccountProgramAuthority,
-    TAccountMint,
-    TAccountProgramAuthorityTokenAccount,
-    TAccountOwnerTokenAccount,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
+    TAccountAsset
   >);
 }
 
@@ -451,14 +148,6 @@ export type ParsedRemoveOwnershipInstruction<
   accounts: {
     owner: TAccountMetas[0];
     asset: TAccountMetas[1];
-    programAuthority: TAccountMetas[2];
-    mint: TAccountMetas[3];
-    programAuthorityTokenAccount: TAccountMetas[4];
-    ownerTokenAccount: TAccountMetas[5];
-    tokenProgram: TAccountMetas[6];
-    associatedTokenProgram: TAccountMetas[7];
-    systemProgram: TAccountMetas[8];
-    transferHookProgram: TAccountMetas[9];
   };
   data: RemoveOwnershipInstructionData;
 };
@@ -471,12 +160,12 @@ export function parseRemoveOwnershipInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedRemoveOwnershipInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 10) {
+  if (instruction.accounts.length < 2) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 10,
+        expectedAccountMetas: 2,
       },
     );
   }
@@ -488,18 +177,7 @@ export function parseRemoveOwnershipInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: {
-      owner: getNextAccount(),
-      asset: getNextAccount(),
-      programAuthority: getNextAccount(),
-      mint: getNextAccount(),
-      programAuthorityTokenAccount: getNextAccount(),
-      ownerTokenAccount: getNextAccount(),
-      tokenProgram: getNextAccount(),
-      associatedTokenProgram: getNextAccount(),
-      systemProgram: getNextAccount(),
-      transferHookProgram: getNextAccount(),
-    },
+    accounts: { owner: getNextAccount(), asset: getNextAccount() },
     data: getRemoveOwnershipInstructionDataDecoder().decode(instruction.data),
   };
 }

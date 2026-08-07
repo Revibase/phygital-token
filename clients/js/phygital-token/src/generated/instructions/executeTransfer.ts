@@ -7,18 +7,27 @@
  */
 
 import {
+  addDecoderSizePrefix,
+  addEncoderSizePrefix,
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getI64Decoder,
+  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
+  getU32Decoder,
+  getU32Encoder,
+  getU64Decoder,
+  getU64Encoder,
+  getU8Decoder,
+  getU8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
   type AccountMeta,
-  type AccountSignerMeta,
   type Address,
   type Codec,
   type Decoder,
@@ -27,23 +36,14 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
-  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/kit/program-client-core";
-import { findProgramAuthorityPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
-import {
-  getSecp256r1VerifyArgsDecoder,
-  getSecp256r1VerifyArgsEncoder,
-  type Secp256r1VerifyArgs,
-  type Secp256r1VerifyArgsArgs,
-} from "../types/index.js";
 
 export const EXECUTE_TRANSFER_DISCRIMINATOR: ReadonlyUint8Array =
   new Uint8Array([233, 126, 160, 184, 235, 206, 31, 119]);
@@ -57,87 +57,58 @@ export function getExecuteTransferDiscriminatorBytes(): ReadonlyUint8Array {
 export type ExecuteTransferInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountRecipient extends string | AccountMeta<string> = string,
-  TAccountSender extends string | AccountMeta<string> = string,
   TAccountAsset extends string | AccountMeta<string> = string,
-  TAccountMint extends string | AccountMeta<string> = string,
-  TAccountSenderTokenAccount extends string | AccountMeta<string> = string,
-  TAccountRecipientTokenAccount extends string | AccountMeta<string> = string,
-  TAccountProgramAuthority extends string | AccountMeta<string> = string,
   TAccountSlotHashes extends string | AccountMeta<string> =
     "SysvarS1otHashes111111111111111111111111111",
   TAccountInstructionsSysvar extends string | AccountMeta<string> =
     "Sysvar1nstructions1111111111111111111111111",
-  TAccountTokenProgram extends string | AccountMeta<string> =
-    "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
-  TAccountAssociatedTokenProgram extends string | AccountMeta<string> =
-    "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
-  TAccountTransferHookProgram extends string | AccountMeta<string> =
-    "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
       TAccountRecipient extends string
-        ? ReadonlySignerAccount<TAccountRecipient> &
-            AccountSignerMeta<TAccountRecipient>
+        ? ReadonlyAccount<TAccountRecipient>
         : TAccountRecipient,
-      TAccountSender extends string
-        ? ReadonlyAccount<TAccountSender>
-        : TAccountSender,
       TAccountAsset extends string
         ? WritableAccount<TAccountAsset>
         : TAccountAsset,
-      TAccountMint extends string
-        ? WritableAccount<TAccountMint>
-        : TAccountMint,
-      TAccountSenderTokenAccount extends string
-        ? WritableAccount<TAccountSenderTokenAccount>
-        : TAccountSenderTokenAccount,
-      TAccountRecipientTokenAccount extends string
-        ? WritableAccount<TAccountRecipientTokenAccount>
-        : TAccountRecipientTokenAccount,
-      TAccountProgramAuthority extends string
-        ? WritableAccount<TAccountProgramAuthority>
-        : TAccountProgramAuthority,
       TAccountSlotHashes extends string
         ? ReadonlyAccount<TAccountSlotHashes>
         : TAccountSlotHashes,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
-      TAccountTokenProgram extends string
-        ? ReadonlyAccount<TAccountTokenProgram>
-        : TAccountTokenProgram,
-      TAccountAssociatedTokenProgram extends string
-        ? ReadonlyAccount<TAccountAssociatedTokenProgram>
-        : TAccountAssociatedTokenProgram,
-      TAccountSystemProgram extends string
-        ? ReadonlyAccount<TAccountSystemProgram>
-        : TAccountSystemProgram,
-      TAccountTransferHookProgram extends string
-        ? ReadonlyAccount<TAccountTransferHookProgram>
-        : TAccountTransferHookProgram,
       ...TRemainingAccounts,
     ]
   >;
 
 export type ExecuteTransferInstructionData = {
   discriminator: ReadonlyUint8Array;
-  secp256r1VerifyArgs: Secp256r1VerifyArgs;
+  verifyArgsRelativeIndex: bigint;
+  signedMessageIndex: number;
+  slotNumber: bigint;
+  clientDataJson: ReadonlyUint8Array;
 };
 
 export type ExecuteTransferInstructionDataArgs = {
-  secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
+  verifyArgsRelativeIndex: number | bigint;
+  signedMessageIndex: number;
+  slotNumber: number | bigint;
+  clientDataJson: ReadonlyUint8Array;
 };
 
 export function getExecuteTransferInstructionDataEncoder(): Encoder<ExecuteTransferInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
+      ["verifyArgsRelativeIndex", getI64Encoder()],
+      ["signedMessageIndex", getU8Encoder()],
+      ["slotNumber", getU64Encoder()],
+      [
+        "clientDataJson",
+        addEncoderSizePrefix(getBytesEncoder(), getU32Encoder()),
+      ],
     ]),
     (value) => ({ ...value, discriminator: EXECUTE_TRANSFER_DISCRIMINATOR }),
   );
@@ -146,7 +117,13 @@ export function getExecuteTransferInstructionDataEncoder(): Encoder<ExecuteTrans
 export function getExecuteTransferInstructionDataDecoder(): Decoder<ExecuteTransferInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
+    ["verifyArgsRelativeIndex", getI64Decoder()],
+    ["signedMessageIndex", getU8Decoder()],
+    ["slotNumber", getU64Decoder()],
+    [
+      "clientDataJson",
+      addDecoderSizePrefix(getBytesDecoder(), getU32Decoder()),
+    ],
   ]);
 }
 
@@ -160,279 +137,42 @@ export function getExecuteTransferInstructionDataCodec(): Codec<
   );
 }
 
-export type ExecuteTransferAsyncInput<
-  TAccountRecipient extends string = string,
-  TAccountSender extends string = string,
-  TAccountAsset extends string = string,
-  TAccountMint extends string = string,
-  TAccountSenderTokenAccount extends string = string,
-  TAccountRecipientTokenAccount extends string = string,
-  TAccountProgramAuthority extends string = string,
-  TAccountSlotHashes extends string = string,
-  TAccountInstructionsSysvar extends string = string,
-  TAccountTokenProgram extends string = string,
-  TAccountAssociatedTokenProgram extends string = string,
-  TAccountSystemProgram extends string = string,
-  TAccountTransferHookProgram extends string = string,
-> = {
-  recipient: TransactionSigner<TAccountRecipient>;
-  sender: Address<TAccountSender>;
-  asset: Address<TAccountAsset>;
-  mint: Address<TAccountMint>;
-  senderTokenAccount: Address<TAccountSenderTokenAccount>;
-  recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
-  programAuthority?: Address<TAccountProgramAuthority>;
-  slotHashes?: Address<TAccountSlotHashes>;
-  instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-  tokenProgram?: Address<TAccountTokenProgram>;
-  associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
-  systemProgram?: Address<TAccountSystemProgram>;
-  transferHookProgram?: Address<TAccountTransferHookProgram>;
-  secp256r1VerifyArgs: ExecuteTransferInstructionDataArgs["secp256r1VerifyArgs"];
-};
-
-export async function getExecuteTransferInstructionAsync<
-  TAccountRecipient extends string,
-  TAccountSender extends string,
-  TAccountAsset extends string,
-  TAccountMint extends string,
-  TAccountSenderTokenAccount extends string,
-  TAccountRecipientTokenAccount extends string,
-  TAccountProgramAuthority extends string,
-  TAccountSlotHashes extends string,
-  TAccountInstructionsSysvar extends string,
-  TAccountTokenProgram extends string,
-  TAccountAssociatedTokenProgram extends string,
-  TAccountSystemProgram extends string,
-  TAccountTransferHookProgram extends string,
-  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
->(
-  input: ExecuteTransferAsyncInput<
-    TAccountRecipient,
-    TAccountSender,
-    TAccountAsset,
-    TAccountMint,
-    TAccountSenderTokenAccount,
-    TAccountRecipientTokenAccount,
-    TAccountProgramAuthority,
-    TAccountSlotHashes,
-    TAccountInstructionsSysvar,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
-  >,
-  config?: { programAddress?: TProgramAddress },
-): Promise<
-  ExecuteTransferInstruction<
-    TProgramAddress,
-    TAccountRecipient,
-    TAccountSender,
-    TAccountAsset,
-    TAccountMint,
-    TAccountSenderTokenAccount,
-    TAccountRecipientTokenAccount,
-    TAccountProgramAuthority,
-    TAccountSlotHashes,
-    TAccountInstructionsSysvar,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
-  >
-> {
-  // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
-
-  // Original accounts.
-  const originalAccounts = {
-    recipient: { value: input.recipient ?? null, isWritable: false },
-    sender: { value: input.sender ?? null, isWritable: false },
-    asset: { value: input.asset ?? null, isWritable: true },
-    mint: { value: input.mint ?? null, isWritable: true },
-    senderTokenAccount: {
-      value: input.senderTokenAccount ?? null,
-      isWritable: true,
-    },
-    recipientTokenAccount: {
-      value: input.recipientTokenAccount ?? null,
-      isWritable: true,
-    },
-    programAuthority: {
-      value: input.programAuthority ?? null,
-      isWritable: true,
-    },
-    slotHashes: { value: input.slotHashes ?? null, isWritable: false },
-    instructionsSysvar: {
-      value: input.instructionsSysvar ?? null,
-      isWritable: false,
-    },
-    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
-    associatedTokenProgram: {
-      value: input.associatedTokenProgram ?? null,
-      isWritable: false,
-    },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-    transferHookProgram: {
-      value: input.transferHookProgram ?? null,
-      isWritable: false,
-    },
-  };
-  const accounts = originalAccounts as Record<
-    keyof typeof originalAccounts,
-    ResolvedInstructionAccount
-  >;
-
-  // Original args.
-  const args = { ...input };
-
-  // Resolve default values.
-  if (!accounts.programAuthority.value) {
-    accounts.programAuthority.value = await findProgramAuthorityPda();
-  }
-  if (!accounts.slotHashes.value) {
-    accounts.slotHashes.value =
-      "SysvarS1otHashes111111111111111111111111111" as Address<"SysvarS1otHashes111111111111111111111111111">;
-  }
-  if (!accounts.instructionsSysvar.value) {
-    accounts.instructionsSysvar.value =
-      "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
-  }
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
-  }
-  if (!accounts.associatedTokenProgram.value) {
-    accounts.associatedTokenProgram.value =
-      "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" as Address<"ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL">;
-  }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-  if (!accounts.transferHookProgram.value) {
-    accounts.transferHookProgram.value =
-      "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR" as Address<"2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR">;
-  }
-
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
-  return Object.freeze({
-    accounts: [
-      getAccountMeta("recipient", accounts.recipient),
-      getAccountMeta("sender", accounts.sender),
-      getAccountMeta("asset", accounts.asset),
-      getAccountMeta("mint", accounts.mint),
-      getAccountMeta("senderTokenAccount", accounts.senderTokenAccount),
-      getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
-      getAccountMeta("programAuthority", accounts.programAuthority),
-      getAccountMeta("slotHashes", accounts.slotHashes),
-      getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
-      getAccountMeta("tokenProgram", accounts.tokenProgram),
-      getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
-      getAccountMeta("systemProgram", accounts.systemProgram),
-      getAccountMeta("transferHookProgram", accounts.transferHookProgram),
-    ],
-    data: getExecuteTransferInstructionDataEncoder().encode(
-      args as ExecuteTransferInstructionDataArgs,
-    ),
-    programAddress,
-  } as ExecuteTransferInstruction<
-    TProgramAddress,
-    TAccountRecipient,
-    TAccountSender,
-    TAccountAsset,
-    TAccountMint,
-    TAccountSenderTokenAccount,
-    TAccountRecipientTokenAccount,
-    TAccountProgramAuthority,
-    TAccountSlotHashes,
-    TAccountInstructionsSysvar,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
-  >);
-}
-
 export type ExecuteTransferInput<
   TAccountRecipient extends string = string,
-  TAccountSender extends string = string,
   TAccountAsset extends string = string,
-  TAccountMint extends string = string,
-  TAccountSenderTokenAccount extends string = string,
-  TAccountRecipientTokenAccount extends string = string,
-  TAccountProgramAuthority extends string = string,
   TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
-  TAccountTokenProgram extends string = string,
-  TAccountAssociatedTokenProgram extends string = string,
-  TAccountSystemProgram extends string = string,
-  TAccountTransferHookProgram extends string = string,
 > = {
-  recipient: TransactionSigner<TAccountRecipient>;
-  sender: Address<TAccountSender>;
+  recipient: Address<TAccountRecipient>;
   asset: Address<TAccountAsset>;
-  mint: Address<TAccountMint>;
-  senderTokenAccount: Address<TAccountSenderTokenAccount>;
-  recipientTokenAccount: Address<TAccountRecipientTokenAccount>;
-  programAuthority: Address<TAccountProgramAuthority>;
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-  tokenProgram?: Address<TAccountTokenProgram>;
-  associatedTokenProgram?: Address<TAccountAssociatedTokenProgram>;
-  systemProgram?: Address<TAccountSystemProgram>;
-  transferHookProgram?: Address<TAccountTransferHookProgram>;
-  secp256r1VerifyArgs: ExecuteTransferInstructionDataArgs["secp256r1VerifyArgs"];
+  verifyArgsRelativeIndex: ExecuteTransferInstructionDataArgs["verifyArgsRelativeIndex"];
+  signedMessageIndex: ExecuteTransferInstructionDataArgs["signedMessageIndex"];
+  slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
+  clientDataJson: ExecuteTransferInstructionDataArgs["clientDataJson"];
 };
 
 export function getExecuteTransferInstruction<
   TAccountRecipient extends string,
-  TAccountSender extends string,
   TAccountAsset extends string,
-  TAccountMint extends string,
-  TAccountSenderTokenAccount extends string,
-  TAccountRecipientTokenAccount extends string,
-  TAccountProgramAuthority extends string,
   TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
-  TAccountTokenProgram extends string,
-  TAccountAssociatedTokenProgram extends string,
-  TAccountSystemProgram extends string,
-  TAccountTransferHookProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: ExecuteTransferInput<
     TAccountRecipient,
-    TAccountSender,
     TAccountAsset,
-    TAccountMint,
-    TAccountSenderTokenAccount,
-    TAccountRecipientTokenAccount,
-    TAccountProgramAuthority,
     TAccountSlotHashes,
-    TAccountInstructionsSysvar,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
+    TAccountInstructionsSysvar
   >,
   config?: { programAddress?: TProgramAddress },
 ): ExecuteTransferInstruction<
   TProgramAddress,
   TAccountRecipient,
-  TAccountSender,
   TAccountAsset,
-  TAccountMint,
-  TAccountSenderTokenAccount,
-  TAccountRecipientTokenAccount,
-  TAccountProgramAuthority,
   TAccountSlotHashes,
-  TAccountInstructionsSysvar,
-  TAccountTokenProgram,
-  TAccountAssociatedTokenProgram,
-  TAccountSystemProgram,
-  TAccountTransferHookProgram
+  TAccountInstructionsSysvar
 > {
   // Program address.
   const programAddress =
@@ -441,34 +181,10 @@ export function getExecuteTransferInstruction<
   // Original accounts.
   const originalAccounts = {
     recipient: { value: input.recipient ?? null, isWritable: false },
-    sender: { value: input.sender ?? null, isWritable: false },
     asset: { value: input.asset ?? null, isWritable: true },
-    mint: { value: input.mint ?? null, isWritable: true },
-    senderTokenAccount: {
-      value: input.senderTokenAccount ?? null,
-      isWritable: true,
-    },
-    recipientTokenAccount: {
-      value: input.recipientTokenAccount ?? null,
-      isWritable: true,
-    },
-    programAuthority: {
-      value: input.programAuthority ?? null,
-      isWritable: true,
-    },
     slotHashes: { value: input.slotHashes ?? null, isWritable: false },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
-      isWritable: false,
-    },
-    tokenProgram: { value: input.tokenProgram ?? null, isWritable: false },
-    associatedTokenProgram: {
-      value: input.associatedTokenProgram ?? null,
-      isWritable: false,
-    },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
-    transferHookProgram: {
-      value: input.transferHookProgram ?? null,
       isWritable: false,
     },
   };
@@ -489,39 +205,14 @@ export function getExecuteTransferInstruction<
     accounts.instructionsSysvar.value =
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
   }
-  if (!accounts.tokenProgram.value) {
-    accounts.tokenProgram.value =
-      "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb" as Address<"TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb">;
-  }
-  if (!accounts.associatedTokenProgram.value) {
-    accounts.associatedTokenProgram.value =
-      "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" as Address<"ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL">;
-  }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
-  if (!accounts.transferHookProgram.value) {
-    accounts.transferHookProgram.value =
-      "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR" as Address<"2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR">;
-  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("recipient", accounts.recipient),
-      getAccountMeta("sender", accounts.sender),
       getAccountMeta("asset", accounts.asset),
-      getAccountMeta("mint", accounts.mint),
-      getAccountMeta("senderTokenAccount", accounts.senderTokenAccount),
-      getAccountMeta("recipientTokenAccount", accounts.recipientTokenAccount),
-      getAccountMeta("programAuthority", accounts.programAuthority),
       getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
-      getAccountMeta("tokenProgram", accounts.tokenProgram),
-      getAccountMeta("associatedTokenProgram", accounts.associatedTokenProgram),
-      getAccountMeta("systemProgram", accounts.systemProgram),
-      getAccountMeta("transferHookProgram", accounts.transferHookProgram),
     ],
     data: getExecuteTransferInstructionDataEncoder().encode(
       args as ExecuteTransferInstructionDataArgs,
@@ -530,18 +221,9 @@ export function getExecuteTransferInstruction<
   } as ExecuteTransferInstruction<
     TProgramAddress,
     TAccountRecipient,
-    TAccountSender,
     TAccountAsset,
-    TAccountMint,
-    TAccountSenderTokenAccount,
-    TAccountRecipientTokenAccount,
-    TAccountProgramAuthority,
     TAccountSlotHashes,
-    TAccountInstructionsSysvar,
-    TAccountTokenProgram,
-    TAccountAssociatedTokenProgram,
-    TAccountSystemProgram,
-    TAccountTransferHookProgram
+    TAccountInstructionsSysvar
   >);
 }
 
@@ -552,18 +234,9 @@ export type ParsedExecuteTransferInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     recipient: TAccountMetas[0];
-    sender: TAccountMetas[1];
-    asset: TAccountMetas[2];
-    mint: TAccountMetas[3];
-    senderTokenAccount: TAccountMetas[4];
-    recipientTokenAccount: TAccountMetas[5];
-    programAuthority: TAccountMetas[6];
-    slotHashes: TAccountMetas[7];
-    instructionsSysvar: TAccountMetas[8];
-    tokenProgram: TAccountMetas[9];
-    associatedTokenProgram: TAccountMetas[10];
-    systemProgram: TAccountMetas[11];
-    transferHookProgram: TAccountMetas[12];
+    asset: TAccountMetas[1];
+    slotHashes: TAccountMetas[2];
+    instructionsSysvar: TAccountMetas[3];
   };
   data: ExecuteTransferInstructionData;
 };
@@ -576,12 +249,12 @@ export function parseExecuteTransferInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedExecuteTransferInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 13) {
+  if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 13,
+        expectedAccountMetas: 4,
       },
     );
   }
@@ -595,18 +268,9 @@ export function parseExecuteTransferInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       recipient: getNextAccount(),
-      sender: getNextAccount(),
       asset: getNextAccount(),
-      mint: getNextAccount(),
-      senderTokenAccount: getNextAccount(),
-      recipientTokenAccount: getNextAccount(),
-      programAuthority: getNextAccount(),
       slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
-      tokenProgram: getNextAccount(),
-      associatedTokenProgram: getNextAccount(),
-      systemProgram: getNextAccount(),
-      transferHookProgram: getNextAccount(),
     },
     data: getExecuteTransferInstructionDataDecoder().decode(instruction.data),
   };

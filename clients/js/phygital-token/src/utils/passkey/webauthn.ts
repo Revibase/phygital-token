@@ -116,7 +116,6 @@ function toPublicKeyCredentialDescriptor(
  */
 export function nfcWebAuthnRequestOptions(
   challenge: Base64URLString,
-  credentialId?: Base64URLString,
 ): PublicKeyCredentialRequestOptionsJSON {
   return {
     challenge,
@@ -125,7 +124,6 @@ export function nfcWebAuthnRequestOptions(
     allowCredentials: [
       {
         id:
-          credentialId ??
           bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(64))),
         type: "public-key",
         transports: ["nfc"],

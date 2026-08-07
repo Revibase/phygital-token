@@ -1,349 +1,93 @@
 import {
-  unwrapOption,
+  getAddressEncoder,
+  getBase64Decoder,
+  getBase64Encoder,
   type Address,
+  type Base64EncodedBytes,
   type Rpc,
   type SolanaRpcApi,
 } from "@solana/kit";
 import {
-  fetchMint,
-  isExtension,
-  type Extension,
-} from "@solana-program/token-2022";
-import { parseSecp256r1Pubkey } from "../instructions/mint.js";
-import { findAssetPda } from "./pdas/asset.js";
-import { AssetType, fetchAsset, type Asset } from "../generated/index.js";
-import { bufferToBase64URLString } from "./passkey/webauthn.js";
+  getAssetDecoder,
+  PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+  type Asset,
+  type Secp256r1Pubkey,
+} from "../generated/index.js";
+import { parseSecp256r1Pubkey } from "../instructions/initialize.js";
 
-function findMintExtension(
-  extensions: readonly Extension[],
-  kind: "TokenMetadata",
-): Extract<Extension, { __kind: "TokenMetadata" }> | null;
-function findMintExtension(
-  extensions: readonly Extension[],
-  kind: "TokenGroupMember",
-): Extract<Extension, { __kind: "TokenGroupMember" }> | null;
-function findMintExtension(
-  extensions: readonly Extension[],
-  kind: Extension["__kind"],
-): Extension | null {
-  for (const extension of extensions) {
-    if (isExtension(kind, extension)) {
-      return extension;
-    }
-  }
-  return null;
-}
-
-type AssetAttribute = {
-  trait_type?: string;
-  traitType?: string;
-  value?: string | number;
-};
+/** Asset account size: 8 disc + 1 type + 32 owner + 8 slot + 1 lock + 33 pubkey + 33 identifier. */
+const ASSET_ACCOUNT_DATA_SIZE = 116;
+const ASSET_OWNER_OFFSET = 9;
+/** Offset of `public_key` (33 bytes) within account data. */
+const ASSET_PUBLIC_KEY_OFFSET = 50;
 
 /**
- * A wallet action shortcut from Phantom Shortcuts schema v2
- * (`{external_url}/shortcuts.json`). Rendered as an action button.
- * @see https://github.com/phantom/shortcuts
+ * Find assets whose on-chain `public_key` matches the passkey
+ * (via `getProgramAccounts` memcmp — PDA is seeded by identifier, not pubkey).
  */
-export type Shortcut = {
-  label?: string;
-  uri?: string;
-  /** Icon enum (e.g. `discord`, `x`, `generic-link`) — not a URL. */
-  icon?: string;
-  /** Token kind this shortcut applies to. Defaults to `collectible`. */
-  type?: "fungible" | "collectible" | string;
-  prefersExternalTarget?: boolean;
-  preferredPresentation?: "default" | "immerse" | string;
-  limitToCollections?: string[];
-  limitToTokenAddresses?: string[];
-  platform?: "desktop" | "mobile" | "all" | string;
-};
+export async function fetchAssetsByPublicKey(
+  rpc: Rpc<SolanaRpcApi>,
+  secp256r1PublicKey: string | Secp256r1Pubkey,
+): Promise<Asset[]> {
+  const pubkey =
+    typeof secp256r1PublicKey === "string"
+      ? parseSecp256r1Pubkey(secp256r1PublicKey)
+      : secp256r1PublicKey;
 
-/** Phantom Shortcuts schema v2 document hosted at `{external_url}/shortcuts.json`. */
-export type ShortcutsDocument = {
-  version: number;
-  shortcuts: Shortcut[];
-};
+  const data = await rpc
+    .getProgramAccounts(PHYGITAL_TOKEN_PROGRAM_ADDRESS, {
+      encoding: "base64",
+      filters: [
+        { dataSize: BigInt(ASSET_ACCOUNT_DATA_SIZE) },
+        {
+          memcmp: {
+            encoding: "base64" as const,
+            offset: BigInt(ASSET_PUBLIC_KEY_OFFSET),
+            bytes: getBase64Decoder().decode(
+              pubkey[0],
+            ) as Base64EncodedBytes,
+          },
+        },
+      ],
+    })
+    .send();
 
-/** Phantom collectible media categories (Metaplex `properties.category`). */
-export type MediaCategory = "image" | "video" | "audio" | "vr";
-
-/** A single asset referenced from `properties.files` in the off-chain JSON. */
-export type TokenMediaFile = {
-  uri?: string;
-  /** MIME type, e.g. "image/png", "video/mp4", "model/gltf-binary". */
-  type?: string;
-  /** Served through a CDN — Phantom prefers these when selecting media. */
-  cdn?: boolean;
-};
-
-export type TokenJsonMetadata = {
-  name?: string;
-  symbol?: string;
-  image?: string;
-  description?: string;
-  /** Primary animated/interactive asset (video/audio/3D) — Phantom's top media pick. */
-  animation_url?: string;
-  /**
-   * Base URL for Phantom Shortcuts discovery. Wallets fetch
-   * `{external_url}/shortcuts.json`.
-   */
-  external_url?: string;
-  /** Design mint public key this asset instance belongs to. */
-  mint?: string;
-  attributes?: Array<AssetAttribute>;
-  properties?: {
-    category?: MediaCategory | string;
-    files?: TokenMediaFile[];
-  };
-};
-
-const MEDIA_TYPE_BY_EXT: Record<string, string> = {
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  webp: "image/webp",
-  gif: "image/gif",
-  svg: "image/svg+xml",
-  mp4: "video/mp4",
-  webm: "video/webm",
-  mov: "video/quicktime",
-  mp3: "audio/mpeg",
-  wav: "audio/wav",
-  ogg: "audio/ogg",
-  flac: "audio/flac",
-  glb: "model/gltf-binary",
-  gltf: "model/gltf+json",
-};
-
-/** Best-effort MIME type for a media URI, inferred from its path extension. */
-function mimeFromUri(uri: string): string | null {
-  const clean = uri.split("?")[0].split("#")[0];
-  const ext = clean.split(".").pop()?.toLowerCase() ?? "";
-  return MEDIA_TYPE_BY_EXT[ext] ?? null;
-}
-
-/** Map a MIME type to the Phantom collectible category it renders as. */
-function categoryForMime(
-  type: string | undefined | null,
-): MediaCategory | null {
-  if (!type) return null;
-  if (type.startsWith("video/")) return "video";
-  if (type.startsWith("audio/")) return "audio";
-  if (type.startsWith("model/")) return "vr";
-  if (type.startsWith("image/")) return "image";
-  return null;
-}
-
-export type ResolvedMedia = {
-  /** Still image / poster — Phantom resizes this to 256×256. */
-  image: string | null;
-  /** Animated/interactive asset (video/audio/3D), if any. */
-  animationUrl: string | null;
-  /** MIME type of `animationUrl`. */
-  animationType: string | null;
-  /** The collectible's primary media category. */
-  category: MediaCategory | null;
-};
-
-/**
- * Resolve which media to display from an off-chain Token-Metadata JSON,
- * following Phantom's collectible-rendering spec: `animation_url` is the top
- * pick, then the first non-image entry in `properties.files`; `image` (or the
- * first image file) is the still/poster. Mirrors how Phantom itself selects
- * media so the in-app card matches the wallet.
- */
-export function resolveMedia(json: TokenJsonMetadata | null): ResolvedMedia {
-  if (!json) {
-    return {
-      image: null,
-      animationUrl: null,
-      animationType: null,
-      category: null,
-    };
-  }
-
-  const files = json.properties?.files ?? [];
-  const image =
-    json.image ??
-    files.find((f) => f.uri && categoryForMime(f.type) === "image")?.uri ??
-    null;
-
-  let animationUrl = json.animation_url ?? null;
-  let animationType: string | null = null;
-  if (animationUrl) {
-    animationType =
-      files.find((f) => f.uri === animationUrl)?.type ??
-      mimeFromUri(animationUrl);
-  } else {
-    // No animation_url: fall back to the first audio/video/3D file, preferring
-    // CDN-served entries (Phantom's tie-breaker).
-    const ranked = [...files].sort(
-      (a, b) => Number(Boolean(b.cdn)) - Number(Boolean(a.cdn)),
-    );
-    const media = ranked.find((f) => {
-      const c = categoryForMime(f.type ?? mimeFromUri(f.uri ?? ""));
-      return f.uri && (c === "video" || c === "audio" || c === "vr");
-    });
-    if (media?.uri) {
-      animationUrl = media.uri;
-      animationType = media.type ?? mimeFromUri(media.uri);
-    }
-  }
-
-  const rawCategory = json.properties?.category;
-  const declaredCategory =
-    rawCategory && ["image", "video", "audio", "vr"].includes(rawCategory)
-      ? (rawCategory as MediaCategory)
-      : null;
-  const category =
-    declaredCategory ??
-    categoryForMime(animationType) ??
-    (image ? "image" : null);
-
-  return { image, animationUrl, animationType, category };
-}
-
-async function fetchJsonMetadata(
-  uri: string,
-): Promise<TokenJsonMetadata | null> {
-  if (!uri) {
-    return null;
-  }
-  try {
-    const response = await fetch(uri);
-    if (!response.ok) {
-      return null;
-    }
-    return (await response.json()) as TokenJsonMetadata;
-  } catch {
-    return null;
-  }
-}
-
-export async function fetchShortcutsFromExternalUrl(
-  externalUrl: string | undefined | null,
-): Promise<Shortcut[]> {
-  if (!externalUrl?.trim()) {
+  if (!data.length) {
     return [];
   }
-  try {
-    const base = externalUrl.replace(/\/$/, "");
-    const response = await fetch(`${base}/shortcuts.json`);
-    if (!response.ok) {
-      return [];
-    }
-    const doc = (await response.json()) as ShortcutsDocument;
-    if (!Array.isArray(doc?.shortcuts)) {
-      return [];
-    }
-    return doc.shortcuts;
-  } catch {
+
+  return data.map((x) =>
+    getAssetDecoder().decode(getBase64Encoder().encode(x.account.data[0])),
+  );
+}
+
+export async function fetchAllAssetsFromOwner(
+  owner: Address,
+  rpc: Rpc<SolanaRpcApi>,
+): Promise<Asset[]> {
+  const data = await rpc
+    .getProgramAccounts(PHYGITAL_TOKEN_PROGRAM_ADDRESS, {
+      encoding: "base64",
+      filters: [
+        { dataSize: BigInt(ASSET_ACCOUNT_DATA_SIZE) },
+        {
+          memcmp: {
+            encoding: "base64" as const,
+            offset: BigInt(ASSET_OWNER_OFFSET),
+            bytes: getBase64Decoder().decode(
+              getAddressEncoder().encode(owner),
+            ) as Base64EncodedBytes,
+          },
+        },
+      ],
+    })
+    .send();
+
+  if (!data.length) {
     return [];
   }
-}
 
-/** Rich display metadata for a phygital asset (design + collection + shortcuts). */
-export type AssetDisplayInfo = {
-  assetType: AssetType;
-  /** Base64url compressed secp256r1 vault key (not a Solana ed25519 address). */
-  secp256r1PublicKey: string;
-  /** On-chain asset PDA address. */
-  asset: Address;
-  isLocked: boolean;
-  mint: Address;
-  name: string;
-  symbol: string;
-  uri: string;
-  image: string | null;
-  animationUrl: string | null;
-  animationType: string | null;
-  mediaCategory: MediaCategory | null;
-  description: string | null;
-  attributes: AssetAttribute[];
-  shortcuts: Shortcut[];
-  externalUrl: string | null;
-  collectionMint: Address | null;
-  collectionName: string | null;
-  collectionSymbol: string | null;
-  collectionImage: string | null;
-  collectionUri: string | null;
-  currentOwner: Address;
-  lastTransferSlot: bigint;
-};
-
-/**
- * Fetch {@link AssetDisplayInfo} from a base64url compressed secp256r1 public key.
- * Derives the asset PDA, loads the on-chain account, then calls
- * {@link fetchAssetDisplayInfo}.
- */
-export async function fetchAssetDisplayInfoFromSecp256r1PublicKey(
-  rpc: Rpc<SolanaRpcApi>,
-  secp256r1PublicKey: string,
-): Promise<AssetDisplayInfo> {
-  const asset = await findAssetPda(parseSecp256r1Pubkey(secp256r1PublicKey));
-  const instance = await fetchAsset(rpc, asset);
-  return fetchAssetDisplayInfo(rpc, instance.data);
-}
-
-/**
- * Build {@link AssetDisplayInfo} from an already-decoded on-chain {@link Asset}.
- * Prefer this when you already have the account (e.g. after `fetchAsset`).
- */
-export async function fetchAssetDisplayInfo(
-  rpc: Rpc<SolanaRpcApi>,
-  asset: Asset,
-): Promise<AssetDisplayInfo> {
-  const mintAccount = await fetchMint(rpc, asset.mint);
-  const designExtensions = unwrapOption(mintAccount.data.extensions) ?? [];
-  const designMeta = findMintExtension(designExtensions, "TokenMetadata");
-  const groupMember = findMintExtension(designExtensions, "TokenGroupMember");
-  const collectionMint = groupMember?.group ?? null;
-
-  let collectionMeta: Extract<Extension, { __kind: "TokenMetadata" }> | null =
-    null;
-  if (collectionMint) {
-    const collectionMintAccount = await fetchMint(rpc, collectionMint);
-    const collectionExtensions =
-      unwrapOption(collectionMintAccount.data.extensions) ?? [];
-    collectionMeta = findMintExtension(collectionExtensions, "TokenMetadata");
-  }
-
-  const [designJsonMeta, collectionJsonMeta] = await Promise.all([
-    designMeta?.uri ? fetchJsonMetadata(designMeta.uri) : Promise.resolve(null),
-    collectionMeta?.uri
-      ? fetchJsonMetadata(collectionMeta.uri)
-      : Promise.resolve(null),
-  ]);
-
-  const designMedia = resolveMedia(designJsonMeta);
-  const externalUrl = designJsonMeta?.external_url?.trim() || null;
-  const shortcuts = await fetchShortcutsFromExternalUrl(externalUrl);
-
-  return {
-    assetType: asset.assetType,
-    secp256r1PublicKey: bufferToBase64URLString(asset.publicKey[0]),
-    asset: await findAssetPda(asset.publicKey),
-    isLocked: asset.isLocked,
-    mint: asset.mint,
-    name: designMeta?.name ?? designJsonMeta?.name ?? "Unknown asset",
-    symbol: designMeta?.symbol ?? designJsonMeta?.symbol ?? "",
-    uri: designMeta?.uri ?? "",
-    image: designMedia.image,
-    animationUrl: designMedia.animationUrl,
-    animationType: designMedia.animationType,
-    mediaCategory: designMedia.category,
-    description: designJsonMeta?.description ?? null,
-    attributes: designJsonMeta?.attributes ?? [],
-    shortcuts,
-    externalUrl,
-    collectionMint,
-    collectionName: collectionMeta?.name ?? collectionJsonMeta?.name ?? null,
-    collectionSymbol:
-      collectionMeta?.symbol ?? collectionJsonMeta?.symbol ?? null,
-    collectionImage: collectionJsonMeta?.image ?? null,
-    collectionUri: collectionMeta?.uri ?? null,
-    currentOwner: asset.owner,
-    lastTransferSlot: asset.lastTransferSlot,
-  };
+  return data.map((x) =>
+    getAssetDecoder().decode(getBase64Encoder().encode(x.account.data[0])),
+  );
 }
