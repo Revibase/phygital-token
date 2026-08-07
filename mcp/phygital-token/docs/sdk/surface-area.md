@@ -2,70 +2,54 @@
 
 TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 
-## Mint
+## Initialize
 
 | Export | Purpose |
 |--------|---------|
-| `buildCreateMintInstructions` | Create design mint in a collection |
-| `buildMintTokenInstructions` | Mint token + initialize asset PDA |
-| `parseSecp256r1Pubkey` | Parse base64url compressed P-256 key |
-| `validateMetadataFields` | Name/symbol/uri length checks |
+| `buildInitializeInstruction` | Create asset PDA (seeded by chip `identifier`) |
+| `parseSecp256r1Pubkey` / `parseIdentifier` | Parse base64url 33-byte compressed values |
 
 ## Transfer
 
 | Export | Purpose |
 |--------|---------|
-| `beginTransfer` | Slot-bound transfer challenge |
+| `beginTransfer({ rpc, asset })` | Slot-bound transfer challenge (no passkey arg) |
 | `authenticatePasskeyForTransfer` | WebAuthn NFC tap |
-| `completeTransfer` | `secp256r1_verify` + `execute_transfer` |
+| `completeTransfer` | Uses `response.id` as passkey; builds `secp256r1_verify` + `execute_transfer` |
 
 ## Remove ownership
 
 | Export | Purpose |
 |--------|---------|
-| `getRemoveOwnershipInstructionAsync` | Wallet-signed forfeiture — return token to custody and reset `asset.owner` |
+| `getRemoveOwnershipInstruction` | Wallet-signed forfeiture — reset `asset.owner` to default |
 
-## Verify asset (composable)
-
-| Export | Purpose |
-|--------|---------|
-| `beginVerifyAsset` | Slot-bound verify challenge for custom `message` |
-| `authenticatePasskeyForVerifyAsset` | WebAuthn NFC tap |
-| `buildVerifyAssetArgs` | Build secp256r1 + resolve asset after tap |
-| `completeVerifyAsset` | Full instruction pair |
-
-## Verification (client helpers — off-chain only)
+## Verification (off-chain only)
 
 | Export | Purpose |
 |--------|---------|
-| `verifyDynamicUrl` | Identification via signed URL (server) |
-| `verifyDynamicUrlWithoutCounterCheck` | Identification offline |
 | `startAuthentication` | Client: NFC tap trigger; returns WebAuthn response |
 | `verifyResponse` | Server: verify tap signature; returns `{ isVerified, secp256r1PublicKey }` |
 
-Pair `startAuthentication` (client) with `verifyResponse` (server). Pass optional `transceive` for kiosk / native NFC readers. The authenticator uses the secp256r1 public key as WebAuthn `credential.id` and `user.id`, so `response.id` is that key — there is no separate on-chain credential id.
+Pair `startAuthentication` (client) with `verifyResponse` (server). Every auth check needs a fresh tap — there is no signed-URL identification helper.
 
-On-chain proof always uses `beginVerifyAsset` / `buildVerifyAssetArgs` / `completeVerifyAsset`.
+The authenticator uses the secp256r1 public key as WebAuthn `credential.id`; the on-chain PDA is seeded by a separate chip `identifier`.
 
-## Asset lookup & metadata
+## Asset lookup
 
 | Export | Purpose |
 |--------|---------|
-| `findAssetPda` | Derive asset PDA from secp256r1 pubkey |
+| `findAssetPda` | Derive asset PDA from chip `identifier` |
+| `fetchAssetsByPublicKey` | `getProgramAccounts` memcmp on passkey `public_key` |
 | `fetchAllAssetsFromOwner` | List assets by wallet owner |
-| `fetchAssetDisplayInfoFromSecp256r1PublicKey` | Rich display metadata from base64url secp256r1 pubkey |
-| `fetchAssetDisplayInfo` | Rich display metadata from a decoded `Asset` account |
-| `fetchShortcutsFromExternalUrl` | Load Phantom Shortcuts schema v2 from `{external_url}/shortcuts.json` |
-| `resolveMedia` | Resolve media URLs from token metadata |
+| `fetchAsset` | Generated helper — load a known asset PDA |
 
 ## Generated (Codama)
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getCreateMintInstructionAsync`, `getMintTokenInstructionAsync`, `getExecuteTransferInstructionAsync`, `getRemoveOwnershipInstructionAsync`, `getVerifyAssetInstruction`, `getSetLockStateInstruction`, ...
+- Instructions: `getInitializeInstruction`, `getExecuteTransferInstruction`, `getRemoveOwnershipInstruction`, `getSetLockStateInstruction`, ...
 - Accounts: `fetchAsset`, `Asset`, ...
-- Types: `AssetType`, `Secp256r1VerifyArgs`, ...
-- PDAs: `findProgramAuthorityPda`, ...
+- Types: `AssetType`, `Secp256r1Pubkey`, ...
 
 ## Rust client
 

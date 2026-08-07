@@ -2,21 +2,9 @@
 
 All exports from `clients/js/phygital-token/src/utils/verify.ts`.
 
-## Identification (no second tap)
+Off-chain authentication is **split**: NFC tap on the client, signature verification on your server. Every check requires a **fresh tap** — there is no signed-URL / prior-scan identification path.
 
-### `verifyDynamicUrl(params, callback?)`
-
-**Use when:** User already tapped once; you have signed URL query params (`pk`, `s`, `c`, `n`).
-
-### `verifyDynamicUrlWithoutCounterCheck(params)`
-
-**Use when:** Offline device, no verification server. Copied links can be replayed.
-
-## Authentication — off-chain only (live tap)
-
-Off-chain authentication is **split**: NFC tap on the client, signature verification on your server.
-
-### `startAuthentication(message, transceive?)`
+## `startAuthentication(message, transceive?)`
 
 **Client — trigger the tap.**
 
@@ -32,11 +20,11 @@ const response = await startAuthentication(message, transceive);
 
 `message` must be the same string your server issued as the challenge (store server-side with a short TTL).
 
-### `verifyResponse({ expectedMessage, response })`
+## `verifyResponse({ expectedMessage, response })`
 
 **Server — verify the tap.**
 
-Checks the WebAuthn signature against `expectedMessage`. Treats `response.id` as the compressed secp256r1 public key (the authenticator reuses that key as WebAuthn `credential.id` / `user.id`). Returns `{ isVerified, secp256r1PublicKey }` — no RPC. Challenge mismatch throws (`Message mismatch.`); a bad signature returns `isVerified: false`. Does **not** submit `verify_asset`.
+Checks the WebAuthn signature against `expectedMessage`. Treats `response.id` as the compressed secp256r1 public key (the authenticator reuses that key as WebAuthn `credential.id` / `user.id`). Returns `{ isVerified, secp256r1PublicKey }` — no RPC. Challenge mismatch throws (`Message mismatch.`); a bad signature returns `isVerified: false`. Does **not** submit a transaction.
 
 ```ts
 // API route after client POSTs { message, response }
@@ -46,8 +34,8 @@ const { isVerified, secp256r1PublicKey } = verifyResponse({
 });
 
 if (isVerified) {
-  // optional: load on-chain state
-  // await fetchAssetDisplayInfoFromSecp256r1PublicKey(rpc, secp256r1PublicKey)
+  // optional: load on-chain state by passkey
+  // const assets = await fetchAssetsByPublicKey(rpc, secp256r1PublicKey)
 }
 ```
 
@@ -58,22 +46,19 @@ Typical flow:
 3. Client POSTs `{ message, response }` to your verify API.
 4. Server calls `verifyResponse`, then runs your business logic.
 
-For on-chain proof with a bound message, use `beginVerifyAsset({ message: Uint8Array })` instead.
-
-## Off-chain auth vs on-chain composable
+## When to use what
 
 | Need | Use |
 |------|-----|
 | UI login / vault gate, no tx | `startAuthentication` + `verifyResponse` |
-| On-chain proof — Pattern A | `completeVerifyAsset` + your ix |
-| On-chain proof — Pattern B | `buildVerifyAssetArgs` + your ix |
-| Transfer ownership | `beginTransfer` → `completeTransfer` |
+| Load on-chain state after a tap | `verifyResponse` → `fetchAssetsByPublicKey` |
+| Transfer ownership | `beginTransfer({ rpc, asset })` → `completeTransfer` (passkey from `response.id`) |
 
-## Message: off-chain vs on-chain
+## Message binding
 
 | Context | `message` type | Effect |
 |---------|----------------|--------|
 | `startAuthentication` / `verifyResponse` | `string` (`expectedMessage`) | WebAuthn challenge bytes (UTF-8); must match on client and server |
-| `beginVerifyAsset` | `Uint8Array` | Hashed into slot-bound on-chain challenge |
+| `beginTransfer` | slot-bound challenge | Built from asset PDA + slot hash — not the same as `expectedMessage` |
 
-An off-chain `expectedMessage` does **not** produce an on-chain `verify_asset` record. Use the composable flow when your program must inspect or CPI `verify_asset`.
+An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `execute_transfer`.

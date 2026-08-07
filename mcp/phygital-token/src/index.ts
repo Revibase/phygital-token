@@ -8,11 +8,9 @@ import { listDocs, readDocById, searchDocs } from "./lib/docs.js";
 import { jsonResult, textResult } from "./lib/format.js";
 import {
   parseAssetType,
-  planCreateMint,
-  planMintToken,
+  planInitialize,
   planRemoveOwnership,
   planTransfer,
-  planVerifyAsset,
 } from "./lib/instructions.js";
 import { SDK_SURFACE } from "./lib/sdk-surface.js";
 import {
@@ -30,13 +28,13 @@ const SERVER_INSTRUCTIONS = [
   "",
   "Routing:",
   "- Which verification method to use → recommend_verification",
-  "- On-chain verify_asset (standalone, sysvar inspect, or CPI) → plan_verify_asset",
-  "- Mint / transfer / forfeiture flows → plan_create_mint, plan_mint_token, plan_transfer, plan_remove_ownership",
+  "- Initialize / transfer / forfeiture → plan_initialize, plan_transfer, plan_remove_ownership",
+  "- Asset PDA from chip identifier → find_asset_pda",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
   "",
   "Live asset fetch and auth: call phygital-token-sdk directly in your app",
-  "(verifyResponse, fetchAssetDisplayInfo, etc.).",
+  "(verifyResponse, fetchAssetsByPublicKey, findAssetPda, etc.).",
 ].join("\n");
 
 /** Every tool here is offline and side-effect free. */
@@ -91,19 +89,14 @@ function registerTools(server: McpServer) {
     "recommend_verification",
     {
       description:
-        "Pick the right SDK verification method (identification vs authentication, off-chain vs on-chain). Omit useCase to get the decision tree and all use cases.",
+        "Pick the right SDK auth path (off-chain tap vs transfer). Omit useCase to get the decision tree and all use cases.",
       inputSchema: {
         useCase: z
           .enum([
-            "product_page_lookup",
-            "deep_link_from_prior_scan",
-            "offline_identification",
             "login_ui_only",
-            "onchain_standalone_verify",
-            "onchain_inspect_verify_asset",
-            "onchain_cpi_verify_asset",
             "transfer_ownership",
             "native_mobile_app",
+            "lookup_after_tap",
           ] as [VerificationUseCase, ...VerificationUseCase[]])
           .optional()
           .describe("Omit to list all use cases with the decision tree."),
@@ -122,71 +115,26 @@ function registerTools(server: McpServer) {
   );
 
   server.registerTool(
-    "plan_verify_asset",
+    "plan_initialize",
     {
       description:
-        "Plan the on-chain verify_asset flow (offline): transaction layout, derived accounts, message binding. standalone = verify_asset only; inspect = Pattern A (your program reads the instructions sysvar); cpi = Pattern B (your program CPIs verify_asset).",
+        "Derive accounts and list signers/inputs for initialize (buildInitializeInstruction).",
       inputSchema: {
-        message: z
+        identifier: z
           .string()
-          .describe(
-            "UTF-8 message bytes bound into the on-chain proof (embed your domain-specific payload)",
-          ),
-        onChainPattern: z
-          .enum(["inspect", "cpi", "standalone"])
-          .optional()
-          .describe("Default inspect (Pattern A)."),
-        assetPublicKey: z
+          .describe("Base64url chip identifier (PDA seed; distinct from the passkey)"),
+        secp256r1PublicKey: z
           .string()
-          .optional()
-          .describe("Base64url secp256r1 pubkey, to pre-derive the asset PDA"),
-      },
-      annotations: { title: "Plan verify_asset", ...READ_ONLY },
-    },
-    async ({ message, onChainPattern, assetPublicKey }) =>
-      jsonResult(
-        await planVerifyAsset({
-          message,
-          assetPublicKey,
-          onChainPattern: onChainPattern ?? "inspect",
-        }),
-      ),
-  );
-
-  server.registerTool(
-    "plan_create_mint",
-    {
-      description:
-        "Validate design metadata and return the accounts/signers for off-chain design mint creation (buildCreateMintInstructions).",
-      inputSchema: {
-        name: z.string().describe("Token metadata name (max 32 chars)"),
-        symbol: z.string().describe("Token metadata symbol (max 10 chars)"),
-        uri: z.string().describe("Metadata URI (max 200 chars)"),
-      },
-      annotations: { title: "Plan create_mint", ...READ_ONLY },
-    },
-    async ({ name, symbol, uri }) => jsonResult(planCreateMint({ name, symbol, uri })),
-  );
-
-  server.registerTool(
-    "plan_mint_token",
-    {
-      description:
-        "Derive accounts and list signers/inputs for mint_token (buildMintTokenInstructions).",
-      inputSchema: {
-        assetPublicKey: z
-          .string()
-          .describe("Base64url-encoded secp256r1 public key for the new asset"),
-        mint: z.string().describe("Design mint address"),
+          .describe("Base64url compressed secp256r1 passkey public key"),
         assetType: z.enum(["Lockable", "Transferable"]).describe("Asset transfer lock behavior"),
       },
-      annotations: { title: "Plan mint_token", ...READ_ONLY },
+      annotations: { title: "Plan initialize", ...READ_ONLY },
     },
-    async ({ assetPublicKey, mint, assetType }) =>
+    async ({ identifier, secp256r1PublicKey, assetType }) =>
       jsonResult(
-        await planMintToken({
-          assetPublicKey,
-          mint,
+        await planInitialize({
+          identifier,
+          secp256r1PublicKey,
           assetType: parseAssetType(assetType),
         }),
       ),
@@ -198,58 +146,49 @@ function registerTools(server: McpServer) {
       description:
         "Plan a passkey-authorized transfer (offline): flow steps, derived accounts, and challenge formula.",
       inputSchema: {
-        assetPublicKey: z
+        identifier: z
           .string()
-          .describe("Base64url-encoded secp256r1 public key for the phygital asset"),
+          .describe("Base64url chip identifier used as the asset PDA seed"),
         recipient: z.string().describe("Recipient wallet address"),
-        mint: z
-          .string()
-          .optional()
-          .describe("Design mint address — with currentOwner, enables ATA derivation"),
-        currentOwner: z
-          .string()
-          .optional()
-          .describe("Current asset owner wallet — with mint, enables ATA derivation"),
       },
       annotations: { title: "Plan transfer", ...READ_ONLY },
     },
-    async ({ assetPublicKey, recipient, mint, currentOwner }) =>
-      jsonResult(await planTransfer({ assetPublicKey, recipient, mint, currentOwner })),
+    async ({ identifier, recipient }) =>
+      jsonResult(await planTransfer({ identifier, recipient })),
   );
 
   server.registerTool(
     "plan_remove_ownership",
     {
       description:
-        "Plan a wallet-signed forfeiture (offline): return the token to custody and reset asset.owner.",
+        "Plan a wallet-signed forfeiture (offline): reset asset.owner to the default pubkey.",
       inputSchema: {
-        assetPublicKey: z
+        identifier: z
           .string()
-          .describe("Base64url-encoded secp256r1 public key for the phygital asset"),
+          .describe("Base64url chip identifier used as the asset PDA seed"),
         owner: z.string().describe("Current asset owner wallet — must match asset.owner on-chain"),
-        mint: z.string().describe("Design mint address for the asset"),
       },
       annotations: { title: "Plan remove_ownership", ...READ_ONLY },
     },
-    async ({ assetPublicKey, owner, mint }) =>
-      jsonResult(await planRemoveOwnership({ assetPublicKey, owner, mint })),
+    async ({ identifier, owner }) =>
+      jsonResult(await planRemoveOwnership({ identifier, owner })),
   );
 
   server.registerTool(
     "find_asset_pda",
     {
       description:
-        "Derive the on-chain asset PDA address from a secp256r1 passkey public key (offline).",
+        "Derive the on-chain asset PDA address from a chip identifier (offline).",
       inputSchema: {
-        assetPublicKey: z
+        identifier: z
           .string()
-          .describe("Base64url-encoded secp256r1 public key for the phygital asset"),
+          .describe("Base64url-encoded chip identifier (PDA seed)"),
       },
       annotations: { title: "Find asset PDA", ...READ_ONLY },
     },
-    async ({ assetPublicKey }) => {
-      const assetPda = await findAssetPda(parseSecp256r1Pubkey(assetPublicKey));
-      return jsonResult({ assetPublicKey, assetPda });
+    async ({ identifier }) => {
+      const assetPda = await findAssetPda(parseSecp256r1Pubkey(identifier));
+      return jsonResult({ identifier, assetPda });
     },
   );
 

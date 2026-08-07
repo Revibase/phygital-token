@@ -1,148 +1,58 @@
-import {
-  address,
-  getAddressEncoder,
-  getProgramDerivedAddress,
-  type Address,
-} from "@solana/kit";
+import { address, type Address } from "@solana/kit";
 import {
   AssetType,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-  findProgramAuthorityPda,
   parseSecp256r1Pubkey,
-  validateMetadataFields,
   findAssetPda,
-  type MetadataFields,
 } from "phygital-token-sdk";
-import { sha256 } from "@noble/hashes/sha2.js";
-import type { OnChainCompositionPattern } from "./verification.js";
 
-const TOKEN_2022_PROGRAM_ADDRESS = address(
-  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
-);
-const ASSOCIATED_TOKEN_PROGRAM_ADDRESS = address(
-  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
-);
-const TRANSFER_HOOK_PROGRAM_ADDRESS = address(
-  "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR",
-);
-
-async function findAssociatedTokenAddress(
-  owner: Address,
-  mint: Address,
-  tokenProgram: Address,
-): Promise<Address> {
-  const [ata] = await getProgramDerivedAddress({
-    programAddress: ASSOCIATED_TOKEN_PROGRAM_ADDRESS,
-    seeds: [
-      getAddressEncoder().encode(owner),
-      getAddressEncoder().encode(tokenProgram),
-      getAddressEncoder().encode(mint),
-    ],
-  });
-  return ata;
-}
-
-export function planCreateMint(fields: MetadataFields) {
-  validateMetadataFields(fields);
-
-  return {
-    flow: "off-chain Token-2022 mint creation",
-    sdk: "buildCreateMintInstructions",
-    metadata: fields,
-    requiredSigners: [
-      { name: "payer", role: "Pays rent and transaction fees" },
-      { name: "owner", role: "Design mint owner / metadata update authority" },
-      { name: "groupMintAuthority", role: "Authority over the collection group mint" },
-      { name: "mint", role: "New design mint keypair (caller-supplied signer)" },
-      { name: "mintAuthority", role: "Set as the design mint's mint authority; the only signer that can later mint_token" },
-    ],
-    requiredAccounts: [
-      { name: "groupMint", role: "Token-2022 collection (group) parent mint" },
-      { name: "rpc", role: "Solana RPC client for rent-exemption lookup" },
-    ],
-    notes: [
-      "Creates a shared design mint (SFT template) within a collection via Token-2022 instructions — not a phygital-token program instruction.",
-      "Metadata name ≤ 32, symbol ≤ 10, uri ≤ 200 characters.",
-      "The mint must match the phygital design-mint shape before mint_token will accept it.",
-    ],
-  };
-}
-
-export async function planMintToken(input: {
-  assetPublicKey: string;
-  mint: string;
+export async function planInitialize(input: {
+  identifier: string;
+  secp256r1PublicKey: string;
   assetType: "Lockable" | "Transferable";
 }) {
-  const secp256r1Pubkey = parseSecp256r1Pubkey(input.assetPublicKey);
-  const assetPda = await findAssetPda(secp256r1Pubkey);
-  const [programAuthority] = await findProgramAuthorityPda();
-  const mint = address(input.mint);
-  const programAuthorityTokenAccount = await findAssociatedTokenAddress(
-    programAuthority,
-    mint,
-    TOKEN_2022_PROGRAM_ADDRESS,
-  );
-
+  const identifier = parseSecp256r1Pubkey(input.identifier);
+  const secp256r1Pubkey = parseSecp256r1Pubkey(input.secp256r1PublicKey);
+  const assetPda = await findAssetPda(identifier);
   const assetType =
     input.assetType === "Lockable" ? AssetType.Lockable : AssetType.Transferable;
 
   return {
-    instruction: "mint_token",
-    sdk: "buildMintTokenInstructions",
+    instruction: "initialize",
+    sdk: "buildInitializeInstruction",
     assetType: input.assetType,
     derivedAccounts: {
       assetPda,
-      programAuthority,
-      programAuthorityTokenAccount,
-      mint: input.mint,
-      tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
     requiredSigners: [
-      { name: "authority", role: "Mint authority for the design mint" },
+      { name: "authority", role: "Pays rent; creates the asset PDA" },
     ],
     requiredInputs: {
-      secp256r1Pubkey: input.assetPublicKey,
+      identifier: input.identifier,
+      secp256r1Pubkey: input.secp256r1PublicKey,
       assetType,
     },
     notes: [
-      "Mints one SPL token into program custody and initializes the asset PDA.",
-      "Passkey pubkey must be compressed secp256r1 (33 bytes, 0x02/0x03 prefix).",
+      "Creates an asset PDA seeded by the chip identifier (not the passkey).",
+      "identifier and secp256r1Pubkey are independent 33-byte compressed values.",
+      "Ownership starts as the default (zero) pubkey until the first transfer.",
     ],
   };
 }
 
 export async function planTransfer(input: {
-  assetPublicKey: string;
+  identifier: string;
   recipient: string;
-  mint?: string;
-  currentOwner?: string;
 }) {
-  const assetPda = await findAssetPda(parseSecp256r1Pubkey(input.assetPublicKey));
+  const assetPda = await findAssetPda(parseSecp256r1Pubkey(input.identifier));
   const recipient = address(input.recipient);
-
-  let senderTokenAccount: Address | undefined;
-  let recipientTokenAccount: Address | undefined;
-  if (input.mint && input.currentOwner) {
-    const mint = address(input.mint);
-    const owner = address(input.currentOwner);
-    senderTokenAccount = await findAssociatedTokenAddress(
-      owner,
-      mint,
-      TOKEN_2022_PROGRAM_ADDRESS,
-    );
-    recipientTokenAccount = await findAssociatedTokenAddress(
-      recipient,
-      mint,
-      TOKEN_2022_PROGRAM_ADDRESS,
-    );
-  }
 
   return {
     flow: [
-      "1. beginTransfer({ rpc, displayInfo }) — fetch slot hash, build challenge",
+      "1. beginTransfer({ rpc, asset }) — fetch slot hash, build challenge",
       "2. authenticatePasskeyForTransfer(session) — NFC/WebAuthn tap on physical asset",
-      "3. completeTransfer(session, webAuthnResponse, recipient) — build secp256r1_verify + execute_transfer",
+      "3. completeTransfer(session, webAuthnResponse, recipient) — pubkey from response.id; build secp256r1_verify + execute_transfer",
     ],
     sdk: {
       begin: "beginTransfer",
@@ -156,184 +66,45 @@ export async function planTransfer(input: {
     },
     derived: {
       assetPda,
-      assetPublicKey: input.assetPublicKey,
+      identifier: input.identifier,
+      recipient,
     },
     transferAccounts: {
-      sender: input.currentOwner ?? "(fetch via fetchAssetDisplayInfo or on-chain asset account)",
       recipient: input.recipient,
-      mint: input.mint ?? "(from asset / display info)",
-      senderTokenAccount:
-        senderTokenAccount ??
-        "(ATA for currentOwner + mint — derive when mint and owner are known)",
-      recipientTokenAccount:
-        recipientTokenAccount ??
-        "(ATA for recipient + mint — derive when mint is known)",
-      tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
+      asset: assetPda,
+      slotHashes: "SysvarS1otHashes111111111111111111111111111",
+      instructionsSysvar: "Sysvar1nstructions1111111111111111111111111",
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
     instructions: ["secp256r1_verify", "execute_transfer"],
     notes: [
+      "No SPL token transfer — execute_transfer only updates asset.owner.",
+      "beginTransfer only needs rpc + asset PDA; passkey comes from response.id at completeTransfer.",
       "Recipient is chosen at wallet confirmation — not bound in the passkey signature.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
-      "Optional mint and currentOwner inputs enable ATA derivation in this plan output.",
-    ],
-  };
-}
-
-function buildVerifyAssetChallengeDescription(message: string): string {
-  const messageBytes = new TextEncoder().encode(message);
-  const messageHash = sha256(messageBytes);
-  return `SHA256('verify_asset' || SHA256(message[${messageBytes.length} bytes]) || slotHash) — messageHash prefix: ${Buffer.from(messageHash.subarray(0, 8)).toString("hex")}…`;
-}
-
-export async function planVerifyAsset(input: {
-  message: string;
-  assetPublicKey?: string;
-  onChainPattern?: OnChainCompositionPattern;
-}) {
-  const messageBytes = new TextEncoder().encode(input.message);
-
-  let assetPda: string | undefined;
-  if (input.assetPublicKey) {
-    assetPda = await findAssetPda(parseSecp256r1Pubkey(input.assetPublicKey));
-  }
-
-  const pattern = input.onChainPattern ?? "inspect";
-  const patternMeta = {
-    inspect: {
-      transactionOrder: ["secp256r1_verify", "verify_asset", "your_program_ix"],
-      clientSteps: [
-        "beginVerifyAsset({ rpc, message })",
-        "authenticatePasskeyForVerifyAsset(session)",
-        "completeVerifyAsset(session, response) — or buildVerifyAssetArgs + getVerifyAssetInstruction",
-        "buildYourProgramInstruction(/* same message bytes */)",
-        "sendTransaction([secp256r1Verify, verifyAssetIx, yourIx])",
-      ],
-      programSide:
-        "Your Rust program scans instructions_sysvar for preceding verify_asset; validates message",
-      clientSdk: ["completeVerifyAsset", "getVerifyAssetInstruction"],
-    },
-    cpi: {
-      transactionOrder: ["secp256r1_verify", "your_program_ix"],
-      clientSteps: [
-        "beginVerifyAsset({ rpc, message })",
-        "authenticatePasskeyForVerifyAsset(session)",
-        "buildVerifyAssetArgs(session, response) — secp256r1Verify + verify args",
-        "buildYourProgramInstruction({ secp256r1VerifyArgs, message, assetPda })",
-        "sendTransaction([secp256r1Verify, yourIx]) — your program CPIs verify_asset",
-      ],
-      programSide:
-        "Your Rust program CPIs verify_asset via VerifyAssetCpiBuilder (phygital-token-client)",
-      clientSdk: ["buildVerifyAssetArgs"],
-    },
-    standalone: {
-      transactionOrder: ["secp256r1_verify", "verify_asset"],
-      clientSteps: [
-        "beginVerifyAsset({ rpc, message })",
-        "authenticatePasskeyForVerifyAsset(session)",
-        "completeVerifyAsset(session, response)",
-        "sendTransaction([secp256r1Verify, verifyAssetIx])",
-      ],
-      programSide: "None — no custom program",
-      clientSdk: ["completeVerifyAsset"],
-    },
-  }[pattern];
-
-  return {
-    onChainPattern: pattern,
-    patternName: pattern === "inspect"
-      ? "A — client posts verify_asset, program inspects"
-      : pattern === "cpi"
-        ? "B — client posts secp256r1_verify, program CPIs verify_asset"
-        : "Standalone verify_asset",
-    flow: patternMeta.clientSteps,
-    sdk: {
-      begin: "beginVerifyAsset",
-      authenticate: "authenticatePasskeyForVerifyAsset",
-      buildArgs: "buildVerifyAssetArgs",
-      complete: "completeVerifyAsset",
-      instruction: "getVerifyAssetInstruction",
-      offChainAuthOnly:
-        "startAuthentication (client) + verifyResponse (server); does NOT submit verify_asset",
-    },
-    message: {
-      utf8: input.message,
-      byteLength: messageBytes.length,
-      onChainHash: "SHA256(message) — must match bytes passed to verify_asset",
-    },
-    challenge: {
-      formula: buildVerifyAssetChallengeDescription(input.message),
-      fetchedAt: "beginVerifyAsset reads slot_hashes sysvar (~512 slot window)",
-      note: "Run beginVerifyAsset with a live rpc to get challengeBase64 and slotNumber.",
-    },
-    derived: assetPda ? { assetPda, assetPublicKey: input.assetPublicKey } : undefined,
-    transactionLayout: {
-      order: patternMeta.transactionOrder,
-      verifyAssetAccounts: {
-        asset: "writable PDA matching passkey pubkey",
-        slot_hashes: "SysvarS1otHashes111111111111111111111111111",
-        instructions_sysvar: "Sysvar1nstructions1111111111111111111111111",
-      },
-      verifyAssetArgs: {
-        secp256r1VerifyArgs: "{ signedMessageIndex, slotNumber, clientDataJson }",
-        message: "same Uint8Array as beginVerifyAsset",
-      },
-    },
-    programSide: patternMeta.programSide,
-    buildVerifyAssetArgsReturns: {
-      asset: "decoded on-chain Asset account",
-      assetPda: "Address",
-      secp256r1Verify: "Instruction for Secp256r1SigVerify program",
-      signedMessageIndex: "number",
-      clientDataJson: "Uint8Array",
-    },
-    notes: [
-      "startAuthentication + verifyResponse is off-chain only — it does not submit verify_asset. Verify on your server.",
-      "Pattern A: client includes verify_asset; your program inspects instructions sysvar.",
-      "Pattern B: client uses buildVerifyAssetArgs; your program CPIs verify_asset.",
-      "verify_asset updates asset.last_transfer_slot; slot must be strictly increasing.",
+      "PDA is derived from identifier; passkey public key authorizes the signature.",
     ],
   };
 }
 
 export async function planRemoveOwnership(input: {
-  assetPublicKey: string;
+  identifier: string;
   owner: string;
-  mint: string;
 }) {
-  const assetPda = await findAssetPda(parseSecp256r1Pubkey(input.assetPublicKey));
-  const [programAuthority] = await findProgramAuthorityPda();
-  const mint = address(input.mint);
-  const owner = address(input.owner);
-  const programAuthorityTokenAccount = await findAssociatedTokenAddress(
-    programAuthority,
-    mint,
-    TOKEN_2022_PROGRAM_ADDRESS,
-  );
-  const ownerTokenAccount = await findAssociatedTokenAddress(
-    owner,
-    mint,
-    TOKEN_2022_PROGRAM_ADDRESS,
-  );
+  const assetPda = await findAssetPda(parseSecp256r1Pubkey(input.identifier));
 
   return {
     instruction: "remove_ownership",
-    sdk: "getRemoveOwnershipInstructionAsync",
+    sdk: "getRemoveOwnershipInstruction",
     flow: [
       "1. Confirm the connected wallet is asset.owner on-chain",
-      "2. Build remove_ownership with getRemoveOwnershipInstructionAsync",
+      "2. Build remove_ownership with getRemoveOwnershipInstruction",
       "3. Owner signs and submits the transaction (no passkey tap required)",
     ],
     derivedAccounts: {
       assetPda,
-      assetPublicKey: input.assetPublicKey,
-      programAuthority,
-      mint: input.mint,
+      identifier: input.identifier,
       owner: input.owner,
-      programAuthorityTokenAccount,
-      ownerTokenAccount,
-      tokenProgram: TOKEN_2022_PROGRAM_ADDRESS,
-      transferHookProgram: TRANSFER_HOOK_PROGRAM_ADDRESS,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
     requiredSigners: [
@@ -343,18 +114,13 @@ export async function planRemoveOwnership(input: {
       },
     ],
     onChainEffects: [
-      "Transfers one SPL token from owner ATA back to program custody",
-      "Sets asset.owner to program_authority (unclaimed / custody state)",
+      "Sets asset.owner to the default (zero) pubkey",
       "Clears asset.is_locked (forfeiture unlocks lockable assets)",
-      "Closes owner ATA when balance was exactly 1 on that mint",
       "Preserves asset.last_transfer_slot",
     ],
     notes: [
       "Wallet-signed forfeiture — unlike execute_transfer, no secp256r1_verify or passkey tap.",
-      "Owner must hold at least one token in their ATA for the design mint.",
-      "Fails if asset is already in custody (program_authority is owner).",
-      "Fails if signer is not asset.owner or mint does not match the asset record.",
-      "Program authority custody ATA is created idempotently when needed.",
+      "Fails if signer is not asset.owner.",
     ],
   };
 }
@@ -366,3 +132,5 @@ export function parseAssetType(value: string): "Lockable" | "Transferable" {
   }
   throw new Error('assetType must be "Lockable" or "Transferable".');
 }
+
+export type { Address };

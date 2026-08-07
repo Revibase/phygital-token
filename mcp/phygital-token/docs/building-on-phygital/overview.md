@@ -3,49 +3,40 @@
 Third-party developers can:
 
 - **Authenticate off-chain** with a live NFC tap → `startAuthentication` + `verifyResponse`
-- **Require live passkey presence on-chain** → composable `verify_asset` (two patterns below)
+- **Transfer ownership on-chain** → `beginTransfer` / `completeTransfer` (`execute_transfer`)
+- **Initialize assets** → `buildInitializeInstruction` (chip `identifier` + passkey)
 
-## Two on-chain composition patterns
-
-Both start with the same client flow: `beginVerifyAsset` → NFC tap → `buildVerifyAssetArgs`.
-
-### Pattern A — Client posts `verify_asset`, your program inspects
-
-| Layer | Responsibility |
-|-------|----------------|
-| **Client** | `[secp256r1_verify, verify_asset, your_ix]` via `completeVerifyAsset` |
-| **Your program** | Read instructions sysvar; find preceding `verify_asset`; verify `message` bytes |
-
-Best when your program is a consumer of an already-executed proof. Reference: `phygital-spend`.
-
-### Pattern B — Client posts `secp256r1_verify`, your program CPIs `verify_asset`
-
-| Layer | Responsibility |
-|-------|----------------|
-| **Client** | `[secp256r1_verify, your_ix]` — pass `Secp256r1VerifyArgs` + `message` in your ix data |
-| **Your program** | CPI `verify_asset` via `VerifyAssetCpiBuilder` (`phygital-token-client`) |
-
-Best when your program orchestrates verification as part of its own instruction.
-
-## Off-chain authentication (no `verify_asset`)
-
-Off-chain tap auth is split:
+## Off-chain authentication
 
 1. **Client:** `startAuthentication(expectedMessage)` — NFC tap.
-2. **Server:** `verifyResponse({ expectedMessage, response })` — signature check → `{ isVerified, secp256r1PublicKey }` (`response.id` is the compressed secp256r1 key, reused as the WebAuthn credential id). Fetch on-chain owner/metadata with `fetchAssetDisplayInfoFromSecp256r1PublicKey(rpc, secp256r1PublicKey)` when needed.
+2. **Server:** `verifyResponse({ expectedMessage, response })` — signature check → `{ isVerified, secp256r1PublicKey }` (`response.id` is the compressed secp256r1 key, reused as the WebAuthn credential id).
+3. **Optional:** `fetchAssetsByPublicKey(rpc, secp256r1PublicKey)` to load on-chain state. PDA is seeded by chip `identifier`, which is distinct from the passkey.
 
-Does **not** write to chain. Use for UI login and vault presence checks when no program needs to inspect `verify_asset`.
+Does **not** write to chain. Use for UI login and vault presence checks.
+
+## On-chain ownership
+
+```
+beginTransfer({ rpc, asset })
+        ↓
+authenticatePasskeyForTransfer(session)
+        ↓
+completeTransfer(session, response, recipient)  // passkey from response.id
+        ↓
+send [secp256r1_verify, execute_transfer]
+```
+
+`beginTransfer` only needs `rpc` and the asset PDA. The passkey is taken from `response.id` in `completeTransfer`. `execute_transfer` updates `asset.owner` only — there is no SPL token / Token-2022 linkage.
 
 ## Message design checklist
 
-- [ ] Define domain-separated `message` bytes (prefix + action fields)
-- [ ] Same bytes in `beginVerifyAsset({ message })` and your program's check
-- [ ] Never reuse messages across authorization scopes
+- [ ] Issue a fresh `expectedMessage` per session (short TTL)
+- [ ] Verify on the server with `verifyResponse` — never trust a client-side “success”
+- [ ] Never reuse off-chain challenges across authorization scopes
+- [ ] For transfers, use the slot-bound transfer challenge — not a free-form string
 
-## Crates
+## Packages
 
-**TypeScript:** `phygital-token-sdk` — `buildVerifyAssetArgs`, `completeVerifyAsset`, `getVerifyAssetInstruction`
+**TypeScript:** `phygital-token-sdk` — `startAuthentication`, `verifyResponse`, `beginTransfer`, `completeTransfer`, `buildInitializeInstruction`
 
-**Rust:** `phygital-token-client` at `clients/rust/phygital-token` — `VerifyAssetCpiBuilder`, `Secp256r1VerifyArgs`
-
-See [rust-cpi.md](./rust-cpi.md).
+**Rust:** `phygital-token-client` at `clients/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `execute_transfer`, `remove_ownership`, `set_lock_state`

@@ -1,60 +1,23 @@
 export type VerificationUseCase =
-  | "product_page_lookup"
-  | "deep_link_from_prior_scan"
-  | "offline_identification"
   | "login_ui_only"
-  | "onchain_standalone_verify"
-  | "onchain_inspect_verify_asset"
-  | "onchain_cpi_verify_asset"
   | "transfer_ownership"
-  | "native_mobile_app";
-
-export type OnChainCompositionPattern = "inspect" | "cpi" | "standalone";
+  | "native_mobile_app"
+  | "lookup_after_tap";
 
 export type VerificationRecommendation = {
   method: string;
   sdkExports: string[];
   requiresTap: boolean;
   onChain: boolean;
-  onChainPattern?: OnChainCompositionPattern;
   rationale: string;
   docIds: string[];
   cautions?: string[];
 };
 
 const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> = {
-  product_page_lookup: {
-    method: "identification — verifyDynamicUrl",
-    sdkExports: ["verifyDynamicUrl"],
-    requiresTap: false,
-    onChain: false,
-    rationale:
-      "User already scanned; signed URL params identify the asset without a second tap.",
-    docIds: ["verification:methods", "verification:overview"],
-  },
-  deep_link_from_prior_scan: {
-    method: "identification — verifyDynamicUrl",
-    sdkExports: ["verifyDynamicUrl"],
-    requiresTap: false,
-    onChain: false,
-    rationale: "Signed deep-link params from an earlier tap.",
-    docIds: ["verification:methods"],
-  },
-  offline_identification: {
-    method: "identification — verifyDynamicUrlWithoutCounterCheck",
-    sdkExports: ["verifyDynamicUrlWithoutCounterCheck"],
-    requiresTap: false,
-    onChain: false,
-    rationale: "Local signature check only. Not for authorization.",
-    docIds: ["verification:methods"],
-    cautions: ["Copied links can be replayed."],
-  },
   login_ui_only: {
-    method: "authentication off-chain — startAuthentication + verifyResponse",
-    sdkExports: [
-      "startAuthentication",
-      "verifyResponse",
-    ],
+    method: "authentication — startAuthentication + verifyResponse",
+    sdkExports: ["startAuthentication", "verifyResponse"],
     requiresTap: true,
     onChain: false,
     rationale:
@@ -62,73 +25,33 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     docIds: ["verification:methods", "verification:overview"],
     cautions: ["Run verifyResponse on your server, not in the browser."],
   },
-  onchain_standalone_verify: {
-    method: "on-chain verify_asset only",
-    sdkExports: ["beginVerifyAsset", "authenticatePasskeyForVerifyAsset", "completeVerifyAsset"],
-    requiresTap: true,
-    onChain: true,
-    onChainPattern: "standalone",
-    rationale: "Record passkey proof on-chain without a custom program.",
-    docIds: ["verification:verify-asset-composable"],
-  },
-  onchain_inspect_verify_asset: {
-    method: "Pattern A — client posts verify_asset, your program inspects message",
-    sdkExports: [
-      "beginVerifyAsset",
-      "authenticatePasskeyForVerifyAsset",
-      "completeVerifyAsset",
-      "getVerifyAssetInstruction",
-    ],
-    requiresTap: true,
-    onChain: true,
-    onChainPattern: "inspect",
-    rationale:
-      "Client includes verify_asset in the tx. Your program scans instructions sysvar for that verify_asset and validates message bytes.",
-    docIds: [
-      "verification:verify-asset-composable",
-      "building-on-phygital:overview",
-      "building-on-phygital:rust-cpi",
-    ],
-  },
-  onchain_cpi_verify_asset: {
-    method: "Pattern B — buildVerifyAssetArgs, your program CPIs verify_asset",
-    sdkExports: [
-      "beginVerifyAsset",
-      "authenticatePasskeyForVerifyAsset",
-      "buildVerifyAssetArgs",
-    ],
-    requiresTap: true,
-    onChain: true,
-    onChainPattern: "cpi",
-    rationale:
-      "Client includes secp256r1_verify + your ix only. Your program CPIs verify_asset using args from buildVerifyAssetArgs.",
-    docIds: [
-      "verification:verify-asset-composable",
-      "building-on-phygital:rust-cpi",
-      "building-on-phygital:overview",
-    ],
-  },
   transfer_ownership: {
     method: "transfer — beginTransfer / completeTransfer",
     sdkExports: ["beginTransfer", "authenticatePasskeyForTransfer", "completeTransfer"],
     requiresTap: true,
     onChain: true,
-    rationale: "Token claim uses execute_transfer, not verify_asset.",
-    docIds: ["verification:overview"],
-    cautions: ["Do not use verifyDynamicUrl for transfers."],
+    rationale: "Ownership claim uses execute_transfer (updates asset.owner; no SPL token).",
+    docIds: ["verification:overview", "sdk:surface-area"],
+    cautions: ["Do not use verifyResponse alone for transfers — it does not change on-chain ownership."],
   },
   native_mobile_app: {
-    method: "authentication off-chain — startAuthentication (transceive) + verifyResponse",
-    sdkExports: [
-      "startAuthentication",
-      "verifyResponse",
-    ],
+    method: "authentication — startAuthentication (transceive) + verifyResponse",
+    sdkExports: ["startAuthentication", "verifyResponse"],
     requiresTap: true,
     onChain: false,
     rationale:
-      "Pass transceive to startAuthentication for native NFC readers; verify on server. Use beginVerifyAsset for on-chain proof.",
+      "Pass transceive to startAuthentication for native NFC readers; verify on server. Use beginTransfer for on-chain ownership changes.",
     docIds: ["verification:methods"],
     cautions: ["Run verifyResponse on your server, not in the native client."],
+  },
+  lookup_after_tap: {
+    method: "verifyResponse → fetchAssetsByPublicKey",
+    sdkExports: ["verifyResponse", "fetchAssetsByPublicKey", "fetchAsset"],
+    requiresTap: true,
+    onChain: false,
+    rationale:
+      "After verifyResponse, look up the asset by passkey public key. PDA is seeded by chip identifier (distinct from the passkey).",
+    docIds: ["verification:methods", "sdk:surface-area"],
   },
 };
 
@@ -143,35 +66,25 @@ export function listVerificationUseCases(): Array<{
   summary: string;
 }> {
   return [
-    { id: "product_page_lookup", summary: "Product page from prior scan URL" },
-    { id: "deep_link_from_prior_scan", summary: "App opens from signed deep link" },
-    { id: "offline_identification", summary: "Identify asset offline (weak replay)" },
     { id: "login_ui_only", summary: "Off-chain tap-to-login (no chain tx)" },
-    { id: "onchain_standalone_verify", summary: "On-chain verify_asset only" },
-    {
-      id: "onchain_inspect_verify_asset",
-      summary: "Pattern A: client posts verify_asset, your program inspects message",
-    },
-    {
-      id: "onchain_cpi_verify_asset",
-      summary: "Pattern B: buildVerifyAssetArgs, your program CPIs verify_asset",
-    },
-    { id: "transfer_ownership", summary: "Claim/transfer token to new owner" },
+    { id: "transfer_ownership", summary: "Claim/transfer ownership to a new wallet" },
     { id: "native_mobile_app", summary: "Native app off-chain authentication" },
+    { id: "lookup_after_tap", summary: "Verify tap then load on-chain asset state" },
   ];
 }
 
 export const VERIFICATION_DECISION_TREE = `
-Identification vs Authentication
-├── Need holder present NOW?
-│   NO → verifyDynamicUrl / verifyDynamicUrlWithoutCounterCheck
-│   YES → Need on-chain proof?
-│         NO → startAuthentication (client tap)
-│              → verifyResponse (server verify) — off-chain only
-│         YES → beginVerifyAsset composable flow:
-│               Pattern A: [secp256r1_verify, verify_asset, your_ix] — program inspects sysvar
-│               Pattern B: [secp256r1_verify, your_ix] — program CPIs verify_asset
-└── Transfer ownership? → beginTransfer → completeTransfer
+Authentication (live NFC tap required)
+├── Need on-chain ownership change?
+│   YES → beginTransfer → completeTransfer (execute_transfer)
+│   NO  → startAuthentication (client tap)
+│         → verifyResponse (server verify)
+│         → optional: fetchAssetsByPublicKey(rpc, secp256r1PublicKey)
+└── Know the chip identifier already?
+    → findAssetPda(identifier) / fetchAsset(rpc, pda)
 
-verifyResponse never submits verify_asset. Returns { isVerified, secp256r1PublicKey } (response.id is the secp256r1 vault key, also the WebAuthn credential id). Run it on your server. Load on-chain state with fetchAssetDisplayInfoFromSecp256r1PublicKey when needed. On-chain proof always uses beginVerifyAsset.
+verifyResponse never submits an on-chain ix. Returns { isVerified, secp256r1PublicKey }
+(response.id is the secp256r1 vault key / WebAuthn credential id). Run it on your server.
+Chip identifier (PDA seed) is distinct from the passkey public key.
+There is no signed-URL / prior-scan identification path — every check needs a fresh tap.
 `.trim();
