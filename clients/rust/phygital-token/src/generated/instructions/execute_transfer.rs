@@ -5,7 +5,6 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use crate::generated::types::Secp256r1VerifyArgs;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
@@ -19,40 +18,13 @@ pub struct ExecuteTransfer {
           pub recipient: solana_address::Address,
           
               
-          pub sender: solana_address::Address,
-          
-              
           pub asset: solana_address::Address,
-          
-              
-          pub mint: solana_address::Address,
-          
-              
-          pub sender_token_account: solana_address::Address,
-          
-              
-          pub recipient_token_account: solana_address::Address,
-          
-              
-          pub program_authority: solana_address::Address,
           
               
           pub slot_hashes: solana_address::Address,
           
               
           pub instructions_sysvar: solana_address::Address,
-          
-              
-          pub token_program: solana_address::Address,
-          
-              
-          pub associated_token_program: solana_address::Address,
-          
-              
-          pub system_program: solana_address::Address,
-          
-              
-          pub transfer_hook_program: solana_address::Address,
       }
 
 impl ExecuteTransfer {
@@ -62,33 +34,13 @@ impl ExecuteTransfer {
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
   pub fn instruction_with_remaining_accounts(&self, args: ExecuteTransferInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(13+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.recipient,
-            true
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.sender,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
             self.asset,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.mint,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.sender_token_account,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.recipient_token_account,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.program_authority,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -97,22 +49,6 @@ impl ExecuteTransfer {
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.instructions_sysvar,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.token_program,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.associated_token_program,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.system_program,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.transfer_hook_program,
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
@@ -131,13 +67,13 @@ impl ExecuteTransfer {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
  pub struct ExecuteTransferInstructionData {
             discriminator: [u8; 8],
-            }
+                              }
 
 impl ExecuteTransferInstructionData {
   pub fn new() -> Self {
     Self {
                         discriminator: [233, 126, 160, 184, 235, 206, 31, 119],
-                                }
+                                                                          }
   }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
@@ -153,7 +89,10 @@ impl Default for ExecuteTransferInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
  pub struct ExecuteTransferInstructionArgs {
-                  pub secp256r1_verify_args: Secp256r1VerifyArgs,
+                  pub verify_args_relative_index: i64,
+                pub signed_message_index: u8,
+                pub slot_number: u64,
+                pub client_data_json: Vec<u8>,
       }
 
 impl ExecuteTransferInstructionArgs {
@@ -167,35 +106,20 @@ impl ExecuteTransferInstructionArgs {
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` recipient
-          ///   1. `[]` sender
-                ///   2. `[writable]` asset
-                ///   3. `[writable]` mint
-                ///   4. `[writable]` sender_token_account
-                ///   5. `[writable]` recipient_token_account
-                ///   6. `[writable]` program_authority
-                ///   7. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
-                ///   8. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
-                ///   9. `[optional]` token_program (default to `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`)
-                ///   10. `[optional]` associated_token_program (default to `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL`)
-                ///   11. `[optional]` system_program (default to `11111111111111111111111111111111`)
-                ///   12. `[optional]` transfer_hook_program (default to `2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR`)
+          ///   0. `[]` recipient
+                ///   1. `[writable]` asset
+                ///   2. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
+                ///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct ExecuteTransferBuilder {
             recipient: Option<solana_address::Address>,
-                sender: Option<solana_address::Address>,
                 asset: Option<solana_address::Address>,
-                mint: Option<solana_address::Address>,
-                sender_token_account: Option<solana_address::Address>,
-                recipient_token_account: Option<solana_address::Address>,
-                program_authority: Option<solana_address::Address>,
                 slot_hashes: Option<solana_address::Address>,
                 instructions_sysvar: Option<solana_address::Address>,
-                token_program: Option<solana_address::Address>,
-                associated_token_program: Option<solana_address::Address>,
-                system_program: Option<solana_address::Address>,
-                transfer_hook_program: Option<solana_address::Address>,
-                        secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+                        verify_args_relative_index: Option<i64>,
+                signed_message_index: Option<u8>,
+                slot_number: Option<u64>,
+                client_data_json: Option<Vec<u8>>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -209,33 +133,8 @@ impl ExecuteTransferBuilder {
                     self
     }
             #[inline(always)]
-    pub fn sender(&mut self, sender: solana_address::Address) -> &mut Self {
-                        self.sender = Some(sender);
-                    self
-    }
-            #[inline(always)]
     pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
                         self.asset = Some(asset);
-                    self
-    }
-            #[inline(always)]
-    pub fn mint(&mut self, mint: solana_address::Address) -> &mut Self {
-                        self.mint = Some(mint);
-                    self
-    }
-            #[inline(always)]
-    pub fn sender_token_account(&mut self, sender_token_account: solana_address::Address) -> &mut Self {
-                        self.sender_token_account = Some(sender_token_account);
-                    self
-    }
-            #[inline(always)]
-    pub fn recipient_token_account(&mut self, recipient_token_account: solana_address::Address) -> &mut Self {
-                        self.recipient_token_account = Some(recipient_token_account);
-                    self
-    }
-            #[inline(always)]
-    pub fn program_authority(&mut self, program_authority: solana_address::Address) -> &mut Self {
-                        self.program_authority = Some(program_authority);
                     self
     }
             /// `[optional account, default to 'SysvarS1otHashes111111111111111111111111111']`
@@ -250,33 +149,24 @@ impl ExecuteTransferBuilder {
                         self.instructions_sysvar = Some(instructions_sysvar);
                     self
     }
-            /// `[optional account, default to 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb']`
-#[inline(always)]
-    pub fn token_program(&mut self, token_program: solana_address::Address) -> &mut Self {
-                        self.token_program = Some(token_program);
-                    self
-    }
-            /// `[optional account, default to 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL']`
-#[inline(always)]
-    pub fn associated_token_program(&mut self, associated_token_program: solana_address::Address) -> &mut Self {
-                        self.associated_token_program = Some(associated_token_program);
-                    self
-    }
-            /// `[optional account, default to '11111111111111111111111111111111']`
-#[inline(always)]
-    pub fn system_program(&mut self, system_program: solana_address::Address) -> &mut Self {
-                        self.system_program = Some(system_program);
-                    self
-    }
-            /// `[optional account, default to '2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR']`
-#[inline(always)]
-    pub fn transfer_hook_program(&mut self, transfer_hook_program: solana_address::Address) -> &mut Self {
-                        self.transfer_hook_program = Some(transfer_hook_program);
-                    self
-    }
                     #[inline(always)]
-      pub fn secp256r1_verify_args(&mut self, secp256r1_verify_args: Secp256r1VerifyArgs) -> &mut Self {
-        self.secp256r1_verify_args = Some(secp256r1_verify_args);
+      pub fn verify_args_relative_index(&mut self, verify_args_relative_index: i64) -> &mut Self {
+        self.verify_args_relative_index = Some(verify_args_relative_index);
+        self
+      }
+                #[inline(always)]
+      pub fn signed_message_index(&mut self, signed_message_index: u8) -> &mut Self {
+        self.signed_message_index = Some(signed_message_index);
+        self
+      }
+                #[inline(always)]
+      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+        self.slot_number = Some(slot_number);
+        self
+      }
+                #[inline(always)]
+      pub fn client_data_json(&mut self, client_data_json: Vec<u8>) -> &mut Self {
+        self.client_data_json = Some(client_data_json);
         self
       }
         /// Add an additional account to the instruction.
@@ -295,21 +185,15 @@ impl ExecuteTransferBuilder {
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = ExecuteTransfer {
                               recipient: self.recipient.expect("recipient is not set"),
-                                        sender: self.sender.expect("sender is not set"),
                                         asset: self.asset.expect("asset is not set"),
-                                        mint: self.mint.expect("mint is not set"),
-                                        sender_token_account: self.sender_token_account.expect("sender_token_account is not set"),
-                                        recipient_token_account: self.recipient_token_account.expect("recipient_token_account is not set"),
-                                        program_authority: self.program_authority.expect("program_authority is not set"),
                                         slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!("SysvarS1otHashes111111111111111111111111111")),
                                         instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
-                                        token_program: self.token_program.unwrap_or(solana_address::address!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")),
-                                        associated_token_program: self.associated_token_program.unwrap_or(solana_address::address!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")),
-                                        system_program: self.system_program.unwrap_or(solana_address::address!("11111111111111111111111111111111")),
-                                        transfer_hook_program: self.transfer_hook_program.unwrap_or(solana_address::address!("2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR")),
                       };
           let args = ExecuteTransferInstructionArgs {
-                                                              secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
+                                                              verify_args_relative_index: self.verify_args_relative_index.clone().expect("verify_args_relative_index is not set"),
+                                                                  signed_message_index: self.signed_message_index.clone().expect("signed_message_index is not set"),
+                                                                  slot_number: self.slot_number.clone().expect("slot_number is not set"),
+                                                                  client_data_json: self.client_data_json.clone().expect("client_data_json is not set"),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -323,40 +207,13 @@ impl ExecuteTransferBuilder {
               pub recipient: &'b solana_account_info::AccountInfo<'a>,
                 
                     
-              pub sender: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
               pub asset: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub mint: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub sender_token_account: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub recipient_token_account: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub program_authority: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub token_program: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub associated_token_program: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub system_program: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub transfer_hook_program: &'b solana_account_info::AccountInfo<'a>,
             }
 
 /// `execute_transfer` CPI instruction.
@@ -368,40 +225,13 @@ pub struct ExecuteTransferCpi<'a, 'b> {
           pub recipient: &'b solana_account_info::AccountInfo<'a>,
           
               
-          pub sender: &'b solana_account_info::AccountInfo<'a>,
-          
-              
           pub asset: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub mint: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub sender_token_account: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub recipient_token_account: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub program_authority: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub token_program: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub associated_token_program: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub system_program: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub transfer_hook_program: &'b solana_account_info::AccountInfo<'a>,
             /// The arguments for the instruction.
     pub __args: ExecuteTransferInstructionArgs,
   }
@@ -415,18 +245,9 @@ impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
     Self {
       __program: program,
               recipient: accounts.recipient,
-              sender: accounts.sender,
               asset: accounts.asset,
-              mint: accounts.mint,
-              sender_token_account: accounts.sender_token_account,
-              recipient_token_account: accounts.recipient_token_account,
-              program_authority: accounts.program_authority,
               slot_hashes: accounts.slot_hashes,
               instructions_sysvar: accounts.instructions_sysvar,
-              token_program: accounts.token_program,
-              associated_token_program: accounts.associated_token_program,
-              system_program: accounts.system_program,
-              transfer_hook_program: accounts.transfer_hook_program,
                     __args: args,
           }
   }
@@ -450,33 +271,13 @@ impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(13+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.recipient.key,
-            true
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.sender.key,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
             *self.asset.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.mint.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.sender_token_account.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.recipient_token_account.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.program_authority.key,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -485,22 +286,6 @@ impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.instructions_sysvar.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.token_program.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.associated_token_program.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.system_program.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.transfer_hook_program.key,
             false
           ));
                       remaining_accounts.iter().for_each(|remaining_account| {
@@ -519,21 +304,12 @@ impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(14 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.recipient.clone());
-                        account_infos.push(self.sender.clone());
                         account_infos.push(self.asset.clone());
-                        account_infos.push(self.mint.clone());
-                        account_infos.push(self.sender_token_account.clone());
-                        account_infos.push(self.recipient_token_account.clone());
-                        account_infos.push(self.program_authority.clone());
                         account_infos.push(self.slot_hashes.clone());
                         account_infos.push(self.instructions_sysvar.clone());
-                        account_infos.push(self.token_program.clone());
-                        account_infos.push(self.associated_token_program.clone());
-                        account_infos.push(self.system_program.clone());
-                        account_infos.push(self.transfer_hook_program.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
     if signers_seeds.is_empty() {
@@ -548,19 +324,10 @@ impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` recipient
-          ///   1. `[]` sender
-                ///   2. `[writable]` asset
-                ///   3. `[writable]` mint
-                ///   4. `[writable]` sender_token_account
-                ///   5. `[writable]` recipient_token_account
-                ///   6. `[writable]` program_authority
-          ///   7. `[]` slot_hashes
-          ///   8. `[]` instructions_sysvar
-          ///   9. `[]` token_program
-          ///   10. `[]` associated_token_program
-          ///   11. `[]` system_program
-          ///   12. `[]` transfer_hook_program
+          ///   0. `[]` recipient
+                ///   1. `[writable]` asset
+          ///   2. `[]` slot_hashes
+          ///   3. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
 pub struct ExecuteTransferCpiBuilder<'a, 'b> {
   instruction: Box<ExecuteTransferCpiBuilderInstruction<'a, 'b>>,
@@ -571,19 +338,13 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
     let instruction = Box::new(ExecuteTransferCpiBuilderInstruction {
       __program: program,
               recipient: None,
-              sender: None,
               asset: None,
-              mint: None,
-              sender_token_account: None,
-              recipient_token_account: None,
-              program_authority: None,
               slot_hashes: None,
               instructions_sysvar: None,
-              token_program: None,
-              associated_token_program: None,
-              system_program: None,
-              transfer_hook_program: None,
-                                            secp256r1_verify_args: None,
+                                            verify_args_relative_index: None,
+                                signed_message_index: None,
+                                slot_number: None,
+                                client_data_json: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -594,33 +355,8 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
                     self
     }
       #[inline(always)]
-    pub fn sender(&mut self, sender: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.sender = Some(sender);
-                    self
-    }
-      #[inline(always)]
     pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.asset = Some(asset);
-                    self
-    }
-      #[inline(always)]
-    pub fn mint(&mut self, mint: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.mint = Some(mint);
-                    self
-    }
-      #[inline(always)]
-    pub fn sender_token_account(&mut self, sender_token_account: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.sender_token_account = Some(sender_token_account);
-                    self
-    }
-      #[inline(always)]
-    pub fn recipient_token_account(&mut self, recipient_token_account: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.recipient_token_account = Some(recipient_token_account);
-                    self
-    }
-      #[inline(always)]
-    pub fn program_authority(&mut self, program_authority: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.program_authority = Some(program_authority);
                     self
     }
       #[inline(always)]
@@ -633,29 +369,24 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
                         self.instruction.instructions_sysvar = Some(instructions_sysvar);
                     self
     }
-      #[inline(always)]
-    pub fn token_program(&mut self, token_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.token_program = Some(token_program);
-                    self
-    }
-      #[inline(always)]
-    pub fn associated_token_program(&mut self, associated_token_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.associated_token_program = Some(associated_token_program);
-                    self
-    }
-      #[inline(always)]
-    pub fn system_program(&mut self, system_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.system_program = Some(system_program);
-                    self
-    }
-      #[inline(always)]
-    pub fn transfer_hook_program(&mut self, transfer_hook_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.transfer_hook_program = Some(transfer_hook_program);
-                    self
-    }
                     #[inline(always)]
-      pub fn secp256r1_verify_args(&mut self, secp256r1_verify_args: Secp256r1VerifyArgs) -> &mut Self {
-        self.instruction.secp256r1_verify_args = Some(secp256r1_verify_args);
+      pub fn verify_args_relative_index(&mut self, verify_args_relative_index: i64) -> &mut Self {
+        self.instruction.verify_args_relative_index = Some(verify_args_relative_index);
+        self
+      }
+                #[inline(always)]
+      pub fn signed_message_index(&mut self, signed_message_index: u8) -> &mut Self {
+        self.instruction.signed_message_index = Some(signed_message_index);
+        self
+      }
+                #[inline(always)]
+      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+        self.instruction.slot_number = Some(slot_number);
+        self
+      }
+                #[inline(always)]
+      pub fn client_data_json(&mut self, client_data_json: Vec<u8>) -> &mut Self {
+        self.instruction.client_data_json = Some(client_data_json);
         self
       }
         /// Add an additional account to the instruction.
@@ -681,36 +412,21 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
           let args = ExecuteTransferInstructionArgs {
-                                                              secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
+                                                              verify_args_relative_index: self.instruction.verify_args_relative_index.clone().expect("verify_args_relative_index is not set"),
+                                                                  signed_message_index: self.instruction.signed_message_index.clone().expect("signed_message_index is not set"),
+                                                                  slot_number: self.instruction.slot_number.clone().expect("slot_number is not set"),
+                                                                  client_data_json: self.instruction.client_data_json.clone().expect("client_data_json is not set"),
                                     };
         let instruction = ExecuteTransferCpi {
         __program: self.instruction.__program,
                   
           recipient: self.instruction.recipient.expect("recipient is not set"),
                   
-          sender: self.instruction.sender.expect("sender is not set"),
-                  
           asset: self.instruction.asset.expect("asset is not set"),
-                  
-          mint: self.instruction.mint.expect("mint is not set"),
-                  
-          sender_token_account: self.instruction.sender_token_account.expect("sender_token_account is not set"),
-                  
-          recipient_token_account: self.instruction.recipient_token_account.expect("recipient_token_account is not set"),
-                  
-          program_authority: self.instruction.program_authority.expect("program_authority is not set"),
                   
           slot_hashes: self.instruction.slot_hashes.expect("slot_hashes is not set"),
                   
           instructions_sysvar: self.instruction.instructions_sysvar.expect("instructions_sysvar is not set"),
-                  
-          token_program: self.instruction.token_program.expect("token_program is not set"),
-                  
-          associated_token_program: self.instruction.associated_token_program.expect("associated_token_program is not set"),
-                  
-          system_program: self.instruction.system_program.expect("system_program is not set"),
-                  
-          transfer_hook_program: self.instruction.transfer_hook_program.expect("transfer_hook_program is not set"),
                           __args: args,
             };
     instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
@@ -721,19 +437,13 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
 struct ExecuteTransferCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
-                sender: Option<&'b solana_account_info::AccountInfo<'a>>,
                 asset: Option<&'b solana_account_info::AccountInfo<'a>>,
-                mint: Option<&'b solana_account_info::AccountInfo<'a>>,
-                sender_token_account: Option<&'b solana_account_info::AccountInfo<'a>>,
-                recipient_token_account: Option<&'b solana_account_info::AccountInfo<'a>>,
-                program_authority: Option<&'b solana_account_info::AccountInfo<'a>>,
                 slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
                 instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
-                token_program: Option<&'b solana_account_info::AccountInfo<'a>>,
-                associated_token_program: Option<&'b solana_account_info::AccountInfo<'a>>,
-                system_program: Option<&'b solana_account_info::AccountInfo<'a>>,
-                transfer_hook_program: Option<&'b solana_account_info::AccountInfo<'a>>,
-                        secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+                        verify_args_relative_index: Option<i64>,
+                signed_message_index: Option<u8>,
+                slot_number: Option<u64>,
+                client_data_json: Option<Vec<u8>>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

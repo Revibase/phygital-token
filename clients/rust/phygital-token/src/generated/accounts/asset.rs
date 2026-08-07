@@ -16,18 +16,18 @@ use borsh::BorshDeserialize;
 pub struct Asset {
 pub discriminator: [u8; 8],
 pub asset_type: AssetType,
-pub mint: Address,
 pub owner: Address,
 pub last_transfer_slot: u64,
 pub is_locked: bool,
 pub public_key: Secp256r1Pubkey,
+pub identifier: Secp256r1Pubkey,
 }
 
 
 pub const ASSET_DISCRIMINATOR: [u8; 8] = [234, 180, 241, 252, 139, 224, 160, 8];
 
 impl Asset {
-      pub const LEN: usize = 115;
+      pub const LEN: usize = 116;
   
   
   

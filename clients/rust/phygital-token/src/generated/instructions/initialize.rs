@@ -10,11 +10,11 @@ use crate::generated::types::AssetType;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
-pub const MINT_TOKEN_DISCRIMINATOR: [u8; 8] = [172, 137, 183, 14, 207, 110, 234, 56];
+pub const INITIALIZE_DISCRIMINATOR: [u8; 8] = [175, 175, 109, 31, 13, 152, 155, 237];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct MintToken {
+pub struct Initialize {
       
               
           pub authority: solana_address::Address,
@@ -23,32 +23,17 @@ pub struct MintToken {
           pub asset: solana_address::Address,
           
               
-          pub mint: solana_address::Address,
-          
-              
-          pub program_authority: solana_address::Address,
-          
-              
-          pub program_authority_token_account: solana_address::Address,
-          
-              
-          pub token_program: solana_address::Address,
-          
-              
-          pub associated_token_program: solana_address::Address,
-          
-              
           pub system_program: solana_address::Address,
       }
 
-impl MintToken {
-  pub fn instruction(&self, args: MintTokenInstructionArgs) -> solana_instruction::Instruction {
+impl Initialize {
+  pub fn instruction(&self, args: InitializeInstructionArgs) -> solana_instruction::Instruction {
     self.instruction_with_remaining_accounts(args, &[])
   }
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: MintTokenInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(8+ remaining_accounts.len());
+  pub fn instruction_with_remaining_accounts(&self, args: InitializeInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
+    let mut accounts = Vec::with_capacity(3+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
             self.authority,
             true
@@ -57,32 +42,12 @@ impl MintToken {
             self.asset,
             false
           ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.mint,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.program_authority,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.program_authority_token_account,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.token_program,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.associated_token_program,
-            false
-          ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.system_program,
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
-    let mut data = MintTokenInstructionData::new().try_to_vec().unwrap();
+    let mut data = InitializeInstructionData::new().try_to_vec().unwrap();
           let mut args = args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -95,15 +60,15 @@ impl MintToken {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct MintTokenInstructionData {
+ pub struct InitializeInstructionData {
             discriminator: [u8; 8],
-                  }
+                        }
 
-impl MintTokenInstructionData {
+impl InitializeInstructionData {
   pub fn new() -> Self {
     Self {
-                        discriminator: [172, 137, 183, 14, 207, 110, 234, 56],
-                                              }
+                        discriminator: [175, 175, 109, 31, 13, 152, 155, 237],
+                                                            }
   }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
@@ -111,53 +76,45 @@ impl MintTokenInstructionData {
   }
   }
 
-impl Default for MintTokenInstructionData {
+impl Default for InitializeInstructionData {
   fn default() -> Self {
     Self::new()
   }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct MintTokenInstructionArgs {
-                  pub secp256r1_pubkey: Secp256r1Pubkey,
+ pub struct InitializeInstructionArgs {
+                  pub identifier: Secp256r1Pubkey,
+                pub secp256r1_pubkey: Secp256r1Pubkey,
                 pub asset_type: AssetType,
       }
 
-impl MintTokenInstructionArgs {
+impl InitializeInstructionArgs {
   pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
     borsh::to_vec(self)
   }
 }
 
 
-/// Instruction builder for `MintToken`.
+/// Instruction builder for `Initialize`.
 ///
 /// ### Accounts:
 ///
                       ///   0. `[writable, signer]` authority
                 ///   1. `[writable]` asset
-                ///   2. `[writable]` mint
-                ///   3. `[writable]` program_authority
-                ///   4. `[writable]` program_authority_token_account
-                ///   5. `[optional]` token_program (default to `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`)
-                ///   6. `[optional]` associated_token_program (default to `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL`)
-                ///   7. `[optional]` system_program (default to `11111111111111111111111111111111`)
+                ///   2. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct MintTokenBuilder {
+pub struct InitializeBuilder {
             authority: Option<solana_address::Address>,
                 asset: Option<solana_address::Address>,
-                mint: Option<solana_address::Address>,
-                program_authority: Option<solana_address::Address>,
-                program_authority_token_account: Option<solana_address::Address>,
-                token_program: Option<solana_address::Address>,
-                associated_token_program: Option<solana_address::Address>,
                 system_program: Option<solana_address::Address>,
-                        secp256r1_pubkey: Option<Secp256r1Pubkey>,
+                        identifier: Option<Secp256r1Pubkey>,
+                secp256r1_pubkey: Option<Secp256r1Pubkey>,
                 asset_type: Option<AssetType>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl MintTokenBuilder {
+impl InitializeBuilder {
   pub fn new() -> Self {
     Self::default()
   }
@@ -171,33 +128,6 @@ impl MintTokenBuilder {
                         self.asset = Some(asset);
                     self
     }
-            #[inline(always)]
-    pub fn mint(&mut self, mint: solana_address::Address) -> &mut Self {
-                        self.mint = Some(mint);
-                    self
-    }
-            #[inline(always)]
-    pub fn program_authority(&mut self, program_authority: solana_address::Address) -> &mut Self {
-                        self.program_authority = Some(program_authority);
-                    self
-    }
-            #[inline(always)]
-    pub fn program_authority_token_account(&mut self, program_authority_token_account: solana_address::Address) -> &mut Self {
-                        self.program_authority_token_account = Some(program_authority_token_account);
-                    self
-    }
-            /// `[optional account, default to 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb']`
-#[inline(always)]
-    pub fn token_program(&mut self, token_program: solana_address::Address) -> &mut Self {
-                        self.token_program = Some(token_program);
-                    self
-    }
-            /// `[optional account, default to 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL']`
-#[inline(always)]
-    pub fn associated_token_program(&mut self, associated_token_program: solana_address::Address) -> &mut Self {
-                        self.associated_token_program = Some(associated_token_program);
-                    self
-    }
             /// `[optional account, default to '11111111111111111111111111111111']`
 #[inline(always)]
     pub fn system_program(&mut self, system_program: solana_address::Address) -> &mut Self {
@@ -205,6 +135,11 @@ impl MintTokenBuilder {
                     self
     }
                     #[inline(always)]
+      pub fn identifier(&mut self, identifier: Secp256r1Pubkey) -> &mut Self {
+        self.identifier = Some(identifier);
+        self
+      }
+                #[inline(always)]
       pub fn secp256r1_pubkey(&mut self, secp256r1_pubkey: Secp256r1Pubkey) -> &mut Self {
         self.secp256r1_pubkey = Some(secp256r1_pubkey);
         self
@@ -228,18 +163,14 @@ impl MintTokenBuilder {
   }
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = MintToken {
+    let accounts = Initialize {
                               authority: self.authority.expect("authority is not set"),
                                         asset: self.asset.expect("asset is not set"),
-                                        mint: self.mint.expect("mint is not set"),
-                                        program_authority: self.program_authority.expect("program_authority is not set"),
-                                        program_authority_token_account: self.program_authority_token_account.expect("program_authority_token_account is not set"),
-                                        token_program: self.token_program.unwrap_or(solana_address::address!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")),
-                                        associated_token_program: self.associated_token_program.unwrap_or(solana_address::address!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")),
                                         system_program: self.system_program.unwrap_or(solana_address::address!("11111111111111111111111111111111")),
                       };
-          let args = MintTokenInstructionArgs {
-                                                              secp256r1_pubkey: self.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
+          let args = InitializeInstructionArgs {
+                                                              identifier: self.identifier.clone().expect("identifier is not set"),
+                                                                  secp256r1_pubkey: self.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
                                                                   asset_type: self.asset_type.clone().expect("asset_type is not set"),
                                     };
     
@@ -247,8 +178,8 @@ impl MintTokenBuilder {
   }
 }
 
-  /// `mint_token` CPI accounts.
-  pub struct MintTokenCpiAccounts<'a, 'b> {
+  /// `initialize` CPI accounts.
+  pub struct InitializeCpiAccounts<'a, 'b> {
           
                     
               pub authority: &'b solana_account_info::AccountInfo<'a>,
@@ -257,26 +188,11 @@ impl MintTokenBuilder {
               pub asset: &'b solana_account_info::AccountInfo<'a>,
                 
                     
-              pub mint: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub program_authority: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub program_authority_token_account: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub token_program: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub associated_token_program: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
               pub system_program: &'b solana_account_info::AccountInfo<'a>,
             }
 
-/// `mint_token` CPI instruction.
-pub struct MintTokenCpi<'a, 'b> {
+/// `initialize` CPI instruction.
+pub struct InitializeCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_account_info::AccountInfo<'a>,
       
@@ -287,41 +203,21 @@ pub struct MintTokenCpi<'a, 'b> {
           pub asset: &'b solana_account_info::AccountInfo<'a>,
           
               
-          pub mint: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub program_authority: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub program_authority_token_account: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub token_program: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub associated_token_program: &'b solana_account_info::AccountInfo<'a>,
-          
-              
           pub system_program: &'b solana_account_info::AccountInfo<'a>,
             /// The arguments for the instruction.
-    pub __args: MintTokenInstructionArgs,
+    pub __args: InitializeInstructionArgs,
   }
 
-impl<'a, 'b> MintTokenCpi<'a, 'b> {
+impl<'a, 'b> InitializeCpi<'a, 'b> {
   pub fn new(
     program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: MintTokenCpiAccounts<'a, 'b>,
-              args: MintTokenInstructionArgs,
+          accounts: InitializeCpiAccounts<'a, 'b>,
+              args: InitializeInstructionArgs,
       ) -> Self {
     Self {
       __program: program,
               authority: accounts.authority,
               asset: accounts.asset,
-              mint: accounts.mint,
-              program_authority: accounts.program_authority,
-              program_authority_token_account: accounts.program_authority_token_account,
-              token_program: accounts.token_program,
-              associated_token_program: accounts.associated_token_program,
               system_program: accounts.system_program,
                     __args: args,
           }
@@ -346,33 +242,13 @@ impl<'a, 'b> MintTokenCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(8+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(3+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
             *self.authority.key,
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
             *self.asset.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.mint.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.program_authority.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.program_authority_token_account.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.token_program.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.associated_token_program.key,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -386,7 +262,7 @@ impl<'a, 'b> MintTokenCpi<'a, 'b> {
           is_writable: remaining_account.2,
       })
     });
-    let mut data = MintTokenInstructionData::new().try_to_vec().unwrap();
+    let mut data = InitializeInstructionData::new().try_to_vec().unwrap();
           let mut args = self.__args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -395,15 +271,10 @@ impl<'a, 'b> MintTokenCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(9 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(4 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.authority.clone());
                         account_infos.push(self.asset.clone());
-                        account_infos.push(self.mint.clone());
-                        account_infos.push(self.program_authority.clone());
-                        account_infos.push(self.program_authority_token_account.clone());
-                        account_infos.push(self.token_program.clone());
-                        account_infos.push(self.associated_token_program.clone());
                         account_infos.push(self.system_program.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -415,36 +286,27 @@ impl<'a, 'b> MintTokenCpi<'a, 'b> {
   }
 }
 
-/// Instruction builder for `MintToken` via CPI.
+/// Instruction builder for `Initialize` via CPI.
 ///
 /// ### Accounts:
 ///
                       ///   0. `[writable, signer]` authority
                 ///   1. `[writable]` asset
-                ///   2. `[writable]` mint
-                ///   3. `[writable]` program_authority
-                ///   4. `[writable]` program_authority_token_account
-          ///   5. `[]` token_program
-          ///   6. `[]` associated_token_program
-          ///   7. `[]` system_program
+          ///   2. `[]` system_program
 #[derive(Clone, Debug)]
-pub struct MintTokenCpiBuilder<'a, 'b> {
-  instruction: Box<MintTokenCpiBuilderInstruction<'a, 'b>>,
+pub struct InitializeCpiBuilder<'a, 'b> {
+  instruction: Box<InitializeCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> MintTokenCpiBuilder<'a, 'b> {
+impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(MintTokenCpiBuilderInstruction {
+    let instruction = Box::new(InitializeCpiBuilderInstruction {
       __program: program,
               authority: None,
               asset: None,
-              mint: None,
-              program_authority: None,
-              program_authority_token_account: None,
-              token_program: None,
-              associated_token_program: None,
               system_program: None,
-                                            secp256r1_pubkey: None,
+                                            identifier: None,
+                                secp256r1_pubkey: None,
                                 asset_type: None,
                     __remaining_accounts: Vec::new(),
     });
@@ -461,36 +323,16 @@ impl<'a, 'b> MintTokenCpiBuilder<'a, 'b> {
                     self
     }
       #[inline(always)]
-    pub fn mint(&mut self, mint: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.mint = Some(mint);
-                    self
-    }
-      #[inline(always)]
-    pub fn program_authority(&mut self, program_authority: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.program_authority = Some(program_authority);
-                    self
-    }
-      #[inline(always)]
-    pub fn program_authority_token_account(&mut self, program_authority_token_account: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.program_authority_token_account = Some(program_authority_token_account);
-                    self
-    }
-      #[inline(always)]
-    pub fn token_program(&mut self, token_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.token_program = Some(token_program);
-                    self
-    }
-      #[inline(always)]
-    pub fn associated_token_program(&mut self, associated_token_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.associated_token_program = Some(associated_token_program);
-                    self
-    }
-      #[inline(always)]
     pub fn system_program(&mut self, system_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.system_program = Some(system_program);
                     self
     }
                     #[inline(always)]
+      pub fn identifier(&mut self, identifier: Secp256r1Pubkey) -> &mut Self {
+        self.instruction.identifier = Some(identifier);
+        self
+      }
+                #[inline(always)]
       pub fn secp256r1_pubkey(&mut self, secp256r1_pubkey: Secp256r1Pubkey) -> &mut Self {
         self.instruction.secp256r1_pubkey = Some(secp256r1_pubkey);
         self
@@ -522,26 +364,17 @@ impl<'a, 'b> MintTokenCpiBuilder<'a, 'b> {
   #[allow(clippy::clone_on_copy)]
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = MintTokenInstructionArgs {
-                                                              secp256r1_pubkey: self.instruction.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
+          let args = InitializeInstructionArgs {
+                                                              identifier: self.instruction.identifier.clone().expect("identifier is not set"),
+                                                                  secp256r1_pubkey: self.instruction.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
                                                                   asset_type: self.instruction.asset_type.clone().expect("asset_type is not set"),
                                     };
-        let instruction = MintTokenCpi {
+        let instruction = InitializeCpi {
         __program: self.instruction.__program,
                   
           authority: self.instruction.authority.expect("authority is not set"),
                   
           asset: self.instruction.asset.expect("asset is not set"),
-                  
-          mint: self.instruction.mint.expect("mint is not set"),
-                  
-          program_authority: self.instruction.program_authority.expect("program_authority is not set"),
-                  
-          program_authority_token_account: self.instruction.program_authority_token_account.expect("program_authority_token_account is not set"),
-                  
-          token_program: self.instruction.token_program.expect("token_program is not set"),
-                  
-          associated_token_program: self.instruction.associated_token_program.expect("associated_token_program is not set"),
                   
           system_program: self.instruction.system_program.expect("system_program is not set"),
                           __args: args,
@@ -551,17 +384,13 @@ impl<'a, 'b> MintTokenCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct MintTokenCpiBuilderInstruction<'a, 'b> {
+struct InitializeCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             authority: Option<&'b solana_account_info::AccountInfo<'a>>,
                 asset: Option<&'b solana_account_info::AccountInfo<'a>>,
-                mint: Option<&'b solana_account_info::AccountInfo<'a>>,
-                program_authority: Option<&'b solana_account_info::AccountInfo<'a>>,
-                program_authority_token_account: Option<&'b solana_account_info::AccountInfo<'a>>,
-                token_program: Option<&'b solana_account_info::AccountInfo<'a>>,
-                associated_token_program: Option<&'b solana_account_info::AccountInfo<'a>>,
                 system_program: Option<&'b solana_account_info::AccountInfo<'a>>,
-                        secp256r1_pubkey: Option<Secp256r1Pubkey>,
+                        identifier: Option<Secp256r1Pubkey>,
+                secp256r1_pubkey: Option<Secp256r1Pubkey>,
                 asset_type: Option<AssetType>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,

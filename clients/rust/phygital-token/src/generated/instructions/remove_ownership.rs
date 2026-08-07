@@ -19,30 +19,6 @@ pub struct RemoveOwnership {
           
               
           pub asset: solana_address::Address,
-          
-              
-          pub program_authority: solana_address::Address,
-          
-              
-          pub mint: solana_address::Address,
-          
-              
-          pub program_authority_token_account: solana_address::Address,
-          
-              
-          pub owner_token_account: solana_address::Address,
-          
-              
-          pub token_program: solana_address::Address,
-          
-              
-          pub associated_token_program: solana_address::Address,
-          
-              
-          pub system_program: solana_address::Address,
-          
-              
-          pub transfer_hook_program: solana_address::Address,
       }
 
 impl RemoveOwnership {
@@ -52,45 +28,13 @@ impl RemoveOwnership {
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
   pub fn instruction_with_remaining_accounts(&self, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(10+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.owner,
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
             self.asset,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.program_authority,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.mint,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.program_authority_token_account,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.owner_token_account,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.token_program,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.associated_token_program,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.system_program,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.transfer_hook_program,
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
@@ -135,26 +79,10 @@ impl Default for RemoveOwnershipInstructionData {
 ///
                 ///   0. `[signer]` owner
                 ///   1. `[writable]` asset
-                ///   2. `[writable]` program_authority
-                ///   3. `[writable]` mint
-                ///   4. `[writable]` program_authority_token_account
-                ///   5. `[writable]` owner_token_account
-                ///   6. `[optional]` token_program (default to `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`)
-                ///   7. `[optional]` associated_token_program (default to `ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL`)
-                ///   8. `[optional]` system_program (default to `11111111111111111111111111111111`)
-                ///   9. `[optional]` transfer_hook_program (default to `2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR`)
 #[derive(Clone, Debug, Default)]
 pub struct RemoveOwnershipBuilder {
             owner: Option<solana_address::Address>,
                 asset: Option<solana_address::Address>,
-                program_authority: Option<solana_address::Address>,
-                mint: Option<solana_address::Address>,
-                program_authority_token_account: Option<solana_address::Address>,
-                owner_token_account: Option<solana_address::Address>,
-                token_program: Option<solana_address::Address>,
-                associated_token_program: Option<solana_address::Address>,
-                system_program: Option<solana_address::Address>,
-                transfer_hook_program: Option<solana_address::Address>,
                 __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -170,50 +98,6 @@ impl RemoveOwnershipBuilder {
             #[inline(always)]
     pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
                         self.asset = Some(asset);
-                    self
-    }
-            #[inline(always)]
-    pub fn program_authority(&mut self, program_authority: solana_address::Address) -> &mut Self {
-                        self.program_authority = Some(program_authority);
-                    self
-    }
-            #[inline(always)]
-    pub fn mint(&mut self, mint: solana_address::Address) -> &mut Self {
-                        self.mint = Some(mint);
-                    self
-    }
-            #[inline(always)]
-    pub fn program_authority_token_account(&mut self, program_authority_token_account: solana_address::Address) -> &mut Self {
-                        self.program_authority_token_account = Some(program_authority_token_account);
-                    self
-    }
-            #[inline(always)]
-    pub fn owner_token_account(&mut self, owner_token_account: solana_address::Address) -> &mut Self {
-                        self.owner_token_account = Some(owner_token_account);
-                    self
-    }
-            /// `[optional account, default to 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb']`
-#[inline(always)]
-    pub fn token_program(&mut self, token_program: solana_address::Address) -> &mut Self {
-                        self.token_program = Some(token_program);
-                    self
-    }
-            /// `[optional account, default to 'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL']`
-#[inline(always)]
-    pub fn associated_token_program(&mut self, associated_token_program: solana_address::Address) -> &mut Self {
-                        self.associated_token_program = Some(associated_token_program);
-                    self
-    }
-            /// `[optional account, default to '11111111111111111111111111111111']`
-#[inline(always)]
-    pub fn system_program(&mut self, system_program: solana_address::Address) -> &mut Self {
-                        self.system_program = Some(system_program);
-                    self
-    }
-            /// `[optional account, default to '2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR']`
-#[inline(always)]
-    pub fn transfer_hook_program(&mut self, transfer_hook_program: solana_address::Address) -> &mut Self {
-                        self.transfer_hook_program = Some(transfer_hook_program);
                     self
     }
             /// Add an additional account to the instruction.
@@ -233,14 +117,6 @@ impl RemoveOwnershipBuilder {
     let accounts = RemoveOwnership {
                               owner: self.owner.expect("owner is not set"),
                                         asset: self.asset.expect("asset is not set"),
-                                        program_authority: self.program_authority.expect("program_authority is not set"),
-                                        mint: self.mint.expect("mint is not set"),
-                                        program_authority_token_account: self.program_authority_token_account.expect("program_authority_token_account is not set"),
-                                        owner_token_account: self.owner_token_account.expect("owner_token_account is not set"),
-                                        token_program: self.token_program.unwrap_or(solana_address::address!("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")),
-                                        associated_token_program: self.associated_token_program.unwrap_or(solana_address::address!("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL")),
-                                        system_program: self.system_program.unwrap_or(solana_address::address!("11111111111111111111111111111111")),
-                                        transfer_hook_program: self.transfer_hook_program.unwrap_or(solana_address::address!("2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR")),
                       };
     
     accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
@@ -255,30 +131,6 @@ impl RemoveOwnershipBuilder {
                 
                     
               pub asset: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub program_authority: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub mint: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub program_authority_token_account: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub owner_token_account: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub token_program: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub associated_token_program: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub system_program: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub transfer_hook_program: &'b solana_account_info::AccountInfo<'a>,
             }
 
 /// `remove_ownership` CPI instruction.
@@ -291,30 +143,6 @@ pub struct RemoveOwnershipCpi<'a, 'b> {
           
               
           pub asset: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub program_authority: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub mint: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub program_authority_token_account: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub owner_token_account: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub token_program: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub associated_token_program: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub system_program: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub transfer_hook_program: &'b solana_account_info::AccountInfo<'a>,
         }
 
 impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
@@ -326,14 +154,6 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
       __program: program,
               owner: accounts.owner,
               asset: accounts.asset,
-              program_authority: accounts.program_authority,
-              mint: accounts.mint,
-              program_authority_token_account: accounts.program_authority_token_account,
-              owner_token_account: accounts.owner_token_account,
-              token_program: accounts.token_program,
-              associated_token_program: accounts.associated_token_program,
-              system_program: accounts.system_program,
-              transfer_hook_program: accounts.transfer_hook_program,
                 }
   }
   #[inline(always)]
@@ -356,45 +176,13 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(10+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.owner.key,
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
             *self.asset.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.program_authority.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.mint.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.program_authority_token_account.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.owner_token_account.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.token_program.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.associated_token_program.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.system_program.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.transfer_hook_program.key,
             false
           ));
                       remaining_accounts.iter().for_each(|remaining_account| {
@@ -411,18 +199,10 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(11 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.owner.clone());
                         account_infos.push(self.asset.clone());
-                        account_infos.push(self.program_authority.clone());
-                        account_infos.push(self.mint.clone());
-                        account_infos.push(self.program_authority_token_account.clone());
-                        account_infos.push(self.owner_token_account.clone());
-                        account_infos.push(self.token_program.clone());
-                        account_infos.push(self.associated_token_program.clone());
-                        account_infos.push(self.system_program.clone());
-                        account_infos.push(self.transfer_hook_program.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
     if signers_seeds.is_empty() {
@@ -439,14 +219,6 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
 ///
                 ///   0. `[signer]` owner
                 ///   1. `[writable]` asset
-                ///   2. `[writable]` program_authority
-                ///   3. `[writable]` mint
-                ///   4. `[writable]` program_authority_token_account
-                ///   5. `[writable]` owner_token_account
-          ///   6. `[]` token_program
-          ///   7. `[]` associated_token_program
-          ///   8. `[]` system_program
-          ///   9. `[]` transfer_hook_program
 #[derive(Clone, Debug)]
 pub struct RemoveOwnershipCpiBuilder<'a, 'b> {
   instruction: Box<RemoveOwnershipCpiBuilderInstruction<'a, 'b>>,
@@ -458,14 +230,6 @@ impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
       __program: program,
               owner: None,
               asset: None,
-              program_authority: None,
-              mint: None,
-              program_authority_token_account: None,
-              owner_token_account: None,
-              token_program: None,
-              associated_token_program: None,
-              system_program: None,
-              transfer_hook_program: None,
                                 __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -478,46 +242,6 @@ impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
       #[inline(always)]
     pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.asset = Some(asset);
-                    self
-    }
-      #[inline(always)]
-    pub fn program_authority(&mut self, program_authority: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.program_authority = Some(program_authority);
-                    self
-    }
-      #[inline(always)]
-    pub fn mint(&mut self, mint: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.mint = Some(mint);
-                    self
-    }
-      #[inline(always)]
-    pub fn program_authority_token_account(&mut self, program_authority_token_account: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.program_authority_token_account = Some(program_authority_token_account);
-                    self
-    }
-      #[inline(always)]
-    pub fn owner_token_account(&mut self, owner_token_account: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.owner_token_account = Some(owner_token_account);
-                    self
-    }
-      #[inline(always)]
-    pub fn token_program(&mut self, token_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.token_program = Some(token_program);
-                    self
-    }
-      #[inline(always)]
-    pub fn associated_token_program(&mut self, associated_token_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.associated_token_program = Some(associated_token_program);
-                    self
-    }
-      #[inline(always)]
-    pub fn system_program(&mut self, system_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.system_program = Some(system_program);
-                    self
-    }
-      #[inline(always)]
-    pub fn transfer_hook_program(&mut self, transfer_hook_program: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.transfer_hook_program = Some(transfer_hook_program);
                     self
     }
             /// Add an additional account to the instruction.
@@ -548,22 +272,6 @@ impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
           owner: self.instruction.owner.expect("owner is not set"),
                   
           asset: self.instruction.asset.expect("asset is not set"),
-                  
-          program_authority: self.instruction.program_authority.expect("program_authority is not set"),
-                  
-          mint: self.instruction.mint.expect("mint is not set"),
-                  
-          program_authority_token_account: self.instruction.program_authority_token_account.expect("program_authority_token_account is not set"),
-                  
-          owner_token_account: self.instruction.owner_token_account.expect("owner_token_account is not set"),
-                  
-          token_program: self.instruction.token_program.expect("token_program is not set"),
-                  
-          associated_token_program: self.instruction.associated_token_program.expect("associated_token_program is not set"),
-                  
-          system_program: self.instruction.system_program.expect("system_program is not set"),
-                  
-          transfer_hook_program: self.instruction.transfer_hook_program.expect("transfer_hook_program is not set"),
                     };
     instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
   }
@@ -574,14 +282,6 @@ struct RemoveOwnershipCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             owner: Option<&'b solana_account_info::AccountInfo<'a>>,
                 asset: Option<&'b solana_account_info::AccountInfo<'a>>,
-                program_authority: Option<&'b solana_account_info::AccountInfo<'a>>,
-                mint: Option<&'b solana_account_info::AccountInfo<'a>>,
-                program_authority_token_account: Option<&'b solana_account_info::AccountInfo<'a>>,
-                owner_token_account: Option<&'b solana_account_info::AccountInfo<'a>>,
-                token_program: Option<&'b solana_account_info::AccountInfo<'a>>,
-                associated_token_program: Option<&'b solana_account_info::AccountInfo<'a>>,
-                system_program: Option<&'b solana_account_info::AccountInfo<'a>>,
-                transfer_hook_program: Option<&'b solana_account_info::AccountInfo<'a>>,
                 /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

@@ -28,57 +28,42 @@ pub enum PhygitalTokenError {
     /// 6005 - Token owner mismatch
     #[error("Token owner mismatch")]
     OwnerMismatch = 0x1775,
-    /// 6006 - Arithmetic overflow
-    #[error("Arithmetic overflow")]
-    ArithmeticOverflow = 0x1776,
-    /// 6007 - Slot not found in SlotHashes sysvar — signature has expired or is being replayed
+    /// 6006 - Slot not found in SlotHashes sysvar — signature has expired or is being replayed
     #[error("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
-    InvalidSlotHash = 0x1777,
-    /// 6008 - Transfer slot must be greater than the last successful transfer slot
+    InvalidSlotHash = 0x1776,
+    /// 6007 - Transfer slot must be greater than the last successful transfer slot
     #[error("Transfer slot must be greater than the last successful transfer slot")]
-    StaleTransferSlot = 0x1778,
-    /// 6009 - Client data hash mismatch
+    StaleTransferSlot = 0x1777,
+    /// 6008 - Client data hash mismatch
     #[error("Client data hash mismatch")]
-    ClientDataHashMismatch = 0x1779,
-    /// 6010 - Missing instructions sysvar account
+    ClientDataHashMismatch = 0x1778,
+    /// 6009 - Missing instructions sysvar account
     #[error("Missing instructions sysvar account")]
-    MissingInstructionsSysvar = 0x177A,
-    /// 6011 - Invalid sysvar data format
+    MissingInstructionsSysvar = 0x1779,
+    /// 6010 - Invalid sysvar data format
     #[error("Invalid sysvar data format")]
-    InvalidSysvarDataFormat = 0x177B,
-    /// 6012 - Max length exceeded
-    #[error("Max length exceeded")]
-    MaxLengthExceeded = 0x177C,
-    /// 6013 - Authority does not match
-    #[error("Authority does not match")]
-    AuthorityMismatch = 0x177D,
-    /// 6014 - Custody token account must be the canonical ATA for program_authority
-    #[error("Custody token account must be the canonical ATA for program_authority")]
-    InvalidCustodyTokenAccount = 0x177E,
-    /// 6015 - Mint is not shaped like a phygital design mint (extensions/authorities mismatch)
-    #[error("Mint is not shaped like a phygital design mint (extensions/authorities mismatch)")]
-    InvalidMintShape = 0x177F,
-    /// 6016 - Recipient cannot be program_authority
-    #[error("Recipient cannot be program_authority")]
-    InvalidRecipient = 0x1780,
-    /// 6017 - The owner needs to unlock the asset to enable transfer.
+    InvalidSysvarDataFormat = 0x177A,
+    /// 6011 - Recipient cannot be the default (zero) pubkey
+    #[error("Recipient cannot be the default (zero) pubkey")]
+    InvalidRecipient = 0x177B,
+    /// 6012 - The owner needs to unlock the asset to enable transfer.
     #[error("The owner needs to unlock the asset to enable transfer.")]
-    AssetIsCurrentlyLocked = 0x1781,
-    /// 6018 - This asset is not lockable.
+    AssetIsCurrentlyLocked = 0x177C,
+    /// 6013 - This asset is not lockable.
     #[error("This asset is not lockable.")]
-    AssetIsNotLockable = 0x1782,
-    /// 6019 - Unable to parse client data JSON.
+    AssetIsNotLockable = 0x177D,
+    /// 6014 - Unable to parse client data JSON.
     #[error("Unable to parse client data JSON.")]
-    UnableToParseClientData = 0x1783,
-    /// 6020 - Challenge hash mismatch.
+    UnableToParseClientData = 0x177E,
+    /// 6015 - Challenge hash mismatch.
     #[error("Challenge hash mismatch.")]
-    ChallengeHashMismatch = 0x1784,
-    /// 6021 - Authenticator data is too short to contain WebAuthn flags.
+    ChallengeHashMismatch = 0x177F,
+    /// 6016 - Authenticator data is too short to contain WebAuthn flags.
     #[error("Authenticator data is too short to contain WebAuthn flags.")]
-    InvalidAuthenticatorData = 0x1785,
-    /// 6022 - WebAuthn user presence flag (UP) was not set by the authenticator.
+    InvalidAuthenticatorData = 0x1780,
+    /// 6017 - WebAuthn user presence flag (UP) was not set by the authenticator.
     #[error("WebAuthn user presence flag (UP) was not set by the authenticator.")]
-    UserPresenceNotVerified = 0x1786,
+    UserPresenceNotVerified = 0x1781,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {

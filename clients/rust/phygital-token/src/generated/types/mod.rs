@@ -7,9 +7,7 @@
 
   pub(crate) mod r#asset_type;
   pub(crate) mod r#secp256r1_pubkey;
-  pub(crate) mod r#secp256r1_verify_args;
 
   pub use self::r#asset_type::*;
   pub use self::r#secp256r1_pubkey::*;
-  pub use self::r#secp256r1_verify_args::*;
 
