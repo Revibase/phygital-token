@@ -1,10 +1,9 @@
 mod common;
 
-use anchor_lang::AccountDeserialize;
+use anchor_lang::prelude::Pubkey;
 use common::{
     assert_token_program_error, current_slot_entry, TestContext, TestPasskey, LAMPORTS_PER_SOL,
 };
-use phygital_token::state::Asset;
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -14,7 +13,7 @@ use solana_signer::Signer;
 fn execute_transfer_rejects_signature_index_out_of_bounds() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey(&passkey);
+    let asset = ctx.init_asset(&passkey);
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
@@ -22,13 +21,7 @@ fn execute_transfer_rejects_signature_index_out_of_bounds() {
         passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
     verify_args.signed_message_index = 1;
 
-    let transfer_ix = ctx.execute_transfer_ix(
-        recipient.pubkey(),
-        ctx.program_authority(),
-        asset.asset,
-        asset.mint,
-        verify_args,
-    );
+    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -42,7 +35,7 @@ fn execute_transfer_rejects_signature_index_out_of_bounds() {
 fn execute_transfer_rejects_unparseable_client_data() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey(&passkey);
+    let asset = ctx.init_asset(&passkey);
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
@@ -50,13 +43,7 @@ fn execute_transfer_rejects_unparseable_client_data() {
         passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
     verify_args.client_data_json = b"not-json".to_vec();
 
-    let transfer_ix = ctx.execute_transfer_ix(
-        recipient.pubkey(),
-        ctx.program_authority(),
-        asset.asset,
-        asset.mint,
-        verify_args,
-    );
+    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -70,7 +57,7 @@ fn execute_transfer_rejects_unparseable_client_data() {
 fn execute_transfer_rejects_client_data_hash_mismatch() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey(&passkey);
+    let asset = ctx.init_asset(&passkey);
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
@@ -78,13 +65,7 @@ fn execute_transfer_rejects_client_data_hash_mismatch() {
         passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
     verify_args.client_data_json.push(b' ');
 
-    let transfer_ix = ctx.execute_transfer_ix(
-        recipient.pubkey(),
-        ctx.program_authority(),
-        asset.asset,
-        asset.mint,
-        verify_args,
-    );
+    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -98,7 +79,7 @@ fn execute_transfer_rejects_client_data_hash_mismatch() {
 fn execute_transfer_rejects_missing_user_presence() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey(&passkey);
+    let asset = ctx.init_asset(&passkey);
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
@@ -109,13 +90,7 @@ fn execute_transfer_rejects_missing_user_presence() {
         0x00,
     );
 
-    let transfer_ix = ctx.execute_transfer_ix(
-        recipient.pubkey(),
-        ctx.program_authority(),
-        asset.asset,
-        asset.mint,
-        verify_args,
-    );
+    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -124,17 +99,17 @@ fn execute_transfer_rejects_missing_user_presence() {
     assert_token_program_error(err, "UserPresenceNotVerified");
 }
 
-/// Documents the intended bearer/claim semantics: the passkey signs over
-/// `(asset, sender)` only — the recipient is NOT part of the signed
-/// challenge — so any recipient that submits the transaction can claim the asset.
-/// This is the on-chain counterpart to the front-running property documented on
+/// Documents the intended bearer/claim semantics: the passkey signs over the
+/// asset PDA only — the recipient is NOT part of the signed challenge — so any
+/// recipient that submits the transaction can claim the asset. This is the
+/// on-chain counterpart to the front-running property documented on
 /// `build_transfer_message_hash`. If recipient-binding is ever added, this test
 /// should be inverted into a rejection test.
 #[test]
 fn execute_transfer_bearer_signature_claimable_by_any_recipient() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.mint_asset_with_passkey(&passkey);
+    let asset = ctx.init_asset(&passkey);
 
     // The signature is built without reference to any recipient, so a recipient
     // other than the (conceptually) intended one can claim the asset.
@@ -144,26 +119,13 @@ fn execute_transfer_bearer_signature_claimable_by_any_recipient() {
     let (secp_ix, verify_args) =
         passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
 
-    // A different recipient than the (conceptually) intended one claims the asset.
-    let transfer_ix = ctx.execute_transfer_ix(
-        other_recipient.pubkey(),
-        ctx.program_authority(),
-        asset.asset,
-        asset.mint,
-        verify_args,
-    );
+    let transfer_ix = ctx.execute_transfer_ix(other_recipient.pubkey(), asset.asset, verify_args);
     ctx.svm
         .airdrop(&other_recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
     ctx.send_execute_transfer_with_instructions(vec![secp_ix, transfer_ix], &[&other_recipient])
         .expect("bearer signature is claimable by any submitting recipient");
 
-    assert_eq!(ctx.token_balance(other_recipient.pubkey(), asset.mint), 1);
-
-    let asset_account = ctx
-        .svm
-        .get_account(&asset.asset)
-        .expect("asset instance account");
-    let instance = Asset::try_deserialize(&mut asset_account.data.as_ref()).expect("deserialize");
-    assert_eq!(instance.owner, other_recipient.pubkey());
+    assert_ne!(ctx.asset_owner(asset.asset), Pubkey::default());
+    assert_eq!(ctx.asset_owner(asset.asset), other_recipient.pubkey());
 }

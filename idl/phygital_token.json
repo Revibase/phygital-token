@@ -1,5 +1,5 @@
 {
-  "address": "DdwhetyqgSB56XVcR33ySG5dFmvwbjSc5aSMHRg5Bk6A",
+  "address": "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
   "metadata": {
     "name": "phygital_token",
     "version": "0.1.0",
@@ -21,57 +21,11 @@
       ],
       "accounts": [
         {
-          "name": "recipient",
-          "signer": true
-        },
-        {
-          "name": "sender"
+          "name": "recipient"
         },
         {
           "name": "asset",
           "writable": true
-        },
-        {
-          "name": "mint",
-          "writable": true
-        },
-        {
-          "name": "sender_token_account",
-          "writable": true
-        },
-        {
-          "name": "recipient_token_account",
-          "writable": true
-        },
-        {
-          "name": "program_authority",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  103,
-                  114,
-                  97,
-                  109,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
         },
         {
           "name": "slot_hashes",
@@ -80,22 +34,6 @@
         {
           "name": "instructions_sysvar",
           "address": "Sysvar1nstructions1111111111111111111111111"
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "transfer_hook_program",
-          "address": "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR"
         }
       ],
       "args": [
@@ -110,16 +48,16 @@
       ]
     },
     {
-      "name": "mint_token",
+      "name": "initialize",
       "discriminator": [
-        172,
-        137,
-        183,
-        14,
-        207,
-        110,
-        234,
-        56
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
       ],
       "accounts": [
         {
@@ -132,52 +70,6 @@
           "writable": true
         },
         {
-          "name": "mint",
-          "writable": true
-        },
-        {
-          "name": "program_authority",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  103,
-                  114,
-                  97,
-                  109,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "program_authority_token_account",
-          "writable": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -187,7 +79,7 @@
           "name": "args",
           "type": {
             "defined": {
-              "name": "MintTokenArgs"
+              "name": "InitializeArgs"
             }
           }
         }
@@ -213,64 +105,6 @@
         {
           "name": "asset",
           "writable": true
-        },
-        {
-          "name": "program_authority",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  103,
-                  114,
-                  97,
-                  109,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "mint",
-          "writable": true
-        },
-        {
-          "name": "program_authority_token_account",
-          "writable": true
-        },
-        {
-          "name": "owner_token_account",
-          "writable": true
-        },
-        {
-          "name": "token_program",
-          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-        },
-        {
-          "name": "associated_token_program",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "transfer_hook_program",
-          "address": "2jgBvsDmUW9gEsakLDEvnEFEjG1WwCUzGtNbqbtUr7xR"
         }
       ],
       "args": []
@@ -303,47 +137,6 @@
           "type": "bool"
         }
       ]
-    },
-    {
-      "name": "verify_asset",
-      "discriminator": [
-        136,
-        51,
-        110,
-        228,
-        129,
-        94,
-        141,
-        179
-      ],
-      "accounts": [
-        {
-          "name": "asset",
-          "writable": true
-        },
-        {
-          "name": "slot_hashes",
-          "address": "SysvarS1otHashes111111111111111111111111111"
-        },
-        {
-          "name": "instructions_sysvar",
-          "address": "Sysvar1nstructions1111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "secp256r1_verify_args",
-          "type": {
-            "defined": {
-              "name": "Secp256r1VerifyArgs"
-            }
-          }
-        },
-        {
-          "name": "message",
-          "type": "bytes"
-        }
-      ]
     }
   ],
   "accounts": [
@@ -363,16 +156,16 @@
   ],
   "events": [
     {
-      "name": "MintTokenEvent",
+      "name": "InitializeEvent",
       "discriminator": [
-        244,
-        9,
-        85,
-        49,
-        190,
-        66,
+        206,
+        175,
+        169,
+        208,
         241,
-        138
+        210,
+        35,
+        221
       ]
     },
     {
@@ -413,19 +206,6 @@
         179,
         125
       ]
-    },
-    {
-      "name": "VerifyAssetEvent",
-      "discriminator": [
-        166,
-        125,
-        75,
-        149,
-        250,
-        89,
-        75,
-        126
-      ]
     }
   ],
   "errors": [
@@ -461,86 +241,61 @@
     },
     {
       "code": 6006,
-      "name": "ArithmeticOverflow",
-      "msg": "Arithmetic overflow"
-    },
-    {
-      "code": 6007,
       "name": "InvalidSlotHash",
       "msg": "Slot not found in SlotHashes sysvar — signature has expired or is being replayed"
     },
     {
-      "code": 6008,
+      "code": 6007,
       "name": "StaleTransferSlot",
       "msg": "Transfer slot must be greater than the last successful transfer slot"
     },
     {
-      "code": 6009,
+      "code": 6008,
       "name": "ClientDataHashMismatch",
       "msg": "Client data hash mismatch"
     },
     {
-      "code": 6010,
+      "code": 6009,
       "name": "MissingInstructionsSysvar",
       "msg": "Missing instructions sysvar account"
     },
     {
-      "code": 6011,
+      "code": 6010,
       "name": "InvalidSysvarDataFormat",
       "msg": "Invalid sysvar data format"
     },
     {
-      "code": 6012,
-      "name": "MaxLengthExceeded",
-      "msg": "Max length exceeded"
-    },
-    {
-      "code": 6013,
-      "name": "AuthorityMismatch",
-      "msg": "Authority does not match"
-    },
-    {
-      "code": 6014,
-      "name": "InvalidCustodyTokenAccount",
-      "msg": "Custody token account must be the canonical ATA for program_authority"
-    },
-    {
-      "code": 6015,
-      "name": "InvalidMintShape",
-      "msg": "Mint is not shaped like a phygital design mint (extensions/authorities mismatch)"
-    },
-    {
-      "code": 6016,
+      "code": 6011,
       "name": "InvalidRecipient",
-      "msg": "Recipient cannot be program_authority"
+      "msg": "Recipient cannot be the default (zero) pubkey"
     },
     {
-      "code": 6017,
+      "code": 6012,
       "name": "AssetIsCurrentlyLocked",
       "msg": "The owner needs to unlock the asset to enable transfer."
     },
     {
-      "code": 6018,
+      "code": 6013,
       "name": "AssetIsNotLockable",
       "msg": "This asset is not lockable."
     },
     {
-      "code": 6019,
+      "code": 6014,
       "name": "UnableToParseClientData",
       "msg": "Unable to parse client data JSON."
     },
     {
-      "code": 6020,
+      "code": 6015,
       "name": "ChallengeHashMismatch",
       "msg": "Challenge hash mismatch."
     },
     {
-      "code": 6021,
+      "code": 6016,
       "name": "InvalidAuthenticatorData",
       "msg": "Authenticator data is too short to contain WebAuthn flags."
     },
     {
-      "code": 6022,
+      "code": 6017,
       "name": "UserPresenceNotVerified",
       "msg": "WebAuthn user presence flag (UP) was not set by the authenticator."
     }
@@ -560,10 +315,6 @@
             }
           },
           {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
             "name": "owner",
             "type": "pubkey"
           },
@@ -577,6 +328,14 @@
           },
           {
             "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "identifier",
             "type": {
               "defined": {
                 "name": "Secp256r1Pubkey"
@@ -601,10 +360,18 @@
       }
     },
     {
-      "name": "MintTokenArgs",
+      "name": "InitializeArgs",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "identifier",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
           {
             "name": "secp256r1_pubkey",
             "type": {
@@ -625,20 +392,24 @@
       }
     },
     {
-      "name": "MintTokenEvent",
+      "name": "InitializeEvent",
       "type": {
         "kind": "struct",
         "fields": [
-          {
-            "name": "mint",
-            "type": "pubkey"
-          },
           {
             "name": "authority",
             "type": "pubkey"
           },
           {
             "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "identifier",
             "type": {
               "defined": {
                 "name": "Secp256r1Pubkey"
@@ -670,8 +441,12 @@
             }
           },
           {
-            "name": "mint",
-            "type": "pubkey"
+            "name": "identifier",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
           },
           {
             "name": "time",
@@ -736,8 +511,12 @@
             "type": "pubkey"
           },
           {
-            "name": "mint",
-            "type": "pubkey"
+            "name": "identifier",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
           },
           {
             "name": "is_locked",
@@ -772,40 +551,12 @@
             }
           },
           {
-            "name": "mint",
-            "type": "pubkey"
-          },
-          {
-            "name": "time",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "VerifyAssetEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "message",
-            "type": "bytes"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "public_key",
+            "name": "identifier",
             "type": {
               "defined": {
                 "name": "Secp256r1Pubkey"
               }
             }
-          },
-          {
-            "name": "mint",
-            "type": "pubkey"
           },
           {
             "name": "time",

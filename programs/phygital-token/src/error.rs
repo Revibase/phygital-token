@@ -20,9 +20,6 @@ pub enum PhygitalError {
     #[msg("Token owner mismatch")]
     OwnerMismatch,
 
-    #[msg("Arithmetic overflow")]
-    ArithmeticOverflow,
-
     #[msg("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
     InvalidSlotHash,
 
@@ -38,19 +35,7 @@ pub enum PhygitalError {
     #[msg("Invalid sysvar data format")]
     InvalidSysvarDataFormat,
 
-    #[msg("Max length exceeded")]
-    MaxLengthExceeded,
-
-    #[msg("Authority does not match")]
-    AuthorityMismatch,
-
-    #[msg("Custody token account must be the canonical ATA for program_authority")]
-    InvalidCustodyTokenAccount,
-
-    #[msg("Mint is not shaped like a phygital design mint (extensions/authorities mismatch)")]
-    InvalidMintShape,
-
-    #[msg("Recipient cannot be program_authority")]
+    #[msg("Recipient cannot be the default (zero) pubkey")]
     InvalidRecipient,
 
     #[msg("The owner needs to unlock the asset to enable transfer.")]

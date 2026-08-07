@@ -6,7 +6,7 @@ use crate::{error::PhygitalError, Asset, Secp256r1Pubkey};
 pub struct SetLockStateEvent {
     pub public_key: Secp256r1Pubkey,
     pub owner: Pubkey,
-    pub mint: Pubkey,
+    pub identifier: Secp256r1Pubkey,
     pub is_locked: bool,
     pub time: i64,
 }
@@ -34,7 +34,7 @@ pub fn handler(ctx: Context<SetLockState>, is_locked: bool) -> Result<()> {
     emit!(SetLockStateEvent {
         public_key: ctx.accounts.asset.public_key,
         owner: ctx.accounts.owner.key(),
-        mint: ctx.accounts.asset.mint,
+        identifier: ctx.accounts.asset.identifier,
         is_locked,
         time: Clock::get()?.unix_timestamp,
     });

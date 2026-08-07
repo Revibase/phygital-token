@@ -5,41 +5,37 @@ Shared vocabulary for on-chain accounts, instructions, tests, and the TypeScript
 ## Hierarchy
 
 ```
-Collection (group_mint)
-  └── Design mint (mint)          ← created by `create_mint`
-        └── Asset (asset PDA)     ← created by `mint_token`, 1:1 with passkey
-              └── SPL token unit  ← held in program_authority custody until claim
+Asset (asset PDA)     ← created by `initialize`
+  ├── identifier      ← chip id; PDA seed (distinct from passkey)
+  ├── public_key      ← secp256r1 passkey; authorizes transfers
+  └── owner           ← wallet pubkey after claim (default until first transfer)
 ```
 
 ## Terms
 
 | Term | On-chain / IDL name | Description |
 |------|---------------------|-------------|
-| **Collection** | `group_mint` | Token-2022 TokenGroup parent mint. Groups related designs. |
-| **Design** | `mint` (in `create_mint`) | Shared SFT template — one metadata set, many physical instances. |
-| **Asset** | `asset` account | Per-physical-item record keyed by secp256r1 passkey pubkey. |
-| **Passkey pubkey** | `asset.public_key` | Compressed secp256r1 key. The custom authenticator also uses it as WebAuthn `credential.id` and `user.id`, so `response.id` after a tap is this key — there is no separate on-chain credential id. |
-| **Owner** | `asset.owner` | Current custodian after a successful `execute_transfer` claim. |
-| **Custody** | `program_authority` | PDA that holds unclaimed tokens and acts as permanent delegate. |
+| **Asset** | `asset` account | Per-physical-item record. PDA seeded by chip `identifier`. |
+| **Identifier** | `asset.identifier` | Chip-unique 33-byte value used as the asset PDA seed. Distinct from the passkey. |
+| **Passkey pubkey** | `asset.public_key` | Compressed secp256r1 key. The custom authenticator also uses it as WebAuthn `credential.id` and `user.id`, so `response.id` after a tap is this key. |
+| **Owner** | `asset.owner` | Current custodian after a successful `execute_transfer`. Starts as the default (zero) pubkey. |
 
 ## Instruction map
 
 | Instruction | What it does |
 |-------------|--------------|
-| `create_mint` | Creates a **design** mint (member of a collection `group_mint`). |
-| `mint_token` | Mints one SPL token into custody and initializes an **asset** PDA. |
-| `execute_transfer` | Passkey-authorized claim/transfer from current owner to recipient. |
-| `remove_ownership` | Wallet-signed forfeiture — returns token to custody and resets `asset.owner`. |
-| `set_lock_state` | Owner toggles transfer lock on a configurable asset. |
-| `create_domain_config` / `update_domain_config` | WebAuthn RP ID and origin allowlist. |
+| `initialize` | Creates an **asset** PDA seeded by `identifier`, stores passkey + asset type. |
+| `execute_transfer` | Passkey-authorized ownership update to `recipient` (no SPL token). |
+| `remove_ownership` | Wallet-signed forfeiture — resets `asset.owner` to default. |
+| `set_lock_state` | Owner toggles transfer lock on a lockable asset. |
 
 ## Client naming
 
 | Rust / IDL | TypeScript (hand-written) |
 |------------|---------------------------|
-| `group_mint` | `groupMint` / `collectionMint` (display) |
-| `create_mint` | `buildCreateMintInstructions` |
-| `mint_token` | `buildMintTokenInstructions` |
-| `asset` PDA | `findAssetPda`, `AssetDisplayInfo` |
+| `initialize` | `buildInitializeInstruction` |
+| `execute_transfer` | `beginTransfer` / `completeTransfer` |
+| `asset` PDA | `findAssetPda(identifier)`, `fetchAsset`, `fetchAssetsByPublicKey` |
+| off-chain auth | `startAuthentication` + `verifyResponse` |
 
-Test helpers mirror on-chain instruction names (`create_mint`, `mint_token`, etc.).
+Test helpers mirror on-chain instruction names (`initialize`, `execute_transfer`, etc.).

@@ -10,12 +10,6 @@ pub const SECP256R1_PROGRAM_ID: Pubkey = pubkey!("Secp256r1SigVerify111111111111
 )]
 pub struct Secp256r1Pubkey(pub [u8; COMPRESSED_PUBKEY_SERIALIZED_SIZE]);
 
-impl Secp256r1Pubkey {
-    pub fn to_bytes(self) -> [u8; COMPRESSED_PUBKEY_SERIALIZED_SIZE] {
-        self.0
-    }
-}
-
 impl Default for Secp256r1Pubkey {
     fn default() -> Self {
         Secp256r1Pubkey([0u8; COMPRESSED_PUBKEY_SERIALIZED_SIZE])

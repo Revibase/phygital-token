@@ -155,8 +155,6 @@ impl Secp256r1VerifyArgs {
         Ok(data)
     }
 
-    /// Finds the most recent prior secp256r1 verify instruction, checking the immediately
-    /// preceding instruction first (the common case) then scanning further back.
     fn find_secp256r1_instruction_data(
         &self,
         instructions_sysvar: &UncheckedAccount,
