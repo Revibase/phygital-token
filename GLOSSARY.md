@@ -26,6 +26,7 @@ Asset (asset PDA)     ← created by `initialize`
 |-------------|--------------|
 | `initialize` | Creates an **asset** PDA seeded by `identifier`, stores passkey + asset type. |
 | `execute_transfer` | Passkey-authorized ownership update to `recipient` (no SPL token). |
+| `verify_asset` | Passkey-authorized proof that binds an arbitrary `message` (updates `last_transfer_slot`; no ownership change). |
 | `remove_ownership` | Wallet-signed forfeiture — resets `asset.owner` to default. |
 | `set_lock_state` | Owner toggles transfer lock on a lockable asset. |
 
@@ -35,7 +36,8 @@ Asset (asset PDA)     ← created by `initialize`
 |------------|---------------------------|
 | `initialize` | `buildInitializeInstruction` |
 | `execute_transfer` | `beginTransfer` / `completeTransfer` |
+| `verify_asset` | `beginVerifyAsset` / `completeVerifyAsset` |
 | `asset` PDA | `findAssetPda(identifier)`, `fetchAsset`, `fetchAssetsByPublicKey` |
 | off-chain auth | `startAuthentication` + `verifyResponse` |
 
-Test helpers mirror on-chain instruction names (`initialize`, `execute_transfer`, etc.).
+Test helpers mirror on-chain instruction names (`initialize`, `execute_transfer`, `verify_asset`, etc.).

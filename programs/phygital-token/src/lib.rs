@@ -31,6 +31,14 @@ pub mod phygital_token {
         execute_transfer::handler(ctx, secp256r1_verify_args)
     }
 
+    pub fn verify_asset(
+        ctx: Context<VerifyAsset>,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+        message: Vec<u8>,
+    ) -> Result<()> {
+        verify_asset::handler(ctx, secp256r1_verify_args, message)
+    }
+
     pub fn remove_ownership(ctx: Context<RemoveOwnership>) -> Result<()> {
         remove_ownership::handler(ctx)
     }

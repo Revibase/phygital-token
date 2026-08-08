@@ -9,15 +9,12 @@ use crate::generated::types::Secp256r1VerifyArgs;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
-pub const EXECUTE_TRANSFER_DISCRIMINATOR: [u8; 8] = [233, 126, 160, 184, 235, 206, 31, 119];
+pub const VERIFY_ASSET_DISCRIMINATOR: [u8; 8] = [136, 51, 110, 228, 129, 94, 141, 179];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct ExecuteTransfer {
+pub struct VerifyAsset {
       
-              
-          pub recipient: solana_address::Address,
-          
               
           pub asset: solana_address::Address,
           
@@ -28,19 +25,15 @@ pub struct ExecuteTransfer {
           pub instructions_sysvar: solana_address::Address,
       }
 
-impl ExecuteTransfer {
-  pub fn instruction(&self, args: ExecuteTransferInstructionArgs) -> solana_instruction::Instruction {
+impl VerifyAsset {
+  pub fn instruction(&self, args: VerifyAssetInstructionArgs) -> solana_instruction::Instruction {
     self.instruction_with_remaining_accounts(args, &[])
   }
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: ExecuteTransferInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.recipient,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
+  pub fn instruction_with_remaining_accounts(&self, args: VerifyAssetInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
+    let mut accounts = Vec::with_capacity(3+ remaining_accounts.len());
+                            accounts.push(solana_instruction::AccountMeta::new(
             self.asset,
             false
           ));
@@ -53,7 +46,7 @@ impl ExecuteTransfer {
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
-    let mut data = ExecuteTransferInstructionData::new().try_to_vec().unwrap();
+    let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
           let mut args = args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -66,15 +59,15 @@ impl ExecuteTransfer {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct ExecuteTransferInstructionData {
+ pub struct VerifyAssetInstructionData {
             discriminator: [u8; 8],
-            }
+                  }
 
-impl ExecuteTransferInstructionData {
+impl VerifyAssetInstructionData {
   pub fn new() -> Self {
     Self {
-                        discriminator: [233, 126, 160, 184, 235, 206, 31, 119],
-                                }
+                        discriminator: [136, 51, 110, 228, 129, 94, 141, 179],
+                                              }
   }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
@@ -82,51 +75,46 @@ impl ExecuteTransferInstructionData {
   }
   }
 
-impl Default for ExecuteTransferInstructionData {
+impl Default for VerifyAssetInstructionData {
   fn default() -> Self {
     Self::new()
   }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct ExecuteTransferInstructionArgs {
+ pub struct VerifyAssetInstructionArgs {
                   pub secp256r1_verify_args: Secp256r1VerifyArgs,
+                pub message: Vec<u8>,
       }
 
-impl ExecuteTransferInstructionArgs {
+impl VerifyAssetInstructionArgs {
   pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
     borsh::to_vec(self)
   }
 }
 
 
-/// Instruction builder for `ExecuteTransfer`.
+/// Instruction builder for `VerifyAsset`.
 ///
 /// ### Accounts:
 ///
-          ///   0. `[]` recipient
-                ///   1. `[writable]` asset
-                ///   2. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
-                ///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
+                ///   0. `[writable]` asset
+                ///   1. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
+                ///   2. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct ExecuteTransferBuilder {
-            recipient: Option<solana_address::Address>,
-                asset: Option<solana_address::Address>,
+pub struct VerifyAssetBuilder {
+            asset: Option<solana_address::Address>,
                 slot_hashes: Option<solana_address::Address>,
                 instructions_sysvar: Option<solana_address::Address>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+                message: Option<Vec<u8>>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl ExecuteTransferBuilder {
+impl VerifyAssetBuilder {
   pub fn new() -> Self {
     Self::default()
   }
-            #[inline(always)]
-    pub fn recipient(&mut self, recipient: solana_address::Address) -> &mut Self {
-                        self.recipient = Some(recipient);
-                    self
-    }
             #[inline(always)]
     pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
                         self.asset = Some(asset);
@@ -149,6 +137,11 @@ impl ExecuteTransferBuilder {
         self.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
       }
+                #[inline(always)]
+      pub fn message(&mut self, message: Vec<u8>) -> &mut Self {
+        self.message = Some(message);
+        self
+      }
         /// Add an additional account to the instruction.
   #[inline(always)]
   pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
@@ -163,26 +156,23 @@ impl ExecuteTransferBuilder {
   }
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = ExecuteTransfer {
-                              recipient: self.recipient.expect("recipient is not set"),
-                                        asset: self.asset.expect("asset is not set"),
+    let accounts = VerifyAsset {
+                              asset: self.asset.expect("asset is not set"),
                                         slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!("SysvarS1otHashes111111111111111111111111111")),
                                         instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
                       };
-          let args = ExecuteTransferInstructionArgs {
+          let args = VerifyAssetInstructionArgs {
                                                               secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
+                                                                  message: self.message.clone().expect("message is not set"),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
   }
 }
 
-  /// `execute_transfer` CPI accounts.
-  pub struct ExecuteTransferCpiAccounts<'a, 'b> {
+  /// `verify_asset` CPI accounts.
+  pub struct VerifyAssetCpiAccounts<'a, 'b> {
           
-                    
-              pub recipient: &'b solana_account_info::AccountInfo<'a>,
-                
                     
               pub asset: &'b solana_account_info::AccountInfo<'a>,
                 
@@ -193,14 +183,11 @@ impl ExecuteTransferBuilder {
               pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
             }
 
-/// `execute_transfer` CPI instruction.
-pub struct ExecuteTransferCpi<'a, 'b> {
+/// `verify_asset` CPI instruction.
+pub struct VerifyAssetCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_account_info::AccountInfo<'a>,
       
-              
-          pub recipient: &'b solana_account_info::AccountInfo<'a>,
-          
               
           pub asset: &'b solana_account_info::AccountInfo<'a>,
           
@@ -210,18 +197,17 @@ pub struct ExecuteTransferCpi<'a, 'b> {
               
           pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
             /// The arguments for the instruction.
-    pub __args: ExecuteTransferInstructionArgs,
+    pub __args: VerifyAssetInstructionArgs,
   }
 
-impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
+impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
   pub fn new(
     program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: ExecuteTransferCpiAccounts<'a, 'b>,
-              args: ExecuteTransferInstructionArgs,
+          accounts: VerifyAssetCpiAccounts<'a, 'b>,
+              args: VerifyAssetInstructionArgs,
       ) -> Self {
     Self {
       __program: program,
-              recipient: accounts.recipient,
               asset: accounts.asset,
               slot_hashes: accounts.slot_hashes,
               instructions_sysvar: accounts.instructions_sysvar,
@@ -248,12 +234,8 @@ impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.recipient.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
+    let mut accounts = Vec::with_capacity(3+ remaining_accounts.len());
+                            accounts.push(solana_instruction::AccountMeta::new(
             *self.asset.key,
             false
           ));
@@ -272,7 +254,7 @@ impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
           is_writable: remaining_account.2,
       })
     });
-    let mut data = ExecuteTransferInstructionData::new().try_to_vec().unwrap();
+    let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
           let mut args = self.__args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -281,10 +263,9 @@ impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(4 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
-                  account_infos.push(self.recipient.clone());
-                        account_infos.push(self.asset.clone());
+                  account_infos.push(self.asset.clone());
                         account_infos.push(self.slot_hashes.clone());
                         account_infos.push(self.instructions_sysvar.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -297,37 +278,31 @@ impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
   }
 }
 
-/// Instruction builder for `ExecuteTransfer` via CPI.
+/// Instruction builder for `VerifyAsset` via CPI.
 ///
 /// ### Accounts:
 ///
-          ///   0. `[]` recipient
-                ///   1. `[writable]` asset
-          ///   2. `[]` slot_hashes
-          ///   3. `[]` instructions_sysvar
+                ///   0. `[writable]` asset
+          ///   1. `[]` slot_hashes
+          ///   2. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
-pub struct ExecuteTransferCpiBuilder<'a, 'b> {
-  instruction: Box<ExecuteTransferCpiBuilderInstruction<'a, 'b>>,
+pub struct VerifyAssetCpiBuilder<'a, 'b> {
+  instruction: Box<VerifyAssetCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
+impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(ExecuteTransferCpiBuilderInstruction {
+    let instruction = Box::new(VerifyAssetCpiBuilderInstruction {
       __program: program,
-              recipient: None,
               asset: None,
               slot_hashes: None,
               instructions_sysvar: None,
                                             secp256r1_verify_args: None,
+                                message: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
   }
-      #[inline(always)]
-    pub fn recipient(&mut self, recipient: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.recipient = Some(recipient);
-                    self
-    }
       #[inline(always)]
     pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.asset = Some(asset);
@@ -346,6 +321,11 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
                     #[inline(always)]
       pub fn secp256r1_verify_args(&mut self, secp256r1_verify_args: Secp256r1VerifyArgs) -> &mut Self {
         self.instruction.secp256r1_verify_args = Some(secp256r1_verify_args);
+        self
+      }
+                #[inline(always)]
+      pub fn message(&mut self, message: Vec<u8>) -> &mut Self {
+        self.instruction.message = Some(message);
         self
       }
         /// Add an additional account to the instruction.
@@ -370,13 +350,12 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
   #[allow(clippy::clone_on_copy)]
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = ExecuteTransferInstructionArgs {
+          let args = VerifyAssetInstructionArgs {
                                                               secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
+                                                                  message: self.instruction.message.clone().expect("message is not set"),
                                     };
-        let instruction = ExecuteTransferCpi {
+        let instruction = VerifyAssetCpi {
         __program: self.instruction.__program,
-                  
-          recipient: self.instruction.recipient.expect("recipient is not set"),
                   
           asset: self.instruction.asset.expect("asset is not set"),
                   
@@ -390,13 +369,13 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct ExecuteTransferCpiBuilderInstruction<'a, 'b> {
+struct VerifyAssetCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
-            recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
-                asset: Option<&'b solana_account_info::AccountInfo<'a>>,
+            asset: Option<&'b solana_account_info::AccountInfo<'a>>,
                 slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
                 instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+                message: Option<Vec<u8>>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

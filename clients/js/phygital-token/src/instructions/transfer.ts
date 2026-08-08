@@ -83,10 +83,12 @@ export async function completeTransfer(
   const executeTransfer = getExecuteTransferInstruction({
     recipient,
     asset: session.asset,
-    verifyArgsRelativeIndex: -1,
-    signedMessageIndex,
-    slotNumber: session.slotNumber,
-    clientDataJson,
+    secp256r1VerifyArgs: {
+      verifyArgsRelativeIndex: -1,
+      signedMessageIndex,
+      slotNumber: session.slotNumber,
+      clientDataJson,
+    },
   });
 
   return [secp256r1Verify, executeTransfer];

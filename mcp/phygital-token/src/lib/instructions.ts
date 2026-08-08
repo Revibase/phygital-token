@@ -67,7 +67,6 @@ export async function planTransfer(input: {
     derived: {
       assetPda,
       identifier: input.identifier,
-      recipient,
     },
     transferAccounts: {
       recipient: input.recipient,
@@ -83,6 +82,126 @@ export async function planTransfer(input: {
       "Recipient is chosen at wallet confirmation — not bound in the passkey signature.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
       "PDA is derived from identifier; passkey public key authorizes the signature.",
+    ],
+  };
+}
+
+export type OnChainCompositionPattern = "inspect" | "cpi" | "standalone";
+
+function buildVerifyAssetChallengeDescription(message: string): string {
+  const messageBytes = new TextEncoder().encode(message);
+  return `SHA256('verify_asset' || SHA256(message[${messageBytes.length} bytes]) || slotHash)`;
+}
+
+export async function planVerifyAsset(input: {
+  message: string;
+  identifier?: string;
+  onChainPattern?: OnChainCompositionPattern;
+}) {
+  const messageBytes = new TextEncoder().encode(input.message);
+
+  let assetPda: string | undefined;
+  if (input.identifier) {
+    assetPda = await findAssetPda(parseSecp256r1Pubkey(input.identifier));
+  }
+
+  const pattern = input.onChainPattern ?? "inspect";
+  const patternMeta = {
+    inspect: {
+      transactionOrder: ["secp256r1_verify", "verify_asset", "your_program_ix"],
+      clientSteps: [
+        "beginVerifyAsset({ rpc, asset, message })",
+        "authenticatePasskeyForVerifyAsset(session)",
+        "completeVerifyAsset(session, response) — or buildVerifyAssetArgs + getVerifyAssetInstruction",
+        "buildYourProgramInstruction(/* same message bytes */)",
+        "sendTransaction([secp256r1Verify, verifyAssetIx, yourIx])",
+      ],
+      programSide:
+        "Your Rust program scans instructions_sysvar for preceding verify_asset; validates message",
+      clientSdk: ["completeVerifyAsset", "getVerifyAssetInstruction"],
+    },
+    cpi: {
+      transactionOrder: ["secp256r1_verify", "your_program_ix"],
+      clientSteps: [
+        "beginVerifyAsset({ rpc, asset, message })",
+        "authenticatePasskeyForVerifyAsset(session)",
+        "buildVerifyAssetArgs(session, response) — secp256r1Verify + verify args",
+        "buildYourProgramInstruction({ secp256r1VerifyArgs, message, assetPda })",
+        "sendTransaction([secp256r1Verify, yourIx]) — your program CPIs verify_asset",
+      ],
+      programSide:
+        "Your Rust program CPIs verify_asset via VerifyAssetCpiBuilder (phygital-token-client)",
+      clientSdk: ["buildVerifyAssetArgs"],
+    },
+    standalone: {
+      transactionOrder: ["secp256r1_verify", "verify_asset"],
+      clientSteps: [
+        "beginVerifyAsset({ rpc, asset, message })",
+        "authenticatePasskeyForVerifyAsset(session)",
+        "completeVerifyAsset(session, response)",
+        "sendTransaction([secp256r1Verify, verifyAssetIx])",
+      ],
+      programSide: "None — no custom program",
+      clientSdk: ["completeVerifyAsset"],
+    },
+  }[pattern];
+
+  return {
+    onChainPattern: pattern,
+    patternName:
+      pattern === "inspect"
+        ? "A — client posts verify_asset, program inspects"
+        : pattern === "cpi"
+          ? "B — client posts secp256r1_verify, program CPIs verify_asset"
+          : "Standalone verify_asset",
+    flow: patternMeta.clientSteps,
+    sdk: {
+      begin: "beginVerifyAsset",
+      authenticate: "authenticatePasskeyForVerifyAsset",
+      buildArgs: "buildVerifyAssetArgs",
+      complete: "completeVerifyAsset",
+      instruction: "getVerifyAssetInstruction",
+      offChainAuthOnly:
+        "startAuthentication (client) + verifyResponse (server); does NOT submit verify_asset",
+    },
+    message: {
+      utf8: input.message,
+      byteLength: messageBytes.length,
+      onChainHash: "SHA256(message) — must match bytes passed to verify_asset",
+    },
+    challenge: {
+      formula: buildVerifyAssetChallengeDescription(input.message),
+      fetchedAt: "beginVerifyAsset reads slot_hashes sysvar (~512 slot window)",
+      note: "Run beginVerifyAsset with a live rpc to get challengeBase64 and slotNumber.",
+    },
+    derived: assetPda ? { assetPda, identifier: input.identifier } : undefined,
+    transactionLayout: {
+      order: patternMeta.transactionOrder,
+      verifyAssetAccounts: {
+        asset: "writable PDA seeded by chip identifier",
+        slot_hashes: "SysvarS1otHashes111111111111111111111111111",
+        instructions_sysvar: "Sysvar1nstructions1111111111111111111111111",
+      },
+      verifyAssetArgs: {
+        secp256r1VerifyArgs: "{ signedMessageIndex, slotNumber, clientDataJson }",
+        message: "same Uint8Array as beginVerifyAsset",
+      },
+    },
+    programSide: patternMeta.programSide,
+    buildVerifyAssetArgsReturns: {
+      asset: "decoded on-chain Asset account",
+      assetPda: "Address (from session.asset)",
+      secp256r1Verify: "Instruction for Secp256r1SigVerify program",
+      signedMessageIndex: "number",
+      clientDataJson: "Uint8Array",
+    },
+    notes: [
+      "startAuthentication + verifyResponse is off-chain only — it does not submit verify_asset. Verify on your server.",
+      "Pass asset PDA into beginVerifyAsset (seeded by identifier, not the passkey).",
+      "Pattern A: client includes verify_asset; your program inspects instructions sysvar.",
+      "Pattern B: client uses buildVerifyAssetArgs; your program CPIs verify_asset.",
+      "verify_asset updates asset.last_transfer_slot; slot must be strictly increasing.",
+      "verify_asset does not change asset.owner.",
     ],
   };
 }

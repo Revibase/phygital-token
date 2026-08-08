@@ -10,3 +10,4 @@ export * from "./executeTransfer.js";
 export * from "./initialize.js";
 export * from "./removeOwnership.js";
 export * from "./setLockState.js";
+export * from "./verifyAsset.js";

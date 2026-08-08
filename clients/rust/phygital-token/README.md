@@ -6,19 +6,19 @@ Codama-generated Rust client for the [phygital-token](https://github.com/jychab/
 
 ```toml
 [dependencies]
-phygital-token-client = "0.1"
+phygital-token-client = "0.7"
 ```
 
 For on-chain CPI helpers (Anchor):
 
 ```toml
-phygital-token-client = { version = "0.1", features = ["anchor"] }
+phygital-token-client = { version = "0.7", features = ["anchor"] }
 ```
 
 For off-chain account fetching:
 
 ```toml
-phygital-token-client = { version = "0.1", features = ["fetch"] }
+phygital-token-client = { version = "0.7", features = ["fetch"] }
 ```
 
 ## Usage
@@ -27,7 +27,7 @@ The crate re-exports generated instruction builders, account layouts, types, and
 
 ```rust
 use phygital_token_client::{
-    instructions::ExecuteTransferCpiBuilder,
+    instructions::{ExecuteTransferCpiBuilder, VerifyAssetCpiBuilder},
     types::AssetType,
     PHYGITAL_TOKEN_ID,
 };

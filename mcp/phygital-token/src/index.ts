@@ -11,6 +11,7 @@ import {
   planInitialize,
   planRemoveOwnership,
   planTransfer,
+  planVerifyAsset,
 } from "./lib/instructions.js";
 import { SDK_SURFACE } from "./lib/sdk-surface.js";
 import {
@@ -20,7 +21,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "0.5.0";
+const VERSION = "0.8.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -28,13 +29,14 @@ const SERVER_INSTRUCTIONS = [
   "",
   "Routing:",
   "- Which verification method to use → recommend_verification",
+  "- On-chain verify_asset (standalone, sysvar inspect, or CPI) → plan_verify_asset",
   "- Initialize / transfer / forfeiture → plan_initialize, plan_transfer, plan_remove_ownership",
   "- Asset PDA from chip identifier → find_asset_pda",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
   "",
   "Live asset fetch and auth: call phygital-token-sdk directly in your app",
-  "(verifyResponse, fetchAssetsByPublicKey, findAssetPda, etc.).",
+  "(verifyResponse, fetchAssetsByPublicKey, findAssetPda, beginVerifyAsset, etc.).",
 ].join("\n");
 
 /** Every tool here is offline and side-effect free. */
@@ -89,7 +91,7 @@ function registerTools(server: McpServer) {
     "recommend_verification",
     {
       description:
-        "Pick the right SDK auth path (off-chain tap vs transfer). Omit useCase to get the decision tree and all use cases.",
+        "Pick the right SDK auth path (off-chain tap, transfer, or on-chain verify_asset). Omit useCase to get the decision tree and all use cases.",
       inputSchema: {
         useCase: z
           .enum([
@@ -97,6 +99,9 @@ function registerTools(server: McpServer) {
             "transfer_ownership",
             "native_mobile_app",
             "lookup_after_tap",
+            "onchain_standalone_verify",
+            "onchain_inspect_verify_asset",
+            "onchain_cpi_verify_asset",
           ] as [VerificationUseCase, ...VerificationUseCase[]])
           .optional()
           .describe("Omit to list all use cases with the decision tree."),
@@ -155,6 +160,36 @@ function registerTools(server: McpServer) {
     },
     async ({ identifier, recipient }) =>
       jsonResult(await planTransfer({ identifier, recipient })),
+  );
+
+  server.registerTool(
+    "plan_verify_asset",
+    {
+      description:
+        "Plan the on-chain verify_asset flow (offline): transaction layout, derived accounts, message binding. standalone = verify_asset only; inspect = Pattern A (your program reads the instructions sysvar); cpi = Pattern B (your program CPIs verify_asset).",
+      inputSchema: {
+        message: z.string().describe("UTF-8 message bytes bound into the verify_asset challenge"),
+        identifier: z
+          .string()
+          .optional()
+          .describe(
+            "Optional base64url chip identifier — when set, derives asset PDA offline",
+          ),
+        onChainPattern: z
+          .enum(["inspect", "cpi", "standalone"])
+          .optional()
+          .describe("Composition pattern (default: inspect)"),
+      },
+      annotations: { title: "Plan verify_asset", ...READ_ONLY },
+    },
+    async ({ message, identifier, onChainPattern }) =>
+      jsonResult(
+        await planVerifyAsset({
+          message,
+          identifier,
+          onChainPattern,
+        }),
+      ),
   );
 
   server.registerTool(

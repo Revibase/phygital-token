@@ -7,6 +7,7 @@ import {
 import {
   SECP256R1_PROGRAM_ADDRESS,
   TRANSFER_ACTION_BYTES,
+  VERIFY_ASSET_ACTION_BYTES,
 } from "../consts.js";
 import {
   base64URLStringToBuffer,
@@ -59,6 +60,21 @@ export async function buildTransferChallenge(input: {
   return sha256(
     concatBytes(
       TRANSFER_ACTION_BYTES,
+      messageHash,
+      new Uint8Array(input.slotHash),
+    ),
+  );
+}
+
+export async function buildVerifyAssetChallenge(input: {
+  message: Uint8Array;
+  slotHash: Uint8Array;
+}): Promise<Uint8Array> {
+  const messageHash = sha256(input.message);
+
+  return sha256(
+    concatBytes(
+      VERIFY_ASSET_ACTION_BYTES,
       messageHash,
       new Uint8Array(input.slotHash),
     ),

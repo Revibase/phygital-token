@@ -7,6 +7,8 @@
  */
 
 import {
+  addDecoderSizePrefix,
+  addEncoderSizePrefix,
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
@@ -14,6 +16,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  getU32Decoder,
+  getU32Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -41,18 +45,18 @@ import {
   type Secp256r1VerifyArgsArgs,
 } from "../types/index.js";
 
-export const EXECUTE_TRANSFER_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([233, 126, 160, 184, 235, 206, 31, 119]);
+export const VERIFY_ASSET_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  136, 51, 110, 228, 129, 94, 141, 179,
+]);
 
-export function getExecuteTransferDiscriminatorBytes(): ReadonlyUint8Array {
+export function getVerifyAssetDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    EXECUTE_TRANSFER_DISCRIMINATOR,
+    VERIFY_ASSET_DISCRIMINATOR,
   );
 }
 
-export type ExecuteTransferInstruction<
+export type VerifyAssetInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-  TAccountRecipient extends string | AccountMeta<string> = string,
   TAccountAsset extends string | AccountMeta<string> = string,
   TAccountSlotHashes extends string | AccountMeta<string> =
     "SysvarS1otHashes111111111111111111111111111",
@@ -63,9 +67,6 @@ export type ExecuteTransferInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountRecipient extends string
-        ? ReadonlyAccount<TAccountRecipient>
-        : TAccountRecipient,
       TAccountAsset extends string
         ? WritableAccount<TAccountAsset>
         : TAccountAsset,
@@ -79,72 +80,72 @@ export type ExecuteTransferInstruction<
     ]
   >;
 
-export type ExecuteTransferInstructionData = {
+export type VerifyAssetInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
+  message: ReadonlyUint8Array;
 };
 
-export type ExecuteTransferInstructionDataArgs = {
+export type VerifyAssetInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
+  message: ReadonlyUint8Array;
 };
 
-export function getExecuteTransferInstructionDataEncoder(): Encoder<ExecuteTransferInstructionDataArgs> {
+export function getVerifyAssetInstructionDataEncoder(): Encoder<VerifyAssetInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
+      ["message", addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
     ]),
-    (value) => ({ ...value, discriminator: EXECUTE_TRANSFER_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: VERIFY_ASSET_DISCRIMINATOR }),
   );
 }
 
-export function getExecuteTransferInstructionDataDecoder(): Decoder<ExecuteTransferInstructionData> {
+export function getVerifyAssetInstructionDataDecoder(): Decoder<VerifyAssetInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
+    ["message", addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
   ]);
 }
 
-export function getExecuteTransferInstructionDataCodec(): Codec<
-  ExecuteTransferInstructionDataArgs,
-  ExecuteTransferInstructionData
+export function getVerifyAssetInstructionDataCodec(): Codec<
+  VerifyAssetInstructionDataArgs,
+  VerifyAssetInstructionData
 > {
   return combineCodec(
-    getExecuteTransferInstructionDataEncoder(),
-    getExecuteTransferInstructionDataDecoder(),
+    getVerifyAssetInstructionDataEncoder(),
+    getVerifyAssetInstructionDataDecoder(),
   );
 }
 
-export type ExecuteTransferInput<
-  TAccountRecipient extends string = string,
+export type VerifyAssetInput<
   TAccountAsset extends string = string,
   TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
 > = {
-  recipient: Address<TAccountRecipient>;
   asset: Address<TAccountAsset>;
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-  secp256r1VerifyArgs: ExecuteTransferInstructionDataArgs["secp256r1VerifyArgs"];
+  secp256r1VerifyArgs: VerifyAssetInstructionDataArgs["secp256r1VerifyArgs"];
+  message: VerifyAssetInstructionDataArgs["message"];
 };
 
-export function getExecuteTransferInstruction<
-  TAccountRecipient extends string,
+export function getVerifyAssetInstruction<
   TAccountAsset extends string,
   TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: ExecuteTransferInput<
-    TAccountRecipient,
+  input: VerifyAssetInput<
     TAccountAsset,
     TAccountSlotHashes,
     TAccountInstructionsSysvar
   >,
   config?: { programAddress?: TProgramAddress },
-): ExecuteTransferInstruction<
+): VerifyAssetInstruction<
   TProgramAddress,
-  TAccountRecipient,
   TAccountAsset,
   TAccountSlotHashes,
   TAccountInstructionsSysvar
@@ -155,7 +156,6 @@ export function getExecuteTransferInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    recipient: { value: input.recipient ?? null, isWritable: false },
     asset: { value: input.asset ?? null, isWritable: true },
     slotHashes: { value: input.slotHashes ?? null, isWritable: false },
     instructionsSysvar: {
@@ -184,52 +184,49 @@ export function getExecuteTransferInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("recipient", accounts.recipient),
       getAccountMeta("asset", accounts.asset),
       getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
     ],
-    data: getExecuteTransferInstructionDataEncoder().encode(
-      args as ExecuteTransferInstructionDataArgs,
+    data: getVerifyAssetInstructionDataEncoder().encode(
+      args as VerifyAssetInstructionDataArgs,
     ),
     programAddress,
-  } as ExecuteTransferInstruction<
+  } as VerifyAssetInstruction<
     TProgramAddress,
-    TAccountRecipient,
     TAccountAsset,
     TAccountSlotHashes,
     TAccountInstructionsSysvar
   >);
 }
 
-export type ParsedExecuteTransferInstruction<
+export type ParsedVerifyAssetInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    recipient: TAccountMetas[0];
-    asset: TAccountMetas[1];
-    slotHashes: TAccountMetas[2];
-    instructionsSysvar: TAccountMetas[3];
+    asset: TAccountMetas[0];
+    slotHashes: TAccountMetas[1];
+    instructionsSysvar: TAccountMetas[2];
   };
-  data: ExecuteTransferInstructionData;
+  data: VerifyAssetInstructionData;
 };
 
-export function parseExecuteTransferInstruction<
+export function parseVerifyAssetInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedExecuteTransferInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+): ParsedVerifyAssetInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 3) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
+        expectedAccountMetas: 3,
       },
     );
   }
@@ -242,11 +239,10 @@ export function parseExecuteTransferInstruction<
   return {
     programAddress: instruction.programAddress,
     accounts: {
-      recipient: getNextAccount(),
       asset: getNextAccount(),
       slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
     },
-    data: getExecuteTransferInstructionDataDecoder().decode(instruction.data),
+    data: getVerifyAssetInstructionDataDecoder().decode(instruction.data),
   };
 }

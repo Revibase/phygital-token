@@ -6,6 +6,14 @@ export {
 } from "./instructions/transfer.js";
 
 export {
+  beginVerifyAsset,
+  completeVerifyAsset,
+  authenticatePasskeyForVerifyAsset,
+  buildVerifyAssetArgs,
+  type VerifyAssetSession,
+} from "./instructions/verifyAsset.js";
+
+export {
   buildInitializeInstruction,
   parseSecp256r1Pubkey,
   parseIdentifier,
@@ -37,6 +45,7 @@ export {
 export {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
+  buildVerifyAssetChallenge,
   buildVerifyInputFromWebAuthn,
   type WebAuthnSecp256r1Verification,
 } from "./utils/passkey/secp256r1.js";

@@ -3,6 +3,7 @@
 Third-party developers can:
 
 - **Authenticate off-chain** with a live NFC tap → `startAuthentication` + `verifyResponse`
+- **Prove possession on-chain** (composable) → `beginVerifyAsset` / `completeVerifyAsset` (`verify_asset`)
 - **Transfer ownership on-chain** → `beginTransfer` / `completeTransfer` (`execute_transfer`)
 - **Initialize assets** → `buildInitializeInstruction` (chip `identifier` + passkey)
 
@@ -13,6 +14,23 @@ Third-party developers can:
 3. **Optional:** `fetchAssetsByPublicKey(rpc, secp256r1PublicKey)` to load on-chain state. PDA is seeded by chip `identifier`, which is distinct from the passkey.
 
 Does **not** write to chain. Use for UI login and vault presence checks.
+
+## On-chain `verify_asset` (composable)
+
+```
+beginVerifyAsset({ rpc, asset, message })
+        ↓
+authenticatePasskeyForVerifyAsset(session)
+        ↓
+completeVerifyAsset / buildVerifyAssetArgs
+        ↓
+Pattern A: [secp256r1_verify, verify_asset, your_ix]
+Pattern B: [secp256r1_verify, your_ix]  // your program CPIs verify_asset
+```
+
+Pass the asset PDA (from `findAssetPda(identifier)`). See `verification:verify-asset-composable` and `building-on-phygital:rust-cpi`.
+
+`verify_asset` advances `last_transfer_slot` and emits an event — it does **not** change `asset.owner`.
 
 ## On-chain ownership
 
@@ -34,9 +52,10 @@ send [secp256r1_verify, execute_transfer]
 - [ ] Verify on the server with `verifyResponse` — never trust a client-side “success”
 - [ ] Never reuse off-chain challenges across authorization scopes
 - [ ] For transfers, use the slot-bound transfer challenge — not a free-form string
+- [ ] For composable on-chain proofs, bind your canonical payload as `verify_asset` `message` bytes
 
 ## Packages
 
-**TypeScript:** `phygital-token-sdk` — `startAuthentication`, `verifyResponse`, `beginTransfer`, `completeTransfer`, `buildInitializeInstruction`
+**TypeScript:** `phygital-token-sdk` — `startAuthentication`, `verifyResponse`, `beginVerifyAsset`, `beginTransfer`, `completeTransfer`, `buildInitializeInstruction`
 
-**Rust:** `phygital-token-client` at `clients/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `execute_transfer`, `remove_ownership`, `set_lock_state`
+**Rust:** `phygital-token-client` at `clients/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify_asset`, `execute_transfer`, `remove_ownership`, `set_lock_state`

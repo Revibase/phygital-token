@@ -213,6 +213,60 @@ impl TestContext {
         }
     }
 
+    // --- verify_asset --------------------------------------------------------
+
+    pub fn verify_asset_ix(
+        &self,
+        asset: Pubkey,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+        message: impl AsRef<[u8]>,
+    ) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_token::accounts::VerifyAsset {
+                asset,
+                slot_hashes: SLOT_HASHES_SYSVAR_ID,
+                instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
+            }
+            .to_account_metas(None),
+            data: phygital_token::instruction::VerifyAsset {
+                secp256r1_verify_args,
+                message: message.as_ref().to_vec(),
+            }
+            .data(),
+        }
+    }
+
+    pub fn send_verify_asset(
+        &mut self,
+        asset: &MintedAsset,
+        message: impl AsRef<[u8]>,
+        include_secp_ix: bool,
+        slot_number: Option<u64>,
+        slot_hash: Option<[u8; 32]>,
+    ) -> litesvm::types::TransactionResult {
+        let (slot_number, slot_hash) = match (slot_number, slot_hash) {
+            (Some(slot), Some(hash)) => (slot, hash),
+            _ => current_slot_entry(&self.svm),
+        };
+
+        let (secp_ix, verify_args) = asset.passkey.verify_asset_secp256r1_instruction(
+            message.as_ref(),
+            slot_number,
+            slot_hash,
+        );
+        let verify_ix = self.verify_asset_ix(asset.asset, verify_args, message);
+
+        let instructions = if include_secp_ix {
+            vec![secp_ix, verify_ix]
+        } else {
+            vec![verify_ix]
+        };
+
+        let payer = self.payer.insecure_clone();
+        Self::send_instructions(&mut self.svm, &instructions, &[&payer])
+    }
+
     // --- execute_transfer ----------------------------------------------------
 
     pub fn execute_transfer_ix(

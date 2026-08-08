@@ -53,6 +53,7 @@ Typical flow:
 | UI login / vault gate, no tx | `startAuthentication` + `verifyResponse` |
 | Load on-chain state after a tap | `verifyResponse` → `fetchAssetsByPublicKey` |
 | Transfer ownership | `beginTransfer({ rpc, asset })` → `completeTransfer` (passkey from `response.id`) |
+| On-chain possession proof / CPI | `beginVerifyAsset({ rpc, asset, message })` → `completeVerifyAsset` (see composable docs) |
 
 ## Message binding
 
@@ -60,5 +61,6 @@ Typical flow:
 |---------|----------------|--------|
 | `startAuthentication` / `verifyResponse` | `string` (`expectedMessage`) | WebAuthn challenge bytes (UTF-8); must match on client and server |
 | `beginTransfer` | slot-bound challenge | Built from asset PDA + slot hash — not the same as `expectedMessage` |
+| `beginVerifyAsset` | `Uint8Array` + slot hash | Bound into on-chain `verify_asset` via `SHA256("verify_asset" \|\| SHA256(message) \|\| slotHash)` |
 
-An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `execute_transfer`.
+An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `execute_transfer`. Use `verify_asset` when another program needs a slot-bound possession proof.

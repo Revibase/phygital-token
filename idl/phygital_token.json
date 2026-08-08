@@ -137,6 +137,47 @@
           "type": "bool"
         }
       ]
+    },
+    {
+      "name": "verify_asset",
+      "discriminator": [
+        136,
+        51,
+        110,
+        228,
+        129,
+        94,
+        141,
+        179
+      ],
+      "accounts": [
+        {
+          "name": "asset",
+          "writable": true
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "secp256r1_verify_args",
+          "type": {
+            "defined": {
+              "name": "Secp256r1VerifyArgs"
+            }
+          }
+        },
+        {
+          "name": "message",
+          "type": "bytes"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -205,6 +246,19 @@
         28,
         179,
         125
+      ]
+    },
+    {
+      "name": "VerifyAssetEvent",
+      "discriminator": [
+        166,
+        125,
+        75,
+        149,
+        250,
+        89,
+        75,
+        126
       ]
     }
   ],
@@ -537,6 +591,42 @@
           {
             "name": "recipient",
             "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "identifier",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VerifyAssetEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message",
+            "type": "bytes"
           },
           {
             "name": "owner",
