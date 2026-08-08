@@ -30,7 +30,7 @@ pub struct Initialize<'info> {
         init,
         payer = authority,
         space = Asset::size(),
-        seeds = [ASSET_SEED, secp256r1_pda_seed(&args.identifier)],
+        seeds = [ASSET_SEED, secp256r1_pda_seed(&args.secp256r1_pubkey)],
         bump,
     )]
     pub asset: Account<'info, Asset>,

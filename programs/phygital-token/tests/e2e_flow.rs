@@ -14,8 +14,8 @@ fn e2e_initialize_and_transfer() {
     let recipient = Keypair::new();
 
     // Freshly initialized asset is unowned and records both the unique chip
-    // identifier (PDA seed) and the transfer-authorizing passkey public key,
-    // which are independent of each other.
+    // identifier (binding field) and the transfer-authorizing passkey public key
+    // (which also seeds the PDA).
     let instance = ctx.asset_account(asset.asset);
     assert_eq!(instance.owner, Pubkey::default());
     assert_eq!(instance.identifier, asset.identifier);

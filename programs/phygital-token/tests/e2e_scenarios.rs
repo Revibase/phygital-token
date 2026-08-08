@@ -1,7 +1,9 @@
 mod common;
 
 use anchor_lang::prelude::Pubkey;
-use common::{assert_token_program_error, current_slot_entry, TestContext, TestPasskey};
+use common::{
+    assert_token_program_error, current_slot_entry, unique_identifier, TestContext, TestPasskey,
+};
 use phygital_token::{AssetType, InitializeArgs, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
@@ -113,14 +115,14 @@ fn e2e_locked_holder_can_forfeit_via_remove_ownership() {
 }
 
 #[test]
-fn e2e_asset_identifier_reinit_is_blocked() {
+fn e2e_asset_pubkey_reinit_is_blocked() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
 
-    // Re-initializing the same identifier PDA must fail (account already exists).
+    // Re-initializing the same passkey PDA must fail (account already exists).
     let args = InitializeArgs {
-        identifier: asset.identifier,
+        identifier: unique_identifier(),
         secp256r1_pubkey: Secp256r1Pubkey(passkey.compressed_pubkey),
         asset_type: AssetType::Transferable,
     };

@@ -38,8 +38,8 @@ pub const TEST_ORIGIN: &str = "http://localhost:3000";
 
 /// A freshly `initialize`d asset plus the passkey that controls its transfers.
 ///
-/// `identifier` (the physical chip's unique id, used as the asset PDA seed) is
-/// always distinct from `passkey`'s public key (which authorizes transfers).
+/// `identifier` is a chip binding field stored on the asset. The PDA is seeded
+/// by `passkey`'s public key (which also authorizes transfers).
 pub struct MintedAsset {
     pub asset: Pubkey,
     pub identifier: Secp256r1Pubkey,
@@ -47,7 +47,7 @@ pub struct MintedAsset {
 }
 
 /// Generate a unique chip identifier, distinct from any passkey public key.
-/// Only used as an asset PDA seed, so it need not be a valid curve point.
+/// Stored on the asset for binding; not used as the PDA seed.
 pub fn unique_identifier() -> Secp256r1Pubkey {
     use rand::RngCore;
     let mut bytes = [0u8; 33];
@@ -123,9 +123,9 @@ impl TestContext {
             .unwrap_or_else(|err| panic!("deploy {name}: {err:?}"));
     }
 
-    pub fn asset_pda(&self, identifier: &Secp256r1Pubkey) -> Pubkey {
+    pub fn asset_pda(&self, secp256r1_pubkey: &Secp256r1Pubkey) -> Pubkey {
         Pubkey::find_program_address(
-            &[ASSET_SEED, secp256r1_pda_seed(identifier)],
+            &[ASSET_SEED, secp256r1_pda_seed(secp256r1_pubkey)],
             &self.program_id,
         )
         .0
@@ -188,18 +188,19 @@ impl TestContext {
         self.init_asset_with_identifier(unique_identifier(), passkey, asset_type)
     }
 
-    /// Create an asset with an explicit chip `identifier` (PDA seed) and a
-    /// `passkey` whose public key authorizes transfers. The two are independent.
+    /// Create an asset with an explicit chip `identifier` (binding field) and a
+    /// `passkey` whose public key seeds the PDA and authorizes transfers.
     pub fn init_asset_with_identifier(
         &mut self,
         identifier: Secp256r1Pubkey,
         passkey: &TestPasskey,
         asset_type: AssetType,
     ) -> MintedAsset {
-        let asset = self.asset_pda(&identifier);
+        let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
+        let asset = self.asset_pda(&secp256r1_pubkey);
         let args = InitializeArgs {
             identifier,
-            secp256r1_pubkey: Secp256r1Pubkey(passkey.compressed_pubkey),
+            secp256r1_pubkey,
             asset_type,
         };
         let payer = self.payer.insecure_clone();
