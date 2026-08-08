@@ -185,6 +185,8 @@ export async function planVerifyAsset(input: {
       verifyAssetArgs: {
         secp256r1VerifyArgs: "{ signedMessageIndex, slotNumber, clientDataJson }",
         message: "same Uint8Array as beginVerifyAsset",
+        expectedRpId: "optional string — SHA256(rpId) must match authenticatorData[0..32]",
+        expectedOrigin: "optional string — must match clientDataJSON.origin",
       },
     },
     programSide: patternMeta.programSide,

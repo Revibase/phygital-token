@@ -21,7 +21,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "0.8.0";
+const VERSION = "0.9.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",

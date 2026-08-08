@@ -176,6 +176,18 @@
         {
           "name": "message",
           "type": "bytes"
+        },
+        {
+          "name": "expected_rp_id",
+          "type": {
+            "option": "string"
+          }
+        },
+        {
+          "name": "expected_origin",
+          "type": {
+            "option": "string"
+          }
         }
       ]
     }
@@ -352,6 +364,16 @@
       "code": 6017,
       "name": "UserPresenceNotVerified",
       "msg": "WebAuthn user presence flag (UP) was not set by the authenticator."
+    },
+    {
+      "code": 6018,
+      "name": "RpIdMismatch",
+      "msg": "WebAuthn rpId hash does not match the expected relying party id."
+    },
+    {
+      "code": 6019,
+      "name": "OriginMismatch",
+      "msg": "WebAuthn origin does not match the expected origin."
     }
   ],
   "types": [

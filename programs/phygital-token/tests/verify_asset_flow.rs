@@ -1,7 +1,10 @@
 mod common;
 
 use anchor_lang::prelude::Pubkey;
-use common::{assert_token_program_error, current_slot_entry, TestContext, TestPasskey};
+use common::{
+    assert_token_program_error, current_slot_entry, TestContext, TestPasskey, TEST_ORIGIN,
+    TEST_RP_ID,
+};
 use solana_keypair::Keypair;
 
 const TEST_MESSAGE: &str = "prove you hold this asset";
@@ -68,7 +71,13 @@ fn verify_asset_rejects_mismatched_message() {
 
     let (secp_ix, verify_args) =
         passkey.verify_asset_secp256r1_instruction(TEST_MESSAGE, slot_number, slot_hash);
-    let verify_ix = ctx.verify_asset_ix(asset.asset, verify_args, "different message".to_string());
+    let verify_ix = ctx.verify_asset_ix(
+        asset.asset,
+        verify_args,
+        "different message".to_string(),
+        None,
+        None,
+    );
 
     let payer = &ctx.payer;
     let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
@@ -85,7 +94,13 @@ fn verify_asset_rejects_wrong_passkey() {
 
     let (secp_ix, verify_args) =
         passkey_b.verify_asset_secp256r1_instruction(TEST_MESSAGE, slot_number, slot_hash);
-    let verify_ix = ctx.verify_asset_ix(asset.asset, verify_args, TEST_MESSAGE.to_string());
+    let verify_ix = ctx.verify_asset_ix(
+        asset.asset,
+        verify_args,
+        TEST_MESSAGE.to_string(),
+        None,
+        None,
+    );
 
     let payer = &ctx.payer;
     let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
@@ -179,4 +194,96 @@ fn verify_asset_slot_monotonicity_survives_transfer() {
         err_str.contains("StaleTransferSlot") || err_str.contains("6013"),
         "expected stale slot error, got: {err:?}"
     );
+}
+
+#[test]
+fn verify_asset_accepts_matching_optional_rp_id_and_origin() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.init_asset(&passkey);
+
+    ctx.send_verify_asset_with_bindings(
+        &asset,
+        TEST_MESSAGE,
+        true,
+        None,
+        None,
+        Some(TEST_RP_ID.to_string()),
+        Some(TEST_ORIGIN.to_string()),
+    )
+    .expect("matching rpId and origin should succeed");
+}
+
+#[test]
+fn verify_asset_rejects_mismatched_rp_id() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.init_asset(&passkey);
+
+    let err = ctx
+        .send_verify_asset_with_bindings(
+            &asset,
+            TEST_MESSAGE,
+            true,
+            None,
+            None,
+            Some("wrong.example".to_string()),
+            None,
+        )
+        .expect_err("mismatched rpId should fail");
+
+    assert_token_program_error(Err(err), "RpIdMismatch");
+}
+
+#[test]
+fn verify_asset_rejects_mismatched_origin() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.init_asset(&passkey);
+
+    let err = ctx
+        .send_verify_asset_with_bindings(
+            &asset,
+            TEST_MESSAGE,
+            true,
+            None,
+            None,
+            None,
+            Some("https://app.example".to_string()),
+        )
+        .expect_err("mismatched origin should fail");
+
+    assert_token_program_error(Err(err), "OriginMismatch");
+}
+
+#[test]
+fn verify_asset_allows_rp_id_only_or_origin_only() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.init_asset(&passkey);
+
+    ctx.send_verify_asset_with_bindings(
+        &asset,
+        "rp only",
+        true,
+        None,
+        None,
+        Some(TEST_RP_ID.to_string()),
+        None,
+    )
+    .expect("rpId-only check should succeed");
+
+    let (slot, _) = current_slot_entry(&ctx.svm);
+    ctx.set_current_slot(slot.saturating_add(1));
+
+    ctx.send_verify_asset_with_bindings(
+        &asset,
+        "origin only",
+        true,
+        None,
+        None,
+        None,
+        Some(TEST_ORIGIN.to_string()),
+    )
+    .expect("origin-only check should succeed");
 }

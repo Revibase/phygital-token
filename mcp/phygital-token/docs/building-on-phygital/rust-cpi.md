@@ -31,6 +31,8 @@ VerifyAssetCpiBuilder::new(phygital_token_program)
     .instructions_sysvar(instructions_sysvar)
     .secp256r1_verify_args(secp256r1_verify_args)
     .message(message_bytes)
+    .expected_rp_id("example.com".to_string()) // optional
+    .expected_origin("https://example.com".to_string()) // optional
     .invoke()?;
 ```
 

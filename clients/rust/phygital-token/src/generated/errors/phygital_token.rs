@@ -64,6 +64,12 @@ pub enum PhygitalTokenError {
     /// 6017 - WebAuthn user presence flag (UP) was not set by the authenticator.
     #[error("WebAuthn user presence flag (UP) was not set by the authenticator.")]
     UserPresenceNotVerified = 0x1781,
+    /// 6018 - WebAuthn rpId hash does not match the expected relying party id.
+    #[error("WebAuthn rpId hash does not match the expected relying party id.")]
+    RpIdMismatch = 0x1782,
+    /// 6019 - WebAuthn origin does not match the expected origin.
+    #[error("WebAuthn origin does not match the expected origin.")]
+    OriginMismatch = 0x1783,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {

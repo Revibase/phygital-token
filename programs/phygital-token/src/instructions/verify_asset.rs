@@ -43,6 +43,8 @@ pub fn handler(
     ctx: Context<VerifyAsset>,
     secp256r1_verify_args: Secp256r1VerifyArgs,
     message: Vec<u8>,
+    expected_rp_id: Option<String>,
+    expected_origin: Option<String>,
 ) -> Result<()> {
     let last_transfer_slot = ctx.accounts.asset.last_transfer_slot;
     if last_transfer_slot != LAST_TRANSFER_SLOT_NONE {
@@ -61,6 +63,12 @@ pub fn handler(
             message_hash,
             action_type: ActionType::VerifyAsset,
         },
+    )?;
+
+    secp256r1_verify_args.verify_optional_webauthn_bindings(
+        &ctx.accounts.instructions_sysvar,
+        expected_rp_id.as_deref(),
+        expected_origin.as_deref(),
     )?;
 
     ctx.accounts.asset.last_transfer_slot = secp256r1_verify_args.slot_number;

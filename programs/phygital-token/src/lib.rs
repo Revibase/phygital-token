@@ -35,8 +35,16 @@ pub mod phygital_token {
         ctx: Context<VerifyAsset>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         message: Vec<u8>,
+        expected_rp_id: Option<String>,
+        expected_origin: Option<String>,
     ) -> Result<()> {
-        verify_asset::handler(ctx, secp256r1_verify_args, message)
+        verify_asset::handler(
+            ctx,
+            secp256r1_verify_args,
+            message,
+            expected_rp_id,
+            expected_origin,
+        )
     }
 
     pub fn remove_ownership(ctx: Context<RemoveOwnership>) -> Result<()> {

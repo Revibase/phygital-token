@@ -14,10 +14,14 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getOptionDecoder,
+  getOptionEncoder,
   getStructDecoder,
   getStructEncoder,
   getU32Decoder,
   getU32Encoder,
+  getUtf8Decoder,
+  getUtf8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -29,6 +33,8 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
+  type Option,
+  type OptionOrNullable,
   type ReadonlyAccount,
   type ReadonlyUint8Array,
   type WritableAccount,
@@ -84,11 +90,15 @@ export type VerifyAssetInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
   message: ReadonlyUint8Array;
+  expectedRpId: Option<string>;
+  expectedOrigin: Option<string>;
 };
 
 export type VerifyAssetInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
   message: ReadonlyUint8Array;
+  expectedRpId: OptionOrNullable<string>;
+  expectedOrigin: OptionOrNullable<string>;
 };
 
 export function getVerifyAssetInstructionDataEncoder(): Encoder<VerifyAssetInstructionDataArgs> {
@@ -97,6 +107,18 @@ export function getVerifyAssetInstructionDataEncoder(): Encoder<VerifyAssetInstr
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
       ["message", addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
+      [
+        "expectedRpId",
+        getOptionEncoder(
+          addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
+        ),
+      ],
+      [
+        "expectedOrigin",
+        getOptionEncoder(
+          addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
+        ),
+      ],
     ]),
     (value) => ({ ...value, discriminator: VERIFY_ASSET_DISCRIMINATOR }),
   );
@@ -107,6 +129,14 @@ export function getVerifyAssetInstructionDataDecoder(): Decoder<VerifyAssetInstr
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
     ["message", addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
+    [
+      "expectedRpId",
+      getOptionDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())),
+    ],
+    [
+      "expectedOrigin",
+      getOptionDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())),
+    ],
   ]);
 }
 
@@ -130,6 +160,8 @@ export type VerifyAssetInput<
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   secp256r1VerifyArgs: VerifyAssetInstructionDataArgs["secp256r1VerifyArgs"];
   message: VerifyAssetInstructionDataArgs["message"];
+  expectedRpId: VerifyAssetInstructionDataArgs["expectedRpId"];
+  expectedOrigin: VerifyAssetInstructionDataArgs["expectedOrigin"];
 };
 
 export function getVerifyAssetInstruction<

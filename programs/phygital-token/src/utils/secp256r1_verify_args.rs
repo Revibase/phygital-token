@@ -344,4 +344,62 @@ impl Secp256r1VerifyArgs {
 
         Ok(())
     }
+
+    fn extract_origin_from_client_data_json(&self) -> Result<String> {
+        let client_data_str = std::str::from_utf8(&self.client_data_json)
+            .map_err(|_| PhygitalError::UnableToParseClientData)?;
+
+        let client_data: serde_json::Value = serde_json::from_str(client_data_str)
+            .map_err(|_| PhygitalError::UnableToParseClientData)?;
+
+        client_data
+            .get("origin")
+            .and_then(|v| v.as_str())
+            .map(str::to_owned)
+            .ok_or_else(|| error!(PhygitalError::UnableToParseClientData))
+    }
+
+    fn extract_rp_id_hash_from_instruction_data(&self, data: &[u8]) -> Result<[u8; 32]> {
+        let offsets = Self::read_signature_offsets(data, self.signed_message_index)?;
+        let message = Self::extract_message_data(data, &offsets)?;
+
+        require!(
+            message.len() >= AUTH_DATA_MIN_LEN,
+            PhygitalError::InvalidAuthenticatorData
+        );
+
+        Ok(message[..32]
+            .try_into()
+            .map_err(|_| PhygitalError::InvalidAuthenticatorData)?)
+    }
+
+    /// Optional WebAuthn binding checks for `verify_asset`.
+    ///
+    /// - `expected_rp_id`: when set, `SHA256(rp_id)` must equal authenticatorData[0..32]
+    /// - `expected_origin`: when set, clientDataJSON `origin` must equal this value
+    pub fn verify_optional_webauthn_bindings<'info>(
+        &self,
+        instructions_sysvar: &UncheckedAccount<'info>,
+        expected_rp_id: Option<&str>,
+        expected_origin: Option<&str>,
+    ) -> Result<()> {
+        if expected_rp_id.is_none() && expected_origin.is_none() {
+            return Ok(());
+        }
+
+        let secp256r1_data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
+
+        if let Some(rp_id) = expected_rp_id {
+            let expected_hash: [u8; 32] = Sha256::digest(rp_id.as_bytes()).into();
+            let actual_hash = self.extract_rp_id_hash_from_instruction_data(&secp256r1_data)?;
+            require!(expected_hash == actual_hash, PhygitalError::RpIdMismatch);
+        }
+
+        if let Some(expected) = expected_origin {
+            let origin = self.extract_origin_from_client_data_json()?;
+            require!(origin == expected, PhygitalError::OriginMismatch);
+        }
+
+        Ok(())
+    }
 }

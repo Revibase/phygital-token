@@ -61,13 +61,13 @@ impl VerifyAsset {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
  pub struct VerifyAssetInstructionData {
             discriminator: [u8; 8],
-                  }
+                              }
 
 impl VerifyAssetInstructionData {
   pub fn new() -> Self {
     Self {
                         discriminator: [136, 51, 110, 228, 129, 94, 141, 179],
-                                              }
+                                                                          }
   }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
@@ -85,6 +85,8 @@ impl Default for VerifyAssetInstructionData {
  pub struct VerifyAssetInstructionArgs {
                   pub secp256r1_verify_args: Secp256r1VerifyArgs,
                 pub message: Vec<u8>,
+                pub expected_rp_id: Option<String>,
+                pub expected_origin: Option<String>,
       }
 
 impl VerifyAssetInstructionArgs {
@@ -108,6 +110,8 @@ pub struct VerifyAssetBuilder {
                 instructions_sysvar: Option<solana_address::Address>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
                 message: Option<Vec<u8>>,
+                expected_rp_id: Option<String>,
+                expected_origin: Option<String>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -142,6 +146,18 @@ impl VerifyAssetBuilder {
         self.message = Some(message);
         self
       }
+                /// `[optional argument]`
+#[inline(always)]
+      pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
+        self.expected_rp_id = Some(expected_rp_id);
+        self
+      }
+                /// `[optional argument]`
+#[inline(always)]
+      pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
+        self.expected_origin = Some(expected_origin);
+        self
+      }
         /// Add an additional account to the instruction.
   #[inline(always)]
   pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
@@ -164,6 +180,8 @@ impl VerifyAssetBuilder {
           let args = VerifyAssetInstructionArgs {
                                                               secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
                                                                   message: self.message.clone().expect("message is not set"),
+                                                                  expected_rp_id: self.expected_rp_id.clone(),
+                                                                  expected_origin: self.expected_origin.clone(),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -299,6 +317,8 @@ impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
               instructions_sysvar: None,
                                             secp256r1_verify_args: None,
                                 message: None,
+                                expected_rp_id: None,
+                                expected_origin: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -328,6 +348,18 @@ impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
         self.instruction.message = Some(message);
         self
       }
+                /// `[optional argument]`
+#[inline(always)]
+      pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
+        self.instruction.expected_rp_id = Some(expected_rp_id);
+        self
+      }
+                /// `[optional argument]`
+#[inline(always)]
+      pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
+        self.instruction.expected_origin = Some(expected_origin);
+        self
+      }
         /// Add an additional account to the instruction.
   #[inline(always)]
   pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
@@ -353,6 +385,8 @@ impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
           let args = VerifyAssetInstructionArgs {
                                                               secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
                                                                   message: self.instruction.message.clone().expect("message is not set"),
+                                                                  expected_rp_id: self.instruction.expected_rp_id.clone(),
+                                                                  expected_origin: self.instruction.expected_origin.clone(),
                                     };
         let instruction = VerifyAssetCpi {
         __program: self.instruction.__program,
@@ -376,6 +410,8 @@ struct VerifyAssetCpiBuilderInstruction<'a, 'b> {
                 instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
                 message: Option<Vec<u8>>,
+                expected_rp_id: Option<String>,
+                expected_origin: Option<String>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

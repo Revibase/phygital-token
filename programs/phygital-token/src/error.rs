@@ -55,4 +55,10 @@ pub enum PhygitalError {
 
     #[msg("WebAuthn user presence flag (UP) was not set by the authenticator.")]
     UserPresenceNotVerified,
+
+    #[msg("WebAuthn rpId hash does not match the expected relying party id.")]
+    RpIdMismatch,
+
+    #[msg("WebAuthn origin does not match the expected origin.")]
+    OriginMismatch,
 }

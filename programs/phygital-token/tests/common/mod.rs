@@ -220,6 +220,8 @@ impl TestContext {
         asset: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         message: impl AsRef<[u8]>,
+        expected_rp_id: Option<String>,
+        expected_origin: Option<String>,
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
@@ -232,6 +234,8 @@ impl TestContext {
             data: phygital_token::instruction::VerifyAsset {
                 secp256r1_verify_args,
                 message: message.as_ref().to_vec(),
+                expected_rp_id,
+                expected_origin,
             }
             .data(),
         }
@@ -245,6 +249,27 @@ impl TestContext {
         slot_number: Option<u64>,
         slot_hash: Option<[u8; 32]>,
     ) -> litesvm::types::TransactionResult {
+        self.send_verify_asset_with_bindings(
+            asset,
+            message,
+            include_secp_ix,
+            slot_number,
+            slot_hash,
+            None,
+            None,
+        )
+    }
+
+    pub fn send_verify_asset_with_bindings(
+        &mut self,
+        asset: &MintedAsset,
+        message: impl AsRef<[u8]>,
+        include_secp_ix: bool,
+        slot_number: Option<u64>,
+        slot_hash: Option<[u8; 32]>,
+        expected_rp_id: Option<String>,
+        expected_origin: Option<String>,
+    ) -> litesvm::types::TransactionResult {
         let (slot_number, slot_hash) = match (slot_number, slot_hash) {
             (Some(slot), Some(hash)) => (slot, hash),
             _ => current_slot_entry(&self.svm),
@@ -255,7 +280,13 @@ impl TestContext {
             slot_number,
             slot_hash,
         );
-        let verify_ix = self.verify_asset_ix(asset.asset, verify_args, message);
+        let verify_ix = self.verify_asset_ix(
+            asset.asset,
+            verify_args,
+            message,
+            expected_rp_id,
+            expected_origin,
+        );
 
         let instructions = if include_secp_ix {
             vec![secp_ix, verify_ix]

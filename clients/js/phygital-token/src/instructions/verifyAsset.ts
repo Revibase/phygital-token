@@ -25,6 +25,10 @@ export type VerifyAssetSession = {
   slotNumber: bigint;
   challenge: Uint8Array;
   message: Uint8Array;
+  /** When set, on-chain check requires SHA256(rpId) == authenticatorData[0..32]. */
+  expectedRpId?: string;
+  /** When set, on-chain check requires clientDataJSON.origin to equal this value. */
+  expectedOrigin?: string;
 };
 
 /**
@@ -37,6 +41,8 @@ export async function beginVerifyAsset(input: {
   rpc: Rpc<SolanaRpcApi>;
   asset: Address;
   message: Uint8Array;
+  expectedRpId?: string;
+  expectedOrigin?: string;
 }): Promise<VerifyAssetSession> {
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildVerifyAssetChallenge({
@@ -51,6 +57,8 @@ export async function beginVerifyAsset(input: {
     slotNumber,
     challenge,
     message: input.message,
+    expectedRpId: input.expectedRpId,
+    expectedOrigin: input.expectedOrigin,
   };
 }
 
@@ -119,6 +127,8 @@ export async function completeVerifyAsset(
       clientDataJson,
     },
     message: session.message,
+    expectedRpId: session.expectedRpId ?? null,
+    expectedOrigin: session.expectedOrigin ?? null,
   });
 
   return [secp256r1Verify, verifyAssetInstruction];

@@ -89,7 +89,22 @@ await sendTransaction([secp256r1Verify, myIx], { feePayer });
 
 Accounts: `asset` (writable), `slot_hashes`, `instructions_sysvar`.
 
-Args: `{ secp256r1VerifyArgs: { signedMessageIndex, slotNumber, clientDataJson }, message }`.
+Args:
+
+- `secp256r1VerifyArgs: { signedMessageIndex, slotNumber, clientDataJson }`
+- `message`
+- `expectedRpId?: string` — when set, `SHA256(rpId)` must equal authenticatorData\[0..32\]
+- `expectedOrigin?: string` — when set, clientDataJSON `origin` must equal this value
+
+```ts
+const session = await beginVerifyAsset({
+  rpc,
+  asset,
+  message,
+  expectedRpId: "example.com",
+  expectedOrigin: "https://example.com",
+});
+```
 
 ## On-chain effects
 

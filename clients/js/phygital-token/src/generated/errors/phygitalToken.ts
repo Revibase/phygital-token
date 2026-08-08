@@ -50,6 +50,10 @@ export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x177f; // 6015
 export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x1780; // 6016
 /** UserPresenceNotVerified: WebAuthn user presence flag (UP) was not set by the authenticator. */
 export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x1781; // 6017
+/** RpIdMismatch: WebAuthn rpId hash does not match the expected relying party id. */
+export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1782; // 6018
+/** OriginMismatch: WebAuthn origin does not match the expected origin. */
+export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1783; // 6019
 
 export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__ASSET_IS_CURRENTLY_LOCKED
@@ -64,7 +68,9 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT
   | typeof PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR
+  | typeof PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH
+  | typeof PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
   | typeof PHYGITAL_TOKEN_ERROR__STALE_TRANSFER_SLOT
@@ -86,7 +92,9 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH]: `Slot not found in SlotHashes sysvar — signature has expired or is being replayed`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT]: `Invalid sysvar data format`,
     [PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
+    [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH]: `WebAuthn origin does not match the expected origin.`,
     [PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH]: `Token owner mismatch`,
+    [PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH]: `WebAuthn rpId hash does not match the expected relying party id.`,
     [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match token record`,
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
     [PHYGITAL_TOKEN_ERROR__STALE_TRANSFER_SLOT]: `Transfer slot must be greater than the last successful transfer slot`,

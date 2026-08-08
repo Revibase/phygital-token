@@ -6,19 +6,19 @@ Codama-generated Rust client for the [phygital-token](https://github.com/jychab/
 
 ```toml
 [dependencies]
-phygital-token-client = "0.7"
+phygital-token-client = "0.8"
 ```
 
 For on-chain CPI helpers (Anchor):
 
 ```toml
-phygital-token-client = { version = "0.7", features = ["anchor"] }
+phygital-token-client = { version = "0.8", features = ["anchor"] }
 ```
 
 For off-chain account fetching:
 
 ```toml
-phygital-token-client = { version = "0.7", features = ["fetch"] }
+phygital-token-client = { version = "0.8", features = ["fetch"] }
 ```
 
 ## Usage
