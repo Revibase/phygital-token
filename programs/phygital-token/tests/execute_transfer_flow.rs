@@ -14,14 +14,13 @@ fn execute_transfer_moves_asset_to_recipient_without_sender_signature() {
 
     assert_eq!(ctx.asset_owner(asset.asset), Pubkey::default());
 
-    let (transfer_slot, _) = current_slot_entry(&ctx.svm);
     ctx.send_execute_transfer(&asset, &recipient, true)
         .expect("execute_transfer should succeed with secp256r1 + recipient signature only");
 
     assert_eq!(
-        ctx.last_transfer_slot(asset.asset),
-        transfer_slot,
-        "asset should record the slot used for the transfer"
+        ctx.last_sign_count(asset.asset),
+        1,
+        "asset should record the WebAuthn signCount used for the transfer"
     );
     assert_eq!(ctx.asset_owner(asset.asset), recipient.pubkey());
 }
@@ -48,7 +47,7 @@ fn execute_transfer_requires_preceding_secp256r1_instruction() {
 }
 
 #[test]
-fn execute_transfer_rejects_slot_not_greater_than_last_transfer() {
+fn execute_transfer_rejects_sign_count_not_greater_than_last() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
@@ -59,7 +58,7 @@ fn execute_transfer_rejects_slot_not_greater_than_last_transfer() {
 
     ctx.send_execute_transfer(&asset, &first_recipient, true)
         .expect("first transfer");
-    assert_eq!(ctx.last_transfer_slot(asset.asset), slot_number);
+    assert_eq!(ctx.last_sign_count(asset.asset), 1);
 
     let err = ctx
         .send_execute_transfer_at_slot(
@@ -68,18 +67,19 @@ fn execute_transfer_rejects_slot_not_greater_than_last_transfer() {
             true,
             Some(slot_number),
             Some(slot_hash),
+            Some(1),
         )
-        .expect_err("reusing the same slot after a successful transfer should fail");
+        .expect_err("reusing the same signCount after a successful transfer should fail");
 
     assert!(
-        format!("{err:?}").contains("StaleTransferSlot"),
-        "expected stale slot error, got: {err:?}"
+        format!("{err:?}").contains("StaleSignCount"),
+        "expected stale signCount error, got: {err:?}"
     );
     assert_eq!(ctx.asset_owner(asset.asset), first_recipient.pubkey());
 }
 
 #[test]
-fn execute_transfer_allows_next_transfer_with_higher_slot() {
+fn execute_transfer_allows_next_transfer_with_higher_sign_count() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
@@ -101,9 +101,10 @@ fn execute_transfer_allows_next_transfer_with_higher_slot() {
         true,
         Some(second_slot),
         Some(second_hash),
+        None,
     )
-    .expect("second transfer with a higher slot should succeed");
+    .expect("second transfer with a higher signCount should succeed");
 
-    assert_eq!(ctx.last_transfer_slot(asset.asset), second_slot);
+    assert_eq!(ctx.last_sign_count(asset.asset), 2);
     assert_eq!(ctx.asset_owner(asset.asset), second_recipient.pubkey());
 }

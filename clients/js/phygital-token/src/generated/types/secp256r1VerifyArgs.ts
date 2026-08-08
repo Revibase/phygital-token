@@ -18,8 +18,6 @@ import {
   getStructEncoder,
   getU32Decoder,
   getU32Encoder,
-  getU64Decoder,
-  getU64Encoder,
   getU8Decoder,
   getU8Encoder,
   type Codec,
@@ -31,14 +29,12 @@ import {
 export type Secp256r1VerifyArgs = {
   verifyArgsRelativeIndex: bigint;
   signedMessageIndex: number;
-  slotNumber: bigint;
   clientDataJson: ReadonlyUint8Array;
 };
 
 export type Secp256r1VerifyArgsArgs = {
   verifyArgsRelativeIndex: number | bigint;
   signedMessageIndex: number;
-  slotNumber: number | bigint;
   clientDataJson: ReadonlyUint8Array;
 };
 
@@ -46,7 +42,6 @@ export function getSecp256r1VerifyArgsEncoder(): Encoder<Secp256r1VerifyArgsArgs
   return getStructEncoder([
     ["verifyArgsRelativeIndex", getI64Encoder()],
     ["signedMessageIndex", getU8Encoder()],
-    ["slotNumber", getU64Encoder()],
     [
       "clientDataJson",
       addEncoderSizePrefix(getBytesEncoder(), getU32Encoder()),
@@ -58,7 +53,6 @@ export function getSecp256r1VerifyArgsDecoder(): Decoder<Secp256r1VerifyArgs> {
   return getStructDecoder([
     ["verifyArgsRelativeIndex", getI64Decoder()],
     ["signedMessageIndex", getU8Decoder()],
-    ["slotNumber", getU64Decoder()],
     [
       "clientDataJson",
       addDecoderSizePrefix(getBytesDecoder(), getU32Decoder()),

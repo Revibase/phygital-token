@@ -10,17 +10,13 @@ import {
   buildVerifyAssetChallenge,
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
-import { getLatestSlotHash } from "../utils/slotHash.js";
 import { getVerifyAssetInstruction } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "./initialize.js";
 import { findAssetPda } from "../utils/pdas/asset.js";
 
 export type VerifyAssetSession = {
-  rpc: Rpc<SolanaRpcApi>;
-  slotHash: Uint8Array;
-  slotNumber: bigint;
+  messageHash: Uint8Array;
   challenge: Uint8Array;
-  message: Uint8Array;
   /** When set, on-chain check requires SHA256(rpId) == authenticatorData[0..32]. */
   expectedRpId?: string;
   /** When set, on-chain check requires clientDataJSON.origin to equal this value. */
@@ -28,29 +24,23 @@ export type VerifyAssetSession = {
 };
 
 /**
- * Prepares a verify-asset session with a slot-bound challenge for `message`.
+ * Prepares a verify-asset session with `messageHash` as the WebAuthn challenge.
  * The asset PDA is derived after the NFC tap from `response.id` (passkey).
  * Must be followed promptly by {@link authenticatePasskeyForVerifyAsset} and
  * {@link buildVerifyAssetArgs} / {@link completeVerifyAsset}.
  */
 export async function beginVerifyAsset(input: {
-  rpc: Rpc<SolanaRpcApi>;
-  message: Uint8Array;
+  messageHash: Uint8Array;
   expectedRpId?: string;
   expectedOrigin?: string;
 }): Promise<VerifyAssetSession> {
-  const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildVerifyAssetChallenge({
-    message: input.message,
-    slotHash,
+    messageHash: input.messageHash,
   });
 
   return {
-    rpc: input.rpc,
-    slotHash,
-    slotNumber,
+    messageHash: input.messageHash,
     challenge,
-    message: input.message,
     expectedRpId: input.expectedRpId,
     expectedOrigin: input.expectedOrigin,
   };
@@ -100,7 +90,7 @@ export async function buildVerifyAssetArgs(
 /**
  * Builds `[secp256r1_verify, verify_asset]` after asset authentication.
  * Does not change ownership — only proves possession and advances
- * `last_transfer_slot`.
+ * `last_sign_count`.
  */
 export async function completeVerifyAsset(
   session: VerifyAssetSession,
@@ -118,10 +108,9 @@ export async function completeVerifyAsset(
     secp256r1VerifyArgs: {
       verifyArgsRelativeIndex: -1,
       signedMessageIndex,
-      slotNumber: session.slotNumber,
       clientDataJson,
     },
-    message: session.message,
+    messageHash: session.messageHash,
     expectedRpId: session.expectedRpId ?? null,
     expectedOrigin: session.expectedOrigin ?? null,
   });

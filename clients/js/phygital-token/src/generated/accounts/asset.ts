@@ -23,8 +23,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU64Decoder,
-  getU64Encoder,
+  getU32Decoder,
+  getU32Encoder,
   transformEncoder,
   type Account,
   type Address,
@@ -61,7 +61,7 @@ export type Asset = {
   discriminator: ReadonlyUint8Array;
   assetType: AssetType;
   owner: Address;
-  lastTransferSlot: bigint;
+  lastSignCount: number;
   isLocked: boolean;
   publicKey: Secp256r1Pubkey;
   identifier: Secp256r1Pubkey;
@@ -70,7 +70,7 @@ export type Asset = {
 export type AssetArgs = {
   assetType: AssetTypeArgs;
   owner: Address;
-  lastTransferSlot: number | bigint;
+  lastSignCount: number;
   isLocked: boolean;
   publicKey: Secp256r1PubkeyArgs;
   identifier: Secp256r1PubkeyArgs;
@@ -83,7 +83,7 @@ export function getAssetEncoder(): FixedSizeEncoder<AssetArgs> {
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["assetType", getAssetTypeEncoder()],
       ["owner", getAddressEncoder()],
-      ["lastTransferSlot", getU64Encoder()],
+      ["lastSignCount", getU32Encoder()],
       ["isLocked", getBooleanEncoder()],
       ["publicKey", getSecp256r1PubkeyEncoder()],
       ["identifier", getSecp256r1PubkeyEncoder()],
@@ -98,7 +98,7 @@ export function getAssetDecoder(): FixedSizeDecoder<Asset> {
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["assetType", getAssetTypeDecoder()],
     ["owner", getAddressDecoder()],
-    ["lastTransferSlot", getU64Decoder()],
+    ["lastSignCount", getU32Decoder()],
     ["isLocked", getBooleanDecoder()],
     ["publicKey", getSecp256r1PubkeyDecoder()],
     ["identifier", getSecp256r1PubkeyDecoder()],
@@ -164,5 +164,5 @@ export async function fetchAllMaybeAsset(
 }
 
 export function getAssetSize(): number {
-  return 116;
+  return 112;
 }

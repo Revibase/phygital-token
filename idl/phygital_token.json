@@ -2,7 +2,7 @@
   "address": "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
   "metadata": {
     "name": "phygital_token",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
@@ -44,6 +44,10 @@
               "name": "Secp256r1VerifyArgs"
             }
           }
+        },
+        {
+          "name": "slot_number",
+          "type": "u64"
         }
       ]
     },
@@ -156,10 +160,6 @@
           "writable": true
         },
         {
-          "name": "slot_hashes",
-          "address": "SysvarS1otHashes111111111111111111111111111"
-        },
-        {
           "name": "instructions_sysvar",
           "address": "Sysvar1nstructions1111111111111111111111111"
         }
@@ -174,8 +174,13 @@
           }
         },
         {
-          "name": "message",
-          "type": "bytes"
+          "name": "message_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
         },
         {
           "name": "expected_rp_id",
@@ -312,8 +317,8 @@
     },
     {
       "code": 6007,
-      "name": "StaleTransferSlot",
-      "msg": "Transfer slot must be greater than the last successful transfer slot"
+      "name": "StaleSignCount",
+      "msg": "WebAuthn signCount must be greater than the last accepted signCount"
     },
     {
       "code": 6008,
@@ -395,8 +400,8 @@
             "type": "pubkey"
           },
           {
-            "name": "last_transfer_slot",
-            "type": "u64"
+            "name": "last_sign_count",
+            "type": "u32"
           },
           {
             "name": "is_locked",
@@ -559,10 +564,6 @@
             "type": "u8"
           },
           {
-            "name": "slot_number",
-            "type": "u64"
-          },
-          {
             "name": "client_data_json",
             "type": "bytes"
           }
@@ -647,8 +648,13 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "message",
-            "type": "bytes"
+            "name": "message_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "owner",

@@ -5,9 +5,8 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use phygital_token::utils::{
-    build_transfer_message_hash, build_verify_asset_message_hash, ActionType, Secp256r1VerifyArgs,
-    COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
-    SIGNATURE_OFFSETS_START,
+    build_transfer_challenge, Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE,
+    SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
 };
 use rand::rngs::OsRng;
 use sha2::{Digest, Sha256};
@@ -47,90 +46,59 @@ impl TestPasskey {
     pub fn secp256r1_verify_instruction(
         &self,
         asset: Pubkey,
-        slot_number: u64,
         slot_hash: [u8; 32],
+        sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.secp256r1_verify_instruction_with(asset, slot_number, slot_hash, None)
+        self.secp256r1_verify_instruction_with(asset, slot_hash, sign_count, None)
     }
 
     pub fn secp256r1_verify_instruction_with(
         &self,
         asset: Pubkey,
-        slot_number: u64,
         slot_hash: [u8; 32],
+        sign_count: u32,
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(&asset);
-        self.build_secp256r1_verify_instruction(
-            ActionType::Transfer,
-            message_hash,
-            slot_number,
-            slot_hash,
-            signature_override,
-            None,
-        )
+        let challenge = build_transfer_challenge(&asset, slot_hash);
+        self.build_secp256r1_verify_instruction(challenge, sign_count, signature_override, None)
     }
 
     pub fn secp256r1_verify_instruction_with_auth_flags(
         &self,
         asset: Pubkey,
-        slot_number: u64,
         slot_hash: [u8; 32],
+        sign_count: u32,
         auth_flags: u8,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_transfer_message_hash(&asset);
-        self.build_secp256r1_verify_instruction(
-            ActionType::Transfer,
-            message_hash,
-            slot_number,
-            slot_hash,
-            None,
-            Some(auth_flags),
-        )
+        let challenge = build_transfer_challenge(&asset, slot_hash);
+        self.build_secp256r1_verify_instruction(challenge, sign_count, None, Some(auth_flags))
     }
 
     pub fn verify_asset_secp256r1_instruction(
         &self,
-        message: impl AsRef<[u8]>,
-        slot_number: u64,
-        slot_hash: [u8; 32],
+        message_hash: [u8; 32],
+        sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.verify_asset_secp256r1_instruction_with(message, slot_number, slot_hash, None)
+        self.verify_asset_secp256r1_instruction_with(message_hash, sign_count, None)
     }
 
     pub fn verify_asset_secp256r1_instruction_with(
         &self,
-        message: impl AsRef<[u8]>,
-        slot_number: u64,
-        slot_hash: [u8; 32],
+        message_hash: [u8; 32],
+        sign_count: u32,
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let message_hash = build_verify_asset_message_hash(message.as_ref());
-        self.build_secp256r1_verify_instruction(
-            ActionType::VerifyAsset,
-            message_hash,
-            slot_number,
-            slot_hash,
-            signature_override,
-            None,
-        )
+        // verify_asset uses message_hash as the WebAuthn challenge directly.
+        self.build_secp256r1_verify_instruction(message_hash, sign_count, signature_override, None)
     }
 
     fn build_secp256r1_verify_instruction(
         &self,
-        action_type: ActionType,
-        message_hash: [u8; 32],
-        slot_number: u64,
-        slot_hash: [u8; 32],
+        expected_challenge: [u8; 32],
+        sign_count: u32,
         signature_override: Option<[u8; 64]>,
         auth_flags: Option<u8>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let mut challenge_buffer = Vec::new();
-        challenge_buffer.extend_from_slice(action_type.to_bytes());
-        challenge_buffer.extend_from_slice(&message_hash);
-        challenge_buffer.extend_from_slice(&slot_hash);
-        let expected_challenge: [u8; 32] = Sha256::digest(&challenge_buffer).into();
-
         let origin = TEST_ORIGIN;
         let mut client_data_json = Vec::new();
         client_data_json.extend_from_slice(br#"{"type":"webauthn.get","challenge":"#);
@@ -148,7 +116,7 @@ impl TestPasskey {
         let mut authenticator_data = Vec::with_capacity(37);
         authenticator_data.extend_from_slice(&rp_id_hash);
         authenticator_data.push(auth_flags.unwrap_or(0x01));
-        authenticator_data.extend_from_slice(&[0u8; 4]); // sign count
+        authenticator_data.extend_from_slice(&sign_count.to_be_bytes());
 
         let mut signed_message = Vec::with_capacity(authenticator_data.len() + 32);
         signed_message.extend_from_slice(&authenticator_data);
@@ -170,7 +138,6 @@ impl TestPasskey {
         let verify_args = Secp256r1VerifyArgs {
             verify_args_relative_index: -1,
             signed_message_index: 0,
-            slot_number,
             client_data_json,
         };
 

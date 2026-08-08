@@ -9,5 +9,3 @@ export const SLOT_HASHES_SYSVAR_ADDRESS = address(
 );
 
 export const TRANSFER_ACTION_BYTES = new TextEncoder().encode("transfer");
-
-export const VERIFY_ASSET_ACTION_BYTES = new TextEncoder().encode("verify_asset");

@@ -7,7 +7,6 @@ use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use crate::{
     error::PhygitalError,
     utils::{
-        action_type::ActionType,
         secp256r1_pubkey::{
             Secp256r1Pubkey, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
             SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
@@ -32,6 +31,7 @@ struct Secp256r1SignatureOffsets {
 /// Minimum WebAuthn authenticator data: rpIdHash (32) + flags (1) + signCount (4).
 pub const AUTH_DATA_MIN_LEN: usize = 37;
 const AUTH_DATA_FLAGS_OFFSET: usize = 32;
+const AUTH_DATA_SIGN_COUNT_OFFSET: usize = 33;
 const CLIENT_DATA_HASH_LEN: usize = 32;
 const FLAG_USER_PRESENT: u8 = 0x01;
 const MIN_SIGNED_MESSAGE_LEN: usize = AUTH_DATA_MIN_LEN + CLIENT_DATA_HASH_LEN;
@@ -40,13 +40,7 @@ const MIN_SIGNED_MESSAGE_LEN: usize = AUTH_DATA_MIN_LEN + CLIENT_DATA_HASH_LEN;
 pub struct Secp256r1VerifyArgs {
     pub verify_args_relative_index: i64,
     pub signed_message_index: u8,
-    pub slot_number: u64,
     pub client_data_json: Vec<u8>,
-}
-
-pub struct ChallengeArgs {
-    pub message_hash: [u8; 32],
-    pub action_type: ActionType,
 }
 
 impl Secp256r1VerifyArgs {
@@ -220,7 +214,12 @@ impl Secp256r1VerifyArgs {
             .map_err(|_| PhygitalError::UnableToParseClientData)?)
     }
 
-    fn fetch_slot_hash(&self, slot_hashes_account: &UncheckedAccount) -> Result<[u8; 32]> {
+    /// Looks up `slot_number` in the SlotHashes sysvar. Used by callers (e.g.
+    /// `execute_transfer`) that bind WebAuthn challenges to slot freshness.
+    pub fn fetch_slot_hash(
+        slot_hashes_account: &UncheckedAccount,
+        slot_number: u64,
+    ) -> Result<[u8; 32]> {
         let data = slot_hashes_account
             .try_borrow_data()
             .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?;
@@ -263,12 +262,12 @@ impl Secp256r1VerifyArgs {
                     .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?,
             );
 
-            if slot == self.slot_number {
+            if slot == slot_number {
                 let hash_bytes = &data[pos + 8..pos + 40];
                 return Ok(hash_bytes
                     .try_into()
                     .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?);
-            } else if slot > self.slot_number {
+            } else if slot > slot_number {
                 left = mid + 1;
             } else {
                 right = mid;
@@ -303,21 +302,38 @@ impl Secp256r1VerifyArgs {
         Ok(Secp256r1Pubkey(extracted_pubkey))
     }
 
-    pub fn verify_webauthn<'info>(
+    /// Reads the WebAuthn authenticator `signCount` (big-endian u32 at
+    /// authenticatorData[33..37]) from the signed secp256r1 message.
+    pub fn extract_sign_count(
         &self,
-        slot_hashes: &UncheckedAccount<'info>,
-        instructions_sysvar: &UncheckedAccount<'info>,
-        challenge_args: ChallengeArgs,
+        instructions_sysvar: &UncheckedAccount,
+    ) -> Result<u32> {
+        let data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
+        let offsets = Self::read_signature_offsets(&data, self.signed_message_index)?;
+        let message = Self::extract_message_data(&data, &offsets)?;
+
+        require!(
+            message.len() >= AUTH_DATA_MIN_LEN,
+            PhygitalError::InvalidAuthenticatorData
+        );
+
+        let sign_count_bytes: [u8; 4] = message
+            [AUTH_DATA_SIGN_COUNT_OFFSET..AUTH_DATA_SIGN_COUNT_OFFSET + 4]
+            .try_into()
+            .map_err(|_| PhygitalError::InvalidAuthenticatorData)?;
+
+        Ok(u32::from_be_bytes(sign_count_bytes))
+    }
+
+    /// Generic WebAuthn verification against an expected challenge hash.
+    ///
+    /// Callers that need slot freshness (or action-type domain separation) must
+    /// fold those into `expected_challenge` before calling this function.
+    pub fn verify_webauthn(
+        &self,
+        instructions_sysvar: &UncheckedAccount,
+        expected_challenge: [u8; 32],
     ) -> Result<()> {
-        let slot_hash = self.fetch_slot_hash(slot_hashes)?;
-
-        let mut buffer = Vec::new();
-        buffer.extend_from_slice(challenge_args.action_type.to_bytes());
-        buffer.extend_from_slice(&challenge_args.message_hash);
-        buffer.extend_from_slice(&slot_hash);
-
-        let expected_challenge: [u8; 32] = Sha256::digest(&buffer).into();
-
         let extracted_challenge = self.extract_challenge_from_client_data_json()?;
 
         require!(

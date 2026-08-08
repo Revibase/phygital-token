@@ -14,6 +14,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
+  getU64Decoder,
+  getU64Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
@@ -82,10 +84,12 @@ export type ExecuteTransferInstruction<
 export type ExecuteTransferInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
+  slotNumber: bigint;
 };
 
 export type ExecuteTransferInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
+  slotNumber: number | bigint;
 };
 
 export function getExecuteTransferInstructionDataEncoder(): Encoder<ExecuteTransferInstructionDataArgs> {
@@ -93,6 +97,7 @@ export function getExecuteTransferInstructionDataEncoder(): Encoder<ExecuteTrans
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
+      ["slotNumber", getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: EXECUTE_TRANSFER_DISCRIMINATOR }),
   );
@@ -102,6 +107,7 @@ export function getExecuteTransferInstructionDataDecoder(): Decoder<ExecuteTrans
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
+    ["slotNumber", getU64Decoder()],
   ]);
 }
 
@@ -126,6 +132,7 @@ export type ExecuteTransferInput<
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   secp256r1VerifyArgs: ExecuteTransferInstructionDataArgs["secp256r1VerifyArgs"];
+  slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
 };
 
 export function getExecuteTransferInstruction<

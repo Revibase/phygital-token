@@ -69,7 +69,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: true,
     rationale:
-      "Publish a slot-bound possession proof on-chain without a custom program. Updates last_transfer_slot; does not change owner.",
+      "Publish a possession proof on-chain without a custom program. Updates last_sign_count; does not change owner.",
     docIds: [
       "verification:verify-asset-composable",
       "building-on-phygital:rust-cpi",
@@ -154,5 +154,5 @@ Authentication (live NFC tap required)
 verifyResponse never submits verify_asset. Returns { isVerified, secp256r1PublicKey }
 (response.id is the secp256r1 vault key / WebAuthn credential id). Run it on your server.
 Asset PDA is seeded by the passkey public key; chip identifier is a separate binding field.
-On-chain proof always uses beginVerifyAsset({ rpc, message }); PDA is derived after the NFC tap.
+On-chain proof always uses beginVerifyAsset({ messageHash }); PDA is derived after the NFC tap.
 `.trim();

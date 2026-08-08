@@ -1,7 +1,7 @@
 mod common;
 
 use anchor_lang::prelude::Pubkey;
-use common::{current_slot_entry, TestContext, TestPasskey};
+use common::{TestContext, TestPasskey};
 use phygital_token::Secp256r1Pubkey;
 use solana_keypair::Keypair;
 use solana_signer::Signer;
@@ -27,16 +27,15 @@ fn e2e_initialize_and_transfer() {
         instance.identifier, instance.public_key,
         "identifier must be distinct from the passkey public key"
     );
-    assert_eq!(instance.last_transfer_slot, u64::MAX);
+    assert_eq!(instance.last_sign_count, 0);
 
-    let (transfer_slot, _) = current_slot_entry(&ctx.svm);
     ctx.send_execute_transfer(&asset, &recipient, true)
         .expect("execute_transfer should succeed");
 
     assert_eq!(
-        ctx.last_transfer_slot(asset.asset),
-        transfer_slot,
-        "asset should record the slot used for the transfer"
+        ctx.last_sign_count(asset.asset),
+        1,
+        "asset should record the WebAuthn signCount used for the transfer"
     );
     assert_eq!(ctx.asset_owner(asset.asset), recipient.pubkey());
 }

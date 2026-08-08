@@ -21,11 +21,11 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 
 | Export | Purpose |
 |--------|---------|
-| `beginVerifyAsset({ rpc, message })` | Slot-bound challenge for arbitrary message |
+| `beginVerifyAsset({ messageHash })` | Uses `messageHash` directly as WebAuthn challenge |
 | `authenticatePasskeyForVerifyAsset` | WebAuthn NFC tap |
 | `buildVerifyAssetArgs` | Derives PDA from tap; secp ix + verify args (Pattern B) |
 | `completeVerifyAsset` | Builds `secp256r1_verify` + `verify_asset` |
-| `buildVerifyAssetChallenge` | Challenge helper: `SHA256("verify_asset" \|\| SHA256(message) \|\| slotHash)` |
+| `buildVerifyAssetChallenge` | Returns `messageHash` as-is (32 bytes) |
 
 See `verification:verify-asset-composable` and `building-on-phygital:rust-cpi`.
 

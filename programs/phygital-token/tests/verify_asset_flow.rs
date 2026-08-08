@@ -2,27 +2,29 @@ mod common;
 
 use anchor_lang::prelude::Pubkey;
 use common::{
-    assert_token_program_error, current_slot_entry, TestContext, TestPasskey, TEST_ORIGIN,
-    TEST_RP_ID,
+    assert_token_program_error, TestContext, TestPasskey, TEST_ORIGIN, TEST_RP_ID,
 };
 use solana_keypair::Keypair;
 
-const TEST_MESSAGE: &str = "prove you hold this asset";
+const TEST_MESSAGE_HASH: [u8; 32] = [1u8; 32];
+const SECOND_MESSAGE_HASH: [u8; 32] = [2u8; 32];
+const RP_ONLY_MESSAGE_HASH: [u8; 32] = [3u8; 32];
+const ORIGIN_ONLY_MESSAGE_HASH: [u8; 32] = [4u8; 32];
+const STALE_MESSAGE_HASH: [u8; 32] = [5u8; 32];
 
 #[test]
-fn verify_asset_succeeds_and_records_slot() {
+fn verify_asset_succeeds_and_records_sign_count() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
-    let (slot_number, _) = current_slot_entry(&ctx.svm);
 
-    ctx.send_verify_asset(&asset, TEST_MESSAGE, true, None, None)
+    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
         .expect("verify_asset should succeed with valid passkey signature");
 
     assert_eq!(
-        ctx.last_transfer_slot(asset.asset),
-        slot_number,
-        "asset should record the slot used for verification"
+        ctx.last_sign_count(asset.asset),
+        1,
+        "asset should record the WebAuthn signCount used for verification"
     );
 }
 
@@ -33,7 +35,7 @@ fn verify_asset_does_not_change_owner() {
     let asset = ctx.init_asset(&passkey);
     let owner_before = ctx.asset_owner(asset.asset);
 
-    ctx.send_verify_asset(&asset, TEST_MESSAGE, true, None, None)
+    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
         .expect("verify_asset should succeed");
 
     let owner_after = ctx.asset_owner(asset.asset);
@@ -48,7 +50,7 @@ fn verify_asset_requires_preceding_secp256r1_instruction() {
     let asset = ctx.init_asset(&passkey);
 
     let err = ctx
-        .send_verify_asset(&asset, TEST_MESSAGE, false, None, None)
+        .send_verify_asset(&asset, TEST_MESSAGE_HASH, false)
         .expect_err("verify_asset without secp256r1 ix should fail");
 
     let err_str = format!("{err:?}");
@@ -67,14 +69,13 @@ fn verify_asset_rejects_mismatched_message() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
-    let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) =
-        passkey.verify_asset_secp256r1_instruction(TEST_MESSAGE, slot_number, slot_hash);
+        passkey.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
     let verify_ix = ctx.verify_asset_ix(
         asset.asset,
         verify_args,
-        "different message".to_string(),
+        SECOND_MESSAGE_HASH,
         None,
         None,
     );
@@ -90,14 +91,13 @@ fn verify_asset_rejects_wrong_passkey() {
     let passkey_a = TestPasskey::generate();
     let passkey_b = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey_a);
-    let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) =
-        passkey_b.verify_asset_secp256r1_instruction(TEST_MESSAGE, slot_number, slot_hash);
+        passkey_b.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
     let verify_ix = ctx.verify_asset_ix(
         asset.asset,
         verify_args,
-        TEST_MESSAGE.to_string(),
+        TEST_MESSAGE_HASH,
         None,
         None,
     );
@@ -108,91 +108,84 @@ fn verify_asset_rejects_wrong_passkey() {
 }
 
 #[test]
-fn verify_asset_rejects_slot_not_greater_than_last_verify() {
+fn verify_asset_rejects_sign_count_not_greater_than_last() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
-    let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    ctx.send_verify_asset(&asset, TEST_MESSAGE, true, None, None)
+    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
         .expect("first verify");
 
     let err = ctx
-        .send_verify_asset(
+        .send_verify_asset_with_bindings(
             &asset,
-            "second proof",
+            SECOND_MESSAGE_HASH,
             true,
-            Some(slot_number),
-            Some(slot_hash),
+            Some(1),
+            None,
+            None,
         )
-        .expect_err("reusing the same slot after a successful verify should fail");
+        .expect_err("reusing the same signCount after a successful verify should fail");
 
     let err_str = format!("{err:?}");
     assert!(
-        err_str.contains("StaleTransferSlot") || err_str.contains("6013"),
-        "expected stale slot error, got: {err:?}"
+        err_str.contains("StaleSignCount") || err_str.contains("6013"),
+        "expected stale signCount error, got: {err:?}"
     );
 }
 
 #[test]
-fn verify_asset_allows_next_verify_with_higher_slot() {
+fn verify_asset_allows_next_verify_with_higher_sign_count() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
 
-    let (first_slot, _) = current_slot_entry(&ctx.svm);
-    ctx.send_verify_asset(&asset, TEST_MESSAGE, true, None, None)
+    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
         .expect("first verify");
 
-    let second_slot = first_slot.saturating_add(1);
-    ctx.set_current_slot(second_slot);
-    let (second_slot, second_hash) = current_slot_entry(&ctx.svm);
-    assert!(second_slot > first_slot);
-
-    ctx.send_verify_asset(
+    ctx.send_verify_asset_with_bindings(
         &asset,
-        "second proof",
+        SECOND_MESSAGE_HASH,
         true,
-        Some(second_slot),
-        Some(second_hash),
+        Some(2),
+        None,
+        None,
     )
-    .expect("second verify with a higher slot should succeed");
+    .expect("second verify with a higher signCount should succeed");
 
-    assert_eq!(ctx.last_transfer_slot(asset.asset), second_slot);
+    assert_eq!(ctx.last_sign_count(asset.asset), 2);
 }
 
 #[test]
-fn verify_asset_slot_monotonicity_survives_transfer() {
+fn verify_asset_sign_count_monotonicity_survives_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
     let recipient = Keypair::new();
 
-    let (verify_slot, verify_hash) = current_slot_entry(&ctx.svm);
-    ctx.send_verify_asset(&asset, TEST_MESSAGE, true, None, None)
+    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
         .expect("verify before transfer");
+    assert_eq!(ctx.last_sign_count(asset.asset), 1);
 
-    ctx.set_current_slot(verify_slot.saturating_add(1));
     ctx.send_execute_transfer(&asset, &recipient, true)
         .expect("transfer after verify");
-
-    let transfer_slot = ctx.last_transfer_slot(asset.asset);
-    assert!(transfer_slot > verify_slot);
+    assert_eq!(ctx.last_sign_count(asset.asset), 2);
 
     let err = ctx
-        .send_verify_asset(
+        .send_verify_asset_with_bindings(
             &asset,
-            "stale after transfer",
+            STALE_MESSAGE_HASH,
             true,
-            Some(verify_slot),
-            Some(verify_hash),
+            Some(1),
+            None,
+            None,
         )
-        .expect_err("slot from before transfer should be rejected");
+        .expect_err("signCount from before transfer should be rejected");
 
     let err_str = format!("{err:?}");
     assert!(
-        err_str.contains("StaleTransferSlot") || err_str.contains("6013"),
-        "expected stale slot error, got: {err:?}"
+        err_str.contains("StaleSignCount") || err_str.contains("6013"),
+        "expected stale signCount error, got: {err:?}"
     );
 }
 
@@ -204,9 +197,8 @@ fn verify_asset_accepts_matching_optional_rp_id_and_origin() {
 
     ctx.send_verify_asset_with_bindings(
         &asset,
-        TEST_MESSAGE,
+        TEST_MESSAGE_HASH,
         true,
-        None,
         None,
         Some(TEST_RP_ID.to_string()),
         Some(TEST_ORIGIN.to_string()),
@@ -223,9 +215,8 @@ fn verify_asset_rejects_mismatched_rp_id() {
     let err = ctx
         .send_verify_asset_with_bindings(
             &asset,
-            TEST_MESSAGE,
+            TEST_MESSAGE_HASH,
             true,
-            None,
             None,
             Some("wrong.example".to_string()),
             None,
@@ -244,9 +235,8 @@ fn verify_asset_rejects_mismatched_origin() {
     let err = ctx
         .send_verify_asset_with_bindings(
             &asset,
-            TEST_MESSAGE,
+            TEST_MESSAGE_HASH,
             true,
-            None,
             None,
             None,
             Some("https://app.example".to_string()),
@@ -264,24 +254,19 @@ fn verify_asset_allows_rp_id_only_or_origin_only() {
 
     ctx.send_verify_asset_with_bindings(
         &asset,
-        "rp only",
+        RP_ONLY_MESSAGE_HASH,
         true,
-        None,
         None,
         Some(TEST_RP_ID.to_string()),
         None,
     )
     .expect("rpId-only check should succeed");
 
-    let (slot, _) = current_slot_entry(&ctx.svm);
-    ctx.set_current_slot(slot.saturating_add(1));
-
     ctx.send_verify_asset_with_bindings(
         &asset,
-        "origin only",
+        ORIGIN_ONLY_MESSAGE_HASH,
         true,
-        None,
-        None,
+        Some(2),
         None,
         Some(TEST_ORIGIN.to_string()),
     )

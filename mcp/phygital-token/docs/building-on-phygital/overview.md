@@ -18,7 +18,7 @@ Does **not** write to chain. Use for UI login and vault presence checks.
 ## On-chain `verify_asset` (composable)
 
 ```
-beginVerifyAsset({ rpc, message })
+beginVerifyAsset({ messageHash })
         ↓
 authenticatePasskeyForVerifyAsset(session)
         ↓
@@ -30,7 +30,7 @@ Pattern B: [secp256r1_verify, your_ix]  // your program CPIs verify_asset
 
 Asset PDA is derived after the NFC tap from `response.id`. See `verification:verify-asset-composable` and `building-on-phygital:rust-cpi`.
 
-`verify_asset` advances `last_transfer_slot` and emits an event — it does **not** change `asset.owner`.
+`verify_asset` advances `last_sign_count` and emits an event — it does **not** change `asset.owner`.
 
 ## On-chain ownership
 
@@ -52,7 +52,7 @@ send [secp256r1_verify, execute_transfer]
 - [ ] Verify on the server with `verifyResponse` — never trust a client-side “success”
 - [ ] Never reuse off-chain challenges across authorization scopes
 - [ ] For transfers, use the slot-bound transfer challenge — not a free-form string
-- [ ] For composable on-chain proofs, bind your canonical payload as `verify_asset` `message` bytes
+- [ ] For composable on-chain proofs, bind your canonical payload as `verify_asset` `messageHash` (32 bytes)
 
 ## Packages
 

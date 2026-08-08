@@ -46,6 +46,7 @@ export {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
   buildVerifyAssetChallenge,
+  buildVerifyAssetChallengeFromMessage,
   buildVerifyInputFromWebAuthn,
   type WebAuthnSecp256r1Verification,
 } from "./utils/passkey/secp256r1.js";

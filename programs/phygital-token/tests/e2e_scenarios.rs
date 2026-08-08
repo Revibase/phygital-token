@@ -19,7 +19,7 @@ fn e2e_happy_lifecycle_with_retransfer() {
     let (first_slot, _) = current_slot_entry(&ctx.svm);
     ctx.send_execute_transfer(&asset, &first_recipient, true)
         .expect("claim");
-    assert_eq!(ctx.last_transfer_slot(asset.asset), first_slot);
+    assert_eq!(ctx.last_sign_count(asset.asset), 1);
     assert_eq!(ctx.asset_owner(asset.asset), first_recipient.pubkey());
 
     let second_slot = first_slot.saturating_add(1);
@@ -32,10 +32,11 @@ fn e2e_happy_lifecycle_with_retransfer() {
         true,
         Some(second_slot),
         Some(second_hash),
+        None,
     )
     .expect("re-transfer");
 
-    assert_eq!(ctx.last_transfer_slot(asset.asset), second_slot);
+    assert_eq!(ctx.last_sign_count(asset.asset), 2);
     assert_eq!(ctx.asset_owner(asset.asset), second_recipient.pubkey());
 }
 
@@ -58,11 +59,10 @@ fn e2e_remove_ownership_then_reclaim() {
 
     let second_slot = first_slot.saturating_add(1);
     ctx.set_current_slot(second_slot);
-    let (second_slot, _) = current_slot_entry(&ctx.svm);
 
     ctx.send_execute_transfer(&asset, &second_holder, true)
         .expect("re-claim after remove ownership");
-    assert_eq!(ctx.last_transfer_slot(asset.asset), second_slot);
+    assert_eq!(ctx.last_sign_count(asset.asset), 2);
     assert_eq!(ctx.asset_owner(asset.asset), second_holder.pubkey());
 }
 

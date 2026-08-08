@@ -81,7 +81,7 @@ fn remove_ownership_clears_lock_on_lockable_asset() {
 }
 
 #[test]
-fn remove_ownership_preserves_last_transfer_slot() {
+fn remove_ownership_preserves_last_sign_count() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
@@ -89,12 +89,12 @@ fn remove_ownership_preserves_last_transfer_slot() {
 
     ctx.send_execute_transfer(&asset, &holder, true)
         .expect("claim asset");
-    let slot_before = ctx.last_transfer_slot(asset.asset);
+    let count_before = ctx.last_sign_count(asset.asset);
 
     ctx.send_remove_ownership(&asset, &holder)
         .expect("remove ownership");
 
-    assert_eq!(ctx.last_transfer_slot(asset.asset), slot_before);
+    assert_eq!(ctx.last_sign_count(asset.asset), count_before);
 }
 
 #[test]

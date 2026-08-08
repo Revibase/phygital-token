@@ -20,11 +20,12 @@ fn execute_transfer_rejects_wrong_signature() {
     let bad_sig = [0u8; 64];
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with(
         asset.asset,
-        slot_number,
         slot_hash,
+        1,
         Some(bad_sig),
     );
-    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
+    let transfer_ix =
+        ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -46,8 +47,9 @@ fn execute_transfer_rejects_passkey_for_different_asset() {
 
     // Sign with passkey A but target asset B (whose public_key is passkey B).
     let (secp_ix, verify_args) =
-        passkey_a.secp256r1_verify_instruction(asset_b.asset, slot_number, slot_hash);
-    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset_b.asset, verify_args);
+        passkey_a.secp256r1_verify_instruction(asset_b.asset, slot_hash, 1);
+    let transfer_ix =
+        ctx.execute_transfer_ix(recipient.pubkey(), asset_b.asset, verify_args, slot_number);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -64,8 +66,9 @@ fn execute_transfer_rejects_default_recipient() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
-    let transfer_ix = ctx.execute_transfer_ix(Pubkey::default(), asset.asset, verify_args);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
+    let transfer_ix =
+        ctx.execute_transfer_ix(Pubkey::default(), asset.asset, verify_args, slot_number);
 
     let payer = ctx.payer.insecure_clone();
     let err = ctx.send_execute_transfer_with_instructions(vec![secp_ix, transfer_ix], &[&payer]);
@@ -82,9 +85,10 @@ fn execute_transfer_succeeds_when_secp_not_immediately_preceding() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
     verify_args.verify_args_relative_index = -2;
-    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
+    let transfer_ix =
+        ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
     let noop = system_instruction::transfer(&recipient.pubkey(), &recipient.pubkey(), 0);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
@@ -109,6 +113,7 @@ fn execute_transfer_rejects_slot_not_in_sysvar() {
         true,
         Some(missing_slot),
         Some(missing_hash),
+        Some(1),
     );
     assert_token_program_error(err, "InvalidSlotHash");
 }

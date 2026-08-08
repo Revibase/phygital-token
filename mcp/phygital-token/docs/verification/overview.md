@@ -32,7 +32,7 @@ After a successful verify, look up on-chain state with `findAssetPda(parseSecp25
 
 ## On-chain `verify_asset` (composable)
 
-Use `beginVerifyAsset({ rpc, message })` when another program needs a slot-bound possession proof. The asset PDA is derived after the NFC tap. Does **not** change `asset.owner`. See [Composable verify_asset](./verify-asset-composable.md) and [Rust CPI](../building-on-phygital/rust-cpi.md).
+Use `beginVerifyAsset({ messageHash })` when another program needs an on-chain possession proof. The asset PDA is derived after the NFC tap. Does **not** change `asset.owner`. See [Composable verify_asset](./verify-asset-composable.md) and [Rust CPI](../building-on-phygital/rust-cpi.md).
 
 ## On-chain ownership change
 
@@ -42,7 +42,7 @@ Use `beginTransfer({ rpc, asset })` → `authenticatePasskeyForTransfer` → `co
 
 - **Off-chain tap** binds `expectedMessage` (UTF-8) into the WebAuthn challenge.
 - **Transfer** challenge binds the asset PDA + slot hash (recipient chosen later at wallet confirm).
-- **verify_asset** challenge binds `SHA256("verify_asset" || SHA256(message) || slotHash)`.
+- **verify_asset** challenge is `messageHash` (32 bytes) passed directly to the instruction.
 
 ## Next docs
 

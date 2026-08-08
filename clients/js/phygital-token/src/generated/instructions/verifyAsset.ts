@@ -64,8 +64,6 @@ export function getVerifyAssetDiscriminatorBytes(): ReadonlyUint8Array {
 export type VerifyAssetInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountAsset extends string | AccountMeta<string> = string,
-  TAccountSlotHashes extends string | AccountMeta<string> =
-    "SysvarS1otHashes111111111111111111111111111",
   TAccountInstructionsSysvar extends string | AccountMeta<string> =
     "Sysvar1nstructions1111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -76,9 +74,6 @@ export type VerifyAssetInstruction<
       TAccountAsset extends string
         ? WritableAccount<TAccountAsset>
         : TAccountAsset,
-      TAccountSlotHashes extends string
-        ? ReadonlyAccount<TAccountSlotHashes>
-        : TAccountSlotHashes,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
@@ -89,14 +84,14 @@ export type VerifyAssetInstruction<
 export type VerifyAssetInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
-  message: ReadonlyUint8Array;
+  messageHash: ReadonlyUint8Array;
   expectedRpId: Option<string>;
   expectedOrigin: Option<string>;
 };
 
 export type VerifyAssetInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
-  message: ReadonlyUint8Array;
+  messageHash: ReadonlyUint8Array;
   expectedRpId: OptionOrNullable<string>;
   expectedOrigin: OptionOrNullable<string>;
 };
@@ -106,7 +101,7 @@ export function getVerifyAssetInstructionDataEncoder(): Encoder<VerifyAssetInstr
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
-      ["message", addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
+      ["messageHash", fixEncoderSize(getBytesEncoder(), 32)],
       [
         "expectedRpId",
         getOptionEncoder(
@@ -128,7 +123,7 @@ export function getVerifyAssetInstructionDataDecoder(): Decoder<VerifyAssetInstr
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
-    ["message", addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
+    ["messageHash", fixDecoderSize(getBytesDecoder(), 32)],
     [
       "expectedRpId",
       getOptionDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())),
@@ -152,34 +147,26 @@ export function getVerifyAssetInstructionDataCodec(): Codec<
 
 export type VerifyAssetInput<
   TAccountAsset extends string = string,
-  TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
 > = {
   asset: Address<TAccountAsset>;
-  slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   secp256r1VerifyArgs: VerifyAssetInstructionDataArgs["secp256r1VerifyArgs"];
-  message: VerifyAssetInstructionDataArgs["message"];
+  messageHash: VerifyAssetInstructionDataArgs["messageHash"];
   expectedRpId: VerifyAssetInstructionDataArgs["expectedRpId"];
   expectedOrigin: VerifyAssetInstructionDataArgs["expectedOrigin"];
 };
 
 export function getVerifyAssetInstruction<
   TAccountAsset extends string,
-  TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: VerifyAssetInput<
-    TAccountAsset,
-    TAccountSlotHashes,
-    TAccountInstructionsSysvar
-  >,
+  input: VerifyAssetInput<TAccountAsset, TAccountInstructionsSysvar>,
   config?: { programAddress?: TProgramAddress },
 ): VerifyAssetInstruction<
   TProgramAddress,
   TAccountAsset,
-  TAccountSlotHashes,
   TAccountInstructionsSysvar
 > {
   // Program address.
@@ -189,7 +176,6 @@ export function getVerifyAssetInstruction<
   // Original accounts.
   const originalAccounts = {
     asset: { value: input.asset ?? null, isWritable: true },
-    slotHashes: { value: input.slotHashes ?? null, isWritable: false },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
       isWritable: false,
@@ -204,10 +190,6 @@ export function getVerifyAssetInstruction<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.slotHashes.value) {
-    accounts.slotHashes.value =
-      "SysvarS1otHashes111111111111111111111111111" as Address<"SysvarS1otHashes111111111111111111111111111">;
-  }
   if (!accounts.instructionsSysvar.value) {
     accounts.instructionsSysvar.value =
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
@@ -217,7 +199,6 @@ export function getVerifyAssetInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("asset", accounts.asset),
-      getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
     ],
     data: getVerifyAssetInstructionDataEncoder().encode(
@@ -227,7 +208,6 @@ export function getVerifyAssetInstruction<
   } as VerifyAssetInstruction<
     TProgramAddress,
     TAccountAsset,
-    TAccountSlotHashes,
     TAccountInstructionsSysvar
   >);
 }
@@ -239,8 +219,7 @@ export type ParsedVerifyAssetInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     asset: TAccountMetas[0];
-    slotHashes: TAccountMetas[1];
-    instructionsSysvar: TAccountMetas[2];
+    instructionsSysvar: TAccountMetas[1];
   };
   data: VerifyAssetInstructionData;
 };
@@ -253,12 +232,12 @@ export function parseVerifyAssetInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedVerifyAssetInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 3) {
+  if (instruction.accounts.length < 2) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 3,
+        expectedAccountMetas: 2,
       },
     );
   }
@@ -270,11 +249,7 @@ export function parseVerifyAssetInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: {
-      asset: getNextAccount(),
-      slotHashes: getNextAccount(),
-      instructionsSysvar: getNextAccount(),
-    },
+    accounts: { asset: getNextAccount(), instructionsSysvar: getNextAccount() },
     data: getVerifyAssetInstructionDataDecoder().decode(instruction.data),
   };
 }

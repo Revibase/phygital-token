@@ -60,7 +60,7 @@ export async function planTransfer(input: {
       complete: "completeTransfer",
     },
     challenge: {
-      formula: "SHA256('transfer' || SHA256(assetPda) || slotHash)",
+      formula: "SHA256('transfer' || assetPda || slotHash)",
       fetchedAt: "beginTransfer reads slot_hashes sysvar (~512 slot window)",
       note: "Run beginTransfer with a live rpc to get challengeBase64 and slotNumber.",
     },
@@ -75,6 +75,10 @@ export async function planTransfer(input: {
       instructionsSysvar: "Sysvar1nstructions1111111111111111111111111",
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
+    executeTransferArgs: {
+      secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
+      slotNumber: "u64 — separate instruction arg; used to fetch slot hash for transfer challenge",
+    },
     instructions: ["secp256r1_verify", "execute_transfer"],
     notes: [
       "No SPL token transfer — execute_transfer only updates asset.owner.",
@@ -88,9 +92,8 @@ export async function planTransfer(input: {
 
 export type OnChainCompositionPattern = "inspect" | "cpi" | "standalone";
 
-function buildVerifyAssetChallengeDescription(message: string): string {
-  const messageBytes = new TextEncoder().encode(message);
-  return `SHA256('verify_asset' || SHA256(message[${messageBytes.length} bytes]) || slotHash)`;
+function buildVerifyAssetChallengeDescription(): string {
+  return "messageHash (32 bytes) used directly as the WebAuthn challenge";
 }
 
 export async function planVerifyAsset(input: {
@@ -99,6 +102,7 @@ export async function planVerifyAsset(input: {
   onChainPattern?: OnChainCompositionPattern;
 }) {
   const messageBytes = new TextEncoder().encode(input.message);
+  const messageHash = "SHA256(message) — 32-byte hash passed to verify_asset and used as WebAuthn challenge";
 
   let assetPda: string | undefined;
   if (input.secp256r1PublicKey) {
@@ -110,23 +114,23 @@ export async function planVerifyAsset(input: {
     inspect: {
       transactionOrder: ["secp256r1_verify", "verify_asset", "your_program_ix"],
       clientSteps: [
-        "beginVerifyAsset({ rpc, message })",
+        "beginVerifyAsset({ messageHash })",
         "authenticatePasskeyForVerifyAsset(session)",
         "completeVerifyAsset(session, response) — or buildVerifyAssetArgs + getVerifyAssetInstruction",
-        "buildYourProgramInstruction(/* same message bytes */)",
+        "buildYourProgramInstruction(/* same messageHash */)",
         "sendTransaction([secp256r1Verify, verifyAssetIx, yourIx])",
       ],
       programSide:
-        "Your Rust program scans instructions_sysvar for preceding verify_asset; validates message",
+        "Your Rust program scans instructions_sysvar for preceding verify_asset; validates message_hash",
       clientSdk: ["completeVerifyAsset", "getVerifyAssetInstruction"],
     },
     cpi: {
       transactionOrder: ["secp256r1_verify", "your_program_ix"],
       clientSteps: [
-        "beginVerifyAsset({ rpc, message })",
+        "beginVerifyAsset({ messageHash })",
         "authenticatePasskeyForVerifyAsset(session)",
         "buildVerifyAssetArgs(response) — assetPda from tap + secp256r1Verify + verify args",
-        "buildYourProgramInstruction({ secp256r1VerifyArgs, message, assetPda })",
+        "buildYourProgramInstruction({ secp256r1VerifyArgs, messageHash, assetPda })",
         "sendTransaction([secp256r1Verify, yourIx]) — your program CPIs verify_asset",
       ],
       programSide:
@@ -136,7 +140,7 @@ export async function planVerifyAsset(input: {
     standalone: {
       transactionOrder: ["secp256r1_verify", "verify_asset"],
       clientSteps: [
-        "beginVerifyAsset({ rpc, message })",
+        "beginVerifyAsset({ messageHash })",
         "authenticatePasskeyForVerifyAsset(session)",
         "completeVerifyAsset(session, response)",
         "sendTransaction([secp256r1Verify, verifyAssetIx])",
@@ -167,12 +171,11 @@ export async function planVerifyAsset(input: {
     message: {
       utf8: input.message,
       byteLength: messageBytes.length,
-      onChainHash: "SHA256(message) — must match bytes passed to verify_asset",
+      onChainHash: messageHash,
     },
     challenge: {
-      formula: buildVerifyAssetChallengeDescription(input.message),
-      fetchedAt: "beginVerifyAsset reads slot_hashes sysvar (~512 slot window)",
-      note: "Run beginVerifyAsset with a live rpc to get challengeBase64 and slotNumber.",
+      formula: buildVerifyAssetChallengeDescription(),
+      note: "Hash your canonical payload to 32 bytes, then pass as messageHash to beginVerifyAsset.",
     },
     derived: assetPda
       ? { assetPda, secp256r1PublicKey: input.secp256r1PublicKey }
@@ -181,12 +184,11 @@ export async function planVerifyAsset(input: {
       order: patternMeta.transactionOrder,
       verifyAssetAccounts: {
         asset: "writable PDA seeded by passkey public key",
-        slot_hashes: "SysvarS1otHashes111111111111111111111111111",
         instructions_sysvar: "Sysvar1nstructions1111111111111111111111111",
       },
       verifyAssetArgs: {
-        secp256r1VerifyArgs: "{ signedMessageIndex, slotNumber, clientDataJson }",
-        message: "same Uint8Array as beginVerifyAsset",
+        secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
+        messageHash: "32-byte WebAuthn challenge",
         expectedRpId: "optional string — SHA256(rpId) must match authenticatorData[0..32]",
         expectedOrigin: "optional string — must match clientDataJSON.origin",
       },
@@ -203,7 +205,7 @@ export async function planVerifyAsset(input: {
       "beginVerifyAsset does not take an asset — PDA is derived after the NFC tap from response.id.",
       "Pattern A: client includes verify_asset; your program inspects instructions sysvar.",
       "Pattern B: client uses buildVerifyAssetArgs; your program CPIs verify_asset.",
-      "verify_asset updates asset.last_transfer_slot; slot must be strictly increasing.",
+      "verify_asset updates asset.last_sign_count; WebAuthn signCount must be strictly increasing.",
       "verify_asset does not change asset.owner.",
     ],
   };
@@ -240,7 +242,7 @@ export async function planRemoveOwnership(input: {
     onChainEffects: [
       "Sets asset.owner to the default (zero) pubkey",
       "Clears asset.is_locked (forfeiture unlocks lockable assets)",
-      "Preserves asset.last_transfer_slot",
+      "Preserves asset.last_sign_count",
     ],
     notes: [
       "Wallet-signed forfeiture — unlike execute_transfer, no secp256r1_verify or passkey tap.",

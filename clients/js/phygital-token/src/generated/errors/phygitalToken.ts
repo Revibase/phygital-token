@@ -28,8 +28,8 @@ export const PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH = 0x1774; // 6004
 export const PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH = 0x1775; // 6005
 /** InvalidSlotHash: Slot not found in SlotHashes sysvar — signature has expired or is being replayed */
 export const PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH = 0x1776; // 6006
-/** StaleTransferSlot: Transfer slot must be greater than the last successful transfer slot */
-export const PHYGITAL_TOKEN_ERROR__STALE_TRANSFER_SLOT = 0x1777; // 6007
+/** StaleSignCount: WebAuthn signCount must be greater than the last accepted signCount */
+export const PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT = 0x1777; // 6007
 /** ClientDataHashMismatch: Client data hash mismatch */
 export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x1778; // 6008
 /** MissingInstructionsSysvar: Missing instructions sysvar account */
@@ -73,7 +73,7 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
-  | typeof PHYGITAL_TOKEN_ERROR__STALE_TRANSFER_SLOT
+  | typeof PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT
   | typeof PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA
   | typeof PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED;
 
@@ -97,7 +97,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH]: `WebAuthn rpId hash does not match the expected relying party id.`,
     [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match token record`,
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
-    [PHYGITAL_TOKEN_ERROR__STALE_TRANSFER_SLOT]: `Transfer slot must be greater than the last successful transfer slot`,
+    [PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT]: `WebAuthn signCount must be greater than the last accepted signCount`,
     [PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA]: `Unable to parse client data JSON.`,
     [PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED]: `WebAuthn user presence flag (UP) was not set by the authenticator.`,
   };

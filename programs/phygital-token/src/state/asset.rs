@@ -2,8 +2,6 @@ use anchor_lang::prelude::*;
 
 use crate::utils::Secp256r1Pubkey;
 
-pub const LAST_TRANSFER_SLOT_NONE: u64 = u64::MAX;
-
 #[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone)]
 pub enum AssetType {
     /// Has a lock that the holder must release (`set_lock_state`) before transfer;
@@ -17,7 +15,7 @@ pub enum AssetType {
 pub struct Asset {
     pub asset_type: AssetType,
     pub owner: Pubkey,
-    pub last_transfer_slot: u64,
+    pub last_sign_count: u32,
     pub is_locked: bool,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
@@ -25,7 +23,7 @@ pub struct Asset {
 
 impl Asset {
     pub fn size() -> usize {
-        8 + 1 + 32 + 8 + 1 + 33 + 33
+        8 + 1 + 32 + 4 + 1 + 33 + 33
     }
 
     pub fn init(
@@ -37,7 +35,7 @@ impl Asset {
         self.identifier = identifier;
         self.asset_type = asset_type;
         self.owner = Pubkey::default();
-        self.last_transfer_slot = LAST_TRANSFER_SLOT_NONE;
+        self.last_sign_count = 0;
         self.is_locked = false;
         self.public_key = public_key;
     }

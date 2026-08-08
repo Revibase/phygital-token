@@ -21,7 +21,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "0.10.0";
+const VERSION = "0.11.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -168,7 +168,11 @@ function registerTools(server: McpServer) {
       description:
         "Plan the on-chain verify_asset flow (offline): transaction layout, derived accounts, message binding. standalone = verify_asset only; inspect = Pattern A (your program reads the instructions sysvar); cpi = Pattern B (your program CPIs verify_asset).",
       inputSchema: {
-        message: z.string().describe("UTF-8 message bytes bound into the verify_asset challenge"),
+        message: z
+          .string()
+          .describe(
+            "Canonical message string; hashed off-chain to a 32-byte messageHash used as the WebAuthn challenge",
+          ),
         secp256r1PublicKey: z
           .string()
           .optional()

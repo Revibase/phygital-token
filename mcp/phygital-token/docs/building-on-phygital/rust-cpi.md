@@ -9,11 +9,11 @@ Client sends `secp256r1_verify` + `verify_asset` + your instruction. Your progra
 1. Load `instructions_sysvar`
 2. Scan instructions **before** your program's index
 3. Find `phygital_token::verify_asset` for the expected `asset`
-4. Decode instruction data; verify `message` matches your canonical payload
+4. Decode instruction data; verify `message_hash` matches your canonical payload
 
 ```rust
 // Pseudocode
-require!(decoded_message == expected_message, MyError::InvalidProof);
+require!(decoded_message_hash == expected_message_hash, MyError::InvalidProof);
 require!(verify_asset_asset == expected_asset, MyError::WrongAsset);
 ```
 
@@ -27,10 +27,9 @@ use phygital_token_client::generated::types::Secp256r1VerifyArgs;
 
 VerifyAssetCpiBuilder::new(phygital_token_program)
     .asset(asset_account)
-    .slot_hashes(slot_hashes_sysvar)
     .instructions_sysvar(instructions_sysvar)
     .secp256r1_verify_args(secp256r1_verify_args)
-    .message(message_bytes)
+    .message_hash(message_hash)
     .expected_rp_id("example.com".to_string()) // optional
     .expected_origin("https://example.com".to_string()) // optional
     .invoke()?;
@@ -46,7 +45,6 @@ The client obtains `secp256r1_verify_args` from TypeScript `buildVerifyAssetArgs
 pub struct Secp256r1VerifyArgs {
     pub verify_args_relative_index: i64,
     pub signed_message_index: u8,
-    pub slot_number: u64,
     pub client_data_json: Vec<u8>,
 }
 ```
@@ -55,7 +53,7 @@ pub struct Secp256r1VerifyArgs {
 
 ## Challenge
 
-`SHA256("verify_asset" || SHA256(message) || slotHash)`.
+`message_hash` is used directly as the WebAuthn challenge. Callers that need slot freshness or action-type domain separation must fold those into `message_hash` before calling.
 
 ## Testing
 

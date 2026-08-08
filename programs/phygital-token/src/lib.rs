@@ -27,21 +27,22 @@ pub mod phygital_token {
     pub fn execute_transfer(
         ctx: Context<ExecuteTransfer>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
+        slot_number: u64,
     ) -> Result<()> {
-        execute_transfer::handler(ctx, secp256r1_verify_args)
+        execute_transfer::handler(ctx, secp256r1_verify_args, slot_number)
     }
 
     pub fn verify_asset(
         ctx: Context<VerifyAsset>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
-        message: Vec<u8>,
+        message_hash: [u8; 32],
         expected_rp_id: Option<String>,
         expected_origin: Option<String>,
     ) -> Result<()> {
         verify_asset::handler(
             ctx,
             secp256r1_verify_args,
-            message,
+            message_hash,
             expected_rp_id,
             expected_origin,
         )

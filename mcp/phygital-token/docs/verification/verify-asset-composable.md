@@ -7,7 +7,7 @@ Do **not** pass an asset PDA up front — after the NFC tap, `buildVerifyAssetAr
 ## Session flow
 
 ```
-beginVerifyAsset({ rpc, message })
+beginVerifyAsset({ messageHash })
         ↓
 authenticatePasskeyForVerifyAsset(session)   // WebAuthn NFC tap
         ↓
@@ -18,9 +18,9 @@ assemble transaction (Pattern A or B below)
 
 ## Functions
 
-### `beginVerifyAsset({ rpc, message: Uint8Array })`
+### `beginVerifyAsset({ messageHash: Uint8Array })`
 
-Slot-bound challenge: `SHA256("verify_asset" || SHA256(message) || slotHash)`.
+Uses `messageHash` directly as the WebAuthn challenge (32 bytes). Callers that need slot freshness or domain separation must fold that into `messageHash` before calling.
 
 ### `buildVerifyAssetArgs(response)`
 
@@ -39,7 +39,7 @@ secp256r1_verify → verify_asset → your_program_ix
 ```
 
 ```ts
-const session = await beginVerifyAsset({ rpc, message });
+const session = await beginVerifyAsset({ messageHash });
 const response = await authenticatePasskeyForVerifyAsset(session);
 
 const [secp256r1Verify, verifyAssetIx] = await completeVerifyAsset(
@@ -47,12 +47,12 @@ const [secp256r1Verify, verifyAssetIx] = await completeVerifyAsset(
   response,
 );
 
-const myIx = buildMyProgramInstruction(/* binds same message bytes */);
+const myIx = buildMyProgramInstruction(/* binds same messageHash */);
 
 await sendTransaction([secp256r1Verify, verifyAssetIx, myIx], { feePayer });
 ```
 
-**Your Rust program:** Scan `instructions_sysvar` for the `verify_asset` instruction that ran earlier in this transaction. Decode and verify `message` matches your canonical payload.
+**Your Rust program:** Scan `instructions_sysvar` for the `verify_asset` instruction that ran earlier in this transaction. Decode and verify `message_hash` matches your canonical payload.
 
 ## Pattern B — Client posts `secp256r1_verify`, program CPIs `verify_asset`
 
@@ -63,7 +63,7 @@ secp256r1_verify → your_program_ix
 ```
 
 ```ts
-const session = await beginVerifyAsset({ rpc, message });
+const session = await beginVerifyAsset({ messageHash });
 const response = await authenticatePasskeyForVerifyAsset(session);
 
 const { secp256r1Verify, signedMessageIndex, clientDataJson, assetPda } =
@@ -73,11 +73,11 @@ const { secp256r1Verify, signedMessageIndex, clientDataJson, assetPda } =
 const myIx = buildMyProgramInstruction({
   asset: assetPda,
   secp256r1VerifyArgs: {
+    verifyArgsRelativeIndex: -1,
     signedMessageIndex,
-    slotNumber: session.slotNumber,
     clientDataJson,
   },
-  message: session.message,
+  messageHash: session.messageHash,
 });
 
 await sendTransaction([secp256r1Verify, myIx], { feePayer });
@@ -87,19 +87,18 @@ await sendTransaction([secp256r1Verify, myIx], { feePayer });
 
 ## `verify_asset` instruction layout
 
-Accounts: `asset` (writable), `slot_hashes`, `instructions_sysvar`.
+Accounts: `asset` (writable), `instructions_sysvar`.
 
 Args:
 
-- `secp256r1VerifyArgs: { signedMessageIndex, slotNumber, clientDataJson }`
-- `message`
+- `secp256r1VerifyArgs: { verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }`
+- `messageHash` — 32-byte WebAuthn challenge
 - `expectedRpId?: string` — when set, `SHA256(rpId)` must equal authenticatorData\[0..32\]
 - `expectedOrigin?: string` — when set, clientDataJSON `origin` must equal this value
 
 ```ts
 const session = await beginVerifyAsset({
-  rpc,
-  message,
+  messageHash,
   expectedRpId: "example.com",
   expectedOrigin: "https://example.com",
 });
@@ -107,7 +106,7 @@ const session = await beginVerifyAsset({
 
 ## On-chain effects
 
-- Verifies WebAuthn signature against slot-bound challenge
-- Sets `asset.last_transfer_slot = slotNumber`
+- Verifies WebAuthn signature against `messageHash`
+- Sets `asset.last_sign_count` from the WebAuthn authenticatorData `signCount`
 - Emits `VerifyAssetEvent`
 - Does **not** change `asset.owner`

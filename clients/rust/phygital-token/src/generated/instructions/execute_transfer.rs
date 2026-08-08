@@ -68,13 +68,13 @@ impl ExecuteTransfer {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
  pub struct ExecuteTransferInstructionData {
             discriminator: [u8; 8],
-            }
+                  }
 
 impl ExecuteTransferInstructionData {
   pub fn new() -> Self {
     Self {
                         discriminator: [233, 126, 160, 184, 235, 206, 31, 119],
-                                }
+                                              }
   }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
@@ -91,6 +91,7 @@ impl Default for ExecuteTransferInstructionData {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
  pub struct ExecuteTransferInstructionArgs {
                   pub secp256r1_verify_args: Secp256r1VerifyArgs,
+                pub slot_number: u64,
       }
 
 impl ExecuteTransferInstructionArgs {
@@ -115,6 +116,7 @@ pub struct ExecuteTransferBuilder {
                 slot_hashes: Option<solana_address::Address>,
                 instructions_sysvar: Option<solana_address::Address>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+                slot_number: Option<u64>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -149,6 +151,11 @@ impl ExecuteTransferBuilder {
         self.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
       }
+                #[inline(always)]
+      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+        self.slot_number = Some(slot_number);
+        self
+      }
         /// Add an additional account to the instruction.
   #[inline(always)]
   pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
@@ -171,6 +178,7 @@ impl ExecuteTransferBuilder {
                       };
           let args = ExecuteTransferInstructionArgs {
                                                               secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
+                                                                  slot_number: self.slot_number.clone().expect("slot_number is not set"),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -319,6 +327,7 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
               slot_hashes: None,
               instructions_sysvar: None,
                                             secp256r1_verify_args: None,
+                                slot_number: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -348,6 +357,11 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
         self.instruction.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
       }
+                #[inline(always)]
+      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+        self.instruction.slot_number = Some(slot_number);
+        self
+      }
         /// Add an additional account to the instruction.
   #[inline(always)]
   pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
@@ -372,6 +386,7 @@ impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
           let args = ExecuteTransferInstructionArgs {
                                                               secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
+                                                                  slot_number: self.instruction.slot_number.clone().expect("slot_number is not set"),
                                     };
         let instruction = ExecuteTransferCpi {
         __program: self.instruction.__program,
@@ -397,6 +412,7 @@ struct ExecuteTransferCpiBuilderInstruction<'a, 'b> {
                 slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
                 instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+                slot_number: Option<u64>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

@@ -23,8 +23,8 @@ pub enum PhygitalError {
     #[msg("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
     InvalidSlotHash,
 
-    #[msg("Transfer slot must be greater than the last successful transfer slot")]
-    StaleTransferSlot,
+    #[msg("WebAuthn signCount must be greater than the last accepted signCount")]
+    StaleSignCount,
 
     #[msg("Client data hash mismatch")]
     ClientDataHashMismatch,

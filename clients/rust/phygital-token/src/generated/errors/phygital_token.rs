@@ -31,9 +31,9 @@ pub enum PhygitalTokenError {
     /// 6006 - Slot not found in SlotHashes sysvar — signature has expired or is being replayed
     #[error("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
     InvalidSlotHash = 0x1776,
-    /// 6007 - Transfer slot must be greater than the last successful transfer slot
-    #[error("Transfer slot must be greater than the last successful transfer slot")]
-    StaleTransferSlot = 0x1777,
+    /// 6007 - WebAuthn signCount must be greater than the last accepted signCount
+    #[error("WebAuthn signCount must be greater than the last accepted signCount")]
+    StaleSignCount = 0x1777,
     /// 6008 - Client data hash mismatch
     #[error("Client data hash mismatch")]
     ClientDataHashMismatch = 0x1778,

@@ -18,10 +18,11 @@ fn execute_transfer_rejects_signature_index_out_of_bounds() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
     verify_args.signed_message_index = 1;
 
-    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
+    let transfer_ix =
+        ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -40,10 +41,11 @@ fn execute_transfer_rejects_unparseable_client_data() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
     verify_args.client_data_json = b"not-json".to_vec();
 
-    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
+    let transfer_ix =
+        ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -62,10 +64,11 @@ fn execute_transfer_rejects_client_data_hash_mismatch() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
     verify_args.client_data_json.push(b' ');
 
-    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
+    let transfer_ix =
+        ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -85,12 +88,13 @@ fn execute_transfer_rejects_missing_user_presence() {
 
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with_auth_flags(
         asset.asset,
-        slot_number,
         slot_hash,
+        1,
         0x00,
     );
 
-    let transfer_ix = ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
+    let transfer_ix =
+        ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
@@ -103,7 +107,7 @@ fn execute_transfer_rejects_missing_user_presence() {
 /// asset PDA only — the recipient is NOT part of the signed challenge — so any
 /// recipient that submits the transaction can claim the asset. This is the
 /// on-chain counterpart to the front-running property documented on
-/// `build_transfer_message_hash`. If recipient-binding is ever added, this test
+/// `build_transfer_challenge`. If recipient-binding is ever added, this test
 /// should be inverted into a rejection test.
 #[test]
 fn execute_transfer_bearer_signature_claimable_by_any_recipient() {
@@ -117,9 +121,10 @@ fn execute_transfer_bearer_signature_claimable_by_any_recipient() {
 
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
     let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
+        passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
 
-    let transfer_ix = ctx.execute_transfer_ix(other_recipient.pubkey(), asset.asset, verify_args);
+    let transfer_ix =
+        ctx.execute_transfer_ix(other_recipient.pubkey(), asset.asset, verify_args, slot_number);
     ctx.svm
         .airdrop(&other_recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();

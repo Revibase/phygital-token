@@ -146,8 +146,13 @@ impl TestContext {
         self.load_asset(asset).is_locked
     }
 
-    pub fn last_transfer_slot(&self, asset: Pubkey) -> u64 {
-        self.load_asset(asset).last_transfer_slot
+    pub fn last_sign_count(&self, asset: Pubkey) -> u32 {
+        self.load_asset(asset).last_sign_count
+    }
+
+    /// Next WebAuthn signCount to use for a successful assertion against `asset`.
+    pub fn next_sign_count(&self, asset: Pubkey) -> u32 {
+        self.load_asset(asset).last_sign_count.saturating_add(1)
     }
 
     pub fn asset_account(&self, asset: Pubkey) -> Asset {
@@ -220,7 +225,7 @@ impl TestContext {
         &self,
         asset: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
-        message: impl AsRef<[u8]>,
+        message_hash: [u8; 32],
         expected_rp_id: Option<String>,
         expected_origin: Option<String>,
     ) -> Instruction {
@@ -228,13 +233,12 @@ impl TestContext {
             program_id: self.program_id,
             accounts: phygital_token::accounts::VerifyAsset {
                 asset,
-                slot_hashes: SLOT_HASHES_SYSVAR_ID,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
             }
             .to_account_metas(None),
             data: phygital_token::instruction::VerifyAsset {
                 secp256r1_verify_args,
-                message: message.as_ref().to_vec(),
+                message_hash,
                 expected_rp_id,
                 expected_origin,
             }
@@ -245,46 +249,30 @@ impl TestContext {
     pub fn send_verify_asset(
         &mut self,
         asset: &MintedAsset,
-        message: impl AsRef<[u8]>,
+        message_hash: [u8; 32],
         include_secp_ix: bool,
-        slot_number: Option<u64>,
-        slot_hash: Option<[u8; 32]>,
     ) -> litesvm::types::TransactionResult {
-        self.send_verify_asset_with_bindings(
-            asset,
-            message,
-            include_secp_ix,
-            slot_number,
-            slot_hash,
-            None,
-            None,
-        )
+        self.send_verify_asset_with_bindings(asset, message_hash, include_secp_ix, None, None, None)
     }
 
     pub fn send_verify_asset_with_bindings(
         &mut self,
         asset: &MintedAsset,
-        message: impl AsRef<[u8]>,
+        message_hash: [u8; 32],
         include_secp_ix: bool,
-        slot_number: Option<u64>,
-        slot_hash: Option<[u8; 32]>,
+        sign_count: Option<u32>,
         expected_rp_id: Option<String>,
         expected_origin: Option<String>,
     ) -> litesvm::types::TransactionResult {
-        let (slot_number, slot_hash) = match (slot_number, slot_hash) {
-            (Some(slot), Some(hash)) => (slot, hash),
-            _ => current_slot_entry(&self.svm),
-        };
+        let sign_count = sign_count.unwrap_or_else(|| self.next_sign_count(asset.asset));
 
-        let (secp_ix, verify_args) = asset.passkey.verify_asset_secp256r1_instruction(
-            message.as_ref(),
-            slot_number,
-            slot_hash,
-        );
+        let (secp_ix, verify_args) = asset
+            .passkey
+            .verify_asset_secp256r1_instruction(message_hash, sign_count);
         let verify_ix = self.verify_asset_ix(
             asset.asset,
             verify_args,
-            message,
+            message_hash,
             expected_rp_id,
             expected_origin,
         );
@@ -306,6 +294,7 @@ impl TestContext {
         recipient: Pubkey,
         asset: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
+        slot_number: u64,
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
@@ -318,6 +307,7 @@ impl TestContext {
             .to_account_metas(None),
             data: phygital_token::instruction::ExecuteTransfer {
                 secp256r1_verify_args,
+                slot_number,
             }
             .data(),
         }
@@ -329,7 +319,7 @@ impl TestContext {
         recipient: &Keypair,
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
-        self.send_execute_transfer_at_slot(asset, recipient, include_secp_ix, None, None)
+        self.send_execute_transfer_at_slot(asset, recipient, include_secp_ix, None, None, None)
     }
 
     pub fn send_execute_transfer_at_slot(
@@ -339,18 +329,21 @@ impl TestContext {
         include_secp_ix: bool,
         slot_number: Option<u64>,
         slot_hash: Option<[u8; 32]>,
+        sign_count: Option<u32>,
     ) -> litesvm::types::TransactionResult {
         let (slot_number, slot_hash) = match (slot_number, slot_hash) {
             (Some(slot), Some(hash)) => (slot, hash),
             _ => current_slot_entry(&self.svm),
         };
+        let sign_count = sign_count.unwrap_or_else(|| self.next_sign_count(asset.asset));
 
         let (secp_ix, verify_args) =
             asset
                 .passkey
-                .secp256r1_verify_instruction(asset.asset, slot_number, slot_hash);
+                .secp256r1_verify_instruction(asset.asset, slot_hash, sign_count);
 
-        let transfer_ix = self.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args);
+        let transfer_ix =
+            self.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
 
         let instructions = if include_secp_ix {
             vec![secp_ix, transfer_ix]

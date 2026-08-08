@@ -12,7 +12,6 @@ use borsh::BorshDeserialize;
 pub struct Secp256r1VerifyArgs {
 pub verify_args_relative_index: i64,
 pub signed_message_index: u8,
-pub slot_number: u64,
 pub client_data_json: Vec<u8>,
 }
 

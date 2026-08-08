@@ -7,7 +7,6 @@ import {
 import {
   SECP256R1_PROGRAM_ADDRESS,
   TRANSFER_ACTION_BYTES,
-  VERIFY_ASSET_ACTION_BYTES,
 } from "../consts.js";
 import {
   base64URLStringToBuffer,
@@ -55,30 +54,30 @@ export async function buildTransferChallenge(input: {
   asset: Address;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
-  const messageHash = sha256(encodeAddress(input.asset));
-
   return sha256(
     concatBytes(
       TRANSFER_ACTION_BYTES,
-      messageHash,
+      encodeAddress(input.asset),
       new Uint8Array(input.slotHash),
     ),
   );
 }
 
+/** Returns `messageHash` for use as the WebAuthn challenge in verify_asset. */
 export async function buildVerifyAssetChallenge(input: {
-  message: Uint8Array;
-  slotHash: Uint8Array;
+  messageHash: Uint8Array;
 }): Promise<Uint8Array> {
-  const messageHash = sha256(input.message);
+  if (input.messageHash.length !== 32) {
+    throw new Error("messageHash must be 32 bytes");
+  }
+  return new Uint8Array(input.messageHash);
+}
 
-  return sha256(
-    concatBytes(
-      VERIFY_ASSET_ACTION_BYTES,
-      messageHash,
-      new Uint8Array(input.slotHash),
-    ),
-  );
+/** Convenience helper when the caller has raw message bytes instead of a hash. */
+export async function buildVerifyAssetChallengeFromMessage(input: {
+  message: Uint8Array;
+}): Promise<Uint8Array> {
+  return buildVerifyAssetChallenge({ messageHash: sha256(input.message) });
 }
 
 export type WebAuthnSecp256r1Verification = {

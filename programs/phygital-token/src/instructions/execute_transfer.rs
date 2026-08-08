@@ -3,8 +3,8 @@ use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 
 use crate::error::PhygitalError;
-use crate::state::{Asset, LAST_TRANSFER_SLOT_NONE};
-use crate::utils::{build_transfer_message_hash, ActionType, ChallengeArgs, Secp256r1VerifyArgs};
+use crate::state::Asset;
+use crate::utils::{build_transfer_challenge, Secp256r1VerifyArgs};
 use crate::{AssetType, Secp256r1Pubkey};
 
 #[event]
@@ -17,7 +17,7 @@ pub struct TransferEvent {
 }
 
 #[derive(Accounts)]
-#[instruction(secp256r1_verify_args: Secp256r1VerifyArgs)]
+#[instruction(secp256r1_verify_args: Secp256r1VerifyArgs, slot_number: u64)]
 pub struct ExecuteTransfer<'info> {
     /// CHECK: recipient does not sign; can be any wallet address except default pubkey;
     #[account(
@@ -46,14 +46,14 @@ pub struct ExecuteTransfer<'info> {
 pub fn handler(
     ctx: Context<ExecuteTransfer>,
     secp256r1_verify_args: Secp256r1VerifyArgs,
+    slot_number: u64,
 ) -> Result<()> {
-    let last_transfer_slot = ctx.accounts.asset.last_transfer_slot;
-    if last_transfer_slot != LAST_TRANSFER_SLOT_NONE {
-        require!(
-            secp256r1_verify_args.slot_number > last_transfer_slot,
-            PhygitalError::StaleTransferSlot
-        );
-    }
+    let sign_count =
+        secp256r1_verify_args.extract_sign_count(&ctx.accounts.instructions_sysvar)?;
+    require!(
+        sign_count > ctx.accounts.asset.last_sign_count,
+        PhygitalError::StaleSignCount
+    );
 
     if ctx.accounts.asset.asset_type == AssetType::Lockable {
         require!(
@@ -65,16 +65,12 @@ pub fn handler(
         }
     }
 
-    let message_hash = build_transfer_message_hash(&ctx.accounts.asset.key());
+    let slot_hash =
+        Secp256r1VerifyArgs::fetch_slot_hash(&ctx.accounts.slot_hashes, slot_number)?;
+    let expected_challenge = build_transfer_challenge(&ctx.accounts.asset.key(), slot_hash);
 
-    secp256r1_verify_args.verify_webauthn(
-        &ctx.accounts.slot_hashes,
-        &ctx.accounts.instructions_sysvar,
-        ChallengeArgs {
-            message_hash,
-            action_type: ActionType::Transfer,
-        },
-    )?;
+    secp256r1_verify_args
+        .verify_webauthn(&ctx.accounts.instructions_sysvar, expected_challenge)?;
 
     emit!(TransferEvent {
         owner: ctx.accounts.asset.owner.key(),
@@ -84,7 +80,7 @@ pub fn handler(
         time: Clock::get()?.unix_timestamp,
     });
 
-    ctx.accounts.asset.last_transfer_slot = secp256r1_verify_args.slot_number;
+    ctx.accounts.asset.last_sign_count = sign_count;
     ctx.accounts.asset.owner = ctx.accounts.recipient.key();
 
     Ok(())
