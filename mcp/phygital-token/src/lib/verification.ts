@@ -51,12 +51,12 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     cautions: ["Run verifyResponse on your server, not in the native client."],
   },
   lookup_after_tap: {
-    method: "verifyResponse → fetchAssetsByPublicKey",
-    sdkExports: ["verifyResponse", "fetchAssetsByPublicKey", "fetchAsset"],
+    method: "verifyResponse → findAssetPda + fetchAsset",
+    sdkExports: ["verifyResponse", "findAssetPda", "fetchAsset", "parseSecp256r1Pubkey"],
     requiresTap: true,
     onChain: false,
     rationale:
-      "After verifyResponse, look up the asset by passkey public key. PDA is seeded by chip identifier (distinct from the passkey).",
+      "After verifyResponse, derive the asset PDA from the passkey public key and fetch the account. Chip identifier is a binding field on the asset, not the PDA seed.",
     docIds: ["verification:methods", "sdk:surface-area"],
   },
   onchain_standalone_verify: {
@@ -147,12 +147,12 @@ Authentication (live NFC tap required)
 │               Pattern B: [secp256r1_verify, your_ix] — program CPIs verify_asset
 │         NO  → startAuthentication (client tap)
 │               → verifyResponse (server verify)
-│               → optional: fetchAssetsByPublicKey(rpc, secp256r1PublicKey)
-└── Know the chip identifier already?
-    → findAssetPda(identifier) / fetchAsset(rpc, pda)
+│               → optional: findAssetPda(secp256r1PublicKey) / fetchAsset
+└── Know the passkey already?
+    → findAssetPda(secp256r1Pubkey) / fetchAsset(rpc, pda)
 
 verifyResponse never submits verify_asset. Returns { isVerified, secp256r1PublicKey }
 (response.id is the secp256r1 vault key / WebAuthn credential id). Run it on your server.
-Chip identifier (PDA seed) is distinct from the passkey public key.
-On-chain proof always uses beginVerifyAsset({ rpc, asset, message }).
+Asset PDA is seeded by the passkey public key; chip identifier is a separate binding field.
+On-chain proof always uses beginVerifyAsset({ rpc, message }); PDA is derived after the NFC tap.
 `.trim();

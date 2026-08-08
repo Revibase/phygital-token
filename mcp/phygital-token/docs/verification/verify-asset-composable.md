@@ -2,29 +2,29 @@
 
 On-chain passkey authentication for custom programs. **Not** the same as off-chain `startAuthentication` + `verifyResponse`.
 
-Pass the **asset PDA** into `beginVerifyAsset` (seeded by chip `identifier`). The passkey authorizes the signature but is not the PDA seed.
+Do **not** pass an asset PDA up front — after the NFC tap, `buildVerifyAssetArgs` / `completeVerifyAsset` derive it from `response.id` via `findAssetPda`.
 
 ## Session flow
 
 ```
-beginVerifyAsset({ rpc, asset, message })
+beginVerifyAsset({ rpc, message })
         ↓
 authenticatePasskeyForVerifyAsset(session)   // WebAuthn NFC tap
         ↓
-buildVerifyAssetArgs(session, response)      // or completeVerifyAsset(...)
+buildVerifyAssetArgs(response)               // or completeVerifyAsset(...)
         ↓
 assemble transaction (Pattern A or B below)
 ```
 
 ## Functions
 
-### `beginVerifyAsset({ rpc, asset, message: Uint8Array })`
+### `beginVerifyAsset({ rpc, message: Uint8Array })`
 
 Slot-bound challenge: `SHA256("verify_asset" || SHA256(message) || slotHash)`.
 
-### `buildVerifyAssetArgs(session, response)`
+### `buildVerifyAssetArgs(response)`
 
-Loads the asset account at `session.asset`. Returns `secp256r1Verify`, `signedMessageIndex`, `clientDataJson`, `asset`, `assetPda`.
+Derives `assetPda` from `response.id` (passkey). Returns `secp256r1Verify`, `signedMessageIndex`, `clientDataJson`, `assetPda`.
 
 ### `completeVerifyAsset(session, response)`
 
@@ -39,7 +39,7 @@ secp256r1_verify → verify_asset → your_program_ix
 ```
 
 ```ts
-const session = await beginVerifyAsset({ rpc, asset, message });
+const session = await beginVerifyAsset({ rpc, message });
 const response = await authenticatePasskeyForVerifyAsset(session);
 
 const [secp256r1Verify, verifyAssetIx] = await completeVerifyAsset(
@@ -63,11 +63,11 @@ secp256r1_verify → your_program_ix
 ```
 
 ```ts
-const session = await beginVerifyAsset({ rpc, asset, message });
+const session = await beginVerifyAsset({ rpc, message });
 const response = await authenticatePasskeyForVerifyAsset(session);
 
 const { secp256r1Verify, signedMessageIndex, clientDataJson, assetPda } =
-  await buildVerifyAssetArgs(session, response);
+  await buildVerifyAssetArgs(response);
 
 // Pass verify args to your program via instruction data
 const myIx = buildMyProgramInstruction({
@@ -99,7 +99,6 @@ Args:
 ```ts
 const session = await beginVerifyAsset({
   rpc,
-  asset,
   message,
   expectedRpId: "example.com",
   expectedOrigin: "https://example.com",

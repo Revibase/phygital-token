@@ -14,9 +14,9 @@ Need the holder physically present?
     │           NO  → Server issues challenge
     │                 → startAuthentication (client tap)
     │                 → verifyResponse (server verify)
-    │                 → optional: fetchAssetsByPublicKey / fetchAsset
-    └── Know the chip identifier already?
-          → findAssetPda(identifier) / fetchAsset(rpc, pda)
+    │                 → optional: findAssetPda + fetchAsset
+    └── Know the passkey already?
+          → findAssetPda(secp256r1Pubkey) / fetchAsset(rpc, pda)
 ```
 
 ## Off-chain authentication
@@ -28,11 +28,11 @@ Two SDK functions:
 
 Neither submits a transaction. Verification should run on your backend so the client cannot fake a successful tap.
 
-After a successful verify, look up on-chain state with `fetchAssetsByPublicKey(rpc, secp256r1PublicKey)` (PDA is seeded by a separate chip `identifier`, not the passkey).
+After a successful verify, look up on-chain state with `findAssetPda(parseSecp256r1Pubkey(secp256r1PublicKey))` + `fetchAsset` (PDA is seeded by the passkey). Chip `identifier` is a separate binding field on the asset.
 
 ## On-chain `verify_asset` (composable)
 
-Use `beginVerifyAsset({ rpc, asset, message })` when another program needs a slot-bound possession proof. Does **not** change `asset.owner`. See [Composable verify_asset](./verify-asset-composable.md) and [Rust CPI](../building-on-phygital/rust-cpi.md).
+Use `beginVerifyAsset({ rpc, message })` when another program needs a slot-bound possession proof. The asset PDA is derived after the NFC tap. Does **not** change `asset.owner`. See [Composable verify_asset](./verify-asset-composable.md) and [Rust CPI](../building-on-phygital/rust-cpi.md).
 
 ## On-chain ownership change
 

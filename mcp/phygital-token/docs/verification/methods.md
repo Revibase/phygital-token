@@ -35,7 +35,10 @@ const { isVerified, secp256r1PublicKey } = verifyResponse({
 
 if (isVerified) {
   // optional: load on-chain state by passkey
-  // const assets = await fetchAssetsByPublicKey(rpc, secp256r1PublicKey)
+  // const asset = await fetchAsset(
+  //   rpc,
+  //   await findAssetPda(parseSecp256r1Pubkey(secp256r1PublicKey)),
+  // );
 }
 ```
 
@@ -51,9 +54,10 @@ Typical flow:
 | Need | Use |
 |------|-----|
 | UI login / vault gate, no tx | `startAuthentication` + `verifyResponse` |
-| Load on-chain state after a tap | `verifyResponse` → `fetchAssetsByPublicKey` |
+| Load on-chain state after a tap | `verifyResponse` → `findAssetPda` + `fetchAsset` |
+| Look up by chip identifier | `fetchAssetByIdentifier` |
 | Transfer ownership | `beginTransfer({ rpc, asset })` → `completeTransfer` (passkey from `response.id`) |
-| On-chain possession proof / CPI | `beginVerifyAsset({ rpc, asset, message })` → `completeVerifyAsset` (see composable docs) |
+| On-chain possession proof / CPI | `beginVerifyAsset({ rpc, message })` → `completeVerifyAsset` (PDA from tap; see composable docs) |
 
 ## Message binding
 

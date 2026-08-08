@@ -32,7 +32,7 @@ export const SDK_SURFACE = {
   assetLookup: [
     "findAssetPda",
     "fetchAllAssetsFromOwner",
-    "fetchAssetsByPublicKey",
+    "fetchAssetByIdentifier",
   ],
   generated: [
     "getInitializeInstruction",

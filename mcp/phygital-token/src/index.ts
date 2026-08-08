@@ -21,7 +21,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "0.9.0";
+const VERSION = "0.10.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -31,12 +31,12 @@ const SERVER_INSTRUCTIONS = [
   "- Which verification method to use → recommend_verification",
   "- On-chain verify_asset (standalone, sysvar inspect, or CPI) → plan_verify_asset",
   "- Initialize / transfer / forfeiture → plan_initialize, plan_transfer, plan_remove_ownership",
-  "- Asset PDA from chip identifier → find_asset_pda",
+  "- Asset PDA from passkey public key → find_asset_pda",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
   "",
   "Live asset fetch and auth: call phygital-token-sdk directly in your app",
-  "(verifyResponse, fetchAssetsByPublicKey, findAssetPda, beginVerifyAsset, etc.).",
+  "(verifyResponse, findAssetPda, beginVerifyAsset, etc.).",
 ].join("\n");
 
 /** Every tool here is offline and side-effect free. */
@@ -127,10 +127,10 @@ function registerTools(server: McpServer) {
       inputSchema: {
         identifier: z
           .string()
-          .describe("Base64url chip identifier (PDA seed; distinct from the passkey)"),
+          .describe("Base64url chip identifier (binding field; distinct from the passkey)"),
         secp256r1PublicKey: z
           .string()
-          .describe("Base64url compressed secp256r1 passkey public key"),
+          .describe("Base64url compressed secp256r1 passkey public key (PDA seed)"),
         assetType: z.enum(["Lockable", "Transferable"]).describe("Asset transfer lock behavior"),
       },
       annotations: { title: "Plan initialize", ...READ_ONLY },
@@ -151,15 +151,15 @@ function registerTools(server: McpServer) {
       description:
         "Plan a passkey-authorized transfer (offline): flow steps, derived accounts, and challenge formula.",
       inputSchema: {
-        identifier: z
+        secp256r1PublicKey: z
           .string()
-          .describe("Base64url chip identifier used as the asset PDA seed"),
+          .describe("Base64url passkey public key used as the asset PDA seed"),
         recipient: z.string().describe("Recipient wallet address"),
       },
       annotations: { title: "Plan transfer", ...READ_ONLY },
     },
-    async ({ identifier, recipient }) =>
-      jsonResult(await planTransfer({ identifier, recipient })),
+    async ({ secp256r1PublicKey, recipient }) =>
+      jsonResult(await planTransfer({ secp256r1PublicKey, recipient })),
   );
 
   server.registerTool(
@@ -169,11 +169,11 @@ function registerTools(server: McpServer) {
         "Plan the on-chain verify_asset flow (offline): transaction layout, derived accounts, message binding. standalone = verify_asset only; inspect = Pattern A (your program reads the instructions sysvar); cpi = Pattern B (your program CPIs verify_asset).",
       inputSchema: {
         message: z.string().describe("UTF-8 message bytes bound into the verify_asset challenge"),
-        identifier: z
+        secp256r1PublicKey: z
           .string()
           .optional()
           .describe(
-            "Optional base64url chip identifier — when set, derives asset PDA offline",
+            "Optional base64url passkey public key — when set, derives asset PDA offline",
           ),
         onChainPattern: z
           .enum(["inspect", "cpi", "standalone"])
@@ -182,11 +182,11 @@ function registerTools(server: McpServer) {
       },
       annotations: { title: "Plan verify_asset", ...READ_ONLY },
     },
-    async ({ message, identifier, onChainPattern }) =>
+    async ({ message, secp256r1PublicKey, onChainPattern }) =>
       jsonResult(
         await planVerifyAsset({
           message,
-          identifier,
+          secp256r1PublicKey,
           onChainPattern,
         }),
       ),
@@ -198,32 +198,32 @@ function registerTools(server: McpServer) {
       description:
         "Plan a wallet-signed forfeiture (offline): reset asset.owner to the default pubkey.",
       inputSchema: {
-        identifier: z
+        secp256r1PublicKey: z
           .string()
-          .describe("Base64url chip identifier used as the asset PDA seed"),
+          .describe("Base64url passkey public key used as the asset PDA seed"),
         owner: z.string().describe("Current asset owner wallet — must match asset.owner on-chain"),
       },
       annotations: { title: "Plan remove_ownership", ...READ_ONLY },
     },
-    async ({ identifier, owner }) =>
-      jsonResult(await planRemoveOwnership({ identifier, owner })),
+    async ({ secp256r1PublicKey, owner }) =>
+      jsonResult(await planRemoveOwnership({ secp256r1PublicKey, owner })),
   );
 
   server.registerTool(
     "find_asset_pda",
     {
       description:
-        "Derive the on-chain asset PDA address from a chip identifier (offline).",
+        "Derive the on-chain asset PDA address from a secp256r1 passkey public key (offline).",
       inputSchema: {
-        identifier: z
+        secp256r1PublicKey: z
           .string()
-          .describe("Base64url-encoded chip identifier (PDA seed)"),
+          .describe("Base64url-encoded secp256r1 passkey public key (PDA seed)"),
       },
       annotations: { title: "Find asset PDA", ...READ_ONLY },
     },
-    async ({ identifier }) => {
-      const assetPda = await findAssetPda(parseSecp256r1Pubkey(identifier));
-      return jsonResult({ identifier, assetPda });
+    async ({ secp256r1PublicKey }) => {
+      const assetPda = await findAssetPda(parseSecp256r1Pubkey(secp256r1PublicKey));
+      return jsonResult({ secp256r1PublicKey, assetPda });
     },
   );
 
