@@ -74,8 +74,7 @@ export async function startAuthentication(
  * of throwing.
  *
  * Does not submit a transaction. After a successful verify, look up on-chain
- * state with `fetchAssetsByPublicKey` or `findAssetPda` + `fetchAsset` when
- * you know the chip identifier.
+ * state with `findAssetPda` + `fetchAsset` (PDA is seeded by the passkey).
  */
 export function verifyResponse({
   expectedMessage,

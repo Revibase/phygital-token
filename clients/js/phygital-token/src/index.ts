@@ -21,7 +21,7 @@ export {
 } from "./instructions/initialize.js";
 
 export {
-  fetchAssetsByPublicKey,
+  fetchAssetByIdentifier,
   fetchAllAssetsFromOwner,
 } from "./utils/metadata.js";
 

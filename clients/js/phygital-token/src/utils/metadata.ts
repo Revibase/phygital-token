@@ -18,21 +18,22 @@ import { parseSecp256r1Pubkey } from "../instructions/initialize.js";
 /** Asset account size: 8 disc + 1 type + 32 owner + 8 slot + 1 lock + 33 pubkey + 33 identifier. */
 const ASSET_ACCOUNT_DATA_SIZE = 116;
 const ASSET_OWNER_OFFSET = 9;
-/** Offset of `public_key` (33 bytes) within account data. */
-const ASSET_PUBLIC_KEY_OFFSET = 50;
+/** Offset of `identifier` (33 bytes) within account data. */
+const ASSET_IDENTIFIER_OFFSET = 83;
 
 /**
- * Find assets whose on-chain `public_key` matches the passkey
- * (via `getProgramAccounts` memcmp — PDA is seeded by identifier, not pubkey).
+ * Find the asset whose on-chain `identifier` matches (via `getProgramAccounts`
+ * memcmp). Returns `null` if none. Prefer `findAssetPda` + `fetchAsset` when
+ * you already know the passkey — the PDA is seeded by that public key.
  */
-export async function fetchAssetsByPublicKey(
+export async function fetchAssetByIdentifier(
   rpc: Rpc<SolanaRpcApi>,
-  secp256r1PublicKey: string | Secp256r1Pubkey,
-): Promise<Asset[]> {
-  const pubkey =
-    typeof secp256r1PublicKey === "string"
-      ? parseSecp256r1Pubkey(secp256r1PublicKey)
-      : secp256r1PublicKey;
+  identifier: string | Secp256r1Pubkey,
+): Promise<Asset | null> {
+  const parsed =
+    typeof identifier === "string"
+      ? parseSecp256r1Pubkey(identifier)
+      : identifier;
 
   const data = await rpc
     .getProgramAccounts(PHYGITAL_TOKEN_PROGRAM_ADDRESS, {
@@ -42,9 +43,9 @@ export async function fetchAssetsByPublicKey(
         {
           memcmp: {
             encoding: "base64" as const,
-            offset: BigInt(ASSET_PUBLIC_KEY_OFFSET),
+            offset: BigInt(ASSET_IDENTIFIER_OFFSET),
             bytes: getBase64Decoder().decode(
-              pubkey[0],
+              parsed[0],
             ) as Base64EncodedBytes,
           },
         },
@@ -53,11 +54,11 @@ export async function fetchAssetsByPublicKey(
     .send();
 
   if (!data.length) {
-    return [];
+    return null;
   }
 
-  return data.map((x) =>
-    getAssetDecoder().decode(getBase64Encoder().encode(x.account.data[0])),
+  return getAssetDecoder().decode(
+    getBase64Encoder().encode(data[0].account.data[0]),
   );
 }
 

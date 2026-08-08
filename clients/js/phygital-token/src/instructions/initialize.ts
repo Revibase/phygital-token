@@ -43,21 +43,21 @@ export const parseIdentifier = parseSecp256r1Pubkey;
 
 export type InitializeParams = {
   authority: TransactionSigner;
-  /** Physical chip id — PDA seed; must be distinct from `secp256r1Pubkey`. */
+  /** Physical chip id stored on the asset for binding (not the PDA seed). */
   identifier: Secp256r1Pubkey;
-  /** Passkey that authorizes transfers. */
+  /** Passkey that seeds the asset PDA and authorizes transfers. */
   secp256r1Pubkey: Secp256r1Pubkey;
   assetType: AssetType;
 };
 
 /**
  * Build the `initialize` instruction that creates an asset PDA seeded by
- * `identifier` and stores the transfer-authorizing `secp256r1Pubkey`.
+ * `secp256r1Pubkey` and stores `identifier` as a binding field.
  */
 export async function buildInitializeInstruction(
   input: InitializeParams,
 ): Promise<{ instruction: Instruction; asset: Address }> {
-  const asset = await findAssetPda(input.identifier);
+  const asset = await findAssetPda(input.secp256r1Pubkey);
   const instruction = getInitializeInstruction({
     authority: input.authority,
     asset,

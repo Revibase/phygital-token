@@ -11,17 +11,17 @@ import {
 const ASSET_SEED = new TextEncoder().encode("asset");
 
 /**
- * Derive the asset PDA from the chip `identifier` (not the passkey public key).
- * PDA seeds: `["asset", identifier[1..]]` — the compressed-point prefix byte is dropped.
+ * Derive the asset PDA from the compressed secp256r1 passkey public key.
+ * PDA seeds: `["asset", pubkey[1..]]` — the compressed-point prefix byte is dropped.
  */
 export async function findAssetPda(
-  identifier: Secp256r1Pubkey,
+  secp256r1Pubkey: Secp256r1Pubkey,
 ): Promise<Address> {
   const [asset] = await getProgramDerivedAddress({
     programAddress: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     seeds: [
       getBytesEncoder().encode(ASSET_SEED),
-      getBytesEncoder().encode(identifier[0].slice(1)),
+      getBytesEncoder().encode(secp256r1Pubkey[0].slice(1)),
     ],
   });
 
