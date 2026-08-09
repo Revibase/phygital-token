@@ -7,7 +7,10 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 | Export | Purpose |
 |--------|---------|
 | `buildInitializeInstruction` | Create asset PDA (seeded by passkey `secp256r1Pubkey`) |
+| `buildSquadsInitializeInstructions` | One tx: create + propose + approve + execute + close (reclaim rent) |
 | `parseSecp256r1Pubkey` / `parseIdentifier` | Parse base64url 33-byte compressed values |
+
+`INITIALIZE_AUTHORITY` (`G6k…EjoF`) is Squads vault-0 of `INITIALIZE_MULTISIG_PDA` (`EU7…Kn7U`). Pass the current squad member as `member` when calling `buildSquadsInitializeInstructions` (members may rotate). Returns create → propose → approve → execute → close in one instruction list.
 
 ## Transfer
 

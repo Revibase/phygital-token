@@ -25,7 +25,10 @@ export async function planInitialize(input: {
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
     requiredSigners: [
-      { name: "authority", role: "Pays rent; creates the asset PDA" },
+      {
+        name: "authority",
+        role: "Must be INITIALIZE_AUTHORITY (G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF); pays rent and creates the asset PDA",
+      },
     ],
     requiredInputs: {
       identifier: input.identifier,
@@ -36,6 +39,8 @@ export async function planInitialize(input: {
       "Creates an asset PDA seeded by the passkey public key.",
       "identifier is stored on the asset for binding and is distinct from the passkey.",
       "Ownership starts as the default (zero) pubkey until the first transfer.",
+      "Only the designated initialize authority may call this instruction.",
+      "On mainnet the authority is a Squads vault — use buildSquadsInitializeInstructions so a 1/1 member can create/propose/approve/execute/close in one transaction.",
     ],
   };
 }

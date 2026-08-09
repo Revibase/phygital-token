@@ -1,6 +1,7 @@
 export const SDK_SURFACE = {
   initialize: [
     "buildInitializeInstruction",
+    "buildSquadsInitializeInstructions",
     "parseSecp256r1Pubkey",
     "parseIdentifier",
   ],

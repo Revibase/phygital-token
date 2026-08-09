@@ -21,6 +21,12 @@ export {
 } from "./instructions/initialize.js";
 
 export {
+  buildSquadsInitializeInstructions,
+  type BuildSquadsInitializeInput,
+  type BuildSquadsInitializeResult,
+} from "./instructions/squadsInitialize.js";
+
+export {
   fetchAssetByIdentifier,
   fetchAllAssetsFromOwner,
 } from "./utils/metadata.js";
@@ -33,6 +39,8 @@ export {
 } from "./utils/verify.js";
 
 export { findAssetPda } from "./utils/pdas/index.js";
+
+export { INITIALIZE_AUTHORITY, INITIALIZE_MULTISIG_PDA } from "./utils/consts.js";
 
 export * from "./generated/index.js";
 
