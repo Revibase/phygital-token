@@ -24,7 +24,7 @@ Asset (asset PDA)     ← created by `initialize`
 
 | Instruction | What it does |
 |-------------|--------------|
-| `initialize` | Creates an **asset** PDA seeded by `secp256r1_pubkey`, stores `identifier` + asset type. |
+| `initialize` | Creates an **asset** PDA seeded by `secp256r1_pubkey`, stores `identifier` + asset type. Restricted to the designated initialize authority. |
 | `execute_transfer` | Passkey-authorized ownership update to `recipient` (no SPL token). |
 | `verify_asset` | Passkey-authorized message proof; updates `last_sign_count`. |
 | `remove_ownership` | Wallet-signed forfeiture — resets `asset.owner` to default. |

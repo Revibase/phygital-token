@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::ASSET_SEED;
+use crate::constants::{ASSET_SEED, INITIALIZE_AUTHORITY};
+use crate::error::PhygitalError;
 use crate::state::Asset;
 use crate::utils::secp256r1_pda_seed;
 use crate::{AssetType, Secp256r1Pubkey};
@@ -23,7 +24,10 @@ pub struct InitializeArgs {
 #[derive(Accounts)]
 #[instruction(args: InitializeArgs)]
 pub struct Initialize<'info> {
-    #[account(mut)]
+    #[account(
+        mut,
+        address = INITIALIZE_AUTHORITY @ PhygitalError::UnauthorizedAuthority
+    )]
     pub authority: Signer<'info>,
 
     #[account(

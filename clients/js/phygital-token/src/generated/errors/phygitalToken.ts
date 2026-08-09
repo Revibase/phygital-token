@@ -54,6 +54,8 @@ export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x1781; // 6017
 export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1782; // 6018
 /** OriginMismatch: WebAuthn origin does not match the expected origin. */
 export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1783; // 6019
+/** UnauthorizedAuthority: Only the designated initialize authority may create assets */
+export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1784; // 6020
 
 export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__ASSET_IS_CURRENTLY_LOCKED
@@ -75,6 +77,7 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
   | typeof PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT
   | typeof PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA
+  | typeof PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY
   | typeof PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED;
 
 let phygitalTokenErrorMessages: Record<PhygitalTokenError, string> | undefined;
@@ -99,6 +102,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
     [PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT]: `WebAuthn signCount must be greater than the last accepted signCount`,
     [PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA]: `Unable to parse client data JSON.`,
+    [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY]: `Only the designated initialize authority may create assets`,
     [PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED]: `WebAuthn user presence flag (UP) was not set by the authenticator.`,
   };
 }

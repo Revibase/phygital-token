@@ -53,6 +53,9 @@ export type InitializeParams = {
 /**
  * Build the `initialize` instruction that creates an asset PDA seeded by
  * `secp256r1Pubkey` and stores `identifier` as a binding field.
+ *
+ * `authority` must be the designated initialize authority
+ * (`G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF`).
  */
 export async function buildInitializeInstruction(
   input: InitializeParams,

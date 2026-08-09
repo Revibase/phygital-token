@@ -100,7 +100,7 @@ impl InitializeInstructionArgs {
 ///
 /// ### Accounts:
 ///
-                      ///   0. `[writable, signer]` authority
+                            ///   0. `[writable, signer, optional]` authority (default to `G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF`)
                 ///   1. `[writable]` asset
                 ///   2. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
@@ -118,7 +118,8 @@ impl InitializeBuilder {
   pub fn new() -> Self {
     Self::default()
   }
-            #[inline(always)]
+            /// `[optional account, default to 'G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF']`
+#[inline(always)]
     pub fn authority(&mut self, authority: solana_address::Address) -> &mut Self {
                         self.authority = Some(authority);
                     self
@@ -164,7 +165,7 @@ impl InitializeBuilder {
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = Initialize {
-                              authority: self.authority.expect("authority is not set"),
+                              authority: self.authority.unwrap_or(solana_address::address!("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF")),
                                         asset: self.asset.expect("asset is not set"),
                                         system_program: self.system_program.unwrap_or(solana_address::address!("11111111111111111111111111111111")),
                       };

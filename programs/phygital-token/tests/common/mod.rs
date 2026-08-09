@@ -11,7 +11,7 @@ pub use assertions::{assert_token_program_error, assert_transaction_failed};
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::{prelude::*, InstructionData, ToAccountMetas};
 use litesvm::LiteSVM;
-use phygital_token::constants::ASSET_SEED;
+use phygital_token::constants::{ASSET_SEED, INITIALIZE_AUTHORITY};
 use phygital_token::state::Asset;
 use phygital_token::utils::secp256r1_pda_seed;
 use phygital_token::{AssetType, InitializeArgs, Secp256r1Pubkey, Secp256r1VerifyArgs};
@@ -20,6 +20,7 @@ use solana_message::{Message, VersionedMessage};
 use solana_sdk_ids::sysvar::{
     instructions::ID as INSTRUCTIONS_SYSVAR_ID, slot_hashes::ID as SLOT_HASHES_SYSVAR_ID,
 };
+use solana_signature::Signature;
 use solana_signer::Signer;
 use solana_transaction::versioned::VersionedTransaction;
 
@@ -80,7 +81,9 @@ fn program_artifact_paths(manifest_dir: &std::path::Path, name: &str) -> Vec<std
 impl TestContext {
     pub fn new() -> Self {
         let program_id = phygital_token::ID;
-        let mut svm = LiteSVM::new().with_precompiles();
+        // Sigverify off so tests can submit `initialize` as INITIALIZE_AUTHORITY
+        // without the mainnet private key. secp256r1 precompile checks still run.
+        let mut svm = LiteSVM::new().with_precompiles().with_sigverify(false);
         let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         Self::deploy_program(
             &mut svm,
@@ -88,6 +91,9 @@ impl TestContext {
             &program_artifact_paths(manifest_dir, "phygital_token"),
             "phygital_token",
         );
+
+        svm.airdrop(&INITIALIZE_AUTHORITY, 10 * LAMPORTS_PER_SOL)
+            .expect("airdrop initialize authority");
 
         let payer = Keypair::new();
         svm.airdrop(&payer.pubkey(), 10 * LAMPORTS_PER_SOL)
@@ -208,9 +214,13 @@ impl TestContext {
             secp256r1_pubkey,
             asset_type,
         };
-        let payer = self.payer.insecure_clone();
-        let ix = self.initialize_ix(payer.pubkey(), asset, args);
-        Self::send_instruction(&mut self.svm, ix, &[&payer]).expect("initialize asset");
+        let ix = self.initialize_ix(INITIALIZE_AUTHORITY, asset, args);
+        Self::send_instruction_as(
+            &mut self.svm,
+            ix,
+            INITIALIZE_AUTHORITY,
+        )
+        .expect("initialize asset");
 
         MintedAsset {
             asset,
@@ -432,6 +442,23 @@ impl TestContext {
         let msg = Message::new_with_blockhash(instructions, Some(&payer), &blockhash);
         let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), signers)
             .expect("build tx");
+        let result = svm.send_transaction(tx);
+        svm.expire_blockhash();
+        result
+    }
+
+    /// Submit an instruction as `payer` without a matching keypair (sigverify disabled).
+    pub fn send_instruction_as(
+        svm: &mut LiteSVM,
+        instruction: Instruction,
+        payer: Pubkey,
+    ) -> litesvm::types::TransactionResult {
+        let blockhash = svm.latest_blockhash();
+        let msg = Message::new_with_blockhash(&[instruction], Some(&payer), &blockhash);
+        let tx = VersionedTransaction {
+            signatures: vec![Signature::default(); msg.header.num_required_signatures as usize],
+            message: VersionedMessage::Legacy(msg),
+        };
         let result = svm.send_transaction(tx);
         svm.expire_blockhash();
         result

@@ -4,6 +4,7 @@ use anchor_lang::prelude::Pubkey;
 use common::{
     assert_token_program_error, current_slot_entry, unique_identifier, TestContext, TestPasskey,
 };
+use phygital_token::constants::INITIALIZE_AUTHORITY;
 use phygital_token::{AssetType, InitializeArgs, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
@@ -126,8 +127,24 @@ fn e2e_asset_pubkey_reinit_is_blocked() {
         secp256r1_pubkey: Secp256r1Pubkey(passkey.compressed_pubkey),
         asset_type: AssetType::Transferable,
     };
-    let payer = ctx.payer.insecure_clone();
-    let ix = ctx.initialize_ix(payer.pubkey(), asset.asset, args);
-    TestContext::send_instruction(&mut ctx.svm, ix, &[&payer])
+    let ix = ctx.initialize_ix(INITIALIZE_AUTHORITY, asset.asset, args);
+    TestContext::send_instruction_as(&mut ctx.svm, ix, INITIALIZE_AUTHORITY)
         .expect_err("re-initializing an existing asset PDA should fail");
+}
+
+#[test]
+fn e2e_initialize_rejects_non_authority() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
+    let asset = ctx.asset_pda(&secp256r1_pubkey);
+    let args = InitializeArgs {
+        identifier: unique_identifier(),
+        secp256r1_pubkey,
+        asset_type: AssetType::Transferable,
+    };
+    let stranger = ctx.payer.insecure_clone();
+    let ix = ctx.initialize_ix(stranger.pubkey(), asset, args);
+    let result = TestContext::send_instruction(&mut ctx.svm, ix, &[&stranger]);
+    assert_token_program_error(result, "UnauthorizedAuthority");
 }

@@ -61,4 +61,7 @@ pub enum PhygitalError {
 
     #[msg("WebAuthn origin does not match the expected origin.")]
     OriginMismatch,
+
+    #[msg("Only the designated initialize authority may create assets")]
+    UnauthorizedAuthority,
 }

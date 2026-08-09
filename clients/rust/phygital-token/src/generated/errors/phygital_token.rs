@@ -70,6 +70,9 @@ pub enum PhygitalTokenError {
     /// 6019 - WebAuthn origin does not match the expected origin.
     #[error("WebAuthn origin does not match the expected origin.")]
     OriginMismatch = 0x1783,
+    /// 6020 - Only the designated initialize authority may create assets
+    #[error("Only the designated initialize authority may create assets")]
+    UnauthorizedAuthority = 0x1784,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {

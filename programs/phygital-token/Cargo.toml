@@ -1,6 +1,6 @@
 [package]
 name = "phygital-token"
-version = "0.2.0"
+version = "0.3.0"
 description = "Created with Anchor"
 edition = "2021"
 
@@ -34,6 +34,7 @@ solana-message = "3.0.1"
 solana-transaction = "3.0.2"
 solana-signer = "3.0.0"
 solana-keypair = "3.0.1"
+solana-signature = "3.0"
 sha2 = "0.11.0"
 solana-slot-hashes = "3.0"
 p256 = { version = "0.13.2", features = ["ecdsa"] }

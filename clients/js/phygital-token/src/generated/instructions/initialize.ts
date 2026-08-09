@@ -58,7 +58,8 @@ export function getInitializeDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type InitializeInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-  TAccountAuthority extends string | AccountMeta<string> = string,
+  TAccountAuthority extends string | AccountMeta<string> =
+    "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF",
   TAccountAsset extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
@@ -130,7 +131,7 @@ export type InitializeInput<
   TAccountAsset extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  authority: TransactionSigner<TAccountAuthority>;
+  authority?: TransactionSigner<TAccountAuthority>;
   asset: Address<TAccountAsset>;
   systemProgram?: Address<TAccountSystemProgram>;
   identifier: InitializeInstructionDataArgs["identifier"];
@@ -175,6 +176,10 @@ export function getInitializeInstruction<
   const args = { ...input };
 
   // Resolve default values.
+  if (!accounts.authority.value) {
+    accounts.authority.value =
+      "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF" as Address<"G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF">;
+  }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
