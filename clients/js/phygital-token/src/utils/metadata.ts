@@ -15,11 +15,11 @@ import {
 } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "../instructions/initialize.js";
 
-/** Asset account size: 8 disc + 1 type + 32 owner + 8 slot + 1 lock + 33 pubkey + 33 identifier. */
-const ASSET_ACCOUNT_DATA_SIZE = 116;
+/** Asset account size: 8 disc + 1 type + 32 owner + 4 last_sign_count + 1 lock + 33 pubkey + 33 identifier. */
+const ASSET_ACCOUNT_DATA_SIZE = 112;
 const ASSET_OWNER_OFFSET = 9;
 /** Offset of `identifier` (33 bytes) within account data. */
-const ASSET_IDENTIFIER_OFFSET = 83;
+const ASSET_IDENTIFIER_OFFSET = 79;
 
 /**
  * Find the asset whose on-chain `identifier` matches (via `getProgramAccounts`
