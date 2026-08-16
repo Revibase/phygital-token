@@ -86,12 +86,8 @@ fn execute_transfer_rejects_missing_user_presence() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with_auth_flags(
-        asset.asset,
-        slot_hash,
-        1,
-        0x00,
-    );
+    let (secp_ix, verify_args) =
+        passkey.secp256r1_verify_instruction_with_auth_flags(asset.asset, slot_hash, 1, 0x00);
 
     let transfer_ix =
         ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
@@ -120,11 +116,14 @@ fn execute_transfer_bearer_signature_claimable_by_any_recipient() {
     let other_recipient = Keypair::new();
 
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
-    let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
+    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
 
-    let transfer_ix =
-        ctx.execute_transfer_ix(other_recipient.pubkey(), asset.asset, verify_args, slot_number);
+    let transfer_ix = ctx.execute_transfer_ix(
+        other_recipient.pubkey(),
+        asset.asset,
+        verify_args,
+        slot_number,
+    );
     ctx.svm
         .airdrop(&other_recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();

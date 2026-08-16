@@ -1,9 +1,7 @@
 mod common;
 
 use anchor_lang::prelude::Pubkey;
-use common::{
-    assert_token_program_error, TestContext, TestPasskey, TEST_ORIGIN, TEST_RP_ID,
-};
+use common::{assert_token_program_error, TestContext, TestPasskey, TEST_ORIGIN, TEST_RP_ID};
 use solana_keypair::Keypair;
 
 const TEST_MESSAGE_HASH: [u8; 32] = [1u8; 32];
@@ -70,15 +68,8 @@ fn verify_asset_rejects_mismatched_message() {
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
 
-    let (secp_ix, verify_args) =
-        passkey.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
-    let verify_ix = ctx.verify_asset_ix(
-        asset.asset,
-        verify_args,
-        SECOND_MESSAGE_HASH,
-        None,
-        None,
-    );
+    let (secp_ix, verify_args) = passkey.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
+    let verify_ix = ctx.verify_asset_ix(asset.asset, verify_args, SECOND_MESSAGE_HASH, None, None);
 
     let payer = &ctx.payer;
     let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
@@ -92,15 +83,8 @@ fn verify_asset_rejects_wrong_passkey() {
     let passkey_b = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey_a);
 
-    let (secp_ix, verify_args) =
-        passkey_b.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
-    let verify_ix = ctx.verify_asset_ix(
-        asset.asset,
-        verify_args,
-        TEST_MESSAGE_HASH,
-        None,
-        None,
-    );
+    let (secp_ix, verify_args) = passkey_b.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
+    let verify_ix = ctx.verify_asset_ix(asset.asset, verify_args, TEST_MESSAGE_HASH, None, None);
 
     let payer = &ctx.payer;
     let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
@@ -117,14 +101,7 @@ fn verify_asset_rejects_sign_count_not_greater_than_last() {
         .expect("first verify");
 
     let err = ctx
-        .send_verify_asset_with_bindings(
-            &asset,
-            SECOND_MESSAGE_HASH,
-            true,
-            Some(1),
-            None,
-            None,
-        )
+        .send_verify_asset_with_bindings(&asset, SECOND_MESSAGE_HASH, true, Some(1), None, None)
         .expect_err("reusing the same signCount after a successful verify should fail");
 
     let err_str = format!("{err:?}");
@@ -143,15 +120,8 @@ fn verify_asset_allows_next_verify_with_higher_sign_count() {
     ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
         .expect("first verify");
 
-    ctx.send_verify_asset_with_bindings(
-        &asset,
-        SECOND_MESSAGE_HASH,
-        true,
-        Some(2),
-        None,
-        None,
-    )
-    .expect("second verify with a higher signCount should succeed");
+    ctx.send_verify_asset_with_bindings(&asset, SECOND_MESSAGE_HASH, true, Some(2), None, None)
+        .expect("second verify with a higher signCount should succeed");
 
     assert_eq!(ctx.last_sign_count(asset.asset), 2);
 }
@@ -172,14 +142,7 @@ fn verify_asset_sign_count_monotonicity_survives_transfer() {
     assert_eq!(ctx.last_sign_count(asset.asset), 2);
 
     let err = ctx
-        .send_verify_asset_with_bindings(
-            &asset,
-            STALE_MESSAGE_HASH,
-            true,
-            Some(1),
-            None,
-            None,
-        )
+        .send_verify_asset_with_bindings(&asset, STALE_MESSAGE_HASH, true, Some(1), None, None)
         .expect_err("signCount from before transfer should be rejected");
 
     let err_str = format!("{err:?}");

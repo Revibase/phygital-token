@@ -6,375 +6,414 @@
 //!
 
 use crate::generated::types::Secp256r1VerifyArgs;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 pub const VERIFY_ASSET_DISCRIMINATOR: [u8; 8] = [136, 51, 110, 228, 129, 94, 141, 179];
 
 /// Accounts.
 #[derive(Debug)]
 pub struct VerifyAsset {
-      
-              
-          pub asset: solana_address::Address,
-          
-              
-          pub instructions_sysvar: solana_address::Address,
-      }
+    pub asset: solana_address::Address,
+
+    pub instructions_sysvar: solana_address::Address,
+}
 
 impl VerifyAsset {
-  pub fn instruction(&self, args: VerifyAssetInstructionArgs) -> solana_instruction::Instruction {
-    self.instruction_with_remaining_accounts(args, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: VerifyAssetInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new(
-            self.asset,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.instructions_sysvar,
-            false
-          ));
-                      accounts.extend_from_slice(remaining_accounts);
-    let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
-          let mut args = args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
+    pub fn instruction(&self, args: VerifyAssetInstructionArgs) -> solana_instruction::Instruction {
+        self.instruction_with_remaining_accounts(args, &[])
     }
-  }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn instruction_with_remaining_accounts(
+        &self,
+        args: VerifyAssetInstructionArgs,
+        remaining_accounts: &[solana_instruction::AccountMeta],
+    ) -> solana_instruction::Instruction {
+        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new(self.asset, false));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.instructions_sysvar,
+            false,
+        ));
+        accounts.extend_from_slice(remaining_accounts);
+        let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
+        let mut args = args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        }
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct VerifyAssetInstructionData {
-            discriminator: [u8; 8],
-                              }
+pub struct VerifyAssetInstructionData {
+    discriminator: [u8; 8],
+}
 
 impl VerifyAssetInstructionData {
-  pub fn new() -> Self {
-    Self {
-                        discriminator: [136, 51, 110, 228, 129, 94, 141, 179],
-                                                                          }
-  }
+    pub fn new() -> Self {
+        Self {
+            discriminator: [136, 51, 110, 228, 129, 94, 141, 179],
+        }
+    }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
-  }
+        borsh::to_vec(self)
+    }
+}
 
 impl Default for VerifyAssetInstructionData {
-  fn default() -> Self {
-    Self::new()
-  }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct VerifyAssetInstructionArgs {
-                  pub secp256r1_verify_args: Secp256r1VerifyArgs,
-                pub message_hash: [u8; 32],
-                pub expected_rp_id: Option<String>,
-                pub expected_origin: Option<String>,
-      }
-
-impl VerifyAssetInstructionArgs {
-  pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
+pub struct VerifyAssetInstructionArgs {
+    pub secp256r1_verify_args: Secp256r1VerifyArgs,
+    pub message_hash: [u8; 32],
+    pub expected_rp_id: Option<String>,
+    pub expected_origin: Option<String>,
 }
 
+impl VerifyAssetInstructionArgs {
+    pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
+        borsh::to_vec(self)
+    }
+}
 
 /// Instruction builder for `VerifyAsset`.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` asset
-                ///   1. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
+///   0. `[writable]` asset
+///   1. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct VerifyAssetBuilder {
-            asset: Option<solana_address::Address>,
-                instructions_sysvar: Option<solana_address::Address>,
-                        secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
-                message_hash: Option<[u8; 32]>,
-                expected_rp_id: Option<String>,
-                expected_origin: Option<String>,
-        __remaining_accounts: Vec<solana_instruction::AccountMeta>,
+    asset: Option<solana_address::Address>,
+    instructions_sysvar: Option<solana_address::Address>,
+    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+    message_hash: Option<[u8; 32]>,
+    expected_rp_id: Option<String>,
+    expected_origin: Option<String>,
+    __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl VerifyAssetBuilder {
-  pub fn new() -> Self {
-    Self::default()
-  }
-            #[inline(always)]
+    pub fn new() -> Self {
+        Self::default()
+    }
+    #[inline(always)]
     pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
-                        self.asset = Some(asset);
-                    self
+        self.asset = Some(asset);
+        self
     }
-            /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
-#[inline(always)]
-    pub fn instructions_sysvar(&mut self, instructions_sysvar: solana_address::Address) -> &mut Self {
-                        self.instructions_sysvar = Some(instructions_sysvar);
-                    self
+    /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
+    #[inline(always)]
+    pub fn instructions_sysvar(
+        &mut self,
+        instructions_sysvar: solana_address::Address,
+    ) -> &mut Self {
+        self.instructions_sysvar = Some(instructions_sysvar);
+        self
     }
-                    #[inline(always)]
-      pub fn secp256r1_verify_args(&mut self, secp256r1_verify_args: Secp256r1VerifyArgs) -> &mut Self {
+    #[inline(always)]
+    pub fn secp256r1_verify_args(
+        &mut self,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> &mut Self {
         self.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
-      }
-                #[inline(always)]
-      pub fn message_hash(&mut self, message_hash: [u8; 32]) -> &mut Self {
+    }
+    #[inline(always)]
+    pub fn message_hash(&mut self, message_hash: [u8; 32]) -> &mut Self {
         self.message_hash = Some(message_hash);
         self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
+    }
+    /// `[optional argument]`
+    #[inline(always)]
+    pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
         self.expected_rp_id = Some(expected_rp_id);
         self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
+    }
+    /// `[optional argument]`
+    #[inline(always)]
+    pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
         self.expected_origin = Some(expected_origin);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
-    self.__remaining_accounts.push(account);
-    self
-  }
-  /// Add additional accounts to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[solana_instruction::AccountMeta]) -> &mut Self {
-    self.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[allow(clippy::clone_on_copy)]
-  pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = VerifyAsset {
-                              asset: self.asset.expect("asset is not set"),
-                                        instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
-                      };
-          let args = VerifyAssetInstructionArgs {
-                                                              secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
-                                                                  message_hash: self.message_hash.clone().expect("message_hash is not set"),
-                                                                  expected_rp_id: self.expected_rp_id.clone(),
-                                                                  expected_origin: self.expected_origin.clone(),
-                                    };
-    
-    accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
-  }
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
+        self.__remaining_accounts.push(account);
+        self
+    }
+    /// Add additional accounts to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> &mut Self {
+        self.__remaining_accounts.extend_from_slice(accounts);
+        self
+    }
+    #[allow(clippy::clone_on_copy)]
+    pub fn instruction(&self) -> solana_instruction::Instruction {
+        let accounts = VerifyAsset {
+            asset: self.asset.expect("asset is not set"),
+            instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!(
+                "Sysvar1nstructions1111111111111111111111111"
+            )),
+        };
+        let args = VerifyAssetInstructionArgs {
+            secp256r1_verify_args: self
+                .secp256r1_verify_args
+                .clone()
+                .expect("secp256r1_verify_args is not set"),
+            message_hash: self.message_hash.clone().expect("message_hash is not set"),
+            expected_rp_id: self.expected_rp_id.clone(),
+            expected_origin: self.expected_origin.clone(),
+        };
+
+        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
+    }
 }
 
-  /// `verify_asset` CPI accounts.
-  pub struct VerifyAssetCpiAccounts<'a, 'b> {
-          
-                    
-              pub asset: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-            }
+/// `verify_asset` CPI accounts.
+pub struct VerifyAssetCpiAccounts<'a, 'b> {
+    pub asset: &'b solana_account_info::AccountInfo<'a>,
+
+    pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+}
 
 /// `verify_asset` CPI instruction.
 pub struct VerifyAssetCpi<'a, 'b> {
-  /// The program to invoke.
-  pub __program: &'b solana_account_info::AccountInfo<'a>,
-      
-              
-          pub asset: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-            /// The arguments for the instruction.
+    /// The program to invoke.
+    pub __program: &'b solana_account_info::AccountInfo<'a>,
+
+    pub asset: &'b solana_account_info::AccountInfo<'a>,
+
+    pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+    /// The arguments for the instruction.
     pub __args: VerifyAssetInstructionArgs,
-  }
+}
 
 impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
-  pub fn new(
-    program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: VerifyAssetCpiAccounts<'a, 'b>,
-              args: VerifyAssetInstructionArgs,
-      ) -> Self {
-    Self {
-      __program: program,
-              asset: accounts.asset,
-              instructions_sysvar: accounts.instructions_sysvar,
-                    __args: args,
-          }
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], &[])
-  }
-  #[inline(always)]
-  pub fn invoke_with_remaining_accounts(&self, remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
-  }
-  #[inline(always)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed_with_remaining_accounts(
-    &self,
-    signers_seeds: &[&[&[u8]]],
-    remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
-  ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new(
-            *self.asset.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.instructions_sysvar.key,
-            false
-          ));
-                      remaining_accounts.iter().for_each(|remaining_account| {
-      accounts.push(solana_instruction::AccountMeta {
-          pubkey: *remaining_account.0.key,
-          is_signer: remaining_account.1,
-          is_writable: remaining_account.2,
-      })
-    });
-    let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
-          let mut args = self.__args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    let instruction = solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
-    };
-    let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
-    account_infos.push(self.__program.clone());
-                  account_infos.push(self.asset.clone());
-                        account_infos.push(self.instructions_sysvar.clone());
-              remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
-
-    if signers_seeds.is_empty() {
-      solana_cpi::invoke(&instruction, &account_infos)
-    } else {
-      solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+    pub fn new(
+        program: &'b solana_account_info::AccountInfo<'a>,
+        accounts: VerifyAssetCpiAccounts<'a, 'b>,
+        args: VerifyAssetInstructionArgs,
+    ) -> Self {
+        Self {
+            __program: program,
+            asset: accounts.asset,
+            instructions_sysvar: accounts.instructions_sysvar,
+            __args: args,
+        }
     }
-  }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], &[])
+    }
+    #[inline(always)]
+    pub fn invoke_with_remaining_accounts(
+        &self,
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
+    }
+    #[inline(always)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
+    }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed_with_remaining_accounts(
+        &self,
+        signers_seeds: &[&[&[u8]]],
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new(*self.asset.key, false));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.instructions_sysvar.key,
+            false,
+        ));
+        remaining_accounts.iter().for_each(|remaining_account| {
+            accounts.push(solana_instruction::AccountMeta {
+                pubkey: *remaining_account.0.key,
+                is_signer: remaining_account.1,
+                is_writable: remaining_account.2,
+            })
+        });
+        let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
+        let mut args = self.__args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        let instruction = solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        };
+        let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
+        account_infos.push(self.__program.clone());
+        account_infos.push(self.asset.clone());
+        account_infos.push(self.instructions_sysvar.clone());
+        remaining_accounts
+            .iter()
+            .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
+
+        if signers_seeds.is_empty() {
+            solana_cpi::invoke(&instruction, &account_infos)
+        } else {
+            solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+        }
+    }
 }
 
 /// Instruction builder for `VerifyAsset` via CPI.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` asset
-          ///   1. `[]` instructions_sysvar
+///   0. `[writable]` asset
+///   1. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
 pub struct VerifyAssetCpiBuilder<'a, 'b> {
-  instruction: Box<VerifyAssetCpiBuilderInstruction<'a, 'b>>,
+    instruction: Box<VerifyAssetCpiBuilderInstruction<'a, 'b>>,
 }
 
 impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
-  pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(VerifyAssetCpiBuilderInstruction {
-      __program: program,
-              asset: None,
-              instructions_sysvar: None,
-                                            secp256r1_verify_args: None,
-                                message_hash: None,
-                                expected_rp_id: None,
-                                expected_origin: None,
-                    __remaining_accounts: Vec::new(),
-    });
-    Self { instruction }
-  }
-      #[inline(always)]
+    pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
+        let instruction = Box::new(VerifyAssetCpiBuilderInstruction {
+            __program: program,
+            asset: None,
+            instructions_sysvar: None,
+            secp256r1_verify_args: None,
+            message_hash: None,
+            expected_rp_id: None,
+            expected_origin: None,
+            __remaining_accounts: Vec::new(),
+        });
+        Self { instruction }
+    }
+    #[inline(always)]
     pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.asset = Some(asset);
-                    self
+        self.instruction.asset = Some(asset);
+        self
     }
-      #[inline(always)]
-    pub fn instructions_sysvar(&mut self, instructions_sysvar: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.instructions_sysvar = Some(instructions_sysvar);
-                    self
+    #[inline(always)]
+    pub fn instructions_sysvar(
+        &mut self,
+        instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.instructions_sysvar = Some(instructions_sysvar);
+        self
     }
-                    #[inline(always)]
-      pub fn secp256r1_verify_args(&mut self, secp256r1_verify_args: Secp256r1VerifyArgs) -> &mut Self {
+    #[inline(always)]
+    pub fn secp256r1_verify_args(
+        &mut self,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> &mut Self {
         self.instruction.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
-      }
-                #[inline(always)]
-      pub fn message_hash(&mut self, message_hash: [u8; 32]) -> &mut Self {
+    }
+    #[inline(always)]
+    pub fn message_hash(&mut self, message_hash: [u8; 32]) -> &mut Self {
         self.instruction.message_hash = Some(message_hash);
         self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
+    }
+    /// `[optional argument]`
+    #[inline(always)]
+    pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
         self.instruction.expected_rp_id = Some(expected_rp_id);
         self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
+    }
+    /// `[optional argument]`
+    #[inline(always)]
+    pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
         self.instruction.expected_origin = Some(expected_origin);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
-    self.instruction.__remaining_accounts.push((account, is_writable, is_signer));
-    self
-  }
-  /// Add additional accounts to the instruction.
-  ///
-  /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
-  /// and a `bool` indicating whether the account is a signer or not.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> &mut Self {
-    self.instruction.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed(&[])
-  }
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = VerifyAssetInstructionArgs {
-                                                              secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
-                                                                  message_hash: self.instruction.message_hash.clone().expect("message_hash is not set"),
-                                                                  expected_rp_id: self.instruction.expected_rp_id.clone(),
-                                                                  expected_origin: self.instruction.expected_origin.clone(),
-                                    };
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(
+        &mut self,
+        account: &'b solana_account_info::AccountInfo<'a>,
+        is_writable: bool,
+        is_signer: bool,
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .push((account, is_writable, is_signer));
+        self
+    }
+    /// Add additional accounts to the instruction.
+    ///
+    /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
+    /// and a `bool` indicating whether the account is a signer or not.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .extend_from_slice(accounts);
+        self
+    }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed(&[])
+    }
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        let args = VerifyAssetInstructionArgs {
+            secp256r1_verify_args: self
+                .instruction
+                .secp256r1_verify_args
+                .clone()
+                .expect("secp256r1_verify_args is not set"),
+            message_hash: self
+                .instruction
+                .message_hash
+                .clone()
+                .expect("message_hash is not set"),
+            expected_rp_id: self.instruction.expected_rp_id.clone(),
+            expected_origin: self.instruction.expected_origin.clone(),
+        };
         let instruction = VerifyAssetCpi {
-        __program: self.instruction.__program,
-                  
-          asset: self.instruction.asset.expect("asset is not set"),
-                  
-          instructions_sysvar: self.instruction.instructions_sysvar.expect("instructions_sysvar is not set"),
-                          __args: args,
-            };
-    instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
-  }
+            __program: self.instruction.__program,
+
+            asset: self.instruction.asset.expect("asset is not set"),
+
+            instructions_sysvar: self
+                .instruction
+                .instructions_sysvar
+                .expect("instructions_sysvar is not set"),
+            __args: args,
+        };
+        instruction.invoke_signed_with_remaining_accounts(
+            signers_seeds,
+            &self.instruction.__remaining_accounts,
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
 struct VerifyAssetCpiBuilderInstruction<'a, 'b> {
-  __program: &'b solana_account_info::AccountInfo<'a>,
-            asset: Option<&'b solana_account_info::AccountInfo<'a>>,
-                instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
-                        secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
-                message_hash: Option<[u8; 32]>,
-                expected_rp_id: Option<String>,
-                expected_origin: Option<String>,
-        /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
-  __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
+    __program: &'b solana_account_info::AccountInfo<'a>,
+    asset: Option<&'b solana_account_info::AccountInfo<'a>>,
+    instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
+    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+    message_hash: Option<[u8; 32]>,
+    expected_rp_id: Option<String>,
+    expected_origin: Option<String>,
+    /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
+    __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }
-

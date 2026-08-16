@@ -48,8 +48,7 @@ pub fn handler(
     secp256r1_verify_args: Secp256r1VerifyArgs,
     slot_number: u64,
 ) -> Result<()> {
-    let sign_count =
-        secp256r1_verify_args.extract_sign_count(&ctx.accounts.instructions_sysvar)?;
+    let sign_count = secp256r1_verify_args.extract_sign_count(&ctx.accounts.instructions_sysvar)?;
     require!(
         sign_count > ctx.accounts.asset.last_sign_count,
         PhygitalError::StaleSignCount
@@ -60,17 +59,13 @@ pub fn handler(
             !ctx.accounts.asset.is_locked,
             PhygitalError::AssetIsCurrentlyLocked
         );
-        if ctx.accounts.asset.owner == Pubkey::default() {
-            ctx.accounts.asset.is_locked = true;
-        }
+        ctx.accounts.asset.is_locked = true;
     }
 
-    let slot_hash =
-        Secp256r1VerifyArgs::fetch_slot_hash(&ctx.accounts.slot_hashes, slot_number)?;
+    let slot_hash = Secp256r1VerifyArgs::fetch_slot_hash(&ctx.accounts.slot_hashes, slot_number)?;
     let expected_challenge = build_transfer_challenge(&ctx.accounts.asset.key(), slot_hash);
 
-    secp256r1_verify_args
-        .verify_webauthn(&ctx.accounts.instructions_sysvar, expected_challenge)?;
+    secp256r1_verify_args.verify_webauthn(&ctx.accounts.instructions_sysvar, expected_challenge)?;
 
     emit!(TransferEvent {
         owner: ctx.accounts.asset.owner.key(),

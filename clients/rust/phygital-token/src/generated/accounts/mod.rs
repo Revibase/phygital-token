@@ -5,7 +5,6 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-  pub(crate) mod r#asset;
+pub(crate) mod r#asset;
 
-  pub use self::r#asset::*;
-
+pub use self::r#asset::*;

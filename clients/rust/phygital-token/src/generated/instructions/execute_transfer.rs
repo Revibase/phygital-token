@@ -6,414 +6,458 @@
 //!
 
 use crate::generated::types::Secp256r1VerifyArgs;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 pub const EXECUTE_TRANSFER_DISCRIMINATOR: [u8; 8] = [233, 126, 160, 184, 235, 206, 31, 119];
 
 /// Accounts.
 #[derive(Debug)]
 pub struct ExecuteTransfer {
-      
-              
-          pub recipient: solana_address::Address,
-          
-              
-          pub asset: solana_address::Address,
-          
-              
-          pub slot_hashes: solana_address::Address,
-          
-              
-          pub instructions_sysvar: solana_address::Address,
-      }
+    pub recipient: solana_address::Address,
+
+    pub asset: solana_address::Address,
+
+    pub slot_hashes: solana_address::Address,
+
+    pub instructions_sysvar: solana_address::Address,
+}
 
 impl ExecuteTransfer {
-  pub fn instruction(&self, args: ExecuteTransferInstructionArgs) -> solana_instruction::Instruction {
-    self.instruction_with_remaining_accounts(args, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: ExecuteTransferInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.recipient,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.asset,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.slot_hashes,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.instructions_sysvar,
-            false
-          ));
-                      accounts.extend_from_slice(remaining_accounts);
-    let mut data = ExecuteTransferInstructionData::new().try_to_vec().unwrap();
-          let mut args = args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
+    pub fn instruction(
+        &self,
+        args: ExecuteTransferInstructionArgs,
+    ) -> solana_instruction::Instruction {
+        self.instruction_with_remaining_accounts(args, &[])
     }
-  }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn instruction_with_remaining_accounts(
+        &self,
+        args: ExecuteTransferInstructionArgs,
+        remaining_accounts: &[solana_instruction::AccountMeta],
+    ) -> solana_instruction::Instruction {
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.recipient,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new(self.asset, false));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.slot_hashes,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.instructions_sysvar,
+            false,
+        ));
+        accounts.extend_from_slice(remaining_accounts);
+        let mut data = ExecuteTransferInstructionData::new().try_to_vec().unwrap();
+        let mut args = args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        }
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct ExecuteTransferInstructionData {
-            discriminator: [u8; 8],
-                  }
+pub struct ExecuteTransferInstructionData {
+    discriminator: [u8; 8],
+}
 
 impl ExecuteTransferInstructionData {
-  pub fn new() -> Self {
-    Self {
-                        discriminator: [233, 126, 160, 184, 235, 206, 31, 119],
-                                              }
-  }
+    pub fn new() -> Self {
+        Self {
+            discriminator: [233, 126, 160, 184, 235, 206, 31, 119],
+        }
+    }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
-  }
+        borsh::to_vec(self)
+    }
+}
 
 impl Default for ExecuteTransferInstructionData {
-  fn default() -> Self {
-    Self::new()
-  }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct ExecuteTransferInstructionArgs {
-                  pub secp256r1_verify_args: Secp256r1VerifyArgs,
-                pub slot_number: u64,
-      }
-
-impl ExecuteTransferInstructionArgs {
-  pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
+pub struct ExecuteTransferInstructionArgs {
+    pub secp256r1_verify_args: Secp256r1VerifyArgs,
+    pub slot_number: u64,
 }
 
+impl ExecuteTransferInstructionArgs {
+    pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
+        borsh::to_vec(self)
+    }
+}
 
 /// Instruction builder for `ExecuteTransfer`.
 ///
 /// ### Accounts:
 ///
-          ///   0. `[]` recipient
-                ///   1. `[writable]` asset
-                ///   2. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
-                ///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
+///   0. `[]` recipient
+///   1. `[writable]` asset
+///   2. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
+///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct ExecuteTransferBuilder {
-            recipient: Option<solana_address::Address>,
-                asset: Option<solana_address::Address>,
-                slot_hashes: Option<solana_address::Address>,
-                instructions_sysvar: Option<solana_address::Address>,
-                        secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
-                slot_number: Option<u64>,
-        __remaining_accounts: Vec<solana_instruction::AccountMeta>,
+    recipient: Option<solana_address::Address>,
+    asset: Option<solana_address::Address>,
+    slot_hashes: Option<solana_address::Address>,
+    instructions_sysvar: Option<solana_address::Address>,
+    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+    slot_number: Option<u64>,
+    __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl ExecuteTransferBuilder {
-  pub fn new() -> Self {
-    Self::default()
-  }
-            #[inline(always)]
+    pub fn new() -> Self {
+        Self::default()
+    }
+    #[inline(always)]
     pub fn recipient(&mut self, recipient: solana_address::Address) -> &mut Self {
-                        self.recipient = Some(recipient);
-                    self
+        self.recipient = Some(recipient);
+        self
     }
-            #[inline(always)]
+    #[inline(always)]
     pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
-                        self.asset = Some(asset);
-                    self
+        self.asset = Some(asset);
+        self
     }
-            /// `[optional account, default to 'SysvarS1otHashes111111111111111111111111111']`
-#[inline(always)]
+    /// `[optional account, default to 'SysvarS1otHashes111111111111111111111111111']`
+    #[inline(always)]
     pub fn slot_hashes(&mut self, slot_hashes: solana_address::Address) -> &mut Self {
-                        self.slot_hashes = Some(slot_hashes);
-                    self
+        self.slot_hashes = Some(slot_hashes);
+        self
     }
-            /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
-#[inline(always)]
-    pub fn instructions_sysvar(&mut self, instructions_sysvar: solana_address::Address) -> &mut Self {
-                        self.instructions_sysvar = Some(instructions_sysvar);
-                    self
+    /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
+    #[inline(always)]
+    pub fn instructions_sysvar(
+        &mut self,
+        instructions_sysvar: solana_address::Address,
+    ) -> &mut Self {
+        self.instructions_sysvar = Some(instructions_sysvar);
+        self
     }
-                    #[inline(always)]
-      pub fn secp256r1_verify_args(&mut self, secp256r1_verify_args: Secp256r1VerifyArgs) -> &mut Self {
+    #[inline(always)]
+    pub fn secp256r1_verify_args(
+        &mut self,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> &mut Self {
         self.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
-      }
-                #[inline(always)]
-      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+    }
+    #[inline(always)]
+    pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
         self.slot_number = Some(slot_number);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
-    self.__remaining_accounts.push(account);
-    self
-  }
-  /// Add additional accounts to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[solana_instruction::AccountMeta]) -> &mut Self {
-    self.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[allow(clippy::clone_on_copy)]
-  pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = ExecuteTransfer {
-                              recipient: self.recipient.expect("recipient is not set"),
-                                        asset: self.asset.expect("asset is not set"),
-                                        slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!("SysvarS1otHashes111111111111111111111111111")),
-                                        instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
-                      };
-          let args = ExecuteTransferInstructionArgs {
-                                                              secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
-                                                                  slot_number: self.slot_number.clone().expect("slot_number is not set"),
-                                    };
-    
-    accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
-  }
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
+        self.__remaining_accounts.push(account);
+        self
+    }
+    /// Add additional accounts to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> &mut Self {
+        self.__remaining_accounts.extend_from_slice(accounts);
+        self
+    }
+    #[allow(clippy::clone_on_copy)]
+    pub fn instruction(&self) -> solana_instruction::Instruction {
+        let accounts = ExecuteTransfer {
+            recipient: self.recipient.expect("recipient is not set"),
+            asset: self.asset.expect("asset is not set"),
+            slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!(
+                "SysvarS1otHashes111111111111111111111111111"
+            )),
+            instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!(
+                "Sysvar1nstructions1111111111111111111111111"
+            )),
+        };
+        let args = ExecuteTransferInstructionArgs {
+            secp256r1_verify_args: self
+                .secp256r1_verify_args
+                .clone()
+                .expect("secp256r1_verify_args is not set"),
+            slot_number: self.slot_number.clone().expect("slot_number is not set"),
+        };
+
+        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
+    }
 }
 
-  /// `execute_transfer` CPI accounts.
-  pub struct ExecuteTransferCpiAccounts<'a, 'b> {
-          
-                    
-              pub recipient: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub asset: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-            }
+/// `execute_transfer` CPI accounts.
+pub struct ExecuteTransferCpiAccounts<'a, 'b> {
+    pub recipient: &'b solana_account_info::AccountInfo<'a>,
+
+    pub asset: &'b solana_account_info::AccountInfo<'a>,
+
+    pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
+
+    pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+}
 
 /// `execute_transfer` CPI instruction.
 pub struct ExecuteTransferCpi<'a, 'b> {
-  /// The program to invoke.
-  pub __program: &'b solana_account_info::AccountInfo<'a>,
-      
-              
-          pub recipient: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub asset: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-            /// The arguments for the instruction.
+    /// The program to invoke.
+    pub __program: &'b solana_account_info::AccountInfo<'a>,
+
+    pub recipient: &'b solana_account_info::AccountInfo<'a>,
+
+    pub asset: &'b solana_account_info::AccountInfo<'a>,
+
+    pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
+
+    pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+    /// The arguments for the instruction.
     pub __args: ExecuteTransferInstructionArgs,
-  }
+}
 
 impl<'a, 'b> ExecuteTransferCpi<'a, 'b> {
-  pub fn new(
-    program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: ExecuteTransferCpiAccounts<'a, 'b>,
-              args: ExecuteTransferInstructionArgs,
-      ) -> Self {
-    Self {
-      __program: program,
-              recipient: accounts.recipient,
-              asset: accounts.asset,
-              slot_hashes: accounts.slot_hashes,
-              instructions_sysvar: accounts.instructions_sysvar,
-                    __args: args,
-          }
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], &[])
-  }
-  #[inline(always)]
-  pub fn invoke_with_remaining_accounts(&self, remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
-  }
-  #[inline(always)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed_with_remaining_accounts(
-    &self,
-    signers_seeds: &[&[&[u8]]],
-    remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
-  ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.recipient.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.asset.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.slot_hashes.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.instructions_sysvar.key,
-            false
-          ));
-                      remaining_accounts.iter().for_each(|remaining_account| {
-      accounts.push(solana_instruction::AccountMeta {
-          pubkey: *remaining_account.0.key,
-          is_signer: remaining_account.1,
-          is_writable: remaining_account.2,
-      })
-    });
-    let mut data = ExecuteTransferInstructionData::new().try_to_vec().unwrap();
-          let mut args = self.__args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    let instruction = solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
-    };
-    let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
-    account_infos.push(self.__program.clone());
-                  account_infos.push(self.recipient.clone());
-                        account_infos.push(self.asset.clone());
-                        account_infos.push(self.slot_hashes.clone());
-                        account_infos.push(self.instructions_sysvar.clone());
-              remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
-
-    if signers_seeds.is_empty() {
-      solana_cpi::invoke(&instruction, &account_infos)
-    } else {
-      solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+    pub fn new(
+        program: &'b solana_account_info::AccountInfo<'a>,
+        accounts: ExecuteTransferCpiAccounts<'a, 'b>,
+        args: ExecuteTransferInstructionArgs,
+    ) -> Self {
+        Self {
+            __program: program,
+            recipient: accounts.recipient,
+            asset: accounts.asset,
+            slot_hashes: accounts.slot_hashes,
+            instructions_sysvar: accounts.instructions_sysvar,
+            __args: args,
+        }
     }
-  }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], &[])
+    }
+    #[inline(always)]
+    pub fn invoke_with_remaining_accounts(
+        &self,
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
+    }
+    #[inline(always)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
+    }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed_with_remaining_accounts(
+        &self,
+        signers_seeds: &[&[&[u8]]],
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.recipient.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new(*self.asset.key, false));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.slot_hashes.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.instructions_sysvar.key,
+            false,
+        ));
+        remaining_accounts.iter().for_each(|remaining_account| {
+            accounts.push(solana_instruction::AccountMeta {
+                pubkey: *remaining_account.0.key,
+                is_signer: remaining_account.1,
+                is_writable: remaining_account.2,
+            })
+        });
+        let mut data = ExecuteTransferInstructionData::new().try_to_vec().unwrap();
+        let mut args = self.__args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        let instruction = solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        };
+        let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
+        account_infos.push(self.__program.clone());
+        account_infos.push(self.recipient.clone());
+        account_infos.push(self.asset.clone());
+        account_infos.push(self.slot_hashes.clone());
+        account_infos.push(self.instructions_sysvar.clone());
+        remaining_accounts
+            .iter()
+            .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
+
+        if signers_seeds.is_empty() {
+            solana_cpi::invoke(&instruction, &account_infos)
+        } else {
+            solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+        }
+    }
 }
 
 /// Instruction builder for `ExecuteTransfer` via CPI.
 ///
 /// ### Accounts:
 ///
-          ///   0. `[]` recipient
-                ///   1. `[writable]` asset
-          ///   2. `[]` slot_hashes
-          ///   3. `[]` instructions_sysvar
+///   0. `[]` recipient
+///   1. `[writable]` asset
+///   2. `[]` slot_hashes
+///   3. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
 pub struct ExecuteTransferCpiBuilder<'a, 'b> {
-  instruction: Box<ExecuteTransferCpiBuilderInstruction<'a, 'b>>,
+    instruction: Box<ExecuteTransferCpiBuilderInstruction<'a, 'b>>,
 }
 
 impl<'a, 'b> ExecuteTransferCpiBuilder<'a, 'b> {
-  pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(ExecuteTransferCpiBuilderInstruction {
-      __program: program,
-              recipient: None,
-              asset: None,
-              slot_hashes: None,
-              instructions_sysvar: None,
-                                            secp256r1_verify_args: None,
-                                slot_number: None,
-                    __remaining_accounts: Vec::new(),
-    });
-    Self { instruction }
-  }
-      #[inline(always)]
+    pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
+        let instruction = Box::new(ExecuteTransferCpiBuilderInstruction {
+            __program: program,
+            recipient: None,
+            asset: None,
+            slot_hashes: None,
+            instructions_sysvar: None,
+            secp256r1_verify_args: None,
+            slot_number: None,
+            __remaining_accounts: Vec::new(),
+        });
+        Self { instruction }
+    }
+    #[inline(always)]
     pub fn recipient(&mut self, recipient: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.recipient = Some(recipient);
-                    self
+        self.instruction.recipient = Some(recipient);
+        self
     }
-      #[inline(always)]
+    #[inline(always)]
     pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.asset = Some(asset);
-                    self
+        self.instruction.asset = Some(asset);
+        self
     }
-      #[inline(always)]
-    pub fn slot_hashes(&mut self, slot_hashes: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.slot_hashes = Some(slot_hashes);
-                    self
+    #[inline(always)]
+    pub fn slot_hashes(
+        &mut self,
+        slot_hashes: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.slot_hashes = Some(slot_hashes);
+        self
     }
-      #[inline(always)]
-    pub fn instructions_sysvar(&mut self, instructions_sysvar: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.instructions_sysvar = Some(instructions_sysvar);
-                    self
+    #[inline(always)]
+    pub fn instructions_sysvar(
+        &mut self,
+        instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.instructions_sysvar = Some(instructions_sysvar);
+        self
     }
-                    #[inline(always)]
-      pub fn secp256r1_verify_args(&mut self, secp256r1_verify_args: Secp256r1VerifyArgs) -> &mut Self {
+    #[inline(always)]
+    pub fn secp256r1_verify_args(
+        &mut self,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> &mut Self {
         self.instruction.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
-      }
-                #[inline(always)]
-      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+    }
+    #[inline(always)]
+    pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
         self.instruction.slot_number = Some(slot_number);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
-    self.instruction.__remaining_accounts.push((account, is_writable, is_signer));
-    self
-  }
-  /// Add additional accounts to the instruction.
-  ///
-  /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
-  /// and a `bool` indicating whether the account is a signer or not.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> &mut Self {
-    self.instruction.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed(&[])
-  }
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = ExecuteTransferInstructionArgs {
-                                                              secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
-                                                                  slot_number: self.instruction.slot_number.clone().expect("slot_number is not set"),
-                                    };
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(
+        &mut self,
+        account: &'b solana_account_info::AccountInfo<'a>,
+        is_writable: bool,
+        is_signer: bool,
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .push((account, is_writable, is_signer));
+        self
+    }
+    /// Add additional accounts to the instruction.
+    ///
+    /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
+    /// and a `bool` indicating whether the account is a signer or not.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .extend_from_slice(accounts);
+        self
+    }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed(&[])
+    }
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        let args = ExecuteTransferInstructionArgs {
+            secp256r1_verify_args: self
+                .instruction
+                .secp256r1_verify_args
+                .clone()
+                .expect("secp256r1_verify_args is not set"),
+            slot_number: self
+                .instruction
+                .slot_number
+                .clone()
+                .expect("slot_number is not set"),
+        };
         let instruction = ExecuteTransferCpi {
-        __program: self.instruction.__program,
-                  
-          recipient: self.instruction.recipient.expect("recipient is not set"),
-                  
-          asset: self.instruction.asset.expect("asset is not set"),
-                  
-          slot_hashes: self.instruction.slot_hashes.expect("slot_hashes is not set"),
-                  
-          instructions_sysvar: self.instruction.instructions_sysvar.expect("instructions_sysvar is not set"),
-                          __args: args,
-            };
-    instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
-  }
+            __program: self.instruction.__program,
+
+            recipient: self.instruction.recipient.expect("recipient is not set"),
+
+            asset: self.instruction.asset.expect("asset is not set"),
+
+            slot_hashes: self
+                .instruction
+                .slot_hashes
+                .expect("slot_hashes is not set"),
+
+            instructions_sysvar: self
+                .instruction
+                .instructions_sysvar
+                .expect("instructions_sysvar is not set"),
+            __args: args,
+        };
+        instruction.invoke_signed_with_remaining_accounts(
+            signers_seeds,
+            &self.instruction.__remaining_accounts,
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
 struct ExecuteTransferCpiBuilderInstruction<'a, 'b> {
-  __program: &'b solana_account_info::AccountInfo<'a>,
-            recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
-                asset: Option<&'b solana_account_info::AccountInfo<'a>>,
-                slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
-                instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
-                        secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
-                slot_number: Option<u64>,
-        /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
-  __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
+    __program: &'b solana_account_info::AccountInfo<'a>,
+    recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
+    asset: Option<&'b solana_account_info::AccountInfo<'a>>,
+    slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
+    instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
+    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+    slot_number: Option<u64>,
+    /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
+    __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }
-

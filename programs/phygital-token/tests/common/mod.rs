@@ -215,12 +215,8 @@ impl TestContext {
             asset_type,
         };
         let ix = self.initialize_ix(INITIALIZE_AUTHORITY, asset, args);
-        Self::send_instruction_as(
-            &mut self.svm,
-            ix,
-            INITIALIZE_AUTHORITY,
-        )
-        .expect("initialize asset");
+        Self::send_instruction_as(&mut self.svm, ix, INITIALIZE_AUTHORITY)
+            .expect("initialize asset");
 
         MintedAsset {
             asset,

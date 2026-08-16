@@ -18,12 +18,8 @@ fn execute_transfer_rejects_wrong_signature() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let bad_sig = [0u8; 64];
-    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with(
-        asset.asset,
-        slot_hash,
-        1,
-        Some(bad_sig),
-    );
+    let (secp_ix, verify_args) =
+        passkey.secp256r1_verify_instruction_with(asset.asset, slot_hash, 1, Some(bad_sig));
     let transfer_ix =
         ctx.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
     ctx.svm
@@ -65,8 +61,7 @@ fn execute_transfer_rejects_default_recipient() {
     let asset = ctx.init_asset(&passkey);
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
+    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
     let transfer_ix =
         ctx.execute_transfer_ix(Pubkey::default(), asset.asset, verify_args, slot_number);
 

@@ -5,322 +5,339 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 pub const SET_LOCK_STATE_DISCRIMINATOR: [u8; 8] = [16, 40, 80, 140, 163, 156, 68, 120];
 
 /// Accounts.
 #[derive(Debug)]
 pub struct SetLockState {
-      
-              
-          pub owner: solana_address::Address,
-          
-              
-          pub asset: solana_address::Address,
-      }
+    pub owner: solana_address::Address,
+
+    pub asset: solana_address::Address,
+}
 
 impl SetLockState {
-  pub fn instruction(&self, args: SetLockStateInstructionArgs) -> solana_instruction::Instruction {
-    self.instruction_with_remaining_accounts(args, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: SetLockStateInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.owner,
-            true
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.asset,
-            false
-          ));
-                      accounts.extend_from_slice(remaining_accounts);
-    let mut data = SetLockStateInstructionData::new().try_to_vec().unwrap();
-          let mut args = args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
+    pub fn instruction(
+        &self,
+        args: SetLockStateInstructionArgs,
+    ) -> solana_instruction::Instruction {
+        self.instruction_with_remaining_accounts(args, &[])
     }
-  }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn instruction_with_remaining_accounts(
+        &self,
+        args: SetLockStateInstructionArgs,
+        remaining_accounts: &[solana_instruction::AccountMeta],
+    ) -> solana_instruction::Instruction {
+        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.owner, true,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new(self.asset, false));
+        accounts.extend_from_slice(remaining_accounts);
+        let mut data = SetLockStateInstructionData::new().try_to_vec().unwrap();
+        let mut args = args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        }
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct SetLockStateInstructionData {
-            discriminator: [u8; 8],
-            }
+pub struct SetLockStateInstructionData {
+    discriminator: [u8; 8],
+}
 
 impl SetLockStateInstructionData {
-  pub fn new() -> Self {
-    Self {
-                        discriminator: [16, 40, 80, 140, 163, 156, 68, 120],
-                                }
-  }
+    pub fn new() -> Self {
+        Self {
+            discriminator: [16, 40, 80, 140, 163, 156, 68, 120],
+        }
+    }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
-  }
+        borsh::to_vec(self)
+    }
+}
 
 impl Default for SetLockStateInstructionData {
-  fn default() -> Self {
-    Self::new()
-  }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct SetLockStateInstructionArgs {
-                  pub is_locked: bool,
-      }
-
-impl SetLockStateInstructionArgs {
-  pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
+pub struct SetLockStateInstructionArgs {
+    pub is_locked: bool,
 }
 
+impl SetLockStateInstructionArgs {
+    pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
+        borsh::to_vec(self)
+    }
+}
 
 /// Instruction builder for `SetLockState`.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` owner
-                ///   1. `[writable]` asset
+///   0. `[signer]` owner
+///   1. `[writable]` asset
 #[derive(Clone, Debug, Default)]
 pub struct SetLockStateBuilder {
-            owner: Option<solana_address::Address>,
-                asset: Option<solana_address::Address>,
-                        is_locked: Option<bool>,
-        __remaining_accounts: Vec<solana_instruction::AccountMeta>,
+    owner: Option<solana_address::Address>,
+    asset: Option<solana_address::Address>,
+    is_locked: Option<bool>,
+    __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl SetLockStateBuilder {
-  pub fn new() -> Self {
-    Self::default()
-  }
-            #[inline(always)]
+    pub fn new() -> Self {
+        Self::default()
+    }
+    #[inline(always)]
     pub fn owner(&mut self, owner: solana_address::Address) -> &mut Self {
-                        self.owner = Some(owner);
-                    self
+        self.owner = Some(owner);
+        self
     }
-            #[inline(always)]
+    #[inline(always)]
     pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
-                        self.asset = Some(asset);
-                    self
+        self.asset = Some(asset);
+        self
     }
-                    #[inline(always)]
-      pub fn is_locked(&mut self, is_locked: bool) -> &mut Self {
+    #[inline(always)]
+    pub fn is_locked(&mut self, is_locked: bool) -> &mut Self {
         self.is_locked = Some(is_locked);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
-    self.__remaining_accounts.push(account);
-    self
-  }
-  /// Add additional accounts to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[solana_instruction::AccountMeta]) -> &mut Self {
-    self.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[allow(clippy::clone_on_copy)]
-  pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = SetLockState {
-                              owner: self.owner.expect("owner is not set"),
-                                        asset: self.asset.expect("asset is not set"),
-                      };
-          let args = SetLockStateInstructionArgs {
-                                                              is_locked: self.is_locked.clone().expect("is_locked is not set"),
-                                    };
-    
-    accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
-  }
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
+        self.__remaining_accounts.push(account);
+        self
+    }
+    /// Add additional accounts to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> &mut Self {
+        self.__remaining_accounts.extend_from_slice(accounts);
+        self
+    }
+    #[allow(clippy::clone_on_copy)]
+    pub fn instruction(&self) -> solana_instruction::Instruction {
+        let accounts = SetLockState {
+            owner: self.owner.expect("owner is not set"),
+            asset: self.asset.expect("asset is not set"),
+        };
+        let args = SetLockStateInstructionArgs {
+            is_locked: self.is_locked.clone().expect("is_locked is not set"),
+        };
+
+        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
+    }
 }
 
-  /// `set_lock_state` CPI accounts.
-  pub struct SetLockStateCpiAccounts<'a, 'b> {
-          
-                    
-              pub owner: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub asset: &'b solana_account_info::AccountInfo<'a>,
-            }
+/// `set_lock_state` CPI accounts.
+pub struct SetLockStateCpiAccounts<'a, 'b> {
+    pub owner: &'b solana_account_info::AccountInfo<'a>,
+
+    pub asset: &'b solana_account_info::AccountInfo<'a>,
+}
 
 /// `set_lock_state` CPI instruction.
 pub struct SetLockStateCpi<'a, 'b> {
-  /// The program to invoke.
-  pub __program: &'b solana_account_info::AccountInfo<'a>,
-      
-              
-          pub owner: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub asset: &'b solana_account_info::AccountInfo<'a>,
-            /// The arguments for the instruction.
+    /// The program to invoke.
+    pub __program: &'b solana_account_info::AccountInfo<'a>,
+
+    pub owner: &'b solana_account_info::AccountInfo<'a>,
+
+    pub asset: &'b solana_account_info::AccountInfo<'a>,
+    /// The arguments for the instruction.
     pub __args: SetLockStateInstructionArgs,
-  }
+}
 
 impl<'a, 'b> SetLockStateCpi<'a, 'b> {
-  pub fn new(
-    program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: SetLockStateCpiAccounts<'a, 'b>,
-              args: SetLockStateInstructionArgs,
-      ) -> Self {
-    Self {
-      __program: program,
-              owner: accounts.owner,
-              asset: accounts.asset,
-                    __args: args,
-          }
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], &[])
-  }
-  #[inline(always)]
-  pub fn invoke_with_remaining_accounts(&self, remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
-  }
-  #[inline(always)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed_with_remaining_accounts(
-    &self,
-    signers_seeds: &[&[&[u8]]],
-    remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
-  ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.owner.key,
-            true
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.asset.key,
-            false
-          ));
-                      remaining_accounts.iter().for_each(|remaining_account| {
-      accounts.push(solana_instruction::AccountMeta {
-          pubkey: *remaining_account.0.key,
-          is_signer: remaining_account.1,
-          is_writable: remaining_account.2,
-      })
-    });
-    let mut data = SetLockStateInstructionData::new().try_to_vec().unwrap();
-          let mut args = self.__args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    let instruction = solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
-    };
-    let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
-    account_infos.push(self.__program.clone());
-                  account_infos.push(self.owner.clone());
-                        account_infos.push(self.asset.clone());
-              remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
-
-    if signers_seeds.is_empty() {
-      solana_cpi::invoke(&instruction, &account_infos)
-    } else {
-      solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+    pub fn new(
+        program: &'b solana_account_info::AccountInfo<'a>,
+        accounts: SetLockStateCpiAccounts<'a, 'b>,
+        args: SetLockStateInstructionArgs,
+    ) -> Self {
+        Self {
+            __program: program,
+            owner: accounts.owner,
+            asset: accounts.asset,
+            __args: args,
+        }
     }
-  }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], &[])
+    }
+    #[inline(always)]
+    pub fn invoke_with_remaining_accounts(
+        &self,
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
+    }
+    #[inline(always)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
+    }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed_with_remaining_accounts(
+        &self,
+        signers_seeds: &[&[&[u8]]],
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.owner.key,
+            true,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new(*self.asset.key, false));
+        remaining_accounts.iter().for_each(|remaining_account| {
+            accounts.push(solana_instruction::AccountMeta {
+                pubkey: *remaining_account.0.key,
+                is_signer: remaining_account.1,
+                is_writable: remaining_account.2,
+            })
+        });
+        let mut data = SetLockStateInstructionData::new().try_to_vec().unwrap();
+        let mut args = self.__args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        let instruction = solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        };
+        let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
+        account_infos.push(self.__program.clone());
+        account_infos.push(self.owner.clone());
+        account_infos.push(self.asset.clone());
+        remaining_accounts
+            .iter()
+            .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
+
+        if signers_seeds.is_empty() {
+            solana_cpi::invoke(&instruction, &account_infos)
+        } else {
+            solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+        }
+    }
 }
 
 /// Instruction builder for `SetLockState` via CPI.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` owner
-                ///   1. `[writable]` asset
+///   0. `[signer]` owner
+///   1. `[writable]` asset
 #[derive(Clone, Debug)]
 pub struct SetLockStateCpiBuilder<'a, 'b> {
-  instruction: Box<SetLockStateCpiBuilderInstruction<'a, 'b>>,
+    instruction: Box<SetLockStateCpiBuilderInstruction<'a, 'b>>,
 }
 
 impl<'a, 'b> SetLockStateCpiBuilder<'a, 'b> {
-  pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(SetLockStateCpiBuilderInstruction {
-      __program: program,
-              owner: None,
-              asset: None,
-                                            is_locked: None,
-                    __remaining_accounts: Vec::new(),
-    });
-    Self { instruction }
-  }
-      #[inline(always)]
+    pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
+        let instruction = Box::new(SetLockStateCpiBuilderInstruction {
+            __program: program,
+            owner: None,
+            asset: None,
+            is_locked: None,
+            __remaining_accounts: Vec::new(),
+        });
+        Self { instruction }
+    }
+    #[inline(always)]
     pub fn owner(&mut self, owner: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.owner = Some(owner);
-                    self
+        self.instruction.owner = Some(owner);
+        self
     }
-      #[inline(always)]
+    #[inline(always)]
     pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.asset = Some(asset);
-                    self
+        self.instruction.asset = Some(asset);
+        self
     }
-                    #[inline(always)]
-      pub fn is_locked(&mut self, is_locked: bool) -> &mut Self {
+    #[inline(always)]
+    pub fn is_locked(&mut self, is_locked: bool) -> &mut Self {
         self.instruction.is_locked = Some(is_locked);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
-    self.instruction.__remaining_accounts.push((account, is_writable, is_signer));
-    self
-  }
-  /// Add additional accounts to the instruction.
-  ///
-  /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
-  /// and a `bool` indicating whether the account is a signer or not.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> &mut Self {
-    self.instruction.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed(&[])
-  }
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = SetLockStateInstructionArgs {
-                                                              is_locked: self.instruction.is_locked.clone().expect("is_locked is not set"),
-                                    };
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(
+        &mut self,
+        account: &'b solana_account_info::AccountInfo<'a>,
+        is_writable: bool,
+        is_signer: bool,
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .push((account, is_writable, is_signer));
+        self
+    }
+    /// Add additional accounts to the instruction.
+    ///
+    /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
+    /// and a `bool` indicating whether the account is a signer or not.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .extend_from_slice(accounts);
+        self
+    }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed(&[])
+    }
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        let args = SetLockStateInstructionArgs {
+            is_locked: self
+                .instruction
+                .is_locked
+                .clone()
+                .expect("is_locked is not set"),
+        };
         let instruction = SetLockStateCpi {
-        __program: self.instruction.__program,
-                  
-          owner: self.instruction.owner.expect("owner is not set"),
-                  
-          asset: self.instruction.asset.expect("asset is not set"),
-                          __args: args,
-            };
-    instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
-  }
+            __program: self.instruction.__program,
+
+            owner: self.instruction.owner.expect("owner is not set"),
+
+            asset: self.instruction.asset.expect("asset is not set"),
+            __args: args,
+        };
+        instruction.invoke_signed_with_remaining_accounts(
+            signers_seeds,
+            &self.instruction.__remaining_accounts,
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
 struct SetLockStateCpiBuilderInstruction<'a, 'b> {
-  __program: &'b solana_account_info::AccountInfo<'a>,
-            owner: Option<&'b solana_account_info::AccountInfo<'a>>,
-                asset: Option<&'b solana_account_info::AccountInfo<'a>>,
-                        is_locked: Option<bool>,
-        /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
-  __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
+    __program: &'b solana_account_info::AccountInfo<'a>,
+    owner: Option<&'b solana_account_info::AccountInfo<'a>>,
+    asset: Option<&'b solana_account_info::AccountInfo<'a>>,
+    is_locked: Option<bool>,
+    /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
+    __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }
-

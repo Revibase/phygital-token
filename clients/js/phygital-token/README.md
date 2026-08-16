@@ -39,7 +39,7 @@ if (isVerified) {
     rpc,
     await findAssetPda(parseSecp256r1Pubkey(secp256r1PublicKey)),
   );
-  // Continue with asset.data.owner / asset.data.identifier
+  // Continue with asset.data.owner 
 }
 ```
 

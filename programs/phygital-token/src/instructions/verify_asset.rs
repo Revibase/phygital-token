@@ -39,8 +39,7 @@ pub fn handler(
     expected_rp_id: Option<String>,
     expected_origin: Option<String>,
 ) -> Result<()> {
-    let sign_count =
-        secp256r1_verify_args.extract_sign_count(&ctx.accounts.instructions_sysvar)?;
+    let sign_count = secp256r1_verify_args.extract_sign_count(&ctx.accounts.instructions_sysvar)?;
     require!(
         sign_count > ctx.accounts.asset.last_sign_count,
         PhygitalError::StaleSignCount

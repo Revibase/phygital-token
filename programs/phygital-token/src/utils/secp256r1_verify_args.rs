@@ -6,11 +6,9 @@ use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 
 use crate::{
     error::PhygitalError,
-    utils::{
-        secp256r1_pubkey::{
-            Secp256r1Pubkey, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
-            SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
-        },
+    utils::secp256r1_pubkey::{
+        Secp256r1Pubkey, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
+        SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
     },
 };
 // `#[repr(C)]` pins field order to match the secp256r1 program's on-wire offset
@@ -304,10 +302,7 @@ impl Secp256r1VerifyArgs {
 
     /// Reads the WebAuthn authenticator `signCount` (big-endian u32 at
     /// authenticatorData[33..37]) from the signed secp256r1 message.
-    pub fn extract_sign_count(
-        &self,
-        instructions_sysvar: &UncheckedAccount,
-    ) -> Result<u32> {
+    pub fn extract_sign_count(&self, instructions_sysvar: &UncheckedAccount) -> Result<u32> {
         let data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
         let offsets = Self::read_signature_offsets(&data, self.signed_message_index)?;
         let message = Self::extract_message_data(&data, &offsets)?;
