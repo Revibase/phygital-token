@@ -4,7 +4,7 @@ Third-party developers can:
 
 - **Authenticate off-chain** with a live NFC tap → `startAuthentication` + `verifyResponse`
 - **Prove possession on-chain** (composable) → `beginVerifyAsset` / `completeVerifyAsset` (`verify_asset`)
-- **Transfer ownership on-chain** → `beginTransfer` / `completeTransfer` (`execute_transfer`)
+- **Transfer ownership on-chain** → `beginTransfer` / `completeTransfer` (`transfer_ownership`)
 - **Initialize assets** → `buildInitializeInstruction` (passkey seeds PDA; chip `identifier` stored for binding)
 
 ## Off-chain authentication
@@ -41,10 +41,10 @@ authenticatePasskeyForTransfer(session)
         ↓
 completeTransfer(session, response, recipient)  // passkey from response.id
         ↓
-send [secp256r1_verify, execute_transfer]
+send [secp256r1_verify, transfer_ownership]
 ```
 
-`beginTransfer` only needs `rpc` and the asset PDA. The passkey is taken from `response.id` in `completeTransfer`. `execute_transfer` updates `asset.owner` only — there is no SPL token / Token-2022 linkage.
+`beginTransfer` only needs `rpc` and the asset PDA. The passkey is taken from `response.id` in `completeTransfer`. `transfer_ownership` updates `asset.owner` only — there is no SPL token / Token-2022 linkage.
 
 ## Message design checklist
 
@@ -58,4 +58,4 @@ send [secp256r1_verify, execute_transfer]
 
 **TypeScript:** `phygital-token-sdk` — `startAuthentication`, `verifyResponse`, `beginVerifyAsset`, `beginTransfer`, `completeTransfer`, `buildInitializeInstruction`
 
-**Rust:** `phygital-token-client` at `clients/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify_asset`, `execute_transfer`, `remove_ownership`, `set_lock_state`
+**Rust:** `phygital-token-client` at `clients/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify_asset`, `transfer_ownership`, `remove_ownership`, `set_lock_state`

@@ -6,7 +6,7 @@ use solana_keypair::Keypair;
 use solana_signer::Signer;
 
 #[test]
-fn execute_transfer_moves_asset_to_recipient_without_sender_signature() {
+fn transfer_ownership_moves_asset_to_recipient_with_recipient_signature() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
@@ -14,8 +14,8 @@ fn execute_transfer_moves_asset_to_recipient_without_sender_signature() {
 
     assert_eq!(ctx.asset_owner(asset.asset), Pubkey::default());
 
-    ctx.send_execute_transfer(&asset, &recipient, true)
-        .expect("execute_transfer should succeed with secp256r1 + recipient signature only");
+    ctx.send_transfer_ownership(&asset, &recipient, true)
+        .expect("transfer_ownership should succeed with secp256r1 + recipient signature only");
 
     assert_eq!(
         ctx.last_sign_count(asset.asset),
@@ -26,15 +26,15 @@ fn execute_transfer_moves_asset_to_recipient_without_sender_signature() {
 }
 
 #[test]
-fn execute_transfer_requires_preceding_secp256r1_instruction() {
+fn transfer_ownership_requires_preceding_secp256r1_instruction() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
     let recipient = Keypair::new();
 
     let err = ctx
-        .send_execute_transfer(&asset, &recipient, false)
-        .expect_err("execute_transfer without secp256r1 ix should fail");
+        .send_transfer_ownership(&asset, &recipient, false)
+        .expect_err("transfer_ownership without secp256r1 ix should fail");
 
     // With no preceding secp256r1 instruction, the asset constraint fails while
     // trying to read it, surfacing as a generic InvalidArgument.
@@ -47,7 +47,7 @@ fn execute_transfer_requires_preceding_secp256r1_instruction() {
 }
 
 #[test]
-fn execute_transfer_rejects_sign_count_not_greater_than_last() {
+fn transfer_ownership_rejects_sign_count_not_greater_than_last() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
@@ -56,12 +56,12 @@ fn execute_transfer_rejects_sign_count_not_greater_than_last() {
 
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    ctx.send_execute_transfer(&asset, &first_recipient, true)
+    ctx.send_transfer_ownership(&asset, &first_recipient, true)
         .expect("first transfer");
     assert_eq!(ctx.last_sign_count(asset.asset), 1);
 
     let err = ctx
-        .send_execute_transfer_at_slot(
+        .send_transfer_ownership_at_slot(
             &asset,
             &second_recipient,
             true,
@@ -79,7 +79,7 @@ fn execute_transfer_rejects_sign_count_not_greater_than_last() {
 }
 
 #[test]
-fn execute_transfer_allows_next_transfer_with_higher_sign_count() {
+fn transfer_ownership_allows_next_transfer_with_higher_sign_count() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let asset = ctx.init_asset(&passkey);
@@ -87,7 +87,7 @@ fn execute_transfer_allows_next_transfer_with_higher_sign_count() {
     let second_recipient = Keypair::new();
 
     let (first_slot, _) = current_slot_entry(&ctx.svm);
-    ctx.send_execute_transfer(&asset, &first_recipient, true)
+    ctx.send_transfer_ownership(&asset, &first_recipient, true)
         .expect("first transfer");
 
     let second_slot = first_slot.saturating_add(1);
@@ -95,7 +95,7 @@ fn execute_transfer_allows_next_transfer_with_higher_sign_count() {
     let (second_slot, second_hash) = current_slot_entry(&ctx.svm);
     assert!(second_slot > first_slot);
 
-    ctx.send_execute_transfer_at_slot(
+    ctx.send_transfer_ownership_at_slot(
         &asset,
         &second_recipient,
         true,

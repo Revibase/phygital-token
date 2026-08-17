@@ -9,29 +9,43 @@ use crate::generated::types::Secp256r1VerifyArgs;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
-pub const VERIFY_ASSET_DISCRIMINATOR: [u8; 8] = [136, 51, 110, 228, 129, 94, 141, 179];
+pub const TRANSFER_OWNERSHIP_DISCRIMINATOR: [u8; 8] = [65, 177, 215, 73, 53, 45, 99, 47];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct VerifyAsset {
+pub struct TransferOwnership {
       
               
+          pub recipient: solana_address::Address,
+          
+              
           pub asset: solana_address::Address,
+          
+              
+          pub slot_hashes: solana_address::Address,
           
               
           pub instructions_sysvar: solana_address::Address,
       }
 
-impl VerifyAsset {
-  pub fn instruction(&self, args: VerifyAssetInstructionArgs) -> solana_instruction::Instruction {
+impl TransferOwnership {
+  pub fn instruction(&self, args: TransferOwnershipInstructionArgs) -> solana_instruction::Instruction {
     self.instruction_with_remaining_accounts(args, &[])
   }
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: VerifyAssetInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new(
+  pub fn instruction_with_remaining_accounts(&self, args: TransferOwnershipInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
+                            accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.recipient,
+            true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new(
             self.asset,
+            false
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.slot_hashes,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -39,7 +53,7 @@ impl VerifyAsset {
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
-    let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
+    let mut data = TransferOwnershipInstructionData::new().try_to_vec().unwrap();
           let mut args = args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -52,15 +66,15 @@ impl VerifyAsset {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct VerifyAssetInstructionData {
+ pub struct TransferOwnershipInstructionData {
             discriminator: [u8; 8],
-                              }
+                  }
 
-impl VerifyAssetInstructionData {
+impl TransferOwnershipInstructionData {
   pub fn new() -> Self {
     Self {
-                        discriminator: [136, 51, 110, 228, 129, 94, 141, 179],
-                                                                          }
+                        discriminator: [65, 177, 215, 73, 53, 45, 99, 47],
+                                              }
   }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
@@ -68,51 +82,62 @@ impl VerifyAssetInstructionData {
   }
   }
 
-impl Default for VerifyAssetInstructionData {
+impl Default for TransferOwnershipInstructionData {
   fn default() -> Self {
     Self::new()
   }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct VerifyAssetInstructionArgs {
+ pub struct TransferOwnershipInstructionArgs {
                   pub secp256r1_verify_args: Secp256r1VerifyArgs,
-                pub message_hash: [u8; 32],
-                pub expected_rp_id: Option<String>,
-                pub expected_origin: Option<String>,
+                pub slot_number: u64,
       }
 
-impl VerifyAssetInstructionArgs {
+impl TransferOwnershipInstructionArgs {
   pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
     borsh::to_vec(self)
   }
 }
 
 
-/// Instruction builder for `VerifyAsset`.
+/// Instruction builder for `TransferOwnership`.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` asset
-                ///   1. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
+                ///   0. `[signer]` recipient
+                ///   1. `[writable]` asset
+                ///   2. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
+                ///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct VerifyAssetBuilder {
-            asset: Option<solana_address::Address>,
+pub struct TransferOwnershipBuilder {
+            recipient: Option<solana_address::Address>,
+                asset: Option<solana_address::Address>,
+                slot_hashes: Option<solana_address::Address>,
                 instructions_sysvar: Option<solana_address::Address>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
-                message_hash: Option<[u8; 32]>,
-                expected_rp_id: Option<String>,
-                expected_origin: Option<String>,
+                slot_number: Option<u64>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl VerifyAssetBuilder {
+impl TransferOwnershipBuilder {
   pub fn new() -> Self {
     Self::default()
   }
             #[inline(always)]
+    pub fn recipient(&mut self, recipient: solana_address::Address) -> &mut Self {
+                        self.recipient = Some(recipient);
+                    self
+    }
+            #[inline(always)]
     pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
                         self.asset = Some(asset);
+                    self
+    }
+            /// `[optional account, default to 'SysvarS1otHashes111111111111111111111111111']`
+#[inline(always)]
+    pub fn slot_hashes(&mut self, slot_hashes: solana_address::Address) -> &mut Self {
+                        self.slot_hashes = Some(slot_hashes);
                     self
     }
             /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
@@ -127,20 +152,8 @@ impl VerifyAssetBuilder {
         self
       }
                 #[inline(always)]
-      pub fn message_hash(&mut self, message_hash: [u8; 32]) -> &mut Self {
-        self.message_hash = Some(message_hash);
-        self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
-        self.expected_rp_id = Some(expected_rp_id);
-        self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
-        self.expected_origin = Some(expected_origin);
+      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+        self.slot_number = Some(slot_number);
         self
       }
         /// Add an additional account to the instruction.
@@ -157,54 +170,68 @@ impl VerifyAssetBuilder {
   }
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = VerifyAsset {
-                              asset: self.asset.expect("asset is not set"),
+    let accounts = TransferOwnership {
+                              recipient: self.recipient.expect("recipient is not set"),
+                                        asset: self.asset.expect("asset is not set"),
+                                        slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!("SysvarS1otHashes111111111111111111111111111")),
                                         instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
                       };
-          let args = VerifyAssetInstructionArgs {
+          let args = TransferOwnershipInstructionArgs {
                                                               secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
-                                                                  message_hash: self.message_hash.clone().expect("message_hash is not set"),
-                                                                  expected_rp_id: self.expected_rp_id.clone(),
-                                                                  expected_origin: self.expected_origin.clone(),
+                                                                  slot_number: self.slot_number.clone().expect("slot_number is not set"),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
   }
 }
 
-  /// `verify_asset` CPI accounts.
-  pub struct VerifyAssetCpiAccounts<'a, 'b> {
+  /// `transfer_ownership` CPI accounts.
+  pub struct TransferOwnershipCpiAccounts<'a, 'b> {
           
                     
+              pub recipient: &'b solana_account_info::AccountInfo<'a>,
+                
+                    
               pub asset: &'b solana_account_info::AccountInfo<'a>,
+                
+                    
+              pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
             }
 
-/// `verify_asset` CPI instruction.
-pub struct VerifyAssetCpi<'a, 'b> {
+/// `transfer_ownership` CPI instruction.
+pub struct TransferOwnershipCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_account_info::AccountInfo<'a>,
       
               
+          pub recipient: &'b solana_account_info::AccountInfo<'a>,
+          
+              
           pub asset: &'b solana_account_info::AccountInfo<'a>,
+          
+              
+          pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
             /// The arguments for the instruction.
-    pub __args: VerifyAssetInstructionArgs,
+    pub __args: TransferOwnershipInstructionArgs,
   }
 
-impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
+impl<'a, 'b> TransferOwnershipCpi<'a, 'b> {
   pub fn new(
     program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: VerifyAssetCpiAccounts<'a, 'b>,
-              args: VerifyAssetInstructionArgs,
+          accounts: TransferOwnershipCpiAccounts<'a, 'b>,
+              args: TransferOwnershipInstructionArgs,
       ) -> Self {
     Self {
       __program: program,
+              recipient: accounts.recipient,
               asset: accounts.asset,
+              slot_hashes: accounts.slot_hashes,
               instructions_sysvar: accounts.instructions_sysvar,
                     __args: args,
           }
@@ -229,9 +256,17 @@ impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new(
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
+                            accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.recipient.key,
+            true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new(
             *self.asset.key,
+            false
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.slot_hashes.key,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -245,7 +280,7 @@ impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
           is_writable: remaining_account.2,
       })
     });
-    let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
+    let mut data = TransferOwnershipInstructionData::new().try_to_vec().unwrap();
           let mut args = self.__args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -254,9 +289,11 @@ impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
-                  account_infos.push(self.asset.clone());
+                  account_infos.push(self.recipient.clone());
+                        account_infos.push(self.asset.clone());
+                        account_infos.push(self.slot_hashes.clone());
                         account_infos.push(self.instructions_sysvar.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -268,34 +305,46 @@ impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
   }
 }
 
-/// Instruction builder for `VerifyAsset` via CPI.
+/// Instruction builder for `TransferOwnership` via CPI.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` asset
-          ///   1. `[]` instructions_sysvar
+                ///   0. `[signer]` recipient
+                ///   1. `[writable]` asset
+          ///   2. `[]` slot_hashes
+          ///   3. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
-pub struct VerifyAssetCpiBuilder<'a, 'b> {
-  instruction: Box<VerifyAssetCpiBuilderInstruction<'a, 'b>>,
+pub struct TransferOwnershipCpiBuilder<'a, 'b> {
+  instruction: Box<TransferOwnershipCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
+impl<'a, 'b> TransferOwnershipCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(VerifyAssetCpiBuilderInstruction {
+    let instruction = Box::new(TransferOwnershipCpiBuilderInstruction {
       __program: program,
+              recipient: None,
               asset: None,
+              slot_hashes: None,
               instructions_sysvar: None,
                                             secp256r1_verify_args: None,
-                                message_hash: None,
-                                expected_rp_id: None,
-                                expected_origin: None,
+                                slot_number: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
   }
       #[inline(always)]
+    pub fn recipient(&mut self, recipient: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.recipient = Some(recipient);
+                    self
+    }
+      #[inline(always)]
     pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.asset = Some(asset);
+                    self
+    }
+      #[inline(always)]
+    pub fn slot_hashes(&mut self, slot_hashes: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.slot_hashes = Some(slot_hashes);
                     self
     }
       #[inline(always)]
@@ -309,20 +358,8 @@ impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
         self
       }
                 #[inline(always)]
-      pub fn message_hash(&mut self, message_hash: [u8; 32]) -> &mut Self {
-        self.instruction.message_hash = Some(message_hash);
-        self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
-        self.instruction.expected_rp_id = Some(expected_rp_id);
-        self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
-        self.instruction.expected_origin = Some(expected_origin);
+      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+        self.instruction.slot_number = Some(slot_number);
         self
       }
         /// Add an additional account to the instruction.
@@ -347,16 +384,18 @@ impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
   #[allow(clippy::clone_on_copy)]
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = VerifyAssetInstructionArgs {
+          let args = TransferOwnershipInstructionArgs {
                                                               secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
-                                                                  message_hash: self.instruction.message_hash.clone().expect("message_hash is not set"),
-                                                                  expected_rp_id: self.instruction.expected_rp_id.clone(),
-                                                                  expected_origin: self.instruction.expected_origin.clone(),
+                                                                  slot_number: self.instruction.slot_number.clone().expect("slot_number is not set"),
                                     };
-        let instruction = VerifyAssetCpi {
+        let instruction = TransferOwnershipCpi {
         __program: self.instruction.__program,
                   
+          recipient: self.instruction.recipient.expect("recipient is not set"),
+                  
           asset: self.instruction.asset.expect("asset is not set"),
+                  
+          slot_hashes: self.instruction.slot_hashes.expect("slot_hashes is not set"),
                   
           instructions_sysvar: self.instruction.instructions_sysvar.expect("instructions_sysvar is not set"),
                           __args: args,
@@ -366,14 +405,14 @@ impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct VerifyAssetCpiBuilderInstruction<'a, 'b> {
+struct TransferOwnershipCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
-            asset: Option<&'b solana_account_info::AccountInfo<'a>>,
+            recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
+                asset: Option<&'b solana_account_info::AccountInfo<'a>>,
+                slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
                 instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
-                message_hash: Option<[u8; 32]>,
-                expected_rp_id: Option<String>,
-                expected_origin: Option<String>,
+                slot_number: Option<u64>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

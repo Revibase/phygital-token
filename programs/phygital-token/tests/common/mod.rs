@@ -35,7 +35,7 @@ pub const TEST_ORIGIN: &str = "http://localhost:3000";
 //   Owner      = asset.owner (current custodian; `Pubkey::default()` when unowned)
 //
 // The token has no on-chain Token-2022 mint: ownership lives entirely in the
-// `Asset` PDA and is moved by `execute_transfer` after a secp256r1/WebAuthn proof.
+// `Asset` PDA and is moved by `transfer_ownership` after a secp256r1/WebAuthn proof.
 
 /// A freshly `initialize`d asset plus the passkey that controls its transfers.
 ///
@@ -293,9 +293,9 @@ impl TestContext {
         Self::send_instructions(&mut self.svm, &instructions, &[&payer])
     }
 
-    // --- execute_transfer ----------------------------------------------------
+    // --- transfer_ownership ----------------------------------------------------
 
-    pub fn execute_transfer_ix(
+    pub fn transfer_ownership_ix(
         &self,
         recipient: Pubkey,
         asset: Pubkey,
@@ -304,14 +304,14 @@ impl TestContext {
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
-            accounts: phygital_token::accounts::ExecuteTransfer {
+            accounts: phygital_token::accounts::TransferOwnership {
                 recipient,
                 asset,
                 slot_hashes: SLOT_HASHES_SYSVAR_ID,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
             }
             .to_account_metas(None),
-            data: phygital_token::instruction::ExecuteTransfer {
+            data: phygital_token::instruction::TransferOwnership {
                 secp256r1_verify_args,
                 slot_number,
             }
@@ -319,16 +319,16 @@ impl TestContext {
         }
     }
 
-    pub fn send_execute_transfer(
+    pub fn send_transfer_ownership(
         &mut self,
         asset: &MintedAsset,
         recipient: &Keypair,
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
-        self.send_execute_transfer_at_slot(asset, recipient, include_secp_ix, None, None, None)
+        self.send_transfer_ownership_at_slot(asset, recipient, include_secp_ix, None, None, None)
     }
 
-    pub fn send_execute_transfer_at_slot(
+    pub fn send_transfer_ownership_at_slot(
         &mut self,
         asset: &MintedAsset,
         recipient: &Keypair,
@@ -349,7 +349,7 @@ impl TestContext {
                 .secp256r1_verify_instruction(asset.asset, slot_hash, sign_count);
 
         let transfer_ix =
-            self.execute_transfer_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
+            self.transfer_ownership_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
 
         let instructions = if include_secp_ix {
             vec![secp_ix, transfer_ix]
@@ -366,7 +366,7 @@ impl TestContext {
 
     /// Submit a hand-built instruction list (for negative/edge cases). The first
     /// signer pays fees.
-    pub fn send_execute_transfer_with_instructions(
+    pub fn send_transfer_ownership_with_instructions(
         &mut self,
         instructions: Vec<Instruction>,
         signers: &[&Keypair],

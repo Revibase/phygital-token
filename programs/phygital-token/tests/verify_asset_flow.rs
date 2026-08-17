@@ -137,7 +137,7 @@ fn verify_asset_sign_count_monotonicity_survives_transfer() {
         .expect("verify before transfer");
     assert_eq!(ctx.last_sign_count(asset.asset), 1);
 
-    ctx.send_execute_transfer(&asset, &recipient, true)
+    ctx.send_transfer_ownership(&asset, &recipient, true)
         .expect("transfer after verify");
     assert_eq!(ctx.last_sign_count(asset.asset), 2);
 

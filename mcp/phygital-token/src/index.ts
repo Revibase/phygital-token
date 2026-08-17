@@ -21,7 +21,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "0.12.0";
+const VERSION = "0.13.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -149,12 +149,14 @@ function registerTools(server: McpServer) {
     "plan_transfer",
     {
       description:
-        "Plan a passkey-authorized transfer (offline): flow steps, derived accounts, and challenge formula.",
+        "Plan a passkey-authorized transfer_ownership (offline): flow steps, derived accounts, challenge formula, and required signers.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
           .describe("Base64url passkey public key used as the asset PDA seed"),
-        recipient: z.string().describe("Recipient wallet address"),
+        recipient: z
+          .string()
+          .describe("Recipient wallet address — must sign the transfer transaction on-chain"),
       },
       annotations: { title: "Plan transfer", ...READ_ONLY },
     },

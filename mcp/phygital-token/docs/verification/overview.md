@@ -8,7 +8,7 @@ Phygital authentication always requires a **live NFC tap**. There is no signed-U
 Need the holder physically present?
 └─ YES (always for auth)
     ├── Need on-chain ownership change?
-    │     YES → beginTransfer → completeTransfer (execute_transfer)
+    │     YES → beginTransfer → completeTransfer (transfer_ownership)
     │     NO  → Need on-chain possession proof for your program?
     │           YES → beginVerifyAsset composable flow (Pattern A or B)
     │           NO  → Server issues challenge
@@ -36,7 +36,7 @@ Use `beginVerifyAsset({ messageHash })` when another program needs an on-chain p
 
 ## On-chain ownership change
 
-Use `beginTransfer({ rpc, asset })` → `authenticatePasskeyForTransfer` → `completeTransfer`. The passkey comes from `response.id` at complete time. That builds `secp256r1_verify` + `execute_transfer`, which updates `asset.owner` only (no SPL token).
+Use `beginTransfer({ rpc, asset })` → `authenticatePasskeyForTransfer` → `completeTransfer`. The passkey comes from `response.id` at complete time. That builds `secp256r1_verify` + `transfer_ownership`, which updates `asset.owner` only (no SPL token).
 
 ## Message binding
 

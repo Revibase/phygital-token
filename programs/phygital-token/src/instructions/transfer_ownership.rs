@@ -18,12 +18,8 @@ pub struct TransferEvent {
 
 #[derive(Accounts)]
 #[instruction(secp256r1_verify_args: Secp256r1VerifyArgs, slot_number: u64)]
-pub struct ExecuteTransfer<'info> {
-    /// CHECK: recipient does not sign; can be any wallet address except default pubkey;
-    #[account(
-        constraint = recipient.key() != Pubkey::default() @ PhygitalError::InvalidRecipient,
-    )]
-    pub recipient: UncheckedAccount<'info>,
+pub struct TransferOwnership<'info> {
+    pub recipient: Signer<'info>,
 
     #[account(
         mut,
@@ -44,7 +40,7 @@ pub struct ExecuteTransfer<'info> {
 }
 
 pub fn handler(
-    ctx: Context<ExecuteTransfer>,
+    ctx: Context<TransferOwnership>,
     secp256r1_verify_args: Secp256r1VerifyArgs,
     slot_number: u64,
 ) -> Result<()> {

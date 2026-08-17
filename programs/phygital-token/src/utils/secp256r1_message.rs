@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 
 use crate::utils::ActionType;
 
-/// WebAuthn challenge for `execute_transfer`:
+/// WebAuthn challenge for `transfer_ownership`:
 /// `SHA256("transfer" || asset || slot_hash)`.
 pub fn build_transfer_challenge(asset: &Pubkey, slot_hash: [u8; 32]) -> [u8; 32] {
     let action = ActionType::Transfer.to_bytes();

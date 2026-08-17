@@ -33,11 +33,12 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     sdkExports: ["beginTransfer", "authenticatePasskeyForTransfer", "completeTransfer"],
     requiresTap: true,
     onChain: true,
-    rationale: "Ownership claim uses execute_transfer (updates asset.owner; no SPL token).",
+    rationale: "Ownership claim uses transfer_ownership (updates asset.owner; no SPL token).",
     docIds: ["verification:overview", "sdk:surface-area"],
     cautions: [
       "Do not use verifyResponse alone for transfers — it does not change on-chain ownership.",
       "Do not use verify_asset for transfers — it proves possession without changing owner.",
+      "Recipient must sign the transaction — pass completeTransfer a TransactionSigner, not just an address.",
     ],
   },
   native_mobile_app: {
@@ -140,7 +141,7 @@ export function listVerificationUseCases(): Array<{
 export const VERIFICATION_DECISION_TREE = `
 Authentication (live NFC tap required)
 ├── Need on-chain ownership change?
-│   YES → beginTransfer → completeTransfer (execute_transfer)
+│   YES → beginTransfer → completeTransfer (transfer_ownership)
 │   NO  → Need on-chain possession proof for your program?
 │         YES → beginVerifyAsset composable flow:
 │               Pattern A: [secp256r1_verify, verify_asset, your_ix] — program inspects sysvar

@@ -29,8 +29,8 @@ fn e2e_initialize_and_transfer() {
     );
     assert_eq!(instance.last_sign_count, 0);
 
-    ctx.send_execute_transfer(&asset, &recipient, true)
-        .expect("execute_transfer should succeed");
+    ctx.send_transfer_ownership(&asset, &recipient, true)
+        .expect("transfer_ownership should succeed");
 
     assert_eq!(
         ctx.last_sign_count(asset.asset),

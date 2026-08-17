@@ -3,6 +3,7 @@ import {
   type Instruction,
   type Rpc,
   type SolanaRpcApi,
+  type TransactionSigner,
 } from "@solana/kit";
 import {
   bufferToBase64URLString,
@@ -16,7 +17,7 @@ import {
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
-import { getExecuteTransferInstruction } from "../generated/index.js";
+import { getTransferOwnershipInstruction } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "./initialize.js";
 
 export type TransferSession = {
@@ -29,7 +30,7 @@ export type TransferSession = {
 
 /**
  * Prepares a transfer session with slot-bound challenge data.
- * Recipient is chosen later at wallet confirmation — not bound in the asset signature.
+ * Recipient is chosen at wallet confirmation and must sign the transfer transaction.
  * Must be followed promptly by {@link authenticatePasskeyForTransfer} and
  * {@link completeTransfer}.
  */
@@ -70,7 +71,7 @@ export async function authenticatePasskeyForTransfer(
 export async function completeTransfer(
   session: TransferSession,
   response: AuthenticationResponseJSON,
-  recipient: Address,
+  recipient: TransactionSigner,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
   const { secp256r1Verify, signedMessageIndex, clientDataJson } =
@@ -80,7 +81,7 @@ export async function completeTransfer(
       existingSecp256r1VerifyInputs,
     });
 
-  const executeTransfer = getExecuteTransferInstruction({
+  const transferOwnership = getTransferOwnershipInstruction({
     recipient,
     asset: session.asset,
     slotNumber: session.slotNumber,
@@ -91,5 +92,5 @@ export async function completeTransfer(
     },
   });
 
-  return [secp256r1Verify, executeTransfer];
+  return [secp256r1Verify, transferOwnership];
 }

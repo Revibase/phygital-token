@@ -18,7 +18,7 @@ fn e2e_happy_lifecycle_with_retransfer() {
     let second_recipient = Keypair::new();
 
     let (first_slot, _) = current_slot_entry(&ctx.svm);
-    ctx.send_execute_transfer(&asset, &first_recipient, true)
+    ctx.send_transfer_ownership(&asset, &first_recipient, true)
         .expect("claim");
     assert_eq!(ctx.last_sign_count(asset.asset), 1);
     assert_eq!(ctx.asset_owner(asset.asset), first_recipient.pubkey());
@@ -27,7 +27,7 @@ fn e2e_happy_lifecycle_with_retransfer() {
     ctx.set_current_slot(second_slot);
     let (second_slot, second_hash) = current_slot_entry(&ctx.svm);
 
-    ctx.send_execute_transfer_at_slot(
+    ctx.send_transfer_ownership_at_slot(
         &asset,
         &second_recipient,
         true,
@@ -50,7 +50,7 @@ fn e2e_remove_ownership_then_reclaim() {
     let second_holder = Keypair::new();
 
     let (first_slot, _) = current_slot_entry(&ctx.svm);
-    ctx.send_execute_transfer(&asset, &first_holder, true)
+    ctx.send_transfer_ownership(&asset, &first_holder, true)
         .expect("initial claim");
     assert_eq!(ctx.asset_owner(asset.asset), first_holder.pubkey());
 
@@ -61,7 +61,7 @@ fn e2e_remove_ownership_then_reclaim() {
     let second_slot = first_slot.saturating_add(1);
     ctx.set_current_slot(second_slot);
 
-    ctx.send_execute_transfer(&asset, &second_holder, true)
+    ctx.send_transfer_ownership(&asset, &second_holder, true)
         .expect("re-claim after remove ownership");
     assert_eq!(ctx.last_sign_count(asset.asset), 2);
     assert_eq!(ctx.asset_owner(asset.asset), second_holder.pubkey());
@@ -95,13 +95,13 @@ fn e2e_locked_holder_can_forfeit_via_remove_ownership() {
     let next_recipient = Keypair::new();
 
     let (first_slot, _) = current_slot_entry(&ctx.svm);
-    ctx.send_execute_transfer(&asset, &holder, true)
+    ctx.send_transfer_ownership(&asset, &holder, true)
         .expect("claim locked asset");
     assert_eq!(ctx.asset_lock_state(asset.asset), true);
 
     ctx.set_current_slot(first_slot.saturating_add(1));
 
-    let err = ctx.send_execute_transfer(&asset, &next_recipient, true);
+    let err = ctx.send_transfer_ownership(&asset, &next_recipient, true);
     assert_token_program_error(err, "AssetIsCurrentlyLocked");
 
     ctx.send_remove_ownership(&asset, &holder)
@@ -110,7 +110,7 @@ fn e2e_locked_holder_can_forfeit_via_remove_ownership() {
     assert_eq!(ctx.asset_owner(asset.asset), Pubkey::default());
 
     ctx.set_current_slot(first_slot.saturating_add(2));
-    ctx.send_execute_transfer(&asset, &next_recipient, true)
+    ctx.send_transfer_ownership(&asset, &next_recipient, true)
         .expect("new holder claims the forfeited asset");
     assert_eq!(ctx.asset_owner(asset.asset), next_recipient.pubkey());
 }

@@ -24,12 +24,12 @@ pub mod phygital_token {
         set_lock_state::handler(ctx, is_locked)
     }
 
-    pub fn execute_transfer(
-        ctx: Context<ExecuteTransfer>,
+    pub fn transfer_ownership(
+        ctx: Context<TransferOwnership>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         slot_number: u64,
     ) -> Result<()> {
-        execute_transfer::handler(ctx, secp256r1_verify_args, slot_number)
+        transfer_ownership::handler(ctx, secp256r1_verify_args, slot_number)
     }
 
     pub fn verify_asset(

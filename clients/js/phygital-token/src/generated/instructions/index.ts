@@ -6,8 +6,8 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./executeTransfer.js";
 export * from "./initialize.js";
 export * from "./removeOwnership.js";
 export * from "./setLockState.js";
+export * from "./transferOwnership.js";
 export * from "./verifyAsset.js";

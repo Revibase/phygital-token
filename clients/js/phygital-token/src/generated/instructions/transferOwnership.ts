@@ -20,6 +20,7 @@ import {
   SolanaError,
   transformEncoder,
   type AccountMeta,
+  type AccountSignerMeta,
   type Address,
   type Codec,
   type Decoder,
@@ -28,7 +29,9 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
+  type TransactionSigner,
   type WritableAccount,
 } from "@solana/kit";
 import {
@@ -43,16 +46,16 @@ import {
   type Secp256r1VerifyArgsArgs,
 } from "../types/index.js";
 
-export const EXECUTE_TRANSFER_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([233, 126, 160, 184, 235, 206, 31, 119]);
+export const TRANSFER_OWNERSHIP_DISCRIMINATOR: ReadonlyUint8Array =
+  new Uint8Array([65, 177, 215, 73, 53, 45, 99, 47]);
 
-export function getExecuteTransferDiscriminatorBytes(): ReadonlyUint8Array {
+export function getTransferOwnershipDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    EXECUTE_TRANSFER_DISCRIMINATOR,
+    TRANSFER_OWNERSHIP_DISCRIMINATOR,
   );
 }
 
-export type ExecuteTransferInstruction<
+export type TransferOwnershipInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountRecipient extends string | AccountMeta<string> = string,
   TAccountAsset extends string | AccountMeta<string> = string,
@@ -66,7 +69,8 @@ export type ExecuteTransferInstruction<
   InstructionWithAccounts<
     [
       TAccountRecipient extends string
-        ? ReadonlyAccount<TAccountRecipient>
+        ? ReadonlySignerAccount<TAccountRecipient> &
+            AccountSignerMeta<TAccountRecipient>
         : TAccountRecipient,
       TAccountAsset extends string
         ? WritableAccount<TAccountAsset>
@@ -81,29 +85,29 @@ export type ExecuteTransferInstruction<
     ]
   >;
 
-export type ExecuteTransferInstructionData = {
+export type TransferOwnershipInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
   slotNumber: bigint;
 };
 
-export type ExecuteTransferInstructionDataArgs = {
+export type TransferOwnershipInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
   slotNumber: number | bigint;
 };
 
-export function getExecuteTransferInstructionDataEncoder(): Encoder<ExecuteTransferInstructionDataArgs> {
+export function getTransferOwnershipInstructionDataEncoder(): Encoder<TransferOwnershipInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
       ["slotNumber", getU64Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: EXECUTE_TRANSFER_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: TRANSFER_OWNERSHIP_DISCRIMINATOR }),
   );
 }
 
-export function getExecuteTransferInstructionDataDecoder(): Decoder<ExecuteTransferInstructionData> {
+export function getTransferOwnershipInstructionDataDecoder(): Decoder<TransferOwnershipInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
@@ -111,45 +115,45 @@ export function getExecuteTransferInstructionDataDecoder(): Decoder<ExecuteTrans
   ]);
 }
 
-export function getExecuteTransferInstructionDataCodec(): Codec<
-  ExecuteTransferInstructionDataArgs,
-  ExecuteTransferInstructionData
+export function getTransferOwnershipInstructionDataCodec(): Codec<
+  TransferOwnershipInstructionDataArgs,
+  TransferOwnershipInstructionData
 > {
   return combineCodec(
-    getExecuteTransferInstructionDataEncoder(),
-    getExecuteTransferInstructionDataDecoder(),
+    getTransferOwnershipInstructionDataEncoder(),
+    getTransferOwnershipInstructionDataDecoder(),
   );
 }
 
-export type ExecuteTransferInput<
+export type TransferOwnershipInput<
   TAccountRecipient extends string = string,
   TAccountAsset extends string = string,
   TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
 > = {
-  recipient: Address<TAccountRecipient>;
+  recipient: TransactionSigner<TAccountRecipient>;
   asset: Address<TAccountAsset>;
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-  secp256r1VerifyArgs: ExecuteTransferInstructionDataArgs["secp256r1VerifyArgs"];
-  slotNumber: ExecuteTransferInstructionDataArgs["slotNumber"];
+  secp256r1VerifyArgs: TransferOwnershipInstructionDataArgs["secp256r1VerifyArgs"];
+  slotNumber: TransferOwnershipInstructionDataArgs["slotNumber"];
 };
 
-export function getExecuteTransferInstruction<
+export function getTransferOwnershipInstruction<
   TAccountRecipient extends string,
   TAccountAsset extends string,
   TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: ExecuteTransferInput<
+  input: TransferOwnershipInput<
     TAccountRecipient,
     TAccountAsset,
     TAccountSlotHashes,
     TAccountInstructionsSysvar
   >,
   config?: { programAddress?: TProgramAddress },
-): ExecuteTransferInstruction<
+): TransferOwnershipInstruction<
   TProgramAddress,
   TAccountRecipient,
   TAccountAsset,
@@ -196,11 +200,11 @@ export function getExecuteTransferInstruction<
       getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
     ],
-    data: getExecuteTransferInstructionDataEncoder().encode(
-      args as ExecuteTransferInstructionDataArgs,
+    data: getTransferOwnershipInstructionDataEncoder().encode(
+      args as TransferOwnershipInstructionDataArgs,
     ),
     programAddress,
-  } as ExecuteTransferInstruction<
+  } as TransferOwnershipInstruction<
     TProgramAddress,
     TAccountRecipient,
     TAccountAsset,
@@ -209,7 +213,7 @@ export function getExecuteTransferInstruction<
   >);
 }
 
-export type ParsedExecuteTransferInstruction<
+export type ParsedTransferOwnershipInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
@@ -220,17 +224,17 @@ export type ParsedExecuteTransferInstruction<
     slotHashes: TAccountMetas[2];
     instructionsSysvar: TAccountMetas[3];
   };
-  data: ExecuteTransferInstructionData;
+  data: TransferOwnershipInstructionData;
 };
 
-export function parseExecuteTransferInstruction<
+export function parseTransferOwnershipInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedExecuteTransferInstruction<TProgram, TAccountMetas> {
+): ParsedTransferOwnershipInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -254,6 +258,6 @@ export function parseExecuteTransferInstruction<
       slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
     },
-    data: getExecuteTransferInstructionDataDecoder().decode(instruction.data),
+    data: getTransferOwnershipInstructionDataDecoder().decode(instruction.data),
   };
 }

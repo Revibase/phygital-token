@@ -18,7 +18,7 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 |--------|---------|
 | `beginTransfer({ rpc, asset })` | Slot-bound transfer challenge (no passkey arg) |
 | `authenticatePasskeyForTransfer` | WebAuthn NFC tap |
-| `completeTransfer` | Uses `response.id` as passkey; builds `secp256r1_verify` + `execute_transfer` |
+| `completeTransfer` | Uses `response.id` as passkey; builds `secp256r1_verify` + `transfer_ownership` |
 
 ## Verify asset (on-chain composable)
 
@@ -62,7 +62,7 @@ The authenticator uses the secp256r1 public key as WebAuthn `credential.id`; the
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getInitializeInstruction`, `getExecuteTransferInstruction`, `getVerifyAssetInstruction`, `getRemoveOwnershipInstruction`, `getSetLockStateInstruction`, ...
+- Instructions: `getInitializeInstruction`, `getTransferOwnershipInstruction`, `getVerifyAssetInstruction`, `getRemoveOwnershipInstruction`, `getSetLockStateInstruction`, ...
 - Accounts: `fetchAsset`, `Asset`, ...
 - Types: `AssetType`, `Secp256r1Pubkey`, ...
 
@@ -70,6 +70,6 @@ Re-exported from `./generated/index.js`:
 
 Crate: `phygital-token-client` at `clients/rust/phygital-token`.
 
-On-chain: instruction builders, CPI helpers (`VerifyAssetCpiBuilder`, `ExecuteTransferCpiBuilder`, …), account layouts, errors.
+On-chain: instruction builders, CPI helpers (`VerifyAssetCpiBuilder`, `TransferOwnershipCpiBuilder`, …), account layouts, errors.
 
 Off-chain (`fetch` feature): RPC account fetching helpers.

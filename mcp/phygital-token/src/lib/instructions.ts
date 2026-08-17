@@ -57,7 +57,7 @@ export async function planTransfer(input: {
     flow: [
       "1. beginTransfer({ rpc, asset }) — fetch slot hash, build challenge",
       "2. authenticatePasskeyForTransfer(session) — NFC/WebAuthn tap on physical asset",
-      "3. completeTransfer(session, webAuthnResponse, recipient) — pubkey from response.id; build secp256r1_verify + execute_transfer",
+      "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + transfer_ownership",
     ],
     sdk: {
       begin: "beginTransfer",
@@ -74,21 +74,27 @@ export async function planTransfer(input: {
       secp256r1PublicKey: input.secp256r1PublicKey,
     },
     transferAccounts: {
-      recipient: input.recipient,
+      recipient: `${input.recipient} (signer — must co-sign the transaction)`,
       asset: assetPda,
       slotHashes: "SysvarS1otHashes111111111111111111111111111",
       instructionsSysvar: "Sysvar1nstructions1111111111111111111111111",
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
-    executeTransferArgs: {
+    requiredSigners: [
+      {
+        name: "recipient",
+        role: "Recipient wallet accepting ownership — must sign the transfer transaction",
+      },
+    ],
+    transferOwnershipArgs: {
       secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
       slotNumber: "u64 — separate instruction arg; used to fetch slot hash for transfer challenge",
     },
-    instructions: ["secp256r1_verify", "execute_transfer"],
+    instructions: ["secp256r1_verify", "transfer_ownership"],
     notes: [
-      "No SPL token transfer — execute_transfer only updates asset.owner.",
+      "No SPL token transfer — transfer_ownership only updates asset.owner.",
       "beginTransfer only needs rpc + asset PDA; passkey comes from response.id at completeTransfer.",
-      "Recipient is chosen at wallet confirmation — not bound in the passkey signature.",
+      "Recipient must sign the transfer transaction to accept ownership.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
       "PDA is derived from the passkey public key, which also authorizes the signature.",
     ],
@@ -250,7 +256,7 @@ export async function planRemoveOwnership(input: {
       "Preserves asset.last_sign_count",
     ],
     notes: [
-      "Wallet-signed forfeiture — unlike execute_transfer, no secp256r1_verify or passkey tap.",
+      "Wallet-signed forfeiture — unlike transfer_ownership, no secp256r1_verify or passkey tap.",
       "Fails if signer is not asset.owner.",
     ],
   };

@@ -213,7 +213,7 @@ impl Secp256r1VerifyArgs {
     }
 
     /// Looks up `slot_number` in the SlotHashes sysvar. Used by callers (e.g.
-    /// `execute_transfer`) that bind WebAuthn challenges to slot freshness.
+    /// `transfer_ownership`) that bind WebAuthn challenges to slot freshness.
     pub fn fetch_slot_hash(
         slot_hashes_account: &UncheckedAccount,
         slot_number: u64,

@@ -67,4 +67,4 @@ Typical flow:
 | `beginTransfer` | slot-bound challenge | Built from asset PDA + slot hash — not the same as `expectedMessage` |
 | `beginVerifyAsset` | `Uint8Array` (32-byte `messageHash`) | Used directly as the WebAuthn challenge in on-chain `verify_asset` |
 
-An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `execute_transfer`. Use `verify_asset` when another program needs an on-chain possession proof.
+An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `transfer_ownership`. Use `verify_asset` when another program needs an on-chain possession proof.

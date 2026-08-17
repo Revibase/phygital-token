@@ -2,55 +2,11 @@
   "address": "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
   "metadata": {
     "name": "phygital_token",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
   "instructions": [
-    {
-      "name": "execute_transfer",
-      "discriminator": [
-        233,
-        126,
-        160,
-        184,
-        235,
-        206,
-        31,
-        119
-      ],
-      "accounts": [
-        {
-          "name": "recipient"
-        },
-        {
-          "name": "asset",
-          "writable": true
-        },
-        {
-          "name": "slot_hashes",
-          "address": "SysvarS1otHashes111111111111111111111111111"
-        },
-        {
-          "name": "instructions_sysvar",
-          "address": "Sysvar1nstructions1111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "secp256r1_verify_args",
-          "type": {
-            "defined": {
-              "name": "Secp256r1VerifyArgs"
-            }
-          }
-        },
-        {
-          "name": "slot_number",
-          "type": "u64"
-        }
-      ]
-    },
     {
       "name": "initialize",
       "discriminator": [
@@ -140,6 +96,51 @@
         {
           "name": "is_locked",
           "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "transfer_ownership",
+      "discriminator": [
+        65,
+        177,
+        215,
+        73,
+        53,
+        45,
+        99,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "recipient",
+          "signer": true
+        },
+        {
+          "name": "asset",
+          "writable": true
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "secp256r1_verify_args",
+          "type": {
+            "defined": {
+              "name": "Secp256r1VerifyArgs"
+            }
+          }
+        },
+        {
+          "name": "slot_number",
+          "type": "u64"
         }
       ]
     },

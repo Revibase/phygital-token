@@ -13,7 +13,7 @@ fn remove_ownership_resets_owner_to_default() {
     let asset = ctx.init_asset(&passkey);
     let holder = Keypair::new();
 
-    ctx.send_execute_transfer(&asset, &holder, true)
+    ctx.send_transfer_ownership(&asset, &holder, true)
         .expect("claim asset");
     assert_eq!(ctx.asset_owner(asset.asset), holder.pubkey());
 
@@ -32,7 +32,7 @@ fn remove_ownership_rejects_non_owner() {
     let holder = Keypair::new();
     let attacker = Keypair::new();
 
-    ctx.send_execute_transfer(&asset, &holder, true)
+    ctx.send_transfer_ownership(&asset, &holder, true)
         .expect("claim asset");
     ctx.svm
         .airdrop(&attacker.pubkey(), LAMPORTS_PER_SOL)
@@ -51,7 +51,7 @@ fn remove_ownership_rejects_owner_not_matching_asset_record() {
     let holder = Keypair::new();
     let impostor = Keypair::new();
 
-    ctx.send_execute_transfer(&asset, &holder, true)
+    ctx.send_transfer_ownership(&asset, &holder, true)
         .expect("claim asset");
     ctx.svm
         .airdrop(&impostor.pubkey(), LAMPORTS_PER_SOL)
@@ -70,7 +70,7 @@ fn remove_ownership_clears_lock_on_lockable_asset() {
     let asset = ctx.init_asset_of_type(&passkey, AssetType::Lockable);
     let holder = Keypair::new();
 
-    ctx.send_execute_transfer(&asset, &holder, true)
+    ctx.send_transfer_ownership(&asset, &holder, true)
         .expect("claim locked asset");
     assert_eq!(ctx.asset_lock_state(asset.asset), true);
 
@@ -87,7 +87,7 @@ fn remove_ownership_preserves_last_sign_count() {
     let asset = ctx.init_asset(&passkey);
     let holder = Keypair::new();
 
-    ctx.send_execute_transfer(&asset, &holder, true)
+    ctx.send_transfer_ownership(&asset, &holder, true)
         .expect("claim asset");
     let count_before = ctx.last_sign_count(asset.asset);
 
@@ -104,7 +104,7 @@ fn remove_ownership_emits_expected_asset_state() {
     let asset = ctx.init_asset(&passkey);
     let holder = Keypair::new();
 
-    ctx.send_execute_transfer(&asset, &holder, true)
+    ctx.send_transfer_ownership(&asset, &holder, true)
         .expect("claim asset");
     ctx.send_remove_ownership(&asset, &holder)
         .expect("remove ownership");
