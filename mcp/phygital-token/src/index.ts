@@ -2,12 +2,12 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { findAssetPda, parseSecp256r1Pubkey } from "phygital-token-sdk";
+import { findTokenPda, parseSecp256r1Pubkey } from "phygital-token-sdk";
 import { z } from "zod";
 import { listDocs, readDocById, searchDocs } from "./lib/docs.js";
 import { jsonResult, textResult } from "./lib/format.js";
 import {
-  parseAssetType,
+  parseTokenType,
   planInitialize,
   planRemoveOwnership,
   planTransfer,
@@ -21,7 +21,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "0.13.0";
+const VERSION = "0.14.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -29,14 +29,14 @@ const SERVER_INSTRUCTIONS = [
   "",
   "Routing:",
   "- Which verification method to use → recommend_verification",
-  "- On-chain verify_asset (standalone, sysvar inspect, or CPI) → plan_verify_asset",
+  "- On-chain verify (standalone, sysvar inspect, or CPI) → plan_verify_asset",
   "- Initialize / transfer / forfeiture → plan_initialize, plan_transfer, plan_remove_ownership",
-  "- Asset PDA from passkey public key → find_asset_pda",
+  "- Token PDA from passkey public key → find_asset_pda",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
   "",
-  "Live asset fetch and auth: call phygital-token-sdk directly in your app",
-  "(verifyResponse, findAssetPda, beginVerifyAsset, etc.).",
+  "Live token fetch and auth: call phygital-token-sdk directly in your app",
+  "(verifyResponse, findTokenPda, beginVerify, etc.).",
 ].join("\n");
 
 /** Every tool here is offline and side-effect free. */
@@ -91,7 +91,7 @@ function registerTools(server: McpServer) {
     "recommend_verification",
     {
       description:
-        "Pick the right SDK auth path (off-chain tap, transfer, or on-chain verify_asset). Omit useCase to get the decision tree and all use cases.",
+        "Pick the right SDK auth path (off-chain tap, transfer, or on-chain verify). Omit useCase to get the decision tree and all use cases.",
       inputSchema: {
         useCase: z
           .enum([
@@ -131,16 +131,16 @@ function registerTools(server: McpServer) {
         secp256r1PublicKey: z
           .string()
           .describe("Base64url compressed secp256r1 passkey public key (PDA seed)"),
-        assetType: z.enum(["Lockable", "Transferable"]).describe("Asset transfer lock behavior"),
+        tokenType: z.enum(["Controlled", "Bearer"]).describe("Token transfer lock behavior"),
       },
       annotations: { title: "Plan initialize", ...READ_ONLY },
     },
-    async ({ identifier, secp256r1PublicKey, assetType }) =>
+    async ({ identifier, secp256r1PublicKey, tokenType }) =>
       jsonResult(
         await planInitialize({
           identifier,
           secp256r1PublicKey,
-          assetType: parseAssetType(assetType),
+          tokenType: parseTokenType(tokenType),
         }),
       ),
   );
@@ -153,7 +153,7 @@ function registerTools(server: McpServer) {
       inputSchema: {
         secp256r1PublicKey: z
           .string()
-          .describe("Base64url passkey public key used as the asset PDA seed"),
+          .describe("Base64url passkey public key used as the token PDA seed"),
         recipient: z
           .string()
           .describe("Recipient wallet address — must sign the transfer transaction on-chain"),
@@ -168,7 +168,7 @@ function registerTools(server: McpServer) {
     "plan_verify_asset",
     {
       description:
-        "Plan the on-chain verify_asset flow (offline): transaction layout, derived accounts, message binding. standalone = verify_asset only; inspect = Pattern A (your program reads the instructions sysvar); cpi = Pattern B (your program CPIs verify_asset).",
+        "Plan the on-chain verify flow (offline): transaction layout, derived accounts, message binding. standalone = verify only; inspect = Pattern A (your program reads the instructions sysvar); cpi = Pattern B (your program CPIs verify).",
       inputSchema: {
         message: z
           .string()
@@ -179,14 +179,14 @@ function registerTools(server: McpServer) {
           .string()
           .optional()
           .describe(
-            "Optional base64url passkey public key — when set, derives asset PDA offline",
+            "Optional base64url passkey public key — when set, derives token PDA offline",
           ),
         onChainPattern: z
           .enum(["inspect", "cpi", "standalone"])
           .optional()
           .describe("Composition pattern (default: inspect)"),
       },
-      annotations: { title: "Plan verify_asset", ...READ_ONLY },
+      annotations: { title: "Plan verify", ...READ_ONLY },
     },
     async ({ message, secp256r1PublicKey, onChainPattern }) =>
       jsonResult(
@@ -202,12 +202,12 @@ function registerTools(server: McpServer) {
     "plan_remove_ownership",
     {
       description:
-        "Plan a wallet-signed forfeiture (offline): reset asset.owner to the default pubkey.",
+        "Plan a wallet-signed forfeiture (offline): reset token.owner to the default pubkey.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
-          .describe("Base64url passkey public key used as the asset PDA seed"),
-        owner: z.string().describe("Current asset owner wallet — must match asset.owner on-chain"),
+          .describe("Base64url passkey public key used as the token PDA seed"),
+        owner: z.string().describe("Current token owner wallet — must match token.owner on-chain"),
       },
       annotations: { title: "Plan remove_ownership", ...READ_ONLY },
     },
@@ -219,17 +219,17 @@ function registerTools(server: McpServer) {
     "find_asset_pda",
     {
       description:
-        "Derive the on-chain asset PDA address from a secp256r1 passkey public key (offline).",
+        "Derive the on-chain token PDA address from a secp256r1 passkey public key (offline).",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
           .describe("Base64url-encoded secp256r1 passkey public key (PDA seed)"),
       },
-      annotations: { title: "Find asset PDA", ...READ_ONLY },
+      annotations: { title: "Find token PDA", ...READ_ONLY },
     },
     async ({ secp256r1PublicKey }) => {
-      const assetPda = await findAssetPda(parseSecp256r1Pubkey(secp256r1PublicKey));
-      return jsonResult({ secp256r1PublicKey, assetPda });
+      const tokenPda = await findTokenPda(parseSecp256r1Pubkey(secp256r1PublicKey));
+      return jsonResult({ secp256r1PublicKey, tokenPda });
     },
   );
 

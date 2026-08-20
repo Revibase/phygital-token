@@ -1,45 +1,48 @@
-import { address, type Address } from "@solana/kit";
+import { type Address } from "@solana/kit";
 import {
-  AssetType,
+  PhygitalTokenType,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   parseSecp256r1Pubkey,
-  findAssetPda,
+  findTokenPda,
 } from "phygital-token-sdk";
 
 export async function planInitialize(input: {
   identifier: string;
   secp256r1PublicKey: string;
-  assetType: "Lockable" | "Transferable";
+  tokenType: "Controlled" | "Bearer";
 }) {
   const secp256r1Pubkey = parseSecp256r1Pubkey(input.secp256r1PublicKey);
-  const assetPda = await findAssetPda(secp256r1Pubkey);
-  const assetType =
-    input.assetType === "Lockable" ? AssetType.Lockable : AssetType.Transferable;
+  const tokenPda = await findTokenPda(secp256r1Pubkey);
+  const tokenType =
+    input.tokenType === "Controlled"
+      ? PhygitalTokenType.Controlled
+      : PhygitalTokenType.Bearer;
 
   return {
     instruction: "initialize",
     sdk: "buildInitializeInstruction",
-    assetType: input.assetType,
+    tokenType: input.tokenType,
     derivedAccounts: {
-      assetPda,
+      tokenPda,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
     requiredSigners: [
       {
         name: "authority",
-        role: "Must be INITIALIZE_AUTHORITY (G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF); pays rent and creates the asset PDA",
+        role: "Must be ADMIN (G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF); pays rent and creates the token PDA",
       },
     ],
     requiredInputs: {
       identifier: input.identifier,
       secp256r1Pubkey: input.secp256r1PublicKey,
-      assetType,
+      tokenType,
     },
     notes: [
-      "Creates an asset PDA seeded by the passkey public key.",
-      "identifier is stored on the asset for binding and is distinct from the passkey.",
+      "Creates a token PDA seeded by the passkey public key.",
+      "identifier is stored on the token for binding and is distinct from the passkey.",
       "Ownership starts as the default (zero) pubkey until the first transfer.",
-      "Only the designated initialize authority may call this instruction.",
+      "mint starts as the default pubkey until set_mint.",
+      "Only the designated admin may call initialize and set_mint.",
       "On mainnet the authority is a Squads vault — use buildSquadsInitializeInstructions so a 1/1 member can create/propose/approve/execute/close in one transaction.",
     ],
   };
@@ -49,14 +52,14 @@ export async function planTransfer(input: {
   secp256r1PublicKey: string;
   recipient: string;
 }) {
-  const assetPda = await findAssetPda(
+  const tokenPda = await findTokenPda(
     parseSecp256r1Pubkey(input.secp256r1PublicKey),
   );
 
   return {
     flow: [
-      "1. beginTransfer({ rpc, asset }) — fetch slot hash, build challenge",
-      "2. authenticatePasskeyForTransfer(session) — NFC/WebAuthn tap on physical asset",
+      "1. beginTransfer({ rpc, token }) — fetch slot hash, build challenge",
+      "2. authenticatePasskeyForTransfer(session) — NFC/WebAuthn tap on physical token",
       "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + transfer_ownership",
     ],
     sdk: {
@@ -65,17 +68,17 @@ export async function planTransfer(input: {
       complete: "completeTransfer",
     },
     challenge: {
-      formula: "SHA256('transfer' || assetPda || slotHash)",
+      formula: "SHA256('transfer' || tokenPda || slotHash)",
       fetchedAt: "beginTransfer reads slot_hashes sysvar (~512 slot window)",
       note: "Run beginTransfer with a live rpc to get challengeBase64 and slotNumber.",
     },
     derived: {
-      assetPda,
+      tokenPda,
       secp256r1PublicKey: input.secp256r1PublicKey,
     },
     transferAccounts: {
       recipient: `${input.recipient} (signer — must co-sign the transaction)`,
-      asset: assetPda,
+      token: tokenPda,
       slotHashes: "SysvarS1otHashes111111111111111111111111111",
       instructionsSysvar: "Sysvar1nstructions1111111111111111111111111",
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
@@ -92,8 +95,8 @@ export async function planTransfer(input: {
     },
     instructions: ["secp256r1_verify", "transfer_ownership"],
     notes: [
-      "No SPL token transfer — transfer_ownership only updates asset.owner.",
-      "beginTransfer only needs rpc + asset PDA; passkey comes from response.id at completeTransfer.",
+      "No SPL token transfer — transfer_ownership only updates token.owner.",
+      "beginTransfer only needs rpc + token PDA; passkey comes from response.id at completeTransfer.",
       "Recipient must sign the transfer transaction to accept ownership.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
       "PDA is derived from the passkey public key, which also authorizes the signature.",
@@ -103,7 +106,7 @@ export async function planTransfer(input: {
 
 export type OnChainCompositionPattern = "inspect" | "cpi" | "standalone";
 
-function buildVerifyAssetChallengeDescription(): string {
+function buildVerifyChallengeDescription(): string {
   return "messageHash (32 bytes) used directly as the WebAuthn challenge";
 }
 
@@ -113,51 +116,52 @@ export async function planVerifyAsset(input: {
   onChainPattern?: OnChainCompositionPattern;
 }) {
   const messageBytes = new TextEncoder().encode(input.message);
-  const messageHash = "SHA256(message) — 32-byte hash passed to verify_asset and used as WebAuthn challenge";
+  const messageHash =
+    "SHA256(message) — 32-byte hash passed to verify and used as WebAuthn challenge";
 
-  let assetPda: string | undefined;
+  let tokenPda: string | undefined;
   if (input.secp256r1PublicKey) {
-    assetPda = await findAssetPda(parseSecp256r1Pubkey(input.secp256r1PublicKey));
+    tokenPda = await findTokenPda(parseSecp256r1Pubkey(input.secp256r1PublicKey));
   }
 
   const pattern = input.onChainPattern ?? "inspect";
   const patternMeta = {
     inspect: {
-      transactionOrder: ["secp256r1_verify", "verify_asset", "your_program_ix"],
+      transactionOrder: ["secp256r1_verify", "verify", "your_program_ix"],
       clientSteps: [
-        "beginVerifyAsset({ messageHash })",
-        "authenticatePasskeyForVerifyAsset(session)",
-        "completeVerifyAsset(session, response) — or buildVerifyAssetArgs + getVerifyAssetInstruction",
+        "beginVerify({ messageHash })",
+        "authenticatePasskeyForVerify(session)",
+        "completeVerify(session, response) — or buildVerifyArgs + getVerifyInstruction",
         "buildYourProgramInstruction(/* same messageHash */)",
-        "sendTransaction([secp256r1Verify, verifyAssetIx, yourIx])",
+        "sendTransaction([secp256r1Verify, verifyIx, yourIx])",
       ],
       programSide:
-        "Your Rust program scans instructions_sysvar for preceding verify_asset; validates message_hash",
-      clientSdk: ["completeVerifyAsset", "getVerifyAssetInstruction"],
+        "Your Rust program scans instructions_sysvar for preceding verify; validates message_hash",
+      clientSdk: ["completeVerify", "getVerifyInstruction"],
     },
     cpi: {
       transactionOrder: ["secp256r1_verify", "your_program_ix"],
       clientSteps: [
-        "beginVerifyAsset({ messageHash })",
-        "authenticatePasskeyForVerifyAsset(session)",
-        "buildVerifyAssetArgs(response) — assetPda from tap + secp256r1Verify + verify args",
-        "buildYourProgramInstruction({ secp256r1VerifyArgs, messageHash, assetPda })",
-        "sendTransaction([secp256r1Verify, yourIx]) — your program CPIs verify_asset",
+        "beginVerify({ messageHash })",
+        "authenticatePasskeyForVerify(session)",
+        "buildVerifyArgs(response) — tokenPda from tap + secp256r1Verify + verify args",
+        "buildYourProgramInstruction({ secp256r1VerifyArgs, messageHash, tokenPda })",
+        "sendTransaction([secp256r1Verify, yourIx]) — your program CPIs verify",
       ],
       programSide:
-        "Your Rust program CPIs verify_asset via VerifyAssetCpiBuilder (phygital-token-client)",
-      clientSdk: ["buildVerifyAssetArgs"],
+        "Your Rust program CPIs verify via VerifyCpiBuilder (phygital-token-client)",
+      clientSdk: ["buildVerifyArgs"],
     },
     standalone: {
-      transactionOrder: ["secp256r1_verify", "verify_asset"],
+      transactionOrder: ["secp256r1_verify", "verify"],
       clientSteps: [
-        "beginVerifyAsset({ messageHash })",
-        "authenticatePasskeyForVerifyAsset(session)",
-        "completeVerifyAsset(session, response)",
-        "sendTransaction([secp256r1Verify, verifyAssetIx])",
+        "beginVerify({ messageHash })",
+        "authenticatePasskeyForVerify(session)",
+        "completeVerify(session, response)",
+        "sendTransaction([secp256r1Verify, verifyIx])",
       ],
       programSide: "None — no custom program",
-      clientSdk: ["completeVerifyAsset"],
+      clientSdk: ["completeVerify"],
     },
   }[pattern];
 
@@ -165,19 +169,19 @@ export async function planVerifyAsset(input: {
     onChainPattern: pattern,
     patternName:
       pattern === "inspect"
-        ? "A — client posts verify_asset, program inspects"
+        ? "A — client posts verify, program inspects"
         : pattern === "cpi"
-          ? "B — client posts secp256r1_verify, program CPIs verify_asset"
-          : "Standalone verify_asset",
+          ? "B — client posts secp256r1_verify, program CPIs verify"
+          : "Standalone verify",
     flow: patternMeta.clientSteps,
     sdk: {
-      begin: "beginVerifyAsset",
-      authenticate: "authenticatePasskeyForVerifyAsset",
-      buildArgs: "buildVerifyAssetArgs",
-      complete: "completeVerifyAsset",
-      instruction: "getVerifyAssetInstruction",
+      begin: "beginVerify",
+      authenticate: "authenticatePasskeyForVerify",
+      buildArgs: "buildVerifyArgs",
+      complete: "completeVerify",
+      instruction: "getVerifyInstruction",
       offChainAuthOnly:
-        "startAuthentication (client) + verifyResponse (server); does NOT submit verify_asset",
+        "startAuthentication (client) + verifyResponse (server); does NOT submit verify",
     },
     message: {
       utf8: input.message,
@@ -185,19 +189,19 @@ export async function planVerifyAsset(input: {
       onChainHash: messageHash,
     },
     challenge: {
-      formula: buildVerifyAssetChallengeDescription(),
-      note: "Hash your canonical payload to 32 bytes, then pass as messageHash to beginVerifyAsset.",
+      formula: buildVerifyChallengeDescription(),
+      note: "Hash your canonical payload to 32 bytes, then pass as messageHash to beginVerify.",
     },
-    derived: assetPda
-      ? { assetPda, secp256r1PublicKey: input.secp256r1PublicKey }
+    derived: tokenPda
+      ? { tokenPda, secp256r1PublicKey: input.secp256r1PublicKey }
       : undefined,
     transactionLayout: {
       order: patternMeta.transactionOrder,
-      verifyAssetAccounts: {
-        asset: "writable PDA seeded by passkey public key",
+      verifyAccounts: {
+        token: "writable PDA seeded by passkey public key",
         instructions_sysvar: "Sysvar1nstructions1111111111111111111111111",
       },
-      verifyAssetArgs: {
+      verifyArgs: {
         secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
         messageHash: "32-byte WebAuthn challenge",
         expectedRpId: "optional string — SHA256(rpId) must match authenticatorData[0..32]",
@@ -205,19 +209,19 @@ export async function planVerifyAsset(input: {
       },
     },
     programSide: patternMeta.programSide,
-    buildVerifyAssetArgsReturns: {
-      assetPda: "Address derived from response.id via findAssetPda",
+    buildVerifyArgsReturns: {
+      tokenPda: "Address derived from response.id via findTokenPda",
       secp256r1Verify: "Instruction for Secp256r1SigVerify program",
       signedMessageIndex: "number",
       clientDataJson: "Uint8Array",
     },
     notes: [
-      "startAuthentication + verifyResponse is off-chain only — it does not submit verify_asset. Verify on your server.",
-      "beginVerifyAsset does not take an asset — PDA is derived after the NFC tap from response.id.",
-      "Pattern A: client includes verify_asset; your program inspects instructions sysvar.",
-      "Pattern B: client uses buildVerifyAssetArgs; your program CPIs verify_asset.",
-      "verify_asset updates asset.last_sign_count; WebAuthn signCount must be strictly increasing.",
-      "verify_asset does not change asset.owner.",
+      "startAuthentication + verifyResponse is off-chain only — it does not submit verify. Verify on your server.",
+      "beginVerify does not take a token — PDA is derived after the NFC tap from response.id.",
+      "Pattern A: client includes verify; your program inspects instructions sysvar.",
+      "Pattern B: client uses buildVerifyArgs; your program CPIs verify.",
+      "verify updates token.last_sign_count; WebAuthn signCount must be strictly increasing.",
+      "verify does not change token.owner.",
     ],
   };
 }
@@ -226,7 +230,7 @@ export async function planRemoveOwnership(input: {
   secp256r1PublicKey: string;
   owner: string;
 }) {
-  const assetPda = await findAssetPda(
+  const tokenPda = await findTokenPda(
     parseSecp256r1Pubkey(input.secp256r1PublicKey),
   );
 
@@ -234,12 +238,12 @@ export async function planRemoveOwnership(input: {
     instruction: "remove_ownership",
     sdk: "getRemoveOwnershipInstruction",
     flow: [
-      "1. Confirm the connected wallet is asset.owner on-chain",
+      "1. Confirm the connected wallet is token.owner on-chain",
       "2. Build remove_ownership with getRemoveOwnershipInstruction",
       "3. Owner signs and submits the transaction (no passkey tap required)",
     ],
     derivedAccounts: {
-      assetPda,
+      tokenPda,
       secp256r1PublicKey: input.secp256r1PublicKey,
       owner: input.owner,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
@@ -247,27 +251,27 @@ export async function planRemoveOwnership(input: {
     requiredSigners: [
       {
         name: "owner",
-        role: "Current asset owner wallet — must match asset.owner on-chain",
+        role: "Current token owner wallet — must match token.owner on-chain",
       },
     ],
     onChainEffects: [
-      "Sets asset.owner to the default (zero) pubkey",
-      "Clears asset.is_locked (forfeiture unlocks lockable assets)",
-      "Preserves asset.last_sign_count",
+      "Sets token.owner to the default (zero) pubkey",
+      "Clears token.is_locked (forfeiture unlocks Controlled tokens)",
+      "Preserves token.last_sign_count",
     ],
     notes: [
       "Wallet-signed forfeiture — unlike transfer_ownership, no secp256r1_verify or passkey tap.",
-      "Fails if signer is not asset.owner.",
+      "Fails if signer is not token.owner.",
     ],
   };
 }
 
-export function parseAssetType(value: string): "Lockable" | "Transferable" {
+export function parseTokenType(value: string): "Controlled" | "Bearer" {
   const normalized = value.trim();
-  if (normalized === "Lockable" || normalized === "Transferable") {
+  if (normalized === "Controlled" || normalized === "Bearer") {
     return normalized;
   }
-  throw new Error('assetType must be "Lockable" or "Transferable".');
+  throw new Error('tokenType must be "Controlled" or "Bearer".');
 }
 
 export type { Address };
