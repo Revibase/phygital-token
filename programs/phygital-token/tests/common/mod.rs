@@ -38,18 +38,18 @@ pub const TEST_ORIGIN: &str = "http://localhost:3000";
 // Ownership lives in the PhygitalToken PDA and is moved by `transfer_ownership`
 // after a secp256r1/WebAuthn proof. `set_mint` binds an SPL mint after init.
 
-/// A freshly `initialize`d asset plus the passkey that controls its transfers.
+/// A freshly `initialize`d token plus the passkey that controls its transfers.
 ///
-/// `identifier` is a chip binding field stored on the asset. The PDA is seeded
+/// `identifier` is a chip binding field stored on the token. The PDA is seeded
 /// by `passkey`'s public key (which also authorizes transfers).
-pub struct MintedAsset {
-    pub asset: Pubkey,
+pub struct MintedToken {
+    pub token: Pubkey,
     pub identifier: Secp256r1Pubkey,
     pub passkey: TestPasskey,
 }
 
 /// Generate a unique chip identifier, distinct from any passkey public key.
-/// Stored on the asset for binding; not used as the PDA seed.
+/// Stored on the token for binding; not used as the PDA seed.
 pub fn unique_identifier() -> Secp256r1Pubkey {
     use rand::RngCore;
     let mut bytes = [0u8; 33];
@@ -130,7 +130,7 @@ impl TestContext {
             .unwrap_or_else(|err| panic!("deploy {name}: {err:?}"));
     }
 
-    pub fn asset_pda(&self, secp256r1_pubkey: &Secp256r1Pubkey) -> Pubkey {
+    pub fn token_pda(&self, secp256r1_pubkey: &Secp256r1Pubkey) -> Pubkey {
         Pubkey::find_program_address(
             &[PHYGITAL_TOKEN_SEED, secp256r1_pda_seed(secp256r1_pubkey)],
             &self.program_id,
@@ -138,36 +138,36 @@ impl TestContext {
         .0
     }
 
-    // --- asset state readers -------------------------------------------------
+    // --- token state readers -------------------------------------------------
 
-    fn load_asset(&self, asset: Pubkey) -> PhygitalToken {
-        let account = self.svm.get_account(&asset).expect("asset account");
-        PhygitalToken::try_deserialize(&mut account.data.as_ref()).expect("deserialize asset")
+    fn load_token(&self, token: Pubkey) -> PhygitalToken {
+        let account = self.svm.get_account(&token).expect("token account");
+        PhygitalToken::try_deserialize(&mut account.data.as_ref()).expect("deserialize token")
     }
 
-    pub fn asset_owner(&self, asset: Pubkey) -> Pubkey {
-        self.load_asset(asset).owner
+    pub fn token_owner(&self, token: Pubkey) -> Pubkey {
+        self.load_token(token).owner
     }
 
-    pub fn asset_lock_state(&self, asset: Pubkey) -> bool {
-        self.load_asset(asset).is_locked
+    pub fn token_lock_state(&self, token: Pubkey) -> bool {
+        self.load_token(token).is_locked
     }
 
-    pub fn last_sign_count(&self, asset: Pubkey) -> u32 {
-        self.load_asset(asset).last_sign_count
+    pub fn last_sign_count(&self, token: Pubkey) -> u32 {
+        self.load_token(token).last_sign_count
     }
 
-    pub fn asset_mint(&self, asset: Pubkey) -> Pubkey {
-        self.load_asset(asset).mint
+    pub fn token_mint(&self, token: Pubkey) -> Pubkey {
+        self.load_token(token).mint
     }
 
-    /// Next WebAuthn signCount to use for a successful assertion against `asset`.
-    pub fn next_sign_count(&self, asset: Pubkey) -> u32 {
-        self.load_asset(asset).last_sign_count.saturating_add(1)
+    /// Next WebAuthn signCount to use for a successful assertion against `token`.
+    pub fn next_sign_count(&self, token: Pubkey) -> u32 {
+        self.load_token(token).last_sign_count.saturating_add(1)
     }
 
-    pub fn asset_account(&self, asset: Pubkey) -> PhygitalToken {
-        self.load_asset(asset)
+    pub fn token_account(&self, token: Pubkey) -> PhygitalToken {
+        self.load_token(token)
     }
 
     // --- initialize ----------------------------------------------------------
@@ -175,14 +175,14 @@ impl TestContext {
     pub fn initialize_ix(
         &self,
         authority: Pubkey,
-        asset: Pubkey,
+        token: Pubkey,
         args: InitializeArgs,
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
             accounts: phygital_token::accounts::Initialize {
                 authority,
-                token: asset,
+                token,
                 system_program: anchor_lang::solana_program::system_program::ID,
             }
             .to_account_metas(None),
@@ -190,41 +190,41 @@ impl TestContext {
         }
     }
 
-    /// Create a transferable asset controlled by `passkey`.
-    pub fn init_asset(&mut self, passkey: &TestPasskey) -> MintedAsset {
-        self.init_asset_of_type(passkey, PhygitalTokenType::Bearer)
+    /// Create a transferable token controlled by `passkey`.
+    pub fn init_token(&mut self, passkey: &TestPasskey) -> MintedToken {
+        self.init_token_of_type(passkey, PhygitalTokenType::Bearer)
     }
 
     /// Create a token of the given type (`Controlled` or `Bearer`).
-    pub fn init_asset_of_type(
+    pub fn init_token_of_type(
         &mut self,
         passkey: &TestPasskey,
-        asset_type: PhygitalTokenType,
-    ) -> MintedAsset {
-        self.init_asset_with_identifier(unique_identifier(), passkey, asset_type)
+        token_type: PhygitalTokenType,
+    ) -> MintedToken {
+        self.init_token_with_identifier(unique_identifier(), passkey, token_type)
     }
 
-    /// Create an asset with an explicit chip `identifier` (binding field) and a
+    /// Create a token with an explicit chip `identifier` (binding field) and a
     /// `passkey` whose public key seeds the PDA and authorizes transfers.
-    pub fn init_asset_with_identifier(
+    pub fn init_token_with_identifier(
         &mut self,
         identifier: Secp256r1Pubkey,
         passkey: &TestPasskey,
-        asset_type: PhygitalTokenType,
-    ) -> MintedAsset {
+        token_type: PhygitalTokenType,
+    ) -> MintedToken {
         let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
-        let asset = self.asset_pda(&secp256r1_pubkey);
+        let token = self.token_pda(&secp256r1_pubkey);
         let args = InitializeArgs {
             identifier,
             secp256r1_pubkey,
-            token_type: asset_type,
+            token_type,
         };
-        let ix = self.initialize_ix(ADMIN, asset, args);
+        let ix = self.initialize_ix(ADMIN, token, args);
         Self::send_instruction_as(&mut self.svm, ix, ADMIN)
-            .expect("initialize asset");
+            .expect("initialize token");
 
-        MintedAsset {
-            asset,
+        MintedToken {
+            token,
             identifier,
             passkey: passkey.clone(),
         }
@@ -234,7 +234,7 @@ impl TestContext {
 
     pub fn verify_ix(
         &self,
-        asset: Pubkey,
+        token: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         message_hash: [u8; 32],
         expected_rp_id: Option<String>,
@@ -243,7 +243,7 @@ impl TestContext {
         Instruction {
             program_id: self.program_id,
             accounts: phygital_token::accounts::Verify {
-                token: asset,
+                token,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
             }
             .to_account_metas(None),
@@ -257,48 +257,31 @@ impl TestContext {
         }
     }
 
-    pub fn verify_asset_ix(
-        &self,
-        asset: Pubkey,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-        message_hash: [u8; 32],
-        expected_rp_id: Option<String>,
-        expected_origin: Option<String>,
-    ) -> Instruction {
-        self.verify_ix(
-            asset,
-            secp256r1_verify_args,
-            message_hash,
-            expected_rp_id,
-            expected_origin,
-        )
-    }
-
-    pub fn send_verify_asset(
+    pub fn send_verify(
         &mut self,
-        asset: &MintedAsset,
+        token: &MintedToken,
         message_hash: [u8; 32],
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
-        self.send_verify_asset_with_bindings(asset, message_hash, include_secp_ix, None, None, None)
+        self.send_verify_with_bindings(token, message_hash, include_secp_ix, None, None, None)
     }
 
-    pub fn send_verify_asset_with_bindings(
+    pub fn send_verify_with_bindings(
         &mut self,
-        asset: &MintedAsset,
+        token: &MintedToken,
         message_hash: [u8; 32],
         include_secp_ix: bool,
         sign_count: Option<u32>,
         expected_rp_id: Option<String>,
         expected_origin: Option<String>,
     ) -> litesvm::types::TransactionResult {
-        let sign_count = sign_count.unwrap_or_else(|| self.next_sign_count(asset.asset));
+        let sign_count = sign_count.unwrap_or_else(|| self.next_sign_count(token.token));
 
-        let (secp_ix, verify_args) = asset
+        let (secp_ix, verify_args) = token
             .passkey
-            .verify_asset_secp256r1_instruction(message_hash, sign_count);
+            .verify_secp256r1_instruction(message_hash, sign_count);
         let verify_ix = self.verify_ix(
-            asset.asset,
+            token.token,
             verify_args,
             message_hash,
             expected_rp_id,
@@ -320,7 +303,7 @@ impl TestContext {
     pub fn transfer_ownership_ix(
         &self,
         recipient: Pubkey,
-        asset: Pubkey,
+        token: Pubkey,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         slot_number: u64,
     ) -> Instruction {
@@ -328,7 +311,7 @@ impl TestContext {
             program_id: self.program_id,
             accounts: phygital_token::accounts::TransferOwnership {
                 recipient,
-                token: asset,
+                token,
                 slot_hashes: SLOT_HASHES_SYSVAR_ID,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
             }
@@ -343,16 +326,16 @@ impl TestContext {
 
     pub fn send_transfer_ownership(
         &mut self,
-        asset: &MintedAsset,
+        token: &MintedToken,
         recipient: &Keypair,
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
-        self.send_transfer_ownership_at_slot(asset, recipient, include_secp_ix, None, None, None)
+        self.send_transfer_ownership_at_slot(token, recipient, include_secp_ix, None, None, None)
     }
 
     pub fn send_transfer_ownership_at_slot(
         &mut self,
-        asset: &MintedAsset,
+        token: &MintedToken,
         recipient: &Keypair,
         include_secp_ix: bool,
         slot_number: Option<u64>,
@@ -363,15 +346,15 @@ impl TestContext {
             (Some(slot), Some(hash)) => (slot, hash),
             _ => current_slot_entry(&self.svm),
         };
-        let sign_count = sign_count.unwrap_or_else(|| self.next_sign_count(asset.asset));
+        let sign_count = sign_count.unwrap_or_else(|| self.next_sign_count(token.token));
 
         let (secp_ix, verify_args) =
-            asset
+            token
                 .passkey
-                .secp256r1_verify_instruction(asset.asset, slot_hash, sign_count);
+                .secp256r1_verify_instruction(token.token, slot_hash, sign_count);
 
         let transfer_ix =
-            self.transfer_ownership_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
+            self.transfer_ownership_ix(recipient.pubkey(), token.token, verify_args, slot_number);
 
         let instructions = if include_secp_ix {
             vec![secp_ix, transfer_ix]
@@ -398,10 +381,10 @@ impl TestContext {
 
     // --- set_mint ------------------------------------------------------------
 
-    pub fn set_mint_ix(&self, authority: Pubkey, asset: Pubkey, mint: Pubkey) -> Instruction {
+    pub fn set_mint_ix(&self, authority: Pubkey, token: Pubkey, mint: Pubkey) -> Instruction {
         Instruction {
             program_id: self.program_id,
-            accounts: phygital_token::accounts::SetMint { authority, token: asset }
+            accounts: phygital_token::accounts::SetMint { authority, token }
                 .to_account_metas(None),
             data: phygital_token::instruction::SetMint { mint }.data(),
         }
@@ -409,19 +392,19 @@ impl TestContext {
 
     pub fn send_set_mint(
         &mut self,
-        asset: Pubkey,
+        token: Pubkey,
         mint: Pubkey,
     ) -> litesvm::types::TransactionResult {
-        let ix = self.set_mint_ix(ADMIN, asset, mint);
+        let ix = self.set_mint_ix(ADMIN, token, mint);
         Self::send_instruction_as(&mut self.svm, ix, ADMIN)
     }
 
     // --- set_lock_state ------------------------------------------------------
 
-    pub fn set_lock_state_ix(&self, owner: Pubkey, asset: Pubkey, is_locked: bool) -> Instruction {
+    pub fn set_lock_state_ix(&self, owner: Pubkey, token: Pubkey, is_locked: bool) -> Instruction {
         Instruction {
             program_id: self.program_id,
-            accounts: phygital_token::accounts::SetLockState { owner, token: asset }
+            accounts: phygital_token::accounts::SetLockState { owner, token }
                 .to_account_metas(None),
             data: phygital_token::instruction::SetLockState { is_locked }.data(),
         }
@@ -429,10 +412,10 @@ impl TestContext {
 
     // --- remove_ownership ----------------------------------------------------
 
-    pub fn remove_ownership_ix(&self, owner: Pubkey, asset: Pubkey) -> Instruction {
+    pub fn remove_ownership_ix(&self, owner: Pubkey, token: Pubkey) -> Instruction {
         Instruction {
             program_id: self.program_id,
-            accounts: phygital_token::accounts::RemoveOwnership { owner, token: asset }
+            accounts: phygital_token::accounts::RemoveOwnership { owner, token }
                 .to_account_metas(None),
             data: phygital_token::instruction::RemoveOwnership {}.data(),
         }
@@ -440,10 +423,10 @@ impl TestContext {
 
     pub fn send_remove_ownership(
         &mut self,
-        asset: &MintedAsset,
+        token: &MintedToken,
         owner: &Keypair,
     ) -> litesvm::types::TransactionResult {
-        let ix = self.remove_ownership_ix(owner.pubkey(), asset.asset);
+        let ix = self.remove_ownership_ix(owner.pubkey(), token.token);
         Self::send_instruction(&mut self.svm, ix, &[owner])
     }
 

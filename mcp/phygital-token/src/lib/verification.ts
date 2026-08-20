@@ -4,8 +4,8 @@ export type VerificationUseCase =
   | "native_mobile_app"
   | "lookup_after_tap"
   | "onchain_standalone_verify"
-  | "onchain_inspect_verify_asset"
-  | "onchain_cpi_verify_asset";
+  | "onchain_inspect_verify"
+  | "onchain_cpi_verify";
 
 export type VerificationRecommendation = {
   method: string;
@@ -76,7 +76,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
       "building-on-phygital:rust-cpi",
     ],
   },
-  onchain_inspect_verify_asset: {
+  onchain_inspect_verify: {
     method: "Pattern A — client posts verify, your program inspects message",
     sdkExports: [
       "beginVerify",
@@ -93,7 +93,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
       "building-on-phygital:rust-cpi",
     ],
   },
-  onchain_cpi_verify_asset: {
+  onchain_cpi_verify: {
     method: "Pattern B — buildVerifyArgs, your program CPIs verify",
     sdkExports: [
       "beginVerify",
@@ -128,11 +128,11 @@ export function listVerificationUseCases(): Array<{
     { id: "lookup_after_tap", summary: "Verify tap then load on-chain token state" },
     { id: "onchain_standalone_verify", summary: "On-chain verify only" },
     {
-      id: "onchain_inspect_verify_asset",
+      id: "onchain_inspect_verify",
       summary: "Pattern A: client posts verify, your program inspects message",
     },
     {
-      id: "onchain_cpi_verify_asset",
+      id: "onchain_cpi_verify",
       summary: "Pattern B: buildVerifyArgs, your program CPIs verify",
     },
   ];

@@ -384,7 +384,7 @@ impl Secp256r1VerifyArgs {
             .map_err(|_| PhygitalError::InvalidAuthenticatorData)?)
     }
 
-    /// Optional WebAuthn binding checks for `verify_asset`.
+    /// Optional WebAuthn binding checks for `verify`.
     ///
     /// - `expected_rp_id`: when set, `SHA256(rp_id)` must equal authenticatorData[0..32]
     /// - `expected_origin`: when set, clientDataJSON `origin` must equal this value

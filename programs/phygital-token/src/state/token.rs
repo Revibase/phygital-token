@@ -29,11 +29,11 @@ impl PhygitalToken {
     pub fn init(
         &mut self,
         identifier: Secp256r1Pubkey,
-        asset_type: PhygitalTokenType,
+        token_type: PhygitalTokenType,
         public_key: Secp256r1Pubkey,
     ) {
         self.identifier = identifier;
-        self.token_type = asset_type;
+        self.token_type = token_type;
         self.owner = Pubkey::default();
         self.last_sign_count = 0;
         self.is_locked = false;

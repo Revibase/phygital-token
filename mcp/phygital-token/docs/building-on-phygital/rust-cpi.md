@@ -57,4 +57,4 @@ pub struct Secp256r1VerifyArgs {
 
 ## Testing
 
-`programs/phygital-token/tests/verify_asset_flow.rs`
+`programs/phygital-token/tests/verify_flow.rs`

@@ -11,44 +11,44 @@ const ORIGIN_ONLY_MESSAGE_HASH: [u8; 32] = [4u8; 32];
 const STALE_MESSAGE_HASH: [u8; 32] = [5u8; 32];
 
 #[test]
-fn verify_asset_succeeds_and_records_sign_count() {
+fn verify_succeeds_and_records_sign_count() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
 
-    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
+    ctx.send_verify(&token, TEST_MESSAGE_HASH, true)
         .expect("verify should succeed with valid passkey signature");
 
     assert_eq!(
-        ctx.last_sign_count(asset.asset),
+        ctx.last_sign_count(token.token),
         1,
-        "asset should record the WebAuthn signCount used for verification"
+        "token should record the WebAuthn signCount used for verification"
     );
 }
 
 #[test]
-fn verify_asset_does_not_change_owner() {
+fn verify_does_not_change_owner() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
-    let owner_before = ctx.asset_owner(asset.asset);
+    let token = ctx.init_token(&passkey);
+    let owner_before = ctx.token_owner(token.token);
 
-    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
+    ctx.send_verify(&token, TEST_MESSAGE_HASH, true)
         .expect("verify should succeed");
 
-    let owner_after = ctx.asset_owner(asset.asset);
+    let owner_after = ctx.token_owner(token.token);
     assert_eq!(owner_before, owner_after);
     assert_eq!(owner_after, Pubkey::default());
 }
 
 #[test]
-fn verify_asset_requires_preceding_secp256r1_instruction() {
+fn verify_requires_preceding_secp256r1_instruction() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
 
     let err = ctx
-        .send_verify_asset(&asset, TEST_MESSAGE_HASH, false)
+        .send_verify(&token, TEST_MESSAGE_HASH, false)
         .expect_err("verify without secp256r1 ix should fail");
 
     let err_str = format!("{err:?}");
@@ -63,13 +63,13 @@ fn verify_asset_requires_preceding_secp256r1_instruction() {
 }
 
 #[test]
-fn verify_asset_rejects_mismatched_message() {
+fn verify_rejects_mismatched_message() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
 
-    let (secp_ix, verify_args) = passkey.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
-    let verify_ix = ctx.verify_ix(asset.asset, verify_args, SECOND_MESSAGE_HASH, None, None);
+    let (secp_ix, verify_args) = passkey.verify_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
+    let verify_ix = ctx.verify_ix(token.token, verify_args, SECOND_MESSAGE_HASH, None, None);
 
     let payer = &ctx.payer;
     let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
@@ -77,14 +77,14 @@ fn verify_asset_rejects_mismatched_message() {
 }
 
 #[test]
-fn verify_asset_rejects_wrong_passkey() {
+fn verify_rejects_wrong_passkey() {
     let mut ctx = TestContext::new();
     let passkey_a = TestPasskey::generate();
     let passkey_b = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey_a);
+    let token = ctx.init_token(&passkey_a);
 
-    let (secp_ix, verify_args) = passkey_b.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
-    let verify_ix = ctx.verify_ix(asset.asset, verify_args, TEST_MESSAGE_HASH, None, None);
+    let (secp_ix, verify_args) = passkey_b.verify_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
+    let verify_ix = ctx.verify_ix(token.token, verify_args, TEST_MESSAGE_HASH, None, None);
 
     let payer = &ctx.payer;
     let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
@@ -92,16 +92,16 @@ fn verify_asset_rejects_wrong_passkey() {
 }
 
 #[test]
-fn verify_asset_rejects_sign_count_not_greater_than_last() {
+fn verify_rejects_sign_count_not_greater_than_last() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
 
-    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
+    ctx.send_verify(&token, TEST_MESSAGE_HASH, true)
         .expect("first verify");
 
     let err = ctx
-        .send_verify_asset_with_bindings(&asset, SECOND_MESSAGE_HASH, true, Some(1), None, None)
+        .send_verify_with_bindings(&token, SECOND_MESSAGE_HASH, true, Some(1), None, None)
         .expect_err("reusing the same signCount after a successful verify should fail");
 
     let err_str = format!("{err:?}");
@@ -112,37 +112,37 @@ fn verify_asset_rejects_sign_count_not_greater_than_last() {
 }
 
 #[test]
-fn verify_asset_allows_next_verify_with_higher_sign_count() {
+fn verify_allows_next_verify_with_higher_sign_count() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
 
-    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
+    ctx.send_verify(&token, TEST_MESSAGE_HASH, true)
         .expect("first verify");
 
-    ctx.send_verify_asset_with_bindings(&asset, SECOND_MESSAGE_HASH, true, Some(2), None, None)
+    ctx.send_verify_with_bindings(&token, SECOND_MESSAGE_HASH, true, Some(2), None, None)
         .expect("second verify with a higher signCount should succeed");
 
-    assert_eq!(ctx.last_sign_count(asset.asset), 2);
+    assert_eq!(ctx.last_sign_count(token.token), 2);
 }
 
 #[test]
-fn verify_asset_sign_count_monotonicity_survives_transfer() {
+fn verify_sign_count_monotonicity_survives_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
     let recipient = Keypair::new();
 
-    ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
+    ctx.send_verify(&token, TEST_MESSAGE_HASH, true)
         .expect("verify before transfer");
-    assert_eq!(ctx.last_sign_count(asset.asset), 1);
+    assert_eq!(ctx.last_sign_count(token.token), 1);
 
-    ctx.send_transfer_ownership(&asset, &recipient, true)
+    ctx.send_transfer_ownership(&token, &recipient, true)
         .expect("transfer after verify");
-    assert_eq!(ctx.last_sign_count(asset.asset), 2);
+    assert_eq!(ctx.last_sign_count(token.token), 2);
 
     let err = ctx
-        .send_verify_asset_with_bindings(&asset, STALE_MESSAGE_HASH, true, Some(1), None, None)
+        .send_verify_with_bindings(&token, STALE_MESSAGE_HASH, true, Some(1), None, None)
         .expect_err("signCount from before transfer should be rejected");
 
     let err_str = format!("{err:?}");
@@ -153,13 +153,13 @@ fn verify_asset_sign_count_monotonicity_survives_transfer() {
 }
 
 #[test]
-fn verify_asset_accepts_matching_optional_rp_id_and_origin() {
+fn verify_accepts_matching_optional_rp_id_and_origin() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
 
-    ctx.send_verify_asset_with_bindings(
-        &asset,
+    ctx.send_verify_with_bindings(
+        &token,
         TEST_MESSAGE_HASH,
         true,
         None,
@@ -170,14 +170,14 @@ fn verify_asset_accepts_matching_optional_rp_id_and_origin() {
 }
 
 #[test]
-fn verify_asset_rejects_mismatched_rp_id() {
+fn verify_rejects_mismatched_rp_id() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
 
     let err = ctx
-        .send_verify_asset_with_bindings(
-            &asset,
+        .send_verify_with_bindings(
+            &token,
             TEST_MESSAGE_HASH,
             true,
             None,
@@ -190,14 +190,14 @@ fn verify_asset_rejects_mismatched_rp_id() {
 }
 
 #[test]
-fn verify_asset_rejects_mismatched_origin() {
+fn verify_rejects_mismatched_origin() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
 
     let err = ctx
-        .send_verify_asset_with_bindings(
-            &asset,
+        .send_verify_with_bindings(
+            &token,
             TEST_MESSAGE_HASH,
             true,
             None,
@@ -210,13 +210,13 @@ fn verify_asset_rejects_mismatched_origin() {
 }
 
 #[test]
-fn verify_asset_allows_rp_id_only_or_origin_only() {
+fn verify_allows_rp_id_only_or_origin_only() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
 
-    ctx.send_verify_asset_with_bindings(
-        &asset,
+    ctx.send_verify_with_bindings(
+        &token,
         RP_ONLY_MESSAGE_HASH,
         true,
         None,
@@ -225,8 +225,8 @@ fn verify_asset_allows_rp_id_only_or_origin_only() {
     )
     .expect("rpId-only check should succeed");
 
-    ctx.send_verify_asset_with_bindings(
-        &asset,
+    ctx.send_verify_with_bindings(
+        &token,
         ORIGIN_ONLY_MESSAGE_HASH,
         true,
         Some(2),

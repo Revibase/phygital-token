@@ -144,7 +144,7 @@ function buildVerifyChallengeDescription(): string {
   return "messageHash (32 bytes) used directly as the WebAuthn challenge";
 }
 
-export async function planVerifyAsset(input: {
+export async function planVerify(input: {
   message: string;
   secp256r1PublicKey?: string;
   onChainPattern?: OnChainCompositionPattern;

@@ -10,15 +10,15 @@ use solana_signer::Signer;
 fn e2e_initialize_and_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
+    let token = ctx.init_token(&passkey);
     let recipient = Keypair::new();
 
-    // Freshly initialized asset is unowned and records both the unique chip
+    // Freshly initialized token is unowned and records both the unique chip
     // identifier (binding field) and the transfer-authorizing passkey public key
     // (which also seeds the PDA).
-    let instance = ctx.asset_account(asset.asset);
+    let instance = ctx.token_account(token.token);
     assert_eq!(instance.owner, Pubkey::default());
-    assert_eq!(instance.identifier, asset.identifier);
+    assert_eq!(instance.identifier, token.identifier);
     assert_eq!(
         instance.public_key,
         Secp256r1Pubkey(passkey.compressed_pubkey)
@@ -34,13 +34,13 @@ fn e2e_initialize_and_transfer() {
         "mint is unset until set_mint"
     );
 
-    ctx.send_transfer_ownership(&asset, &recipient, true)
+    ctx.send_transfer_ownership(&token, &recipient, true)
         .expect("transfer_ownership should succeed");
 
     assert_eq!(
-        ctx.last_sign_count(asset.asset),
+        ctx.last_sign_count(token.token),
         1,
-        "asset should record the WebAuthn signCount used for the transfer"
+        "token should record the WebAuthn signCount used for the transfer"
     );
-    assert_eq!(ctx.asset_owner(asset.asset), recipient.pubkey());
+    assert_eq!(ctx.token_owner(token.token), recipient.pubkey());
 }

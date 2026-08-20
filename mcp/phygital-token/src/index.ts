@@ -12,7 +12,7 @@ import {
   planRemoveOwnership,
   planSetMint,
   planTransfer,
-  planVerifyAsset,
+  planVerify,
 } from "./lib/instructions.js";
 import { SDK_SURFACE } from "./lib/sdk-surface.js";
 import {
@@ -22,7 +22,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "0.15.0";
+const VERSION = "0.16.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -30,9 +30,9 @@ const SERVER_INSTRUCTIONS = [
   "",
   "Routing:",
   "- Which verification method to use → recommend_verification",
-  "- On-chain verify (standalone, sysvar inspect, or CPI) → plan_verify_asset",
+  "- On-chain verify (standalone, sysvar inspect, or CPI) → plan_verify",
   "- Initialize / set_mint / transfer / forfeiture → plan_initialize, plan_set_mint, plan_transfer, plan_remove_ownership",
-  "- Token PDA from passkey public key → find_asset_pda",
+  "- Token PDA from passkey public key → find_token_pda",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
   "",
@@ -101,8 +101,8 @@ function registerTools(server: McpServer) {
             "native_mobile_app",
             "lookup_after_tap",
             "onchain_standalone_verify",
-            "onchain_inspect_verify_asset",
-            "onchain_cpi_verify_asset",
+            "onchain_inspect_verify",
+            "onchain_cpi_verify",
           ] as [VerificationUseCase, ...VerificationUseCase[]])
           .optional()
           .describe("Omit to list all use cases with the decision tree."),
@@ -183,7 +183,7 @@ function registerTools(server: McpServer) {
   );
 
   server.registerTool(
-    "plan_verify_asset",
+    "plan_verify",
     {
       description:
         "Plan the on-chain verify flow (offline): transaction layout, derived accounts, message binding. standalone = verify only; inspect = Pattern A (your program reads the instructions sysvar); cpi = Pattern B (your program CPIs verify).",
@@ -208,7 +208,7 @@ function registerTools(server: McpServer) {
     },
     async ({ message, secp256r1PublicKey, onChainPattern }) =>
       jsonResult(
-        await planVerifyAsset({
+        await planVerify({
           message,
           secp256r1PublicKey,
           onChainPattern,
@@ -234,7 +234,7 @@ function registerTools(server: McpServer) {
   );
 
   server.registerTool(
-    "find_asset_pda",
+    "find_token_pda",
     {
       description:
         "Derive the on-chain token PDA address from a secp256r1 passkey public key (offline).",

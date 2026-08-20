@@ -45,44 +45,44 @@ impl TestPasskey {
 
     pub fn secp256r1_verify_instruction(
         &self,
-        asset: Pubkey,
+        token: Pubkey,
         slot_hash: [u8; 32],
         sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.secp256r1_verify_instruction_with(asset, slot_hash, sign_count, None)
+        self.secp256r1_verify_instruction_with(token, slot_hash, sign_count, None)
     }
 
     pub fn secp256r1_verify_instruction_with(
         &self,
-        asset: Pubkey,
+        token: Pubkey,
         slot_hash: [u8; 32],
         sign_count: u32,
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let challenge = build_transfer_challenge(&asset, slot_hash);
+        let challenge = build_transfer_challenge(&token, slot_hash);
         self.build_secp256r1_verify_instruction(challenge, sign_count, signature_override, None)
     }
 
     pub fn secp256r1_verify_instruction_with_auth_flags(
         &self,
-        asset: Pubkey,
+        token: Pubkey,
         slot_hash: [u8; 32],
         sign_count: u32,
         auth_flags: u8,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let challenge = build_transfer_challenge(&asset, slot_hash);
+        let challenge = build_transfer_challenge(&token, slot_hash);
         self.build_secp256r1_verify_instruction(challenge, sign_count, None, Some(auth_flags))
     }
 
-    pub fn verify_asset_secp256r1_instruction(
+    pub fn verify_secp256r1_instruction(
         &self,
         message_hash: [u8; 32],
         sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.verify_asset_secp256r1_instruction_with(message_hash, sign_count, None)
+        self.verify_secp256r1_instruction_with(message_hash, sign_count, None)
     }
 
-    pub fn verify_asset_secp256r1_instruction_with(
+    pub fn verify_secp256r1_instruction_with(
         &self,
         message_hash: [u8; 32],
         sign_count: u32,

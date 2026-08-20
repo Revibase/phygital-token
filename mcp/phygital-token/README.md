@@ -27,7 +27,7 @@ Requires **Node.js 20+**. See [`cursor-mcp.example.json`](./cursor-mcp.example.j
 |------|-------|
 | **Docs** | `search_docs` (omit query to list all), `read_doc` |
 | **Verification** | `recommend_verification` (omit useCase for the decision tree) |
-| **Planning** | `plan_initialize`, `plan_set_mint`, `plan_transfer`, `plan_verify_asset`, `plan_remove_ownership`, `find_asset_pda` |
+| **Planning** | `plan_initialize`, `plan_set_mint`, `plan_transfer`, `plan_verify`, `plan_remove_ownership`, `find_token_pda` |
 | **SDK** | `list_sdk_exports` |
 
 All tools are offline and read-only.
