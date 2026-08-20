@@ -32,6 +32,12 @@ export {
 } from "./instructions/squadsInitialize.js";
 
 export {
+  buildSquadsSetMintInstructions,
+  type BuildSquadsSetMintInput,
+  type BuildSquadsSetMintResult,
+} from "./instructions/squadsSetMint.js";
+
+export {
   fetchTokenByIdentifier,
   fetchAllTokensFromOwner,
 } from "./utils/metadata.js";

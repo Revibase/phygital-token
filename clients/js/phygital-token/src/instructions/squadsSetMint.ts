@@ -6,8 +6,7 @@ import {
   TransactionMessage,
   type TransactionInstruction,
 } from "@solana/web3.js";
-import { getInitializeInstruction } from "../generated/instructions/initialize.js";
-import type { PhygitalTokenType } from "../generated/types/phygitalTokenType.js";
+import { getSetMintInstruction } from "../generated/instructions/setMint.js";
 import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey.js";
 import { ADMIN, INITIALIZE_MULTISIG_PDA } from "../utils/consts.js";
 import { findTokenPda } from "../utils/pdas/token.js";
@@ -19,7 +18,7 @@ import {
   web3InstructionToKit,
 } from "../utils/web3Bridge.js";
 
-export type BuildSquadsInitializeInput = {
+export type BuildSquadsSetMintInput = {
   /** web3.js `Connection` or RPC URL string. */
   connection: Connection | string;
   /**
@@ -29,16 +28,15 @@ export type BuildSquadsInitializeInput = {
   multisigPda?: Address | string;
   /** 1/1 squad member that signs the outer transaction. */
   member: Address | string;
-  initializeInputs: {
-    identifier: Secp256r1Pubkey;
+  setMintInputs: {
     secp256r1Pubkey: Secp256r1Pubkey;
-    tokenType: PhygitalTokenType;
+    mint: Address;
   }[];
   /** Vault authority index; default `0`. */
   vaultIndex?: number;
 };
 
-export type BuildSquadsInitializeResult = {
+export type BuildSquadsSetMintResult = {
   multisigPda: Address;
   vaultPda: Address;
   transactionIndex: bigint;
@@ -51,15 +49,15 @@ export type BuildSquadsInitializeResult = {
 };
 
 /**
- * Wrap `initialize` in one Squads vault flow for the 1/1 authority vault.
+ * Wrap `set_mint` in one Squads vault flow for the 1/1 authority vault.
  *
  * Builds create + propose + approve + execute + close as a **single** kit
  * instruction list. Execute remaining accounts are derived offline from the
  * same message that create stores (no post-create RPC round-trip).
  */
-export async function buildSquadsInitializeInstructions(
-  input: BuildSquadsInitializeInput,
-): Promise<BuildSquadsInitializeResult> {
+export async function buildSquadsSetMintInstructions(
+  input: BuildSquadsSetMintInput,
+): Promise<BuildSquadsSetMintResult> {
   const connection = resolveConnection(input.connection);
   const multisigPda = toPublicKey(input.multisigPda ?? INITIALIZE_MULTISIG_PDA);
   const member = toPublicKey(input.member);
@@ -90,14 +88,12 @@ export async function buildSquadsInitializeInstructions(
   const transactionIndex =
     BigInt(multisig.utils.toBigInt(multisigInfo.transactionIndex)) + 1n;
 
-  const initializeIxs = await Promise.all(
-    input.initializeInputs.map(async (item) =>
-      buildVaultInitializeInstruction({
+  const setMintIxs = await Promise.all(
+    input.setMintInputs.map(async (item) =>
+      buildVaultSetMintInstruction({
         vaultPda,
         token: await findTokenPda(item.secp256r1Pubkey),
-        identifier: item.identifier,
-        secp256r1Pubkey: item.secp256r1Pubkey,
-        tokenType: item.tokenType,
+        mint: item.mint,
       }),
     ),
   );
@@ -106,7 +102,7 @@ export async function buildSquadsInitializeInstructions(
   const transactionMessage = new TransactionMessage({
     payerKey: vaultPda,
     recentBlockhash: blockhash,
-    instructions: initializeIxs,
+    instructions: setMintIxs,
   });
 
   const createIx = multisig.instructions.vaultTransactionCreate({
@@ -209,28 +205,24 @@ async function buildVaultTransactionExecuteInstruction(input: {
   });
 }
 
-function buildVaultInitializeInstruction(input: {
+function buildVaultSetMintInstruction(input: {
   vaultPda: PublicKey;
   token: Address;
-  identifier: Secp256r1Pubkey;
-  secp256r1Pubkey: Secp256r1Pubkey;
-  tokenType: PhygitalTokenType;
+  mint: Address;
 }): TransactionInstruction {
-  const kitIx = getInitializeInstruction({
+  const kitIx = getSetMintInstruction({
     token: input.token,
-    identifier: input.identifier,
-    secp256r1Pubkey: input.secp256r1Pubkey,
-    tokenType: input.tokenType,
+    mint: input.mint,
   });
 
   const web3Ix = kitInstructionToWeb3(kitIx);
   const authorityMeta = web3Ix.keys[0];
   if (!authorityMeta || !authorityMeta.pubkey.equals(input.vaultPda)) {
     throw new Error(
-      "initialize authority account does not match Squads vault PDA",
+      "set_mint authority account does not match Squads vault PDA",
     );
   }
+  // Vault must sign; program does not require the authority account to be writable.
   authorityMeta.isSigner = true;
-  authorityMeta.isWritable = true;
   return web3Ix;
 }
