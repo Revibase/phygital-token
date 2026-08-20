@@ -43,36 +43,33 @@ pub enum PhygitalTokenError {
     /// 6010 - Invalid sysvar data format
     #[error("Invalid sysvar data format")]
     InvalidSysvarDataFormat = 0x177A,
-    /// 6011 - Recipient cannot be the default (zero) pubkey
-    #[error("Recipient cannot be the default (zero) pubkey")]
-    InvalidRecipient = 0x177B,
-    /// 6012 - The owner needs to unlock the asset to enable transfer.
-    #[error("The owner needs to unlock the asset to enable transfer.")]
-    AssetIsCurrentlyLocked = 0x177C,
-    /// 6013 - This asset is not lockable.
-    #[error("This asset is not lockable.")]
-    AssetIsNotLockable = 0x177D,
-    /// 6014 - Unable to parse client data JSON.
+    /// 6011 - The owner needs to unlock the token to enable transfer.
+    #[error("The owner needs to unlock the token to enable transfer.")]
+    TokenIsCurrentlyLocked = 0x177B,
+    /// 6012 - This token is not lockable.
+    #[error("This token is not lockable.")]
+    TokenIsNotLockable = 0x177C,
+    /// 6013 - Unable to parse client data JSON.
     #[error("Unable to parse client data JSON.")]
-    UnableToParseClientData = 0x177E,
-    /// 6015 - Challenge hash mismatch.
+    UnableToParseClientData = 0x177D,
+    /// 6014 - Challenge hash mismatch.
     #[error("Challenge hash mismatch.")]
-    ChallengeHashMismatch = 0x177F,
-    /// 6016 - Authenticator data is too short to contain WebAuthn flags.
+    ChallengeHashMismatch = 0x177E,
+    /// 6015 - Authenticator data is too short to contain WebAuthn flags.
     #[error("Authenticator data is too short to contain WebAuthn flags.")]
-    InvalidAuthenticatorData = 0x1780,
-    /// 6017 - WebAuthn user presence flag (UP) was not set by the authenticator.
+    InvalidAuthenticatorData = 0x177F,
+    /// 6016 - WebAuthn user presence flag (UP) was not set by the authenticator.
     #[error("WebAuthn user presence flag (UP) was not set by the authenticator.")]
-    UserPresenceNotVerified = 0x1781,
-    /// 6018 - WebAuthn rpId hash does not match the expected relying party id.
+    UserPresenceNotVerified = 0x1780,
+    /// 6017 - WebAuthn rpId hash does not match the expected relying party id.
     #[error("WebAuthn rpId hash does not match the expected relying party id.")]
-    RpIdMismatch = 0x1782,
-    /// 6019 - WebAuthn origin does not match the expected origin.
+    RpIdMismatch = 0x1781,
+    /// 6018 - WebAuthn origin does not match the expected origin.
     #[error("WebAuthn origin does not match the expected origin.")]
-    OriginMismatch = 0x1783,
-    /// 6020 - Only the designated initialize authority may create assets
-    #[error("Only the designated initialize authority may create assets")]
-    UnauthorizedAuthority = 0x1784,
+    OriginMismatch = 0x1782,
+    /// 6019 - Only the designated authority can perform this action.
+    #[error("Only the designated authority can perform this action.")]
+    UnauthorizedAuthority = 0x1783,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {

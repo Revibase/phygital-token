@@ -18,7 +18,7 @@ pub struct RemoveOwnership {
           pub owner: solana_address::Address,
           
               
-          pub asset: solana_address::Address,
+          pub token: solana_address::Address,
       }
 
 impl RemoveOwnership {
@@ -34,7 +34,7 @@ impl RemoveOwnership {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            self.asset,
+            self.token,
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
@@ -78,11 +78,11 @@ impl Default for RemoveOwnershipInstructionData {
 /// ### Accounts:
 ///
                 ///   0. `[signer]` owner
-                ///   1. `[writable]` asset
+                ///   1. `[writable]` token
 #[derive(Clone, Debug, Default)]
 pub struct RemoveOwnershipBuilder {
             owner: Option<solana_address::Address>,
-                asset: Option<solana_address::Address>,
+                token: Option<solana_address::Address>,
                 __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -96,8 +96,8 @@ impl RemoveOwnershipBuilder {
                     self
     }
             #[inline(always)]
-    pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
-                        self.asset = Some(asset);
+    pub fn token(&mut self, token: solana_address::Address) -> &mut Self {
+                        self.token = Some(token);
                     self
     }
             /// Add an additional account to the instruction.
@@ -116,7 +116,7 @@ impl RemoveOwnershipBuilder {
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = RemoveOwnership {
                               owner: self.owner.expect("owner is not set"),
-                                        asset: self.asset.expect("asset is not set"),
+                                        token: self.token.expect("token is not set"),
                       };
     
     accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
@@ -130,7 +130,7 @@ impl RemoveOwnershipBuilder {
               pub owner: &'b solana_account_info::AccountInfo<'a>,
                 
                     
-              pub asset: &'b solana_account_info::AccountInfo<'a>,
+              pub token: &'b solana_account_info::AccountInfo<'a>,
             }
 
 /// `remove_ownership` CPI instruction.
@@ -142,7 +142,7 @@ pub struct RemoveOwnershipCpi<'a, 'b> {
           pub owner: &'b solana_account_info::AccountInfo<'a>,
           
               
-          pub asset: &'b solana_account_info::AccountInfo<'a>,
+          pub token: &'b solana_account_info::AccountInfo<'a>,
         }
 
 impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
@@ -153,7 +153,7 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
     Self {
       __program: program,
               owner: accounts.owner,
-              asset: accounts.asset,
+              token: accounts.token,
                 }
   }
   #[inline(always)]
@@ -182,7 +182,7 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            *self.asset.key,
+            *self.token.key,
             false
           ));
                       remaining_accounts.iter().for_each(|remaining_account| {
@@ -202,7 +202,7 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
     let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.owner.clone());
-                        account_infos.push(self.asset.clone());
+                        account_infos.push(self.token.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
     if signers_seeds.is_empty() {
@@ -218,7 +218,7 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
 /// ### Accounts:
 ///
                 ///   0. `[signer]` owner
-                ///   1. `[writable]` asset
+                ///   1. `[writable]` token
 #[derive(Clone, Debug)]
 pub struct RemoveOwnershipCpiBuilder<'a, 'b> {
   instruction: Box<RemoveOwnershipCpiBuilderInstruction<'a, 'b>>,
@@ -229,7 +229,7 @@ impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
     let instruction = Box::new(RemoveOwnershipCpiBuilderInstruction {
       __program: program,
               owner: None,
-              asset: None,
+              token: None,
                                 __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -240,8 +240,8 @@ impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
                     self
     }
       #[inline(always)]
-    pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.asset = Some(asset);
+    pub fn token(&mut self, token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.token = Some(token);
                     self
     }
             /// Add an additional account to the instruction.
@@ -271,7 +271,7 @@ impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
                   
           owner: self.instruction.owner.expect("owner is not set"),
                   
-          asset: self.instruction.asset.expect("asset is not set"),
+          token: self.instruction.token.expect("token is not set"),
                     };
     instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
   }
@@ -281,7 +281,7 @@ impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
 struct RemoveOwnershipCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             owner: Option<&'b solana_account_info::AccountInfo<'a>>,
-                asset: Option<&'b solana_account_info::AccountInfo<'a>>,
+                token: Option<&'b solana_account_info::AccountInfo<'a>>,
                 /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

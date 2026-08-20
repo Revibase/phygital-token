@@ -5,32 +5,33 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
+use solana_address::Address;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
-pub const SET_LOCK_STATE_DISCRIMINATOR: [u8; 8] = [16, 40, 80, 140, 163, 156, 68, 120];
+pub const SET_MINT_DISCRIMINATOR: [u8; 8] = [166, 129, 167, 223, 137, 118, 212, 47];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct SetLockState {
+pub struct SetMint {
       
               
-          pub owner: solana_address::Address,
+          pub authority: solana_address::Address,
           
               
           pub token: solana_address::Address,
       }
 
-impl SetLockState {
-  pub fn instruction(&self, args: SetLockStateInstructionArgs) -> solana_instruction::Instruction {
+impl SetMint {
+  pub fn instruction(&self, args: SetMintInstructionArgs) -> solana_instruction::Instruction {
     self.instruction_with_remaining_accounts(args, &[])
   }
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: SetLockStateInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
+  pub fn instruction_with_remaining_accounts(&self, args: SetMintInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
     let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.owner,
+            self.authority,
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
@@ -38,7 +39,7 @@ impl SetLockState {
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
-    let mut data = SetLockStateInstructionData::new().try_to_vec().unwrap();
+    let mut data = SetMintInstructionData::new().try_to_vec().unwrap();
           let mut args = args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -51,14 +52,14 @@ impl SetLockState {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct SetLockStateInstructionData {
+ pub struct SetMintInstructionData {
             discriminator: [u8; 8],
             }
 
-impl SetLockStateInstructionData {
+impl SetMintInstructionData {
   pub fn new() -> Self {
     Self {
-                        discriminator: [16, 40, 80, 140, 163, 156, 68, 120],
+                        discriminator: [166, 129, 167, 223, 137, 118, 212, 47],
                                 }
   }
 
@@ -67,45 +68,46 @@ impl SetLockStateInstructionData {
   }
   }
 
-impl Default for SetLockStateInstructionData {
+impl Default for SetMintInstructionData {
   fn default() -> Self {
     Self::new()
   }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct SetLockStateInstructionArgs {
-                  pub is_locked: bool,
+ pub struct SetMintInstructionArgs {
+                  pub mint: Address,
       }
 
-impl SetLockStateInstructionArgs {
+impl SetMintInstructionArgs {
   pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
     borsh::to_vec(self)
   }
 }
 
 
-/// Instruction builder for `SetLockState`.
+/// Instruction builder for `SetMint`.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` owner
+                      ///   0. `[signer, optional]` authority (default to `G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF`)
                 ///   1. `[writable]` token
 #[derive(Clone, Debug, Default)]
-pub struct SetLockStateBuilder {
-            owner: Option<solana_address::Address>,
+pub struct SetMintBuilder {
+            authority: Option<solana_address::Address>,
                 token: Option<solana_address::Address>,
-                        is_locked: Option<bool>,
+                        mint: Option<Address>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl SetLockStateBuilder {
+impl SetMintBuilder {
   pub fn new() -> Self {
     Self::default()
   }
-            #[inline(always)]
-    pub fn owner(&mut self, owner: solana_address::Address) -> &mut Self {
-                        self.owner = Some(owner);
+            /// `[optional account, default to 'G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF']`
+#[inline(always)]
+    pub fn authority(&mut self, authority: solana_address::Address) -> &mut Self {
+                        self.authority = Some(authority);
                     self
     }
             #[inline(always)]
@@ -114,8 +116,8 @@ impl SetLockStateBuilder {
                     self
     }
                     #[inline(always)]
-      pub fn is_locked(&mut self, is_locked: bool) -> &mut Self {
-        self.is_locked = Some(is_locked);
+      pub fn mint(&mut self, mint: Address) -> &mut Self {
+        self.mint = Some(mint);
         self
       }
         /// Add an additional account to the instruction.
@@ -132,51 +134,51 @@ impl SetLockStateBuilder {
   }
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = SetLockState {
-                              owner: self.owner.expect("owner is not set"),
+    let accounts = SetMint {
+                              authority: self.authority.unwrap_or(solana_address::address!("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF")),
                                         token: self.token.expect("token is not set"),
                       };
-          let args = SetLockStateInstructionArgs {
-                                                              is_locked: self.is_locked.clone().expect("is_locked is not set"),
+          let args = SetMintInstructionArgs {
+                                                              mint: self.mint.clone().expect("mint is not set"),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
   }
 }
 
-  /// `set_lock_state` CPI accounts.
-  pub struct SetLockStateCpiAccounts<'a, 'b> {
+  /// `set_mint` CPI accounts.
+  pub struct SetMintCpiAccounts<'a, 'b> {
           
                     
-              pub owner: &'b solana_account_info::AccountInfo<'a>,
+              pub authority: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub token: &'b solana_account_info::AccountInfo<'a>,
             }
 
-/// `set_lock_state` CPI instruction.
-pub struct SetLockStateCpi<'a, 'b> {
+/// `set_mint` CPI instruction.
+pub struct SetMintCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_account_info::AccountInfo<'a>,
       
               
-          pub owner: &'b solana_account_info::AccountInfo<'a>,
+          pub authority: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub token: &'b solana_account_info::AccountInfo<'a>,
             /// The arguments for the instruction.
-    pub __args: SetLockStateInstructionArgs,
+    pub __args: SetMintInstructionArgs,
   }
 
-impl<'a, 'b> SetLockStateCpi<'a, 'b> {
+impl<'a, 'b> SetMintCpi<'a, 'b> {
   pub fn new(
     program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: SetLockStateCpiAccounts<'a, 'b>,
-              args: SetLockStateInstructionArgs,
+          accounts: SetMintCpiAccounts<'a, 'b>,
+              args: SetMintInstructionArgs,
       ) -> Self {
     Self {
       __program: program,
-              owner: accounts.owner,
+              authority: accounts.authority,
               token: accounts.token,
                     __args: args,
           }
@@ -203,7 +205,7 @@ impl<'a, 'b> SetLockStateCpi<'a, 'b> {
   ) -> solana_program_error::ProgramResult {
     let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.owner.key,
+            *self.authority.key,
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
@@ -217,7 +219,7 @@ impl<'a, 'b> SetLockStateCpi<'a, 'b> {
           is_writable: remaining_account.2,
       })
     });
-    let mut data = SetLockStateInstructionData::new().try_to_vec().unwrap();
+    let mut data = SetMintInstructionData::new().try_to_vec().unwrap();
           let mut args = self.__args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -228,7 +230,7 @@ impl<'a, 'b> SetLockStateCpi<'a, 'b> {
     };
     let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
-                  account_infos.push(self.owner.clone());
+                  account_infos.push(self.authority.clone());
                         account_infos.push(self.token.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -240,31 +242,31 @@ impl<'a, 'b> SetLockStateCpi<'a, 'b> {
   }
 }
 
-/// Instruction builder for `SetLockState` via CPI.
+/// Instruction builder for `SetMint` via CPI.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` owner
+                ///   0. `[signer]` authority
                 ///   1. `[writable]` token
 #[derive(Clone, Debug)]
-pub struct SetLockStateCpiBuilder<'a, 'b> {
-  instruction: Box<SetLockStateCpiBuilderInstruction<'a, 'b>>,
+pub struct SetMintCpiBuilder<'a, 'b> {
+  instruction: Box<SetMintCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> SetLockStateCpiBuilder<'a, 'b> {
+impl<'a, 'b> SetMintCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(SetLockStateCpiBuilderInstruction {
+    let instruction = Box::new(SetMintCpiBuilderInstruction {
       __program: program,
-              owner: None,
+              authority: None,
               token: None,
-                                            is_locked: None,
+                                            mint: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
   }
       #[inline(always)]
-    pub fn owner(&mut self, owner: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.owner = Some(owner);
+    pub fn authority(&mut self, authority: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.authority = Some(authority);
                     self
     }
       #[inline(always)]
@@ -273,8 +275,8 @@ impl<'a, 'b> SetLockStateCpiBuilder<'a, 'b> {
                     self
     }
                     #[inline(always)]
-      pub fn is_locked(&mut self, is_locked: bool) -> &mut Self {
-        self.instruction.is_locked = Some(is_locked);
+      pub fn mint(&mut self, mint: Address) -> &mut Self {
+        self.instruction.mint = Some(mint);
         self
       }
         /// Add an additional account to the instruction.
@@ -299,13 +301,13 @@ impl<'a, 'b> SetLockStateCpiBuilder<'a, 'b> {
   #[allow(clippy::clone_on_copy)]
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = SetLockStateInstructionArgs {
-                                                              is_locked: self.instruction.is_locked.clone().expect("is_locked is not set"),
+          let args = SetMintInstructionArgs {
+                                                              mint: self.instruction.mint.clone().expect("mint is not set"),
                                     };
-        let instruction = SetLockStateCpi {
+        let instruction = SetMintCpi {
         __program: self.instruction.__program,
                   
-          owner: self.instruction.owner.expect("owner is not set"),
+          authority: self.instruction.authority.expect("authority is not set"),
                   
           token: self.instruction.token.expect("token is not set"),
                           __args: args,
@@ -315,11 +317,11 @@ impl<'a, 'b> SetLockStateCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct SetLockStateCpiBuilderInstruction<'a, 'b> {
+struct SetMintCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
-            owner: Option<&'b solana_account_info::AccountInfo<'a>>,
+            authority: Option<&'b solana_account_info::AccountInfo<'a>>,
                 token: Option<&'b solana_account_info::AccountInfo<'a>>,
-                        is_locked: Option<bool>,
+                        mint: Option<Address>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

@@ -5,7 +5,7 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-  pub(crate) mod r#asset;
+  pub(crate) mod r#phygital_token;
 
-  pub use self::r#asset::*;
+  pub use self::r#phygital_token::*;
 

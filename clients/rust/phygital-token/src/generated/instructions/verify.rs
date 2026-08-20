@@ -9,29 +9,29 @@ use crate::generated::types::Secp256r1VerifyArgs;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
-pub const VERIFY_ASSET_DISCRIMINATOR: [u8; 8] = [136, 51, 110, 228, 129, 94, 141, 179];
+pub const VERIFY_DISCRIMINATOR: [u8; 8] = [133, 161, 141, 48, 120, 198, 88, 150];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct VerifyAsset {
+pub struct Verify {
       
               
-          pub asset: solana_address::Address,
+          pub token: solana_address::Address,
           
               
           pub instructions_sysvar: solana_address::Address,
       }
 
-impl VerifyAsset {
-  pub fn instruction(&self, args: VerifyAssetInstructionArgs) -> solana_instruction::Instruction {
+impl Verify {
+  pub fn instruction(&self, args: VerifyInstructionArgs) -> solana_instruction::Instruction {
     self.instruction_with_remaining_accounts(args, &[])
   }
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: VerifyAssetInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
+  pub fn instruction_with_remaining_accounts(&self, args: VerifyInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
     let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
-            self.asset,
+            self.token,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -39,7 +39,7 @@ impl VerifyAsset {
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
-    let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
+    let mut data = VerifyInstructionData::new().try_to_vec().unwrap();
           let mut args = args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -52,14 +52,14 @@ impl VerifyAsset {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct VerifyAssetInstructionData {
+ pub struct VerifyInstructionData {
             discriminator: [u8; 8],
                               }
 
-impl VerifyAssetInstructionData {
+impl VerifyInstructionData {
   pub fn new() -> Self {
     Self {
-                        discriminator: [136, 51, 110, 228, 129, 94, 141, 179],
+                        discriminator: [133, 161, 141, 48, 120, 198, 88, 150],
                                                                           }
   }
 
@@ -68,36 +68,36 @@ impl VerifyAssetInstructionData {
   }
   }
 
-impl Default for VerifyAssetInstructionData {
+impl Default for VerifyInstructionData {
   fn default() -> Self {
     Self::new()
   }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct VerifyAssetInstructionArgs {
+ pub struct VerifyInstructionArgs {
                   pub secp256r1_verify_args: Secp256r1VerifyArgs,
                 pub message_hash: [u8; 32],
                 pub expected_rp_id: Option<String>,
                 pub expected_origin: Option<String>,
       }
 
-impl VerifyAssetInstructionArgs {
+impl VerifyInstructionArgs {
   pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
     borsh::to_vec(self)
   }
 }
 
 
-/// Instruction builder for `VerifyAsset`.
+/// Instruction builder for `Verify`.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` asset
+                ///   0. `[writable]` token
                 ///   1. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct VerifyAssetBuilder {
-            asset: Option<solana_address::Address>,
+pub struct VerifyBuilder {
+            token: Option<solana_address::Address>,
                 instructions_sysvar: Option<solana_address::Address>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
                 message_hash: Option<[u8; 32]>,
@@ -106,13 +106,13 @@ pub struct VerifyAssetBuilder {
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl VerifyAssetBuilder {
+impl VerifyBuilder {
   pub fn new() -> Self {
     Self::default()
   }
             #[inline(always)]
-    pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
-                        self.asset = Some(asset);
+    pub fn token(&mut self, token: solana_address::Address) -> &mut Self {
+                        self.token = Some(token);
                     self
     }
             /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
@@ -157,11 +157,11 @@ impl VerifyAssetBuilder {
   }
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = VerifyAsset {
-                              asset: self.asset.expect("asset is not set"),
+    let accounts = Verify {
+                              token: self.token.expect("token is not set"),
                                         instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
                       };
-          let args = VerifyAssetInstructionArgs {
+          let args = VerifyInstructionArgs {
                                                               secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
                                                                   message_hash: self.message_hash.clone().expect("message_hash is not set"),
                                                                   expected_rp_id: self.expected_rp_id.clone(),
@@ -172,39 +172,39 @@ impl VerifyAssetBuilder {
   }
 }
 
-  /// `verify_asset` CPI accounts.
-  pub struct VerifyAssetCpiAccounts<'a, 'b> {
+  /// `verify` CPI accounts.
+  pub struct VerifyCpiAccounts<'a, 'b> {
           
                     
-              pub asset: &'b solana_account_info::AccountInfo<'a>,
+              pub token: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
             }
 
-/// `verify_asset` CPI instruction.
-pub struct VerifyAssetCpi<'a, 'b> {
+/// `verify` CPI instruction.
+pub struct VerifyCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_account_info::AccountInfo<'a>,
       
               
-          pub asset: &'b solana_account_info::AccountInfo<'a>,
+          pub token: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
             /// The arguments for the instruction.
-    pub __args: VerifyAssetInstructionArgs,
+    pub __args: VerifyInstructionArgs,
   }
 
-impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
+impl<'a, 'b> VerifyCpi<'a, 'b> {
   pub fn new(
     program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: VerifyAssetCpiAccounts<'a, 'b>,
-              args: VerifyAssetInstructionArgs,
+          accounts: VerifyCpiAccounts<'a, 'b>,
+              args: VerifyInstructionArgs,
       ) -> Self {
     Self {
       __program: program,
-              asset: accounts.asset,
+              token: accounts.token,
               instructions_sysvar: accounts.instructions_sysvar,
                     __args: args,
           }
@@ -231,7 +231,7 @@ impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
   ) -> solana_program_error::ProgramResult {
     let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
-            *self.asset.key,
+            *self.token.key,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -245,7 +245,7 @@ impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
           is_writable: remaining_account.2,
       })
     });
-    let mut data = VerifyAssetInstructionData::new().try_to_vec().unwrap();
+    let mut data = VerifyInstructionData::new().try_to_vec().unwrap();
           let mut args = self.__args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -256,7 +256,7 @@ impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
     };
     let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
-                  account_infos.push(self.asset.clone());
+                  account_infos.push(self.token.clone());
                         account_infos.push(self.instructions_sysvar.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -268,22 +268,22 @@ impl<'a, 'b> VerifyAssetCpi<'a, 'b> {
   }
 }
 
-/// Instruction builder for `VerifyAsset` via CPI.
+/// Instruction builder for `Verify` via CPI.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` asset
+                ///   0. `[writable]` token
           ///   1. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
-pub struct VerifyAssetCpiBuilder<'a, 'b> {
-  instruction: Box<VerifyAssetCpiBuilderInstruction<'a, 'b>>,
+pub struct VerifyCpiBuilder<'a, 'b> {
+  instruction: Box<VerifyCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
+impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(VerifyAssetCpiBuilderInstruction {
+    let instruction = Box::new(VerifyCpiBuilderInstruction {
       __program: program,
-              asset: None,
+              token: None,
               instructions_sysvar: None,
                                             secp256r1_verify_args: None,
                                 message_hash: None,
@@ -294,8 +294,8 @@ impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
     Self { instruction }
   }
       #[inline(always)]
-    pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.asset = Some(asset);
+    pub fn token(&mut self, token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.token = Some(token);
                     self
     }
       #[inline(always)]
@@ -347,16 +347,16 @@ impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
   #[allow(clippy::clone_on_copy)]
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = VerifyAssetInstructionArgs {
+          let args = VerifyInstructionArgs {
                                                               secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
                                                                   message_hash: self.instruction.message_hash.clone().expect("message_hash is not set"),
                                                                   expected_rp_id: self.instruction.expected_rp_id.clone(),
                                                                   expected_origin: self.instruction.expected_origin.clone(),
                                     };
-        let instruction = VerifyAssetCpi {
+        let instruction = VerifyCpi {
         __program: self.instruction.__program,
                   
-          asset: self.instruction.asset.expect("asset is not set"),
+          token: self.instruction.token.expect("token is not set"),
                   
           instructions_sysvar: self.instruction.instructions_sysvar.expect("instructions_sysvar is not set"),
                           __args: args,
@@ -366,9 +366,9 @@ impl<'a, 'b> VerifyAssetCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct VerifyAssetCpiBuilderInstruction<'a, 'b> {
+struct VerifyCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
-            asset: Option<&'b solana_account_info::AccountInfo<'a>>,
+            token: Option<&'b solana_account_info::AccountInfo<'a>>,
                 instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
                 message_hash: Option<[u8; 32]>,

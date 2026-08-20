@@ -10,9 +10,9 @@ use borsh::BorshDeserialize;
 use num_derive::FromPrimitive;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq, Copy, PartialOrd, Hash, FromPrimitive)]
-pub enum AssetType {
-Lockable,
-Transferable,
+pub enum PhygitalTokenType {
+Controlled,
+Bearer,
 }
 
 

@@ -6,7 +6,7 @@
 //!
 
 use crate::generated::types::Secp256r1Pubkey;
-use crate::generated::types::AssetType;
+use crate::generated::types::PhygitalTokenType;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
@@ -20,7 +20,7 @@ pub struct Initialize {
           pub authority: solana_address::Address,
           
               
-          pub asset: solana_address::Address,
+          pub token: solana_address::Address,
           
               
           pub system_program: solana_address::Address,
@@ -39,7 +39,7 @@ impl Initialize {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            self.asset,
+            self.token,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -86,7 +86,7 @@ impl Default for InitializeInstructionData {
  pub struct InitializeInstructionArgs {
                   pub identifier: Secp256r1Pubkey,
                 pub secp256r1_pubkey: Secp256r1Pubkey,
-                pub asset_type: AssetType,
+                pub token_type: PhygitalTokenType,
       }
 
 impl InitializeInstructionArgs {
@@ -101,16 +101,16 @@ impl InitializeInstructionArgs {
 /// ### Accounts:
 ///
                             ///   0. `[writable, signer, optional]` authority (default to `G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF`)
-                ///   1. `[writable]` asset
+                ///   1. `[writable]` token
                 ///   2. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct InitializeBuilder {
             authority: Option<solana_address::Address>,
-                asset: Option<solana_address::Address>,
+                token: Option<solana_address::Address>,
                 system_program: Option<solana_address::Address>,
                         identifier: Option<Secp256r1Pubkey>,
                 secp256r1_pubkey: Option<Secp256r1Pubkey>,
-                asset_type: Option<AssetType>,
+                token_type: Option<PhygitalTokenType>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -125,8 +125,8 @@ impl InitializeBuilder {
                     self
     }
             #[inline(always)]
-    pub fn asset(&mut self, asset: solana_address::Address) -> &mut Self {
-                        self.asset = Some(asset);
+    pub fn token(&mut self, token: solana_address::Address) -> &mut Self {
+                        self.token = Some(token);
                     self
     }
             /// `[optional account, default to '11111111111111111111111111111111']`
@@ -146,8 +146,8 @@ impl InitializeBuilder {
         self
       }
                 #[inline(always)]
-      pub fn asset_type(&mut self, asset_type: AssetType) -> &mut Self {
-        self.asset_type = Some(asset_type);
+      pub fn token_type(&mut self, token_type: PhygitalTokenType) -> &mut Self {
+        self.token_type = Some(token_type);
         self
       }
         /// Add an additional account to the instruction.
@@ -166,13 +166,13 @@ impl InitializeBuilder {
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = Initialize {
                               authority: self.authority.unwrap_or(solana_address::address!("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF")),
-                                        asset: self.asset.expect("asset is not set"),
+                                        token: self.token.expect("token is not set"),
                                         system_program: self.system_program.unwrap_or(solana_address::address!("11111111111111111111111111111111")),
                       };
           let args = InitializeInstructionArgs {
                                                               identifier: self.identifier.clone().expect("identifier is not set"),
                                                                   secp256r1_pubkey: self.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
-                                                                  asset_type: self.asset_type.clone().expect("asset_type is not set"),
+                                                                  token_type: self.token_type.clone().expect("token_type is not set"),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -186,7 +186,7 @@ impl InitializeBuilder {
               pub authority: &'b solana_account_info::AccountInfo<'a>,
                 
                     
-              pub asset: &'b solana_account_info::AccountInfo<'a>,
+              pub token: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub system_program: &'b solana_account_info::AccountInfo<'a>,
@@ -201,7 +201,7 @@ pub struct InitializeCpi<'a, 'b> {
           pub authority: &'b solana_account_info::AccountInfo<'a>,
           
               
-          pub asset: &'b solana_account_info::AccountInfo<'a>,
+          pub token: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub system_program: &'b solana_account_info::AccountInfo<'a>,
@@ -218,7 +218,7 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
     Self {
       __program: program,
               authority: accounts.authority,
-              asset: accounts.asset,
+              token: accounts.token,
               system_program: accounts.system_program,
                     __args: args,
           }
@@ -249,7 +249,7 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            *self.asset.key,
+            *self.token.key,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -275,7 +275,7 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
     let mut account_infos = Vec::with_capacity(4 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.authority.clone());
-                        account_infos.push(self.asset.clone());
+                        account_infos.push(self.token.clone());
                         account_infos.push(self.system_program.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -292,7 +292,7 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
 /// ### Accounts:
 ///
                       ///   0. `[writable, signer]` authority
-                ///   1. `[writable]` asset
+                ///   1. `[writable]` token
           ///   2. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct InitializeCpiBuilder<'a, 'b> {
@@ -304,11 +304,11 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
     let instruction = Box::new(InitializeCpiBuilderInstruction {
       __program: program,
               authority: None,
-              asset: None,
+              token: None,
               system_program: None,
                                             identifier: None,
                                 secp256r1_pubkey: None,
-                                asset_type: None,
+                                token_type: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -319,8 +319,8 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
                     self
     }
       #[inline(always)]
-    pub fn asset(&mut self, asset: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.asset = Some(asset);
+    pub fn token(&mut self, token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.token = Some(token);
                     self
     }
       #[inline(always)]
@@ -339,8 +339,8 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
         self
       }
                 #[inline(always)]
-      pub fn asset_type(&mut self, asset_type: AssetType) -> &mut Self {
-        self.instruction.asset_type = Some(asset_type);
+      pub fn token_type(&mut self, token_type: PhygitalTokenType) -> &mut Self {
+        self.instruction.token_type = Some(token_type);
         self
       }
         /// Add an additional account to the instruction.
@@ -368,14 +368,14 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
           let args = InitializeInstructionArgs {
                                                               identifier: self.instruction.identifier.clone().expect("identifier is not set"),
                                                                   secp256r1_pubkey: self.instruction.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
-                                                                  asset_type: self.instruction.asset_type.clone().expect("asset_type is not set"),
+                                                                  token_type: self.instruction.token_type.clone().expect("token_type is not set"),
                                     };
         let instruction = InitializeCpi {
         __program: self.instruction.__program,
                   
           authority: self.instruction.authority.expect("authority is not set"),
                   
-          asset: self.instruction.asset.expect("asset is not set"),
+          token: self.instruction.token.expect("token is not set"),
                   
           system_program: self.instruction.system_program.expect("system_program is not set"),
                           __args: args,
@@ -388,11 +388,11 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
 struct InitializeCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             authority: Option<&'b solana_account_info::AccountInfo<'a>>,
-                asset: Option<&'b solana_account_info::AccountInfo<'a>>,
+                token: Option<&'b solana_account_info::AccountInfo<'a>>,
                 system_program: Option<&'b solana_account_info::AccountInfo<'a>>,
                         identifier: Option<Secp256r1Pubkey>,
                 secp256r1_pubkey: Option<Secp256r1Pubkey>,
-                asset_type: Option<AssetType>,
+                token_type: Option<PhygitalTokenType>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }
