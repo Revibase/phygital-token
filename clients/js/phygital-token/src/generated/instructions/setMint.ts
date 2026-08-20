@@ -10,6 +10,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getAddressDecoder,
+  getAddressEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
@@ -26,146 +28,105 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
-  type ReadonlyAccount,
+  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
-  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/kit/program-client-core";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
-import {
-  getPhygitalTokenTypeDecoder,
-  getPhygitalTokenTypeEncoder,
-  getSecp256r1PubkeyDecoder,
-  getSecp256r1PubkeyEncoder,
-  type PhygitalTokenType,
-  type PhygitalTokenTypeArgs,
-  type Secp256r1Pubkey,
-  type Secp256r1PubkeyArgs,
-} from "../types/index.js";
 
-export const INITIALIZE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  175, 175, 109, 31, 13, 152, 155, 237,
+export const SET_MINT_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  166, 129, 167, 223, 137, 118, 212, 47,
 ]);
 
-export function getInitializeDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(INITIALIZE_DISCRIMINATOR);
+export function getSetMintDiscriminatorBytes(): ReadonlyUint8Array {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(SET_MINT_DISCRIMINATOR);
 }
 
-export type InitializeInstruction<
+export type SetMintInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> =
     "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF",
   TAccountToken extends string | AccountMeta<string> = string,
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
       TAccountAuthority extends string
-        ? WritableSignerAccount<TAccountAuthority> &
+        ? ReadonlySignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
       TAccountToken extends string
         ? WritableAccount<TAccountToken>
         : TAccountToken,
-      TAccountSystemProgram extends string
-        ? ReadonlyAccount<TAccountSystemProgram>
-        : TAccountSystemProgram,
       ...TRemainingAccounts,
     ]
   >;
 
-export type InitializeInstructionData = {
+export type SetMintInstructionData = {
   discriminator: ReadonlyUint8Array;
-  identifier: Secp256r1Pubkey;
-  secp256r1Pubkey: Secp256r1Pubkey;
-  tokenType: PhygitalTokenType;
+  mint: Address;
 };
 
-export type InitializeInstructionDataArgs = {
-  identifier: Secp256r1PubkeyArgs;
-  secp256r1Pubkey: Secp256r1PubkeyArgs;
-  tokenType: PhygitalTokenTypeArgs;
-};
+export type SetMintInstructionDataArgs = { mint: Address };
 
-export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<InitializeInstructionDataArgs> {
+export function getSetMintInstructionDataEncoder(): FixedSizeEncoder<SetMintInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["identifier", getSecp256r1PubkeyEncoder()],
-      ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
-      ["tokenType", getPhygitalTokenTypeEncoder()],
+      ["mint", getAddressEncoder()],
     ]),
-    (value) => ({ ...value, discriminator: INITIALIZE_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: SET_MINT_DISCRIMINATOR }),
   );
 }
 
-export function getInitializeInstructionDataDecoder(): FixedSizeDecoder<InitializeInstructionData> {
+export function getSetMintInstructionDataDecoder(): FixedSizeDecoder<SetMintInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["identifier", getSecp256r1PubkeyDecoder()],
-    ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
-    ["tokenType", getPhygitalTokenTypeDecoder()],
+    ["mint", getAddressDecoder()],
   ]);
 }
 
-export function getInitializeInstructionDataCodec(): FixedSizeCodec<
-  InitializeInstructionDataArgs,
-  InitializeInstructionData
+export function getSetMintInstructionDataCodec(): FixedSizeCodec<
+  SetMintInstructionDataArgs,
+  SetMintInstructionData
 > {
   return combineCodec(
-    getInitializeInstructionDataEncoder(),
-    getInitializeInstructionDataDecoder(),
+    getSetMintInstructionDataEncoder(),
+    getSetMintInstructionDataDecoder(),
   );
 }
 
-export type InitializeInput<
+export type SetMintInput<
   TAccountAuthority extends string = string,
   TAccountToken extends string = string,
-  TAccountSystemProgram extends string = string,
 > = {
   authority?: TransactionSigner<TAccountAuthority>;
   token: Address<TAccountToken>;
-  systemProgram?: Address<TAccountSystemProgram>;
-  identifier: InitializeInstructionDataArgs["identifier"];
-  secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
-  tokenType: InitializeInstructionDataArgs["tokenType"];
+  mint: SetMintInstructionDataArgs["mint"];
 };
 
-export function getInitializeInstruction<
+export function getSetMintInstruction<
   TAccountAuthority extends string,
   TAccountToken extends string,
-  TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: InitializeInput<
-    TAccountAuthority,
-    TAccountToken,
-    TAccountSystemProgram
-  >,
+  input: SetMintInput<TAccountAuthority, TAccountToken>,
   config?: { programAddress?: TProgramAddress },
-): InitializeInstruction<
-  TProgramAddress,
-  TAccountAuthority,
-  TAccountToken,
-  TAccountSystemProgram
-> {
+): SetMintInstruction<TProgramAddress, TAccountAuthority, TAccountToken> {
   // Program address.
   const programAddress =
     config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: true },
+    authority: { value: input.authority ?? null, isWritable: false },
     token: { value: input.token ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -180,31 +141,21 @@ export function getInitializeInstruction<
     accounts.authority.value =
       "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF" as Address<"G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF">;
   }
-  if (!accounts.systemProgram.value) {
-    accounts.systemProgram.value =
-      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
-  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
       getAccountMeta("token", accounts.token),
-      getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getInitializeInstructionDataEncoder().encode(
-      args as InitializeInstructionDataArgs,
+    data: getSetMintInstructionDataEncoder().encode(
+      args as SetMintInstructionDataArgs,
     ),
     programAddress,
-  } as InitializeInstruction<
-    TProgramAddress,
-    TAccountAuthority,
-    TAccountToken,
-    TAccountSystemProgram
-  >);
+  } as SetMintInstruction<TProgramAddress, TAccountAuthority, TAccountToken>);
 }
 
-export type ParsedInitializeInstruction<
+export type ParsedSetMintInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
@@ -212,25 +163,24 @@ export type ParsedInitializeInstruction<
   accounts: {
     authority: TAccountMetas[0];
     token: TAccountMetas[1];
-    systemProgram: TAccountMetas[2];
   };
-  data: InitializeInstructionData;
+  data: SetMintInstructionData;
 };
 
-export function parseInitializeInstruction<
+export function parseSetMintInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedInitializeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 3) {
+): ParsedSetMintInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 2) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 3,
+        expectedAccountMetas: 2,
       },
     );
   }
@@ -242,11 +192,7 @@ export function parseInitializeInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: {
-      authority: getNextAccount(),
-      token: getNextAccount(),
-      systemProgram: getNextAccount(),
-    },
-    data: getInitializeInstructionDataDecoder().decode(instruction.data),
+    accounts: { authority: getNextAccount(), token: getNextAccount() },
+    data: getSetMintInstructionDataDecoder().decode(instruction.data),
   };
 }

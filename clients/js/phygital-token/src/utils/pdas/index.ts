@@ -1,1 +1,1 @@
-export * from "./asset.js"
+export * from "./token.js";

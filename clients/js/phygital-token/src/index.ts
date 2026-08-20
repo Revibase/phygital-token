@@ -6,12 +6,12 @@ export {
 } from "./instructions/transfer.js";
 
 export {
-  beginVerifyAsset,
-  completeVerifyAsset,
-  authenticatePasskeyForVerifyAsset,
-  buildVerifyAssetArgs,
-  type VerifyAssetSession,
-} from "./instructions/verifyAsset.js";
+  beginVerify,
+  completeVerify,
+  authenticatePasskeyForVerify,
+  buildVerifyArgs,
+  type VerifySession,
+} from "./instructions/verify.js";
 
 export {
   buildInitializeInstruction,
@@ -21,14 +21,19 @@ export {
 } from "./instructions/initialize.js";
 
 export {
+  buildSetMintInstruction,
+  type SetMintParams,
+} from "./instructions/setMint.js";
+
+export {
   buildSquadsInitializeInstructions,
   type BuildSquadsInitializeInput,
   type BuildSquadsInitializeResult,
 } from "./instructions/squadsInitialize.js";
 
 export {
-  fetchAssetByIdentifier,
-  fetchAllAssetsFromOwner,
+  fetchTokenByIdentifier,
+  fetchAllTokensFromOwner,
 } from "./utils/metadata.js";
 
 export {
@@ -38,9 +43,9 @@ export {
   type VerifyResponseOptions,
 } from "./utils/verify.js";
 
-export { findAssetPda } from "./utils/pdas/index.js";
+export { findTokenPda } from "./utils/pdas/index.js";
 
-export { INITIALIZE_AUTHORITY, INITIALIZE_MULTISIG_PDA } from "./utils/consts.js";
+export { ADMIN, INITIALIZE_MULTISIG_PDA } from "./utils/consts.js";
 
 export * from "./generated/index.js";
 
@@ -53,8 +58,8 @@ export {
 export {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
-  buildVerifyAssetChallenge,
-  buildVerifyAssetChallengeFromMessage,
+  buildVerifyChallenge,
+  buildVerifyChallengeFromMessage,
   buildVerifyInputFromWebAuthn,
   type WebAuthnSecp256r1Verification,
 } from "./utils/passkey/secp256r1.js";

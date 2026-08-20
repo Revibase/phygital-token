@@ -51,20 +51,20 @@ export function buildVerifyInputFromWebAuthn(input: {
 }
 
 export async function buildTransferChallenge(input: {
-  asset: Address;
+  token: Address;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
   return sha256(
     concatBytes(
       TRANSFER_ACTION_BYTES,
-      encodeAddress(input.asset),
+      encodeAddress(input.token),
       new Uint8Array(input.slotHash),
     ),
   );
 }
 
-/** Returns `messageHash` for use as the WebAuthn challenge in verify_asset. */
-export async function buildVerifyAssetChallenge(input: {
+/** Returns `messageHash` for use as the WebAuthn challenge in `verify`. */
+export async function buildVerifyChallenge(input: {
   messageHash: Uint8Array;
 }): Promise<Uint8Array> {
   if (input.messageHash.length !== 32) {
@@ -74,10 +74,10 @@ export async function buildVerifyAssetChallenge(input: {
 }
 
 /** Convenience helper when the caller has raw message bytes instead of a hash. */
-export async function buildVerifyAssetChallengeFromMessage(input: {
+export async function buildVerifyChallengeFromMessage(input: {
   message: Uint8Array;
 }): Promise<Uint8Array> {
-  return buildVerifyAssetChallenge({ messageHash: sha256(input.message) });
+  return buildVerifyChallenge({ messageHash: sha256(input.message) });
 }
 
 export type WebAuthnSecp256r1Verification = {

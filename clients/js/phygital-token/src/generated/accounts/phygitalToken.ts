@@ -39,130 +39,143 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  getAssetTypeDecoder,
-  getAssetTypeEncoder,
+  getPhygitalTokenTypeDecoder,
+  getPhygitalTokenTypeEncoder,
   getSecp256r1PubkeyDecoder,
   getSecp256r1PubkeyEncoder,
-  type AssetType,
-  type AssetTypeArgs,
+  type PhygitalTokenType,
+  type PhygitalTokenTypeArgs,
   type Secp256r1Pubkey,
   type Secp256r1PubkeyArgs,
 } from "../types/index.js";
 
-export const ASSET_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  234, 180, 241, 252, 139, 224, 160, 8,
+export const PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  123, 198, 67, 145, 58, 49, 38, 72,
 ]);
 
-export function getAssetDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(ASSET_DISCRIMINATOR);
+export function getPhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(
+    PHYGITAL_TOKEN_DISCRIMINATOR,
+  );
 }
 
-export type Asset = {
+export type PhygitalToken = {
   discriminator: ReadonlyUint8Array;
-  assetType: AssetType;
+  tokenType: PhygitalTokenType;
   owner: Address;
   lastSignCount: number;
   isLocked: boolean;
   publicKey: Secp256r1Pubkey;
   identifier: Secp256r1Pubkey;
+  mint: Address;
 };
 
-export type AssetArgs = {
-  assetType: AssetTypeArgs;
+export type PhygitalTokenArgs = {
+  tokenType: PhygitalTokenTypeArgs;
   owner: Address;
   lastSignCount: number;
   isLocked: boolean;
   publicKey: Secp256r1PubkeyArgs;
   identifier: Secp256r1PubkeyArgs;
+  mint: Address;
 };
 
-/** Gets the encoder for {@link AssetArgs} account data. */
-export function getAssetEncoder(): FixedSizeEncoder<AssetArgs> {
+/** Gets the encoder for {@link PhygitalTokenArgs} account data. */
+export function getPhygitalTokenEncoder(): FixedSizeEncoder<PhygitalTokenArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["assetType", getAssetTypeEncoder()],
+      ["tokenType", getPhygitalTokenTypeEncoder()],
       ["owner", getAddressEncoder()],
       ["lastSignCount", getU32Encoder()],
       ["isLocked", getBooleanEncoder()],
       ["publicKey", getSecp256r1PubkeyEncoder()],
       ["identifier", getSecp256r1PubkeyEncoder()],
+      ["mint", getAddressEncoder()],
     ]),
-    (value) => ({ ...value, discriminator: ASSET_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: PHYGITAL_TOKEN_DISCRIMINATOR }),
   );
 }
 
-/** Gets the decoder for {@link Asset} account data. */
-export function getAssetDecoder(): FixedSizeDecoder<Asset> {
+/** Gets the decoder for {@link PhygitalToken} account data. */
+export function getPhygitalTokenDecoder(): FixedSizeDecoder<PhygitalToken> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["assetType", getAssetTypeDecoder()],
+    ["tokenType", getPhygitalTokenTypeDecoder()],
     ["owner", getAddressDecoder()],
     ["lastSignCount", getU32Decoder()],
     ["isLocked", getBooleanDecoder()],
     ["publicKey", getSecp256r1PubkeyDecoder()],
     ["identifier", getSecp256r1PubkeyDecoder()],
+    ["mint", getAddressDecoder()],
   ]);
 }
 
-/** Gets the codec for {@link Asset} account data. */
-export function getAssetCodec(): FixedSizeCodec<AssetArgs, Asset> {
-  return combineCodec(getAssetEncoder(), getAssetDecoder());
+/** Gets the codec for {@link PhygitalToken} account data. */
+export function getPhygitalTokenCodec(): FixedSizeCodec<
+  PhygitalTokenArgs,
+  PhygitalToken
+> {
+  return combineCodec(getPhygitalTokenEncoder(), getPhygitalTokenDecoder());
 }
 
-export function decodeAsset<TAddress extends string = string>(
+export function decodePhygitalToken<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress>,
-): Account<Asset, TAddress>;
-export function decodeAsset<TAddress extends string = string>(
+): Account<PhygitalToken, TAddress>;
+export function decodePhygitalToken<TAddress extends string = string>(
   encodedAccount: MaybeEncodedAccount<TAddress>,
-): MaybeAccount<Asset, TAddress>;
-export function decodeAsset<TAddress extends string = string>(
+): MaybeAccount<PhygitalToken, TAddress>;
+export function decodePhygitalToken<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>,
-): Account<Asset, TAddress> | MaybeAccount<Asset, TAddress> {
+): Account<PhygitalToken, TAddress> | MaybeAccount<PhygitalToken, TAddress> {
   return decodeAccount(
     encodedAccount as MaybeEncodedAccount<TAddress>,
-    getAssetDecoder(),
+    getPhygitalTokenDecoder(),
   );
 }
 
-export async function fetchAsset<TAddress extends string = string>(
+export async function fetchPhygitalToken<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
   address: Address<TAddress>,
   config?: FetchAccountConfig,
-): Promise<Account<Asset, TAddress>> {
-  const maybeAccount = await fetchMaybeAsset(rpc, address, config);
+): Promise<Account<PhygitalToken, TAddress>> {
+  const maybeAccount = await fetchMaybePhygitalToken(rpc, address, config);
   assertAccountExists(maybeAccount);
   return maybeAccount;
 }
 
-export async function fetchMaybeAsset<TAddress extends string = string>(
+export async function fetchMaybePhygitalToken<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
   address: Address<TAddress>,
   config?: FetchAccountConfig,
-): Promise<MaybeAccount<Asset, TAddress>> {
+): Promise<MaybeAccount<PhygitalToken, TAddress>> {
   const maybeAccount = await fetchEncodedAccount(rpc, address, config);
-  return decodeAsset(maybeAccount);
+  return decodePhygitalToken(maybeAccount);
 }
 
-export async function fetchAllAsset(
+export async function fetchAllPhygitalToken(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
   addresses: Array<Address>,
   config?: FetchAccountsConfig,
-): Promise<Account<Asset>[]> {
-  const maybeAccounts = await fetchAllMaybeAsset(rpc, addresses, config);
+): Promise<Account<PhygitalToken>[]> {
+  const maybeAccounts = await fetchAllMaybePhygitalToken(
+    rpc,
+    addresses,
+    config,
+  );
   assertAccountsExist(maybeAccounts);
   return maybeAccounts;
 }
 
-export async function fetchAllMaybeAsset(
+export async function fetchAllMaybePhygitalToken(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
   addresses: Array<Address>,
   config?: FetchAccountsConfig,
-): Promise<MaybeAccount<Asset>[]> {
+): Promise<MaybeAccount<PhygitalToken>[]> {
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
-  return maybeAccounts.map((maybeAccount) => decodeAsset(maybeAccount));
+  return maybeAccounts.map((maybeAccount) => decodePhygitalToken(maybeAccount));
 }
 
-export function getAssetSize(): number {
-  return 112;
+export function getPhygitalTokenSize(): number {
+  return 144;
 }

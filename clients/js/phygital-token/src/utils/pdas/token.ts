@@ -8,22 +8,22 @@ import {
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 } from "../../generated/index.js";
 
-const ASSET_SEED = new TextEncoder().encode("asset");
+const TOKEN_SEED = new TextEncoder().encode("token");
 
 /**
- * Derive the asset PDA from the compressed secp256r1 passkey public key.
- * PDA seeds: `["asset", pubkey[1..]]` — the compressed-point prefix byte is dropped.
+ * Derive the token PDA from the compressed secp256r1 passkey public key.
+ * PDA seeds: `["token", pubkey[1..]]` — the compressed-point prefix byte is dropped.
  */
-export async function findAssetPda(
+export async function findTokenPda(
   secp256r1Pubkey: Secp256r1Pubkey,
 ): Promise<Address> {
-  const [asset] = await getProgramDerivedAddress({
+  const [token] = await getProgramDerivedAddress({
     programAddress: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     seeds: [
-      getBytesEncoder().encode(ASSET_SEED),
+      getBytesEncoder().encode(TOKEN_SEED),
       getBytesEncoder().encode(secp256r1Pubkey[0].slice(1)),
     ],
   });
 
-  return asset;
+  return token;
 }

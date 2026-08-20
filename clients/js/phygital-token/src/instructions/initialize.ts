@@ -4,10 +4,10 @@ import {
   type TransactionSigner,
 } from "@solana/kit";
 import { getInitializeInstruction } from "../generated/instructions/initialize.js";
-import type { AssetType } from "../generated/types/assetType.js";
+import type { PhygitalTokenType } from "../generated/types/phygitalTokenType.js";
 import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey.js";
 import { base64URLStringToBuffer } from "../utils/passkey/internal.js";
-import { findAssetPda } from "../utils/pdas/asset.js";
+import { findTokenPda } from "../utils/pdas/token.js";
 import type { Base64URLString } from "../utils/passkey/webauthn.js";
 
 /**
@@ -43,30 +43,30 @@ export const parseIdentifier = parseSecp256r1Pubkey;
 
 export type InitializeParams = {
   authority: TransactionSigner;
-  /** Physical chip id stored on the asset for binding (not the PDA seed). */
+  /** Physical chip id stored on the token for binding (not the PDA seed). */
   identifier: Secp256r1Pubkey;
-  /** Passkey that seeds the asset PDA and authorizes transfers. */
+  /** Passkey that seeds the token PDA and authorizes transfers. */
   secp256r1Pubkey: Secp256r1Pubkey;
-  assetType: AssetType;
+  tokenType: PhygitalTokenType;
 };
 
 /**
- * Build the `initialize` instruction that creates an asset PDA seeded by
+ * Build the `initialize` instruction that creates a token PDA seeded by
  * `secp256r1Pubkey` and stores `identifier` as a binding field.
  *
- * `authority` must be the designated initialize authority
+ * `authority` must be the designated admin
  * (`G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF`).
  */
 export async function buildInitializeInstruction(
   input: InitializeParams,
-): Promise<{ instruction: Instruction; asset: Address }> {
-  const asset = await findAssetPda(input.secp256r1Pubkey);
+): Promise<{ instruction: Instruction; token: Address }> {
+  const token = await findTokenPda(input.secp256r1Pubkey);
   const instruction = getInitializeInstruction({
     authority: input.authority,
-    asset,
+    token,
     identifier: input.identifier,
     secp256r1Pubkey: input.secp256r1Pubkey,
-    assetType: input.assetType,
+    tokenType: input.tokenType,
   });
-  return { instruction, asset };
+  return { instruction, token };
 }

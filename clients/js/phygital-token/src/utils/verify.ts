@@ -74,7 +74,7 @@ export async function startAuthentication(
  * of throwing.
  *
  * Does not submit a transaction. After a successful verify, look up on-chain
- * state with `findAssetPda` + `fetchAsset` (PDA is seeded by the passkey).
+ * state with `findTokenPda` + `fetchPhygitalToken` (PDA is seeded by the passkey).
  */
 export function verifyResponse({
   expectedMessage,

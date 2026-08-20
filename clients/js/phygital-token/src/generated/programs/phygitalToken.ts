@@ -33,35 +33,43 @@ import {
   type SelfFetchFunctions,
   type SelfPlanAndSendFunctions,
 } from "@solana/kit/program-client-core";
-import { getAssetCodec, type Asset, type AssetArgs } from "../accounts/index.js";
+import {
+  getPhygitalTokenCodec,
+  type PhygitalToken,
+  type PhygitalTokenArgs,
+} from "../accounts/index.js";
 import {
   getInitializeInstruction,
   getRemoveOwnershipInstruction,
   getSetLockStateInstruction,
+  getSetMintInstruction,
   getTransferOwnershipInstruction,
-  getVerifyAssetInstruction,
+  getVerifyInstruction,
   parseInitializeInstruction,
   parseRemoveOwnershipInstruction,
   parseSetLockStateInstruction,
+  parseSetMintInstruction,
   parseTransferOwnershipInstruction,
-  parseVerifyAssetInstruction,
+  parseVerifyInstruction,
   type InitializeInput,
   type ParsedInitializeInstruction,
   type ParsedRemoveOwnershipInstruction,
   type ParsedSetLockStateInstruction,
+  type ParsedSetMintInstruction,
   type ParsedTransferOwnershipInstruction,
-  type ParsedVerifyAssetInstruction,
+  type ParsedVerifyInstruction,
   type RemoveOwnershipInput,
   type SetLockStateInput,
+  type SetMintInput,
   type TransferOwnershipInput,
-  type VerifyAssetInput,
+  type VerifyInput,
 } from "../instructions/index.js";
 
 export const PHYGITAL_TOKEN_PROGRAM_ADDRESS =
   "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ" as Address<"DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ">;
 
 export enum PhygitalTokenAccount {
-  Asset,
+  PhygitalToken,
 }
 
 export function identifyPhygitalTokenAccount(
@@ -72,12 +80,12 @@ export function identifyPhygitalTokenAccount(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([234, 180, 241, 252, 139, 224, 160, 8]),
+        new Uint8Array([123, 198, 67, 145, 58, 49, 38, 72]),
       ),
       0,
     )
   ) {
-    return PhygitalTokenAccount.Asset;
+    return PhygitalTokenAccount.PhygitalToken;
   }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
@@ -89,8 +97,9 @@ export enum PhygitalTokenInstruction {
   Initialize,
   RemoveOwnership,
   SetLockState,
+  SetMint,
   TransferOwnership,
-  VerifyAsset,
+  Verify,
 }
 
 export function identifyPhygitalTokenInstruction(
@@ -134,6 +143,17 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([166, 129, 167, 223, 137, 118, 212, 47]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.SetMint;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([65, 177, 215, 73, 53, 45, 99, 47]),
       ),
       0,
@@ -145,12 +165,12 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([136, 51, 110, 228, 129, 94, 141, 179]),
+        new Uint8Array([133, 161, 141, 48, 120, 198, 88, 150]),
       ),
       0,
     )
   ) {
-    return PhygitalTokenInstruction.VerifyAsset;
+    return PhygitalTokenInstruction.Verify;
   }
   throw new SolanaError(
     SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
@@ -171,11 +191,14 @@ export type ParsedPhygitalTokenInstruction<
       instructionType: PhygitalTokenInstruction.SetLockState;
     } & ParsedSetLockStateInstruction<TProgram>)
   | ({
+      instructionType: PhygitalTokenInstruction.SetMint;
+    } & ParsedSetMintInstruction<TProgram>)
+  | ({
       instructionType: PhygitalTokenInstruction.TransferOwnership;
     } & ParsedTransferOwnershipInstruction<TProgram>)
   | ({
-      instructionType: PhygitalTokenInstruction.VerifyAsset;
-    } & ParsedVerifyAssetInstruction<TProgram>);
+      instructionType: PhygitalTokenInstruction.Verify;
+    } & ParsedVerifyInstruction<TProgram>);
 
 export function parsePhygitalTokenInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -203,6 +226,13 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseSetLockStateInstruction(instruction),
       };
     }
+    case PhygitalTokenInstruction.SetMint: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.SetMint,
+        ...parseSetMintInstruction(instruction),
+      };
+    }
     case PhygitalTokenInstruction.TransferOwnership: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -210,11 +240,11 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseTransferOwnershipInstruction(instruction),
       };
     }
-    case PhygitalTokenInstruction.VerifyAsset: {
+    case PhygitalTokenInstruction.Verify: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: PhygitalTokenInstruction.VerifyAsset,
-        ...parseVerifyAssetInstruction(instruction),
+        instructionType: PhygitalTokenInstruction.Verify,
+        ...parseVerifyInstruction(instruction),
       };
     }
     default:
@@ -237,8 +267,8 @@ export type PhygitalTokenPlugin = {
 };
 
 export type PhygitalTokenPluginAccounts = {
-  asset: ReturnType<typeof getAssetCodec> &
-    SelfFetchFunctions<AssetArgs, Asset>;
+  phygitalToken: ReturnType<typeof getPhygitalTokenCodec> &
+    SelfFetchFunctions<PhygitalTokenArgs, PhygitalToken>;
 };
 
 export type PhygitalTokenPluginInstructions = {
@@ -252,13 +282,16 @@ export type PhygitalTokenPluginInstructions = {
   setLockState: (
     input: SetLockStateInput,
   ) => ReturnType<typeof getSetLockStateInstruction> & SelfPlanAndSendFunctions;
+  setMint: (
+    input: SetMintInput,
+  ) => ReturnType<typeof getSetMintInstruction> & SelfPlanAndSendFunctions;
   transferOwnership: (
     input: TransferOwnershipInput,
   ) => ReturnType<typeof getTransferOwnershipInstruction> &
     SelfPlanAndSendFunctions;
-  verifyAsset: (
-    input: VerifyAssetInput,
-  ) => ReturnType<typeof getVerifyAssetInstruction> & SelfPlanAndSendFunctions;
+  verify: (
+    input: VerifyInput,
+  ) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
 };
 
 export type PhygitalTokenPluginRequirements = ClientWithRpc<
@@ -273,7 +306,9 @@ export function phygitalTokenProgram() {
   ): ExtendedClient<T, { phygitalToken: PhygitalTokenPlugin }> => {
     return extendClient(client, {
       phygitalToken: <PhygitalTokenPlugin>{
-        accounts: { asset: addSelfFetchFunctions(client, getAssetCodec()) },
+        accounts: {
+          phygitalToken: addSelfFetchFunctions(client, getPhygitalTokenCodec()),
+        },
         instructions: {
           initialize: (input) =>
             addSelfPlanAndSendFunctions(
@@ -290,16 +325,15 @@ export function phygitalTokenProgram() {
               client,
               getSetLockStateInstruction(input),
             ),
+          setMint: (input) =>
+            addSelfPlanAndSendFunctions(client, getSetMintInstruction(input)),
           transferOwnership: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getTransferOwnershipInstruction(input),
             ),
-          verifyAsset: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getVerifyAssetInstruction(input),
-            ),
+          verify: (input) =>
+            addSelfPlanAndSendFunctions(client, getVerifyInstruction(input)),
         },
         identifyAccount: identifyPhygitalTokenAccount,
         identifyInstruction: identifyPhygitalTokenInstruction,

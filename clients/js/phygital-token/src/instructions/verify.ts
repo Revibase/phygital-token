@@ -4,17 +4,17 @@ import {
   bufferToBase64URLString,
   nfcWebAuthnRequestOptions,
 } from "../utils/passkey/webauthn.js";
-import type { Address, Instruction, Rpc, SolanaRpcApi } from "@solana/kit";
+import type { Address, Instruction } from "@solana/kit";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
-  buildVerifyAssetChallenge,
+  buildVerifyChallenge,
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
-import { getVerifyAssetInstruction } from "../generated/index.js";
+import { getVerifyInstruction } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "./initialize.js";
-import { findAssetPda } from "../utils/pdas/asset.js";
+import { findTokenPda } from "../utils/pdas/token.js";
 
-export type VerifyAssetSession = {
+export type VerifySession = {
   messageHash: Uint8Array;
   challenge: Uint8Array;
   /** When set, on-chain check requires SHA256(rpId) == authenticatorData[0..32]. */
@@ -24,17 +24,17 @@ export type VerifyAssetSession = {
 };
 
 /**
- * Prepares a verify-asset session with `messageHash` as the WebAuthn challenge.
- * The asset PDA is derived after the NFC tap from `response.id` (passkey).
- * Must be followed promptly by {@link authenticatePasskeyForVerifyAsset} and
- * {@link buildVerifyAssetArgs} / {@link completeVerifyAsset}.
+ * Prepares a verify session with `messageHash` as the WebAuthn challenge.
+ * The token PDA is derived after the NFC tap from `response.id` (passkey).
+ * Must be followed promptly by {@link authenticatePasskeyForVerify} and
+ * {@link buildVerifyArgs} / {@link completeVerify}.
  */
-export async function beginVerifyAsset(input: {
+export async function beginVerify(input: {
   messageHash: Uint8Array;
   expectedRpId?: string;
   expectedOrigin?: string;
-}): Promise<VerifyAssetSession> {
-  const challenge = await buildVerifyAssetChallenge({
+}): Promise<VerifySession> {
+  const challenge = await buildVerifyChallenge({
     messageHash: input.messageHash,
   });
 
@@ -48,10 +48,10 @@ export async function beginVerifyAsset(input: {
 
 /**
  * Prompts an NFC / WebAuthn tap for the session challenge from
- * {@link beginVerifyAsset}.
+ * {@link beginVerify}.
  */
-export async function authenticatePasskeyForVerifyAsset(
-  session: VerifyAssetSession,
+export async function authenticatePasskeyForVerify(
+  session: VerifySession,
 ): Promise<AuthenticationResponseJSON> {
   return authenticateWithWebauthn(
     nfcWebAuthnRequestOptions(bufferToBase64URLString(session.challenge)),
@@ -59,20 +59,20 @@ export async function authenticatePasskeyForVerifyAsset(
 }
 
 /**
- * Derives the asset PDA from the tap (`response.id`) and builds the
- * secp256r1 verify instruction + args for `verify_asset`.
+ * Derives the token PDA from the tap (`response.id`) and builds the
+ * secp256r1 verify instruction + args for `verify`.
  */
-export async function buildVerifyAssetArgs(
+export async function buildVerifyArgs(
   response: AuthenticationResponseJSON,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<{
-  assetPda: Address;
+  tokenPda: Address;
   secp256r1Verify: Instruction;
   signedMessageIndex: number;
   clientDataJson: Uint8Array;
 }> {
   const secp256r1PublicKey = parseSecp256r1Pubkey(response.id);
-  const assetPda = await findAssetPda(secp256r1PublicKey);
+  const tokenPda = await findTokenPda(secp256r1PublicKey);
   const { secp256r1Verify, signedMessageIndex, clientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       secp256r1PublicKey,
@@ -80,7 +80,7 @@ export async function buildVerifyAssetArgs(
       existingSecp256r1VerifyInputs,
     });
   return {
-    assetPda,
+    tokenPda,
     secp256r1Verify,
     signedMessageIndex,
     clientDataJson,
@@ -88,23 +88,20 @@ export async function buildVerifyAssetArgs(
 }
 
 /**
- * Builds `[secp256r1_verify, verify_asset]` after asset authentication.
+ * Builds `[secp256r1_verify, verify]` after token authentication.
  * Does not change ownership — only proves possession and advances
  * `last_sign_count`.
  */
-export async function completeVerifyAsset(
-  session: VerifyAssetSession,
+export async function completeVerify(
+  session: VerifySession,
   response: AuthenticationResponseJSON,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
-  const { assetPda, secp256r1Verify, signedMessageIndex, clientDataJson } =
-    await buildVerifyAssetArgs(
-      response,
-      existingSecp256r1VerifyInputs,
-    );
+  const { tokenPda, secp256r1Verify, signedMessageIndex, clientDataJson } =
+    await buildVerifyArgs(response, existingSecp256r1VerifyInputs);
 
-  const verifyAssetInstruction = getVerifyAssetInstruction({
-    asset: assetPda,
+  const verifyInstruction = getVerifyInstruction({
+    token: tokenPda,
     secp256r1VerifyArgs: {
       verifyArgsRelativeIndex: -1,
       signedMessageIndex,
@@ -115,5 +112,5 @@ export async function completeVerifyAsset(
     expectedOrigin: session.expectedOrigin ?? null,
   });
 
-  return [secp256r1Verify, verifyAssetInstruction];
+  return [secp256r1Verify, verifyInstruction];
 }

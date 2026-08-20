@@ -36,34 +36,29 @@ export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x1778; // 6008
 export const PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x1779; // 6009
 /** InvalidSysvarDataFormat: Invalid sysvar data format */
 export const PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x177a; // 6010
-/** InvalidRecipient: Recipient cannot be the default (zero) pubkey */
-export const PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT = 0x177b; // 6011
-/** AssetIsCurrentlyLocked: The owner needs to unlock the asset to enable transfer. */
-export const PHYGITAL_TOKEN_ERROR__ASSET_IS_CURRENTLY_LOCKED = 0x177c; // 6012
-/** AssetIsNotLockable: This asset is not lockable. */
-export const PHYGITAL_TOKEN_ERROR__ASSET_IS_NOT_LOCKABLE = 0x177d; // 6013
+/** TokenIsCurrentlyLocked: The owner needs to unlock the token to enable transfer. */
+export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED = 0x177b; // 6011
+/** TokenIsNotLockable: This token is not lockable. */
+export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE = 0x177c; // 6012
 /** UnableToParseClientData: Unable to parse client data JSON. */
-export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x177e; // 6014
+export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x177d; // 6013
 /** ChallengeHashMismatch: Challenge hash mismatch. */
-export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x177f; // 6015
+export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x177e; // 6014
 /** InvalidAuthenticatorData: Authenticator data is too short to contain WebAuthn flags. */
-export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x1780; // 6016
+export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x177f; // 6015
 /** UserPresenceNotVerified: WebAuthn user presence flag (UP) was not set by the authenticator. */
-export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x1781; // 6017
+export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x1780; // 6016
 /** RpIdMismatch: WebAuthn rpId hash does not match the expected relying party id. */
-export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1782; // 6018
+export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1781; // 6017
 /** OriginMismatch: WebAuthn origin does not match the expected origin. */
-export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1783; // 6019
-/** UnauthorizedAuthority: Only the designated initialize authority may create assets */
-export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1784; // 6020
+export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1782; // 6018
+/** UnauthorizedAuthority: Only the designated authority can perform this action. */
+export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1783; // 6019
 
 export type PhygitalTokenError =
-  | typeof PHYGITAL_TOKEN_ERROR__ASSET_IS_CURRENTLY_LOCKED
-  | typeof PHYGITAL_TOKEN_ERROR__ASSET_IS_NOT_LOCKABLE
   | typeof PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA
-  | typeof PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS
@@ -76,6 +71,8 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
   | typeof PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT
+  | typeof PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED
+  | typeof PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE
   | typeof PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA
   | typeof PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY
   | typeof PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED;
@@ -83,12 +80,9 @@ export type PhygitalTokenError =
 let phygitalTokenErrorMessages: Record<PhygitalTokenError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
   phygitalTokenErrorMessages = {
-    [PHYGITAL_TOKEN_ERROR__ASSET_IS_CURRENTLY_LOCKED]: `The owner needs to unlock the asset to enable transfer.`,
-    [PHYGITAL_TOKEN_ERROR__ASSET_IS_NOT_LOCKABLE]: `This asset is not lockable.`,
     [PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH]: `Challenge hash mismatch.`,
     [PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
     [PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA]: `Authenticator data is too short to contain WebAuthn flags.`,
-    [PHYGITAL_TOKEN_ERROR__INVALID_RECIPIENT]: `Recipient cannot be the default (zero) pubkey`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION]: `No prior secp256r1 verification instruction in this transaction matches the provided client data`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS]: `Failed to deserialize secp256r1 signature offsets from the instruction data`,
@@ -101,8 +95,10 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match token record`,
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
     [PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT]: `WebAuthn signCount must be greater than the last accepted signCount`,
+    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED]: `The owner needs to unlock the token to enable transfer.`,
+    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE]: `This token is not lockable.`,
     [PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA]: `Unable to parse client data JSON.`,
-    [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY]: `Only the designated initialize authority may create assets`,
+    [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY]: `Only the designated authority can perform this action.`,
     [PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED]: `WebAuthn user presence flag (UP) was not set by the authenticator.`,
   };
 }

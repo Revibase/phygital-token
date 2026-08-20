@@ -5,15 +5,15 @@ export const SECP256R1_PROGRAM_ADDRESS = address(
 );
 
 /**
- * Squads multisig whose vault-0 is {@link INITIALIZE_AUTHORITY}.
+ * Squads multisig whose vault-0 is {@link ADMIN}.
  * Threshold 1; rent collector is the vault.
  */
 export const INITIALIZE_MULTISIG_PDA = address(
   "EU7WsC97HeC4fLjax7otY7g4rPMy3Us1WJKNCdr2Kn7U",
 );
 
-/** Sole wallet allowed to call `initialize` (Squads vault-0 PDA on mainnet). */
-export const INITIALIZE_AUTHORITY = address(
+/** Sole wallet allowed to call `initialize` and `set_mint` (Squads vault-0 on mainnet). */
+export const ADMIN = address(
   "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF",
 );
 

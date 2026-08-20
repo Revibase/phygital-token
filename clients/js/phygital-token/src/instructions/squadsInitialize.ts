@@ -7,13 +7,10 @@ import {
   type TransactionInstruction,
 } from "@solana/web3.js";
 import { getInitializeInstruction } from "../generated/instructions/initialize.js";
-import type { AssetType } from "../generated/types/assetType.js";
+import type { PhygitalTokenType } from "../generated/types/phygitalTokenType.js";
 import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey.js";
-import {
-  INITIALIZE_AUTHORITY,
-  INITIALIZE_MULTISIG_PDA,
-} from "../utils/consts.js";
-import { findAssetPda } from "../utils/pdas/asset.js";
+import { ADMIN, INITIALIZE_MULTISIG_PDA } from "../utils/consts.js";
+import { findTokenPda } from "../utils/pdas/token.js";
 import {
   kitInstructionToWeb3,
   resolveConnection,
@@ -34,14 +31,14 @@ export type BuildSquadsInitializeInput = {
   member: Address | string;
   identifier: Secp256r1Pubkey;
   secp256r1Pubkey: Secp256r1Pubkey;
-  assetType: AssetType;
+  tokenType: PhygitalTokenType;
   /** Vault authority index; default `0`. */
   vaultIndex?: number;
   memo?: string;
 };
 
 export type BuildSquadsInitializeResult = {
-  asset: Address;
+  token: Address;
   multisigPda: Address;
   vaultPda: Address;
   transactionIndex: bigint;
@@ -73,9 +70,9 @@ export async function buildSquadsInitializeInstructions(
     index: vaultIndex,
   });
 
-  if (vaultPda.toBase58() !== INITIALIZE_AUTHORITY) {
+  if (vaultPda.toBase58() !== ADMIN) {
     throw new Error(
-      `Squads vault ${vaultPda.toBase58()} (index ${vaultIndex}) does not match INITIALIZE_AUTHORITY ${INITIALIZE_AUTHORITY}.`,
+      `Squads vault ${vaultPda.toBase58()} (index ${vaultIndex}) does not match ADMIN ${ADMIN}.`,
     );
   }
 
@@ -93,13 +90,13 @@ export async function buildSquadsInitializeInstructions(
   const transactionIndex =
     BigInt(multisig.utils.toBigInt(multisigInfo.transactionIndex)) + 1n;
 
-  const asset = await findAssetPda(input.secp256r1Pubkey);
+  const token = await findTokenPda(input.secp256r1Pubkey);
   const initializeIx = buildVaultInitializeInstruction({
     vaultPda,
-    asset,
+    token,
     identifier: input.identifier,
     secp256r1Pubkey: input.secp256r1Pubkey,
-    assetType: input.assetType,
+    tokenType: input.tokenType,
   });
 
   const { blockhash } = await connection.getLatestBlockhash();
@@ -147,7 +144,7 @@ export async function buildSquadsInitializeInstructions(
   });
 
   return {
-    asset,
+    token,
     multisigPda: toAddress(multisigPda),
     vaultPda: toAddress(vaultPda),
     transactionIndex,
@@ -217,16 +214,16 @@ async function buildVaultTransactionExecuteInstruction(input: {
 
 function buildVaultInitializeInstruction(input: {
   vaultPda: PublicKey;
-  asset: Address;
+  token: Address;
   identifier: Secp256r1Pubkey;
   secp256r1Pubkey: Secp256r1Pubkey;
-  assetType: AssetType;
+  tokenType: PhygitalTokenType;
 }): TransactionInstruction {
   const kitIx = getInitializeInstruction({
-    asset: input.asset,
+    token: input.token,
     identifier: input.identifier,
     secp256r1Pubkey: input.secp256r1Pubkey,
-    assetType: input.assetType,
+    tokenType: input.tokenType,
   });
 
   const web3Ix = kitInstructionToWeb3(kitIx);

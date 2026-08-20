@@ -51,19 +51,17 @@ import {
   type Secp256r1VerifyArgsArgs,
 } from "../types/index.js";
 
-export const VERIFY_ASSET_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  136, 51, 110, 228, 129, 94, 141, 179,
+export const VERIFY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  133, 161, 141, 48, 120, 198, 88, 150,
 ]);
 
-export function getVerifyAssetDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    VERIFY_ASSET_DISCRIMINATOR,
-  );
+export function getVerifyDiscriminatorBytes(): ReadonlyUint8Array {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(VERIFY_DISCRIMINATOR);
 }
 
-export type VerifyAssetInstruction<
+export type VerifyInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-  TAccountAsset extends string | AccountMeta<string> = string,
+  TAccountToken extends string | AccountMeta<string> = string,
   TAccountInstructionsSysvar extends string | AccountMeta<string> =
     "Sysvar1nstructions1111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -71,9 +69,9 @@ export type VerifyAssetInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountAsset extends string
-        ? WritableAccount<TAccountAsset>
-        : TAccountAsset,
+      TAccountToken extends string
+        ? WritableAccount<TAccountToken>
+        : TAccountToken,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
@@ -81,7 +79,7 @@ export type VerifyAssetInstruction<
     ]
   >;
 
-export type VerifyAssetInstructionData = {
+export type VerifyInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
   messageHash: ReadonlyUint8Array;
@@ -89,14 +87,14 @@ export type VerifyAssetInstructionData = {
   expectedOrigin: Option<string>;
 };
 
-export type VerifyAssetInstructionDataArgs = {
+export type VerifyInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
   messageHash: ReadonlyUint8Array;
   expectedRpId: OptionOrNullable<string>;
   expectedOrigin: OptionOrNullable<string>;
 };
 
-export function getVerifyAssetInstructionDataEncoder(): Encoder<VerifyAssetInstructionDataArgs> {
+export function getVerifyInstructionDataEncoder(): Encoder<VerifyInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
@@ -115,11 +113,11 @@ export function getVerifyAssetInstructionDataEncoder(): Encoder<VerifyAssetInstr
         ),
       ],
     ]),
-    (value) => ({ ...value, discriminator: VERIFY_ASSET_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: VERIFY_DISCRIMINATOR }),
   );
 }
 
-export function getVerifyAssetInstructionDataDecoder(): Decoder<VerifyAssetInstructionData> {
+export function getVerifyInstructionDataDecoder(): Decoder<VerifyInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
@@ -135,38 +133,38 @@ export function getVerifyAssetInstructionDataDecoder(): Decoder<VerifyAssetInstr
   ]);
 }
 
-export function getVerifyAssetInstructionDataCodec(): Codec<
-  VerifyAssetInstructionDataArgs,
-  VerifyAssetInstructionData
+export function getVerifyInstructionDataCodec(): Codec<
+  VerifyInstructionDataArgs,
+  VerifyInstructionData
 > {
   return combineCodec(
-    getVerifyAssetInstructionDataEncoder(),
-    getVerifyAssetInstructionDataDecoder(),
+    getVerifyInstructionDataEncoder(),
+    getVerifyInstructionDataDecoder(),
   );
 }
 
-export type VerifyAssetInput<
-  TAccountAsset extends string = string,
+export type VerifyInput<
+  TAccountToken extends string = string,
   TAccountInstructionsSysvar extends string = string,
 > = {
-  asset: Address<TAccountAsset>;
+  token: Address<TAccountToken>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-  secp256r1VerifyArgs: VerifyAssetInstructionDataArgs["secp256r1VerifyArgs"];
-  messageHash: VerifyAssetInstructionDataArgs["messageHash"];
-  expectedRpId: VerifyAssetInstructionDataArgs["expectedRpId"];
-  expectedOrigin: VerifyAssetInstructionDataArgs["expectedOrigin"];
+  secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
+  messageHash: VerifyInstructionDataArgs["messageHash"];
+  expectedRpId: VerifyInstructionDataArgs["expectedRpId"];
+  expectedOrigin: VerifyInstructionDataArgs["expectedOrigin"];
 };
 
-export function getVerifyAssetInstruction<
-  TAccountAsset extends string,
+export function getVerifyInstruction<
+  TAccountToken extends string,
   TAccountInstructionsSysvar extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: VerifyAssetInput<TAccountAsset, TAccountInstructionsSysvar>,
+  input: VerifyInput<TAccountToken, TAccountInstructionsSysvar>,
   config?: { programAddress?: TProgramAddress },
-): VerifyAssetInstruction<
+): VerifyInstruction<
   TProgramAddress,
-  TAccountAsset,
+  TAccountToken,
   TAccountInstructionsSysvar
 > {
   // Program address.
@@ -175,7 +173,7 @@ export function getVerifyAssetInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    asset: { value: input.asset ?? null, isWritable: true },
+    token: { value: input.token ?? null, isWritable: true },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
       isWritable: false,
@@ -198,40 +196,40 @@ export function getVerifyAssetInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("asset", accounts.asset),
+      getAccountMeta("token", accounts.token),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
     ],
-    data: getVerifyAssetInstructionDataEncoder().encode(
-      args as VerifyAssetInstructionDataArgs,
+    data: getVerifyInstructionDataEncoder().encode(
+      args as VerifyInstructionDataArgs,
     ),
     programAddress,
-  } as VerifyAssetInstruction<
+  } as VerifyInstruction<
     TProgramAddress,
-    TAccountAsset,
+    TAccountToken,
     TAccountInstructionsSysvar
   >);
 }
 
-export type ParsedVerifyAssetInstruction<
+export type ParsedVerifyInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    asset: TAccountMetas[0];
+    token: TAccountMetas[0];
     instructionsSysvar: TAccountMetas[1];
   };
-  data: VerifyAssetInstructionData;
+  data: VerifyInstructionData;
 };
 
-export function parseVerifyAssetInstruction<
+export function parseVerifyInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedVerifyAssetInstruction<TProgram, TAccountMetas> {
+): ParsedVerifyInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 2) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -249,7 +247,7 @@ export function parseVerifyAssetInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: { asset: getNextAccount(), instructionsSysvar: getNextAccount() },
-    data: getVerifyAssetInstructionDataDecoder().decode(instruction.data),
+    accounts: { token: getNextAccount(), instructionsSysvar: getNextAccount() },
+    data: getVerifyInstructionDataDecoder().decode(instruction.data),
   };
 }

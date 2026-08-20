@@ -1,6 +1,6 @@
 # phygital-token-sdk
 
-TypeScript client for the Phygital Token Solana program. Authenticate a phygital asset with a live NFC tap using challenge–response.
+TypeScript client for the Phygital Token Solana program. Authenticate a phygital token with a live NFC tap using challenge–response.
 
 ## Install
 
@@ -10,7 +10,7 @@ pnpm add phygital-token-sdk @solana/kit
 
 ## Authenticate with NFC device
 
-The custom authenticator uses the compressed secp256r1 **public key** as the WebAuthn `credential.id` and `user.id`. After a tap, `response.id` is that public key — and the on-chain asset PDA is seeded by that same public key. A separate chip `identifier` is stored on the asset for binding.
+The custom authenticator uses the compressed secp256r1 **public key** as the WebAuthn `credential.id` and `user.id`. After a tap, `response.id` is that public key — and the on-chain token PDA is seeded by that same public key. A separate chip `identifier` is stored on the token for binding.
 
 ```ts
 import { createSolanaRpc } from "@solana/kit";
@@ -18,8 +18,8 @@ import {
   startAuthentication,
   verifyResponse,
   parseSecp256r1Pubkey,
-  findAssetPda,
-  fetchAsset,
+  findTokenPda,
+  fetchPhygitalToken,
 } from "phygital-token-sdk";
 
 const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
@@ -35,11 +35,11 @@ const { isVerified, secp256r1PublicKey } = verifyResponse({
 });
 
 if (isVerified) {
-  const asset = await fetchAsset(
+  const token = await fetchPhygitalToken(
     rpc,
-    await findAssetPda(parseSecp256r1Pubkey(secp256r1PublicKey)),
+    await findTokenPda(parseSecp256r1Pubkey(secp256r1PublicKey)),
   );
-  // Continue with asset.data.owner 
+  // Continue with token.data.owner
 }
 ```
 

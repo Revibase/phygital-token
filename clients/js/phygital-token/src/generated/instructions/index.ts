@@ -9,5 +9,6 @@
 export * from "./initialize.js";
 export * from "./removeOwnership.js";
 export * from "./setLockState.js";
+export * from "./setMint.js";
 export * from "./transferOwnership.js";
-export * from "./verifyAsset.js";
+export * from "./verify.js";

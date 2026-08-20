@@ -22,7 +22,7 @@ import { parseSecp256r1Pubkey } from "./initialize.js";
 
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
-  asset: Address;
+  token: Address;
   slotHash: Uint8Array;
   slotNumber: bigint;
   challenge: Uint8Array;
@@ -36,37 +36,35 @@ export type TransferSession = {
  */
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
-  asset: Address;
+  token: Address;
 }): Promise<TransferSession> {
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
-    asset: input.asset,
+    token: input.token,
     slotHash,
   });
 
   return {
     rpc: input.rpc,
-    asset: input.asset,
+    token: input.token,
     slotHash,
     slotNumber,
     challenge,
   };
 }
 
-/** Prompts the physical asset passkey (WebAuthn / NFC tap). */
+/** Prompts the physical token passkey (WebAuthn / NFC tap). */
 export async function authenticatePasskeyForTransfer(
   session: TransferSession,
 ): Promise<AuthenticationResponseJSON> {
   return authenticateWithWebauthn(
-    nfcWebAuthnRequestOptions(
-      bufferToBase64URLString(session.challenge),
-    ),
+    nfcWebAuthnRequestOptions(bufferToBase64URLString(session.challenge)),
   );
 }
 
 /**
- * Builds the two on-chain instructions after asset authentication.
- * Ownership is updated on the asset PDA only — no SPL token transfer.
+ * Builds the two on-chain instructions after token authentication.
+ * Ownership is updated on the token PDA only — no SPL token transfer.
  */
 export async function completeTransfer(
   session: TransferSession,
@@ -83,7 +81,7 @@ export async function completeTransfer(
 
   const transferOwnership = getTransferOwnershipInstruction({
     recipient,
-    asset: session.asset,
+    token: session.token,
     slotNumber: session.slotNumber,
     secp256r1VerifyArgs: {
       verifyArgsRelativeIndex: -1,
