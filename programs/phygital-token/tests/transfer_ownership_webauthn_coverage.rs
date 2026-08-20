@@ -112,8 +112,13 @@ fn transfer_ownership_rejects_recipient_not_signing() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
 
-    let transfer_ix =
+    let mut transfer_ix =
         ctx.transfer_ownership_ix(recipient.pubkey(), asset.asset, verify_args, slot_number);
+    for meta in &mut transfer_ix.accounts {
+        if meta.pubkey == recipient.pubkey() {
+            meta.is_signer = false;
+        }
+    }
 
     let payer = ctx.payer.insecure_clone();
     let err =

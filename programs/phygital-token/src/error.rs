@@ -35,14 +35,11 @@ pub enum PhygitalError {
     #[msg("Invalid sysvar data format")]
     InvalidSysvarDataFormat,
 
-    #[msg("Recipient cannot be the default (zero) pubkey")]
-    InvalidRecipient,
+    #[msg("The owner needs to unlock the token to enable transfer.")]
+    TokenIsCurrentlyLocked,
 
-    #[msg("The owner needs to unlock the asset to enable transfer.")]
-    AssetIsCurrentlyLocked,
-
-    #[msg("This asset is not lockable.")]
-    AssetIsNotLockable,
+    #[msg("This token is not lockable.")]
+    TokenIsNotLockable,
 
     #[msg("Unable to parse client data JSON.")]
     UnableToParseClientData,
@@ -62,6 +59,6 @@ pub enum PhygitalError {
     #[msg("WebAuthn origin does not match the expected origin.")]
     OriginMismatch,
 
-    #[msg("Only the designated initialize authority may create assets")]
+    #[msg("Only the designated authority can perform this action.")]
     UnauthorizedAuthority,
 }

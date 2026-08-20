@@ -1,4 +1,4 @@
-use crate::{error::PhygitalError, Asset, Secp256r1Pubkey};
+use crate::{error::PhygitalError, PhygitalToken, Secp256r1Pubkey};
 use anchor_lang::prelude::*;
 
 #[event]
@@ -14,19 +14,19 @@ pub struct RemoveOwnership<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        constraint = asset.owner.key() == owner.key() @PhygitalError::OwnerMismatch
+        constraint = token.owner.key() == owner.key() @PhygitalError::OwnerMismatch
     )]
-    pub asset: Account<'info, Asset>,
+    pub token: Account<'info, PhygitalToken>,
 }
 
 pub fn handler(ctx: Context<RemoveOwnership>) -> Result<()> {
-    ctx.accounts.asset.owner = Pubkey::default();
-    ctx.accounts.asset.is_locked = false;
+    ctx.accounts.token.owner = Pubkey::default();
+    ctx.accounts.token.is_locked = false;
 
     emit!(RemoveOwnershipEvent {
         owner: ctx.accounts.owner.key(),
-        identifier: ctx.accounts.asset.identifier,
-        public_key: ctx.accounts.asset.public_key,
+        identifier: ctx.accounts.token.identifier,
+        public_key: ctx.accounts.token.public_key,
         time: Clock::get()?.unix_timestamp,
     });
 

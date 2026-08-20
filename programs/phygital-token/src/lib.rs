@@ -24,6 +24,10 @@ pub mod phygital_token {
         set_lock_state::handler(ctx, is_locked)
     }
 
+    pub fn set_mint(ctx: Context<SetMint>, mint: Pubkey) -> Result<()> {
+        set_mint::handler(ctx, mint)
+    }
+
     pub fn transfer_ownership(
         ctx: Context<TransferOwnership>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
@@ -32,14 +36,14 @@ pub mod phygital_token {
         transfer_ownership::handler(ctx, secp256r1_verify_args, slot_number)
     }
 
-    pub fn verify_asset(
-        ctx: Context<VerifyAsset>,
+    pub fn verify(
+        ctx: Context<Verify>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         message_hash: [u8; 32],
         expected_rp_id: Option<String>,
         expected_origin: Option<String>,
     ) -> Result<()> {
-        verify_asset::handler(
+        verify::handler(
             ctx,
             secp256r1_verify_args,
             message_hash,

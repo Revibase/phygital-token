@@ -2,12 +2,12 @@ use anchor_lang::prelude::*;
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 
 use crate::error::PhygitalError;
-use crate::state::Asset;
+use crate::state::PhygitalToken;
 use crate::utils::Secp256r1VerifyArgs;
 use crate::Secp256r1Pubkey;
 
 #[event]
-pub struct VerifyAssetEvent {
+pub struct VerifyEvent {
     pub message_hash: [u8; 32],
     pub owner: Pubkey,
     pub public_key: Secp256r1Pubkey,
@@ -17,15 +17,15 @@ pub struct VerifyAssetEvent {
 
 #[derive(Accounts)]
 #[instruction(secp256r1_verify_args: Secp256r1VerifyArgs)]
-pub struct VerifyAsset<'info> {
+pub struct Verify<'info> {
     #[account(
         mut,
         constraint = {
             let extracted_pubkey = secp256r1_verify_args.extract_public_key_from_instruction(&instructions_sysvar)?;
-            asset.public_key == extracted_pubkey
+            token.public_key == extracted_pubkey
         } @ PhygitalError::Secp256r1PubkeyMismatch,
     )]
-    pub asset: Account<'info, Asset>,
+    pub token: Account<'info, PhygitalToken>,
 
     /// CHECK: validated as the instructions sysvar address
     #[account(address = INSTRUCTIONS_SYSVAR_ID)]
@@ -33,7 +33,7 @@ pub struct VerifyAsset<'info> {
 }
 
 pub fn handler(
-    ctx: Context<VerifyAsset>,
+    ctx: Context<Verify>,
     secp256r1_verify_args: Secp256r1VerifyArgs,
     message_hash: [u8; 32],
     expected_rp_id: Option<String>,
@@ -41,7 +41,7 @@ pub fn handler(
 ) -> Result<()> {
     let sign_count = secp256r1_verify_args.extract_sign_count(&ctx.accounts.instructions_sysvar)?;
     require!(
-        sign_count > ctx.accounts.asset.last_sign_count,
+        sign_count > ctx.accounts.token.last_sign_count,
         PhygitalError::StaleSignCount
     );
 
@@ -55,13 +55,13 @@ pub fn handler(
         expected_origin.as_deref(),
     )?;
 
-    ctx.accounts.asset.last_sign_count = sign_count;
+    ctx.accounts.token.last_sign_count = sign_count;
 
-    emit!(VerifyAssetEvent {
+    emit!(VerifyEvent {
         message_hash,
-        owner: ctx.accounts.asset.owner,
-        identifier: ctx.accounts.asset.identifier,
-        public_key: ctx.accounts.asset.public_key,
+        owner: ctx.accounts.token.owner,
+        identifier: ctx.accounts.token.identifier,
+        public_key: ctx.accounts.token.public_key,
         time: Clock::get()?.unix_timestamp,
     });
 

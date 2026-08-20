@@ -2,7 +2,7 @@ mod common;
 
 use anchor_lang::prelude::Pubkey;
 use common::{assert_token_program_error, TestContext, TestPasskey, LAMPORTS_PER_SOL};
-use phygital_token::{AssetType, Secp256r1Pubkey};
+use phygital_token::{PhygitalTokenType, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -67,7 +67,7 @@ fn remove_ownership_rejects_owner_not_matching_asset_record() {
 fn remove_ownership_clears_lock_on_lockable_asset() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset_of_type(&passkey, AssetType::Lockable);
+    let asset = ctx.init_asset_of_type(&passkey, PhygitalTokenType::Controlled);
     let holder = Keypair::new();
 
     ctx.send_transfer_ownership(&asset, &holder, true)

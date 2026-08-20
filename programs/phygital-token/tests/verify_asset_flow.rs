@@ -17,7 +17,7 @@ fn verify_asset_succeeds_and_records_sign_count() {
     let asset = ctx.init_asset(&passkey);
 
     ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
-        .expect("verify_asset should succeed with valid passkey signature");
+        .expect("verify should succeed with valid passkey signature");
 
     assert_eq!(
         ctx.last_sign_count(asset.asset),
@@ -34,7 +34,7 @@ fn verify_asset_does_not_change_owner() {
     let owner_before = ctx.asset_owner(asset.asset);
 
     ctx.send_verify_asset(&asset, TEST_MESSAGE_HASH, true)
-        .expect("verify_asset should succeed");
+        .expect("verify should succeed");
 
     let owner_after = ctx.asset_owner(asset.asset);
     assert_eq!(owner_before, owner_after);
@@ -49,7 +49,7 @@ fn verify_asset_requires_preceding_secp256r1_instruction() {
 
     let err = ctx
         .send_verify_asset(&asset, TEST_MESSAGE_HASH, false)
-        .expect_err("verify_asset without secp256r1 ix should fail");
+        .expect_err("verify without secp256r1 ix should fail");
 
     let err_str = format!("{err:?}");
     assert!(
@@ -69,7 +69,7 @@ fn verify_asset_rejects_mismatched_message() {
     let asset = ctx.init_asset(&passkey);
 
     let (secp_ix, verify_args) = passkey.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
-    let verify_ix = ctx.verify_asset_ix(asset.asset, verify_args, SECOND_MESSAGE_HASH, None, None);
+    let verify_ix = ctx.verify_ix(asset.asset, verify_args, SECOND_MESSAGE_HASH, None, None);
 
     let payer = &ctx.payer;
     let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);
@@ -84,7 +84,7 @@ fn verify_asset_rejects_wrong_passkey() {
     let asset = ctx.init_asset(&passkey_a);
 
     let (secp_ix, verify_args) = passkey_b.verify_asset_secp256r1_instruction(TEST_MESSAGE_HASH, 1);
-    let verify_ix = ctx.verify_asset_ix(asset.asset, verify_args, TEST_MESSAGE_HASH, None, None);
+    let verify_ix = ctx.verify_ix(asset.asset, verify_args, TEST_MESSAGE_HASH, None, None);
 
     let payer = &ctx.payer;
     let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[payer]);

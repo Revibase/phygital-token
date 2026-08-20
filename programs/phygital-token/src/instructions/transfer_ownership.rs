@@ -3,9 +3,9 @@ use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 
 use crate::error::PhygitalError;
-use crate::state::Asset;
+use crate::state::PhygitalToken;
 use crate::utils::{build_transfer_challenge, Secp256r1VerifyArgs};
-use crate::{AssetType, Secp256r1Pubkey};
+use crate::{PhygitalTokenType, Secp256r1Pubkey};
 
 #[event]
 pub struct TransferEvent {
@@ -25,10 +25,10 @@ pub struct TransferOwnership<'info> {
         mut,
         constraint = {
             let extracted_pubkey = secp256r1_verify_args.extract_public_key_from_instruction(&instructions_sysvar)?;
-            asset.public_key == extracted_pubkey
+            token.public_key == extracted_pubkey
         } @ PhygitalError::Secp256r1PubkeyMismatch,
     )]
-    pub asset: Account<'info, Asset>,
+    pub token: Account<'info, PhygitalToken>,
 
     /// CHECK: validated as the SlotHashes sysvar address
     #[account(address = SLOT_HASHES_SYSVAR_ID)]
@@ -46,33 +46,33 @@ pub fn handler(
 ) -> Result<()> {
     let sign_count = secp256r1_verify_args.extract_sign_count(&ctx.accounts.instructions_sysvar)?;
     require!(
-        sign_count > ctx.accounts.asset.last_sign_count,
+        sign_count > ctx.accounts.token.last_sign_count,
         PhygitalError::StaleSignCount
     );
 
-    if ctx.accounts.asset.asset_type == AssetType::Lockable {
+    if ctx.accounts.token.token_type == PhygitalTokenType::Controlled {
         require!(
-            !ctx.accounts.asset.is_locked,
-            PhygitalError::AssetIsCurrentlyLocked
+            !ctx.accounts.token.is_locked,
+            PhygitalError::TokenIsCurrentlyLocked
         );
-        ctx.accounts.asset.is_locked = true;
+        ctx.accounts.token.is_locked = true;
     }
 
     let slot_hash = Secp256r1VerifyArgs::fetch_slot_hash(&ctx.accounts.slot_hashes, slot_number)?;
-    let expected_challenge = build_transfer_challenge(&ctx.accounts.asset.key(), slot_hash);
+    let expected_challenge = build_transfer_challenge(&ctx.accounts.token.key(), slot_hash);
 
     secp256r1_verify_args.verify_webauthn(&ctx.accounts.instructions_sysvar, expected_challenge)?;
 
     emit!(TransferEvent {
-        owner: ctx.accounts.asset.owner.key(),
+        owner: ctx.accounts.token.owner.key(),
         recipient: ctx.accounts.recipient.key(),
-        public_key: ctx.accounts.asset.public_key,
-        identifier: ctx.accounts.asset.identifier,
+        public_key: ctx.accounts.token.public_key,
+        identifier: ctx.accounts.token.identifier,
         time: Clock::get()?.unix_timestamp,
     });
 
-    ctx.accounts.asset.last_sign_count = sign_count;
-    ctx.accounts.asset.owner = ctx.accounts.recipient.key();
+    ctx.accounts.token.last_sign_count = sign_count;
+    ctx.accounts.token.owner = ctx.accounts.recipient.key();
 
     Ok(())
 }

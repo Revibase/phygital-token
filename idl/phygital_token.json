@@ -27,7 +27,7 @@
           "address": "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF"
         },
         {
-          "name": "asset",
+          "name": "token",
           "writable": true
         },
         {
@@ -64,7 +64,7 @@
           "signer": true
         },
         {
-          "name": "asset",
+          "name": "token",
           "writable": true
         }
       ],
@@ -88,7 +88,7 @@
           "signer": true
         },
         {
-          "name": "asset",
+          "name": "token",
           "writable": true
         }
       ],
@@ -96,6 +96,36 @@
         {
           "name": "is_locked",
           "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_mint",
+      "discriminator": [
+        166,
+        129,
+        167,
+        223,
+        137,
+        118,
+        212,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "address": "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF"
+        },
+        {
+          "name": "token",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "mint",
+          "type": "pubkey"
         }
       ]
     },
@@ -117,7 +147,7 @@
           "signer": true
         },
         {
-          "name": "asset",
+          "name": "token",
           "writable": true
         },
         {
@@ -145,20 +175,20 @@
       ]
     },
     {
-      "name": "verify_asset",
+      "name": "verify",
       "discriminator": [
-        136,
-        51,
-        110,
-        228,
-        129,
-        94,
+        133,
+        161,
         141,
-        179
+        48,
+        120,
+        198,
+        88,
+        150
       ],
       "accounts": [
         {
-          "name": "asset",
+          "name": "token",
           "writable": true
         },
         {
@@ -201,16 +231,16 @@
   ],
   "accounts": [
     {
-      "name": "Asset",
+      "name": "PhygitalToken",
       "discriminator": [
-        234,
-        180,
-        241,
-        252,
-        139,
-        224,
-        160,
-        8
+        123,
+        198,
+        67,
+        145,
+        58,
+        49,
+        38,
+        72
       ]
     }
   ],
@@ -255,6 +285,19 @@
       ]
     },
     {
+      "name": "SetMintEvent",
+      "discriminator": [
+        145,
+        196,
+        27,
+        38,
+        159,
+        104,
+        87,
+        76
+      ]
+    },
+    {
       "name": "TransferEvent",
       "discriminator": [
         100,
@@ -268,16 +311,16 @@
       ]
     },
     {
-      "name": "VerifyAssetEvent",
+      "name": "VerifyEvent",
       "discriminator": [
-        166,
-        125,
-        75,
-        149,
-        250,
-        89,
-        75,
-        126
+        94,
+        218,
+        113,
+        162,
+        2,
+        150,
+        241,
+        2
       ]
     }
   ],
@@ -339,114 +382,51 @@
     },
     {
       "code": 6011,
-      "name": "InvalidRecipient",
-      "msg": "Recipient cannot be the default (zero) pubkey"
+      "name": "TokenIsCurrentlyLocked",
+      "msg": "The owner needs to unlock the token to enable transfer."
     },
     {
       "code": 6012,
-      "name": "AssetIsCurrentlyLocked",
-      "msg": "The owner needs to unlock the asset to enable transfer."
+      "name": "TokenIsNotLockable",
+      "msg": "This token is not lockable."
     },
     {
       "code": 6013,
-      "name": "AssetIsNotLockable",
-      "msg": "This asset is not lockable."
-    },
-    {
-      "code": 6014,
       "name": "UnableToParseClientData",
       "msg": "Unable to parse client data JSON."
     },
     {
-      "code": 6015,
+      "code": 6014,
       "name": "ChallengeHashMismatch",
       "msg": "Challenge hash mismatch."
     },
     {
-      "code": 6016,
+      "code": 6015,
       "name": "InvalidAuthenticatorData",
       "msg": "Authenticator data is too short to contain WebAuthn flags."
     },
     {
-      "code": 6017,
+      "code": 6016,
       "name": "UserPresenceNotVerified",
       "msg": "WebAuthn user presence flag (UP) was not set by the authenticator."
     },
     {
-      "code": 6018,
+      "code": 6017,
       "name": "RpIdMismatch",
       "msg": "WebAuthn rpId hash does not match the expected relying party id."
     },
     {
-      "code": 6019,
+      "code": 6018,
       "name": "OriginMismatch",
       "msg": "WebAuthn origin does not match the expected origin."
     },
     {
-      "code": 6020,
+      "code": 6019,
       "name": "UnauthorizedAuthority",
-      "msg": "Only the designated initialize authority may create assets"
+      "msg": "Only the designated authority can perform this action."
     }
   ],
   "types": [
-    {
-      "name": "Asset",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "asset_type",
-            "type": {
-              "defined": {
-                "name": "AssetType"
-              }
-            }
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "last_sign_count",
-            "type": "u32"
-          },
-          {
-            "name": "is_locked",
-            "type": "bool"
-          },
-          {
-            "name": "public_key",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "identifier",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "name": "AssetType",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "Lockable"
-          },
-          {
-            "name": "Transferable"
-          }
-        ]
-      }
-    },
     {
       "name": "InitializeArgs",
       "type": {
@@ -469,10 +449,10 @@
             }
           },
           {
-            "name": "asset_type",
+            "name": "token_type",
             "type": {
               "defined": {
-                "name": "AssetType"
+                "name": "PhygitalTokenType"
               }
             }
           }
@@ -507,6 +487,68 @@
           {
             "name": "time",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PhygitalToken",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "token_type",
+            "type": {
+              "defined": {
+                "name": "PhygitalTokenType"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_sign_count",
+            "type": "u32"
+          },
+          {
+            "name": "is_locked",
+            "type": "bool"
+          },
+          {
+            "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "identifier",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PhygitalTokenType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Controlled"
+          },
+          {
+            "name": "Bearer"
           }
         ]
       }
@@ -614,6 +656,42 @@
       }
     },
     {
+      "name": "SetMintEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "identifier",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "TransferEvent",
       "type": {
         "kind": "struct",
@@ -650,7 +728,7 @@
       }
     },
     {
-      "name": "VerifyAssetEvent",
+      "name": "VerifyEvent",
       "type": {
         "kind": "struct",
         "fields": [

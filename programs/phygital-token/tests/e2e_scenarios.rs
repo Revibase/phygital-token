@@ -4,8 +4,8 @@ use anchor_lang::prelude::Pubkey;
 use common::{
     assert_token_program_error, current_slot_entry, unique_identifier, TestContext, TestPasskey,
 };
-use phygital_token::constants::INITIALIZE_AUTHORITY;
-use phygital_token::{AssetType, InitializeArgs, Secp256r1Pubkey};
+use phygital_token::constants::ADMIN;
+use phygital_token::{PhygitalTokenType, InitializeArgs, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -90,7 +90,7 @@ fn e2e_remove_ownership_from_unowned_asset_is_rejected() {
 fn e2e_locked_holder_can_forfeit_via_remove_ownership() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset_of_type(&passkey, AssetType::Lockable);
+    let asset = ctx.init_asset_of_type(&passkey, PhygitalTokenType::Controlled);
     let holder = Keypair::new();
     let next_recipient = Keypair::new();
 
@@ -102,7 +102,7 @@ fn e2e_locked_holder_can_forfeit_via_remove_ownership() {
     ctx.set_current_slot(first_slot.saturating_add(1));
 
     let err = ctx.send_transfer_ownership(&asset, &next_recipient, true);
-    assert_token_program_error(err, "AssetIsCurrentlyLocked");
+    assert_token_program_error(err, "TokenIsCurrentlyLocked");
 
     ctx.send_remove_ownership(&asset, &holder)
         .expect("forfeit locked asset");
@@ -125,10 +125,10 @@ fn e2e_asset_pubkey_reinit_is_blocked() {
     let args = InitializeArgs {
         identifier: unique_identifier(),
         secp256r1_pubkey: Secp256r1Pubkey(passkey.compressed_pubkey),
-        asset_type: AssetType::Transferable,
+        token_type: PhygitalTokenType::Bearer,
     };
-    let ix = ctx.initialize_ix(INITIALIZE_AUTHORITY, asset.asset, args);
-    TestContext::send_instruction_as(&mut ctx.svm, ix, INITIALIZE_AUTHORITY)
+    let ix = ctx.initialize_ix(ADMIN, asset.asset, args);
+    TestContext::send_instruction_as(&mut ctx.svm, ix, ADMIN)
         .expect_err("re-initializing an existing asset PDA should fail");
 }
 
@@ -141,10 +141,35 @@ fn e2e_initialize_rejects_non_authority() {
     let args = InitializeArgs {
         identifier: unique_identifier(),
         secp256r1_pubkey,
-        asset_type: AssetType::Transferable,
+        token_type: PhygitalTokenType::Bearer,
     };
     let stranger = ctx.payer.insecure_clone();
     let ix = ctx.initialize_ix(stranger.pubkey(), asset, args);
     let result = TestContext::send_instruction(&mut ctx.svm, ix, &[&stranger]);
     assert_token_program_error(result, "UnauthorizedAuthority");
+}
+
+#[test]
+fn e2e_set_mint_then_transfer() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let asset = ctx.init_asset(&passkey);
+    let mint = Keypair::new().pubkey();
+    let recipient = Keypair::new();
+
+    assert_eq!(ctx.asset_mint(asset.asset), Pubkey::default());
+
+    ctx.send_set_mint(asset.asset, mint)
+        .expect("bind mint before first claim");
+    assert_eq!(ctx.asset_mint(asset.asset), mint);
+
+    ctx.send_transfer_ownership(&asset, &recipient, true)
+        .expect("claim after set_mint");
+
+    assert_eq!(ctx.asset_owner(asset.asset), recipient.pubkey());
+    assert_eq!(
+        ctx.asset_mint(asset.asset),
+        mint,
+        "transfer must not clear the bound mint"
+    );
 }

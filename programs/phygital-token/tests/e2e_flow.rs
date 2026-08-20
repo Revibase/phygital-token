@@ -28,6 +28,11 @@ fn e2e_initialize_and_transfer() {
         "identifier must be distinct from the passkey public key"
     );
     assert_eq!(instance.last_sign_count, 0);
+    assert_eq!(
+        instance.mint,
+        Pubkey::default(),
+        "mint is unset until set_mint"
+    );
 
     ctx.send_transfer_ownership(&asset, &recipient, true)
         .expect("transfer_ownership should succeed");

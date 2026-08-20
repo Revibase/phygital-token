@@ -88,7 +88,7 @@ impl TestPasskey {
         sign_count: u32,
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        // verify_asset uses message_hash as the WebAuthn challenge directly.
+        // `verify` uses message_hash as the WebAuthn challenge directly.
         self.build_secp256r1_verify_instruction(message_hash, sign_count, signature_override, None)
     }
 

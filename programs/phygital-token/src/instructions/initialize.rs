@@ -1,10 +1,10 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::{ASSET_SEED, INITIALIZE_AUTHORITY};
+use crate::constants::{PHYGITAL_TOKEN_SEED, ADMIN};
 use crate::error::PhygitalError;
-use crate::state::Asset;
+use crate::state::PhygitalToken;
 use crate::utils::secp256r1_pda_seed;
-use crate::{AssetType, Secp256r1Pubkey};
+use crate::{PhygitalTokenType, Secp256r1Pubkey};
 
 #[event]
 pub struct InitializeEvent {
@@ -18,7 +18,7 @@ pub struct InitializeEvent {
 pub struct InitializeArgs {
     pub identifier: Secp256r1Pubkey,
     pub secp256r1_pubkey: Secp256r1Pubkey,
-    pub asset_type: AssetType,
+    pub token_type: PhygitalTokenType,
 }
 
 #[derive(Accounts)]
@@ -26,29 +26,29 @@ pub struct InitializeArgs {
 pub struct Initialize<'info> {
     #[account(
         mut,
-        address = INITIALIZE_AUTHORITY @ PhygitalError::UnauthorizedAuthority
+        address = ADMIN @ PhygitalError::UnauthorizedAuthority
     )]
     pub authority: Signer<'info>,
 
     #[account(
         init,
         payer = authority,
-        space = Asset::size(),
-        seeds = [ASSET_SEED, secp256r1_pda_seed(&args.secp256r1_pubkey)],
+        space = PhygitalToken::size(),
+        seeds = [PHYGITAL_TOKEN_SEED, secp256r1_pda_seed(&args.secp256r1_pubkey)],
         bump,
     )]
-    pub asset: Account<'info, Asset>,
+    pub token: Account<'info, PhygitalToken>,
 
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
     ctx.accounts
-        .asset
-        .init(args.identifier, args.asset_type, args.secp256r1_pubkey);
+        .token
+        .init(args.identifier, args.token_type, args.secp256r1_pubkey);
 
     emit!(InitializeEvent {
-        identifier: ctx.accounts.asset.identifier,
+        identifier: ctx.accounts.token.identifier,
         authority: ctx.accounts.authority.key(),
         public_key: args.secp256r1_pubkey,
         time: Clock::get()?.unix_timestamp,

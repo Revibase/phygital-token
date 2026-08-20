@@ -1,7 +1,7 @@
 mod common;
 
 use common::{assert_token_program_error, current_slot_entry, TestContext, TestPasskey};
-use phygital_token::AssetType;
+use phygital_token::PhygitalTokenType;
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -9,13 +9,13 @@ use solana_signer::Signer;
 fn set_lock_state_owner_can_toggle_lock() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset_of_type(&passkey, AssetType::Lockable);
+    let asset = ctx.init_asset_of_type(&passkey, PhygitalTokenType::Controlled);
     let holder = Keypair::new();
 
     ctx.send_transfer_ownership(&asset, &holder, true)
         .expect("initial claim transfer");
 
-    // Claiming a Lockable asset auto-locks it.
+    // Claiming a Controlled token auto-locks it.
     assert_eq!(ctx.asset_lock_state(asset.asset), true);
 
     let unlock_ix = ctx.set_lock_state_ix(holder.pubkey(), asset.asset, false);
@@ -27,7 +27,7 @@ fn set_lock_state_owner_can_toggle_lock() {
 fn set_lock_state_rejects_non_owner() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset_of_type(&passkey, AssetType::Lockable);
+    let asset = ctx.init_asset_of_type(&passkey, PhygitalTokenType::Controlled);
     let holder = Keypair::new();
     let attacker = Keypair::new();
 
@@ -56,7 +56,7 @@ fn set_lock_state_rejects_non_lockable_asset() {
 
     let ix = ctx.set_lock_state_ix(holder.pubkey(), asset.asset, true);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&holder]);
-    assert_token_program_error(err, "AssetIsNotLockable");
+    assert_token_program_error(err, "TokenIsNotLockable");
     assert_eq!(ctx.asset_lock_state(asset.asset), false);
 }
 
@@ -64,7 +64,7 @@ fn set_lock_state_rejects_non_lockable_asset() {
 fn locked_holder_cannot_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset_of_type(&passkey, AssetType::Lockable);
+    let asset = ctx.init_asset_of_type(&passkey, PhygitalTokenType::Controlled);
     let holder = Keypair::new();
     let next_recipient = Keypair::new();
 
@@ -79,7 +79,7 @@ fn locked_holder_cannot_transfer() {
         .send_transfer_ownership(&asset, &next_recipient, true)
         .expect_err("locked holder should not transfer");
     assert!(
-        format!("{err:?}").contains("AssetIsCurrentlyLocked"),
+        format!("{err:?}").contains("TokenIsCurrentlyLocked"),
         "unexpected error: {err:?}"
     );
     assert_eq!(ctx.asset_owner(asset.asset), holder.pubkey());
@@ -89,7 +89,7 @@ fn locked_holder_cannot_transfer() {
 fn unlock_enables_holder_transfer() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset_of_type(&passkey, AssetType::Lockable);
+    let asset = ctx.init_asset_of_type(&passkey, PhygitalTokenType::Controlled);
     let holder = Keypair::new();
     let next_recipient = Keypair::new();
 

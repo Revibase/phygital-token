@@ -55,23 +55,6 @@ fn transfer_ownership_rejects_passkey_for_different_asset() {
 }
 
 #[test]
-fn transfer_ownership_rejects_default_recipient() {
-    let mut ctx = TestContext::new();
-    let passkey = TestPasskey::generate();
-    let asset = ctx.init_asset(&passkey);
-    let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
-
-    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(asset.asset, slot_hash, 1);
-    let transfer_ix =
-        ctx.transfer_ownership_ix(Pubkey::default(), asset.asset, verify_args, slot_number);
-
-    let payer = ctx.payer.insecure_clone();
-    let err = ctx.send_transfer_ownership_with_instructions(vec![secp_ix, transfer_ix], &[&payer]);
-    assert_transaction_failed(err);
-    assert_eq!(ctx.asset_owner(asset.asset), Pubkey::default());
-}
-
-#[test]
 fn transfer_ownership_succeeds_when_secp_not_immediately_preceding() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
