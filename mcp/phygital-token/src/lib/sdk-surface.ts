@@ -4,8 +4,14 @@ export const SDK_SURFACE = {
     "buildSquadsInitializeInstructions",
     "parseSecp256r1Pubkey",
     "parseIdentifier",
+    "ADMIN",
+    "INITIALIZE_MULTISIG_PDA",
   ],
-  setMint: ["buildSetMintInstruction", "getSetMintInstruction"],
+  setMint: [
+    "buildSetMintInstruction",
+    "buildSquadsSetMintInstructions",
+    "getSetMintInstruction",
+  ],
   transfer: [
     "beginTransfer",
     "authenticatePasskeyForTransfer",

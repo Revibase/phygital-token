@@ -43,7 +43,41 @@ export async function planInitialize(input: {
       "Ownership starts as the default (zero) pubkey until the first transfer.",
       "mint starts as the default pubkey until set_mint.",
       "Only the designated admin may call initialize and set_mint.",
-      "On mainnet the authority is a Squads vault — use buildSquadsInitializeInstructions so a 1/1 member can create/propose/approve/execute/close in one transaction.",
+      "On mainnet the authority is a Squads vault — use buildSquadsInitializeInstructions({ initializeInputs }) so a 1/1 member can create/propose/approve/execute/close in one transaction.",
+    ],
+  };
+}
+
+export async function planSetMint(input: {
+  secp256r1PublicKey: string;
+  mint: string;
+}) {
+  const tokenPda = await findTokenPda(
+    parseSecp256r1Pubkey(input.secp256r1PublicKey),
+  );
+
+  return {
+    instruction: "set_mint",
+    sdk: "buildSetMintInstruction",
+    squadsSdk: "buildSquadsSetMintInstructions",
+    derivedAccounts: {
+      tokenPda,
+      program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+    },
+    requiredSigners: [
+      {
+        name: "authority",
+        role: "Must be ADMIN (G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF); signer only (not writable)",
+      },
+    ],
+    requiredInputs: {
+      secp256r1Pubkey: input.secp256r1PublicKey,
+      mint: input.mint,
+    },
+    notes: [
+      "Binds an SPL mint pubkey onto token.mint. Does not mint or transfer tokens.",
+      "Only the designated admin may call set_mint.",
+      "On mainnet the authority is a Squads vault — use buildSquadsSetMintInstructions({ setMintInputs }) so a 1/1 member can create/propose/approve/execute/close in one transaction.",
     ],
   };
 }

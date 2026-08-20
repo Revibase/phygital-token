@@ -48,7 +48,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     onChain: false,
     rationale:
       "Pass transceive to startAuthentication for native NFC readers; verify on server. Use beginVerify for on-chain proof, beginTransfer for ownership changes.",
-    docIds: ["verification:methods", "verification:verify-asset-composable"],
+    docIds: ["verification:methods", "verification:verify-composable"],
     cautions: ["Run verifyResponse on your server, not in the native client."],
   },
   lookup_after_tap: {
@@ -72,7 +72,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     rationale:
       "Publish a possession proof on-chain without a custom program. Updates last_sign_count; does not change owner.",
     docIds: [
-      "verification:verify-asset-composable",
+      "verification:verify-composable",
       "building-on-phygital:rust-cpi",
     ],
   },
@@ -89,7 +89,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     rationale:
       "Client includes verify in the tx. Your program scans instructions sysvar for that verify and validates message bytes.",
     docIds: [
-      "verification:verify-asset-composable",
+      "verification:verify-composable",
       "building-on-phygital:rust-cpi",
     ],
   },
@@ -105,7 +105,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     rationale:
       "Client includes secp256r1_verify + your ix only. Your program CPIs verify using args from buildVerifyArgs.",
     docIds: [
-      "verification:verify-asset-composable",
+      "verification:verify-composable",
       "building-on-phygital:rust-cpi",
     ],
   },

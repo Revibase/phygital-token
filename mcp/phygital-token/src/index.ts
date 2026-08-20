@@ -10,6 +10,7 @@ import {
   parseTokenType,
   planInitialize,
   planRemoveOwnership,
+  planSetMint,
   planTransfer,
   planVerifyAsset,
 } from "./lib/instructions.js";
@@ -21,7 +22,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "0.14.0";
+const VERSION = "0.15.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -30,7 +31,7 @@ const SERVER_INSTRUCTIONS = [
   "Routing:",
   "- Which verification method to use → recommend_verification",
   "- On-chain verify (standalone, sysvar inspect, or CPI) → plan_verify_asset",
-  "- Initialize / transfer / forfeiture → plan_initialize, plan_transfer, plan_remove_ownership",
+  "- Initialize / set_mint / transfer / forfeiture → plan_initialize, plan_set_mint, plan_transfer, plan_remove_ownership",
   "- Token PDA from passkey public key → find_asset_pda",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
@@ -143,6 +144,23 @@ function registerTools(server: McpServer) {
           tokenType: parseTokenType(tokenType),
         }),
       ),
+  );
+
+  server.registerTool(
+    "plan_set_mint",
+    {
+      description:
+        "Derive accounts and list signers/inputs for set_mint (buildSetMintInstruction / buildSquadsSetMintInstructions).",
+      inputSchema: {
+        secp256r1PublicKey: z
+          .string()
+          .describe("Base64url passkey public key used as the token PDA seed"),
+        mint: z.string().describe("SPL mint address to bind onto token.mint"),
+      },
+      annotations: { title: "Plan set_mint", ...READ_ONLY },
+    },
+    async ({ secp256r1PublicKey, mint }) =>
+      jsonResult(await planSetMint({ secp256r1PublicKey, mint })),
   );
 
   server.registerTool(

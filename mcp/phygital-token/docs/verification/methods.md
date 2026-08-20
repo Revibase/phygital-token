@@ -35,9 +35,9 @@ const { isVerified, secp256r1PublicKey } = verifyResponse({
 
 if (isVerified) {
   // optional: load on-chain state by passkey
-  // const asset = await fetchAsset(
+  // const token = await fetchPhygitalToken(
   //   rpc,
-  //   await findAssetPda(parseSecp256r1Pubkey(secp256r1PublicKey)),
+  //   await findTokenPda(parseSecp256r1Pubkey(secp256r1PublicKey)),
   // );
 }
 ```
@@ -54,17 +54,17 @@ Typical flow:
 | Need | Use |
 |------|-----|
 | UI login / vault gate, no tx | `startAuthentication` + `verifyResponse` |
-| Load on-chain state after a tap | `verifyResponse` → `findAssetPda` + `fetchAsset` |
-| Look up by chip identifier | `fetchAssetByIdentifier` |
-| Transfer ownership | `beginTransfer({ rpc, asset })` → `completeTransfer` (passkey from `response.id`) |
-| On-chain possession proof / CPI | `beginVerifyAsset({ messageHash })` → `completeVerifyAsset` (PDA from tap; see composable docs) |
+| Load on-chain state after a tap | `verifyResponse` → `findTokenPda` + `fetchPhygitalToken` |
+| Look up by chip identifier | `fetchTokenByIdentifier` |
+| Transfer ownership | `beginTransfer({ rpc, token })` → `completeTransfer` (passkey from `response.id`) |
+| On-chain possession proof / CPI | `beginVerify({ messageHash })` → `completeVerify` (PDA from tap; see composable docs) |
 
 ## Message binding
 
 | Context | `message` type | Effect |
 |---------|----------------|--------|
 | `startAuthentication` / `verifyResponse` | `string` (`expectedMessage`) | WebAuthn challenge bytes (UTF-8); must match on client and server |
-| `beginTransfer` | slot-bound challenge | Built from asset PDA + slot hash — not the same as `expectedMessage` |
-| `beginVerifyAsset` | `Uint8Array` (32-byte `messageHash`) | Used directly as the WebAuthn challenge in on-chain `verify_asset` |
+| `beginTransfer` | slot-bound challenge | Built from token PDA + slot hash — not the same as `expectedMessage` |
+| `beginVerify` | `Uint8Array` (32-byte `messageHash`) | Used directly as the WebAuthn challenge in on-chain `verify` |
 
-An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `transfer_ownership`. Use `verify_asset` when another program needs an on-chain possession proof.
+An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `transfer_ownership`. Use `verify` when another program needs an on-chain possession proof.

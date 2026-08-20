@@ -2,7 +2,7 @@
 
 [Model Context Protocol](https://modelcontextprotocol.io) server for the phygital-token Solana program, TypeScript SDK, and Rust client.
 
-**Docs, schema reference, and offline planning only** — no live RPC or on-chain calls. Use [`phygital-token-sdk`](https://www.npmjs.com/package/phygital-token-sdk) in your app for verification, asset fetch, and transaction building.
+**Docs, schema reference, and offline planning only** — no live RPC or on-chain calls. Use [`phygital-token-sdk`](https://www.npmjs.com/package/phygital-token-sdk) in your app for verification, token fetch, and transaction building.
 
 ## Install
 
@@ -27,7 +27,7 @@ Requires **Node.js 20+**. See [`cursor-mcp.example.json`](./cursor-mcp.example.j
 |------|-------|
 | **Docs** | `search_docs` (omit query to list all), `read_doc` |
 | **Verification** | `recommend_verification` (omit useCase for the decision tree) |
-| **Planning** | `plan_initialize`, `plan_transfer`, `plan_verify_asset`, `plan_remove_ownership`, `find_asset_pda` |
+| **Planning** | `plan_initialize`, `plan_set_mint`, `plan_transfer`, `plan_verify_asset`, `plan_remove_ownership`, `find_asset_pda` |
 | **SDK** | `list_sdk_exports` |
 
 All tools are offline and read-only.
