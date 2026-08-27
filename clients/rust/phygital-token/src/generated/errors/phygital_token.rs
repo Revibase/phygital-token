@@ -64,8 +64,8 @@ pub enum PhygitalTokenError {
     /// 6017 - WebAuthn rpId hash does not match the expected relying party id.
     #[error("WebAuthn rpId hash does not match the expected relying party id.")]
     RpIdMismatch = 0x1781,
-    /// 6018 - WebAuthn origin does not match the expected origin.
-    #[error("WebAuthn origin does not match the expected origin.")]
+    /// 6018 - WebAuthn origin does not match any expected origin.
+    #[error("WebAuthn origin does not match any expected origin.")]
     OriginMismatch = 0x1782,
     /// 6019 - Only the designated authority can perform this action.
     #[error("Only the designated authority can perform this action.")]

@@ -52,6 +52,18 @@ export async function resolveSdkReadmePath(): Promise<string | undefined> {
   return undefined;
 }
 
+/** Rust client README from the monorepo (crate is not an npm package). */
+export async function resolveRustClientReadmePath(): Promise<string | undefined> {
+  const monorepoReadme = path.join(
+    resolveRepoRoot(),
+    "clients/rust/phygital-token/README.md",
+  );
+  if (await pathExists(monorepoReadme)) {
+    return monorepoReadme;
+  }
+  return undefined;
+}
+
 export async function pathExists(filePath: string): Promise<boolean> {
   try {
     await access(filePath);

@@ -68,7 +68,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: true,
     rationale:
-      "Client prepends secp256r1_verify and passes phygitalTokenPda + secp256r1VerifyArgs into your instruction. Your program CPIs verify with VerifyCpiBuilder; message_hash and instructions sysvar come from your instruction.",
+      "Client prepends secp256r1_verify and passes phygitalTokenPda + secp256r1VerifyArgs into your instruction. Your program CPIs verify with VerifyCpiBuilder; message_hash, instructions sysvar, and optional expected_rp_id / expected_origins come from your instruction.",
     docIds: [
       "verification:verify-composable",
       "building-on-phygital:rust-cpi",
@@ -116,6 +116,7 @@ Authentication (live NFC tap required)
 verifyResponse never submits verify. Returns { isVerified, secp256r1PublicKey }
 (response.id is the secp256r1 vault key / WebAuthn credential id). Run it on your server.
 Token PDA is seeded by the passkey public key; chip identifier is a separate binding field.
-On-chain proof: hash with buildMessageHash, then tap with messageHash. Optional rpId defaults to hostname.
+On-chain proof: hash with buildMessageHash, then tap with messageHash. Optional tap rpId defaults to hostname.
+Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder (omit to skip). When expected_origins is set, the signed origin must match one listed origin.
 PDA is derived after the NFC tap. Your program always CPIs verify — do not post a client-side verify instruction.
 `.trim();

@@ -2,7 +2,8 @@ use anchor_lang::prelude::*;
 
 use crate::utils::Secp256r1Pubkey;
 
-#[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone)]
+#[repr(u8)]
+#[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone, Copy)]
 pub enum PhygitalTokenType {
     /// Must be unlocked before transfer; re-locks after transfer.
     Controlled,
@@ -10,21 +11,20 @@ pub enum PhygitalTokenType {
     Bearer,
 }
 
-#[account]
+#[account(zero_copy(unsafe))]
+#[repr(C)]
 pub struct PhygitalToken {
-    pub token_type: PhygitalTokenType,
     pub owner: Pubkey,
+    pub mint: Pubkey,
     pub last_sign_count: u32,
-    pub is_locked: bool,
+    pub token_type: u8,
+    pub is_locked: u8,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
-    pub mint: Pubkey,
 }
 
 impl PhygitalToken {
-    pub fn size() -> usize {
-        8 + 1 + 32 + 4 + 1 + 33 + 33 + 32
-    }
+    pub const LEN: usize = 8 + core::mem::size_of::<Self>();
 
     pub fn init(
         &mut self,
@@ -33,11 +33,7 @@ impl PhygitalToken {
         public_key: Secp256r1Pubkey,
     ) {
         self.identifier = identifier;
-        self.token_type = token_type;
-        self.owner = Pubkey::default();
-        self.last_sign_count = 0;
-        self.is_locked = false;
+        self.token_type = token_type as u8;
         self.public_key = public_key;
-        self.mint = Pubkey::default();
     }
 }

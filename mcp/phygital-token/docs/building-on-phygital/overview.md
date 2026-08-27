@@ -28,9 +28,9 @@ buildSecp256r1VerifyInstruction(tap)  // phygitalTokenPda from tap
 [secp256r1_verify, your_program_instruction]  // your program CPIs verify
 ```
 
-Hash with `buildMessageHash`, then tap. Pass the same digest to `VerifyCpiBuilder.message_hash`. Token PDA is derived after the NFC tap from `response.id`. See `verification:verify-composable` and `building-on-phygital:rust-cpi`.
+Hash with `buildMessageHash`, then tap. Pass the same digest to `VerifyCpiBuilder.message_hash`. Token PDA is derived after the NFC tap from `response.id`. Optional `.expected_rp_id(...)` / `.expected_origins(...)` are set on your CPI — omit them to skip; when `expected_origins` is set, the signed origin must match one entry. See `verification:verify-composable` and `building-on-phygital:rust-cpi`.
 
-`verify` advances `last_sign_count` and emits `VerifyEvent` — it does **not** change `phygital_token.owner`.
+`verify` advances `last_sign_count` — it does **not** change `phygital_token.owner`.
 
 ## On-chain ownership
 

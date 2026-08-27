@@ -5,7 +5,6 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use crate::generated::types::PhygitalTokenType;
 use solana_address::Address;
 use crate::generated::types::Secp256r1Pubkey;
 use borsh::BorshSerialize;
@@ -15,13 +14,13 @@ use borsh::BorshDeserialize;
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct PhygitalToken {
 pub discriminator: [u8; 8],
-pub token_type: PhygitalTokenType,
 pub owner: Address,
+pub mint: Address,
 pub last_sign_count: u32,
-pub is_locked: bool,
+pub token_type: u8,
+pub is_locked: u8,
 pub public_key: Secp256r1Pubkey,
 pub identifier: Secp256r1Pubkey,
-pub mint: Address,
 }
 
 

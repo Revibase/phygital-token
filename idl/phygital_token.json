@@ -221,9 +221,11 @@
           }
         },
         {
-          "name": "expected_origin",
+          "name": "expected_origins",
           "type": {
-            "option": "string"
+            "option": {
+              "vec": "string"
+            }
           }
         }
       ]
@@ -308,19 +310,6 @@
         28,
         179,
         125
-      ]
-    },
-    {
-      "name": "VerifyEvent",
-      "discriminator": [
-        94,
-        218,
-        113,
-        162,
-        2,
-        150,
-        241,
-        2
       ]
     }
   ],
@@ -418,7 +407,7 @@
     {
       "code": 6018,
       "name": "OriginMismatch",
-      "msg": "WebAuthn origin does not match the expected origin."
+      "msg": "WebAuthn origin does not match any expected origin."
     },
     {
       "code": 6019,
@@ -493,19 +482,19 @@
     },
     {
       "name": "PhygitalToken",
+      "serialization": "bytemuckunsafe",
+      "repr": {
+        "kind": "c"
+      },
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "token_type",
-            "type": {
-              "defined": {
-                "name": "PhygitalTokenType"
-              }
-            }
+            "name": "owner",
+            "type": "pubkey"
           },
           {
-            "name": "owner",
+            "name": "mint",
             "type": "pubkey"
           },
           {
@@ -513,8 +502,12 @@
             "type": "u32"
           },
           {
+            "name": "token_type",
+            "type": "u8"
+          },
+          {
             "name": "is_locked",
-            "type": "bool"
+            "type": "u8"
           },
           {
             "name": "public_key",
@@ -531,16 +524,15 @@
                 "name": "Secp256r1Pubkey"
               }
             }
-          },
-          {
-            "name": "mint",
-            "type": "pubkey"
           }
         ]
       }
     },
     {
       "name": "PhygitalTokenType",
+      "repr": {
+        "kind": "rust"
+      },
       "type": {
         "kind": "enum",
         "variants": [
@@ -587,6 +579,9 @@
     },
     {
       "name": "Secp256r1Pubkey",
+      "repr": {
+        "kind": "transparent"
+      },
       "type": {
         "kind": "struct",
         "fields": [
@@ -699,47 +694,6 @@
           {
             "name": "recipient",
             "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "public_key",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "identifier",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "time",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "VerifyEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "message_hash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
           },
           {
             "name": "owner",

@@ -1,8 +1,5 @@
 use anchor_lang::prelude::*;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use sha2::{Digest, Sha256};
-use solana_instructions_sysvar::get_instruction_relative;
-use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
+use solana_sha256_hasher::{hash, hashv};
 
 use crate::{
     error::PhygitalError,
@@ -11,6 +8,7 @@ use crate::{
         SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
     },
 };
+
 // `#[repr(C)]` pins field order to match the secp256r1 program's on-wire offset
 // layout, which is read via an unaligned pointer cast below. Without it, Rust may
 // reorder the fields and the cast would map them incorrectly.
@@ -26,6 +24,10 @@ struct Secp256r1SignatureOffsets {
     message_instruction_index: u16,
 }
 
+const _: () = assert!(
+    core::mem::size_of::<Secp256r1SignatureOffsets>() == SIGNATURE_OFFSETS_SERIALIZED_SIZE
+);
+
 /// Minimum WebAuthn authenticator data: rpIdHash (32) + flags (1) + signCount (4).
 pub const AUTH_DATA_MIN_LEN: usize = 37;
 const AUTH_DATA_FLAGS_OFFSET: usize = 32;
@@ -33,6 +35,9 @@ const AUTH_DATA_SIGN_COUNT_OFFSET: usize = 33;
 const CLIENT_DATA_HASH_LEN: usize = 32;
 const FLAG_USER_PRESENT: u8 = 0x01;
 const MIN_SIGNED_MESSAGE_LEN: usize = AUTH_DATA_MIN_LEN + CLIENT_DATA_HASH_LEN;
+const CHALLENGE_B64URL_LEN: usize = 43;
+const JSON_CHALLENGE_KEY: &[u8] = br#""challenge":""#;
+const JSON_ORIGIN_KEY: &[u8] = br#""origin":""#;
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Debug, Clone)]
 pub struct Secp256r1VerifyArgs {
@@ -59,15 +64,9 @@ impl Secp256r1VerifyArgs {
             PhygitalError::InvalidSignatureOffsets
         );
 
-        const EXPECTED_STRUCT_SIZE: usize = core::mem::size_of::<Secp256r1SignatureOffsets>();
-        require!(
-            EXPECTED_STRUCT_SIZE == SIGNATURE_OFFSETS_SERIALIZED_SIZE,
-            PhygitalError::InvalidSignatureOffsets
-        );
-
         let offsets = unsafe {
             core::ptr::read_unaligned(
-                data.as_ptr().add(start_usize) as *const Secp256r1SignatureOffsets
+                data.as_ptr().add(start_usize) as *const Secp256r1SignatureOffsets,
             )
         };
 
@@ -98,7 +97,7 @@ impl Secp256r1VerifyArgs {
             .ok_or(PhygitalError::InvalidSignatureOffsets)?)
     }
 
-    fn verify_user_presence_from_instruction_data(&self, data: &[u8]) -> Result<()> {
+    fn validated_offsets(&self, data: &[u8]) -> Result<Secp256r1SignatureOffsets> {
         let num_signatures = *data
             .first()
             .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
@@ -108,63 +107,7 @@ impl Secp256r1VerifyArgs {
             PhygitalError::SignatureIndexOutOfBounds
         );
 
-        let offsets = Self::read_signature_offsets(data, self.signed_message_index)?;
-        let message_offset = offsets.message_data_offset as usize;
-        let message_size = offsets.message_data_size as usize;
-
-        require!(
-            message_size >= MIN_SIGNED_MESSAGE_LEN,
-            PhygitalError::InvalidAuthenticatorData
-        );
-
-        let flags_offset = message_offset
-            .checked_add(AUTH_DATA_FLAGS_OFFSET)
-            .ok_or(PhygitalError::InvalidAuthenticatorData)?;
-
-        let flags = *data
-            .get(flags_offset)
-            .ok_or(PhygitalError::InvalidAuthenticatorData)?;
-
-        require!(
-            flags & FLAG_USER_PRESENT != 0,
-            PhygitalError::UserPresenceNotVerified
-        );
-
-        Ok(())
-    }
-
-    fn claim_secp256r1_instruction_data(&self, data: Vec<u8>) -> Result<Vec<u8>> {
-        let num_signatures = *data
-            .first()
-            .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
-
-        require!(
-            self.signed_message_index < num_signatures,
-            PhygitalError::SignatureIndexOutOfBounds
-        );
-
-        Self::read_signature_offsets(data.as_slice(), self.signed_message_index)?;
-        Ok(data)
-    }
-
-    fn find_secp256r1_instruction_data(
-        &self,
-        instructions_sysvar: &UncheckedAccount,
-    ) -> Result<Vec<u8>> {
-        require!(
-            instructions_sysvar.key() == INSTRUCTIONS_SYSVAR_ID,
-            PhygitalError::MissingInstructionsSysvar
-        );
-
-        let account_info = instructions_sysvar.to_account_info();
-
-        let instruction = get_instruction_relative(self.verify_args_relative_index, &account_info)?;
-
-        if instruction.program_id.as_ref() == SECP256R1_PROGRAM_ID.as_ref() {
-            return self.claim_secp256r1_instruction_data(instruction.data);
-        }
-
-        err!(PhygitalError::InvalidSecp256r1Instruction)
+        Self::read_signature_offsets(data, self.signed_message_index)
     }
 
     fn extract_public_key_data<'a>(
@@ -184,32 +127,6 @@ impl Secp256r1VerifyArgs {
         Ok(data
             .get(public_key_offset..public_key_end)
             .ok_or(PhygitalError::InvalidSecp256r1PublicKey)?)
-    }
-
-    fn extract_challenge_from_client_data_json(&self) -> Result<[u8; 32]> {
-        let client_data_str = std::str::from_utf8(&self.client_data_json)
-            .map_err(|_| PhygitalError::UnableToParseClientData)?;
-
-        let client_data: serde_json::Value = serde_json::from_str(client_data_str)
-            .map_err(|_| PhygitalError::UnableToParseClientData)?;
-
-        let challenge_b64 = client_data
-            .get("challenge")
-            .and_then(|v| v.as_str())
-            .ok_or(PhygitalError::UnableToParseClientData)?;
-
-        let challenge_bytes = URL_SAFE_NO_PAD
-            .decode(challenge_b64)
-            .map_err(|_| PhygitalError::UnableToParseClientData)?;
-
-        require!(
-            challenge_bytes.len() == 32,
-            PhygitalError::UnableToParseClientData
-        );
-
-        Ok(challenge_bytes
-            .try_into()
-            .map_err(|_| PhygitalError::UnableToParseClientData)?)
     }
 
     /// Looks up `slot_number` in the SlotHashes sysvar. Used by callers (e.g.
@@ -275,142 +192,202 @@ impl Secp256r1VerifyArgs {
         err!(PhygitalError::InvalidSlotHash)
     }
 
-    pub fn extract_public_key_from_instruction(
+    /// One sysvar walk: pubkey, signCount, user-presence, clientDataJSON hash,
+    /// and optional rpId / origin-list bindings.
+    pub fn verify_webauthn_assertion(
         &self,
         instructions_sysvar: &UncheckedAccount,
-    ) -> Result<Secp256r1Pubkey> {
-        let data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
-
-        let num_signatures = *data
-            .first()
-            .ok_or(PhygitalError::InvalidSecp256r1Instruction)?;
-
+        expected_challenge: [u8; 32],
+        expected_rp_id: Option<&str>,
+        expected_origins: Option<&[String]>,
+    ) -> Result<(Secp256r1Pubkey, u32)> {
+        let extracted_challenge = extract_challenge_from_client_data_json(&self.client_data_json)?;
         require!(
-            self.signed_message_index < num_signatures,
-            PhygitalError::SignatureIndexOutOfBounds
+            extracted_challenge == expected_challenge,
+            PhygitalError::ChallengeHashMismatch
         );
 
-        let offsets = Self::read_signature_offsets(&data, self.signed_message_index)?;
-        let public_key_bytes = Self::extract_public_key_data(&data, &offsets)?;
+        if let Some(expected_origins) = expected_origins {
+            let origin = json_quoted_value(&self.client_data_json, JSON_ORIGIN_KEY)?;
+            require!(
+                expected_origins.iter().any(|expected| origin == expected.as_bytes()),
+                PhygitalError::OriginMismatch
+            );
+        }
 
+        let sysvar = instructions_sysvar.try_borrow_data()?;
+        let (program_id, data) =
+            relative_instruction_parts(&sysvar, self.verify_args_relative_index)?;
+        require!(
+            program_id == SECP256R1_PROGRAM_ID.as_ref(),
+            PhygitalError::InvalidSecp256r1Instruction
+        );
+
+        let offsets = self.validated_offsets(data)?;
+        let public_key_bytes = Self::extract_public_key_data(data, &offsets)?;
         let extracted_pubkey: [u8; COMPRESSED_PUBKEY_SERIALIZED_SIZE] = public_key_bytes
             .try_into()
             .map_err(|_| PhygitalError::InvalidSecp256r1PublicKey)?;
 
-        Ok(Secp256r1Pubkey(extracted_pubkey))
-    }
-
-    /// Reads the WebAuthn authenticator `signCount` (big-endian u32 at
-    /// authenticatorData[33..37]) from the signed secp256r1 message.
-    pub fn extract_sign_count(&self, instructions_sysvar: &UncheckedAccount) -> Result<u32> {
-        let data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
-        let offsets = Self::read_signature_offsets(&data, self.signed_message_index)?;
-        let message = Self::extract_message_data(&data, &offsets)?;
-
+        let message = Self::extract_message_data(data, &offsets)?;
         require!(
             message.len() >= AUTH_DATA_MIN_LEN,
             PhygitalError::InvalidAuthenticatorData
+        );
+
+        let flags = *message
+            .get(AUTH_DATA_FLAGS_OFFSET)
+            .ok_or(PhygitalError::InvalidAuthenticatorData)?;
+        require!(
+            flags & FLAG_USER_PRESENT != 0,
+            PhygitalError::UserPresenceNotVerified
         );
 
         let sign_count_bytes: [u8; 4] = message
             [AUTH_DATA_SIGN_COUNT_OFFSET..AUTH_DATA_SIGN_COUNT_OFFSET + 4]
             .try_into()
             .map_err(|_| PhygitalError::InvalidAuthenticatorData)?;
+        let sign_count = u32::from_be_bytes(sign_count_bytes);
 
-        Ok(u32::from_be_bytes(sign_count_bytes))
-    }
-
-    /// Generic WebAuthn verification against an expected challenge hash.
-    ///
-    /// Callers that need slot freshness (or action-type domain separation) must
-    /// fold those into `expected_challenge` before calling this function.
-    pub fn verify_webauthn(
-        &self,
-        instructions_sysvar: &UncheckedAccount,
-        expected_challenge: [u8; 32],
-    ) -> Result<()> {
-        let extracted_challenge = self.extract_challenge_from_client_data_json()?;
-
-        require!(
-            extracted_challenge == expected_challenge,
-            PhygitalError::ChallengeHashMismatch
-        );
-
-        let secp256r1_data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
-
-        self.verify_user_presence_from_instruction_data(&secp256r1_data)?;
-
-        let offsets = Self::read_signature_offsets(&secp256r1_data, self.signed_message_index)?;
-        let message = Self::extract_message_data(&secp256r1_data, &offsets)?;
         let client_data_hash: [u8; 32] = message[(message.len() - CLIENT_DATA_HASH_LEN)..]
             .try_into()
             .map_err(|_| PhygitalError::InvalidSignatureOffsets)?;
-
-        let expected_client_data_hash: [u8; 32] = Sha256::digest(&self.client_data_json).into();
-
         require!(
-            client_data_hash == expected_client_data_hash,
+            client_data_hash == hash(&self.client_data_json).to_bytes(),
             PhygitalError::ClientDataHashMismatch
         );
 
-        Ok(())
-    }
-
-    fn extract_origin_from_client_data_json(&self) -> Result<String> {
-        let client_data_str = std::str::from_utf8(&self.client_data_json)
-            .map_err(|_| PhygitalError::UnableToParseClientData)?;
-
-        let client_data: serde_json::Value = serde_json::from_str(client_data_str)
-            .map_err(|_| PhygitalError::UnableToParseClientData)?;
-
-        client_data
-            .get("origin")
-            .and_then(|v| v.as_str())
-            .map(str::to_owned)
-            .ok_or_else(|| error!(PhygitalError::UnableToParseClientData))
-    }
-
-    fn extract_rp_id_hash_from_instruction_data(&self, data: &[u8]) -> Result<[u8; 32]> {
-        let offsets = Self::read_signature_offsets(data, self.signed_message_index)?;
-        let message = Self::extract_message_data(data, &offsets)?;
-
-        require!(
-            message.len() >= AUTH_DATA_MIN_LEN,
-            PhygitalError::InvalidAuthenticatorData
-        );
-
-        Ok(message[..32]
-            .try_into()
-            .map_err(|_| PhygitalError::InvalidAuthenticatorData)?)
-    }
-
-    /// Optional WebAuthn binding checks for `verify`.
-    ///
-    /// - `expected_rp_id`: when set, `SHA256(rp_id)` must equal authenticatorData[0..32]
-    /// - `expected_origin`: when set, clientDataJSON `origin` must equal this value
-    pub fn verify_optional_webauthn_bindings<'info>(
-        &self,
-        instructions_sysvar: &UncheckedAccount<'info>,
-        expected_rp_id: Option<&str>,
-        expected_origin: Option<&str>,
-    ) -> Result<()> {
-        if expected_rp_id.is_none() && expected_origin.is_none() {
-            return Ok(());
-        }
-
-        let secp256r1_data = self.find_secp256r1_instruction_data(instructions_sysvar)?;
-
         if let Some(rp_id) = expected_rp_id {
-            let expected_hash: [u8; 32] = Sha256::digest(rp_id.as_bytes()).into();
-            let actual_hash = self.extract_rp_id_hash_from_instruction_data(&secp256r1_data)?;
+            let expected_hash = hashv(&[rp_id.as_bytes()]).to_bytes();
+            let actual_hash: [u8; 32] = message[..32]
+                .try_into()
+                .map_err(|_| PhygitalError::InvalidAuthenticatorData)?;
             require!(expected_hash == actual_hash, PhygitalError::RpIdMismatch);
         }
 
-        if let Some(expected) = expected_origin {
-            let origin = self.extract_origin_from_client_data_json()?;
-            require!(origin == expected, PhygitalError::OriginMismatch);
-        }
-
-        Ok(())
+        Ok((Secp256r1Pubkey(extracted_pubkey), sign_count))
     }
+}
+
+fn extract_challenge_from_client_data_json(client_data_json: &[u8]) -> Result<[u8; 32]> {
+    let challenge_b64 = json_quoted_value(client_data_json, JSON_CHALLENGE_KEY)?;
+    decode_base64url_32(challenge_b64)
+}
+
+fn read_u16_at(data: &[u8], offset: usize) -> Result<u16> {
+    let bytes: [u8; 2] = data
+        .get(offset..offset.saturating_add(2))
+        .ok_or(PhygitalError::InvalidSysvarDataFormat)?
+        .try_into()
+        .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?;
+    Ok(u16::from_le_bytes(bytes))
+}
+
+/// Borrow the program id and data of the instruction at `current + relative_index`
+/// from the instructions sysvar, without allocating an `Instruction`.
+fn relative_instruction_parts(sysvar: &[u8], relative_index: i64) -> Result<(&[u8], &[u8])> {
+    require!(sysvar.len() >= 2, PhygitalError::InvalidSysvarDataFormat);
+
+    let current = u16::from_le_bytes(
+        sysvar[sysvar.len() - 2..]
+            .try_into()
+            .map_err(|_| error!(PhygitalError::InvalidSysvarDataFormat))?,
+    ) as i64;
+    let index = current.saturating_add(relative_index);
+    require!(index >= 0, PhygitalError::InvalidSecp256r1Instruction);
+    let index = index as usize;
+
+    let num_instructions = read_u16_at(sysvar, 0)? as usize;
+    require!(
+        index < num_instructions,
+        PhygitalError::InvalidSecp256r1Instruction
+    );
+
+    let start = read_u16_at(sysvar, 2usize.saturating_add(index.saturating_mul(2)))? as usize;
+    let num_accounts = read_u16_at(sysvar, start)? as usize;
+    let accounts_bytes = num_accounts
+        .checked_mul(33)
+        .ok_or(PhygitalError::InvalidSysvarDataFormat)?;
+    let program_id_off = start
+        .checked_add(2)
+        .and_then(|pos| pos.checked_add(accounts_bytes))
+        .ok_or(PhygitalError::InvalidSysvarDataFormat)?;
+    let program_id = sysvar
+        .get(program_id_off..program_id_off.saturating_add(32))
+        .ok_or(PhygitalError::InvalidSysvarDataFormat)?;
+    let data_len_off = program_id_off
+        .checked_add(32)
+        .ok_or(PhygitalError::InvalidSysvarDataFormat)?;
+    let data_len = read_u16_at(sysvar, data_len_off)? as usize;
+    let data_off = data_len_off
+        .checked_add(2)
+        .ok_or(PhygitalError::InvalidSysvarDataFormat)?;
+    let data = sysvar
+        .get(data_off..data_off.saturating_add(data_len))
+        .ok_or(PhygitalError::InvalidSysvarDataFormat)?;
+    Ok((program_id, data))
+}
+
+fn json_quoted_value<'a>(json: &'a [u8], key_with_colon_quote: &[u8]) -> Result<&'a [u8]> {
+    let start = json
+        .windows(key_with_colon_quote.len())
+        .position(|window| window == key_with_colon_quote)
+        .ok_or(PhygitalError::UnableToParseClientData)?;
+    let val_start = start
+        .checked_add(key_with_colon_quote.len())
+        .ok_or(PhygitalError::UnableToParseClientData)?;
+    let mut i = val_start;
+    while i < json.len() {
+        match json[i] {
+            b'\\' => {
+                i = i
+                    .checked_add(2)
+                    .ok_or(PhygitalError::UnableToParseClientData)?;
+            }
+            b'"' => return Ok(&json[val_start..i]),
+            _ => i += 1,
+        }
+    }
+    err!(PhygitalError::UnableToParseClientData)
+}
+
+fn b64url_val(c: u8) -> Result<u8> {
+    Ok(match c {
+        b'A'..=b'Z' => c - b'A',
+        b'a'..=b'z' => c - b'a' + 26,
+        b'0'..=b'9' => c - b'0' + 52,
+        b'-' => 62,
+        b'_' => 63,
+        _ => return err!(PhygitalError::UnableToParseClientData),
+    })
+}
+
+/// Decode an unpadded base64url 32-byte challenge (43 characters).
+fn decode_base64url_32(input: &[u8]) -> Result<[u8; 32]> {
+    require!(
+        input.len() == CHALLENGE_B64URL_LEN,
+        PhygitalError::UnableToParseClientData
+    );
+
+    let mut out = [0u8; 32];
+    let mut o = 0usize;
+    let mut i = 0usize;
+    while i + 4 <= 40 {
+        let a = b64url_val(input[i])?;
+        let b = b64url_val(input[i + 1])?;
+        let c = b64url_val(input[i + 2])?;
+        let d = b64url_val(input[i + 3])?;
+        out[o] = (a << 2) | (b >> 4);
+        out[o + 1] = (b << 4) | (c >> 2);
+        out[o + 2] = (c << 6) | d;
+        o += 3;
+        i += 4;
+    }
+
+    let a = b64url_val(input[40])?;
+    let b = b64url_val(input[41])?;
+    let c = b64url_val(input[42])?;
+    out[30] = (a << 2) | (b >> 4);
+    out[31] = (b << 4) | (c >> 2);
+    Ok(out)
 }

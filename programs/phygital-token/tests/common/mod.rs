@@ -150,7 +150,7 @@ impl TestContext {
     }
 
     pub fn phygital_token_lock_state(&self, phygital_token: Pubkey) -> bool {
-        self.load_phygital_token(phygital_token).is_locked
+        self.load_phygital_token(phygital_token).is_locked != 0
     }
 
     pub fn last_sign_count(&self, phygital_token: Pubkey) -> u32 {
@@ -238,7 +238,7 @@ impl TestContext {
         secp256r1_verify_args: Secp256r1VerifyArgs,
         message_hash: [u8; 32],
         expected_rp_id: Option<String>,
-        expected_origin: Option<String>,
+        expected_origins: Option<Vec<String>>,
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
@@ -251,7 +251,7 @@ impl TestContext {
                 secp256r1_verify_args,
                 message_hash,
                 expected_rp_id,
-                expected_origin,
+                expected_origins,
             }
             .data(),
         }
@@ -273,7 +273,7 @@ impl TestContext {
         include_secp_ix: bool,
         sign_count: Option<u32>,
         expected_rp_id: Option<String>,
-        expected_origin: Option<String>,
+        expected_origins: Option<Vec<String>>,
     ) -> litesvm::types::TransactionResult {
         let sign_count = sign_count.unwrap_or_else(|| self.next_sign_count(phygital_token.phygital_token));
 
@@ -285,7 +285,7 @@ impl TestContext {
             verify_args,
             message_hash,
             expected_rp_id,
-            expected_origin,
+            expected_origins,
         );
 
         let instructions = if include_secp_ix {

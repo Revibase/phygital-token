@@ -17,14 +17,14 @@ import {
   fixEncoderSize,
   getAddressDecoder,
   getAddressEncoder,
-  getBooleanDecoder,
-  getBooleanEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
   getU32Decoder,
   getU32Encoder,
+  getU8Decoder,
+  getU8Encoder,
   transformEncoder,
   type Account,
   type Address,
@@ -39,12 +39,8 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 import {
-  getPhygitalTokenTypeDecoder,
-  getPhygitalTokenTypeEncoder,
   getSecp256r1PubkeyDecoder,
   getSecp256r1PubkeyEncoder,
-  type PhygitalTokenType,
-  type PhygitalTokenTypeArgs,
   type Secp256r1Pubkey,
   type Secp256r1PubkeyArgs,
 } from "../types/index.js";
@@ -61,23 +57,23 @@ export function getPhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type PhygitalToken = {
   discriminator: ReadonlyUint8Array;
-  tokenType: PhygitalTokenType;
   owner: Address;
+  mint: Address;
   lastSignCount: number;
-  isLocked: boolean;
+  tokenType: number;
+  isLocked: number;
   publicKey: Secp256r1Pubkey;
   identifier: Secp256r1Pubkey;
-  mint: Address;
 };
 
 export type PhygitalTokenArgs = {
-  tokenType: PhygitalTokenTypeArgs;
   owner: Address;
+  mint: Address;
   lastSignCount: number;
-  isLocked: boolean;
+  tokenType: number;
+  isLocked: number;
   publicKey: Secp256r1PubkeyArgs;
   identifier: Secp256r1PubkeyArgs;
-  mint: Address;
 };
 
 /** Gets the encoder for {@link PhygitalTokenArgs} account data. */
@@ -85,13 +81,13 @@ export function getPhygitalTokenEncoder(): FixedSizeEncoder<PhygitalTokenArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["tokenType", getPhygitalTokenTypeEncoder()],
       ["owner", getAddressEncoder()],
+      ["mint", getAddressEncoder()],
       ["lastSignCount", getU32Encoder()],
-      ["isLocked", getBooleanEncoder()],
+      ["tokenType", getU8Encoder()],
+      ["isLocked", getU8Encoder()],
       ["publicKey", getSecp256r1PubkeyEncoder()],
       ["identifier", getSecp256r1PubkeyEncoder()],
-      ["mint", getAddressEncoder()],
     ]),
     (value) => ({ ...value, discriminator: PHYGITAL_TOKEN_DISCRIMINATOR }),
   );
@@ -101,13 +97,13 @@ export function getPhygitalTokenEncoder(): FixedSizeEncoder<PhygitalTokenArgs> {
 export function getPhygitalTokenDecoder(): FixedSizeDecoder<PhygitalToken> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["tokenType", getPhygitalTokenTypeDecoder()],
     ["owner", getAddressDecoder()],
+    ["mint", getAddressDecoder()],
     ["lastSignCount", getU32Decoder()],
-    ["isLocked", getBooleanDecoder()],
+    ["tokenType", getU8Decoder()],
+    ["isLocked", getU8Decoder()],
     ["publicKey", getSecp256r1PubkeyDecoder()],
     ["identifier", getSecp256r1PubkeyDecoder()],
-    ["mint", getAddressDecoder()],
   ]);
 }
 

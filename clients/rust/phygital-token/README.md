@@ -33,6 +33,28 @@ use phygital_token_client::{
 };
 ```
 
+### `verify` CPI
+
+The TypeScript SDK prepends `secp256r1_verify` and does **not** include a client-side `verify` instruction. Your program CPIs `verify`:
+
+```rust
+use phygital_token_client::generated::instructions::VerifyCpiBuilder;
+
+VerifyCpiBuilder::new(phygital_token_program)
+    .phygital_token(phygital_token) // phygitalTokenPda from the tap
+    .instructions_sysvar(instructions_sysvar)
+    .secp256r1_verify_args(secp256r1_verify_args) // from the tap
+    .message_hash(message_hash) // same digest as buildMessageHash(message)
+    .expected_rp_id("app.example".into()) // optional; omit to skip
+    .expected_origins(vec![
+        "https://app.example".into(),
+        "http://localhost:3000".into(),
+    ]) // optional; omit to skip
+    .invoke()?;
+```
+
+`expected_rp_id` and `expected_origins` are `Option` args. Omit the builder methods to skip those checks. When `expected_origins` is set, the signed `clientDataJSON.origin` must match one entry.
+
 Regenerate from the program IDL with `pnpm generate:rust-client` at the monorepo root.
 
 ## License

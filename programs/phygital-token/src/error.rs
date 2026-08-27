@@ -56,7 +56,7 @@ pub enum PhygitalError {
     #[msg("WebAuthn rpId hash does not match the expected relying party id.")]
     RpIdMismatch,
 
-    #[msg("WebAuthn origin does not match the expected origin.")]
+    #[msg("WebAuthn origin does not match any expected origin.")]
     OriginMismatch,
 
     #[msg("Only the designated authority can perform this action.")]

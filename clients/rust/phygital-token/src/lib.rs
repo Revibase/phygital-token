@@ -4,6 +4,10 @@
 //! edit them by hand. This crate re-exports the generated program id, account types, instruction
 //! data/args, and error types so other crates can consume them on-chain
 //! without depending on the `phygital-token` program crate directly.
+//!
+//! `VerifyCpiBuilder` optional args: `.expected_rp_id(...)` and `.expected_origins(...)`.
+//! Omit them to skip those checks. When `expected_origins` is set, the signed
+//! origin must match one listed origin.
 
 pub mod generated;
 

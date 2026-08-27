@@ -33,7 +33,7 @@ After a successful verify, look up on-chain state with `findPhygitalTokenPda(sec
 
 ## On-chain `verify` (composable)
 
-Use `buildMessageHash(message)` then `authenticatePasskeyForSecp256r1Verify({ messageHash })` when another program needs an on-chain possession proof. Pass the same digest to `VerifyCpiBuilder.message_hash`. The phygital token PDA is derived after the NFC tap (`phygitalTokenPda`). Does **not** change `phygital_token.owner`. See [Composable verify](./verify-composable.md) and [Rust CPI](../building-on-phygital/rust-cpi.md).
+Use `buildMessageHash(message)` then `authenticatePasskeyForSecp256r1Verify({ messageHash })` when another program needs an on-chain possession proof. Pass the same digest to `VerifyCpiBuilder.message_hash`. Optional `expected_rp_id` / `expected_origins` are set on your CPI (`None` skips; when `expected_origins` is set, the signed origin must match one listed origin) — not on the tap helper. The phygital token PDA is derived after the NFC tap (`phygitalTokenPda`). Does **not** change `phygital_token.owner`. See [Composable verify](./verify-composable.md) and [Rust CPI](../building-on-phygital/rust-cpi.md).
 
 ## On-chain ownership change
 

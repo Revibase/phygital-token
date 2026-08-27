@@ -13,10 +13,17 @@ VerifyCpiBuilder::new(phygital_token_program)
     .instructions_sysvar(instructions_sysvar) // your accounts
     .secp256r1_verify_args(secp256r1_verify_args) // from the tap
     .message_hash(message_hash) // same digest as buildMessageHash(message)
+    .expected_rp_id("app.example".into()) // optional; omit to skip
+    .expected_origins(vec![
+        "https://app.example".into(),
+        "http://localhost:3000".into(),
+    ]) // optional; omit to skip
     .invoke()?;
 ```
 
-The client obtains `phygitalTokenPda` and `secp256r1VerifyArgs` from TypeScript `buildSecp256r1VerifyInstruction`. `message_hash` and `instructions_sysvar` come from your instruction. Pass `phygitalTokenPda` as `VerifyCpiBuilder.phygital_token`. Optional `.expected_rp_id(...)` / `.expected_origin(...)` are yours to set.
+The client obtains `phygitalTokenPda` and `secp256r1VerifyArgs` from TypeScript `buildSecp256r1VerifyInstruction`. `message_hash` and `instructions_sysvar` come from your instruction. Pass `phygitalTokenPda` as `VerifyCpiBuilder.phygital_token`.
+
+`expected_rp_id` and `expected_origins` are `Option` args on `verify`. Omit the builder methods to skip those checks. When `expected_origins` is set (`Some(vec![...])`), the signed `clientDataJSON.origin` must match one entry. The tap helper's `rpId` only selects which WebAuthn relying party the browser uses — it is not the on-chain origin allow-list.
 
 `secp256r1_verify` must appear earlier in the transaction (client includes it before your instruction).
 

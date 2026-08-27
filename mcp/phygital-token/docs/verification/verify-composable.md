@@ -62,14 +62,13 @@ Args:
 
 - `secp256r1VerifyArgs: { verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }`
 - `messageHash` — 32-byte WebAuthn challenge (`buildMessageHash(message)`)
-- `expectedRpId?: string` — when set, `SHA256(rpId)` must equal authenticatorData\[0..32\]
-- `expectedOrigin?: string` — when set, clientDataJSON `origin` must equal this value
+- `expectedRpId?: string` (`Option<string>`) — when set, `SHA256(rpId)` must equal authenticatorData\[0..32\]
+- `expectedOrigins?: string[]` (`Option<string[]>`) — when set, clientDataJSON `origin` must equal one of these values. `None` skips the check.
 
-Optional origin bindings are set on **your** CPI, not on the tap helper. The tap's `rpId` only selects which WebAuthn relying party the browser uses (defaults to hostname).
+These bindings are set on **your** CPI (`VerifyCpiBuilder.expected_rp_id` / `.expected_origins`), not on the tap helper. The tap's `rpId` only selects which WebAuthn relying party the browser uses (defaults to hostname). Standalone `getVerifyInstruction` takes the same optional args (`null` / omit encoded as `None`).
 
 ## On-chain effects
 
 - Verifies WebAuthn signature against `messageHash`
 - Sets `phygital_token.last_sign_count` from the WebAuthn authenticatorData `signCount`
-- Emits `VerifyEvent`
 - Does **not** change `phygital_token.owner`

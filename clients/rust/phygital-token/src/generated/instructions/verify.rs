@@ -79,7 +79,7 @@ impl Default for VerifyInstructionData {
                   pub secp256r1_verify_args: Secp256r1VerifyArgs,
                 pub message_hash: [u8; 32],
                 pub expected_rp_id: Option<String>,
-                pub expected_origin: Option<String>,
+                pub expected_origins: Option<Vec<String>>,
       }
 
 impl VerifyInstructionArgs {
@@ -102,7 +102,7 @@ pub struct VerifyBuilder {
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
                 message_hash: Option<[u8; 32]>,
                 expected_rp_id: Option<String>,
-                expected_origin: Option<String>,
+                expected_origins: Option<Vec<String>>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -139,8 +139,8 @@ impl VerifyBuilder {
       }
                 /// `[optional argument]`
 #[inline(always)]
-      pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
-        self.expected_origin = Some(expected_origin);
+      pub fn expected_origins(&mut self, expected_origins: Vec<String>) -> &mut Self {
+        self.expected_origins = Some(expected_origins);
         self
       }
         /// Add an additional account to the instruction.
@@ -165,7 +165,7 @@ impl VerifyBuilder {
                                                               secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
                                                                   message_hash: self.message_hash.clone().expect("message_hash is not set"),
                                                                   expected_rp_id: self.expected_rp_id.clone(),
-                                                                  expected_origin: self.expected_origin.clone(),
+                                                                  expected_origins: self.expected_origins.clone(),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -288,7 +288,7 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
                                             secp256r1_verify_args: None,
                                 message_hash: None,
                                 expected_rp_id: None,
-                                expected_origin: None,
+                                expected_origins: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -321,8 +321,8 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
       }
                 /// `[optional argument]`
 #[inline(always)]
-      pub fn expected_origin(&mut self, expected_origin: String) -> &mut Self {
-        self.instruction.expected_origin = Some(expected_origin);
+      pub fn expected_origins(&mut self, expected_origins: Vec<String>) -> &mut Self {
+        self.instruction.expected_origins = Some(expected_origins);
         self
       }
         /// Add an additional account to the instruction.
@@ -351,7 +351,7 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
                                                               secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
                                                                   message_hash: self.instruction.message_hash.clone().expect("message_hash is not set"),
                                                                   expected_rp_id: self.instruction.expected_rp_id.clone(),
-                                                                  expected_origin: self.instruction.expected_origin.clone(),
+                                                                  expected_origins: self.instruction.expected_origins.clone(),
                                     };
         let instruction = VerifyCpi {
         __program: self.instruction.__program,
@@ -373,7 +373,7 @@ struct VerifyCpiBuilderInstruction<'a, 'b> {
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
                 message_hash: Option<[u8; 32]>,
                 expected_rp_id: Option<String>,
-                expected_origin: Option<String>,
+                expected_origins: Option<Vec<String>>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

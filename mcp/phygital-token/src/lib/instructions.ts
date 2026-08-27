@@ -184,8 +184,8 @@ export async function planVerify(input: {
       verifyArgs: {
         secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
         messageHash: "32-byte WebAuthn challenge — from your instruction",
-        expectedRpId: "optional string — SHA256(rpId) must match authenticatorData[0..32]",
-        expectedOrigin: "optional string — must match clientDataJSON.origin",
+        expectedRpId: "Option<string> — omit/None skips; when set, SHA256(rpId) must match authenticatorData[0..32]",
+        expectedOrigins: "Option<string[]> — omit/None skips; when set, clientDataJSON.origin must match one entry",
       },
     },
     programSide:
@@ -200,6 +200,7 @@ export async function planVerify(input: {
       "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
       "Hash with buildMessageHash before authenticatePasskeyForSecp256r1Verify. Optional rpId defaults to window.location.hostname.",
       "Your program CPIs verify. Do not include a client-side verify instruction. message_hash and instructions sysvar come from your instruction.",
+      "Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder, not the tap helper. Omit them to skip. When expected_origins is set, clientDataJSON.origin must match one listed origin.",
       "verify updates phygital_token.last_sign_count; WebAuthn signCount must be strictly increasing.",
       "verify does not change phygital_token.owner.",
     ],

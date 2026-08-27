@@ -16,8 +16,13 @@ fn verify_succeeds_and_records_sign_count() {
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
 
-    ctx.send_verify(&phygital_token, TEST_MESSAGE_HASH, true)
+    let meta = ctx
+        .send_verify(&phygital_token, TEST_MESSAGE_HASH, true)
         .expect("verify should succeed with valid passkey signature");
+    eprintln!(
+        "CU verify_succeeds_and_records_sign_count: {}",
+        meta.compute_units_consumed
+    );
 
     assert_eq!(
         ctx.last_sign_count(phygital_token.phygital_token),
@@ -164,7 +169,7 @@ fn verify_accepts_matching_optional_rp_id_and_origin() {
         true,
         None,
         Some(TEST_RP_ID.to_string()),
-        Some(TEST_ORIGIN.to_string()),
+        Some(vec![TEST_ORIGIN.to_string()]),
     )
     .expect("matching rpId and origin should succeed");
 }
@@ -202,7 +207,7 @@ fn verify_rejects_mismatched_origin() {
             true,
             None,
             None,
-            Some("https://app.example".to_string()),
+            Some(vec!["https://app.example".to_string()]),
         )
         .expect_err("mismatched origin should fail");
 
@@ -231,7 +236,51 @@ fn verify_allows_rp_id_only_or_origin_only() {
         true,
         Some(2),
         None,
-        Some(TEST_ORIGIN.to_string()),
+        Some(vec![TEST_ORIGIN.to_string()]),
     )
     .expect("origin-only check should succeed");
+}
+
+#[test]
+fn verify_accepts_signed_origin_listed_among_several() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let phygital_token = ctx.init_phygital_token(&passkey);
+
+    ctx.send_verify_with_bindings(
+        &phygital_token,
+        TEST_MESSAGE_HASH,
+        true,
+        None,
+        None,
+        Some(vec![
+            "https://app.example".to_string(),
+            TEST_ORIGIN.to_string(),
+            "https://other.example".to_string(),
+        ]),
+    )
+    .expect("signed origin should match one of the allowed origins");
+}
+
+#[test]
+fn verify_rejects_when_no_listed_origin_matches() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let phygital_token = ctx.init_phygital_token(&passkey);
+
+    let err = ctx
+        .send_verify_with_bindings(
+            &phygital_token,
+            TEST_MESSAGE_HASH,
+            true,
+            None,
+            None,
+            Some(vec![
+                "https://app.example".to_string(),
+                "https://other.example".to_string(),
+            ]),
+        )
+        .expect_err("none of the listed origins match the signed origin");
+
+    assert_phygital_token_program_error(Err(err), "OriginMismatch");
 }

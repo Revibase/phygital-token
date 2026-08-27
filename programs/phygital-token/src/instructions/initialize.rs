@@ -33,24 +33,21 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = authority,
-        space = PhygitalToken::size(),
+        space = PhygitalToken::LEN,
         seeds = [PHYGITAL_TOKEN_SEED, secp256r1_pda_seed(&args.secp256r1_pubkey)],
         bump,
     )]
-    pub phygital_token: Account<'info, PhygitalToken>,
+    pub phygital_token: AccountLoader<'info, PhygitalToken>,
 
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
-    ctx.accounts.phygital_token.init(
-        args.identifier,
-        args.token_type,
-        args.secp256r1_pubkey,
-    );
+    let mut token = ctx.accounts.phygital_token.load_init()?;
+    token.init(args.identifier, args.token_type, args.secp256r1_pubkey);
 
     emit!(InitializeEvent {
-        identifier: ctx.accounts.phygital_token.identifier,
+        identifier: token.identifier,
         authority: ctx.accounts.authority.key(),
         public_key: args.secp256r1_pubkey,
         time: Clock::get()?.unix_timestamp,

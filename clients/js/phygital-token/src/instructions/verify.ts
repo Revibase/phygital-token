@@ -27,7 +27,9 @@ export function buildMessageHash(message: Uint8Array): Uint8Array {
  * {@link buildMessageHash} first.
  *
  * @param input.messageHash - SHA-256 of the message you bind on-chain (32 bytes).
- * @param input.rpId - Relying party ID. Defaults to `window.location.hostname`.
+ * @param input.rpId - WebAuthn relying party for the **browser tap** only.
+ *   Defaults to `window.location.hostname`. On-chain `expected_rp_id` /
+ *   `expected_origins` are set on your CPI, not here.
  */
 export async function authenticatePasskeyForSecp256r1Verify(input: {
   messageHash: Uint8Array;
@@ -46,8 +48,10 @@ export async function authenticatePasskeyForSecp256r1Verify(input: {
  * token PDA (`phygitalTokenPda`) and `secp256r1VerifyArgs` for
  * `VerifyCpiBuilder`.
  *
- * `message_hash`, the instructions sysvar, and optional origin bindings come
- * from your program instruction — not this return value.
+ * `message_hash`, the instructions sysvar, and optional `expected_rp_id` /
+ * `expected_origins` come from your program instruction — not this return
+ * value. When `expected_origins` is set, the signed origin must match one
+ * listed origin; omit it to skip the origin check.
  *
  * @param verifyArgsRelativeIndex - Index of the secp instruction relative to
  *   yours. Default `-1` (secp immediately precedes your instruction).

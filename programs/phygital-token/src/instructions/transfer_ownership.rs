@@ -17,18 +17,11 @@ pub struct TransferEvent {
 }
 
 #[derive(Accounts)]
-#[instruction(secp256r1_verify_args: Secp256r1VerifyArgs, slot_number: u64)]
 pub struct TransferOwnership<'info> {
     pub recipient: Signer<'info>,
 
-    #[account(
-        mut,
-        constraint = {
-            let extracted_pubkey = secp256r1_verify_args.extract_public_key_from_instruction(&instructions_sysvar)?;
-            phygital_token.public_key == extracted_pubkey
-        } @ PhygitalError::Secp256r1PubkeyMismatch,
-    )]
-    pub phygital_token: Account<'info, PhygitalToken>,
+    #[account(mut)]
+    pub phygital_token: AccountLoader<'info, PhygitalToken>,
 
     /// CHECK: validated as the SlotHashes sysvar address
     #[account(address = SLOT_HASHES_SYSVAR_ID)]
@@ -44,36 +37,43 @@ pub fn handler(
     secp256r1_verify_args: Secp256r1VerifyArgs,
     slot_number: u64,
 ) -> Result<()> {
-    let sign_count = secp256r1_verify_args.extract_sign_count(&ctx.accounts.instructions_sysvar)?;
-    require!(
-        sign_count > ctx.accounts.phygital_token.last_sign_count,
-        PhygitalError::StaleSignCount
-    );
+    let mut token = ctx.accounts.phygital_token.load_mut()?;
 
-    if ctx.accounts.phygital_token.token_type == PhygitalTokenType::Controlled {
-        require!(
-            !ctx.accounts.phygital_token.is_locked,
-            PhygitalError::TokenIsCurrentlyLocked
-        );
-        ctx.accounts.phygital_token.is_locked = true;
+    if token.token_type == PhygitalTokenType::Controlled as u8 {
+        require!(token.is_locked == 0, PhygitalError::TokenIsCurrentlyLocked);
+        token.is_locked = 1;
     }
 
     let slot_hash = Secp256r1VerifyArgs::fetch_slot_hash(&ctx.accounts.slot_hashes, slot_number)?;
     let expected_challenge =
         build_transfer_challenge(&ctx.accounts.phygital_token.key(), slot_hash);
 
-    secp256r1_verify_args.verify_webauthn(&ctx.accounts.instructions_sysvar, expected_challenge)?;
+    let (extracted_pubkey, sign_count) = secp256r1_verify_args.verify_webauthn_assertion(
+        &ctx.accounts.instructions_sysvar,
+        expected_challenge,
+        None,
+        None,
+    )?;
+
+    require!(
+        token.public_key == extracted_pubkey,
+        PhygitalError::Secp256r1PubkeyMismatch
+    );
+    require!(
+        sign_count > token.last_sign_count,
+        PhygitalError::StaleSignCount
+    );
 
     emit!(TransferEvent {
-        owner: ctx.accounts.phygital_token.owner.key(),
+        owner: token.owner,
         recipient: ctx.accounts.recipient.key(),
-        public_key: ctx.accounts.phygital_token.public_key,
-        identifier: ctx.accounts.phygital_token.identifier,
+        public_key: token.public_key,
+        identifier: token.identifier,
         time: Clock::get()?.unix_timestamp,
     });
 
-    ctx.accounts.phygital_token.last_sign_count = sign_count;
-    ctx.accounts.phygital_token.owner = ctx.accounts.recipient.key();
+    token.last_sign_count = sign_count;
+    token.owner = ctx.accounts.recipient.key();
 
     Ok(())
 }

@@ -14,19 +14,20 @@ pub struct RemoveOwnership<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        constraint = phygital_token.owner.key() == owner.key() @PhygitalError::OwnerMismatch
+        constraint = phygital_token.load()?.owner == owner.key() @ PhygitalError::OwnerMismatch
     )]
-    pub phygital_token: Account<'info, PhygitalToken>,
+    pub phygital_token: AccountLoader<'info, PhygitalToken>,
 }
 
 pub fn handler(ctx: Context<RemoveOwnership>) -> Result<()> {
-    ctx.accounts.phygital_token.owner = Pubkey::default();
-    ctx.accounts.phygital_token.is_locked = false;
+    let mut token = ctx.accounts.phygital_token.load_mut()?;
+    token.owner = Pubkey::default();
+    token.is_locked = 0;
 
     emit!(RemoveOwnershipEvent {
         owner: ctx.accounts.owner.key(),
-        identifier: ctx.accounts.phygital_token.identifier,
-        public_key: ctx.accounts.phygital_token.public_key,
+        identifier: token.identifier,
+        public_key: token.public_key,
         time: Clock::get()?.unix_timestamp,
     });
 

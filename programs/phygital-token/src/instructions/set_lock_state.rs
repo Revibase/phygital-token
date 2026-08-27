@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::PhygitalError, PhygitalToken, Secp256r1Pubkey};
+use crate::{error::PhygitalError, PhygitalToken, PhygitalTokenType, Secp256r1Pubkey};
 
 #[event]
 pub struct SetLockStateEvent {
@@ -16,25 +16,23 @@ pub struct SetLockState<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        constraint = phygital_token.owner.key() == owner.key() @PhygitalError::OwnerMismatch
+        constraint = phygital_token.load()?.owner == owner.key() @ PhygitalError::OwnerMismatch
     )]
-    pub phygital_token: Account<'info, PhygitalToken>,
+    pub phygital_token: AccountLoader<'info, PhygitalToken>,
 }
 
 pub fn handler(ctx: Context<SetLockState>, is_locked: bool) -> Result<()> {
+    let mut token = ctx.accounts.phygital_token.load_mut()?;
     require!(
-        ctx.accounts
-            .phygital_token
-            .token_type
-            .eq(&crate::PhygitalTokenType::Controlled),
+        token.token_type == PhygitalTokenType::Controlled as u8,
         PhygitalError::TokenIsNotLockable
     );
-    ctx.accounts.phygital_token.is_locked = is_locked;
+    token.is_locked = if is_locked { 1 } else { 0 };
 
     emit!(SetLockStateEvent {
-        public_key: ctx.accounts.phygital_token.public_key,
+        public_key: token.public_key,
         owner: ctx.accounts.owner.key(),
-        identifier: ctx.accounts.phygital_token.identifier,
+        identifier: token.identifier,
         is_locked,
         time: Clock::get()?.unix_timestamp,
     });

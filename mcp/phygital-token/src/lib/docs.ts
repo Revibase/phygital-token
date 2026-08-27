@@ -4,6 +4,7 @@ import {
   GLOSSARY_PATH,
   MCP_DOCS_DIR,
   pathExists,
+  resolveRustClientReadmePath,
   resolveSdkReadmePath,
 } from "./paths.js";
 
@@ -88,6 +89,16 @@ export async function listDocs(): Promise<DocEntry[]> {
       id: "readme",
       title: "SDK README",
       path: sdkReadmePath,
+      category: "readme",
+    });
+  }
+
+  const rustReadmePath = await resolveRustClientReadmePath();
+  if (rustReadmePath) {
+    docs.push({
+      id: "readme:rust-client",
+      title: "Rust client README",
+      path: rustReadmePath,
       category: "readme",
     });
   }

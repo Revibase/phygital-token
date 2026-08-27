@@ -16,10 +16,31 @@ import {
 } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "./parseSecp256r1Pubkey.js";
 
-const OWNER_OFFSET = 9;
-/** Offset of `identifier` (33 bytes) within account data. */
-const IDENTIFIER_OFFSET = 79;
-const MINT_OFFSET = 112;
+/**
+ * Zero-copy `PhygitalToken` layout after the 8-byte discriminator:
+ * `owner` 32 | `mint` 32 | `last_sign_count` 4 | `token_type` 1 | `is_locked` 1
+ * | `public_key` 33 | `identifier` 33. Total account size is
+ * {@link getPhygitalTokenSize} (144).
+ */
+const DISCRIMINATOR_LEN = 8;
+const PUBKEY_LEN = 32;
+const SIGN_COUNT_LEN = 4;
+const U8_LEN = 1;
+const SECP256R1_PUBKEY_LEN = 33;
+
+/** memcmp offset of `owner` in account data. */
+const PHYGITAL_TOKEN_OWNER_OFFSET = DISCRIMINATOR_LEN;
+/** memcmp offset of `mint` in account data. */
+const PHYGITAL_TOKEN_MINT_OFFSET =
+  PHYGITAL_TOKEN_OWNER_OFFSET + PUBKEY_LEN;
+/** memcmp offset of `identifier` in account data. */
+const PHYGITAL_TOKEN_IDENTIFIER_OFFSET =
+  PHYGITAL_TOKEN_MINT_OFFSET +
+  PUBKEY_LEN +
+  SIGN_COUNT_LEN +
+  U8_LEN +
+  U8_LEN +
+  SECP256R1_PUBKEY_LEN;
 
 /**
  * Find the token whose on-chain `identifier` matches (via `getProgramAccounts`
@@ -44,7 +65,7 @@ export async function fetchPhygitalTokenByIdentifier(
         {
           memcmp: {
             encoding: "base64" as const,
-            offset: BigInt(IDENTIFIER_OFFSET),
+            offset: BigInt(PHYGITAL_TOKEN_IDENTIFIER_OFFSET),
             bytes: getBase64Decoder().decode(parsed[0]) as Base64EncodedBytes,
           },
         },
@@ -77,7 +98,7 @@ export async function fetchPhygitalTokensByOwner(
         {
           memcmp: {
             encoding: "base64" as const,
-            offset: BigInt(OWNER_OFFSET),
+            offset: BigInt(PHYGITAL_TOKEN_OWNER_OFFSET),
             bytes: getBase64Decoder().decode(
               getAddressEncoder().encode(owner),
             ) as Base64EncodedBytes,
@@ -114,7 +135,7 @@ export async function fetchPhygitalTokenByMint(
         {
           memcmp: {
             encoding: "base64" as const,
-            offset: BigInt(MINT_OFFSET),
+            offset: BigInt(PHYGITAL_TOKEN_MINT_OFFSET),
             bytes: getBase64Decoder().decode(
               getAddressEncoder().encode(mint),
             ) as Base64EncodedBytes,

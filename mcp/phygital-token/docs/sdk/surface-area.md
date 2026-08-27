@@ -36,8 +36,9 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 | `buildMessageHash(message)` | SHA-256 `message` to a 32-byte `messageHash` |
 | `authenticatePasskeyForSecp256r1Verify({ messageHash, rpId? })` | Uses `messageHash` as WebAuthn challenge; `rpId` defaults to hostname |
 | `buildSecp256r1VerifyInstruction` | After tap: `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }` |
+| `getVerifyInstruction` | Generated `verify` ix — `expectedRpId` / `expectedOrigins` are `Option` (`null` skips). CPI callers set these on `VerifyCpiBuilder`, not the tap helper. |
 
-See `verification:verify-composable` and `building-on-phygital:rust-cpi`.
+See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `expectedOrigins` is set, `clientDataJSON.origin` must match one listed origin.
 
 ## Remove ownership
 
@@ -61,9 +62,10 @@ The authenticator uses the secp256r1 public key as WebAuthn `credential.id`; the
 | Export | Purpose |
 |--------|---------|
 | `findPhygitalTokenPda` | Derive token PDA from passkey public key (base64url string or parsed `Secp256r1Pubkey`) |
-| `fetchPhygitalTokenByIdentifier` | Kit `Rpc`; `getProgramAccounts` memcmp on chip `identifier` |
-| `fetchPhygitalTokensByOwner` | Kit `Rpc` + `Address` owner |
-| `fetchPhygitalTokenByMint` | Kit `Address` mint + Kit `Rpc` |
+| `fetchPhygitalTokenByIdentifier` | Kit `Rpc`; `getProgramAccounts` memcmp on chip `identifier` (offset 111) |
+| `fetchPhygitalTokensByOwner` | Kit `Rpc` + `Address` owner (memcmp offset 8) |
+| `fetchPhygitalTokenByMint` | Kit `Address` mint + Kit `Rpc` (memcmp offset 40) |
+| `PHYGITAL_TOKEN_OWNER_OFFSET` / `MINT` / `IDENTIFIER` | Zero-copy account memcmp offsets (8 / 40 / 111) |
 | `fetchPhygitalToken` | Generated helper — Kit `Rpc` + token PDA |
 
 ## web3.js
@@ -102,6 +104,6 @@ Re-exported from `./generated/index.js`:
 
 Crate: `phygital-token-client` at `clients/rust/phygital-token`.
 
-On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `SetMintCpiBuilder`, `TransferOwnershipCpiBuilder`, …), account layouts, errors.
+On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `SetMintCpiBuilder`, `TransferOwnershipCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
 
 Off-chain (`fetch` feature): RPC account fetching helpers.

@@ -14,8 +14,13 @@ fn transfer_ownership_moves_token_to_recipient_with_recipient_signature() {
 
     assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), Pubkey::default());
 
-    ctx.send_transfer_ownership(&phygital_token, &recipient, true)
+    let meta = ctx
+        .send_transfer_ownership(&phygital_token, &recipient, true)
         .expect("transfer_ownership should succeed with secp256r1 + recipient signature only");
+    eprintln!(
+        "CU transfer_ownership_moves_token_to_recipient: {}",
+        meta.compute_units_consumed
+    );
 
     assert_eq!(
         ctx.last_sign_count(phygital_token.phygital_token),

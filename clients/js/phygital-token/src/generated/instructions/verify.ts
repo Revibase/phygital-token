@@ -12,6 +12,8 @@ import {
   combineCodec,
   fixDecoderSize,
   fixEncoderSize,
+  getArrayDecoder,
+  getArrayEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getOptionDecoder,
@@ -84,14 +86,14 @@ export type VerifyInstructionData = {
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
   messageHash: ReadonlyUint8Array;
   expectedRpId: Option<string>;
-  expectedOrigin: Option<string>;
+  expectedOrigins: Option<Array<string>>;
 };
 
 export type VerifyInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
   messageHash: ReadonlyUint8Array;
   expectedRpId: OptionOrNullable<string>;
-  expectedOrigin: OptionOrNullable<string>;
+  expectedOrigins: OptionOrNullable<Array<string>>;
 };
 
 export function getVerifyInstructionDataEncoder(): Encoder<VerifyInstructionDataArgs> {
@@ -107,9 +109,11 @@ export function getVerifyInstructionDataEncoder(): Encoder<VerifyInstructionData
         ),
       ],
       [
-        "expectedOrigin",
+        "expectedOrigins",
         getOptionEncoder(
-          addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
+          getArrayEncoder(
+            addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
+          ),
         ),
       ],
     ]),
@@ -127,8 +131,12 @@ export function getVerifyInstructionDataDecoder(): Decoder<VerifyInstructionData
       getOptionDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())),
     ],
     [
-      "expectedOrigin",
-      getOptionDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())),
+      "expectedOrigins",
+      getOptionDecoder(
+        getArrayDecoder(
+          addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder()),
+        ),
+      ),
     ],
   ]);
 }
@@ -152,7 +160,7 @@ export type VerifyInput<
   secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
   messageHash: VerifyInstructionDataArgs["messageHash"];
   expectedRpId: VerifyInstructionDataArgs["expectedRpId"];
-  expectedOrigin: VerifyInstructionDataArgs["expectedOrigin"];
+  expectedOrigins: VerifyInstructionDataArgs["expectedOrigins"];
 };
 
 export function getVerifyInstruction<

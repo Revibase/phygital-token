@@ -22,6 +22,8 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 | **Owner** | `phygital_token.owner` | Current custodian after a successful `transfer_ownership`. Starts as the default (zero) pubkey. |
 | **Mint** | `phygital_token.mint` | Optional SPL mint binding. Starts as the default pubkey until `set_mint`. |
 | **Token type** | `phygital_token.token_type` | `Controlled` (owner can lock transfers) or `Bearer` (cannot lock). |
+| **Expected rpId** | `verify.expected_rp_id` | Optional `Option<String>`. When set, `SHA256(rpId)` must match authenticatorData\[0..32\]. Omit / `None` skips. |
+| **Expected origins** | `verify.expected_origins` | Optional `Option<Vec<String>>` allow-list. When set, signed `clientDataJSON.origin` must match one entry. Omit / `None` skips. |
 
 ## Instruction map
 
@@ -30,7 +32,7 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 | `initialize` | Creates a **phygital_token** PDA seeded by `secp256r1_pubkey`, stores `identifier` + token type. Restricted to `ADMIN`. |
 | `set_mint` | Admin binds an SPL mint pubkey onto `phygital_token.mint`. Restricted to `ADMIN`. |
 | `transfer_ownership` | Passkey-authorized ownership update to `recipient` (no SPL token). |
-| `verify` | Passkey-authorized message proof; updates `last_sign_count`. |
+| `verify` | Passkey-authorized message proof; optional `expected_rp_id` / `expected_origins` (`Option`); updates `last_sign_count`. |
 | `remove_ownership` | Wallet-signed forfeiture — resets `phygital_token.owner` to default. |
 | `set_lock_state` | Owner toggles transfer lock on a `Controlled` token. |
 

@@ -83,10 +83,18 @@ VerifyCpiBuilder::new(phygital_token_program)
     .instructions_sysvar(instructions_sysvar) // your accounts
     .secp256r1_verify_args(secp256r1_verify_args) // from the tap
     .message_hash(message_hash) // same digest as buildMessageHash(message)
+    // optional WebAuthn bindings (omit to skip):
+    .expected_rp_id("app.example".into())
+    .expected_origins(vec![
+        "https://app.example".into(),
+        "http://localhost:3000".into(),
+    ])
     .invoke()?;
 ```
 
 Crate: `phygital-token-client`.
+
+`expected_rp_id` / `expected_origins` are set on **your CPI**, not on the TypeScript tap helper. The tap's `rpId` only selects which WebAuthn relying party the browser uses. When `expected_origins` is set, `clientDataJSON.origin` must match one listed origin.
 
 ## License
 

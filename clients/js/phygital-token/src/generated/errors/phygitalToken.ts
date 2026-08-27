@@ -50,7 +50,7 @@ export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x177f; // 6015
 export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x1780; // 6016
 /** RpIdMismatch: WebAuthn rpId hash does not match the expected relying party id. */
 export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1781; // 6017
-/** OriginMismatch: WebAuthn origin does not match the expected origin. */
+/** OriginMismatch: WebAuthn origin does not match any expected origin. */
 export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1782; // 6018
 /** UnauthorizedAuthority: Only the designated authority can perform this action. */
 export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1783; // 6019
@@ -89,7 +89,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH]: `Slot not found in SlotHashes sysvar — signature has expired or is being replayed`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT]: `Invalid sysvar data format`,
     [PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
-    [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH]: `WebAuthn origin does not match the expected origin.`,
+    [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH]: `WebAuthn origin does not match any expected origin.`,
     [PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH]: `Phygital token owner mismatch`,
     [PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH]: `WebAuthn rpId hash does not match the expected relying party id.`,
     [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match phygital token record`,

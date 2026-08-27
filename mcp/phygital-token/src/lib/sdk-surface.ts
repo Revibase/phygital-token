@@ -30,6 +30,10 @@ export const SDK_SURFACE = {
     ],
     transaction: ["secp256r1_verify", "your_program_instruction"],
     program: "CPI verify via VerifyCpiBuilder",
+    optionalBindings: {
+      expected_rp_id: "Option<String> — omit to skip; SHA256(rpId) must match authenticatorData[0..32]",
+      expected_origins: "Option<Vec<String>> — omit to skip; when set, clientDataJSON.origin must match one entry",
+    },
   },
   tokenLookup: [
     "findPhygitalTokenPda",
