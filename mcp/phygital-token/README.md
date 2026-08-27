@@ -53,4 +53,4 @@ pnpm --filter phygital-token-mcp publish --access public
 
 ## License
 
-ISC
+MIT. See [LICENSE](./LICENSE).

@@ -1,7 +1,10 @@
 [package]
 name = "phygital-token"
 version = "0.4.0"
-description = "Created with Anchor"
+description = "Solana program for phygital tokens with WebAuthn passkey verification"
+license = "MIT"
+authors = ["Revibase"]
+repository = "https://github.com/Revibase/phygital-token"
 edition = "2021"
 
 [lib]

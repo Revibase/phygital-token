@@ -1,12 +1,17 @@
 {
   "name": "phygital-token-mcp",
-  "version": "0.18.0",
+  "version": "1.0.0",
   "description": "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client",
-  "license": "ISC",
+  "license": "MIT",
+  "author": "Revibase",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jychab/phygital-nfts.git",
+    "url": "git+https://github.com/Revibase/phygital-token.git",
     "directory": "mcp/phygital-token"
+  },
+  "homepage": "https://github.com/Revibase/phygital-token/tree/master/mcp/phygital-token",
+  "bugs": {
+    "url": "https://github.com/Revibase/phygital-token/issues"
   },
   "keywords": [
     "mcp",
@@ -25,6 +30,7 @@
     "dist",
     "docs",
     "README.md",
+    "LICENSE",
     "cursor-mcp.example.json"
   ],
   "scripts": {
@@ -34,11 +40,11 @@
     "start": "node dist/index.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.18.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@solana/kit": "^7.0.0",
+    "@solana/kit": "^8.0.0",
     "phygital-token-sdk": "workspace:*",
     "zod": "^3.25.76"
   },

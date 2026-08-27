@@ -98,4 +98,4 @@ Crate: `phygital-token-client`.
 
 ## License
 
-ISC
+MIT. See [LICENSE](./LICENSE).

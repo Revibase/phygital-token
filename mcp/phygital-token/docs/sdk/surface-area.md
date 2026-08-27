@@ -62,10 +62,9 @@ The authenticator uses the secp256r1 public key as WebAuthn `credential.id`; the
 | Export | Purpose |
 |--------|---------|
 | `findPhygitalTokenPda` | Derive token PDA from passkey public key (base64url string or parsed `Secp256r1Pubkey`) |
-| `fetchPhygitalTokenByIdentifier` | Kit `Rpc`; `getProgramAccounts` memcmp on chip `identifier` (offset 111) |
-| `fetchPhygitalTokensByOwner` | Kit `Rpc` + `Address` owner (memcmp offset 8) |
-| `fetchPhygitalTokenByMint` | Kit `Address` mint + Kit `Rpc` (memcmp offset 40) |
-| `PHYGITAL_TOKEN_OWNER_OFFSET` / `MINT` / `IDENTIFIER` | Zero-copy account memcmp offsets (8 / 40 / 111) |
+| `fetchPhygitalTokenByIdentifier` | Kit `Rpc`; `getProgramAccounts` memcmp on chip `identifier` |
+| `fetchPhygitalTokensByOwner` | Kit `Rpc` + `Address` owner |
+| `fetchPhygitalTokenByMint` | Kit `Address` mint + Kit `Rpc` |
 | `fetchPhygitalToken` | Generated helper — Kit `Rpc` + token PDA |
 
 ## web3.js

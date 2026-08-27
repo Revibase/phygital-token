@@ -2590,7 +2590,7 @@ dependencies = [
 
 [[package]]
 name = "phygital-token-client"
-version = "0.12.0"
+version = "1.0.0"
 dependencies = [
  "anchor-lang",
  "borsh",

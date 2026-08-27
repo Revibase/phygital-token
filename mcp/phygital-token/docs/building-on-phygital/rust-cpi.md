@@ -6,7 +6,6 @@ Client sends `secp256r1_verify` + your instruction (no client-side `verify`). Yo
 
 ```rust
 use phygital_token_client::generated::instructions::VerifyCpiBuilder;
-use phygital_token_client::generated::types::Secp256r1VerifyArgs;
 
 VerifyCpiBuilder::new(phygital_token_program)
     .phygital_token(phygital_token) // phygitalTokenPda from the tap

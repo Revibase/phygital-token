@@ -1,24 +1,46 @@
 {
   "name": "phygital-token-sdk",
-  "version": "0.24.0",
-  "description": "TypeScript client for the Phygital Token Solana program (generated via Codama)",
-  "license": "ISC",
+  "version": "1.0.0",
+  "description": "TypeScript client for the Phygital Token Solana program",
+  "license": "MIT",
+  "author": "Revibase",
   "type": "module",
   "main": "./dist/index.js",
-  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "default": "./dist/index.js"
+      "import": "./dist/index.js"
     }
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Revibase/phygital-token.git",
+    "directory": "clients/js/phygital-token"
+  },
+  "homepage": "https://github.com/Revibase/phygital-token/tree/master/clients/js/phygital-token",
+  "bugs": {
+    "url": "https://github.com/Revibase/phygital-token/issues"
+  },
+  "keywords": [
+    "solana",
+    "phygital",
+    "webauthn",
+    "nft",
+    "passkey"
+  ],
+  "engines": {
+    "node": ">=20.18.0"
+  },
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",

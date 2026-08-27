@@ -1,24 +1,24 @@
 # phygital-token-client
 
-Codama-generated Rust client for the [phygital-token](https://github.com/jychab/phygital-nfts) Solana program.
+Codama-generated Rust client for the [phygital-token](https://github.com/Revibase/phygital-token) Solana program.
 
 ## Install
 
 ```toml
 [dependencies]
-phygital-token-client = "0.12"
+phygital-token-client = "1.0"
 ```
 
 For on-chain CPI helpers (Anchor):
 
 ```toml
-phygital-token-client = { version = "0.12", features = ["anchor"] }
+phygital-token-client = { version = "1.0", features = ["anchor"] }
 ```
 
 For off-chain account fetching:
 
 ```toml
-phygital-token-client = { version = "0.12", features = ["fetch"] }
+phygital-token-client = { version = "1.0", features = ["fetch"] }
 ```
 
 ## Usage
@@ -59,4 +59,4 @@ Regenerate from the program IDL with `pnpm generate:rust-client` at the monorepo
 
 ## License
 
-ISC
+MIT. See [LICENSE](./LICENSE).

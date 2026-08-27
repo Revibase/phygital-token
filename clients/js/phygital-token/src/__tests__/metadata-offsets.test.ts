@@ -4,14 +4,12 @@ import {
   getPhygitalTokenEncoder,
   getPhygitalTokenSize,
 } from "../generated/index.js";
-import {
-  PHYGITAL_TOKEN_IDENTIFIER_OFFSET,
-  PHYGITAL_TOKEN_MINT_OFFSET,
-  PHYGITAL_TOKEN_OWNER_OFFSET,
-} from "../utils/metadata.js";
 
 const OWNER = address("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF");
 const MINT = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const OWNER_OFFSET = 8;
+const MINT_OFFSET = 40;
+const IDENTIFIER_OFFSET = 111;
 
 function filledKey(fill: number): readonly [Uint8Array] {
   return [Uint8Array.from({ length: 33 }, () => fill)] as const;
@@ -32,28 +30,16 @@ describe("PhygitalToken memcmp offsets", () => {
     });
 
     expect(encoded.length).toBe(getPhygitalTokenSize());
-    expect(PHYGITAL_TOKEN_OWNER_OFFSET).toBe(8);
-    expect(PHYGITAL_TOKEN_MINT_OFFSET).toBe(40);
-    expect(PHYGITAL_TOKEN_IDENTIFIER_OFFSET).toBe(111);
 
     const addressBytes = getAddressEncoder();
+    expect(encoded.subarray(OWNER_OFFSET, OWNER_OFFSET + 32)).toEqual(
+      addressBytes.encode(OWNER),
+    );
+    expect(encoded.subarray(MINT_OFFSET, MINT_OFFSET + 32)).toEqual(
+      addressBytes.encode(MINT),
+    );
     expect(
-      encoded.subarray(
-        PHYGITAL_TOKEN_OWNER_OFFSET,
-        PHYGITAL_TOKEN_OWNER_OFFSET + 32,
-      ),
-    ).toEqual(addressBytes.encode(OWNER));
-    expect(
-      encoded.subarray(
-        PHYGITAL_TOKEN_MINT_OFFSET,
-        PHYGITAL_TOKEN_MINT_OFFSET + 32,
-      ),
-    ).toEqual(addressBytes.encode(MINT));
-    expect(
-      encoded.subarray(
-        PHYGITAL_TOKEN_IDENTIFIER_OFFSET,
-        PHYGITAL_TOKEN_IDENTIFIER_OFFSET + 33,
-      ),
+      encoded.subarray(IDENTIFIER_OFFSET, IDENTIFIER_OFFSET + 33),
     ).toEqual(identifier[0]);
   });
 });

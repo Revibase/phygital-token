@@ -18,7 +18,7 @@ export {
 export {
   fetchPhygitalTokenByIdentifier,
   fetchPhygitalTokensByOwner,
-  fetchPhygitalTokenByMint
+  fetchPhygitalTokenByMint,
 } from "./utils/metadata.js";
 
 export {
