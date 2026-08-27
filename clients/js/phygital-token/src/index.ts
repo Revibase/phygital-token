@@ -6,31 +6,19 @@ export {
 } from "./instructions/transfer.js";
 
 export {
-  beginVerify,
-  completeVerify,
-  authenticatePasskeyForVerify,
-  buildVerifyArgs,
-  type VerifySession,
+  buildMessageHash,
+  authenticatePasskeyForSecp256r1Verify,
+  buildSecp256r1VerifyInstruction,
 } from "./instructions/verify.js";
 
 export {
-  buildInitializeInstruction,
-  type InitializeParams,
-} from "./instructions/initialize.js";
-
-export {
   parseSecp256r1Pubkey,
-  parseIdentifier,
 } from "./utils/parseSecp256r1Pubkey.js";
 
 export {
-  buildSetMintInstruction,
-  type SetMintParams,
-} from "./instructions/setMint.js";
-
-export {
-  fetchTokenByIdentifier,
-  fetchAllTokensFromOwner,
+  fetchPhygitalTokenByIdentifier,
+  fetchPhygitalTokensByOwner,
+  fetchPhygitalTokenByMint
 } from "./utils/metadata.js";
 
 export {
@@ -40,23 +28,21 @@ export {
   type VerifyResponseOptions,
 } from "./utils/verify.js";
 
-export { findTokenPda } from "./utils/pdas/index.js";
+export { findPhygitalTokenPda } from "./utils/pdas/index.js";
 
 export { ADMIN, INITIALIZE_MULTISIG_PDA } from "./utils/consts.js";
 
+export {
+  toAddress,
+  toRpc,
+  toTransactionSigner,
+  toWeb3Instruction,
+  toWeb3Instructions,
+  type AddressInput,
+  type RpcInput,
+  type SignerInput,
+  type Web3Instruction,
+  type Web3PublicKeyLike,
+} from "./utils/compat.js";
+
 export * from "./generated/index.js";
-
-export {
-  getSecp256r1VerifyInstruction,
-  type Secp256r1VerifyEntry,
-  type Secp256r1VerifyInstruction,
-} from "./instructions/internal/secp256r1Verify.js";
-
-export {
-  buildSecp256r1VerifyInstructionFromWebAuthnResponse,
-  buildTransferChallenge,
-  buildVerifyChallenge,
-  buildVerifyChallengeFromMessage,
-  buildVerifyInputFromWebAuthn,
-  type WebAuthnSecp256r1Verification,
-} from "./utils/passkey/secp256r1.js";

@@ -18,7 +18,7 @@ const TOKEN_SEED = new TextEncoder().encode("token");
  * (the same shape as `verifyResponse().secp256r1PublicKey`).
  * PDA seeds: `["token", pubkey[1..]]` — the compressed-point prefix byte is dropped.
  */
-export async function findTokenPda(
+export async function findPhygitalTokenPda(
   secp256r1Pubkey: Secp256r1Pubkey | Base64URLString,
 ): Promise<Address> {
   const pubkey =

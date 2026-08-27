@@ -12,7 +12,7 @@ import {
   parseWebAuthnClientData,
 } from "./passkey/internal.js";
 import { authenticateWithApdu } from "./passkey/nfc/index.js";
-import { parseSecp256r1Pubkey } from "../instructions/initialize.js";
+import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 
 /** Result of {@link verifyResponse}. */
 export type VerifyResponseResult = {
@@ -32,10 +32,13 @@ export type VerifyResponseOptions = {
  *
  * Browser: opens the system WebAuthn/NFC modal.
  * Native / kiosk: pass `transceive` to talk to an IsoDep reader via APDUs.
+ *
+ * @param rpId - Relying party ID. Defaults to `window.location.hostname`.
  */
 export async function startAuthentication(
   message: string,
   transceive?: (apdu: Uint8Array) => Promise<Uint8Array>,
+  rpId = window.location.hostname,
 ): Promise<AuthenticationResponseJSON> {
   const challenge = utf8ToBase64URLString(message);
 
@@ -58,7 +61,7 @@ export async function startAuthentication(
     );
   }
 
-  return authenticateWithWebauthn(nfcWebAuthnRequestOptions(challenge));
+  return authenticateWithWebauthn(nfcWebAuthnRequestOptions(challenge, rpId));
 }
 
 /**
@@ -74,7 +77,7 @@ export async function startAuthentication(
  * of throwing.
  *
  * Does not submit a transaction. After a successful verify, look up on-chain
- * state with `findTokenPda` + `fetchPhygitalToken` (PDA is seeded by the passkey).
+ * state with `findPhygitalTokenPda` + `fetchPhygitalToken` (PDA is seeded by the passkey).
  */
 export function verifyResponse({
   expectedMessage,

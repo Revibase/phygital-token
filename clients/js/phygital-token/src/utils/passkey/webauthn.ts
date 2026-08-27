@@ -109,17 +109,17 @@ function toPublicKeyCredentialDescriptor(
 
 /**
  * Browser WebAuthn request options for an NFC passkey assertion.
- * When known, pass the token's compressed secp256r1 public key as `credentialId`
- * (the authenticator uses that key as WebAuthn `credential.id` / `user.id`).
- * When omitted, a random placeholder id is used (discoverable / scanner flows
- * that do not know the key up front).
+ * `challenge` is a base64url string. For on-chain verify, pass the base64url
+ * encoding of `messageHash` (SHA-256 of `message`).
+ * Callers must pass `rpId` (tap helpers default to `window.location.hostname`).
  */
 export function nfcWebAuthnRequestOptions(
   challenge: Base64URLString,
+  rpId: string,
 ): PublicKeyCredentialRequestOptionsJSON {
   return {
     challenge,
-    rpId: window.location.hostname,
+    rpId,
     userVerification: "preferred",
     allowCredentials: [
       {

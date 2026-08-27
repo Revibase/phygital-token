@@ -18,7 +18,7 @@ import {
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
 import { getTransferOwnershipInstruction } from "../generated/index.js";
-import { parseSecp256r1Pubkey } from "./initialize.js";
+import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
@@ -26,6 +26,7 @@ export type TransferSession = {
   slotHash: Uint8Array;
   slotNumber: bigint;
   challenge: Uint8Array;
+  rpId: string;
 };
 
 /**
@@ -33,10 +34,15 @@ export type TransferSession = {
  * Recipient is chosen at wallet confirmation and must sign the transfer transaction.
  * Must be followed promptly by {@link authenticatePasskeyForTransfer} and
  * {@link completeTransfer}.
+ *
+ * @param input.rpc - Kit `Rpc`. Convert a web3.js Connection with `toRpc`.
+ * @param input.token - Kit `Address` (token PDA). Convert a PublicKey with `toAddress`.
+ * @param input.rpId - Relying party ID. Defaults to `window.location.hostname`.
  */
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
   token: Address;
+  rpId?: string;
 }): Promise<TransferSession> {
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
@@ -50,6 +56,7 @@ export async function beginTransfer(input: {
     slotHash,
     slotNumber,
     challenge,
+    rpId: input.rpId ?? window.location.hostname,
   };
 }
 
@@ -58,13 +65,15 @@ export async function authenticatePasskeyForTransfer(
   session: TransferSession,
 ): Promise<AuthenticationResponseJSON> {
   return authenticateWithWebauthn(
-    nfcWebAuthnRequestOptions(bufferToBase64URLString(session.challenge)),
+    nfcWebAuthnRequestOptions(bufferToBase64URLString(session.challenge), session.rpId),
   );
 }
 
 /**
  * Builds the two on-chain instructions after token authentication.
  * Ownership is updated on the token PDA only — no SPL token transfer.
+ *
+ * @param recipient - Kit `TransactionSigner`. Convert a web3.js Keypair with `toTransactionSigner`.
  */
 export async function completeTransfer(
   session: TransferSession,
@@ -72,7 +81,7 @@ export async function completeTransfer(
   recipient: TransactionSigner,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
-  const { secp256r1Verify, signedMessageIndex, clientDataJson } =
+  const { secp256r1VerifyInstruction, signedMessageIndex, clientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       response,
       secp256r1PublicKey: parseSecp256r1Pubkey(response.id),
@@ -90,5 +99,5 @@ export async function completeTransfer(
     },
   });
 
-  return [secp256r1Verify, transferOwnership];
+  return [secp256r1VerifyInstruction, transferOwnership];
 }

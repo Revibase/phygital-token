@@ -63,26 +63,9 @@ export async function buildTransferChallenge(input: {
   );
 }
 
-/** Returns `messageHash` for use as the WebAuthn challenge in `verify`. */
-export async function buildVerifyChallenge(input: {
-  messageHash: Uint8Array;
-}): Promise<Uint8Array> {
-  if (input.messageHash.length !== 32) {
-    throw new Error("messageHash must be 32 bytes");
-  }
-  return new Uint8Array(input.messageHash);
-}
-
-/** Convenience helper when the caller has raw message bytes instead of a hash. */
-export async function buildVerifyChallengeFromMessage(input: {
-  message: Uint8Array;
-}): Promise<Uint8Array> {
-  return buildVerifyChallenge({ messageHash: sha256(input.message) });
-}
-
 export type WebAuthnSecp256r1Verification = {
   signedMessageIndex: number;
-  secp256r1Verify: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
+  secp256r1VerifyInstruction: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
   clientDataJson: Uint8Array;
 };
 
@@ -100,7 +83,7 @@ export async function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input:
   }
   return {
     signedMessageIndex,
-    secp256r1Verify: getSecp256r1VerifyInstruction(existing ?? [parsed]),
+    secp256r1VerifyInstruction: getSecp256r1VerifyInstruction(existing ?? [parsed]),
     clientDataJson: getClientDataJsonBytes(input.response),
   };
 }

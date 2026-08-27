@@ -29,6 +29,3 @@ export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
 
   return [bytes];
 }
-
-/** Alias — chip identifiers use the same 33-byte compressed layout as passkeys. */
-export const parseIdentifier = parseSecp256r1Pubkey;

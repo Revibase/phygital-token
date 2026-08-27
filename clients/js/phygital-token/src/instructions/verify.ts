@@ -7,110 +7,75 @@ import {
 import type { Address, Instruction } from "@solana/kit";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
-  buildVerifyChallenge,
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
-import { getVerifyInstruction } from "../generated/index.js";
-import { parseSecp256r1Pubkey } from "./initialize.js";
-import { findTokenPda } from "../utils/pdas/token.js";
+import { type Secp256r1VerifyArgsArgs } from "../generated/index.js";
+import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
+import { findPhygitalTokenPda } from "../utils/pdas/token.js";
+import { sha256 } from "@noble/hashes/sha2.js";
 
-export type VerifySession = {
-  messageHash: Uint8Array;
-  challenge: Uint8Array;
-  /** When set, on-chain check requires SHA256(rpId) == authenticatorData[0..32]. */
-  expectedRpId?: string;
-  /** When set, on-chain check requires clientDataJSON.origin to equal this value. */
-  expectedOrigin?: string;
-};
-
-/**
- * Prepares a verify session with `messageHash` as the WebAuthn challenge.
- * The token PDA is derived after the NFC tap from `response.id` (passkey).
- * Must be followed promptly by {@link authenticatePasskeyForVerify} and
- * {@link buildVerifyArgs} / {@link completeVerify}.
- */
-export async function beginVerify(input: {
-  messageHash: Uint8Array;
-  expectedRpId?: string;
-  expectedOrigin?: string;
-}): Promise<VerifySession> {
-  const challenge = await buildVerifyChallenge({
-    messageHash: input.messageHash,
-  });
-
-  return {
-    messageHash: input.messageHash,
-    challenge,
-    expectedRpId: input.expectedRpId,
-    expectedOrigin: input.expectedOrigin,
-  };
+/** SHA-256 `message` to a 32-byte digest for on-chain `verify`. */
+export function buildMessageHash(message: Uint8Array): Uint8Array {
+  return sha256(message);
 }
 
 /**
- * Prompts an NFC / WebAuthn tap for the session challenge from
- * {@link beginVerify}.
+ * Prompt an NFC / WebAuthn tap for on-chain `verify`.
+ *
+ * Uses `messageHash` (32 bytes) directly as the WebAuthn challenge — the same
+ * digest your program must pass to `VerifyCpiBuilder.message_hash`. Hash with
+ * {@link buildMessageHash} first.
+ *
+ * @param input.messageHash - SHA-256 of the message you bind on-chain (32 bytes).
+ * @param input.rpId - Relying party ID. Defaults to `window.location.hostname`.
  */
-export async function authenticatePasskeyForVerify(
-  session: VerifySession,
-): Promise<AuthenticationResponseJSON> {
+export async function authenticatePasskeyForSecp256r1Verify(input: {
+  messageHash: Uint8Array;
+  rpId?: string;
+}): Promise<AuthenticationResponseJSON> {
   return authenticateWithWebauthn(
-    nfcWebAuthnRequestOptions(bufferToBase64URLString(session.challenge)),
+    nfcWebAuthnRequestOptions(
+      bufferToBase64URLString(input.messageHash),
+      input.rpId ?? window.location.hostname,
+    ),
   );
 }
 
 /**
- * Derives the token PDA from the tap (`response.id`) and builds the
- * secp256r1 verify instruction + args for `verify`.
+ * After the tap: secp256r1_verify instruction to prepend, plus the phygital
+ * token PDA (`phygitalTokenPda`) and `secp256r1VerifyArgs` for
+ * `VerifyCpiBuilder`.
+ *
+ * `message_hash`, the instructions sysvar, and optional origin bindings come
+ * from your program instruction — not this return value.
+ *
+ * @param verifyArgsRelativeIndex - Index of the secp instruction relative to
+ *   yours. Default `-1` (secp immediately precedes your instruction).
  */
-export async function buildVerifyArgs(
+export async function buildSecp256r1VerifyInstruction(
   response: AuthenticationResponseJSON,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
+  verifyArgsRelativeIndex = -1,
 ): Promise<{
-  tokenPda: Address;
-  secp256r1Verify: Instruction;
-  signedMessageIndex: number;
-  clientDataJson: Uint8Array;
+  secp256r1VerifyInstruction: Instruction;
+  phygitalTokenPda: Address;
+  secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
 }> {
   const secp256r1PublicKey = parseSecp256r1Pubkey(response.id);
-  const tokenPda = await findTokenPda(secp256r1PublicKey);
-  const { secp256r1Verify, signedMessageIndex, clientDataJson } =
+  const phygitalTokenPda = await findPhygitalTokenPda(secp256r1PublicKey);
+  const { secp256r1VerifyInstruction, signedMessageIndex, clientDataJson } =
     await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       secp256r1PublicKey,
       response,
       existingSecp256r1VerifyInputs,
     });
   return {
-    tokenPda,
-    secp256r1Verify,
-    signedMessageIndex,
-    clientDataJson,
-  };
-}
-
-/**
- * Builds `[secp256r1_verify, verify]` after token authentication.
- * Does not change ownership — only proves possession and advances
- * `last_sign_count`.
- */
-export async function completeVerify(
-  session: VerifySession,
-  response: AuthenticationResponseJSON,
-  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
-): Promise<Instruction[]> {
-  const { tokenPda, secp256r1Verify, signedMessageIndex, clientDataJson } =
-    await buildVerifyArgs(response, existingSecp256r1VerifyInputs);
-
-  const verifyInstruction = getVerifyInstruction({
-    token: tokenPda,
+    secp256r1VerifyInstruction,
+    phygitalTokenPda,
     secp256r1VerifyArgs: {
-      verifyArgsRelativeIndex: -1,
+      verifyArgsRelativeIndex,
       signedMessageIndex,
       clientDataJson,
     },
-    messageHash: session.messageHash,
-    expectedRpId: session.expectedRpId ?? null,
-    expectedOrigin: session.expectedOrigin ?? null,
-  });
-
-  return [secp256r1Verify, verifyInstruction];
+  };
 }
