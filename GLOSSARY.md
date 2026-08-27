@@ -38,8 +38,8 @@ PhygitalToken (token PDA)  ← created by `initialize`
 
 | Rust / IDL | TypeScript (hand-written) |
 |------------|---------------------------|
-| `initialize` | `buildInitializeInstruction` / `buildSquadsInitializeInstructions` |
-| `set_mint` | `buildSetMintInstruction` / `buildSquadsSetMintInstructions` |
+| `initialize` | `buildInitializeInstruction` |
+| `set_mint` | `buildSetMintInstruction` |
 | `transfer_ownership` | `beginTransfer` / `completeTransfer` |
 | `verify` | `beginVerify` / `completeVerify` |
 | `token` PDA | `findTokenPda(secp256r1Pubkey)`, `fetchTokenByIdentifier` |

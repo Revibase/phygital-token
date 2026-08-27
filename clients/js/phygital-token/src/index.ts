@@ -15,27 +15,18 @@ export {
 
 export {
   buildInitializeInstruction,
-  parseSecp256r1Pubkey,
-  parseIdentifier,
   type InitializeParams,
 } from "./instructions/initialize.js";
+
+export {
+  parseSecp256r1Pubkey,
+  parseIdentifier,
+} from "./utils/parseSecp256r1Pubkey.js";
 
 export {
   buildSetMintInstruction,
   type SetMintParams,
 } from "./instructions/setMint.js";
-
-export {
-  buildSquadsInitializeInstructions,
-  type BuildSquadsInitializeInput,
-  type BuildSquadsInitializeResult,
-} from "./instructions/squadsInitialize.js";
-
-export {
-  buildSquadsSetMintInstructions,
-  type BuildSquadsSetMintInput,
-  type BuildSquadsSetMintResult,
-} from "./instructions/squadsSetMint.js";
 
 export {
   fetchTokenByIdentifier,

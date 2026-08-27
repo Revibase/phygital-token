@@ -53,7 +53,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
   },
   lookup_after_tap: {
     method: "verifyResponse → findTokenPda + fetchPhygitalToken",
-    sdkExports: ["verifyResponse", "findTokenPda", "fetchPhygitalToken", "parseSecp256r1Pubkey"],
+    sdkExports: ["verifyResponse", "findTokenPda", "fetchPhygitalToken"],
     requiresTap: true,
     onChain: false,
     rationale:

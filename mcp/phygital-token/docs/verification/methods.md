@@ -37,7 +37,7 @@ if (isVerified) {
   // optional: load on-chain state by passkey
   // const token = await fetchPhygitalToken(
   //   rpc,
-  //   await findTokenPda(parseSecp256r1Pubkey(secp256r1PublicKey)),
+  //   await findTokenPda(secp256r1PublicKey),
   // );
 }
 ```

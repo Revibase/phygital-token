@@ -1,7 +1,6 @@
 export const SDK_SURFACE = {
   initialize: [
     "buildInitializeInstruction",
-    "buildSquadsInitializeInstructions",
     "parseSecp256r1Pubkey",
     "parseIdentifier",
     "ADMIN",
@@ -9,7 +8,6 @@ export const SDK_SURFACE = {
   ],
   setMint: [
     "buildSetMintInstruction",
-    "buildSquadsSetMintInstructions",
     "getSetMintInstruction",
   ],
   transfer: [

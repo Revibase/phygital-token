@@ -2,7 +2,6 @@ import { type Address } from "@solana/kit";
 import {
   PhygitalTokenType,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-  parseSecp256r1Pubkey,
   findTokenPda,
 } from "phygital-token-sdk";
 
@@ -11,8 +10,7 @@ export async function planInitialize(input: {
   secp256r1PublicKey: string;
   tokenType: "Controlled" | "Bearer";
 }) {
-  const secp256r1Pubkey = parseSecp256r1Pubkey(input.secp256r1PublicKey);
-  const tokenPda = await findTokenPda(secp256r1Pubkey);
+  const tokenPda = await findTokenPda(input.secp256r1PublicKey);
   const tokenType =
     input.tokenType === "Controlled"
       ? PhygitalTokenType.Controlled
@@ -43,7 +41,7 @@ export async function planInitialize(input: {
       "Ownership starts as the default (zero) pubkey until the first transfer.",
       "mint starts as the default pubkey until set_mint.",
       "Only the designated admin may call initialize and set_mint.",
-      "On mainnet the authority is a Squads vault — use buildSquadsInitializeInstructions({ initializeInputs }) so a 1/1 member can create/propose/approve/execute/close in one transaction.",
+      "On mainnet the authority is a Squads vault — wrap `buildInitializeInstruction` with your own Squads client so the vault can sign.",
     ],
   };
 }
@@ -52,14 +50,11 @@ export async function planSetMint(input: {
   secp256r1PublicKey: string;
   mint: string;
 }) {
-  const tokenPda = await findTokenPda(
-    parseSecp256r1Pubkey(input.secp256r1PublicKey),
-  );
+  const tokenPda = await findTokenPda(input.secp256r1PublicKey);
 
   return {
     instruction: "set_mint",
     sdk: "buildSetMintInstruction",
-    squadsSdk: "buildSquadsSetMintInstructions",
     derivedAccounts: {
       tokenPda,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
@@ -77,7 +72,7 @@ export async function planSetMint(input: {
     notes: [
       "Binds an SPL mint pubkey onto token.mint. Does not mint or transfer tokens.",
       "Only the designated admin may call set_mint.",
-      "On mainnet the authority is a Squads vault — use buildSquadsSetMintInstructions({ setMintInputs }) so a 1/1 member can create/propose/approve/execute/close in one transaction.",
+      "On mainnet the authority is a Squads vault — wrap `buildSetMintInstruction` with your own Squads client so the vault can sign.",
     ],
   };
 }
@@ -86,9 +81,7 @@ export async function planTransfer(input: {
   secp256r1PublicKey: string;
   recipient: string;
 }) {
-  const tokenPda = await findTokenPda(
-    parseSecp256r1Pubkey(input.secp256r1PublicKey),
-  );
+  const tokenPda = await findTokenPda(input.secp256r1PublicKey);
 
   return {
     flow: [
@@ -155,7 +148,7 @@ export async function planVerify(input: {
 
   let tokenPda: string | undefined;
   if (input.secp256r1PublicKey) {
-    tokenPda = await findTokenPda(parseSecp256r1Pubkey(input.secp256r1PublicKey));
+    tokenPda = await findTokenPda(input.secp256r1PublicKey);
   }
 
   const pattern = input.onChainPattern ?? "inspect";
@@ -264,9 +257,7 @@ export async function planRemoveOwnership(input: {
   secp256r1PublicKey: string;
   owner: string;
 }) {
-  const tokenPda = await findTokenPda(
-    parseSecp256r1Pubkey(input.secp256r1PublicKey),
-  );
+  const tokenPda = await findTokenPda(input.secp256r1PublicKey);
 
   return {
     instruction: "remove_ownership",

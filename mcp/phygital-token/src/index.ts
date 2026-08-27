@@ -2,7 +2,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { findTokenPda, parseSecp256r1Pubkey } from "phygital-token-sdk";
+import { findTokenPda } from "phygital-token-sdk";
 import { z } from "zod";
 import { listDocs, readDocById, searchDocs } from "./lib/docs.js";
 import { jsonResult, textResult } from "./lib/format.js";
@@ -150,7 +150,7 @@ function registerTools(server: McpServer) {
     "plan_set_mint",
     {
       description:
-        "Derive accounts and list signers/inputs for set_mint (buildSetMintInstruction / buildSquadsSetMintInstructions).",
+        "Derive accounts and list signers/inputs for set_mint (buildSetMintInstruction).",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
@@ -246,7 +246,7 @@ function registerTools(server: McpServer) {
       annotations: { title: "Find token PDA", ...READ_ONLY },
     },
     async ({ secp256r1PublicKey }) => {
-      const tokenPda = await findTokenPda(parseSecp256r1Pubkey(secp256r1PublicKey));
+      const tokenPda = await findTokenPda(secp256r1PublicKey);
       return jsonResult({ secp256r1PublicKey, tokenPda });
     },
   );

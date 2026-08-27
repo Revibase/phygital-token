@@ -28,7 +28,7 @@ Two SDK functions:
 
 Neither submits a transaction. Verification should run on your backend so the client cannot fake a successful tap.
 
-After a successful verify, look up on-chain state with `findTokenPda(parseSecp256r1Pubkey(secp256r1PublicKey))` + `fetchPhygitalToken` (PDA is seeded by the passkey). Chip `identifier` is a separate binding field on the token.
+After a successful verify, look up on-chain state with `findTokenPda(secp256r1PublicKey)` + `fetchPhygitalToken` (PDA is seeded by the passkey). Chip `identifier` is a separate binding field on the token.
 
 ## On-chain `verify` (composable)
 

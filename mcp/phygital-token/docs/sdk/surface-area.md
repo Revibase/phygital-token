@@ -7,18 +7,16 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 | Export | Purpose |
 |--------|---------|
 | `buildInitializeInstruction` | Create token PDA (seeded by passkey `secp256r1Pubkey`) |
-| `buildSquadsInitializeInstructions` | One tx: create + propose + approve + execute + close (reclaim rent); accepts `initializeInputs[]` |
 | `parseSecp256r1Pubkey` / `parseIdentifier` | Parse base64url 33-byte compressed values |
-| `ADMIN` / `INITIALIZE_MULTISIG_PDA` | Admin vault and Squads multisig constants |
+| `ADMIN` / `INITIALIZE_MULTISIG_PDA` | Admin vault and the Squads multisig that owns it on mainnet |
 
-`ADMIN` (`G6k…EjoF`) is Squads vault-0 of `INITIALIZE_MULTISIG_PDA` (`EU7…Kn7U`). Pass the current squad member as `member` when calling `buildSquadsInitializeInstructions` (members may rotate). Returns create → propose → approve → execute → close in one instruction list.
+`ADMIN` (`G6k…EjoF`) is Squads vault-0 of `INITIALIZE_MULTISIG_PDA` (`EU7…Kn7U`). The SDK returns kit instructions only — wrap them with your own Squads client if the vault must sign.
 
 ## Set mint
 
 | Export | Purpose |
 |--------|---------|
 | `buildSetMintInstruction` | Bind an SPL mint pubkey onto `token.mint` (authority defaults to `ADMIN`) |
-| `buildSquadsSetMintInstructions` | Same Squads wrap as initialize; accepts `setMintInputs[]` |
 
 `set_mint` authority must be `ADMIN`. The authority account is a signer but is **not** writable.
 
@@ -63,7 +61,7 @@ The authenticator uses the secp256r1 public key as WebAuthn `credential.id`; the
 
 | Export | Purpose |
 |--------|---------|
-| `findTokenPda` | Derive token PDA from passkey public key |
+| `findTokenPda` | Derive token PDA from passkey public key (base64url string or parsed `Secp256r1Pubkey`) |
 | `fetchTokenByIdentifier` | `getProgramAccounts` memcmp on chip `identifier` |
 | `fetchAllTokensFromOwner` | List tokens by wallet owner |
 | `fetchPhygitalToken` | Generated helper — load a known token PDA |

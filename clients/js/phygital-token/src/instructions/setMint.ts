@@ -8,7 +8,11 @@ export type SetMintParams = {
   mint: Address;
 };
 
-/** Build the `set_mint` instruction that binds an SPL mint to a token PDA. */
+/**
+ * Build the `set_mint` instruction that binds an SPL mint to a token PDA.
+ * Authority must be the designated admin; wrap with your own Squads client
+ * if the vault must sign.
+ */
 export function buildSetMintInstruction(input: SetMintParams): Instruction {
   return getSetMintInstruction({
     authority: input.authority,

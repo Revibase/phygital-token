@@ -6,13 +6,13 @@ Third-party developers can:
 - **Prove possession on-chain** (composable) → `beginVerify` / `completeVerify` (`verify`)
 - **Transfer ownership on-chain** → `beginTransfer` / `completeTransfer` (`transfer_ownership`)
 - **Initialize tokens** → `buildInitializeInstruction` (passkey seeds PDA; chip `identifier` stored for binding)
-- **Bind an SPL mint** → `buildSetMintInstruction` / `buildSquadsSetMintInstructions` (`set_mint`)
+- **Bind an SPL mint** → `buildSetMintInstruction` (`set_mint`)
 
 ## Off-chain authentication
 
 1. **Client:** `startAuthentication(expectedMessage)` — NFC tap.
 2. **Server:** `verifyResponse({ expectedMessage, response })` — signature check → `{ isVerified, secp256r1PublicKey }` (`response.id` is the compressed secp256r1 key, reused as the WebAuthn credential id).
-3. **Optional:** `findTokenPda(parseSecp256r1Pubkey(secp256r1PublicKey))` + `fetchPhygitalToken` to load on-chain state. PDA is seeded by the passkey; chip `identifier` is a separate binding field.
+3. **Optional:** `findTokenPda(secp256r1PublicKey)` + `fetchPhygitalToken` to load on-chain state. PDA is seeded by the passkey; chip `identifier` is a separate binding field.
 
 Does **not** write to chain. Use for UI login and vault presence checks.
 

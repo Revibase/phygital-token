@@ -17,7 +17,6 @@ import { createSolanaRpc } from "@solana/kit";
 import {
   startAuthentication,
   verifyResponse,
-  parseSecp256r1Pubkey,
   findTokenPda,
   fetchPhygitalToken,
 } from "phygital-token-sdk";
@@ -37,7 +36,7 @@ const { isVerified, secp256r1PublicKey } = verifyResponse({
 if (isVerified) {
   const token = await fetchPhygitalToken(
     rpc,
-    await findTokenPda(parseSecp256r1Pubkey(secp256r1PublicKey)),
+    await findTokenPda(secp256r1PublicKey),
   );
   // Continue with token.data.owner
 }
