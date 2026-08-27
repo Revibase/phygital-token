@@ -2,23 +2,6 @@
 
 Crate: `phygital-token-client` (`phygital_token_client`).
 
-## Pattern A — Inspect prior `verify`
-
-Client sends `secp256r1_verify` + `verify` + your instruction. Your program does **not** CPI.
-
-1. Load `instructions_sysvar`
-2. Scan instructions **before** your program's index
-3. Find `phygital_token::verify` for the expected `token`
-4. Decode instruction data; verify `message_hash` matches your canonical payload
-
-```rust
-// Pseudocode
-require!(decoded_message_hash == expected_message_hash, MyError::InvalidProof);
-require!(verify_token == expected_token, MyError::WrongToken);
-```
-
-## Pattern B — CPI `verify` from your program
-
 Client sends `secp256r1_verify` + your instruction (no client-side `verify`). Your program CPIs:
 
 ```rust
@@ -26,18 +9,16 @@ use phygital_token_client::generated::instructions::VerifyCpiBuilder;
 use phygital_token_client::generated::types::Secp256r1VerifyArgs;
 
 VerifyCpiBuilder::new(phygital_token_program)
-    .token(token_account)
-    .instructions_sysvar(instructions_sysvar)
-    .secp256r1_verify_args(secp256r1_verify_args)
-    .message_hash(message_hash)
-    .expected_rp_id("example.com".to_string()) // optional
-    .expected_origin("https://example.com".to_string()) // optional
+    .token(phygital_token) // phygitalTokenPda from the tap
+    .instructions_sysvar(instructions_sysvar) // your accounts
+    .secp256r1_verify_args(secp256r1_verify_args) // from the tap
+    .message_hash(message_hash) // same digest as buildMessageHash(message)
     .invoke()?;
 ```
 
-The client obtains `secp256r1_verify_args` from TypeScript `buildVerifyArgs` and passes them in your instruction data.
+The client obtains `phygitalTokenPda` and `secp256r1VerifyArgs` from TypeScript `buildSecp256r1VerifyInstruction`. `message_hash` and `instructions_sysvar` come from your instruction. Pass `phygitalTokenPda` as `VerifyCpiBuilder.token`. Optional `.expected_rp_id(...)` / `.expected_origin(...)` are yours to set.
 
-`secp256r1_verify` must appear earlier in the transaction (client includes it before your ix).
+`secp256r1_verify` must appear earlier in the transaction (client includes it before your instruction).
 
 ## `Secp256r1VerifyArgs`
 
@@ -53,7 +34,7 @@ pub struct Secp256r1VerifyArgs {
 
 ## Challenge
 
-`message_hash` is used directly as the WebAuthn challenge. Callers that need slot freshness or action-type domain separation must fold those into `message_hash` before calling.
+`message_hash` is `SHA-256(message)` — hash with TypeScript `buildMessageHash` (or equivalent) before the tap. Pass the same digest to `authenticatePasskeyForSecp256r1Verify` and `VerifyCpiBuilder.message_hash`. Callers that need slot freshness or action-type domain separation must fold those into `message` before hashing.
 
 ## Testing
 

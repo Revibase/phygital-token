@@ -2,7 +2,7 @@ import { type Address } from "@solana/kit";
 import {
   PhygitalTokenType,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-  findTokenPda,
+  findPhygitalTokenPda,
 } from "phygital-token-sdk";
 
 export async function planInitialize(input: {
@@ -10,7 +10,7 @@ export async function planInitialize(input: {
   secp256r1PublicKey: string;
   tokenType: "Controlled" | "Bearer";
 }) {
-  const tokenPda = await findTokenPda(input.secp256r1PublicKey);
+  const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
   const tokenType =
     input.tokenType === "Controlled"
       ? PhygitalTokenType.Controlled
@@ -18,7 +18,7 @@ export async function planInitialize(input: {
 
   return {
     instruction: "initialize",
-    sdk: "buildInitializeInstruction",
+    sdk: "getInitializeInstruction",
     tokenType: input.tokenType,
     derivedAccounts: {
       tokenPda,
@@ -40,8 +40,8 @@ export async function planInitialize(input: {
       "identifier is stored on the token for binding and is distinct from the passkey.",
       "Ownership starts as the default (zero) pubkey until the first transfer.",
       "mint starts as the default pubkey until set_mint.",
-      "Only the designated admin may call initialize and set_mint.",
-      "On mainnet the authority is a Squads vault — wrap `buildInitializeInstruction` with your own Squads client so the vault can sign.",
+      "Derive the token PDA with findPhygitalTokenPda, then pass it to getInitializeInstruction.",
+      "On mainnet the authority is a Squads vault — wrap `getInitializeInstruction` with your own Squads client so the vault can sign.",
     ],
   };
 }
@@ -50,11 +50,11 @@ export async function planSetMint(input: {
   secp256r1PublicKey: string;
   mint: string;
 }) {
-  const tokenPda = await findTokenPda(input.secp256r1PublicKey);
+  const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
 
   return {
     instruction: "set_mint",
-    sdk: "buildSetMintInstruction",
+    sdk: "getSetMintInstruction",
     derivedAccounts: {
       tokenPda,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
@@ -72,7 +72,8 @@ export async function planSetMint(input: {
     notes: [
       "Binds an SPL mint pubkey onto token.mint. Does not mint or transfer tokens.",
       "Only the designated admin may call set_mint.",
-      "On mainnet the authority is a Squads vault — wrap `buildSetMintInstruction` with your own Squads client so the vault can sign.",
+      "Derive the token PDA with findPhygitalTokenPda, then pass it to getSetMintInstruction.",
+      "On mainnet the authority is a Squads vault — wrap `getSetMintInstruction` with your own Squads client so the vault can sign.",
     ],
   };
 }
@@ -81,11 +82,11 @@ export async function planTransfer(input: {
   secp256r1PublicKey: string;
   recipient: string;
 }) {
-  const tokenPda = await findTokenPda(input.secp256r1PublicKey);
+  const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
 
   return {
     flow: [
-      "1. beginTransfer({ rpc, token }) — fetch slot hash, build challenge",
+      "1. beginTransfer({ rpc, token, rpId? }) — Kit Rpc + Address; fetch slot hash, build challenge; rpId defaults to hostname",
       "2. authenticatePasskeyForTransfer(session) — NFC/WebAuthn tap on physical token",
       "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + transfer_ownership",
     ],
@@ -123,15 +124,13 @@ export async function planTransfer(input: {
     instructions: ["secp256r1_verify", "transfer_ownership"],
     notes: [
       "No SPL token transfer — transfer_ownership only updates token.owner.",
-      "beginTransfer only needs rpc + token PDA; passkey comes from response.id at completeTransfer.",
-      "Recipient must sign the transfer transaction to accept ownership.",
+      "beginTransfer takes Kit Rpc + Address (token PDA); optional rpId defaults to window.location.hostname. Passkey comes from response.id at completeTransfer.",
+      "completeTransfer takes a Kit TransactionSigner for recipient. web3.js callers convert with toRpc / toAddress / toTransactionSigner, then toWeb3Instructions.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
       "PDA is derived from the passkey public key, which also authorizes the signature.",
     ],
   };
 }
-
-export type OnChainCompositionPattern = "inspect" | "cpi" | "standalone";
 
 function buildVerifyChallengeDescription(): string {
   return "messageHash (32 bytes) used directly as the WebAuthn challenge";
@@ -140,7 +139,6 @@ function buildVerifyChallengeDescription(): string {
 export async function planVerify(input: {
   message: string;
   secp256r1PublicKey?: string;
-  onChainPattern?: OnChainCompositionPattern;
 }) {
   const messageBytes = new TextEncoder().encode(input.message);
   const messageHash =
@@ -148,65 +146,20 @@ export async function planVerify(input: {
 
   let tokenPda: string | undefined;
   if (input.secp256r1PublicKey) {
-    tokenPda = await findTokenPda(input.secp256r1PublicKey);
+    tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
   }
 
-  const pattern = input.onChainPattern ?? "inspect";
-  const patternMeta = {
-    inspect: {
-      transactionOrder: ["secp256r1_verify", "verify", "your_program_ix"],
-      clientSteps: [
-        "beginVerify({ messageHash })",
-        "authenticatePasskeyForVerify(session)",
-        "completeVerify(session, response) — or buildVerifyArgs + getVerifyInstruction",
-        "buildYourProgramInstruction(/* same messageHash */)",
-        "sendTransaction([secp256r1Verify, verifyIx, yourIx])",
-      ],
-      programSide:
-        "Your Rust program scans instructions_sysvar for preceding verify; validates message_hash",
-      clientSdk: ["completeVerify", "getVerifyInstruction"],
-    },
-    cpi: {
-      transactionOrder: ["secp256r1_verify", "your_program_ix"],
-      clientSteps: [
-        "beginVerify({ messageHash })",
-        "authenticatePasskeyForVerify(session)",
-        "buildVerifyArgs(response) — tokenPda from tap + secp256r1Verify + verify args",
-        "buildYourProgramInstruction({ secp256r1VerifyArgs, messageHash, tokenPda })",
-        "sendTransaction([secp256r1Verify, yourIx]) — your program CPIs verify",
-      ],
-      programSide:
-        "Your Rust program CPIs verify via VerifyCpiBuilder (phygital-token-client)",
-      clientSdk: ["buildVerifyArgs"],
-    },
-    standalone: {
-      transactionOrder: ["secp256r1_verify", "verify"],
-      clientSteps: [
-        "beginVerify({ messageHash })",
-        "authenticatePasskeyForVerify(session)",
-        "completeVerify(session, response)",
-        "sendTransaction([secp256r1Verify, verifyIx])",
-      ],
-      programSide: "None — no custom program",
-      clientSdk: ["completeVerify"],
-    },
-  }[pattern];
-
   return {
-    onChainPattern: pattern,
-    patternName:
-      pattern === "inspect"
-        ? "A — client posts verify, program inspects"
-        : pattern === "cpi"
-          ? "B — client posts secp256r1_verify, program CPIs verify"
-          : "Standalone verify",
-    flow: patternMeta.clientSteps,
+    flow: [
+      "buildMessageHash(message) — 32-byte digest",
+      "authenticatePasskeyForSecp256r1Verify({ messageHash }) — optional rpId defaults to hostname",
+      "buildSecp256r1VerifyInstruction(tap) — { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }",
+      "sendTransaction([secp256r1VerifyInstruction, yourProgramInstruction]) — your instruction carries phygitalTokenPda + secp256r1VerifyArgs; message_hash and instructions sysvar are yours",
+    ],
     sdk: {
-      begin: "beginVerify",
-      authenticate: "authenticatePasskeyForVerify",
-      buildArgs: "buildVerifyArgs",
-      complete: "completeVerify",
-      instruction: "getVerifyInstruction",
+      hash: "buildMessageHash",
+      authenticate: "authenticatePasskeyForSecp256r1Verify",
+      build: "buildSecp256r1VerifyInstruction",
       offChainAuthOnly:
         "startAuthentication (client) + verifyResponse (server); does NOT submit verify",
     },
@@ -217,36 +170,36 @@ export async function planVerify(input: {
     },
     challenge: {
       formula: buildVerifyChallengeDescription(),
-      note: "Hash your canonical payload to 32 bytes, then pass as messageHash to beginVerify.",
+      note: "Hash with buildMessageHash, then pass messageHash to authenticatePasskeyForSecp256r1Verify. Use the same digest as VerifyCpiBuilder.message_hash.",
     },
     derived: tokenPda
       ? { tokenPda, secp256r1PublicKey: input.secp256r1PublicKey }
       : undefined,
     transactionLayout: {
-      order: patternMeta.transactionOrder,
+      order: ["secp256r1_verify", "your_program_instruction"],
       verifyAccounts: {
-        token: "writable PDA seeded by passkey public key",
+        token: "writable PDA seeded by passkey public key — from phygitalTokenPda",
         instructions_sysvar: "Sysvar1nstructions1111111111111111111111111",
       },
       verifyArgs: {
         secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
-        messageHash: "32-byte WebAuthn challenge",
+        messageHash: "32-byte WebAuthn challenge — from your instruction",
         expectedRpId: "optional string — SHA256(rpId) must match authenticatorData[0..32]",
         expectedOrigin: "optional string — must match clientDataJSON.origin",
       },
     },
-    programSide: patternMeta.programSide,
-    buildVerifyArgsReturns: {
-      tokenPda: "Address derived from response.id via findTokenPda",
-      secp256r1Verify: "Instruction for Secp256r1SigVerify program",
-      signedMessageIndex: "number",
-      clientDataJson: "Uint8Array",
+    programSide:
+      "Your Rust program CPIs verify via VerifyCpiBuilder (phygital-token-client)",
+    buildSecp256r1VerifyInstructionReturns: {
+      secp256r1VerifyInstruction: "Instruction to prepend immediately before your program instruction",
+      phygitalTokenPda: "Phygital token PDA — VerifyCpiBuilder.token",
+      secp256r1VerifyArgs: "VerifyCpiBuilder.secp256r1_verify_args (relative index -1)",
     },
     notes: [
       "startAuthentication + verifyResponse is off-chain only — it does not submit verify. Verify on your server.",
-      "beginVerify does not take a token — PDA is derived after the NFC tap from response.id.",
-      "Pattern A: client includes verify; your program inspects instructions sysvar.",
-      "Pattern B: client uses buildVerifyArgs; your program CPIs verify.",
+      "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
+      "Hash with buildMessageHash before authenticatePasskeyForSecp256r1Verify. Optional rpId defaults to window.location.hostname.",
+      "Your program CPIs verify. Do not include a client-side verify instruction. message_hash and instructions sysvar come from your instruction.",
       "verify updates token.last_sign_count; WebAuthn signCount must be strictly increasing.",
       "verify does not change token.owner.",
     ],
@@ -257,7 +210,7 @@ export async function planRemoveOwnership(input: {
   secp256r1PublicKey: string;
   owner: string;
 }) {
-  const tokenPda = await findTokenPda(input.secp256r1PublicKey);
+  const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
 
   return {
     instruction: "remove_ownership",

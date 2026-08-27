@@ -1,14 +1,14 @@
 export const SDK_SURFACE = {
   initialize: [
-    "buildInitializeInstruction",
+    "getInitializeInstruction",
+    "findPhygitalTokenPda",
     "parseSecp256r1Pubkey",
-    "parseIdentifier",
     "ADMIN",
     "INITIALIZE_MULTISIG_PDA",
   ],
   setMint: [
-    "buildSetMintInstruction",
     "getSetMintInstruction",
+    "findPhygitalTokenPda",
   ],
   transfer: [
     "beginTransfer",
@@ -17,28 +17,32 @@ export const SDK_SURFACE = {
   ],
   removeOwnership: ["getRemoveOwnershipInstruction"],
   verifyComposable: [
-    "beginVerify",
-    "authenticatePasskeyForVerify",
-    "buildVerifyArgs",
-    "completeVerify",
+    "buildMessageHash",
+    "authenticatePasskeyForSecp256r1Verify",
+    "buildSecp256r1VerifyInstruction",
   ],
   verification: ["startAuthentication", "verifyResponse"],
   onChainComposition: {
-    patternA_inspect: {
-      client: ["beginVerify", "completeVerify"],
-      transaction: ["secp256r1_verify", "verify", "your_program_ix"],
-      program: "inspect instructions sysvar for verify message",
-    },
-    patternB_cpi: {
-      client: ["beginVerify", "buildVerifyArgs"],
-      transaction: ["secp256r1_verify", "your_program_ix"],
-      program: "CPI verify via VerifyCpiBuilder",
-    },
+    client: [
+      "buildMessageHash",
+      "authenticatePasskeyForSecp256r1Verify",
+      "buildSecp256r1VerifyInstruction",
+    ],
+    transaction: ["secp256r1_verify", "your_program_instruction"],
+    program: "CPI verify via VerifyCpiBuilder",
   },
   tokenLookup: [
-    "findTokenPda",
-    "fetchAllTokensFromOwner",
-    "fetchTokenByIdentifier",
+    "findPhygitalTokenPda",
+    "fetchPhygitalTokensByOwner",
+    "fetchPhygitalTokenByIdentifier",
+    "fetchPhygitalTokenByMint",
+  ],
+  web3js: [
+    "toRpc",
+    "toAddress",
+    "toTransactionSigner",
+    "toWeb3Instruction",
+    "toWeb3Instructions",
   ],
   generated: [
     "getInitializeInstruction",

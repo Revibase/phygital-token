@@ -2,7 +2,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { findTokenPda } from "phygital-token-sdk";
+import { findPhygitalTokenPda } from "phygital-token-sdk";
 import { z } from "zod";
 import { listDocs, readDocById, searchDocs } from "./lib/docs.js";
 import { jsonResult, textResult } from "./lib/format.js";
@@ -22,7 +22,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "0.16.0";
+const VERSION = "0.18.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -30,14 +30,14 @@ const SERVER_INSTRUCTIONS = [
   "",
   "Routing:",
   "- Which verification method to use → recommend_verification",
-  "- On-chain verify (standalone, sysvar inspect, or CPI) → plan_verify",
+  "- On-chain verify (your program CPIs verify) → plan_verify",
   "- Initialize / set_mint / transfer / forfeiture → plan_initialize, plan_set_mint, plan_transfer, plan_remove_ownership",
   "- Token PDA from passkey public key → find_token_pda",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
   "",
   "Live token fetch and auth: call phygital-token-sdk directly in your app",
-  "(verifyResponse, findTokenPda, beginVerify, etc.).",
+  "(verifyResponse, findPhygitalTokenPda, buildMessageHash, authenticatePasskeyForSecp256r1Verify, etc.).",
 ].join("\n");
 
 /** Every tool here is offline and side-effect free. */
@@ -100,8 +100,6 @@ function registerTools(server: McpServer) {
             "transfer_ownership",
             "native_mobile_app",
             "lookup_after_tap",
-            "onchain_standalone_verify",
-            "onchain_inspect_verify",
             "onchain_cpi_verify",
           ] as [VerificationUseCase, ...VerificationUseCase[]])
           .optional()
@@ -124,7 +122,7 @@ function registerTools(server: McpServer) {
     "plan_initialize",
     {
       description:
-        "Derive accounts and list signers/inputs for initialize (buildInitializeInstruction).",
+        "Derive accounts and list signers/inputs for initialize (getInitializeInstruction).",
       inputSchema: {
         identifier: z
           .string()
@@ -150,7 +148,7 @@ function registerTools(server: McpServer) {
     "plan_set_mint",
     {
       description:
-        "Derive accounts and list signers/inputs for set_mint (buildSetMintInstruction).",
+        "Derive accounts and list signers/inputs for set_mint (getSetMintInstruction).",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
@@ -186,12 +184,12 @@ function registerTools(server: McpServer) {
     "plan_verify",
     {
       description:
-        "Plan the on-chain verify flow (offline): transaction layout, derived accounts, message binding. standalone = verify only; inspect = Pattern A (your program reads the instructions sysvar); cpi = Pattern B (your program CPIs verify).",
+        "Plan the on-chain verify flow (offline): transaction layout, derived accounts, message binding. Your program CPIs verify; the client prepends secp256r1_verify.",
       inputSchema: {
         message: z
           .string()
           .describe(
-            "Canonical message string; hashed off-chain to a 32-byte messageHash used as the WebAuthn challenge",
+            "Message string; hash with buildMessageHash before the tap. Same digest is the WebAuthn challenge and VerifyCpiBuilder.message_hash.",
           ),
         secp256r1PublicKey: z
           .string()
@@ -199,19 +197,14 @@ function registerTools(server: McpServer) {
           .describe(
             "Optional base64url passkey public key — when set, derives token PDA offline",
           ),
-        onChainPattern: z
-          .enum(["inspect", "cpi", "standalone"])
-          .optional()
-          .describe("Composition pattern (default: inspect)"),
       },
       annotations: { title: "Plan verify", ...READ_ONLY },
     },
-    async ({ message, secp256r1PublicKey, onChainPattern }) =>
+    async ({ message, secp256r1PublicKey }) =>
       jsonResult(
         await planVerify({
           message,
           secp256r1PublicKey,
-          onChainPattern,
         }),
       ),
   );
@@ -246,7 +239,7 @@ function registerTools(server: McpServer) {
       annotations: { title: "Find token PDA", ...READ_ONLY },
     },
     async ({ secp256r1PublicKey }) => {
-      const tokenPda = await findTokenPda(secp256r1PublicKey);
+      const tokenPda = await findPhygitalTokenPda(secp256r1PublicKey);
       return jsonResult({ secp256r1PublicKey, tokenPda });
     },
   );

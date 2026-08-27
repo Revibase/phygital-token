@@ -4,11 +4,11 @@ All exports from `clients/js/phygital-token/src/utils/verify.ts`.
 
 Off-chain authentication is **split**: NFC tap on the client, signature verification on your server. Every check requires a **fresh tap** — there is no signed-URL / prior-scan identification path.
 
-## `startAuthentication(message, transceive?)`
+## `startAuthentication(message, transceive?, rpId?)`
 
 **Client — trigger the tap.**
 
-Opens the system NFC modal (browser) or talks to an NFC reader via `transceive` (kiosk / native). Returns a WebAuthn `AuthenticationResponseJSON`.
+Opens the system NFC modal (browser) or talks to an NFC reader via `transceive` (kiosk / native). Returns a WebAuthn `AuthenticationResponseJSON`. Optional `rpId` defaults to `window.location.hostname`.
 
 ```ts
 // Browser
@@ -37,7 +37,7 @@ if (isVerified) {
   // optional: load on-chain state by passkey
   // const token = await fetchPhygitalToken(
   //   rpc,
-  //   await findTokenPda(secp256r1PublicKey),
+  //   await findPhygitalTokenPda(secp256r1PublicKey),
   // );
 }
 ```
@@ -54,10 +54,10 @@ Typical flow:
 | Need | Use |
 |------|-----|
 | UI login / vault gate, no tx | `startAuthentication` + `verifyResponse` |
-| Load on-chain state after a tap | `verifyResponse` → `findTokenPda` + `fetchPhygitalToken` |
-| Look up by chip identifier | `fetchTokenByIdentifier` |
+| Load on-chain state after a tap | `verifyResponse` → `findPhygitalTokenPda` + `fetchPhygitalToken` |
+| Look up by chip identifier | `fetchPhygitalTokenByIdentifier` |
 | Transfer ownership | `beginTransfer({ rpc, token })` → `completeTransfer` (passkey from `response.id`) |
-| On-chain possession proof / CPI | `beginVerify({ messageHash })` → `completeVerify` (PDA from tap; see composable docs) |
+| On-chain possession proof / CPI | `buildMessageHash` → `authenticatePasskeyForSecp256r1Verify` → `buildSecp256r1VerifyInstruction` (see composable docs) |
 
 ## Message binding
 
@@ -65,6 +65,6 @@ Typical flow:
 |---------|----------------|--------|
 | `startAuthentication` / `verifyResponse` | `string` (`expectedMessage`) | WebAuthn challenge bytes (UTF-8); must match on client and server |
 | `beginTransfer` | slot-bound challenge | Built from token PDA + slot hash — not the same as `expectedMessage` |
-| `beginVerify` | `Uint8Array` (32-byte `messageHash`) | Used directly as the WebAuthn challenge in on-chain `verify` |
+| `authenticatePasskeyForSecp256r1Verify` | `Uint8Array` (`messageHash`, 32 bytes) | WebAuthn challenge and on-chain `message_hash`. Hash with `buildMessageHash` first. |
 
 An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `transfer_ownership`. Use `verify` when another program needs an on-chain possession proof.

@@ -2,85 +2,54 @@
 
 On-chain passkey authentication for custom programs. **Not** the same as off-chain `startAuthentication` + `verifyResponse`.
 
-Do **not** pass a token PDA up front — after the NFC tap, `buildVerifyArgs` / `completeVerify` derive it from `response.id` via `findTokenPda`.
+Do **not** pass a token PDA up front — after the NFC tap, `buildSecp256r1VerifyInstruction` derives it from `response.id` via `findPhygitalTokenPda`.
+
+Your program always CPIs `verify`. The client prepends `secp256r1_verify` and does **not** include a client-side `verify` instruction.
 
 ## Session flow
 
 ```
-beginVerify({ messageHash })
+buildMessageHash(message)
         ↓
-authenticatePasskeyForVerify(session)   // WebAuthn NFC tap
+authenticatePasskeyForSecp256r1Verify({ messageHash })
         ↓
-buildVerifyArgs(response)               // or completeVerify(...)
+buildSecp256r1VerifyInstruction(tap)
         ↓
-assemble transaction (Pattern A or B below)
+[secp256r1_verify, your_program_instruction]
 ```
 
 ## Functions
 
-### `beginVerify({ messageHash: Uint8Array })`
+### `buildMessageHash(message)`
 
-Uses `messageHash` directly as the WebAuthn challenge (32 bytes). Callers that need slot freshness or domain separation must fold that into `messageHash` before calling.
+SHA-256s `message` to a 32-byte digest. Use this digest as the WebAuthn challenge and as `VerifyCpiBuilder.message_hash`.
 
-### `buildVerifyArgs(response)`
+### `authenticatePasskeyForSecp256r1Verify({ messageHash, rpId? })`
 
-Derives `tokenPda` from `response.id` (passkey). Returns `secp256r1Verify`, `signedMessageIndex`, `clientDataJson`, `tokenPda`.
+Uses `messageHash` (32 bytes) directly as the WebAuthn challenge — the same digest your program must pass to `VerifyCpiBuilder.message_hash`. Hash with `buildMessageHash` first. `rpId` defaults to `window.location.hostname`.
 
-### `completeVerify(session, response)`
+### `buildSecp256r1VerifyInstruction(tap)`
 
-Returns `[secp256r1Verify, verifyInstruction]`.
+Returns `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }`. Prepend `secp256r1VerifyInstruction`. Pass `phygitalTokenPda` and `secp256r1VerifyArgs` into your instruction. `message_hash`, the instructions sysvar, and optional origin bindings come from your program.
 
-## Pattern A — Client posts `verify`, program inspects
+## Client
 
-**Client transaction order:**
-
-```
-secp256r1_verify → verify → your_program_ix
-```
-
-```ts
-const session = await beginVerify({ messageHash });
-const response = await authenticatePasskeyForVerify(session);
-
-const [secp256r1Verify, verifyIx] = await completeVerify(
-  session,
-  response,
-);
-
-const myIx = buildMyProgramInstruction(/* binds same messageHash */);
-
-await sendTransaction([secp256r1Verify, verifyIx, myIx], { feePayer });
-```
-
-**Your Rust program:** Scan `instructions_sysvar` for the `verify` instruction that ran earlier in this transaction. Decode and verify `message_hash` matches your canonical payload.
-
-## Pattern B — Client posts `secp256r1_verify`, program CPIs `verify`
-
-**Client transaction order:**
+**Transaction order:**
 
 ```
-secp256r1_verify → your_program_ix
+secp256r1_verify → your_program_instruction
 ```
 
 ```ts
-const session = await beginVerify({ messageHash });
-const response = await authenticatePasskeyForVerify(session);
+const messageHash = buildMessageHash(message);
+const tap = await authenticatePasskeyForSecp256r1Verify({ messageHash });
+const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
+  await buildSecp256r1VerifyInstruction(tap);
 
-const { secp256r1Verify, signedMessageIndex, clientDataJson, tokenPda } =
-  await buildVerifyArgs(response);
-
-// Pass verify args to your program via instruction data
-const myIx = buildMyProgramInstruction({
-  token: tokenPda,
-  secp256r1VerifyArgs: {
-    verifyArgsRelativeIndex: -1,
-    signedMessageIndex,
-    clientDataJson,
-  },
-  messageHash: session.messageHash,
-});
-
-await sendTransaction([secp256r1Verify, myIx], { feePayer });
+const instructions = [
+  secp256r1VerifyInstruction, // immediately before your instruction
+  yourProgramInstruction, // use phygitalTokenPda & secp256r1VerifyArgs as inputs when generating your program instruction
+];
 ```
 
 **Your Rust program:** CPI `verify` using `VerifyCpiBuilder` from `phygital-token-client`. The `secp256r1_verify` instruction must appear earlier in the same transaction (verified via instructions sysvar inside `verify`).
@@ -92,17 +61,11 @@ Accounts: `token` (writable), `instructions_sysvar`.
 Args:
 
 - `secp256r1VerifyArgs: { verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }`
-- `messageHash` — 32-byte WebAuthn challenge
+- `messageHash` — 32-byte WebAuthn challenge (`buildMessageHash(message)`)
 - `expectedRpId?: string` — when set, `SHA256(rpId)` must equal authenticatorData\[0..32\]
 - `expectedOrigin?: string` — when set, clientDataJSON `origin` must equal this value
 
-```ts
-const session = await beginVerify({
-  messageHash,
-  expectedRpId: "example.com",
-  expectedOrigin: "https://example.com",
-});
-```
+Optional origin bindings are set on **your** CPI, not on the tap helper. The tap's `rpId` only selects which WebAuthn relying party the browser uses (defaults to hostname).
 
 ## On-chain effects
 

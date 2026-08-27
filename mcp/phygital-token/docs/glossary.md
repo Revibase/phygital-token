@@ -38,11 +38,11 @@ PhygitalToken (token PDA)  ← created by `initialize`
 
 | Rust / IDL | TypeScript (hand-written) |
 |------------|---------------------------|
-| `initialize` | `buildInitializeInstruction` |
-| `set_mint` | `buildSetMintInstruction` |
+| `initialize` | `getInitializeInstruction` |
+| `set_mint` | `getSetMintInstruction` |
 | `transfer_ownership` | `beginTransfer` / `completeTransfer` |
-| `verify` | `beginVerify` / `completeVerify` |
-| `token` PDA | `findTokenPda(secp256r1Pubkey)`, `fetchTokenByIdentifier` |
+| `verify` | `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify` / `buildSecp256r1VerifyInstruction` |
+| `token` PDA | `findPhygitalTokenPda(secp256r1Pubkey)`, `fetchPhygitalTokenByIdentifier` |
 | off-chain auth | `startAuthentication` + `verifyResponse` |
 
 Test helpers mirror on-chain instruction names (`initialize`, `transfer_ownership`, `verify`, etc.).

@@ -3,8 +3,6 @@ export type VerificationUseCase =
   | "transfer_ownership"
   | "native_mobile_app"
   | "lookup_after_tap"
-  | "onchain_standalone_verify"
-  | "onchain_inspect_verify"
   | "onchain_cpi_verify";
 
 export type VerificationRecommendation = {
@@ -24,7 +22,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: false,
     rationale:
-      "Server issues challenge; client taps NFC via startAuthentication; server verifies with verifyResponse. No on-chain transaction.",
+      "Server issues challenge; client taps NFC via startAuthentication; server verifies with verifyResponse. No on-chain transaction. Optional rpId defaults to window.location.hostname.",
     docIds: ["verification:methods", "verification:overview"],
     cautions: ["Run verifyResponse on your server, not in the browser."],
   },
@@ -38,7 +36,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     cautions: [
       "Do not use verifyResponse alone for transfers — it does not change on-chain ownership.",
       "Do not use verify for transfers — it proves possession without changing owner.",
-      "Recipient must sign the transaction — pass completeTransfer a TransactionSigner, not just an address.",
+      "Recipient must sign the transaction — pass completeTransfer a Kit TransactionSigner. Convert a web3.js Keypair with toTransactionSigner.",
     ],
   },
   native_mobile_app: {
@@ -47,63 +45,30 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: false,
     rationale:
-      "Pass transceive to startAuthentication for native NFC readers; verify on server. Use beginVerify for on-chain proof, beginTransfer for ownership changes.",
+      "Pass transceive to startAuthentication for native NFC readers; verify on server. Use authenticatePasskeyForSecp256r1Verify for on-chain proof, beginTransfer for ownership changes.",
     docIds: ["verification:methods", "verification:verify-composable"],
     cautions: ["Run verifyResponse on your server, not in the native client."],
   },
   lookup_after_tap: {
-    method: "verifyResponse → findTokenPda + fetchPhygitalToken",
-    sdkExports: ["verifyResponse", "findTokenPda", "fetchPhygitalToken"],
+    method: "verifyResponse → findPhygitalTokenPda + fetchPhygitalToken",
+    sdkExports: ["verifyResponse", "findPhygitalTokenPda", "fetchPhygitalToken"],
     requiresTap: true,
     onChain: false,
     rationale:
       "After verifyResponse, derive the token PDA from the passkey public key and fetch the account. Chip identifier is a binding field on the token, not the PDA seed.",
     docIds: ["verification:methods", "sdk:surface-area"],
   },
-  onchain_standalone_verify: {
-    method: "on-chain verify only",
-    sdkExports: [
-      "beginVerify",
-      "authenticatePasskeyForVerify",
-      "completeVerify",
-    ],
-    requiresTap: true,
-    onChain: true,
-    rationale:
-      "Publish a possession proof on-chain without a custom program. Updates last_sign_count; does not change owner.",
-    docIds: [
-      "verification:verify-composable",
-      "building-on-phygital:rust-cpi",
-    ],
-  },
-  onchain_inspect_verify: {
-    method: "Pattern A — client posts verify, your program inspects message",
-    sdkExports: [
-      "beginVerify",
-      "authenticatePasskeyForVerify",
-      "completeVerify",
-      "getVerifyInstruction",
-    ],
-    requiresTap: true,
-    onChain: true,
-    rationale:
-      "Client includes verify in the tx. Your program scans instructions sysvar for that verify and validates message bytes.",
-    docIds: [
-      "verification:verify-composable",
-      "building-on-phygital:rust-cpi",
-    ],
-  },
   onchain_cpi_verify: {
-    method: "Pattern B — buildVerifyArgs, your program CPIs verify",
+    method: "on-chain verify — your program CPIs verify",
     sdkExports: [
-      "beginVerify",
-      "authenticatePasskeyForVerify",
-      "buildVerifyArgs",
+      "buildMessageHash",
+      "authenticatePasskeyForSecp256r1Verify",
+      "buildSecp256r1VerifyInstruction",
     ],
     requiresTap: true,
     onChain: true,
     rationale:
-      "Client includes secp256r1_verify + your ix only. Your program CPIs verify using args from buildVerifyArgs.",
+      "Client prepends secp256r1_verify and passes phygitalTokenPda + secp256r1VerifyArgs into your instruction. Your program CPIs verify with VerifyCpiBuilder; message_hash and instructions sysvar come from your instruction.",
     docIds: [
       "verification:verify-composable",
       "building-on-phygital:rust-cpi",
@@ -126,14 +91,9 @@ export function listVerificationUseCases(): Array<{
     { id: "transfer_ownership", summary: "Claim/transfer ownership to a new wallet" },
     { id: "native_mobile_app", summary: "Native app off-chain authentication" },
     { id: "lookup_after_tap", summary: "Verify tap then load on-chain token state" },
-    { id: "onchain_standalone_verify", summary: "On-chain verify only" },
-    {
-      id: "onchain_inspect_verify",
-      summary: "Pattern A: client posts verify, your program inspects message",
-    },
     {
       id: "onchain_cpi_verify",
-      summary: "Pattern B: buildVerifyArgs, your program CPIs verify",
+      summary: "On-chain proof: your program CPIs verify",
     },
   ];
 }
@@ -143,17 +103,19 @@ Authentication (live NFC tap required)
 ├── Need on-chain ownership change?
 │   YES → beginTransfer → completeTransfer (transfer_ownership)
 │   NO  → Need on-chain possession proof for your program?
-│         YES → beginVerify composable flow:
-│               Pattern A: [secp256r1_verify, verify, your_ix] — program inspects sysvar
-│               Pattern B: [secp256r1_verify, your_ix] — program CPIs verify
+│         YES → buildMessageHash(message)
+│               → authenticatePasskeyForSecp256r1Verify({ messageHash })
+│               → buildSecp256r1VerifyInstruction(tap)
+│               [secp256r1_verify, your_program_instruction] — program CPIs verify
 │         NO  → startAuthentication (client tap)
 │               → verifyResponse (server verify)
-│               → optional: findTokenPda(secp256r1PublicKey) / fetchPhygitalToken
+│               → optional: findPhygitalTokenPda(secp256r1PublicKey) / fetchPhygitalToken
 └── Know the passkey already?
-    → findTokenPda(secp256r1Pubkey) / fetchPhygitalToken(rpc, pda)
+    → findPhygitalTokenPda(secp256r1Pubkey) / fetchPhygitalToken(rpc, pda)
 
 verifyResponse never submits verify. Returns { isVerified, secp256r1PublicKey }
 (response.id is the secp256r1 vault key / WebAuthn credential id). Run it on your server.
 Token PDA is seeded by the passkey public key; chip identifier is a separate binding field.
-On-chain proof always uses beginVerify({ messageHash }); PDA is derived after the NFC tap.
+On-chain proof: hash with buildMessageHash, then tap with messageHash. Optional rpId defaults to hostname.
+PDA is derived after the NFC tap. Your program always CPIs verify — do not post a client-side verify instruction.
 `.trim();
