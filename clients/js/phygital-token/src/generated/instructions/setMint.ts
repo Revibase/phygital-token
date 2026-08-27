@@ -51,7 +51,7 @@ export type SetMintInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> =
     "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF",
-  TAccountToken extends string | AccountMeta<string> = string,
+  TAccountPhygitalToken extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -61,9 +61,9 @@ export type SetMintInstruction<
         ? ReadonlySignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
-      TAccountToken extends string
-        ? WritableAccount<TAccountToken>
-        : TAccountToken,
+      TAccountPhygitalToken extends string
+        ? WritableAccount<TAccountPhygitalToken>
+        : TAccountPhygitalToken,
       ...TRemainingAccounts,
     ]
   >;
@@ -104,21 +104,25 @@ export function getSetMintInstructionDataCodec(): FixedSizeCodec<
 
 export type SetMintInput<
   TAccountAuthority extends string = string,
-  TAccountToken extends string = string,
+  TAccountPhygitalToken extends string = string,
 > = {
   authority?: TransactionSigner<TAccountAuthority>;
-  token: Address<TAccountToken>;
+  phygitalToken: Address<TAccountPhygitalToken>;
   mint: SetMintInstructionDataArgs["mint"];
 };
 
 export function getSetMintInstruction<
   TAccountAuthority extends string,
-  TAccountToken extends string,
+  TAccountPhygitalToken extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: SetMintInput<TAccountAuthority, TAccountToken>,
+  input: SetMintInput<TAccountAuthority, TAccountPhygitalToken>,
   config?: { programAddress?: TProgramAddress },
-): SetMintInstruction<TProgramAddress, TAccountAuthority, TAccountToken> {
+): SetMintInstruction<
+  TProgramAddress,
+  TAccountAuthority,
+  TAccountPhygitalToken
+> {
   // Program address.
   const programAddress =
     config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
@@ -126,7 +130,7 @@ export function getSetMintInstruction<
   // Original accounts.
   const originalAccounts = {
     authority: { value: input.authority ?? null, isWritable: false },
-    token: { value: input.token ?? null, isWritable: true },
+    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -146,13 +150,17 @@ export function getSetMintInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("token", accounts.token),
+      getAccountMeta("phygitalToken", accounts.phygitalToken),
     ],
     data: getSetMintInstructionDataEncoder().encode(
       args as SetMintInstructionDataArgs,
     ),
     programAddress,
-  } as SetMintInstruction<TProgramAddress, TAccountAuthority, TAccountToken>);
+  } as SetMintInstruction<
+    TProgramAddress,
+    TAccountAuthority,
+    TAccountPhygitalToken
+  >);
 }
 
 export type ParsedSetMintInstruction<
@@ -162,7 +170,7 @@ export type ParsedSetMintInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     authority: TAccountMetas[0];
-    token: TAccountMetas[1];
+    phygitalToken: TAccountMetas[1];
   };
   data: SetMintInstructionData;
 };
@@ -192,7 +200,7 @@ export function parseSetMintInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: { authority: getNextAccount(), token: getNextAccount() },
+    accounts: { authority: getNextAccount(), phygitalToken: getNextAccount() },
     data: getSetMintInstructionDataDecoder().decode(instruction.data),
   };
 }

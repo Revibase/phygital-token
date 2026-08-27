@@ -49,7 +49,7 @@ export function getRemoveOwnershipDiscriminatorBytes(): ReadonlyUint8Array {
 export type RemoveOwnershipInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
-  TAccountToken extends string | AccountMeta<string> = string,
+  TAccountPhygitalToken extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -59,9 +59,9 @@ export type RemoveOwnershipInstruction<
         ? ReadonlySignerAccount<TAccountOwner> &
             AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
-      TAccountToken extends string
-        ? WritableAccount<TAccountToken>
-        : TAccountToken,
+      TAccountPhygitalToken extends string
+        ? WritableAccount<TAccountPhygitalToken>
+        : TAccountPhygitalToken,
       ...TRemainingAccounts,
     ]
   >;
@@ -97,20 +97,24 @@ export function getRemoveOwnershipInstructionDataCodec(): FixedSizeCodec<
 
 export type RemoveOwnershipInput<
   TAccountOwner extends string = string,
-  TAccountToken extends string = string,
+  TAccountPhygitalToken extends string = string,
 > = {
   owner: TransactionSigner<TAccountOwner>;
-  token: Address<TAccountToken>;
+  phygitalToken: Address<TAccountPhygitalToken>;
 };
 
 export function getRemoveOwnershipInstruction<
   TAccountOwner extends string,
-  TAccountToken extends string,
+  TAccountPhygitalToken extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: RemoveOwnershipInput<TAccountOwner, TAccountToken>,
+  input: RemoveOwnershipInput<TAccountOwner, TAccountPhygitalToken>,
   config?: { programAddress?: TProgramAddress },
-): RemoveOwnershipInstruction<TProgramAddress, TAccountOwner, TAccountToken> {
+): RemoveOwnershipInstruction<
+  TProgramAddress,
+  TAccountOwner,
+  TAccountPhygitalToken
+> {
   // Program address.
   const programAddress =
     config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
@@ -118,7 +122,7 @@ export function getRemoveOwnershipInstruction<
   // Original accounts.
   const originalAccounts = {
     owner: { value: input.owner ?? null, isWritable: false },
-    token: { value: input.token ?? null, isWritable: true },
+    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -129,14 +133,14 @@ export function getRemoveOwnershipInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("owner", accounts.owner),
-      getAccountMeta("token", accounts.token),
+      getAccountMeta("phygitalToken", accounts.phygitalToken),
     ],
     data: getRemoveOwnershipInstructionDataEncoder().encode({}),
     programAddress,
   } as RemoveOwnershipInstruction<
     TProgramAddress,
     TAccountOwner,
-    TAccountToken
+    TAccountPhygitalToken
   >);
 }
 
@@ -147,7 +151,7 @@ export type ParsedRemoveOwnershipInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     owner: TAccountMetas[0];
-    token: TAccountMetas[1];
+    phygitalToken: TAccountMetas[1];
   };
   data: RemoveOwnershipInstructionData;
 };
@@ -177,7 +181,7 @@ export function parseRemoveOwnershipInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: { owner: getNextAccount(), token: getNextAccount() },
+    accounts: { owner: getNextAccount(), phygitalToken: getNextAccount() },
     data: getRemoveOwnershipInstructionDataDecoder().decode(instruction.data),
   };
 }

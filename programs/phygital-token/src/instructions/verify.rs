@@ -22,10 +22,10 @@ pub struct Verify<'info> {
         mut,
         constraint = {
             let extracted_pubkey = secp256r1_verify_args.extract_public_key_from_instruction(&instructions_sysvar)?;
-            token.public_key == extracted_pubkey
+            phygital_token.public_key == extracted_pubkey
         } @ PhygitalError::Secp256r1PubkeyMismatch,
     )]
-    pub token: Account<'info, PhygitalToken>,
+    pub phygital_token: Account<'info, PhygitalToken>,
 
     /// CHECK: validated as the instructions sysvar address
     #[account(address = INSTRUCTIONS_SYSVAR_ID)]
@@ -41,7 +41,7 @@ pub fn handler(
 ) -> Result<()> {
     let sign_count = secp256r1_verify_args.extract_sign_count(&ctx.accounts.instructions_sysvar)?;
     require!(
-        sign_count > ctx.accounts.token.last_sign_count,
+        sign_count > ctx.accounts.phygital_token.last_sign_count,
         PhygitalError::StaleSignCount
     );
 
@@ -55,13 +55,13 @@ pub fn handler(
         expected_origin.as_deref(),
     )?;
 
-    ctx.accounts.token.last_sign_count = sign_count;
+    ctx.accounts.phygital_token.last_sign_count = sign_count;
 
     emit!(VerifyEvent {
         message_hash,
-        owner: ctx.accounts.token.owner,
-        identifier: ctx.accounts.token.identifier,
-        public_key: ctx.accounts.token.public_key,
+        owner: ctx.accounts.phygital_token.owner,
+        identifier: ctx.accounts.phygital_token.identifier,
+        public_key: ctx.accounts.phygital_token.public_key,
         time: Clock::get()?.unix_timestamp,
     });
 

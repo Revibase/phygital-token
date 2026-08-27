@@ -20,16 +20,16 @@ pub struct SetMint<'info> {
     #[account(
         mut,
     )]
-    pub token: Account<'info, PhygitalToken>,
+    pub phygital_token: Account<'info, PhygitalToken>,
 }
 
 pub fn handler(ctx: Context<SetMint>, mint: Pubkey) -> Result<()> {
-   ctx.accounts.token.mint = mint;
+   ctx.accounts.phygital_token.mint = mint;
 
     emit!(SetMintEvent {
-        public_key: ctx.accounts.token.public_key,
+        public_key: ctx.accounts.phygital_token.public_key,
         authority: ctx.accounts.authority.key(),
-        identifier: ctx.accounts.token.identifier,
+        identifier: ctx.accounts.phygital_token.identifier,
         mint,
         time: Clock::get()?.unix_timestamp,
     });

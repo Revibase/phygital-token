@@ -22,9 +22,9 @@ export const PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS = 0x1771; // 60
 export const PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS = 0x1772; // 6002
 /** InvalidSecp256r1PublicKey: Invalid secp256r1 public key */
 export const PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY = 0x1773; // 6003
-/** Secp256r1PubkeyMismatch: secp256r1 pubkey does not match token record */
+/** Secp256r1PubkeyMismatch: secp256r1 pubkey does not match phygital token record */
 export const PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH = 0x1774; // 6004
-/** OwnerMismatch: Token owner mismatch */
+/** OwnerMismatch: Phygital token owner mismatch */
 export const PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH = 0x1775; // 6005
 /** InvalidSlotHash: Slot not found in SlotHashes sysvar — signature has expired or is being replayed */
 export const PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH = 0x1776; // 6006
@@ -36,9 +36,9 @@ export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x1778; // 6008
 export const PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x1779; // 6009
 /** InvalidSysvarDataFormat: Invalid sysvar data format */
 export const PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x177a; // 6010
-/** TokenIsCurrentlyLocked: The owner needs to unlock the token to enable transfer. */
+/** TokenIsCurrentlyLocked: The owner needs to unlock the phygital token to enable transfer. */
 export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED = 0x177b; // 6011
-/** TokenIsNotLockable: This token is not lockable. */
+/** TokenIsNotLockable: This phygital token is not lockable. */
 export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE = 0x177c; // 6012
 /** UnableToParseClientData: Unable to parse client data JSON. */
 export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x177d; // 6013
@@ -90,13 +90,13 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT]: `Invalid sysvar data format`,
     [PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
     [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH]: `WebAuthn origin does not match the expected origin.`,
-    [PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH]: `Token owner mismatch`,
+    [PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH]: `Phygital token owner mismatch`,
     [PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH]: `WebAuthn rpId hash does not match the expected relying party id.`,
-    [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match token record`,
+    [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match phygital token record`,
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
     [PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT]: `WebAuthn signCount must be greater than the last accepted signCount`,
-    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED]: `The owner needs to unlock the token to enable transfer.`,
-    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE]: `This token is not lockable.`,
+    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED]: `The owner needs to unlock the phygital token to enable transfer.`,
+    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE]: `This phygital token is not lockable.`,
     [PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA]: `Unable to parse client data JSON.`,
     [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY]: `Only the designated authority can perform this action.`,
     [PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED]: `WebAuthn user presence flag (UP) was not set by the authenticator.`,

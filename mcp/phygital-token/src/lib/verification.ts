@@ -31,7 +31,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     sdkExports: ["beginTransfer", "authenticatePasskeyForTransfer", "completeTransfer"],
     requiresTap: true,
     onChain: true,
-    rationale: "Ownership claim uses transfer_ownership (updates token.owner; no SPL token).",
+    rationale: "Ownership claim uses transfer_ownership (updates phygital_token.owner; no SPL token).",
     docIds: ["verification:overview", "sdk:surface-area"],
     cautions: [
       "Do not use verifyResponse alone for transfers — it does not change on-chain ownership.",

@@ -30,12 +30,12 @@ buildSecp256r1VerifyInstruction(tap)  // phygitalTokenPda from tap
 
 Hash with `buildMessageHash`, then tap. Pass the same digest to `VerifyCpiBuilder.message_hash`. Token PDA is derived after the NFC tap from `response.id`. See `verification:verify-composable` and `building-on-phygital:rust-cpi`.
 
-`verify` advances `last_sign_count` and emits `VerifyEvent` — it does **not** change `token.owner`.
+`verify` advances `last_sign_count` and emits `VerifyEvent` — it does **not** change `phygital_token.owner`.
 
 ## On-chain ownership
 
 ```
-beginTransfer({ rpc, token, rpId? })
+beginTransfer({ rpc, phygitalToken, rpId? })
         ↓
 authenticatePasskeyForTransfer(session)
         ↓
@@ -44,7 +44,7 @@ completeTransfer(session, response, recipient)  // passkey from response.id
 send [secp256r1_verify, transfer_ownership]
 ```
 
-`beginTransfer` takes a Kit `Rpc` and token `Address`. Optional `rpId` defaults to `window.location.hostname`. The passkey is taken from `response.id` in `completeTransfer`. `transfer_ownership` updates `token.owner` only — there is no SPL token / Token-2022 linkage.
+`beginTransfer` takes a Kit `Rpc` and phygital token `Address`. Optional `rpId` defaults to `window.location.hostname`. The passkey is taken from `response.id` in `completeTransfer`. `transfer_ownership` updates `phygital_token.owner` only — there is no SPL token / Token-2022 linkage.
 
 ## Message design checklist
 

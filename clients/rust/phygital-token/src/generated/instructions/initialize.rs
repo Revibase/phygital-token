@@ -20,7 +20,7 @@ pub struct Initialize {
           pub authority: solana_address::Address,
           
               
-          pub token: solana_address::Address,
+          pub phygital_token: solana_address::Address,
           
               
           pub system_program: solana_address::Address,
@@ -39,7 +39,7 @@ impl Initialize {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            self.token,
+            self.phygital_token,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -101,12 +101,12 @@ impl InitializeInstructionArgs {
 /// ### Accounts:
 ///
                             ///   0. `[writable, signer, optional]` authority (default to `G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF`)
-                ///   1. `[writable]` token
+                ///   1. `[writable]` phygital_token
                 ///   2. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct InitializeBuilder {
             authority: Option<solana_address::Address>,
-                token: Option<solana_address::Address>,
+                phygital_token: Option<solana_address::Address>,
                 system_program: Option<solana_address::Address>,
                         identifier: Option<Secp256r1Pubkey>,
                 secp256r1_pubkey: Option<Secp256r1Pubkey>,
@@ -125,8 +125,8 @@ impl InitializeBuilder {
                     self
     }
             #[inline(always)]
-    pub fn token(&mut self, token: solana_address::Address) -> &mut Self {
-                        self.token = Some(token);
+    pub fn phygital_token(&mut self, phygital_token: solana_address::Address) -> &mut Self {
+                        self.phygital_token = Some(phygital_token);
                     self
     }
             /// `[optional account, default to '11111111111111111111111111111111']`
@@ -166,7 +166,7 @@ impl InitializeBuilder {
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = Initialize {
                               authority: self.authority.unwrap_or(solana_address::address!("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF")),
-                                        token: self.token.expect("token is not set"),
+                                        phygital_token: self.phygital_token.expect("phygital_token is not set"),
                                         system_program: self.system_program.unwrap_or(solana_address::address!("11111111111111111111111111111111")),
                       };
           let args = InitializeInstructionArgs {
@@ -186,7 +186,7 @@ impl InitializeBuilder {
               pub authority: &'b solana_account_info::AccountInfo<'a>,
                 
                     
-              pub token: &'b solana_account_info::AccountInfo<'a>,
+              pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub system_program: &'b solana_account_info::AccountInfo<'a>,
@@ -201,7 +201,7 @@ pub struct InitializeCpi<'a, 'b> {
           pub authority: &'b solana_account_info::AccountInfo<'a>,
           
               
-          pub token: &'b solana_account_info::AccountInfo<'a>,
+          pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub system_program: &'b solana_account_info::AccountInfo<'a>,
@@ -218,7 +218,7 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
     Self {
       __program: program,
               authority: accounts.authority,
-              token: accounts.token,
+              phygital_token: accounts.phygital_token,
               system_program: accounts.system_program,
                     __args: args,
           }
@@ -249,7 +249,7 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            *self.token.key,
+            *self.phygital_token.key,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -275,7 +275,7 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
     let mut account_infos = Vec::with_capacity(4 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.authority.clone());
-                        account_infos.push(self.token.clone());
+                        account_infos.push(self.phygital_token.clone());
                         account_infos.push(self.system_program.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -292,7 +292,7 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
 /// ### Accounts:
 ///
                       ///   0. `[writable, signer]` authority
-                ///   1. `[writable]` token
+                ///   1. `[writable]` phygital_token
           ///   2. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct InitializeCpiBuilder<'a, 'b> {
@@ -304,7 +304,7 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
     let instruction = Box::new(InitializeCpiBuilderInstruction {
       __program: program,
               authority: None,
-              token: None,
+              phygital_token: None,
               system_program: None,
                                             identifier: None,
                                 secp256r1_pubkey: None,
@@ -319,8 +319,8 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
                     self
     }
       #[inline(always)]
-    pub fn token(&mut self, token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.token = Some(token);
+    pub fn phygital_token(&mut self, phygital_token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.phygital_token = Some(phygital_token);
                     self
     }
       #[inline(always)]
@@ -375,7 +375,7 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
                   
           authority: self.instruction.authority.expect("authority is not set"),
                   
-          token: self.instruction.token.expect("token is not set"),
+          phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
                   
           system_program: self.instruction.system_program.expect("system_program is not set"),
                           __args: args,
@@ -388,7 +388,7 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
 struct InitializeCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             authority: Option<&'b solana_account_info::AccountInfo<'a>>,
-                token: Option<&'b solana_account_info::AccountInfo<'a>>,
+                phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
                 system_program: Option<&'b solana_account_info::AccountInfo<'a>>,
                         identifier: Option<Secp256r1Pubkey>,
                 secp256r1_pubkey: Option<Secp256r1Pubkey>,

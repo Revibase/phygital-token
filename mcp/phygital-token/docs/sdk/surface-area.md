@@ -16,8 +16,8 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 
 | Export | Purpose |
 |--------|---------|
-| `getSetMintInstruction` | Bind an SPL mint pubkey onto `token.mint` (authority defaults to `ADMIN`) |
-| `findPhygitalTokenPda` | Derive the token PDA to pass as `token` |
+| `getSetMintInstruction` | Bind an SPL mint pubkey onto `phygital_token.mint` (authority defaults to `ADMIN`) |
+| `findPhygitalTokenPda` | Derive the phygital token PDA to pass as `phygitalToken` |
 
 `set_mint` authority must be `ADMIN`. The authority account is a signer but is **not** writable.
 
@@ -25,7 +25,7 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 
 | Export | Purpose |
 |--------|---------|
-| `beginTransfer({ rpc, token, rpId? })` | Kit `Rpc` + `Address`; slot-bound challenge; `rpId` defaults to hostname |
+| `beginTransfer({ rpc, phygitalToken, rpId? })` | Kit `Rpc` + `Address`; slot-bound challenge; `rpId` defaults to hostname |
 | `authenticatePasskeyForTransfer` | WebAuthn NFC tap |
 | `completeTransfer` | Kit `TransactionSigner` recipient; `response.id` as passkey; builds secp + transfer |
 
@@ -43,7 +43,7 @@ See `verification:verify-composable` and `building-on-phygital:rust-cpi`.
 
 | Export | Purpose |
 |--------|---------|
-| `getRemoveOwnershipInstruction` | Wallet-signed forfeiture — reset `token.owner` to default |
+| `getRemoveOwnershipInstruction` | Wallet-signed forfeiture — reset `phygital_token.owner` to default |
 
 ## Verification (off-chain only)
 
@@ -80,7 +80,7 @@ No `@solana/web3.js` dependency. SDK functions take Kit types (`Rpc`, `Address`,
 ```ts
 const session = await beginTransfer({
   rpc: toRpc(connection),
-  token: toAddress(tokenPubkey),
+  phygitalToken: toAddress(tokenPubkey),
 });
 const ixs = await completeTransfer(
   session,

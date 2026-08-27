@@ -58,7 +58,7 @@ export function getTransferOwnershipDiscriminatorBytes(): ReadonlyUint8Array {
 export type TransferOwnershipInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountRecipient extends string | AccountMeta<string> = string,
-  TAccountToken extends string | AccountMeta<string> = string,
+  TAccountPhygitalToken extends string | AccountMeta<string> = string,
   TAccountSlotHashes extends string | AccountMeta<string> =
     "SysvarS1otHashes111111111111111111111111111",
   TAccountInstructionsSysvar extends string | AccountMeta<string> =
@@ -72,9 +72,9 @@ export type TransferOwnershipInstruction<
         ? ReadonlySignerAccount<TAccountRecipient> &
             AccountSignerMeta<TAccountRecipient>
         : TAccountRecipient,
-      TAccountToken extends string
-        ? WritableAccount<TAccountToken>
-        : TAccountToken,
+      TAccountPhygitalToken extends string
+        ? WritableAccount<TAccountPhygitalToken>
+        : TAccountPhygitalToken,
       TAccountSlotHashes extends string
         ? ReadonlyAccount<TAccountSlotHashes>
         : TAccountSlotHashes,
@@ -127,12 +127,12 @@ export function getTransferOwnershipInstructionDataCodec(): Codec<
 
 export type TransferOwnershipInput<
   TAccountRecipient extends string = string,
-  TAccountToken extends string = string,
+  TAccountPhygitalToken extends string = string,
   TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
 > = {
   recipient: TransactionSigner<TAccountRecipient>;
-  token: Address<TAccountToken>;
+  phygitalToken: Address<TAccountPhygitalToken>;
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   secp256r1VerifyArgs: TransferOwnershipInstructionDataArgs["secp256r1VerifyArgs"];
@@ -141,14 +141,14 @@ export type TransferOwnershipInput<
 
 export function getTransferOwnershipInstruction<
   TAccountRecipient extends string,
-  TAccountToken extends string,
+  TAccountPhygitalToken extends string,
   TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: TransferOwnershipInput<
     TAccountRecipient,
-    TAccountToken,
+    TAccountPhygitalToken,
     TAccountSlotHashes,
     TAccountInstructionsSysvar
   >,
@@ -156,7 +156,7 @@ export function getTransferOwnershipInstruction<
 ): TransferOwnershipInstruction<
   TProgramAddress,
   TAccountRecipient,
-  TAccountToken,
+  TAccountPhygitalToken,
   TAccountSlotHashes,
   TAccountInstructionsSysvar
 > {
@@ -167,7 +167,7 @@ export function getTransferOwnershipInstruction<
   // Original accounts.
   const originalAccounts = {
     recipient: { value: input.recipient ?? null, isWritable: false },
-    token: { value: input.token ?? null, isWritable: true },
+    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
     slotHashes: { value: input.slotHashes ?? null, isWritable: false },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
@@ -196,7 +196,7 @@ export function getTransferOwnershipInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("recipient", accounts.recipient),
-      getAccountMeta("token", accounts.token),
+      getAccountMeta("phygitalToken", accounts.phygitalToken),
       getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
     ],
@@ -207,7 +207,7 @@ export function getTransferOwnershipInstruction<
   } as TransferOwnershipInstruction<
     TProgramAddress,
     TAccountRecipient,
-    TAccountToken,
+    TAccountPhygitalToken,
     TAccountSlotHashes,
     TAccountInstructionsSysvar
   >);
@@ -220,7 +220,7 @@ export type ParsedTransferOwnershipInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     recipient: TAccountMetas[0];
-    token: TAccountMetas[1];
+    phygitalToken: TAccountMetas[1];
     slotHashes: TAccountMetas[2];
     instructionsSysvar: TAccountMetas[3];
   };
@@ -254,7 +254,7 @@ export function parseTransferOwnershipInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       recipient: getNextAccount(),
-      token: getNextAccount(),
+      phygitalToken: getNextAccount(),
       slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
     },

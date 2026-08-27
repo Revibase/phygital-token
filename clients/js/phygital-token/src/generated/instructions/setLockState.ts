@@ -52,7 +52,7 @@ export function getSetLockStateDiscriminatorBytes(): ReadonlyUint8Array {
 export type SetLockStateInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
-  TAccountToken extends string | AccountMeta<string> = string,
+  TAccountPhygitalToken extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -62,9 +62,9 @@ export type SetLockStateInstruction<
         ? ReadonlySignerAccount<TAccountOwner> &
             AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
-      TAccountToken extends string
-        ? WritableAccount<TAccountToken>
-        : TAccountToken,
+      TAccountPhygitalToken extends string
+        ? WritableAccount<TAccountPhygitalToken>
+        : TAccountPhygitalToken,
       ...TRemainingAccounts,
     ]
   >;
@@ -105,21 +105,25 @@ export function getSetLockStateInstructionDataCodec(): FixedSizeCodec<
 
 export type SetLockStateInput<
   TAccountOwner extends string = string,
-  TAccountToken extends string = string,
+  TAccountPhygitalToken extends string = string,
 > = {
   owner: TransactionSigner<TAccountOwner>;
-  token: Address<TAccountToken>;
+  phygitalToken: Address<TAccountPhygitalToken>;
   isLocked: SetLockStateInstructionDataArgs["isLocked"];
 };
 
 export function getSetLockStateInstruction<
   TAccountOwner extends string,
-  TAccountToken extends string,
+  TAccountPhygitalToken extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: SetLockStateInput<TAccountOwner, TAccountToken>,
+  input: SetLockStateInput<TAccountOwner, TAccountPhygitalToken>,
   config?: { programAddress?: TProgramAddress },
-): SetLockStateInstruction<TProgramAddress, TAccountOwner, TAccountToken> {
+): SetLockStateInstruction<
+  TProgramAddress,
+  TAccountOwner,
+  TAccountPhygitalToken
+> {
   // Program address.
   const programAddress =
     config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
@@ -127,7 +131,7 @@ export function getSetLockStateInstruction<
   // Original accounts.
   const originalAccounts = {
     owner: { value: input.owner ?? null, isWritable: false },
-    token: { value: input.token ?? null, isWritable: true },
+    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -141,13 +145,17 @@ export function getSetLockStateInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("owner", accounts.owner),
-      getAccountMeta("token", accounts.token),
+      getAccountMeta("phygitalToken", accounts.phygitalToken),
     ],
     data: getSetLockStateInstructionDataEncoder().encode(
       args as SetLockStateInstructionDataArgs,
     ),
     programAddress,
-  } as SetLockStateInstruction<TProgramAddress, TAccountOwner, TAccountToken>);
+  } as SetLockStateInstruction<
+    TProgramAddress,
+    TAccountOwner,
+    TAccountPhygitalToken
+  >);
 }
 
 export type ParsedSetLockStateInstruction<
@@ -157,7 +165,7 @@ export type ParsedSetLockStateInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     owner: TAccountMetas[0];
-    token: TAccountMetas[1];
+    phygitalToken: TAccountMetas[1];
   };
   data: SetLockStateInstructionData;
 };
@@ -187,7 +195,7 @@ export function parseSetLockStateInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: { owner: getNextAccount(), token: getNextAccount() },
+    accounts: { owner: getNextAccount(), phygitalToken: getNextAccount() },
     data: getSetLockStateInstructionDataDecoder().decode(instruction.data),
   };
 }

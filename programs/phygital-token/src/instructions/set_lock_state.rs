@@ -16,25 +16,25 @@ pub struct SetLockState<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        constraint = token.owner.key() == owner.key() @PhygitalError::OwnerMismatch
+        constraint = phygital_token.owner.key() == owner.key() @PhygitalError::OwnerMismatch
     )]
-    pub token: Account<'info, PhygitalToken>,
+    pub phygital_token: Account<'info, PhygitalToken>,
 }
 
 pub fn handler(ctx: Context<SetLockState>, is_locked: bool) -> Result<()> {
     require!(
         ctx.accounts
-            .token
+            .phygital_token
             .token_type
             .eq(&crate::PhygitalTokenType::Controlled),
         PhygitalError::TokenIsNotLockable
     );
-    ctx.accounts.token.is_locked = is_locked;
+    ctx.accounts.phygital_token.is_locked = is_locked;
 
     emit!(SetLockStateEvent {
-        public_key: ctx.accounts.token.public_key,
+        public_key: ctx.accounts.phygital_token.public_key,
         owner: ctx.accounts.owner.key(),
-        identifier: ctx.accounts.token.identifier,
+        identifier: ctx.accounts.phygital_token.identifier,
         is_locked,
         time: Clock::get()?.unix_timestamp,
     });

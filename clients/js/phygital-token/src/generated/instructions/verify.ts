@@ -61,7 +61,7 @@ export function getVerifyDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type VerifyInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-  TAccountToken extends string | AccountMeta<string> = string,
+  TAccountPhygitalToken extends string | AccountMeta<string> = string,
   TAccountInstructionsSysvar extends string | AccountMeta<string> =
     "Sysvar1nstructions1111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -69,9 +69,9 @@ export type VerifyInstruction<
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountToken extends string
-        ? WritableAccount<TAccountToken>
-        : TAccountToken,
+      TAccountPhygitalToken extends string
+        ? WritableAccount<TAccountPhygitalToken>
+        : TAccountPhygitalToken,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
@@ -144,10 +144,10 @@ export function getVerifyInstructionDataCodec(): Codec<
 }
 
 export type VerifyInput<
-  TAccountToken extends string = string,
+  TAccountPhygitalToken extends string = string,
   TAccountInstructionsSysvar extends string = string,
 > = {
-  token: Address<TAccountToken>;
+  phygitalToken: Address<TAccountPhygitalToken>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
   messageHash: VerifyInstructionDataArgs["messageHash"];
@@ -156,15 +156,15 @@ export type VerifyInput<
 };
 
 export function getVerifyInstruction<
-  TAccountToken extends string,
+  TAccountPhygitalToken extends string,
   TAccountInstructionsSysvar extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: VerifyInput<TAccountToken, TAccountInstructionsSysvar>,
+  input: VerifyInput<TAccountPhygitalToken, TAccountInstructionsSysvar>,
   config?: { programAddress?: TProgramAddress },
 ): VerifyInstruction<
   TProgramAddress,
-  TAccountToken,
+  TAccountPhygitalToken,
   TAccountInstructionsSysvar
 > {
   // Program address.
@@ -173,7 +173,7 @@ export function getVerifyInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    token: { value: input.token ?? null, isWritable: true },
+    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
       isWritable: false,
@@ -196,7 +196,7 @@ export function getVerifyInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("token", accounts.token),
+      getAccountMeta("phygitalToken", accounts.phygitalToken),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
     ],
     data: getVerifyInstructionDataEncoder().encode(
@@ -205,7 +205,7 @@ export function getVerifyInstruction<
     programAddress,
   } as VerifyInstruction<
     TProgramAddress,
-    TAccountToken,
+    TAccountPhygitalToken,
     TAccountInstructionsSysvar
   >);
 }
@@ -216,7 +216,7 @@ export type ParsedVerifyInstruction<
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    token: TAccountMetas[0];
+    phygitalToken: TAccountMetas[0];
     instructionsSysvar: TAccountMetas[1];
   };
   data: VerifyInstructionData;
@@ -247,7 +247,10 @@ export function parseVerifyInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: { token: getNextAccount(), instructionsSysvar: getNextAccount() },
+    accounts: {
+      phygitalToken: getNextAccount(),
+      instructionsSysvar: getNextAccount(),
+    },
     data: getVerifyInstructionDataDecoder().decode(instruction.data),
   };
 }

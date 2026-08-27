@@ -19,7 +19,7 @@ pub struct TransferOwnership {
           pub recipient: solana_address::Address,
           
               
-          pub token: solana_address::Address,
+          pub phygital_token: solana_address::Address,
           
               
           pub slot_hashes: solana_address::Address,
@@ -41,7 +41,7 @@ impl TransferOwnership {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            self.token,
+            self.phygital_token,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -106,13 +106,13 @@ impl TransferOwnershipInstructionArgs {
 /// ### Accounts:
 ///
                 ///   0. `[signer]` recipient
-                ///   1. `[writable]` token
+                ///   1. `[writable]` phygital_token
                 ///   2. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
                 ///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct TransferOwnershipBuilder {
             recipient: Option<solana_address::Address>,
-                token: Option<solana_address::Address>,
+                phygital_token: Option<solana_address::Address>,
                 slot_hashes: Option<solana_address::Address>,
                 instructions_sysvar: Option<solana_address::Address>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
@@ -130,8 +130,8 @@ impl TransferOwnershipBuilder {
                     self
     }
             #[inline(always)]
-    pub fn token(&mut self, token: solana_address::Address) -> &mut Self {
-                        self.token = Some(token);
+    pub fn phygital_token(&mut self, phygital_token: solana_address::Address) -> &mut Self {
+                        self.phygital_token = Some(phygital_token);
                     self
     }
             /// `[optional account, default to 'SysvarS1otHashes111111111111111111111111111']`
@@ -172,7 +172,7 @@ impl TransferOwnershipBuilder {
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = TransferOwnership {
                               recipient: self.recipient.expect("recipient is not set"),
-                                        token: self.token.expect("token is not set"),
+                                        phygital_token: self.phygital_token.expect("phygital_token is not set"),
                                         slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!("SysvarS1otHashes111111111111111111111111111")),
                                         instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
                       };
@@ -192,7 +192,7 @@ impl TransferOwnershipBuilder {
               pub recipient: &'b solana_account_info::AccountInfo<'a>,
                 
                     
-              pub token: &'b solana_account_info::AccountInfo<'a>,
+              pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
@@ -210,7 +210,7 @@ pub struct TransferOwnershipCpi<'a, 'b> {
           pub recipient: &'b solana_account_info::AccountInfo<'a>,
           
               
-          pub token: &'b solana_account_info::AccountInfo<'a>,
+          pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
@@ -230,7 +230,7 @@ impl<'a, 'b> TransferOwnershipCpi<'a, 'b> {
     Self {
       __program: program,
               recipient: accounts.recipient,
-              token: accounts.token,
+              phygital_token: accounts.phygital_token,
               slot_hashes: accounts.slot_hashes,
               instructions_sysvar: accounts.instructions_sysvar,
                     __args: args,
@@ -262,7 +262,7 @@ impl<'a, 'b> TransferOwnershipCpi<'a, 'b> {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            *self.token.key,
+            *self.phygital_token.key,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -292,7 +292,7 @@ impl<'a, 'b> TransferOwnershipCpi<'a, 'b> {
     let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.recipient.clone());
-                        account_infos.push(self.token.clone());
+                        account_infos.push(self.phygital_token.clone());
                         account_infos.push(self.slot_hashes.clone());
                         account_infos.push(self.instructions_sysvar.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -310,7 +310,7 @@ impl<'a, 'b> TransferOwnershipCpi<'a, 'b> {
 /// ### Accounts:
 ///
                 ///   0. `[signer]` recipient
-                ///   1. `[writable]` token
+                ///   1. `[writable]` phygital_token
           ///   2. `[]` slot_hashes
           ///   3. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
@@ -323,7 +323,7 @@ impl<'a, 'b> TransferOwnershipCpiBuilder<'a, 'b> {
     let instruction = Box::new(TransferOwnershipCpiBuilderInstruction {
       __program: program,
               recipient: None,
-              token: None,
+              phygital_token: None,
               slot_hashes: None,
               instructions_sysvar: None,
                                             secp256r1_verify_args: None,
@@ -338,8 +338,8 @@ impl<'a, 'b> TransferOwnershipCpiBuilder<'a, 'b> {
                     self
     }
       #[inline(always)]
-    pub fn token(&mut self, token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.token = Some(token);
+    pub fn phygital_token(&mut self, phygital_token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.phygital_token = Some(phygital_token);
                     self
     }
       #[inline(always)]
@@ -393,7 +393,7 @@ impl<'a, 'b> TransferOwnershipCpiBuilder<'a, 'b> {
                   
           recipient: self.instruction.recipient.expect("recipient is not set"),
                   
-          token: self.instruction.token.expect("token is not set"),
+          phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
                   
           slot_hashes: self.instruction.slot_hashes.expect("slot_hashes is not set"),
                   
@@ -408,7 +408,7 @@ impl<'a, 'b> TransferOwnershipCpiBuilder<'a, 'b> {
 struct TransferOwnershipCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
-                token: Option<&'b solana_account_info::AccountInfo<'a>>,
+                phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
                 slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
                 instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,

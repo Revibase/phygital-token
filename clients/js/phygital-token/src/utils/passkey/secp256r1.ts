@@ -51,13 +51,13 @@ export function buildVerifyInputFromWebAuthn(input: {
 }
 
 export async function buildTransferChallenge(input: {
-  token: Address;
+  phygitalToken: Address;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
   return sha256(
     concatBytes(
       TRANSFER_ACTION_BYTES,
-      encodeAddress(input.token),
+      encodeAddress(input.phygitalToken),
       new Uint8Array(input.slotHash),
     ),
   );

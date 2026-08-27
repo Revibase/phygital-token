@@ -19,7 +19,7 @@ pub struct SetMint {
           pub authority: solana_address::Address,
           
               
-          pub token: solana_address::Address,
+          pub phygital_token: solana_address::Address,
       }
 
 impl SetMint {
@@ -35,7 +35,7 @@ impl SetMint {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            self.token,
+            self.phygital_token,
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
@@ -91,11 +91,11 @@ impl SetMintInstructionArgs {
 /// ### Accounts:
 ///
                       ///   0. `[signer, optional]` authority (default to `G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF`)
-                ///   1. `[writable]` token
+                ///   1. `[writable]` phygital_token
 #[derive(Clone, Debug, Default)]
 pub struct SetMintBuilder {
             authority: Option<solana_address::Address>,
-                token: Option<solana_address::Address>,
+                phygital_token: Option<solana_address::Address>,
                         mint: Option<Address>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
@@ -111,8 +111,8 @@ impl SetMintBuilder {
                     self
     }
             #[inline(always)]
-    pub fn token(&mut self, token: solana_address::Address) -> &mut Self {
-                        self.token = Some(token);
+    pub fn phygital_token(&mut self, phygital_token: solana_address::Address) -> &mut Self {
+                        self.phygital_token = Some(phygital_token);
                     self
     }
                     #[inline(always)]
@@ -136,7 +136,7 @@ impl SetMintBuilder {
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = SetMint {
                               authority: self.authority.unwrap_or(solana_address::address!("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF")),
-                                        token: self.token.expect("token is not set"),
+                                        phygital_token: self.phygital_token.expect("phygital_token is not set"),
                       };
           let args = SetMintInstructionArgs {
                                                               mint: self.mint.clone().expect("mint is not set"),
@@ -153,7 +153,7 @@ impl SetMintBuilder {
               pub authority: &'b solana_account_info::AccountInfo<'a>,
                 
                     
-              pub token: &'b solana_account_info::AccountInfo<'a>,
+              pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
             }
 
 /// `set_mint` CPI instruction.
@@ -165,7 +165,7 @@ pub struct SetMintCpi<'a, 'b> {
           pub authority: &'b solana_account_info::AccountInfo<'a>,
           
               
-          pub token: &'b solana_account_info::AccountInfo<'a>,
+          pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
             /// The arguments for the instruction.
     pub __args: SetMintInstructionArgs,
   }
@@ -179,7 +179,7 @@ impl<'a, 'b> SetMintCpi<'a, 'b> {
     Self {
       __program: program,
               authority: accounts.authority,
-              token: accounts.token,
+              phygital_token: accounts.phygital_token,
                     __args: args,
           }
   }
@@ -209,7 +209,7 @@ impl<'a, 'b> SetMintCpi<'a, 'b> {
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
-            *self.token.key,
+            *self.phygital_token.key,
             false
           ));
                       remaining_accounts.iter().for_each(|remaining_account| {
@@ -231,7 +231,7 @@ impl<'a, 'b> SetMintCpi<'a, 'b> {
     let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.authority.clone());
-                        account_infos.push(self.token.clone());
+                        account_infos.push(self.phygital_token.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
     if signers_seeds.is_empty() {
@@ -247,7 +247,7 @@ impl<'a, 'b> SetMintCpi<'a, 'b> {
 /// ### Accounts:
 ///
                 ///   0. `[signer]` authority
-                ///   1. `[writable]` token
+                ///   1. `[writable]` phygital_token
 #[derive(Clone, Debug)]
 pub struct SetMintCpiBuilder<'a, 'b> {
   instruction: Box<SetMintCpiBuilderInstruction<'a, 'b>>,
@@ -258,7 +258,7 @@ impl<'a, 'b> SetMintCpiBuilder<'a, 'b> {
     let instruction = Box::new(SetMintCpiBuilderInstruction {
       __program: program,
               authority: None,
-              token: None,
+              phygital_token: None,
                                             mint: None,
                     __remaining_accounts: Vec::new(),
     });
@@ -270,8 +270,8 @@ impl<'a, 'b> SetMintCpiBuilder<'a, 'b> {
                     self
     }
       #[inline(always)]
-    pub fn token(&mut self, token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.token = Some(token);
+    pub fn phygital_token(&mut self, phygital_token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.phygital_token = Some(phygital_token);
                     self
     }
                     #[inline(always)]
@@ -309,7 +309,7 @@ impl<'a, 'b> SetMintCpiBuilder<'a, 'b> {
                   
           authority: self.instruction.authority.expect("authority is not set"),
                   
-          token: self.instruction.token.expect("token is not set"),
+          phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
                           __args: args,
             };
     instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
@@ -320,7 +320,7 @@ impl<'a, 'b> SetMintCpiBuilder<'a, 'b> {
 struct SetMintCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             authority: Option<&'b solana_account_info::AccountInfo<'a>>,
-                token: Option<&'b solana_account_info::AccountInfo<'a>>,
+                phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
                         mint: Option<Address>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,

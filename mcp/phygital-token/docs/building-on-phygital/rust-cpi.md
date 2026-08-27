@@ -9,14 +9,14 @@ use phygital_token_client::generated::instructions::VerifyCpiBuilder;
 use phygital_token_client::generated::types::Secp256r1VerifyArgs;
 
 VerifyCpiBuilder::new(phygital_token_program)
-    .token(phygital_token) // phygitalTokenPda from the tap
+    .phygital_token(phygital_token) // phygitalTokenPda from the tap
     .instructions_sysvar(instructions_sysvar) // your accounts
     .secp256r1_verify_args(secp256r1_verify_args) // from the tap
     .message_hash(message_hash) // same digest as buildMessageHash(message)
     .invoke()?;
 ```
 
-The client obtains `phygitalTokenPda` and `secp256r1VerifyArgs` from TypeScript `buildSecp256r1VerifyInstruction`. `message_hash` and `instructions_sysvar` come from your instruction. Pass `phygitalTokenPda` as `VerifyCpiBuilder.token`. Optional `.expected_rp_id(...)` / `.expected_origin(...)` are yours to set.
+The client obtains `phygitalTokenPda` and `secp256r1VerifyArgs` from TypeScript `buildSecp256r1VerifyInstruction`. `message_hash` and `instructions_sysvar` come from your instruction. Pass `phygitalTokenPda` as `VerifyCpiBuilder.phygital_token`. Optional `.expected_rp_id(...)` / `.expected_origin(...)` are yours to set.
 
 `secp256r1_verify` must appear earlier in the transaction (client includes it before your instruction).
 

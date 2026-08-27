@@ -79,7 +79,7 @@ const instructions = [
 use phygital_token_client::generated::instructions::VerifyCpiBuilder;
 
 VerifyCpiBuilder::new(phygital_token_program)
-    .token(phygital_token) // phygitalTokenPda from the tap
+    .phygital_token(phygital_token) // phygitalTokenPda from the tap
     .instructions_sysvar(instructions_sysvar) // your accounts
     .secp256r1_verify_args(secp256r1_verify_args) // from the tap
     .message_hash(message_hash) // same digest as buildMessageHash(message)

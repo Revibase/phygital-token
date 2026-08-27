@@ -70,7 +70,7 @@ export async function planSetMint(input: {
       mint: input.mint,
     },
     notes: [
-      "Binds an SPL mint pubkey onto token.mint. Does not mint or transfer tokens.",
+      "Binds an SPL mint pubkey onto phygital_token.mint. Does not mint or transfer tokens.",
       "Only the designated admin may call set_mint.",
       "Derive the token PDA with findPhygitalTokenPda, then pass it to getSetMintInstruction.",
       "On mainnet the authority is a Squads vault — wrap `getSetMintInstruction` with your own Squads client so the vault can sign.",
@@ -86,7 +86,7 @@ export async function planTransfer(input: {
 
   return {
     flow: [
-      "1. beginTransfer({ rpc, token, rpId? }) — Kit Rpc + Address; fetch slot hash, build challenge; rpId defaults to hostname",
+      "1. beginTransfer({ rpc, phygitalToken, rpId? }) — Kit Rpc + Address; fetch slot hash, build challenge; rpId defaults to hostname",
       "2. authenticatePasskeyForTransfer(session) — NFC/WebAuthn tap on physical token",
       "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + transfer_ownership",
     ],
@@ -106,7 +106,7 @@ export async function planTransfer(input: {
     },
     transferAccounts: {
       recipient: `${input.recipient} (signer — must co-sign the transaction)`,
-      token: tokenPda,
+      phygital_token: tokenPda,
       slotHashes: "SysvarS1otHashes111111111111111111111111111",
       instructionsSysvar: "Sysvar1nstructions1111111111111111111111111",
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
@@ -123,8 +123,8 @@ export async function planTransfer(input: {
     },
     instructions: ["secp256r1_verify", "transfer_ownership"],
     notes: [
-      "No SPL token transfer — transfer_ownership only updates token.owner.",
-      "beginTransfer takes Kit Rpc + Address (token PDA); optional rpId defaults to window.location.hostname. Passkey comes from response.id at completeTransfer.",
+      "No SPL token transfer — transfer_ownership only updates phygital_token.owner.",
+      "beginTransfer takes Kit Rpc + Address (phygital token PDA); optional rpId defaults to window.location.hostname. Passkey comes from response.id at completeTransfer.",
       "completeTransfer takes a Kit TransactionSigner for recipient. web3.js callers convert with toRpc / toAddress / toTransactionSigner, then toWeb3Instructions.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
       "PDA is derived from the passkey public key, which also authorizes the signature.",
@@ -178,7 +178,7 @@ export async function planVerify(input: {
     transactionLayout: {
       order: ["secp256r1_verify", "your_program_instruction"],
       verifyAccounts: {
-        token: "writable PDA seeded by passkey public key — from phygitalTokenPda",
+        phygital_token: "writable PDA seeded by passkey public key — from phygitalTokenPda",
         instructions_sysvar: "Sysvar1nstructions1111111111111111111111111",
       },
       verifyArgs: {
@@ -192,7 +192,7 @@ export async function planVerify(input: {
       "Your Rust program CPIs verify via VerifyCpiBuilder (phygital-token-client)",
     buildSecp256r1VerifyInstructionReturns: {
       secp256r1VerifyInstruction: "Instruction to prepend immediately before your program instruction",
-      phygitalTokenPda: "Phygital token PDA — VerifyCpiBuilder.token",
+      phygitalTokenPda: "Phygital token PDA — VerifyCpiBuilder.phygital_token",
       secp256r1VerifyArgs: "VerifyCpiBuilder.secp256r1_verify_args (relative index -1)",
     },
     notes: [
@@ -200,8 +200,8 @@ export async function planVerify(input: {
       "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
       "Hash with buildMessageHash before authenticatePasskeyForSecp256r1Verify. Optional rpId defaults to window.location.hostname.",
       "Your program CPIs verify. Do not include a client-side verify instruction. message_hash and instructions sysvar come from your instruction.",
-      "verify updates token.last_sign_count; WebAuthn signCount must be strictly increasing.",
-      "verify does not change token.owner.",
+      "verify updates phygital_token.last_sign_count; WebAuthn signCount must be strictly increasing.",
+      "verify does not change phygital_token.owner.",
     ],
   };
 }
@@ -216,7 +216,7 @@ export async function planRemoveOwnership(input: {
     instruction: "remove_ownership",
     sdk: "getRemoveOwnershipInstruction",
     flow: [
-      "1. Confirm the connected wallet is token.owner on-chain",
+      "1. Confirm the connected wallet is phygital_token.owner on-chain",
       "2. Build remove_ownership with getRemoveOwnershipInstruction",
       "3. Owner signs and submits the transaction (no passkey tap required)",
     ],
@@ -229,17 +229,17 @@ export async function planRemoveOwnership(input: {
     requiredSigners: [
       {
         name: "owner",
-        role: "Current token owner wallet — must match token.owner on-chain",
+        role: "Current phygital token owner wallet — must match phygital_token.owner on-chain",
       },
     ],
     onChainEffects: [
-      "Sets token.owner to the default (zero) pubkey",
-      "Clears token.is_locked (forfeiture unlocks Controlled tokens)",
-      "Preserves token.last_sign_count",
+      "Sets phygital_token.owner to the default (zero) pubkey",
+      "Clears phygital_token.is_locked (forfeiture unlocks Controlled tokens)",
+      "Preserves phygital_token.last_sign_count",
     ],
     notes: [
       "Wallet-signed forfeiture — unlike transfer_ownership, no secp256r1_verify or passkey tap.",
-      "Fails if signer is not token.owner.",
+      "Fails if signer is not phygital_token.owner.",
     ],
   };
 }

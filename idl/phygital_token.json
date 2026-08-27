@@ -27,7 +27,7 @@
           "address": "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF"
         },
         {
-          "name": "token",
+          "name": "phygital_token",
           "writable": true
         },
         {
@@ -64,7 +64,7 @@
           "signer": true
         },
         {
-          "name": "token",
+          "name": "phygital_token",
           "writable": true
         }
       ],
@@ -88,7 +88,7 @@
           "signer": true
         },
         {
-          "name": "token",
+          "name": "phygital_token",
           "writable": true
         }
       ],
@@ -118,7 +118,7 @@
           "address": "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF"
         },
         {
-          "name": "token",
+          "name": "phygital_token",
           "writable": true
         }
       ],
@@ -147,7 +147,7 @@
           "signer": true
         },
         {
-          "name": "token",
+          "name": "phygital_token",
           "writable": true
         },
         {
@@ -188,7 +188,7 @@
       ],
       "accounts": [
         {
-          "name": "token",
+          "name": "phygital_token",
           "writable": true
         },
         {
@@ -348,12 +348,12 @@
     {
       "code": 6004,
       "name": "Secp256r1PubkeyMismatch",
-      "msg": "secp256r1 pubkey does not match token record"
+      "msg": "secp256r1 pubkey does not match phygital token record"
     },
     {
       "code": 6005,
       "name": "OwnerMismatch",
-      "msg": "Token owner mismatch"
+      "msg": "Phygital token owner mismatch"
     },
     {
       "code": 6006,
@@ -383,12 +383,12 @@
     {
       "code": 6011,
       "name": "TokenIsCurrentlyLocked",
-      "msg": "The owner needs to unlock the token to enable transfer."
+      "msg": "The owner needs to unlock the phygital token to enable transfer."
     },
     {
       "code": 6012,
       "name": "TokenIsNotLockable",
-      "msg": "This token is not lockable."
+      "msg": "This phygital token is not lockable."
     },
     {
       "code": 6013,

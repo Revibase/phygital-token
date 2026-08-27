@@ -22,11 +22,11 @@ pub enum PhygitalTokenError {
     /// 6003 - Invalid secp256r1 public key
     #[error("Invalid secp256r1 public key")]
     InvalidSecp256r1PublicKey = 0x1773,
-    /// 6004 - secp256r1 pubkey does not match token record
-    #[error("secp256r1 pubkey does not match token record")]
+    /// 6004 - secp256r1 pubkey does not match phygital token record
+    #[error("secp256r1 pubkey does not match phygital token record")]
     Secp256r1PubkeyMismatch = 0x1774,
-    /// 6005 - Token owner mismatch
-    #[error("Token owner mismatch")]
+    /// 6005 - Phygital token owner mismatch
+    #[error("Phygital token owner mismatch")]
     OwnerMismatch = 0x1775,
     /// 6006 - Slot not found in SlotHashes sysvar — signature has expired or is being replayed
     #[error("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
@@ -43,11 +43,11 @@ pub enum PhygitalTokenError {
     /// 6010 - Invalid sysvar data format
     #[error("Invalid sysvar data format")]
     InvalidSysvarDataFormat = 0x177A,
-    /// 6011 - The owner needs to unlock the token to enable transfer.
-    #[error("The owner needs to unlock the token to enable transfer.")]
+    /// 6011 - The owner needs to unlock the phygital token to enable transfer.
+    #[error("The owner needs to unlock the phygital token to enable transfer.")]
     TokenIsCurrentlyLocked = 0x177B,
-    /// 6012 - This token is not lockable.
-    #[error("This token is not lockable.")]
+    /// 6012 - This phygital token is not lockable.
+    #[error("This phygital token is not lockable.")]
     TokenIsNotLockable = 0x177C,
     /// 6013 - Unable to parse client data JSON.
     #[error("Unable to parse client data JSON.")]

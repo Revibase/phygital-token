@@ -56,7 +56,7 @@ const instructions = [
 
 ## `verify` instruction layout
 
-Accounts: `token` (writable), `instructions_sysvar`.
+Accounts: `phygital_token` (writable), `instructions_sysvar`.
 
 Args:
 
@@ -70,6 +70,6 @@ Optional origin bindings are set on **your** CPI, not on the tap helper. The tap
 ## On-chain effects
 
 - Verifies WebAuthn signature against `messageHash`
-- Sets `token.last_sign_count` from the WebAuthn authenticatorData `signCount`
+- Sets `phygital_token.last_sign_count` from the WebAuthn authenticatorData `signCount`
 - Emits `VerifyEvent`
-- Does **not** change `token.owner`
+- Does **not** change `phygital_token.owner`

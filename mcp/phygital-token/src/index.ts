@@ -153,7 +153,7 @@ function registerTools(server: McpServer) {
         secp256r1PublicKey: z
           .string()
           .describe("Base64url passkey public key used as the token PDA seed"),
-        mint: z.string().describe("SPL mint address to bind onto token.mint"),
+        mint: z.string().describe("SPL mint address to bind onto phygital_token.mint"),
       },
       annotations: { title: "Plan set_mint", ...READ_ONLY },
     },
@@ -213,12 +213,12 @@ function registerTools(server: McpServer) {
     "plan_remove_ownership",
     {
       description:
-        "Plan a wallet-signed forfeiture (offline): reset token.owner to the default pubkey.",
+        "Plan a wallet-signed forfeiture (offline): reset phygital_token.owner to the default pubkey.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
           .describe("Base64url passkey public key used as the token PDA seed"),
-        owner: z.string().describe("Current token owner wallet — must match token.owner on-chain"),
+        owner: z.string().describe("Current token owner wallet — must match phygital_token.owner on-chain"),
       },
       annotations: { title: "Plan remove_ownership", ...READ_ONLY },
     },

@@ -16,7 +16,7 @@ pub const VERIFY_DISCRIMINATOR: [u8; 8] = [133, 161, 141, 48, 120, 198, 88, 150]
 pub struct Verify {
       
               
-          pub token: solana_address::Address,
+          pub phygital_token: solana_address::Address,
           
               
           pub instructions_sysvar: solana_address::Address,
@@ -31,7 +31,7 @@ impl Verify {
   pub fn instruction_with_remaining_accounts(&self, args: VerifyInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
     let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
-            self.token,
+            self.phygital_token,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -93,11 +93,11 @@ impl VerifyInstructionArgs {
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` token
+                ///   0. `[writable]` phygital_token
                 ///   1. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct VerifyBuilder {
-            token: Option<solana_address::Address>,
+            phygital_token: Option<solana_address::Address>,
                 instructions_sysvar: Option<solana_address::Address>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
                 message_hash: Option<[u8; 32]>,
@@ -111,8 +111,8 @@ impl VerifyBuilder {
     Self::default()
   }
             #[inline(always)]
-    pub fn token(&mut self, token: solana_address::Address) -> &mut Self {
-                        self.token = Some(token);
+    pub fn phygital_token(&mut self, phygital_token: solana_address::Address) -> &mut Self {
+                        self.phygital_token = Some(phygital_token);
                     self
     }
             /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
@@ -158,7 +158,7 @@ impl VerifyBuilder {
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = Verify {
-                              token: self.token.expect("token is not set"),
+                              phygital_token: self.phygital_token.expect("phygital_token is not set"),
                                         instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
                       };
           let args = VerifyInstructionArgs {
@@ -176,7 +176,7 @@ impl VerifyBuilder {
   pub struct VerifyCpiAccounts<'a, 'b> {
           
                     
-              pub token: &'b solana_account_info::AccountInfo<'a>,
+              pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
@@ -188,7 +188,7 @@ pub struct VerifyCpi<'a, 'b> {
   pub __program: &'b solana_account_info::AccountInfo<'a>,
       
               
-          pub token: &'b solana_account_info::AccountInfo<'a>,
+          pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
@@ -204,7 +204,7 @@ impl<'a, 'b> VerifyCpi<'a, 'b> {
       ) -> Self {
     Self {
       __program: program,
-              token: accounts.token,
+              phygital_token: accounts.phygital_token,
               instructions_sysvar: accounts.instructions_sysvar,
                     __args: args,
           }
@@ -231,7 +231,7 @@ impl<'a, 'b> VerifyCpi<'a, 'b> {
   ) -> solana_program_error::ProgramResult {
     let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
-            *self.token.key,
+            *self.phygital_token.key,
             false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new_readonly(
@@ -256,7 +256,7 @@ impl<'a, 'b> VerifyCpi<'a, 'b> {
     };
     let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
-                  account_infos.push(self.token.clone());
+                  account_infos.push(self.phygital_token.clone());
                         account_infos.push(self.instructions_sysvar.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -272,7 +272,7 @@ impl<'a, 'b> VerifyCpi<'a, 'b> {
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` token
+                ///   0. `[writable]` phygital_token
           ///   1. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
 pub struct VerifyCpiBuilder<'a, 'b> {
@@ -283,7 +283,7 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
     let instruction = Box::new(VerifyCpiBuilderInstruction {
       __program: program,
-              token: None,
+              phygital_token: None,
               instructions_sysvar: None,
                                             secp256r1_verify_args: None,
                                 message_hash: None,
@@ -294,8 +294,8 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
     Self { instruction }
   }
       #[inline(always)]
-    pub fn token(&mut self, token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.token = Some(token);
+    pub fn phygital_token(&mut self, phygital_token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.phygital_token = Some(phygital_token);
                     self
     }
       #[inline(always)]
@@ -356,7 +356,7 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
         let instruction = VerifyCpi {
         __program: self.instruction.__program,
                   
-          token: self.instruction.token.expect("token is not set"),
+          phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
                   
           instructions_sysvar: self.instruction.instructions_sysvar.expect("instructions_sysvar is not set"),
                           __args: args,
@@ -368,7 +368,7 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
 #[derive(Clone, Debug)]
 struct VerifyCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
-            token: Option<&'b solana_account_info::AccountInfo<'a>>,
+            phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
                 instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
                         secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
                 message_hash: Option<[u8; 32]>,

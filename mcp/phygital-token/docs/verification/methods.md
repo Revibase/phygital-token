@@ -56,7 +56,7 @@ Typical flow:
 | UI login / vault gate, no tx | `startAuthentication` + `verifyResponse` |
 | Load on-chain state after a tap | `verifyResponse` → `findPhygitalTokenPda` + `fetchPhygitalToken` |
 | Look up by chip identifier | `fetchPhygitalTokenByIdentifier` |
-| Transfer ownership | `beginTransfer({ rpc, token })` → `completeTransfer` (passkey from `response.id`) |
+| Transfer ownership | `beginTransfer({ rpc, phygitalToken })` → `completeTransfer` (passkey from `response.id`) |
 | On-chain possession proof / CPI | `buildMessageHash` → `authenticatePasskeyForSecp256r1Verify` → `buildSecp256r1VerifyInstruction` (see composable docs) |
 
 ## Message binding
@@ -64,7 +64,7 @@ Typical flow:
 | Context | `message` type | Effect |
 |---------|----------------|--------|
 | `startAuthentication` / `verifyResponse` | `string` (`expectedMessage`) | WebAuthn challenge bytes (UTF-8); must match on client and server |
-| `beginTransfer` | slot-bound challenge | Built from token PDA + slot hash — not the same as `expectedMessage` |
+| `beginTransfer` | slot-bound challenge | Built from phygital token PDA + slot hash — not the same as `expectedMessage` |
 | `authenticatePasskeyForSecp256r1Verify` | `Uint8Array` (`messageHash`, 32 bytes) | WebAuthn challenge and on-chain `message_hash`. Hash with `buildMessageHash` first. |
 
 An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `transfer_ownership`. Use `verify` when another program needs an on-chain possession proof.

@@ -14,10 +14,10 @@ pub enum PhygitalError {
     #[msg("Invalid secp256r1 public key")]
     InvalidSecp256r1PublicKey,
 
-    #[msg("secp256r1 pubkey does not match token record")]
+    #[msg("secp256r1 pubkey does not match phygital token record")]
     Secp256r1PubkeyMismatch,
 
-    #[msg("Token owner mismatch")]
+    #[msg("Phygital token owner mismatch")]
     OwnerMismatch,
 
     #[msg("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
@@ -35,10 +35,10 @@ pub enum PhygitalError {
     #[msg("Invalid sysvar data format")]
     InvalidSysvarDataFormat,
 
-    #[msg("The owner needs to unlock the token to enable transfer.")]
+    #[msg("The owner needs to unlock the phygital token to enable transfer.")]
     TokenIsCurrentlyLocked,
 
-    #[msg("This token is not lockable.")]
+    #[msg("This phygital token is not lockable.")]
     TokenIsNotLockable,
 
     #[msg("Unable to parse client data JSON.")]

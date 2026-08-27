@@ -60,7 +60,7 @@ export type InitializeInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> =
     "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF",
-  TAccountToken extends string | AccountMeta<string> = string,
+  TAccountPhygitalToken extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -72,9 +72,9 @@ export type InitializeInstruction<
         ? WritableSignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
-      TAccountToken extends string
-        ? WritableAccount<TAccountToken>
-        : TAccountToken,
+      TAccountPhygitalToken extends string
+        ? WritableAccount<TAccountPhygitalToken>
+        : TAccountPhygitalToken,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -128,11 +128,11 @@ export function getInitializeInstructionDataCodec(): FixedSizeCodec<
 
 export type InitializeInput<
   TAccountAuthority extends string = string,
-  TAccountToken extends string = string,
+  TAccountPhygitalToken extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
   authority?: TransactionSigner<TAccountAuthority>;
-  token: Address<TAccountToken>;
+  phygitalToken: Address<TAccountPhygitalToken>;
   systemProgram?: Address<TAccountSystemProgram>;
   identifier: InitializeInstructionDataArgs["identifier"];
   secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
@@ -141,20 +141,20 @@ export type InitializeInput<
 
 export function getInitializeInstruction<
   TAccountAuthority extends string,
-  TAccountToken extends string,
+  TAccountPhygitalToken extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: InitializeInput<
     TAccountAuthority,
-    TAccountToken,
+    TAccountPhygitalToken,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
 ): InitializeInstruction<
   TProgramAddress,
   TAccountAuthority,
-  TAccountToken,
+  TAccountPhygitalToken,
   TAccountSystemProgram
 > {
   // Program address.
@@ -164,7 +164,7 @@ export function getInitializeInstruction<
   // Original accounts.
   const originalAccounts = {
     authority: { value: input.authority ?? null, isWritable: true },
-    token: { value: input.token ?? null, isWritable: true },
+    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
@@ -189,7 +189,7 @@ export function getInitializeInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
-      getAccountMeta("token", accounts.token),
+      getAccountMeta("phygitalToken", accounts.phygitalToken),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
     data: getInitializeInstructionDataEncoder().encode(
@@ -199,7 +199,7 @@ export function getInitializeInstruction<
   } as InitializeInstruction<
     TProgramAddress,
     TAccountAuthority,
-    TAccountToken,
+    TAccountPhygitalToken,
     TAccountSystemProgram
   >);
 }
@@ -211,7 +211,7 @@ export type ParsedInitializeInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     authority: TAccountMetas[0];
-    token: TAccountMetas[1];
+    phygitalToken: TAccountMetas[1];
     systemProgram: TAccountMetas[2];
   };
   data: InitializeInstructionData;
@@ -244,7 +244,7 @@ export function parseInitializeInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       authority: getNextAccount(),
-      token: getNextAccount(),
+      phygitalToken: getNextAccount(),
       systemProgram: getNextAccount(),
     },
     data: getInitializeInstructionDataDecoder().decode(instruction.data),

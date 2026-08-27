@@ -22,7 +22,7 @@ import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
-  token: Address;
+  phygitalToken: Address;
   slotHash: Uint8Array;
   slotNumber: bigint;
   challenge: Uint8Array;
@@ -36,23 +36,23 @@ export type TransferSession = {
  * {@link completeTransfer}.
  *
  * @param input.rpc - Kit `Rpc`. Convert a web3.js Connection with `toRpc`.
- * @param input.token - Kit `Address` (token PDA). Convert a PublicKey with `toAddress`.
+ * @param input.phygitalToken - Kit `Address` (phygital token PDA). Convert a PublicKey with `toAddress`.
  * @param input.rpId - Relying party ID. Defaults to `window.location.hostname`.
  */
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
-  token: Address;
+  phygitalToken: Address;
   rpId?: string;
 }): Promise<TransferSession> {
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
-    token: input.token,
+    phygitalToken: input.phygitalToken,
     slotHash,
   });
 
   return {
     rpc: input.rpc,
-    token: input.token,
+    phygitalToken: input.phygitalToken,
     slotHash,
     slotNumber,
     challenge,
@@ -70,8 +70,8 @@ export async function authenticatePasskeyForTransfer(
 }
 
 /**
- * Builds the two on-chain instructions after token authentication.
- * Ownership is updated on the token PDA only — no SPL token transfer.
+ * Builds the two on-chain instructions after passkey authentication.
+ * Ownership is updated on the phygital token PDA only — no SPL token transfer.
  *
  * @param recipient - Kit `TransactionSigner`. Convert a web3.js Keypair with `toTransactionSigner`.
  */
@@ -90,7 +90,7 @@ export async function completeTransfer(
 
   const transferOwnership = getTransferOwnershipInstruction({
     recipient,
-    token: session.token,
+    phygitalToken: session.phygitalToken,
     slotNumber: session.slotNumber,
     secp256r1VerifyArgs: {
       verifyArgsRelativeIndex: -1,
