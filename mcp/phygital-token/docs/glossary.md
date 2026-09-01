@@ -17,7 +17,7 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 | Term | On-chain / IDL name | Description |
 |------|---------------------|-------------|
 | **Phygital token** | `phygital_token` account (`PhygitalToken`) | Per-physical-item record. PDA seeded by passkey `public_key`. |
-| **Passkey pubkey** | `phygital_token.public_key` | Compressed secp256r1 key. Seeds the PDA and authorizes transfers. Also used as WebAuthn `credential.id` / `user.id`. |
+| **Passkey pubkey** | `phygital_token.public_key` | Compressed secp256r1 key. Seeds the PDA and authorizes transfers. Exposed as WebAuthn `response.id` after tap (recovered from the signature when a browser echoes a placeholder credential id). |
 | **Identifier** | `phygital_token.identifier` | Chip-unique 33-byte binding value stored on the phygital token. Distinct from the passkey; not the PDA seed. |
 | **Owner** | `phygital_token.owner` | Current custodian after a successful `transfer_ownership`. Starts as the default (zero) pubkey. |
 | **Mint** | `phygital_token.mint` | Optional SPL mint binding. Starts as the default pubkey until `set_mint`. |

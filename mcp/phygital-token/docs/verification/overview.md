@@ -24,8 +24,8 @@ Need the holder physically present?
 
 Two SDK functions:
 
-- **`startAuthentication`** — client only; opens NFC and returns a WebAuthn response. Optional `rpId` defaults to `window.location.hostname`.
-- **`verifyResponse`** — server only; checks the signature and returns `{ isVerified, secp256r1PublicKey }`. `response.id` / `secp256r1PublicKey` is the compressed secp256r1 vault key (also used as the WebAuthn credential id).
+- **`startAuthentication`** — client only; opens NFC and returns a WebAuthn response. Optional `rpId` defaults to `window.location.hostname`. On browsers, if the platform echoes the random `allowCredentials` placeholder as `credential.id`, the SDK recovers the passkey public key from the signature first.
+- **`verifyResponse`** — server only; checks the signature and returns `{ isVerified, secp256r1PublicKey }`. `response.id` / `secp256r1PublicKey` is the compressed secp256r1 vault key (33-byte passkey public key).
 
 Neither submits a transaction. Verification should run on your backend so the client cannot fake a successful tap.
 

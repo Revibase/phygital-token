@@ -10,6 +10,8 @@ Off-chain authentication is **split**: NFC tap on the client, signature verifica
 
 Opens the system NFC modal (browser) or talks to an NFC reader via `transceive` (kiosk / native). Returns a WebAuthn `AuthenticationResponseJSON`. Optional `rpId` defaults to `window.location.hostname`.
 
+On the **browser** path, `startAuthentication` uses a random placeholder in `allowCredentials.id` so any enrolled NFC passkey can be selected. Some platforms echo that placeholder back as `credential.id` instead of the passkey public key. The SDK detects that case and **recovers** the compressed secp256r1 public key from the assertion signature before returning the response, so `response.id` is always the 33-byte vault key your server expects.
+
 ```ts
 // Browser
 const response = await startAuthentication(message);
@@ -24,7 +26,7 @@ const response = await startAuthentication(message, transceive);
 
 **Server — verify the tap.**
 
-Checks the WebAuthn signature against `expectedMessage`. Treats `response.id` as the compressed secp256r1 public key (the authenticator reuses that key as WebAuthn `credential.id` / `user.id`). Returns `{ isVerified, secp256r1PublicKey }` — no RPC. Challenge mismatch throws (`Message mismatch.`); a bad signature returns `isVerified: false`. Does **not** submit a transaction.
+Checks the WebAuthn signature against `expectedMessage`. Treats `response.id` as the compressed secp256r1 public key (the passkey vault key). On NFC taps that return a placeholder `credential.id`, the browser client path already recovers the real key before you receive the response. Returns `{ isVerified, secp256r1PublicKey }` — no RPC. Challenge mismatch throws (`Message mismatch.`); a bad signature returns `isVerified: false`. Does **not** submit a transaction.
 
 ```ts
 // API route after client POSTs { message, response }

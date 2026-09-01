@@ -114,7 +114,7 @@ Authentication (live NFC tap required)
     → findPhygitalTokenPda(secp256r1Pubkey) / fetchPhygitalToken(rpc, pda)
 
 verifyResponse never submits verify. Returns { isVerified, secp256r1PublicKey }
-(response.id is the secp256r1 vault key / WebAuthn credential id). Run it on your server.
+(response.id is the compressed secp256r1 passkey public key; browser taps recover it when the platform echoes a placeholder allowCredentials id). Run it on your server.
 Token PDA is seeded by the passkey public key; chip identifier is a separate binding field.
 On-chain proof: hash with buildMessageHash, then tap with messageHash. Optional tap rpId defaults to hostname.
 Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder (omit to skip). When expected_origins is set, the signed origin must match one listed origin.

@@ -55,7 +55,7 @@ See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `
 
 Pair `startAuthentication` (client) with `verifyResponse` (server). Every auth check needs a fresh tap — there is no signed-URL identification helper.
 
-The authenticator uses the secp256r1 public key as WebAuthn `credential.id`; the on-chain PDA is seeded by that same public key. Chip `identifier` is a separate binding field on the token.
+The passkey compressed secp256r1 public key is what downstream code reads from `response.id` (for PDA lookup, transfers, and on-chain verify). Many authenticators use that key as the WebAuthn credential id; when the browser path uses a random `allowCredentials` placeholder and the platform echoes it back, `authenticateWithWebauthn` recovers the real key from the assertion signature before returning. Chip `identifier` is a separate binding field on the token.
 
 ## Token lookup
 

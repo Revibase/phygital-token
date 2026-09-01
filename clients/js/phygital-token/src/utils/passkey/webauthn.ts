@@ -1,3 +1,6 @@
+import { sha256 } from "@noble/hashes/sha2.js";
+import { recoverSecp256r1PublicKey } from "./internal.js";
+
 /**
  * Minimal WebAuthn JSON helpers used by this SDK.
  *
@@ -124,7 +127,7 @@ export function nfcWebAuthnRequestOptions(
     allowCredentials: [
       {
         id:
-          bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(64))),
+          bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(16))),
         type: "public-key",
         transports: ["nfc"],
       },
@@ -174,13 +177,34 @@ export async function authenticateWithWebauthn(
     userHandle = bufferToBase64URLString(response.userHandle);
   }
 
+  const authenticatorData = bufferToBase64URLString(response.authenticatorData);
+  const clientDataJSON = bufferToBase64URLString(response.clientDataJSON);
+  const signature = bufferToBase64URLString(response.signature);
+
+  let credentialId = credential.id;
+  const placeholderIds = new Set(
+    optionsJSON.allowCredentials?.map((descriptor) => descriptor.id) ?? [],
+  );
+  if (placeholderIds.has(credentialId)) {
+    const clientDataBytes = new Uint8Array(response.clientDataJSON);
+    const authenticatorDataBytes = new Uint8Array(response.authenticatorData);
+    const message = new Uint8Array([
+      ...authenticatorDataBytes,
+      ...sha256(clientDataBytes),
+    ]);
+    const signatureBytes = new Uint8Array(response.signature);
+    credentialId = bufferToBase64URLString(
+      recoverSecp256r1PublicKey(signatureBytes, message),
+    );
+  }
+
   return {
-    id: credential.id,
-    rawId: bufferToBase64URLString(credential.rawId),
+    id: credentialId,
+    rawId: credentialId,
     response: {
-      authenticatorData: bufferToBase64URLString(response.authenticatorData),
-      clientDataJSON: bufferToBase64URLString(response.clientDataJSON),
-      signature: bufferToBase64URLString(response.signature),
+      authenticatorData,
+      clientDataJSON,
+      signature,
       userHandle,
     },
     type: credential.type as PublicKeyCredentialType,

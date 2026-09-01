@@ -22,7 +22,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "1.0.0";
+const VERSION = "1.0.1";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",

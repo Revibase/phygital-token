@@ -11,7 +11,7 @@ Third-party developers can:
 ## Off-chain authentication
 
 1. **Client:** `startAuthentication(expectedMessage)` — NFC tap. Optional `rpId` defaults to `window.location.hostname`.
-2. **Server:** `verifyResponse({ expectedMessage, response })` — signature check → `{ isVerified, secp256r1PublicKey }` (`response.id` is the compressed secp256r1 key, reused as the WebAuthn credential id).
+2. **Server:** `verifyResponse({ expectedMessage, response })` — signature check → `{ isVerified, secp256r1PublicKey }` (`response.id` is the compressed secp256r1 passkey public key; recovered on the client when the browser echoes a placeholder credential id).
 3. **Optional:** `findPhygitalTokenPda(secp256r1PublicKey)` + `fetchPhygitalToken` to load on-chain state. PDA is seeded by the passkey; chip `identifier` is a separate binding field.
 
 Does **not** write to chain. Use for UI login and vault presence checks.

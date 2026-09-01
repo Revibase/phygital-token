@@ -72,8 +72,12 @@ export function normalizeSignatureToLowS(signature: Uint8Array): Uint8Array {
 }
 
 export function convertSignatureDERtoRS(signature: Uint8Array): Uint8Array {
+  return normalizeSignatureToLowS(parseSignatureToRS(signature));
+}
+
+function parseSignatureToRS(signature: Uint8Array): Uint8Array {
   if (signature.length === 64) {
-    return normalizeSignatureToLowS(signature);
+    return signature;
   }
 
   if (signature[0] !== 0x30) {
@@ -114,7 +118,18 @@ export function convertSignatureDERtoRS(signature: Uint8Array): Uint8Array {
   rawSig.set(rStripped, 32 - rStripped.length);
   rawSig.set(sStripped, 64 - sStripped.length);
 
-  return normalizeSignatureToLowS(rawSig);
+  return rawSig;
+}
+
+function toCompressedPublicKey(point: ReturnType<typeof p256.Point.fromBytes>): Uint8Array {
+  return point.toBytes(true);
+}
+
+function signatureFromBytes(signature: Uint8Array): InstanceType<typeof p256.Signature> {
+  if (signature.length >= 2 && signature[0] === 0x30) {
+    return p256.Signature.fromBytes(signature, "der");
+  }
+  return p256.Signature.fromBytes(parseSignatureToRS(signature), "compact");
 }
 
 export function getClientDataJsonBytes(
@@ -134,6 +149,36 @@ export function getSecp256r1Message(
   );
   const clientDataHash = sha256(clientDataJSON);
   return new Uint8Array([...authenticatorData, ...clientDataHash]);
+}
+
+/**
+ * Recover a compressed secp256r1 public key from a WebAuthn assertion signature
+ * and the signed message (`authenticatorData || SHA-256(clientDataJSON)`).
+ *
+ * WebAuthn signatures omit the ECDSA recovery id, so recids 0–3 are tried until
+ * a recovered key verifies the assertion.
+ */
+export function recoverSecp256r1PublicKey(
+  signature: Uint8Array,
+  message: Uint8Array,
+): Uint8Array {
+  const sig = signatureFromBytes(signature);
+  const verifyRs = normalizeSignatureToLowS(parseSignatureToRS(signature));
+
+  for (let recoveryId = 0; recoveryId < 4; recoveryId += 1) {
+    try {
+      const publicKey = toCompressedPublicKey(
+        sig.addRecoveryBit(recoveryId).recoverPublicKey(message),
+      );
+      if (p256.verify(verifyRs, message, publicKey, { prehash: false })) {
+        return publicKey;
+      }
+    } catch {
+      // try next recovery id
+    }
+  }
+
+  throw new Error("Failed to recover secp256r1 public key from signature");
 }
 
 export function parseWebAuthnClientData(clientDataJSON: string) {
