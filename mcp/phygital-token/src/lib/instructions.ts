@@ -86,8 +86,8 @@ export async function planTransfer(input: {
 
   return {
     flow: [
-      "1. beginTransfer({ rpc, phygitalToken, rpId? }) — Kit Rpc + Address; fetch slot hash, build challenge; rpId defaults to hostname",
-      "2. authenticatePasskeyForTransfer(session) — NFC/WebAuthn tap on physical token",
+      "1. beginTransfer({ rpc, secp256r1Pubkey, rpId? }) — derives token PDA from passkey; fetch slot hash, build challenge; rpId defaults to hostname",
+      "2. authenticatePasskeyForTransfer(session) — NFC/WebAuthn tap; passes secp256r1Pubkey in allowCredentials",
       "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + transfer_ownership",
     ],
     sdk: {
@@ -124,7 +124,8 @@ export async function planTransfer(input: {
     instructions: ["secp256r1_verify", "transfer_ownership"],
     notes: [
       "No SPL token transfer — transfer_ownership only updates phygital_token.owner.",
-      "beginTransfer takes Kit Rpc + Address (phygital token PDA); optional rpId defaults to window.location.hostname. Passkey comes from response.id at completeTransfer.",
+      "beginTransfer takes Kit Rpc + base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
+      "Browser tap requires rpc for placeholder credential-id recovery (16-byte rawId). When rawId is 33 bytes, authenticator returned the passkey directly.",
       "completeTransfer takes a Kit TransactionSigner for recipient. web3.js callers convert with toRpc / toAddress / toTransactionSigner, then toWeb3Instructions.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
       "PDA is derived from the passkey public key, which also authorizes the signature.",
@@ -152,7 +153,7 @@ export async function planVerify(input: {
   return {
     flow: [
       "buildMessageHash(message) — 32-byte digest",
-      "authenticatePasskeyForSecp256r1Verify({ messageHash }) — optional rpId defaults to hostname",
+      "authenticatePasskeyForSecp256r1Verify({ rpc, messageHash }) — rpc required; optional rpId defaults to hostname",
       "buildSecp256r1VerifyInstruction(tap) — { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }",
       "sendTransaction([secp256r1VerifyInstruction, yourProgramInstruction]) — your instruction carries phygitalTokenPda + secp256r1VerifyArgs; message_hash and instructions sysvar are yours",
     ],
@@ -170,7 +171,7 @@ export async function planVerify(input: {
     },
     challenge: {
       formula: buildVerifyChallengeDescription(),
-      note: "Hash with buildMessageHash, then pass messageHash to authenticatePasskeyForSecp256r1Verify. Use the same digest as VerifyCpiBuilder.message_hash.",
+      note: "Hash with buildMessageHash, then pass { rpc, messageHash } to authenticatePasskeyForSecp256r1Verify. Use the same digest as VerifyCpiBuilder.message_hash.",
     },
     derived: tokenPda
       ? { tokenPda, secp256r1PublicKey: input.secp256r1PublicKey }
@@ -196,7 +197,9 @@ export async function planVerify(input: {
       secp256r1VerifyArgs: "VerifyCpiBuilder.secp256r1_verify_args (relative index -1)",
     },
     notes: [
-      "startAuthentication + verifyResponse is off-chain only — it does not submit verify. Verify on your server.",
+      "startAuthentication(message, rpc) + verifyResponse is off-chain only — it does not submit verify. Verify on your server.",
+      "Browser WebAuthn requires rpc for placeholder recovery (rawId length 16). Authenticator returns passkey directly when rawId is 33 bytes.",
+      "When recovery is ambiguous, the SDK picks the candidate with an initialized PhygitalToken PDA on-chain.",
       "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
       "Hash with buildMessageHash before authenticatePasskeyForSecp256r1Verify. Optional rpId defaults to window.location.hostname.",
       "Your program CPIs verify. Do not include a client-side verify instruction. message_hash and instructions sysvar come from your instruction.",

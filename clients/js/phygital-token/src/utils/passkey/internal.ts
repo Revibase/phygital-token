@@ -5,191 +5,147 @@ import {
   type AuthenticationResponseJSON,
 } from "./webauthn.js";
 
-export { base64URLStringToBuffer } from "./webauthn.js";
+const CURVE_ORDER = p256.Point.CURVE().n;
 
-function uint8ArrayToHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  return a.length === b.length && a.every((byte, index) => byte === b[index]);
 }
 
-function hexToUint8Array(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < bytes.length; i += 1) {
-    bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  }
-  return bytes;
+type ParsedWebAuthnSignature = {
+  noble: InstanceType<typeof p256.Signature>;
+  compact: Uint8Array;
+};
+
+function isDerEcdsaSignature(signature: Uint8Array): boolean {
+  return signature.length >= 2 && signature[0] === 0x30;
 }
 
-function extractAdditionalFields(clientData: Record<string, unknown>) {
-  const knownKeys = new Set(["type", "challenge", "origin", "crossOrigin"]);
-
-  const remaining: Record<string, unknown> = {};
-  for (const key in clientData) {
-    if (!knownKeys.has(key)) {
-      remaining[key] = clientData[key];
-    }
+function parseWebAuthnSignature(
+  signature: Uint8Array,
+): ParsedWebAuthnSignature {
+  if (signature.length === 64) {
+    return {
+      noble: p256.Signature.fromBytes(signature, "compact"),
+      compact: signature,
+    };
   }
-
-  if (Object.keys(remaining).length === 0) {
-    return new Uint8Array();
+  if (isDerEcdsaSignature(signature)) {
+    const noble = p256.Signature.fromBytes(signature, "der");
+    return { noble, compact: noble.toBytes("compact") };
   }
-
-  const serialized = JSON.stringify(remaining);
-  return new Uint8Array(new TextEncoder().encode(serialized.slice(1, -1)));
+  throw new Error("expected 64-byte compact or DER ECDSA signature");
 }
 
-/**
- * Normalizes a raw 64-byte `r||s` P-256 ECDSA signature to its canonical
- * low-S form (`s <= n/2`).
- *
- * Hardware signers — NFC secure elements and platform authenticators — often
- * emit high-S signatures. They are valid ECDSA but non-canonical, and both
- * `@noble/curves` (default `lowS: true`) and Solana's secp256r1 precompile
- * reject them. Always run a raw signature through this before verifying or
- * before building an on-chain secp256r1 verify instruction.
- */
-export function normalizeSignatureToLowS(signature: Uint8Array): Uint8Array {
+function normalizeSignatureToLowS(signature: Uint8Array): Uint8Array {
   if (signature.length !== 64) {
     throw new Error(
       `expected 64-byte raw r||s signature, got ${signature.length} bytes`,
     );
   }
 
-  const order = p256.Point.CURVE().n;
-  const halfOrder = order >> 1n;
-  const sBig = BigInt(`0x${uint8ArrayToHex(signature.slice(32, 64))}`);
-  if (sBig <= halfOrder) {
+  const sig = p256.Signature.fromBytes(signature, "compact");
+  if (!sig.hasHighS()) {
     return signature;
   }
 
-  const sLow = order - sBig;
-  const sPad = hexToUint8Array(sLow.toString(16).padStart(64, "0"));
-  const normalized = new Uint8Array(64);
-  normalized.set(signature.slice(0, 32), 0);
-  normalized.set(sPad, 32);
-  return normalized;
+  return new p256.Signature(sig.r, CURVE_ORDER - sig.s).toBytes("compact");
 }
 
 export function convertSignatureDERtoRS(signature: Uint8Array): Uint8Array {
-  return normalizeSignatureToLowS(parseSignatureToRS(signature));
+  return normalizeSignatureToLowS(parseWebAuthnSignature(signature).compact);
 }
 
-function parseSignatureToRS(signature: Uint8Array): Uint8Array {
-  if (signature.length === 64) {
-    return signature;
-  }
-
-  if (signature[0] !== 0x30) {
-    throw new Error("Invalid DER sequence");
-  }
-
-  const totalLength = signature[1];
-  let offset = 2;
-
-  if (totalLength > 0x80) {
-    const lengthBytes = totalLength & 0x7f;
-    offset += lengthBytes;
-  }
-
-  if (signature[offset] !== 0x02) {
-    throw new Error("Expected INTEGER for r");
-  }
-  const rLen = signature[offset + 1];
-  const rStart = offset + 2;
-  const r = signature.slice(rStart, rStart + rLen);
-
-  offset = rStart + rLen;
-  if (signature[offset] !== 0x02) {
-    throw new Error("Expected INTEGER for s");
-  }
-  const sLen = signature[offset + 1];
-  const sStart = offset + 2;
-  const s = signature.slice(sStart, sStart + sLen);
-
-  const rStripped = r[0] === 0x00 && r.length > 32 ? r.slice(1) : r;
-  const sStripped = s[0] === 0x00 && s.length > 32 ? s.slice(1) : s;
-
-  if (rStripped.length > 32 || sStripped.length > 32) {
-    throw new Error("r or s length > 32 bytes");
-  }
-
-  const rawSig = new Uint8Array(64);
-  rawSig.set(rStripped, 32 - rStripped.length);
-  rawSig.set(sStripped, 64 - sStripped.length);
-
-  return rawSig;
-}
-
-function toCompressedPublicKey(point: ReturnType<typeof p256.Point.fromBytes>): Uint8Array {
-  return point.toBytes(true);
-}
-
-function signatureFromBytes(signature: Uint8Array): InstanceType<typeof p256.Signature> {
-  if (signature.length >= 2 && signature[0] === 0x30) {
-    return p256.Signature.fromBytes(signature, "der");
-  }
-  return p256.Signature.fromBytes(parseSignatureToRS(signature), "compact");
-}
-
-export function getClientDataJsonBytes(
-  authResponse: AuthenticationResponseJSON,
+/** WebAuthn signed payload: `authenticatorData || SHA-256(clientDataJSON)`. */
+export function buildSecp256r1Message(
+  authenticatorData: Uint8Array,
+  clientDataJSON: Uint8Array,
 ): Uint8Array {
-  return base64URLStringToBuffer(authResponse.response.clientDataJSON);
-}
-
-export function getSecp256r1Message(
-  authResponse: AuthenticationResponseJSON,
-): Uint8Array {
-  const clientDataJSON = base64URLStringToBuffer(
-    authResponse.response.clientDataJSON,
-  );
-  const authenticatorData = base64URLStringToBuffer(
-    authResponse.response.authenticatorData,
-  );
   const clientDataHash = sha256(clientDataJSON);
-  return new Uint8Array([...authenticatorData, ...clientDataHash]);
+  const message = new Uint8Array(
+    authenticatorData.length + clientDataHash.length,
+  );
+  message.set(authenticatorData, 0);
+  message.set(clientDataHash, authenticatorData.length);
+  return message;
 }
 
-/**
- * Recover a compressed secp256r1 public key from a WebAuthn assertion signature
- * and the signed message (`authenticatorData || SHA-256(clientDataJSON)`).
- *
- * WebAuthn signatures omit the ECDSA recovery id, so recids 0–3 are tried until
- * a recovered key verifies the assertion.
- */
-export function recoverSecp256r1PublicKey(
-  signature: Uint8Array,
-  message: Uint8Array,
-): Uint8Array {
-  const sig = signatureFromBytes(signature);
-  const verifyRs = normalizeSignatureToLowS(parseSignatureToRS(signature));
-
-  for (let recoveryId = 0; recoveryId < 4; recoveryId += 1) {
-    try {
-      const publicKey = toCompressedPublicKey(
-        sig.addRecoveryBit(recoveryId).recoverPublicKey(message),
-      );
-      if (p256.verify(verifyRs, message, publicKey, { prehash: false })) {
-        return publicKey;
-      }
-    } catch {
-      // try next recovery id
-    }
-  }
-
-  throw new Error("Failed to recover secp256r1 public key from signature");
-}
-
-export function parseWebAuthnClientData(clientDataJSON: string) {
-  const parsed = JSON.parse(
-    new TextDecoder().decode(base64URLStringToBuffer(clientDataJSON)),
-  ) as Record<string, unknown>;
+/** DER signature and signed message bytes from a WebAuthn assertion. */
+export function parseWebAuthnAssertion(response: AuthenticationResponseJSON): {
+  signature: Uint8Array;
+  message: Uint8Array;
+} {
   return {
-    challenge: String(parsed.challenge),
-    origin: String(parsed.origin),
-    crossOrigin: Boolean(parsed.crossOrigin),
-    truncatedClientDataJson: extractAdditionalFields(parsed),
+    signature: convertSignatureDERtoRS(
+      base64URLStringToBuffer(response.response.signature),
+    ),
+    message: buildSecp256r1Message(
+      base64URLStringToBuffer(response.response.authenticatorData),
+      base64URLStringToBuffer(response.response.clientDataJSON),
+    ),
   };
 }
 
+export function recoverSecp256r1PublicKeyCandidates(
+  signature: Uint8Array,
+  message: Uint8Array,
+): Uint8Array[] {
+  const parsed = parseWebAuthnSignature(signature);
+  const digest = sha256(message);
+  const verifySignature = normalizeSignatureToLowS(parsed.compact);
+  const candidates: Uint8Array[] = [];
+
+  for (let recoveryId = 0; recoveryId < 4; recoveryId += 1) {
+    try {
+      const publicKey = parsed.noble
+        .addRecoveryBit(recoveryId)
+        .recoverPublicKey(digest)
+        .toBytes(true);
+      if (!p256.verify(verifySignature, message, publicKey)) {
+        continue;
+      }
+      if (!candidates.some((candidate) => bytesEqual(candidate, publicKey))) {
+        candidates.push(publicKey);
+      }
+    } catch {
+      // invalid recovery id for this (r, s)
+    }
+  }
+
+  return candidates;
+}
+
+type WebAuthnClientDataJson = {
+  challenge?: unknown;
+  origin?: unknown;
+  crossOrigin?: unknown;
+};
+
+function readRequiredClientDataString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(
+      `WebAuthn clientDataJSON.${field} must be a non-empty string.`,
+    );
+  }
+  return value;
+}
+
+export function parseWebAuthnClientData(clientDataJSON: string): {
+  challenge: string;
+  origin: string;
+  crossOrigin: boolean;
+} {
+  let parsed: WebAuthnClientDataJson;
+  try {
+    parsed = JSON.parse(
+      new TextDecoder().decode(base64URLStringToBuffer(clientDataJSON)),
+    ) as WebAuthnClientDataJson;
+  } catch {
+    throw new Error("WebAuthn clientDataJSON must be valid JSON.");
+  }
+
+  return {
+    challenge: readRequiredClientDataString(parsed.challenge, "challenge"),
+    origin: readRequiredClientDataString(parsed.origin, "origin"),
+    crossOrigin: parsed.crossOrigin === true,
+  };
+}

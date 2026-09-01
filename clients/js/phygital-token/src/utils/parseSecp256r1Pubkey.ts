@@ -1,5 +1,5 @@
 import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey.js";
-import { base64URLStringToBuffer } from "./passkey/internal.js";
+import { base64URLStringToBuffer } from "./passkey/webauthn.js";
 import type { Base64URLString } from "./passkey/webauthn.js";
 
 /**

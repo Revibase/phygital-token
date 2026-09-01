@@ -1,4 +1,5 @@
 import type { AuthenticationResponseJSON } from "./webauthn.js";
+import { base64URLStringToBuffer } from "./webauthn.js";
 import { getAddressEncoder, type Address, type Instruction } from "@solana/kit";
 import {
   getSecp256r1VerifyInstruction,
@@ -8,12 +9,7 @@ import {
   SECP256R1_PROGRAM_ADDRESS,
   TRANSFER_ACTION_BYTES,
 } from "../consts.js";
-import {
-  base64URLStringToBuffer,
-  convertSignatureDERtoRS,
-  getClientDataJsonBytes,
-  getSecp256r1Message,
-} from "./internal.js";
+import { parseWebAuthnAssertion } from "./internal.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import type { Secp256r1Pubkey } from "../../generated/index.js";
 
@@ -34,14 +30,11 @@ function encodeAddress(addressValue: Address): Uint8Array {
   return new Uint8Array(getAddressEncoder().encode(addressValue));
 }
 
-export function buildVerifyInputFromWebAuthn(input: {
+function buildVerifyInputFromWebAuthn(input: {
   secp256r1PublicKey: Secp256r1Pubkey;
   response: AuthenticationResponseJSON;
 }): Secp256r1VerifyEntry {
-  const signature = convertSignatureDERtoRS(
-    base64URLStringToBuffer(input.response.response.signature),
-  );
-  const message = getSecp256r1Message(input.response);
+  const { signature, message } = parseWebAuthnAssertion(input.response);
 
   return {
     publicKey: input.secp256r1PublicKey[0],
@@ -63,17 +56,15 @@ export async function buildTransferChallenge(input: {
   );
 }
 
-export type WebAuthnSecp256r1Verification = {
-  signedMessageIndex: number;
-  secp256r1VerifyInstruction: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
-  clientDataJson: Uint8Array;
-};
-
-export async function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input: {
+export function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input: {
   secp256r1PublicKey: Secp256r1Pubkey;
   response: AuthenticationResponseJSON;
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[];
-}): Promise<WebAuthnSecp256r1Verification> {
+}): {
+  signedMessageIndex: number;
+  secp256r1VerifyInstruction: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
+  clientDataJson: Uint8Array;
+} {
   const existing = input.existingSecp256r1VerifyInputs;
   const parsed = buildVerifyInputFromWebAuthn(input);
   let signedMessageIndex = 0;
@@ -84,6 +75,6 @@ export async function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input:
   return {
     signedMessageIndex,
     secp256r1VerifyInstruction: getSecp256r1VerifyInstruction(existing ?? [parsed]),
-    clientDataJson: getClientDataJsonBytes(input.response),
+    clientDataJson: base64URLStringToBuffer(input.response.response.clientDataJSON),
   };
 }

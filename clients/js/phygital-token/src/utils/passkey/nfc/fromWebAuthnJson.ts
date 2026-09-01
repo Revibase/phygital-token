@@ -1,5 +1,5 @@
 import { sha256 } from "@noble/hashes/sha2.js";
-import { base64URLStringToBuffer } from "../internal.js";
+import { base64URLStringToBuffer } from "../webauthn.js";
 import { ApduError } from "./errors.js";
 import type { AuthenticatorGetAssertionRequest } from "./getAssertion.js";
 import type { PublicKeyCredentialRequestOptionsJSONWithNfc } from "./types.js";

@@ -4,7 +4,7 @@ import {
   bufferToBase64URLString,
   nfcWebAuthnRequestOptions,
 } from "../utils/passkey/webauthn.js";
-import type { Address, Instruction } from "@solana/kit";
+import type { Address, Instruction, Rpc, SolanaRpcApi } from "@solana/kit";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   type Secp256r1VerifyEntry,
@@ -26,12 +26,14 @@ export function buildMessageHash(message: Uint8Array): Uint8Array {
  * digest your program must pass to `VerifyCpiBuilder.message_hash`. Hash with
  * {@link buildMessageHash} first.
  *
+ * @param input.rpc - Kit `Rpc`. Used when the platform echoes a placeholder credential id.
  * @param input.messageHash - SHA-256 of the message you bind on-chain (32 bytes).
  * @param input.rpId - WebAuthn relying party for the **browser tap** only.
  *   Defaults to `window.location.hostname`. On-chain `expected_rp_id` /
  *   `expected_origins` are set on your CPI, not here.
  */
 export async function authenticatePasskeyForSecp256r1Verify(input: {
+  rpc: Rpc<SolanaRpcApi>;
   messageHash: Uint8Array;
   rpId?: string;
 }): Promise<AuthenticationResponseJSON> {
@@ -40,6 +42,7 @@ export async function authenticatePasskeyForSecp256r1Verify(input: {
       bufferToBase64URLString(input.messageHash),
       input.rpId ?? window.location.hostname,
     ),
+    input.rpc,
   );
 }
 
@@ -68,7 +71,7 @@ export async function buildSecp256r1VerifyInstruction(
   const secp256r1PublicKey = parseSecp256r1Pubkey(response.id);
   const phygitalTokenPda = await findPhygitalTokenPda(secp256r1PublicKey);
   const { secp256r1VerifyInstruction, signedMessageIndex, clientDataJson } =
-    await buildSecp256r1VerifyInstructionFromWebAuthnResponse({
+    buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       secp256r1PublicKey,
       response,
       existingSecp256r1VerifyInputs,

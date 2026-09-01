@@ -2,6 +2,15 @@
 
 TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 
+## WebAuthn credential id
+
+| `rawId` length | Behavior |
+|----------------|----------|
+| 33 bytes | Authenticator returned the secp256r1 public key — used as `response.id` |
+| 16 bytes | Platform echoed random placeholder — recover from signature |
+
+When recovery is ambiguous, the SDK selects the candidate with an initialized PhygitalToken PDA on-chain. **Browser WebAuthn requires Kit `Rpc`** on all tap helpers.
+
 ## Initialize
 
 | Export | Purpose |
@@ -17,7 +26,7 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 | Export | Purpose |
 |--------|---------|
 | `getSetMintInstruction` | Bind an SPL mint pubkey onto `phygital_token.mint` (authority defaults to `ADMIN`) |
-| `findPhygitalTokenPda` | Derive the phygital token PDA to pass as `phygitalToken` |
+| `findPhygitalTokenPda` | Derive the phygital token PDA from a passkey public key |
 
 `set_mint` authority must be `ADMIN`. The authority account is a signer but is **not** writable.
 
@@ -25,8 +34,8 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 
 | Export | Purpose |
 |--------|---------|
-| `beginTransfer({ rpc, phygitalToken, rpId? })` | Kit `Rpc` + `Address`; slot-bound challenge; `rpId` defaults to hostname |
-| `authenticatePasskeyForTransfer` | WebAuthn NFC tap |
+| `beginTransfer({ rpc, secp256r1Pubkey, rpId? })` | Derives token PDA from passkey; slot-bound challenge; `rpId` defaults to hostname |
+| `authenticatePasskeyForTransfer(session)` | WebAuthn NFC tap; passes `secp256r1Pubkey` in `allowCredentials` |
 | `completeTransfer` | Kit `TransactionSigner` recipient; `response.id` as passkey; builds secp + transfer |
 
 ## Verify (on-chain composable)
@@ -34,7 +43,7 @@ TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
 | Export | Purpose |
 |--------|---------|
 | `buildMessageHash(message)` | SHA-256 `message` to a 32-byte `messageHash` |
-| `authenticatePasskeyForSecp256r1Verify({ messageHash, rpId? })` | Uses `messageHash` as WebAuthn challenge; `rpId` defaults to hostname |
+| `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId? })` | Uses `messageHash` as WebAuthn challenge; `rpc` required |
 | `buildSecp256r1VerifyInstruction` | After tap: `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }` |
 | `getVerifyInstruction` | Generated `verify` ix — `expectedRpId` / `expectedOrigins` are `Option` (`null` skips). CPI callers set these on `VerifyCpiBuilder`, not the tap helper. |
 
@@ -50,12 +59,10 @@ See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `
 
 | Export | Purpose |
 |--------|---------|
-| `startAuthentication` | Client: NFC tap trigger; returns WebAuthn response. Optional `rpId` defaults to hostname |
+| `startAuthentication(message, rpc, options?)` | Client: NFC tap; `rpc` required for browser placeholder recovery |
 | `verifyResponse` | Server: verify tap signature; returns `{ isVerified, secp256r1PublicKey }` |
 
 Pair `startAuthentication` (client) with `verifyResponse` (server). Every auth check needs a fresh tap — there is no signed-URL identification helper.
-
-The passkey compressed secp256r1 public key is what downstream code reads from `response.id` (for PDA lookup, transfers, and on-chain verify). Many authenticators use that key as the WebAuthn credential id; when the browser path uses a random `allowCredentials` placeholder and the platform echoes it back, `authenticateWithWebauthn` recovers the real key from the assertion signature before returning. Chip `identifier` is a separate binding field on the token.
 
 ## Token lookup
 
@@ -81,7 +88,7 @@ No `@solana/web3.js` dependency. SDK functions take Kit types (`Rpc`, `Address`,
 ```ts
 const session = await beginTransfer({
   rpc: toRpc(connection),
-  phygitalToken: toAddress(tokenPubkey),
+  secp256r1Pubkey: secp256r1PublicKey, // base64url compressed passkey
 });
 const ixs = await completeTransfer(
   session,

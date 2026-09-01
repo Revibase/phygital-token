@@ -4,29 +4,45 @@ All exports from `clients/js/phygital-token/src/utils/verify.ts`.
 
 Off-chain authentication is **split**: NFC tap on the client, signature verification on your server. Every check requires a **fresh tap** — there is no signed-URL / prior-scan identification path.
 
-## `startAuthentication(message, transceive?, rpId?)`
+## WebAuthn credential id recovery
+
+| `rawId` length | Meaning |
+|----------------|---------|
+| **33 bytes** | Authenticator returned the compressed secp256r1 public key — used as `response.id` |
+| **16 bytes** | Platform echoed the random placeholder — SDK recovers the public key from the signature |
+
+When recovery is ambiguous (multiple verifying public keys), the SDK selects the candidate whose PhygitalToken PDA exists on-chain. **Browser WebAuthn requires Kit `Rpc`** for this path.
+
+## `startAuthentication(message, rpc, options?)`
 
 **Client — trigger the tap.**
 
-Opens the system NFC modal (browser) or talks to an NFC reader via `transceive` (kiosk / native). Returns a WebAuthn `AuthenticationResponseJSON`. Optional `rpId` defaults to `window.location.hostname`.
+Opens the system NFC modal (browser) or talks to an NFC reader via `transceive` (kiosk / native). Returns a WebAuthn `AuthenticationResponseJSON`.
 
-On the **browser** path, `startAuthentication` uses a random placeholder in `allowCredentials.id` so any enrolled NFC passkey can be selected. Some platforms echo that placeholder back as `credential.id` instead of the passkey public key. The SDK detects that case and **recovers** the compressed secp256r1 public key from the assertion signature before returning the response, so `response.id` is always the 33-byte vault key your server expects.
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `message` | yes | Same string your server issued as the challenge |
+| `rpc` | yes (browser) | Kit `Rpc` for placeholder recovery disambiguation |
+| `options.transceive` | no | Native NFC reader; when set, skips browser WebAuthn |
+| `options.rpId` | no | Relying party ID; defaults to `window.location.hostname` |
+
+On the **browser** path, `nfcWebAuthnRequestOptions` uses a random 16-byte `allowCredentials` id so any enrolled NFC passkey can be selected. When the platform echoes that placeholder (`rawId` length 16), `authenticateWithWebauthn` recovers the compressed secp256r1 public key before returning, so `response.id` is the 33-byte vault key your server expects.
 
 ```ts
+const rpc = createSolanaRpc(RPC_URL);
+
 // Browser
-const response = await startAuthentication(message);
+const response = await startAuthentication(message, rpc);
 
-// Kiosk / native reader
-const response = await startAuthentication(message, transceive);
+// Kiosk / native reader (rpc unused when transceive is set)
+const response = await startAuthentication(message, rpc, { transceive });
 ```
-
-`message` must be the same string your server issued as the challenge (store server-side with a short TTL).
 
 ## `verifyResponse({ expectedMessage, response })`
 
 **Server — verify the tap.**
 
-Checks the WebAuthn signature against `expectedMessage`. Treats `response.id` as the compressed secp256r1 public key (the passkey vault key). On NFC taps that return a placeholder `credential.id`, the browser client path already recovers the real key before you receive the response. Returns `{ isVerified, secp256r1PublicKey }` — no RPC. Challenge mismatch throws (`Message mismatch.`); a bad signature returns `isVerified: false`. Does **not** submit a transaction.
+Checks the WebAuthn signature against `expectedMessage`. Treats `response.id` as the compressed secp256r1 public key (the passkey vault key). On browser taps that required placeholder recovery, the client path already resolved the real key before you receive the response. Returns `{ isVerified, secp256r1PublicKey }` — no RPC. Challenge mismatch throws (`Message mismatch.`); a bad signature returns `isVerified: false`. Does **not** submit a transaction.
 
 ```ts
 // API route after client POSTs { message, response }
@@ -47,7 +63,7 @@ if (isVerified) {
 Typical flow:
 
 1. Server issues `message` (e.g. `randomUUID()`), stores it for the session.
-2. Client calls `startAuthentication(message)` → user taps vault.
+2. Client calls `startAuthentication(message, rpc)` → user taps vault.
 3. Client POSTs `{ message, response }` to your verify API.
 4. Server calls `verifyResponse`, then runs your business logic.
 
@@ -55,11 +71,11 @@ Typical flow:
 
 | Need | Use |
 |------|-----|
-| UI login / vault gate, no tx | `startAuthentication` + `verifyResponse` |
+| UI login / vault gate, no tx | `startAuthentication(message, rpc)` + `verifyResponse` |
 | Load on-chain state after a tap | `verifyResponse` → `findPhygitalTokenPda` + `fetchPhygitalToken` |
 | Look up by chip identifier | `fetchPhygitalTokenByIdentifier` |
-| Transfer ownership | `beginTransfer({ rpc, phygitalToken })` → `completeTransfer` (passkey from `response.id`) |
-| On-chain possession proof / CPI | `buildMessageHash` → `authenticatePasskeyForSecp256r1Verify` → `buildSecp256r1VerifyInstruction` (see composable docs). Origin/rpId allow-lists are CPI args (`expected_origins` / `expected_rp_id`), not tap args. |
+| Transfer ownership | `beginTransfer({ rpc, secp256r1Pubkey })` → `completeTransfer` (passkey from `response.id`) |
+| On-chain possession proof / CPI | `buildMessageHash` → `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })` → `buildSecp256r1VerifyInstruction` |
 
 ## Message binding
 

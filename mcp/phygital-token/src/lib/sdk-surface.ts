@@ -1,4 +1,11 @@
 export const SDK_SURFACE = {
+  webAuthn: {
+    credentialId: "33 bytes = authenticator passkey; 16 bytes = platform echoed placeholder (recovery runs)",
+    rpcRequired:
+      "Kit Rpc required on all browser WebAuthn taps (startAuthentication, authenticatePasskeyForSecp256r1Verify, authenticatePasskeyForTransfer)",
+    recovery:
+      "When multiple keys verify, disambiguates via initialized PhygitalToken PDA on-chain",
+  },
   initialize: [
     "getInitializeInstruction",
     "findPhygitalTokenPda",
@@ -11,21 +18,24 @@ export const SDK_SURFACE = {
     "findPhygitalTokenPda",
   ],
   transfer: [
-    "beginTransfer",
+    "beginTransfer({ rpc, secp256r1Pubkey, rpId? })",
     "authenticatePasskeyForTransfer",
     "completeTransfer",
   ],
   removeOwnership: ["getRemoveOwnershipInstruction"],
   verifyComposable: [
     "buildMessageHash",
-    "authenticatePasskeyForSecp256r1Verify",
+    "authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId? })",
     "buildSecp256r1VerifyInstruction",
   ],
-  verification: ["startAuthentication", "verifyResponse"],
+  verification: [
+    "startAuthentication(message, rpc, options?)",
+    "verifyResponse",
+  ],
   onChainComposition: {
     client: [
       "buildMessageHash",
-      "authenticatePasskeyForSecp256r1Verify",
+      "authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })",
       "buildSecp256r1VerifyInstruction",
     ],
     transaction: ["secp256r1_verify", "your_program_instruction"],

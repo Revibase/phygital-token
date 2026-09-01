@@ -22,7 +22,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "1.0.1";
+const VERSION = "1.0.2";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -37,7 +37,8 @@ const SERVER_INSTRUCTIONS = [
   "- Anything else → search_docs, then read_doc",
   "",
   "Live token fetch and auth: call phygital-token-sdk directly in your app",
-  "(verifyResponse, findPhygitalTokenPda, buildMessageHash, authenticatePasskeyForSecp256r1Verify, etc.).",
+  "(verifyResponse, findPhygitalTokenPda, buildMessageHash, authenticatePasskeyForSecp256r1Verify({ rpc, messageHash }), startAuthentication(message, rpc), etc.).",
+  "Browser WebAuthn taps require Kit Rpc for placeholder credential-id recovery (rawId length 16).",
 ].join("\n");
 
 /** Every tool here is offline and side-effect free. */

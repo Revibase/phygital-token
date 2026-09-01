@@ -1,46 +1,94 @@
 import { describe, expect, it } from "vitest";
 import { p256 } from "@noble/curves/nist.js";
-import { randomBytes } from "@noble/curves/utils.js";
-import { sha256 } from "@noble/hashes/sha2.js";
 
 import {
   getSecp256r1VerifyInstruction,
   type Secp256r1VerifyEntry,
 } from "../instructions/internal/secp256r1Verify.js";
 import {
-  convertSignatureDERtoRS,
-  recoverSecp256r1PublicKey,
+  base64URLStringToBuffer,
+} from "../utils/passkey/webauthn.js";
+import {
+  buildSecp256r1Message,
+  recoverSecp256r1PublicKeyCandidates,
 } from "../utils/passkey/internal.js";
 
-describe("recoverSecp256r1PublicKey", () => {
-  it("recovers a verifying compressed public key from a WebAuthn-style message and DER signature", () => {
-    const privateKey = randomBytes(32);
-    const publicKey = p256.getPublicKey(privateKey, true);
-    const authenticatorData = new Uint8Array(37).fill(9);
-    const clientDataJSON = new TextEncoder().encode('{"type":"webauthn.get","challenge":"abc"}');
-    const message = new Uint8Array([
-      ...authenticatorData,
-      ...sha256(clientDataJSON),
-    ]);
-    const signatureDer = p256.sign(message, privateKey, {
-      prehash: false,
-      format: "der",
-    });
+const CURVE_ORDER = p256.Point.CURVE().n;
 
-    const recovered = recoverSecp256r1PublicKey(signatureDer, message);
+function flipSignatureToHighS(signatureDer: Uint8Array): Uint8Array {
+  const sig = p256.Signature.fromBytes(signatureDer, "der");
+  if (sig.hasHighS()) {
+    return signatureDer;
+  }
+  return new p256.Signature(sig.r, CURVE_ORDER - sig.s).toBytes("der");
+}
 
-    expect(recovered).toHaveLength(33);
-    expect(recovered[0] === 0x02 || recovered[0] === 0x03).toBe(true);
-    expect(
-      p256.verify(convertSignatureDERtoRS(signatureDer), message, recovered, {
-        prehash: false,
+describe("recoverSecp256r1PublicKeyCandidates", () => {
+  it.each([
+    {
+      name: "low-S WebAuthn-style signature",
+      build: () => {
+        const privateKey = new Uint8Array(32);
+        privateKey[31] = 1;
+        const message = buildSecp256r1Message(
+          new Uint8Array(37).fill(9),
+          new TextEncoder().encode('{"type":"webauthn.get","challenge":"abc"}'),
+        );
+        return {
+          signatureDer: p256.sign(message, privateKey, { format: "der" }),
+          message,
+        };
+      },
+    },
+    {
+      name: "high-S DER signature",
+      build: () => {
+        const privateKey = new Uint8Array(32);
+        privateKey[31] = 1;
+        const message = buildSecp256r1Message(
+          new Uint8Array(37).fill(4),
+          new TextEncoder().encode("high-s-challenge"),
+        );
+        return {
+          signatureDer: flipSignatureToHighS(
+            p256.sign(message, privateKey, { format: "der" }),
+          ),
+          message,
+        };
+      },
+    },
+    {
+      name: "production high-S assertion",
+      build: () => ({
+        message: buildSecp256r1Message(
+          base64URLStringToBuffer("1ELFMhmDWdqzxz8tHNFtzPzul4nj9Mq7ZAw5eMiQJroBAAAC6w"),
+          base64URLStringToBuffer(
+            "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiRlFXVHN1Y1F5RmZhZG45akZVenBTQ01xc2tzdGliUXRtbVgtajc4cEowUSIsIm9yaWdpbiI6Imh0dHBzOi8vYXBwLnJldmliYXNlLmNvbSIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+          ),
+        ),
+        signatureDer: base64URLStringToBuffer(
+          "MEUCICGG5WPSqo0zDLlTfFM8C8k4QNYhgB7GRYlUgARIuP1VAiEAvt5m1w430-F5a5YlzupNDR5yJVHE3aUvNvC--66HHS8",
+        ),
       }),
-    ).toBe(true);
-    expect(
-      p256.verify(convertSignatureDERtoRS(signatureDer), message, publicKey, {
-        prehash: false,
-      }),
-    ).toBe(true);
+    },
+    {
+      name: "low-S signature",
+      build: () => {
+        const privateKey = new Uint8Array(32);
+        privateKey[31] = 1;
+        const message = buildSecp256r1Message(
+          new Uint8Array(37).fill(4),
+          new TextEncoder().encode("ambiguous"),
+        );
+        return {
+          signatureDer: p256.sign(message, privateKey, { format: "der" }),
+          message,
+        };
+      },
+    },
+  ])("returns multiple verifying candidates for $name", ({ build }) => {
+    const { signatureDer, message } = build();
+    expect(recoverSecp256r1PublicKeyCandidates(signatureDer, message).length).toBeGreaterThan(1);
   });
 });
 

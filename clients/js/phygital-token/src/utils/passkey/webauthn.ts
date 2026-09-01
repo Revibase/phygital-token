@@ -1,5 +1,6 @@
-import { sha256 } from "@noble/hashes/sha2.js";
-import { recoverSecp256r1PublicKey } from "./internal.js";
+import { buildSecp256r1Message } from "./internal.js";
+import { recoverSecp256r1PublicKeyWithPhygitalToken } from "../pdas/token.js";
+import type { Rpc, SolanaRpcApi } from "@solana/kit";
 
 /**
  * Minimal WebAuthn JSON helpers used by this SDK.
@@ -110,15 +111,24 @@ function toPublicKeyCredentialDescriptor(
   };
 }
 
+/** Random `allowCredentials` placeholder ids are 16 bytes; vault keys are 33 bytes. */
+const PLACEHOLDER_CREDENTIAL_ID_LENGTH = 16;
+
 /**
  * Browser WebAuthn request options for an NFC passkey assertion.
  * `challenge` is a base64url string. For on-chain verify, pass the base64url
  * encoding of `messageHash` (SHA-256 of `message`).
  * Callers must pass `rpId` (tap helpers default to `window.location.hostname`).
+ *
+ * Without `credentialId`, uses a random `allowCredentials` id so browsers show the NFC prompt.
+ * With `credentialId`, passes that base64url compressed secp256r1 public key (e.g. transfer flow).
+ * When the platform echoes a 16-byte placeholder id, {@link authenticateWithWebauthn} recovers the
+ * public key from the signature and disambiguates via on-chain PhygitalToken PDAs.
  */
 export function nfcWebAuthnRequestOptions(
   challenge: Base64URLString,
   rpId: string,
+  credentialId?: Base64URLString,
 ): PublicKeyCredentialRequestOptionsJSON {
   return {
     challenge,
@@ -127,7 +137,8 @@ export function nfcWebAuthnRequestOptions(
     allowCredentials: [
       {
         id:
-          bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(16))),
+          credentialId ??
+          bufferToBase64URLString(crypto.getRandomValues(new Uint8Array(PLACEHOLDER_CREDENTIAL_ID_LENGTH))),
         type: "public-key",
         transports: ["nfc"],
       },
@@ -137,11 +148,13 @@ export function nfcWebAuthnRequestOptions(
 
 /**
  * Browser WebAuthn assertion via `navigator.credentials.get` (NFC / security key).
- * No conditional UI / autofill — options must include `challenge` and typically
- * NFC `allowCredentials` transports.
+ *
+ * @param rpc - Used to disambiguate secp256r1 public key recovery when `rawId` is 16 bytes
+ *   (platform echoed the random placeholder instead of the 33-byte authenticator credential id).
  */
 export async function authenticateWithWebauthn(
   optionsJSON: PublicKeyCredentialRequestOptionsJSON,
+  rpc: Rpc<SolanaRpcApi>,
 ): Promise<AuthenticationResponseJSON> {
   if (
     typeof window === "undefined" ||
@@ -182,19 +195,18 @@ export async function authenticateWithWebauthn(
   const signature = bufferToBase64URLString(response.signature);
 
   let credentialId = credential.id;
-  const placeholderIds = new Set(
-    optionsJSON.allowCredentials?.map((descriptor) => descriptor.id) ?? [],
-  );
-  if (placeholderIds.has(credentialId)) {
-    const clientDataBytes = new Uint8Array(response.clientDataJSON);
-    const authenticatorDataBytes = new Uint8Array(response.authenticatorData);
-    const message = new Uint8Array([
-      ...authenticatorDataBytes,
-      ...sha256(clientDataBytes),
-    ]);
+  if (new Uint8Array(credential.rawId).length === PLACEHOLDER_CREDENTIAL_ID_LENGTH) {
     const signatureBytes = new Uint8Array(response.signature);
+    const message = buildSecp256r1Message(
+      new Uint8Array(response.authenticatorData),
+      new Uint8Array(response.clientDataJSON),
+    );
     credentialId = bufferToBase64URLString(
-      recoverSecp256r1PublicKey(signatureBytes, message),
+      await recoverSecp256r1PublicKeyWithPhygitalToken(
+        rpc,
+        signatureBytes,
+        message,
+      ),
     );
   }
 

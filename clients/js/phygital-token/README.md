@@ -12,8 +12,6 @@ pnpm add phygital-token-sdk @solana/kit
 
 ## Off-chain authentication
 
-The authenticator uses the compressed secp256r1 **public key** as the WebAuthn `credential.id`.
-
 ```ts
 import { createSolanaRpc } from "@solana/kit";
 import {
@@ -23,11 +21,13 @@ import {
   fetchPhygitalToken,
 } from "phygital-token-sdk";
 
+const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
+
 // Server: issue a short-lived challenge
 const message = crypto.randomUUID();
 
-// Client: native NFC modal
-const response = await startAuthentication(message);
+// Client: native NFC modal (rpc required for placeholder recovery)
+const response = await startAuthentication(message, rpc);
 
 // Server: check the signature (no RPC)
 const { isVerified, secp256r1PublicKey } = verifyResponse({
@@ -36,13 +36,18 @@ const { isVerified, secp256r1PublicKey } = verifyResponse({
 });
 
 if (isVerified) {
-  const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
   const { data } = await fetchPhygitalToken(
     rpc,
     await findPhygitalTokenPda(secp256r1PublicKey),
   );
   // Proceed with custom logic using data.owner or data.mint
 }
+```
+
+Native / kiosk readers: pass `transceive` in the third argument — browser WebAuthn (and `rpc`) is skipped.
+
+```ts
+const response = await startAuthentication(message, rpc, { transceive });
 ```
 
 ## On-chain `verify` (CPI)
@@ -54,22 +59,25 @@ The tap uses your `messageHash` (32 bytes) as the WebAuthn challenge. Hash with 
 ### Client (TypeScript)
 
 ```ts
+import { createSolanaRpc } from "@solana/kit";
 import {
   buildMessageHash,
   authenticatePasskeyForSecp256r1Verify,
   buildSecp256r1VerifyInstruction,
 } from "phygital-token-sdk";
 
+const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
 const messageHash = buildMessageHash(message);
 const tap = await authenticatePasskeyForSecp256r1Verify({
+  rpc,
   messageHash,
 });
 const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
-  await buildSecp256r1VerifyInstruction(tap);
+  buildSecp256r1VerifyInstruction(tap);
 
 const instructions = [
   secp256r1VerifyInstruction, // immediately before your instruction
-  yourProgramInstruction, // use phygitalTokenPda & secp256r1VerifyArgs as inputs when generating your program instruction
+  yourProgramInstruction, // use phygitalTokenPda & secp256r1VerifyArgs as inputs
 ];
 ```
 

@@ -22,21 +22,25 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: false,
     rationale:
-      "Server issues challenge; client taps NFC via startAuthentication; server verifies with verifyResponse. No on-chain transaction. Optional rpId defaults to window.location.hostname.",
+      "Server issues challenge; client taps NFC via startAuthentication(message, rpc); server verifies with verifyResponse. No on-chain transaction. Browser path requires Kit Rpc for placeholder credential-id recovery.",
     docIds: ["verification:methods", "verification:overview"],
-    cautions: ["Run verifyResponse on your server, not in the browser."],
+    cautions: [
+      "Run verifyResponse on your server, not in the browser.",
+      "Pass Kit Rpc to startAuthentication even when using transceive (rpc is unused on the native path).",
+    ],
   },
   transfer_ownership: {
     method: "transfer — beginTransfer / completeTransfer",
     sdkExports: ["beginTransfer", "authenticatePasskeyForTransfer", "completeTransfer"],
     requiresTap: true,
     onChain: true,
-    rationale: "Ownership claim uses transfer_ownership (updates phygital_token.owner; no SPL token).",
+    rationale:
+      "Ownership claim uses transfer_ownership (updates phygital_token.owner; no SPL token). beginTransfer takes secp256r1Pubkey and derives the token PDA.",
     docIds: ["verification:overview", "sdk:surface-area"],
     cautions: [
       "Do not use verifyResponse alone for transfers — it does not change on-chain ownership.",
       "Do not use verify for transfers — it proves possession without changing owner.",
-      "Recipient must sign the transaction — pass completeTransfer a Kit TransactionSigner. Convert a web3.js Keypair with toTransactionSigner.",
+      "Recipient must sign the transaction — pass completeTransfer a Kit TransactionSigner.",
     ],
   },
   native_mobile_app: {
@@ -45,7 +49,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: false,
     rationale:
-      "Pass transceive to startAuthentication for native NFC readers; verify on server. Use authenticatePasskeyForSecp256r1Verify for on-chain proof, beginTransfer for ownership changes.",
+      "Pass transceive in startAuthentication options for native NFC readers; verify on server. Rpc is still required but unused when transceive is set.",
     docIds: ["verification:methods", "verification:verify-composable"],
     cautions: ["Run verifyResponse on your server, not in the native client."],
   },
@@ -68,7 +72,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: true,
     rationale:
-      "Client prepends secp256r1_verify and passes phygitalTokenPda + secp256r1VerifyArgs into your instruction. Your program CPIs verify with VerifyCpiBuilder; message_hash, instructions sysvar, and optional expected_rp_id / expected_origins come from your instruction.",
+      "Client prepends secp256r1_verify and passes phygitalTokenPda + secp256r1VerifyArgs into your instruction. Tap requires rpc. Your program CPIs verify with VerifyCpiBuilder.",
     docIds: [
       "verification:verify-composable",
       "building-on-phygital:rust-cpi",
@@ -101,22 +105,26 @@ export function listVerificationUseCases(): Array<{
 export const VERIFICATION_DECISION_TREE = `
 Authentication (live NFC tap required)
 ├── Need on-chain ownership change?
-│   YES → beginTransfer → completeTransfer (transfer_ownership)
+│   YES → beginTransfer({ rpc, secp256r1Pubkey }) → completeTransfer (transfer_ownership)
 │   NO  → Need on-chain possession proof for your program?
 │         YES → buildMessageHash(message)
-│               → authenticatePasskeyForSecp256r1Verify({ messageHash })
+│               → authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })
 │               → buildSecp256r1VerifyInstruction(tap)
 │               [secp256r1_verify, your_program_instruction] — program CPIs verify
-│         NO  → startAuthentication (client tap)
+│         NO  → startAuthentication(message, rpc) (client tap)
 │               → verifyResponse (server verify)
 │               → optional: findPhygitalTokenPda(secp256r1PublicKey) / fetchPhygitalToken
 └── Know the passkey already?
     → findPhygitalTokenPda(secp256r1Pubkey) / fetchPhygitalToken(rpc, pda)
 
-verifyResponse never submits verify. Returns { isVerified, secp256r1PublicKey }
-(response.id is the compressed secp256r1 passkey public key; browser taps recover it when the platform echoes a placeholder allowCredentials id). Run it on your server.
+WebAuthn credential id:
+- rawId 33 bytes → authenticator returned the passkey public key
+- rawId 16 bytes → platform echoed random placeholder; SDK recovers from signature
+- ambiguous recovery → pick candidate with initialized PhygitalToken PDA on-chain
+
+Browser WebAuthn requires Kit Rpc on all tap helpers.
+verifyResponse never submits verify. Run it on your server.
 Token PDA is seeded by the passkey public key; chip identifier is a separate binding field.
-On-chain proof: hash with buildMessageHash, then tap with messageHash. Optional tap rpId defaults to hostname.
-Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder (omit to skip). When expected_origins is set, the signed origin must match one listed origin.
+Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder (omit to skip).
 PDA is derived after the NFC tap. Your program always CPIs verify — do not post a client-side verify instruction.
 `.trim();

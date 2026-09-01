@@ -11,7 +11,7 @@ Your program always CPIs `verify`. The client prepends `secp256r1_verify` and do
 ```
 buildMessageHash(message)
         ↓
-authenticatePasskeyForSecp256r1Verify({ messageHash })
+authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })
         ↓
 buildSecp256r1VerifyInstruction(tap)
         ↓
@@ -24,9 +24,9 @@ buildSecp256r1VerifyInstruction(tap)
 
 SHA-256s `message` to a 32-byte digest. Use this digest as the WebAuthn challenge and as `VerifyCpiBuilder.message_hash`.
 
-### `authenticatePasskeyForSecp256r1Verify({ messageHash, rpId? })`
+### `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId? })`
 
-Uses `messageHash` (32 bytes) directly as the WebAuthn challenge — the same digest your program must pass to `VerifyCpiBuilder.message_hash`. Hash with `buildMessageHash` first. `rpId` defaults to `window.location.hostname`.
+Uses `messageHash` (32 bytes) directly as the WebAuthn challenge — the same digest your program must pass to `VerifyCpiBuilder.message_hash`. Hash with `buildMessageHash` first. **`rpc`** is required for browser placeholder recovery. `rpId` defaults to `window.location.hostname`.
 
 ### `buildSecp256r1VerifyInstruction(tap)`
 
@@ -41,14 +41,15 @@ secp256r1_verify → your_program_instruction
 ```
 
 ```ts
+const rpc = createSolanaRpc(RPC_URL);
 const messageHash = buildMessageHash(message);
-const tap = await authenticatePasskeyForSecp256r1Verify({ messageHash });
+const tap = await authenticatePasskeyForSecp256r1Verify({ rpc, messageHash });
 const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
-  await buildSecp256r1VerifyInstruction(tap);
+  buildSecp256r1VerifyInstruction(tap);
 
 const instructions = [
   secp256r1VerifyInstruction, // immediately before your instruction
-  yourProgramInstruction, // use phygitalTokenPda & secp256r1VerifyArgs as inputs when generating your program instruction
+  yourProgramInstruction, // use phygitalTokenPda & secp256r1VerifyArgs as inputs
 ];
 ```
 

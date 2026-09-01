@@ -1,4 +1,5 @@
 import { p256 } from "@noble/curves/nist.js";
+import type { Rpc, SolanaRpcApi } from "@solana/kit";
 import {
   authenticateWithWebauthn,
   nfcWebAuthnRequestOptions,
@@ -6,9 +7,7 @@ import {
   type AuthenticationResponseJSON,
 } from "./passkey/webauthn.js";
 import {
-  base64URLStringToBuffer,
-  convertSignatureDERtoRS,
-  getSecp256r1Message,
+  parseWebAuthnAssertion,
   parseWebAuthnClientData,
 } from "./passkey/internal.js";
 import { authenticateWithApdu } from "./passkey/nfc/index.js";
@@ -33,16 +32,22 @@ export type VerifyResponseOptions = {
  * Browser: opens the system WebAuthn/NFC modal.
  * Native / kiosk: pass `transceive` to talk to an IsoDep reader via APDUs.
  *
- * @param rpId - Relying party ID. Defaults to `window.location.hostname`.
+ * @param rpc - Kit `Rpc`. Required for browser WebAuthn recovery disambiguation.
+ * @param options.transceive - Native NFC reader; when set, skips browser WebAuthn.
+ * @param options.rpId - Relying party ID. Defaults to `window.location.hostname`.
  */
 export async function startAuthentication(
   message: string,
-  transceive?: (apdu: Uint8Array) => Promise<Uint8Array>,
-  rpId = window.location.hostname,
+  rpc: Rpc<SolanaRpcApi>,
+  options?: {
+    transceive?: (apdu: Uint8Array) => Promise<Uint8Array>;
+    rpId?: string;
+  },
 ): Promise<AuthenticationResponseJSON> {
   const challenge = utf8ToBase64URLString(message);
+  const rpId = options?.rpId ?? window.location.hostname;
 
-  if (transceive) {
+  if (options?.transceive) {
     return authenticateWithApdu(
       {
         challenge,
@@ -57,11 +62,11 @@ export async function startAuthentication(
           },
         ],
       },
-      transceive,
+      options.transceive,
     );
   }
 
-  return authenticateWithWebauthn(nfcWebAuthnRequestOptions(challenge, rpId));
+  return authenticateWithWebauthn(nfcWebAuthnRequestOptions(challenge, rpId), rpc);
 }
 
 /**
@@ -91,10 +96,7 @@ export function verifyResponse({
     throw new Error("Message mismatch.");
   }
 
-  const signature = convertSignatureDERtoRS(
-    base64URLStringToBuffer(response.response.signature),
-  );
-  const message = getSecp256r1Message(response);
+  const { signature, message } = parseWebAuthnAssertion(response);
 
   const isVerified = p256.verify(
     signature,
