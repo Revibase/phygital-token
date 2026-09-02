@@ -41,25 +41,21 @@ import {
 import {
   getInitializeInstruction,
   getRemoveOwnershipInstruction,
-  getSetLockStateInstruction,
   getSetMintInstruction,
   getTransferOwnershipInstruction,
   getVerifyInstruction,
   parseInitializeInstruction,
   parseRemoveOwnershipInstruction,
-  parseSetLockStateInstruction,
   parseSetMintInstruction,
   parseTransferOwnershipInstruction,
   parseVerifyInstruction,
   type InitializeInput,
   type ParsedInitializeInstruction,
   type ParsedRemoveOwnershipInstruction,
-  type ParsedSetLockStateInstruction,
   type ParsedSetMintInstruction,
   type ParsedTransferOwnershipInstruction,
   type ParsedVerifyInstruction,
   type RemoveOwnershipInput,
-  type SetLockStateInput,
   type SetMintInput,
   type TransferOwnershipInput,
   type VerifyInput,
@@ -96,7 +92,6 @@ export function identifyPhygitalTokenAccount(
 export enum PhygitalTokenInstruction {
   Initialize,
   RemoveOwnership,
-  SetLockState,
   SetMint,
   TransferOwnership,
   Verify,
@@ -127,17 +122,6 @@ export function identifyPhygitalTokenInstruction(
     )
   ) {
     return PhygitalTokenInstruction.RemoveOwnership;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([16, 40, 80, 140, 163, 156, 68, 120]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.SetLockState;
   }
   if (
     containsBytes(
@@ -188,9 +172,6 @@ export type ParsedPhygitalTokenInstruction<
       instructionType: PhygitalTokenInstruction.RemoveOwnership;
     } & ParsedRemoveOwnershipInstruction<TProgram>)
   | ({
-      instructionType: PhygitalTokenInstruction.SetLockState;
-    } & ParsedSetLockStateInstruction<TProgram>)
-  | ({
       instructionType: PhygitalTokenInstruction.SetMint;
     } & ParsedSetMintInstruction<TProgram>)
   | ({
@@ -217,13 +198,6 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
       return {
         instructionType: PhygitalTokenInstruction.RemoveOwnership,
         ...parseRemoveOwnershipInstruction(instruction),
-      };
-    }
-    case PhygitalTokenInstruction.SetLockState: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.SetLockState,
-        ...parseSetLockStateInstruction(instruction),
       };
     }
     case PhygitalTokenInstruction.SetMint: {
@@ -279,9 +253,6 @@ export type PhygitalTokenPluginInstructions = {
     input: RemoveOwnershipInput,
   ) => ReturnType<typeof getRemoveOwnershipInstruction> &
     SelfPlanAndSendFunctions;
-  setLockState: (
-    input: SetLockStateInput,
-  ) => ReturnType<typeof getSetLockStateInstruction> & SelfPlanAndSendFunctions;
   setMint: (
     input: SetMintInput,
   ) => ReturnType<typeof getSetMintInstruction> & SelfPlanAndSendFunctions;
@@ -319,11 +290,6 @@ export function phygitalTokenProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getRemoveOwnershipInstruction(input),
-            ),
-          setLockState: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetLockStateInstruction(input),
             ),
           setMint: (input) =>
             addSelfPlanAndSendFunctions(client, getSetMintInstruction(input)),

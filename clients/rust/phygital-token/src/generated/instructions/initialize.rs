@@ -7,6 +7,7 @@
 
 use crate::generated::types::Secp256r1Pubkey;
 use crate::generated::types::PhygitalTokenType;
+use solana_address::Address;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
@@ -62,13 +63,13 @@ impl Initialize {
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
  pub struct InitializeInstructionData {
             discriminator: [u8; 8],
-                        }
+                              }
 
 impl InitializeInstructionData {
   pub fn new() -> Self {
     Self {
                         discriminator: [175, 175, 109, 31, 13, 152, 155, 237],
-                                                            }
+                                                                          }
   }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
@@ -87,6 +88,7 @@ impl Default for InitializeInstructionData {
                   pub identifier: Secp256r1Pubkey,
                 pub secp256r1_pubkey: Secp256r1Pubkey,
                 pub token_type: PhygitalTokenType,
+                pub owner: Address,
       }
 
 impl InitializeInstructionArgs {
@@ -111,6 +113,7 @@ pub struct InitializeBuilder {
                         identifier: Option<Secp256r1Pubkey>,
                 secp256r1_pubkey: Option<Secp256r1Pubkey>,
                 token_type: Option<PhygitalTokenType>,
+                owner: Option<Address>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -150,6 +153,11 @@ impl InitializeBuilder {
         self.token_type = Some(token_type);
         self
       }
+                #[inline(always)]
+      pub fn owner(&mut self, owner: Address) -> &mut Self {
+        self.owner = Some(owner);
+        self
+      }
         /// Add an additional account to the instruction.
   #[inline(always)]
   pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
@@ -173,6 +181,7 @@ impl InitializeBuilder {
                                                               identifier: self.identifier.clone().expect("identifier is not set"),
                                                                   secp256r1_pubkey: self.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
                                                                   token_type: self.token_type.clone().expect("token_type is not set"),
+                                                                  owner: self.owner.clone().expect("owner is not set"),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -309,6 +318,7 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
                                             identifier: None,
                                 secp256r1_pubkey: None,
                                 token_type: None,
+                                owner: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -343,6 +353,11 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
         self.instruction.token_type = Some(token_type);
         self
       }
+                #[inline(always)]
+      pub fn owner(&mut self, owner: Address) -> &mut Self {
+        self.instruction.owner = Some(owner);
+        self
+      }
         /// Add an additional account to the instruction.
   #[inline(always)]
   pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
@@ -369,6 +384,7 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
                                                               identifier: self.instruction.identifier.clone().expect("identifier is not set"),
                                                                   secp256r1_pubkey: self.instruction.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
                                                                   token_type: self.instruction.token_type.clone().expect("token_type is not set"),
+                                                                  owner: self.instruction.owner.clone().expect("owner is not set"),
                                     };
         let instruction = InitializeCpi {
         __program: self.instruction.__program,
@@ -393,6 +409,7 @@ struct InitializeCpiBuilderInstruction<'a, 'b> {
                         identifier: Option<Secp256r1Pubkey>,
                 secp256r1_pubkey: Option<Secp256r1Pubkey>,
                 token_type: Option<PhygitalTokenType>,
+                owner: Option<Address>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }
