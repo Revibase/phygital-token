@@ -9,6 +9,7 @@ export async function planInitialize(input: {
   identifier: string;
   secp256r1PublicKey: string;
   tokenType: "Controlled" | "Bearer";
+  owner: string;
 }) {
   const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
   const tokenType =
@@ -34,11 +35,12 @@ export async function planInitialize(input: {
       identifier: input.identifier,
       secp256r1Pubkey: input.secp256r1PublicKey,
       tokenType,
+      owner: input.owner,
     },
     notes: [
       "Creates a token PDA seeded by the passkey public key.",
       "identifier is stored on the token for binding and is distinct from the passkey.",
-      "Ownership starts as the default (zero) pubkey until the first transfer.",
+      "owner is stored on phygital_token.owner at init (use the default zero pubkey for unowned tokens).",
       "mint starts as the default pubkey until set_mint.",
       "Derive the token PDA with findPhygitalTokenPda, then pass it to getInitializeInstruction.",
       "On mainnet the authority is a Squads vault — wrap `getInitializeInstruction` with your own Squads client so the vault can sign.",
@@ -124,6 +126,7 @@ export async function planTransfer(input: {
     instructions: ["secp256r1_verify", "transfer_ownership"],
     notes: [
       "No SPL token transfer — transfer_ownership only updates phygital_token.owner.",
+      "Controlled tokens must be unlocked (is_locked == 0) before transfer and auto-lock after a successful claim; remove_ownership clears the lock.",
       "beginTransfer takes Kit Rpc + base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
       "Browser tap requires rpc for placeholder credential-id recovery (16-byte rawId). When rawId is 33 bytes, authenticator returned the passkey directly.",
       "completeTransfer takes a Kit TransactionSigner for recipient. web3.js callers convert with toRpc / toAddress / toTransactionSigner, then toWeb3Instructions.",

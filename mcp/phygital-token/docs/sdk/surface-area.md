@@ -15,7 +15,7 @@ When recovery is ambiguous, the SDK selects the candidate with an initialized Ph
 
 | Export | Purpose |
 |--------|---------|
-| `getInitializeInstruction` | Create token PDA (seeded by passkey `secp256r1Pubkey`; pass token PDA from `findPhygitalTokenPda`) |
+| `getInitializeInstruction` | Create token PDA (seeded by passkey `secp256r1Pubkey`; pass token PDA from `findPhygitalTokenPda`; requires `owner`) |
 | `parseSecp256r1Pubkey` | Parse a base64url 33-byte compressed secp256r1 public key |
 | `ADMIN` / `INITIALIZE_MULTISIG_PDA` | Admin vault and the Squads multisig that owns it on mainnet |
 
@@ -102,7 +102,7 @@ tx.add(...toWeb3Instructions(ixs));
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getInitializeInstruction`, `getTransferOwnershipInstruction`, `getVerifyInstruction`, `getRemoveOwnershipInstruction`, `getSetLockStateInstruction`, `getSetMintInstruction`, ...
+- Instructions: `getInitializeInstruction`, `getTransferOwnershipInstruction`, `getVerifyInstruction`, `getRemoveOwnershipInstruction`, `getSetMintInstruction`, ...
 - Accounts: `fetchPhygitalToken`, `PhygitalToken`, ...
 - Types: `PhygitalTokenType`, `Secp256r1Pubkey`, ...
 

@@ -22,7 +22,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "1.0.2";
+const VERSION = "1.0.3";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -132,15 +132,21 @@ function registerTools(server: McpServer) {
           .string()
           .describe("Base64url compressed secp256r1 passkey public key (PDA seed)"),
         tokenType: z.enum(["Controlled", "Bearer"]).describe("Token transfer lock behavior"),
+        owner: z
+          .string()
+          .describe(
+            "Initial phygital_token.owner wallet (use the default zero pubkey for unowned tokens)",
+          ),
       },
       annotations: { title: "Plan initialize", ...READ_ONLY },
     },
-    async ({ identifier, secp256r1PublicKey, tokenType }) =>
+    async ({ identifier, secp256r1PublicKey, tokenType, owner }) =>
       jsonResult(
         await planInitialize({
           identifier,
           secp256r1PublicKey,
           tokenType: parseTokenType(tokenType),
+          owner,
         }),
       ),
   );

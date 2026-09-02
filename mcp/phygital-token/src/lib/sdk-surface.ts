@@ -63,7 +63,6 @@ export const SDK_SURFACE = {
     "getTransferOwnershipInstruction",
     "getVerifyInstruction",
     "getRemoveOwnershipInstruction",
-    "getSetLockStateInstruction",
     "getSetMintInstruction",
     "fetchPhygitalToken",
     "PhygitalToken",
