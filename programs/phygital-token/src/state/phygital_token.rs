@@ -31,9 +31,11 @@ impl PhygitalToken {
         identifier: Secp256r1Pubkey,
         token_type: PhygitalTokenType,
         public_key: Secp256r1Pubkey,
+        owner: Pubkey
     ) {
         self.identifier = identifier;
         self.token_type = token_type as u8;
         self.public_key = public_key;
+        self.owner = owner;
     }
 }

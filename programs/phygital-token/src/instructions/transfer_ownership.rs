@@ -13,7 +13,6 @@ pub struct TransferEvent {
     pub owner: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
-    pub time: i64,
 }
 
 #[derive(Accounts)]
@@ -69,7 +68,6 @@ pub fn handler(
         recipient: ctx.accounts.recipient.key(),
         public_key: token.public_key,
         identifier: token.identifier,
-        time: Clock::get()?.unix_timestamp,
     });
 
     token.last_sign_count = sign_count;

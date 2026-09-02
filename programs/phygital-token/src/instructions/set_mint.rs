@@ -8,7 +8,6 @@ pub struct SetMintEvent {
     pub authority: Pubkey,
     pub identifier: Secp256r1Pubkey,
     pub mint: Pubkey,
-    pub time: i64,
 }
 
 #[derive(Accounts)]
@@ -32,7 +31,6 @@ pub fn handler(ctx: Context<SetMint>, mint: Pubkey) -> Result<()> {
         authority: ctx.accounts.authority.key(),
         identifier: token.identifier,
         mint,
-        time: Clock::get()?.unix_timestamp,
     });
 
     Ok(())

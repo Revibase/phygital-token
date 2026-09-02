@@ -20,10 +20,6 @@ pub mod phygital_token {
         initialize::handler(ctx, args)
     }
 
-    pub fn set_lock_state(ctx: Context<SetLockState>, is_locked: bool) -> Result<()> {
-        set_lock_state::handler(ctx, is_locked)
-    }
-
     pub fn set_mint(ctx: Context<SetMint>, mint: Pubkey) -> Result<()> {
         set_mint::handler(ctx, mint)
     }

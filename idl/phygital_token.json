@@ -4,7 +4,8 @@
     "name": "phygital_token",
     "version": "0.4.0",
     "spec": "0.1.0",
-    "description": "Solana program for phygital tokens with WebAuthn passkey verification"
+    "description": "Solana program for phygital tokens with WebAuthn passkey verification",
+    "repository": "https://github.com/Revibase/phygital-token"
   },
   "instructions": [
     {
@@ -69,35 +70,6 @@
         }
       ],
       "args": []
-    },
-    {
-      "name": "set_lock_state",
-      "discriminator": [
-        16,
-        40,
-        80,
-        140,
-        163,
-        156,
-        68,
-        120
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "signer": true
-        },
-        {
-          "name": "phygital_token",
-          "writable": true
-        }
-      ],
-      "args": [
-        {
-          "name": "is_locked",
-          "type": "bool"
-        }
-      ]
     },
     {
       "name": "set_mint",
@@ -176,6 +148,13 @@
     },
     {
       "name": "verify",
+      "docs": [
+        "Prove passkey possession and advance `last_sign_count`.",
+        "",
+        "`expected_rp_id` / `expected_origins` are optional WebAuthn bindings.",
+        "`None` skips the check. When `expected_origins` is `Some`, the signed",
+        "origin must match one listed origin."
+      ],
       "discriminator": [
         133,
         161,
@@ -271,19 +250,6 @@
         180,
         172,
         3
-      ]
-    },
-    {
-      "name": "SetLockStateEvent",
-      "discriminator": [
-        195,
-        170,
-        202,
-        64,
-        128,
-        89,
-        252,
-        209
       ]
     },
     {
@@ -444,6 +410,10 @@
                 "name": "PhygitalTokenType"
               }
             }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
           }
         ]
       }
@@ -474,8 +444,16 @@
             }
           },
           {
-            "name": "time",
-            "type": "i64"
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_type",
+            "type": {
+              "defined": {
+                "name": "PhygitalTokenType"
+              }
+            }
           }
         ]
       }
@@ -569,10 +547,6 @@
                 "name": "Secp256r1Pubkey"
               }
             }
-          },
-          {
-            "name": "time",
-            "type": "i64"
           }
         ]
       }
@@ -615,42 +589,6 @@
       }
     },
     {
-      "name": "SetLockStateEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "public_key",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "identifier",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "is_locked",
-            "type": "bool"
-          },
-          {
-            "name": "time",
-            "type": "i64"
-          }
-        ]
-      }
-    },
-    {
       "name": "SetMintEvent",
       "type": {
         "kind": "struct",
@@ -678,10 +616,6 @@
           {
             "name": "mint",
             "type": "pubkey"
-          },
-          {
-            "name": "time",
-            "type": "i64"
           }
         ]
       }
@@ -714,10 +648,6 @@
                 "name": "Secp256r1Pubkey"
               }
             }
-          },
-          {
-            "name": "time",
-            "type": "i64"
           }
         ]
       }

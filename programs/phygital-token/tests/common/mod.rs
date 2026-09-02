@@ -218,6 +218,7 @@ impl TestContext {
             identifier,
             secp256r1_pubkey,
             token_type,
+            owner: Pubkey::default(),
         };
         let ix = self.initialize_ix(ADMIN, phygital_token, args);
         Self::send_instruction_as(&mut self.svm, ix, ADMIN)
@@ -397,17 +398,6 @@ impl TestContext {
     ) -> litesvm::types::TransactionResult {
         let ix = self.set_mint_ix(ADMIN, phygital_token, mint);
         Self::send_instruction_as(&mut self.svm, ix, ADMIN)
-    }
-
-    // --- set_lock_state ------------------------------------------------------
-
-    pub fn set_lock_state_ix(&self, owner: Pubkey, phygital_token: Pubkey, is_locked: bool) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::SetLockState { owner, phygital_token }
-                .to_account_metas(None),
-            data: phygital_token::instruction::SetLockState { is_locked }.data(),
-        }
     }
 
     // --- remove_ownership ----------------------------------------------------

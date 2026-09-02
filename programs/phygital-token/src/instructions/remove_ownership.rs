@@ -6,7 +6,6 @@ pub struct RemoveOwnershipEvent {
     pub owner: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
-    pub time: i64,
 }
 
 #[derive(Accounts)]
@@ -28,7 +27,6 @@ pub fn handler(ctx: Context<RemoveOwnership>) -> Result<()> {
         owner: ctx.accounts.owner.key(),
         identifier: token.identifier,
         public_key: token.public_key,
-        time: Clock::get()?.unix_timestamp,
     });
 
     Ok(())

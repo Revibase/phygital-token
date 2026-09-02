@@ -11,7 +11,8 @@ pub struct InitializeEvent {
     pub authority: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
-    pub time: i64,
+    pub owner: Pubkey,
+    pub token_type: PhygitalTokenType,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -19,6 +20,7 @@ pub struct InitializeArgs {
     pub identifier: Secp256r1Pubkey,
     pub secp256r1_pubkey: Secp256r1Pubkey,
     pub token_type: PhygitalTokenType,
+    pub owner: Pubkey
 }
 
 #[derive(Accounts)]
@@ -44,13 +46,14 @@ pub struct Initialize<'info> {
 
 pub fn handler(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
     let mut token = ctx.accounts.phygital_token.load_init()?;
-    token.init(args.identifier, args.token_type, args.secp256r1_pubkey);
+    token.init(args.identifier, args.token_type, args.secp256r1_pubkey, args.owner);
 
     emit!(InitializeEvent {
-        identifier: token.identifier,
+        identifier: args.identifier,
         authority: ctx.accounts.authority.key(),
         public_key: args.secp256r1_pubkey,
-        time: Clock::get()?.unix_timestamp,
+        owner: args.owner,
+        token_type: args.token_type
     });
 
     Ok(())

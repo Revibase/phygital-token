@@ -126,6 +126,7 @@ fn e2e_token_pubkey_reinit_is_blocked() {
         identifier: unique_identifier(),
         secp256r1_pubkey: Secp256r1Pubkey(passkey.compressed_pubkey),
         token_type: PhygitalTokenType::Bearer,
+        owner: Pubkey::default()
     };
     let ix = ctx.initialize_ix(ADMIN, phygital_token.phygital_token, args);
     TestContext::send_instruction_as(&mut ctx.svm, ix, ADMIN)
@@ -142,6 +143,7 @@ fn e2e_initialize_rejects_non_authority() {
         identifier: unique_identifier(),
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
+        owner: Pubkey::default()
     };
     let stranger = ctx.payer.insecure_clone();
     let ix = ctx.initialize_ix(stranger.pubkey(), phygital_token, args);
