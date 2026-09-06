@@ -37,5 +37,6 @@ impl PhygitalToken {
         self.token_type = token_type as u8;
         self.public_key = public_key;
         self.owner = owner;
+        self.is_locked = (owner != Pubkey::default()) as u8;
     }
 }
