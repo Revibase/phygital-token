@@ -54,6 +54,10 @@ export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1781; // 6017
 export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1782; // 6018
 /** UnauthorizedAuthority: Only the designated authority can perform this action. */
 export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1783; // 6019
+/** PermanentOwnerRequired: Permanent phygital tokens require a non-default owner at initialize. */
+export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED = 0x1784; // 6020
+/** PermanentOwnershipImmutable: Permanent phygital token ownership cannot be transferred or removed. */
+export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNERSHIP_IMMUTABLE = 0x1785; // 6021
 
 export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH
@@ -67,6 +71,8 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR
   | typeof PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH
+  | typeof PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED
+  | typeof PHYGITAL_TOKEN_ERROR__PERMANENT_OWNERSHIP_IMMUTABLE
   | typeof PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
@@ -91,6 +97,8 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
     [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH]: `WebAuthn origin does not match any expected origin.`,
     [PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH]: `Phygital token owner mismatch`,
+    [PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED]: `Permanent phygital tokens require a non-default owner at initialize.`,
+    [PHYGITAL_TOKEN_ERROR__PERMANENT_OWNERSHIP_IMMUTABLE]: `Permanent phygital token ownership cannot be transferred or removed.`,
     [PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH]: `WebAuthn rpId hash does not match the expected relying party id.`,
     [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match phygital token record`,
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,

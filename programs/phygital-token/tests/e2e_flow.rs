@@ -42,5 +42,8 @@ fn e2e_initialize_and_transfer() {
         1,
         "phygital_token should record the WebAuthn signCount used for the transfer"
     );
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), recipient.pubkey());
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        recipient.pubkey()
+    );
 }

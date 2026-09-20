@@ -50,6 +50,12 @@ send [secp256r1_verify, transfer_ownership]
 
 `beginTransfer` takes Kit `Rpc` and base64url `secp256r1Pubkey`; it derives the phygital token PDA internally. Optional `rpId` defaults to `window.location.hostname`. The passkey is taken from `response.id` in `completeTransfer`. `transfer_ownership` updates `phygital_token.owner` only — there is no SPL token / Token-2022 linkage.
 
+Token types:
+
+- **Permanent** — `owner` must be set at `initialize`; `transfer_ownership` and `remove_ownership` are rejected (`PermanentOwnershipImmutable`). Discriminant `0` remaps former Controlled accounts.
+- **Bearer** — freely re-transferable by passkey possession.
+- **Controlled** — must be unlocked (`is_locked == 0`) before transfer; re-locks after claim; forfeit via `remove_ownership` to unlock.
+
 ## Message design checklist
 
 - [ ] Issue a fresh `expectedMessage` per session (short TTL)
@@ -63,4 +69,4 @@ send [secp256r1_verify, transfer_ownership]
 
 **TypeScript:** `phygital-token-sdk` — `startAuthentication`, `verifyResponse`, `buildMessageHash`, `authenticatePasskeyForSecp256r1Verify`, `buildSecp256r1VerifyInstruction`, `beginTransfer`, `completeTransfer`, `getInitializeInstruction`, `getSetMintInstruction`
 
-**Rust:** `phygital-token-client` at `clients/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify`, `transfer_ownership`, `remove_ownership`, `set_mint`
+**Rust:** `phygital-token-client` at `packages/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify`, `transfer_ownership`, `remove_ownership`, `set_mint`

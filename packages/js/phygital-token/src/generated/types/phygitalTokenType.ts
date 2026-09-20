@@ -16,8 +16,9 @@ import {
 } from "@solana/kit";
 
 export enum PhygitalTokenType {
-  Controlled,
+  Permanent,
   Bearer,
+  Controlled,
 }
 
 export type PhygitalTokenTypeArgs = PhygitalTokenType;

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::{PHYGITAL_TOKEN_SEED, ADMIN};
+use crate::constants::{ADMIN, PHYGITAL_TOKEN_SEED};
 use crate::error::PhygitalError;
 use crate::state::PhygitalToken;
 use crate::utils::secp256r1_pda_seed;
@@ -20,7 +20,7 @@ pub struct InitializeArgs {
     pub identifier: Secp256r1Pubkey,
     pub secp256r1_pubkey: Secp256r1Pubkey,
     pub token_type: PhygitalTokenType,
-    pub owner: Pubkey
+    pub owner: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -46,7 +46,18 @@ pub struct Initialize<'info> {
 
 pub fn handler(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
     let mut token = ctx.accounts.phygital_token.load_init()?;
-    token.init(args.identifier, args.token_type, args.secp256r1_pubkey, args.owner);
+    if args.token_type == PhygitalTokenType::Permanent {
+        require!(
+            args.owner != Pubkey::default(),
+            PhygitalError::PermanentOwnerRequired
+        );
+    }
+    token.init(
+        args.identifier,
+        args.token_type,
+        args.secp256r1_pubkey,
+        args.owner,
+    );
 
     emit!(InitializeEvent {
         identifier: args.identifier,

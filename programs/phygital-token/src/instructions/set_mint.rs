@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{PhygitalToken, ADMIN, Secp256r1Pubkey, error::PhygitalError};
+use crate::{error::PhygitalError, PhygitalToken, Secp256r1Pubkey, ADMIN};
 
 #[event]
 pub struct SetMintEvent {
@@ -16,9 +16,7 @@ pub struct SetMint<'info> {
         address = ADMIN @ PhygitalError::UnauthorizedAuthority
     )]
     pub authority: Signer<'info>,
-    #[account(
-        mut,
-    )]
+    #[account(mut)]
     pub phygital_token: AccountLoader<'info, PhygitalToken>,
 }
 

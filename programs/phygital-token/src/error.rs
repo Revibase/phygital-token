@@ -61,4 +61,10 @@ pub enum PhygitalError {
 
     #[msg("Only the designated authority can perform this action.")]
     UnauthorizedAuthority,
+
+    #[msg("Permanent phygital tokens require a non-default owner at initialize.")]
+    PermanentOwnerRequired,
+
+    #[msg("Permanent phygital token ownership cannot be transferred or removed.")]
+    PermanentOwnershipImmutable,
 }

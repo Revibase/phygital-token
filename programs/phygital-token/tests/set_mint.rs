@@ -11,7 +11,10 @@ fn initialize_leaves_mint_unset() {
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
 
-    assert_eq!(ctx.phygital_token_mint(phygital_token.phygital_token), Pubkey::default());
+    assert_eq!(
+        ctx.phygital_token_mint(phygital_token.phygital_token),
+        Pubkey::default()
+    );
 }
 
 #[test]
@@ -40,7 +43,10 @@ fn set_mint_admin_can_overwrite_mint() {
     ctx.send_set_mint(phygital_token.phygital_token, second_mint)
         .expect("overwrite set_mint");
 
-    assert_eq!(ctx.phygital_token_mint(phygital_token.phygital_token), second_mint);
+    assert_eq!(
+        ctx.phygital_token_mint(phygital_token.phygital_token),
+        second_mint
+    );
 }
 
 #[test]
@@ -54,7 +60,10 @@ fn set_mint_rejects_non_authority() {
     let ix = ctx.set_mint_ix(stranger.pubkey(), phygital_token.phygital_token, mint);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&stranger]);
     assert_phygital_token_program_error(err, "UnauthorizedAuthority");
-    assert_eq!(ctx.phygital_token_mint(phygital_token.phygital_token), Pubkey::default());
+    assert_eq!(
+        ctx.phygital_token_mint(phygital_token.phygital_token),
+        Pubkey::default()
+    );
 }
 
 #[test]
@@ -74,7 +83,13 @@ fn set_mint_does_not_change_owner_or_sign_count() {
         .expect("set mint after claim");
 
     assert_eq!(ctx.phygital_token_mint(phygital_token.phygital_token), mint);
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), owner_before);
-    assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), sign_count_before);
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        owner_before
+    );
+    assert_eq!(
+        ctx.last_sign_count(phygital_token.phygital_token),
+        sign_count_before
+    );
     assert_eq!(owner_before, holder.pubkey());
 }

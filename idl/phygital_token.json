@@ -379,6 +379,16 @@
       "code": 6019,
       "name": "UnauthorizedAuthority",
       "msg": "Only the designated authority can perform this action."
+    },
+    {
+      "code": 6020,
+      "name": "PermanentOwnerRequired",
+      "msg": "Permanent phygital tokens require a non-default owner at initialize."
+    },
+    {
+      "code": 6021,
+      "name": "PermanentOwnershipImmutable",
+      "msg": "Permanent phygital token ownership cannot be transferred or removed."
     }
   ],
   "types": [
@@ -515,10 +525,13 @@
         "kind": "enum",
         "variants": [
           {
-            "name": "Controlled"
+            "name": "Permanent"
           },
           {
             "name": "Bearer"
+          },
+          {
+            "name": "Controlled"
           }
         ]
       }

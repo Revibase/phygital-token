@@ -11,8 +11,9 @@ use num_derive::FromPrimitive;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq, Copy, PartialOrd, Hash, FromPrimitive)]
 pub enum PhygitalTokenType {
-Controlled,
+Permanent,
 Bearer,
+Controlled,
 }
 
 

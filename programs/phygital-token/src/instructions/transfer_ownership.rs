@@ -38,6 +38,11 @@ pub fn handler(
 ) -> Result<()> {
     let mut token = ctx.accounts.phygital_token.load_mut()?;
 
+    require!(
+        token.token_type != PhygitalTokenType::Permanent as u8,
+        PhygitalError::PermanentOwnershipImmutable
+    );
+
     if token.token_type == PhygitalTokenType::Controlled as u8 {
         require!(token.is_locked == 0, PhygitalError::TokenIsCurrentlyLocked);
         token.is_locked = 1;

@@ -1,6 +1,6 @@
 [package]
 name = "phygital-token"
-version = "0.4.0"
+version = "0.5.0"
 description = "Solana program for phygital tokens with WebAuthn passkey verification"
 license = "MIT"
 authors = ["Revibase"]

@@ -12,7 +12,10 @@ fn transfer_ownership_moves_token_to_recipient_with_recipient_signature() {
     let phygital_token = ctx.init_phygital_token(&passkey);
     let recipient = Keypair::new();
 
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), Pubkey::default());
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        Pubkey::default()
+    );
 
     let meta = ctx
         .send_transfer_ownership(&phygital_token, &recipient, true)
@@ -27,7 +30,10 @@ fn transfer_ownership_moves_token_to_recipient_with_recipient_signature() {
         1,
         "phygital_token should record the WebAuthn signCount used for the transfer"
     );
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), recipient.pubkey());
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        recipient.pubkey()
+    );
 }
 
 #[test]
@@ -48,7 +54,10 @@ fn transfer_ownership_requires_preceding_secp256r1_instruction() {
         err_str.contains("InvalidArgument") || err_str.contains("InvalidSecp256r1Instruction"),
         "unexpected error: {err:?}"
     );
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), Pubkey::default());
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        Pubkey::default()
+    );
 }
 
 #[test]
@@ -80,7 +89,10 @@ fn transfer_ownership_rejects_sign_count_not_greater_than_last() {
         format!("{err:?}").contains("StaleSignCount"),
         "expected stale signCount error, got: {err:?}"
     );
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), first_recipient.pubkey());
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        first_recipient.pubkey()
+    );
 }
 
 #[test]
@@ -111,5 +123,8 @@ fn transfer_ownership_allows_next_transfer_with_higher_sign_count() {
     .expect("second transfer with a higher signCount should succeed");
 
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 2);
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), second_recipient.pubkey());
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        second_recipient.pubkey()
+    );
 }

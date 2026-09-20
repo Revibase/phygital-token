@@ -15,13 +15,22 @@ fn remove_ownership_resets_owner_to_default() {
 
     ctx.send_transfer_ownership(&phygital_token, &holder, true)
         .expect("claim phygital_token");
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), holder.pubkey());
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        holder.pubkey()
+    );
 
     ctx.send_remove_ownership(&phygital_token, &holder)
         .expect("remove ownership");
 
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), Pubkey::default());
-    assert_eq!(ctx.phygital_token_lock_state(phygital_token.phygital_token), false);
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        Pubkey::default()
+    );
+    assert_eq!(
+        ctx.phygital_token_lock_state(phygital_token.phygital_token),
+        false
+    );
 }
 
 #[test]
@@ -40,7 +49,10 @@ fn remove_ownership_rejects_non_owner() {
 
     let err = ctx.send_remove_ownership(&phygital_token, &attacker);
     assert_phygital_token_program_error(err, "OwnerMismatch");
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), holder.pubkey());
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        holder.pubkey()
+    );
 }
 
 #[test]
@@ -60,24 +72,28 @@ fn remove_ownership_rejects_owner_not_matching_token_record() {
     let ix = ctx.remove_ownership_ix(impostor.pubkey(), phygital_token.phygital_token);
     let err = TestContext::send_instruction(&mut ctx.svm, ix, &[&impostor]);
     assert_phygital_token_program_error(err, "OwnerMismatch");
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), holder.pubkey());
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        holder.pubkey()
+    );
 }
 
 #[test]
-fn remove_ownership_clears_lock_on_lockable_token() {
+fn remove_ownership_rejects_permanent_token() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let phygital_token = ctx.init_phygital_token_of_type(&passkey, PhygitalTokenType::Controlled);
-    let holder = Keypair::new();
+    let owner = Keypair::new();
+    let phygital_token =
+        ctx.init_phygital_token_with_owner(&passkey, PhygitalTokenType::Permanent, owner.pubkey());
 
-    ctx.send_transfer_ownership(&phygital_token, &holder, true)
-        .expect("claim locked phygital_token");
-    assert_eq!(ctx.phygital_token_lock_state(phygital_token.phygital_token), true);
+    ctx.svm.airdrop(&owner.pubkey(), LAMPORTS_PER_SOL).unwrap();
 
-    ctx.send_remove_ownership(&phygital_token, &holder)
-        .expect("remove ownership from locked phygital_token");
-    assert_eq!(ctx.phygital_token_lock_state(phygital_token.phygital_token), false);
-    assert_eq!(ctx.phygital_token_owner(phygital_token.phygital_token), Pubkey::default());
+    let err = ctx.send_remove_ownership(&phygital_token, &owner);
+    assert_phygital_token_program_error(err, "PermanentOwnershipImmutable");
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        owner.pubkey()
+    );
 }
 
 #[test]
@@ -94,7 +110,10 @@ fn remove_ownership_preserves_last_sign_count() {
     ctx.send_remove_ownership(&phygital_token, &holder)
         .expect("remove ownership");
 
-    assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), count_before);
+    assert_eq!(
+        ctx.last_sign_count(phygital_token.phygital_token),
+        count_before
+    );
 }
 
 #[test]

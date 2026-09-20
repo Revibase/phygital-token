@@ -1,5 +1,5 @@
 packages:
-  - "clients/js/*"
+  - "packages/js/*"
   - "mcp/*"
 
 # Build-script approval (pnpm asks for an explicit decision per dependency).

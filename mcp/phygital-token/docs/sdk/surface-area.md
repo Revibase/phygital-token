@@ -1,6 +1,6 @@
 # SDK surface area
 
-TypeScript package: `phygital-token-sdk` (`clients/js/phygital-token`).
+TypeScript package: `phygital-token-sdk` (`packages/js/phygital-token`).
 
 ## WebAuthn credential id
 
@@ -104,12 +104,14 @@ Re-exported from `./generated/index.js`:
 
 - Instructions: `getInitializeInstruction`, `getTransferOwnershipInstruction`, `getVerifyInstruction`, `getRemoveOwnershipInstruction`, `getSetMintInstruction`, ...
 - Accounts: `fetchPhygitalToken`, `PhygitalToken`, ...
-- Types: `PhygitalTokenType`, `Secp256r1Pubkey`, ...
+- Types: `PhygitalTokenType` (`Permanent` | `Bearer` | `Controlled`), `Secp256r1Pubkey`, ...
 
 ## Rust client
 
-Crate: `phygital-token-client` at `clients/rust/phygital-token`.
+Crate: `phygital-token-client` at `packages/rust/phygital-token`.
 
 On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `SetMintCpiBuilder`, `TransferOwnershipCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
+
+`PhygitalTokenType`: `Permanent` (0, immutable owner), `Bearer` (1), `Controlled` (2, lock/forfeit).
 
 Off-chain (`fetch` feature): RPC account fetching helpers.

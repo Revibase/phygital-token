@@ -5,10 +5,12 @@ use crate::utils::Secp256r1Pubkey;
 #[repr(u8)]
 #[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone, Copy)]
 pub enum PhygitalTokenType {
-    /// Must be unlocked before transfer; re-locks after transfer.
-    Controlled,
+    /// Owner must be set at initialize and can never be transferred or removed.
+    Permanent,
     /// Freely transferable by possession.
     Bearer,
+    /// Must be unlocked before transfer; re-locks after transfer.
+    Controlled,
 }
 
 #[account(zero_copy(unsafe))]
@@ -31,7 +33,7 @@ impl PhygitalToken {
         identifier: Secp256r1Pubkey,
         token_type: PhygitalTokenType,
         public_key: Secp256r1Pubkey,
-        owner: Pubkey
+        owner: Pubkey,
     ) {
         self.identifier = identifier;
         self.token_type = token_type as u8;

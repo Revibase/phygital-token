@@ -84,30 +84,25 @@ export function parseWebAuthnAssertion(response: AuthenticationResponseJSON): {
     ),
   };
 }
-
 export function recoverSecp256r1PublicKeyCandidates(
   signature: Uint8Array,
   message: Uint8Array,
 ): Uint8Array[] {
   const parsed = parseWebAuthnSignature(signature);
   const digest = sha256(message);
-  const verifySignature = normalizeSignatureToLowS(parsed.compact);
   const candidates: Uint8Array[] = [];
 
-  for (let recoveryId = 0; recoveryId < 4; recoveryId += 1) {
+  // Test all 4 recovery IDs for correctness. In practice, recovery IDs 2 and 3
+  // occur with probability ≈2^-130, so almost all WebAuthn signatures use 0 or 1.
+  for (let recoveryId = 0; recoveryId < 4; recoveryId++) {
     try {
       const publicKey = parsed.noble
         .addRecoveryBit(recoveryId)
         .recoverPublicKey(digest)
         .toBytes(true);
-      if (!p256.verify(verifySignature, message, publicKey)) {
-        continue;
-      }
-      if (!candidates.some((candidate) => bytesEqual(candidate, publicKey))) {
-        candidates.push(publicKey);
-      }
+      candidates.push(publicKey);
     } catch {
-      // invalid recovery id for this (r, s)
+      // Invalid recovery ID for this (r, s).
     }
   }
 

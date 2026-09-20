@@ -1,4 +1,4 @@
-use crate::{error::PhygitalError, PhygitalToken, Secp256r1Pubkey};
+use crate::{error::PhygitalError, PhygitalToken, PhygitalTokenType, Secp256r1Pubkey};
 use anchor_lang::prelude::*;
 
 #[event]
@@ -20,6 +20,10 @@ pub struct RemoveOwnership<'info> {
 
 pub fn handler(ctx: Context<RemoveOwnership>) -> Result<()> {
     let mut token = ctx.accounts.phygital_token.load_mut()?;
+    require!(
+        token.token_type != PhygitalTokenType::Permanent as u8,
+        PhygitalError::PermanentOwnershipImmutable
+    );
     token.owner = Pubkey::default();
     token.is_locked = 0;
 

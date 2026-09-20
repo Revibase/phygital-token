@@ -1,6 +1,6 @@
 # Verification methods (`verify.ts`)
 
-All exports from `clients/js/phygital-token/src/utils/verify.ts`.
+All exports from `packages/js/phygital-token/src/utils/verify.ts`.
 
 Off-chain authentication is **split**: NFC tap on the client, signature verification on your server. Every check requires a **fresh tap** — there is no signed-URL / prior-scan identification path.
 

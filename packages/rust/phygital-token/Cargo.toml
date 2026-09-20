@@ -1,13 +1,13 @@
 [package]
 name = "phygital-token-client"
-version = "1.0.1"
+version = "1.1.0"
 edition = "2021"
 description = "Rust client and CPI helpers for the phygital-token Solana program"
 license = "MIT"
 authors = ["Revibase"]
 repository = "https://github.com/Revibase/phygital-token"
-homepage = "https://github.com/Revibase/phygital-token/tree/master/clients/rust/phygital-token"
-documentation = "https://github.com/Revibase/phygital-token/tree/master/clients/rust/phygital-token"
+homepage = "https://github.com/Revibase/phygital-token/tree/master/packages/rust/phygital-token"
+documentation = "https://github.com/Revibase/phygital-token/tree/master/packages/rust/phygital-token"
 readme = "README.md"
 keywords = ["solana", "anchor", "phygital", "nft", "webauthn"]
 categories = ["cryptography::cryptocurrencies"]

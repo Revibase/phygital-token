@@ -43,7 +43,7 @@ export async function resolveSdkReadmePath(): Promise<string | undefined> {
 
   const monorepoReadme = path.join(
     resolveRepoRoot(),
-    "clients/js/phygital-token/README.md",
+    "packages/js/phygital-token/README.md",
   );
   if (await pathExists(monorepoReadme)) {
     return monorepoReadme;
@@ -56,7 +56,7 @@ export async function resolveSdkReadmePath(): Promise<string | undefined> {
 export async function resolveRustClientReadmePath(): Promise<string | undefined> {
   const monorepoReadme = path.join(
     resolveRepoRoot(),
-    "clients/rust/phygital-token/README.md",
+    "packages/rust/phygital-token/README.md",
   );
   if (await pathExists(monorepoReadme)) {
     return monorepoReadme;

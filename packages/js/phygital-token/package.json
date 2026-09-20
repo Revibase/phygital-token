@@ -1,6 +1,6 @@
 {
   "name": "phygital-token-sdk",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "TypeScript client for the Phygital Token Solana program",
   "license": "MIT",
   "author": "Revibase",
@@ -21,9 +21,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Revibase/phygital-token.git",
-    "directory": "clients/js/phygital-token"
+    "directory": "packages/js/phygital-token"
   },
-  "homepage": "https://github.com/Revibase/phygital-token/tree/master/clients/js/phygital-token",
+  "homepage": "https://github.com/Revibase/phygital-token/tree/master/packages/js/phygital-token",
   "bugs": {
     "url": "https://github.com/Revibase/phygital-token/issues"
   },
@@ -47,10 +47,10 @@
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
-    "@solana/kit": "^8.0.0"
+    "@solana/kit": "^8.3.0"
   },
   "devDependencies": {
-    "@solana/kit": "^8.0.0",
+    "@solana/kit": "^8.3.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   },

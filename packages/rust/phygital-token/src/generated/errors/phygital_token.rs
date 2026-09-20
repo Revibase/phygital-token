@@ -70,6 +70,12 @@ pub enum PhygitalTokenError {
     /// 6019 - Only the designated authority can perform this action.
     #[error("Only the designated authority can perform this action.")]
     UnauthorizedAuthority = 0x1783,
+    /// 6020 - Permanent phygital tokens require a non-default owner at initialize.
+    #[error("Permanent phygital tokens require a non-default owner at initialize.")]
+    PermanentOwnerRequired = 0x1784,
+    /// 6021 - Permanent phygital token ownership cannot be transferred or removed.
+    #[error("Permanent phygital token ownership cannot be transferred or removed.")]
+    PermanentOwnershipImmutable = 0x1785,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {

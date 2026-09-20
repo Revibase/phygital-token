@@ -10,10 +10,10 @@
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "idl:sync": "cp target/idl/phygital_token.json idl/phygital_token.json",
-    "generate:client": "codama run js && node clients/js/phygital-token/scripts/add-import-extensions.mjs",
-    "generate:rust-client": "codama run rust",
-    "build:client": "pnpm --filter phygital-token-sdk build",
-    "build:program": "NO_DNA=1 anchor build && pnpm idl:sync && pnpm generate:client && pnpm generate:rust-client && pnpm build:client"
+    "generate:sdk": "codama run js && node packages/js/phygital-token/scripts/add-import-extensions.mjs",
+    "generate:rust-sdk": "codama run rust",
+    "build:sdk": "pnpm --filter phygital-token-sdk build",
+    "build:program": "NO_DNA=1 anchor build && pnpm idl:sync && pnpm generate:sdk && pnpm generate:rust-sdk && pnpm build:sdk"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.0.2"

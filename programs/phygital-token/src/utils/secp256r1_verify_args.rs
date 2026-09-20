@@ -24,9 +24,8 @@ struct Secp256r1SignatureOffsets {
     message_instruction_index: u16,
 }
 
-const _: () = assert!(
-    core::mem::size_of::<Secp256r1SignatureOffsets>() == SIGNATURE_OFFSETS_SERIALIZED_SIZE
-);
+const _: () =
+    assert!(core::mem::size_of::<Secp256r1SignatureOffsets>() == SIGNATURE_OFFSETS_SERIALIZED_SIZE);
 
 /// Minimum WebAuthn authenticator data: rpIdHash (32) + flags (1) + signCount (4).
 pub const AUTH_DATA_MIN_LEN: usize = 37;
@@ -66,7 +65,7 @@ impl Secp256r1VerifyArgs {
 
         let offsets = unsafe {
             core::ptr::read_unaligned(
-                data.as_ptr().add(start_usize) as *const Secp256r1SignatureOffsets,
+                data.as_ptr().add(start_usize) as *const Secp256r1SignatureOffsets
             )
         };
 
@@ -210,7 +209,9 @@ impl Secp256r1VerifyArgs {
         if let Some(expected_origins) = expected_origins {
             let origin = json_quoted_value(&self.client_data_json, JSON_ORIGIN_KEY)?;
             require!(
-                expected_origins.iter().any(|expected| origin == expected.as_bytes()),
+                expected_origins
+                    .iter()
+                    .any(|expected| origin == expected.as_bytes()),
                 PhygitalError::OriginMismatch
             );
         }

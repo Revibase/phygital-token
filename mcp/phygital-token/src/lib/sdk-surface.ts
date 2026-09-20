@@ -70,7 +70,7 @@ export const SDK_SURFACE = {
   ],
   rustClient: {
     crate: "phygital-token-client",
-    path: "clients/rust/phygital-token",
+    path: "packages/rust/phygital-token",
     cpi: [
       "VerifyCpi",
       "VerifyCpiBuilder",
@@ -83,5 +83,10 @@ export const SDK_SURFACE = {
       "RemoveOwnershipCpiBuilder",
     ],
     types: ["PhygitalToken", "Secp256r1VerifyArgs", "PhygitalTokenType"],
+    tokenTypes: {
+      Permanent: "discriminant 0 — owner required at init; transfer/remove rejected",
+      Bearer: "freely transferable by passkey possession",
+      Controlled: "lock after claim; forfeit via remove_ownership before next transfer",
+    },
   },
 } as const;

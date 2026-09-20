@@ -5,13 +5,13 @@
     "js": {
       "from": "@codama/renderers-js",
       "args": [
-        "clients/js/phygital-token",
+        "packages/js/phygital-token",
         {
           "formatCode": true,
           "syncPackageJson": true,
           "kitImportStrategy": "rootOnly",
           "dependencyVersions": {
-            "@solana/kit": "^6.4.0"
+            "@solana/kit": "^8.3.0"
           }
         }
       ]
@@ -19,7 +19,7 @@
     "rust": {
       "from": "@codama/renderers-rust",
       "args": [
-        "clients/rust/phygital-token",
+        "packages/rust/phygital-token",
         {
           "generatedFolder": "src/generated"
         }

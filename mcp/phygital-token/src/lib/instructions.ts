@@ -8,14 +8,16 @@ import {
 export async function planInitialize(input: {
   identifier: string;
   secp256r1PublicKey: string;
-  tokenType: "Controlled" | "Bearer";
+  tokenType: "Permanent" | "Controlled" | "Bearer";
   owner: string;
 }) {
   const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
   const tokenType =
-    input.tokenType === "Controlled"
-      ? PhygitalTokenType.Controlled
-      : PhygitalTokenType.Bearer;
+    input.tokenType === "Permanent"
+      ? PhygitalTokenType.Permanent
+      : input.tokenType === "Controlled"
+        ? PhygitalTokenType.Controlled
+        : PhygitalTokenType.Bearer;
 
   return {
     instruction: "initialize",
@@ -40,7 +42,8 @@ export async function planInitialize(input: {
     notes: [
       "Creates a token PDA seeded by the passkey public key.",
       "identifier is stored on the token for binding and is distinct from the passkey.",
-      "owner is stored on phygital_token.owner at init (use the default zero pubkey for unowned tokens).",
+      "owner is stored on phygital_token.owner at init (required non-default for Permanent; use the default zero pubkey for unowned Bearer/Controlled tokens).",
+      "Permanent ownership is immutable after initialize — transfer_ownership and remove_ownership are rejected.",
       "mint starts as the default pubkey until set_mint.",
       "Derive the token PDA with findPhygitalTokenPda, then pass it to getInitializeInstruction.",
       "On mainnet the authority is a Squads vault — wrap `getInitializeInstruction` with your own Squads client so the vault can sign.",
@@ -126,6 +129,7 @@ export async function planTransfer(input: {
     instructions: ["secp256r1_verify", "transfer_ownership"],
     notes: [
       "No SPL token transfer — transfer_ownership only updates phygital_token.owner.",
+      "Permanent tokens reject transfer_ownership and remove_ownership entirely.",
       "Controlled tokens must be unlocked (is_locked == 0) before transfer and auto-lock after a successful claim; remove_ownership clears the lock.",
       "beginTransfer takes Kit Rpc + base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
       "Browser tap requires rpc for placeholder credential-id recovery (16-byte rawId). When rawId is 33 bytes, authenticator returned the passkey directly.",
@@ -247,16 +251,21 @@ export async function planRemoveOwnership(input: {
     notes: [
       "Wallet-signed forfeiture — unlike transfer_ownership, no secp256r1_verify or passkey tap.",
       "Fails if signer is not phygital_token.owner.",
+      "Rejected for Permanent tokens (ownership is immutable).",
     ],
   };
 }
 
-export function parseTokenType(value: string): "Controlled" | "Bearer" {
+export function parseTokenType(value: string): "Permanent" | "Controlled" | "Bearer" {
   const normalized = value.trim();
-  if (normalized === "Controlled" || normalized === "Bearer") {
+  if (
+    normalized === "Permanent" ||
+    normalized === "Controlled" ||
+    normalized === "Bearer"
+  ) {
     return normalized;
   }
-  throw new Error('tokenType must be "Controlled" or "Bearer".');
+  throw new Error('tokenType must be "Permanent", "Controlled", or "Bearer".');
 }
 
 export type { Address };
