@@ -6,22 +6,22 @@ use solana_keypair::Keypair;
 use solana_signer::Signer;
 
 #[test]
-fn transfer_ownership_moves_token_to_recipient_with_recipient_signature() {
+fn set_linked_wallet_moves_token_to_recipient_with_recipient_signature() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
     let recipient = Keypair::new();
 
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         Pubkey::default()
     );
 
     let meta = ctx
-        .send_transfer_ownership(&phygital_token, &recipient, true)
-        .expect("transfer_ownership should succeed with secp256r1 + recipient signature only");
+        .send_set_linked_wallet(&phygital_token, &recipient, true)
+        .expect("set_linked_wallet should succeed with secp256r1 + recipient signature only");
     eprintln!(
-        "CU transfer_ownership_moves_token_to_recipient: {}",
+        "CU set_linked_wallet_moves_token_to_recipient: {}",
         meta.compute_units_consumed
     );
 
@@ -31,21 +31,21 @@ fn transfer_ownership_moves_token_to_recipient_with_recipient_signature() {
         "phygital_token should record the WebAuthn signCount used for the transfer"
     );
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         recipient.pubkey()
     );
 }
 
 #[test]
-fn transfer_ownership_requires_preceding_secp256r1_instruction() {
+fn set_linked_wallet_requires_preceding_secp256r1_instruction() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
     let recipient = Keypair::new();
 
     let err = ctx
-        .send_transfer_ownership(&phygital_token, &recipient, false)
-        .expect_err("transfer_ownership without secp256r1 ix should fail");
+        .send_set_linked_wallet(&phygital_token, &recipient, false)
+        .expect_err("set_linked_wallet without secp256r1 ix should fail");
 
     // With no preceding secp256r1 instruction, the phygital_token constraint fails while
     // trying to read it, surfacing as a generic InvalidArgument.
@@ -55,13 +55,13 @@ fn transfer_ownership_requires_preceding_secp256r1_instruction() {
         "unexpected error: {err:?}"
     );
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         Pubkey::default()
     );
 }
 
 #[test]
-fn transfer_ownership_rejects_sign_count_not_greater_than_last() {
+fn set_linked_wallet_rejects_sign_count_not_greater_than_last() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -70,12 +70,12 @@ fn transfer_ownership_rejects_sign_count_not_greater_than_last() {
 
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    ctx.send_transfer_ownership(&phygital_token, &first_recipient, true)
+    ctx.send_set_linked_wallet(&phygital_token, &first_recipient, true)
         .expect("first transfer");
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 1);
 
     let err = ctx
-        .send_transfer_ownership_at_slot(
+        .send_set_linked_wallet_at_slot(
             &phygital_token,
             &second_recipient,
             true,
@@ -90,13 +90,13 @@ fn transfer_ownership_rejects_sign_count_not_greater_than_last() {
         "expected stale signCount error, got: {err:?}"
     );
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         first_recipient.pubkey()
     );
 }
 
 #[test]
-fn transfer_ownership_allows_next_transfer_with_higher_sign_count() {
+fn set_linked_wallet_allows_next_transfer_with_higher_sign_count() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -104,7 +104,7 @@ fn transfer_ownership_allows_next_transfer_with_higher_sign_count() {
     let second_recipient = Keypair::new();
 
     let (first_slot, _) = current_slot_entry(&ctx.svm);
-    ctx.send_transfer_ownership(&phygital_token, &first_recipient, true)
+    ctx.send_set_linked_wallet(&phygital_token, &first_recipient, true)
         .expect("first transfer");
 
     let second_slot = first_slot.saturating_add(1);
@@ -112,7 +112,7 @@ fn transfer_ownership_allows_next_transfer_with_higher_sign_count() {
     let (second_slot, second_hash) = current_slot_entry(&ctx.svm);
     assert!(second_slot > first_slot);
 
-    ctx.send_transfer_ownership_at_slot(
+    ctx.send_set_linked_wallet_at_slot(
         &phygital_token,
         &second_recipient,
         true,
@@ -124,7 +124,7 @@ fn transfer_ownership_allows_next_transfer_with_higher_sign_count() {
 
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 2);
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         second_recipient.pubkey()
     );
 }

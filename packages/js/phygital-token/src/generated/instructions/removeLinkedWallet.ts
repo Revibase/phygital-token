@@ -37,28 +37,28 @@ import {
 } from "@solana/kit/program-client-core";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
-export const REMOVE_OWNERSHIP_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([58, 70, 125, 46, 39, 24, 46, 240]);
+export const REMOVE_LINKED_WALLET_DISCRIMINATOR: ReadonlyUint8Array =
+  new Uint8Array([7, 178, 142, 3, 161, 131, 177, 97]);
 
-export function getRemoveOwnershipDiscriminatorBytes(): ReadonlyUint8Array {
+export function getRemoveLinkedWalletDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    REMOVE_OWNERSHIP_DISCRIMINATOR,
+    REMOVE_LINKED_WALLET_DISCRIMINATOR,
   );
 }
 
-export type RemoveOwnershipInstruction<
+export type RemoveLinkedWalletInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-  TAccountOwner extends string | AccountMeta<string> = string,
+  TAccountLinkedWallet extends string | AccountMeta<string> = string,
   TAccountPhygitalToken extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
-      TAccountOwner extends string
-        ? ReadonlySignerAccount<TAccountOwner> &
-            AccountSignerMeta<TAccountOwner>
-        : TAccountOwner,
+      TAccountLinkedWallet extends string
+        ? ReadonlySignerAccount<TAccountLinkedWallet> &
+            AccountSignerMeta<TAccountLinkedWallet>
+        : TAccountLinkedWallet,
       TAccountPhygitalToken extends string
         ? WritableAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
@@ -66,53 +66,56 @@ export type RemoveOwnershipInstruction<
     ]
   >;
 
-export type RemoveOwnershipInstructionData = {
+export type RemoveLinkedWalletInstructionData = {
   discriminator: ReadonlyUint8Array;
 };
 
-export type RemoveOwnershipInstructionDataArgs = {};
+export type RemoveLinkedWalletInstructionDataArgs = {};
 
-export function getRemoveOwnershipInstructionDataEncoder(): FixedSizeEncoder<RemoveOwnershipInstructionDataArgs> {
+export function getRemoveLinkedWalletInstructionDataEncoder(): FixedSizeEncoder<RemoveLinkedWalletInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({ ...value, discriminator: REMOVE_OWNERSHIP_DISCRIMINATOR }),
+    (value) => ({
+      ...value,
+      discriminator: REMOVE_LINKED_WALLET_DISCRIMINATOR,
+    }),
   );
 }
 
-export function getRemoveOwnershipInstructionDataDecoder(): FixedSizeDecoder<RemoveOwnershipInstructionData> {
+export function getRemoveLinkedWalletInstructionDataDecoder(): FixedSizeDecoder<RemoveLinkedWalletInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
   ]);
 }
 
-export function getRemoveOwnershipInstructionDataCodec(): FixedSizeCodec<
-  RemoveOwnershipInstructionDataArgs,
-  RemoveOwnershipInstructionData
+export function getRemoveLinkedWalletInstructionDataCodec(): FixedSizeCodec<
+  RemoveLinkedWalletInstructionDataArgs,
+  RemoveLinkedWalletInstructionData
 > {
   return combineCodec(
-    getRemoveOwnershipInstructionDataEncoder(),
-    getRemoveOwnershipInstructionDataDecoder(),
+    getRemoveLinkedWalletInstructionDataEncoder(),
+    getRemoveLinkedWalletInstructionDataDecoder(),
   );
 }
 
-export type RemoveOwnershipInput<
-  TAccountOwner extends string = string,
+export type RemoveLinkedWalletInput<
+  TAccountLinkedWallet extends string = string,
   TAccountPhygitalToken extends string = string,
 > = {
-  owner: TransactionSigner<TAccountOwner>;
+  linkedWallet: TransactionSigner<TAccountLinkedWallet>;
   phygitalToken: Address<TAccountPhygitalToken>;
 };
 
-export function getRemoveOwnershipInstruction<
-  TAccountOwner extends string,
+export function getRemoveLinkedWalletInstruction<
+  TAccountLinkedWallet extends string,
   TAccountPhygitalToken extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: RemoveOwnershipInput<TAccountOwner, TAccountPhygitalToken>,
+  input: RemoveLinkedWalletInput<TAccountLinkedWallet, TAccountPhygitalToken>,
   config?: { programAddress?: TProgramAddress },
-): RemoveOwnershipInstruction<
+): RemoveLinkedWalletInstruction<
   TProgramAddress,
-  TAccountOwner,
+  TAccountLinkedWallet,
   TAccountPhygitalToken
 > {
   // Program address.
@@ -121,7 +124,7 @@ export function getRemoveOwnershipInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    owner: { value: input.owner ?? null, isWritable: false },
+    linkedWallet: { value: input.linkedWallet ?? null, isWritable: false },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
@@ -132,38 +135,38 @@ export function getRemoveOwnershipInstruction<
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
-      getAccountMeta("owner", accounts.owner),
+      getAccountMeta("linkedWallet", accounts.linkedWallet),
       getAccountMeta("phygitalToken", accounts.phygitalToken),
     ],
-    data: getRemoveOwnershipInstructionDataEncoder().encode({}),
+    data: getRemoveLinkedWalletInstructionDataEncoder().encode({}),
     programAddress,
-  } as RemoveOwnershipInstruction<
+  } as RemoveLinkedWalletInstruction<
     TProgramAddress,
-    TAccountOwner,
+    TAccountLinkedWallet,
     TAccountPhygitalToken
   >);
 }
 
-export type ParsedRemoveOwnershipInstruction<
+export type ParsedRemoveLinkedWalletInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
-    owner: TAccountMetas[0];
+    linkedWallet: TAccountMetas[0];
     phygitalToken: TAccountMetas[1];
   };
-  data: RemoveOwnershipInstructionData;
+  data: RemoveLinkedWalletInstructionData;
 };
 
-export function parseRemoveOwnershipInstruction<
+export function parseRemoveLinkedWalletInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedRemoveOwnershipInstruction<TProgram, TAccountMetas> {
+): ParsedRemoveLinkedWalletInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 2) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -181,7 +184,12 @@ export function parseRemoveOwnershipInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: { owner: getNextAccount(), phygitalToken: getNextAccount() },
-    data: getRemoveOwnershipInstructionDataDecoder().decode(instruction.data),
+    accounts: {
+      linkedWallet: getNextAccount(),
+      phygitalToken: getNextAccount(),
+    },
+    data: getRemoveLinkedWalletInstructionDataDecoder().decode(
+      instruction.data,
+    ),
   };
 }

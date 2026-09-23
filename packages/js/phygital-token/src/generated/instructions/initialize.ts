@@ -89,14 +89,14 @@ export type InitializeInstructionData = {
   identifier: Secp256r1Pubkey;
   secp256r1Pubkey: Secp256r1Pubkey;
   tokenType: PhygitalTokenType;
-  owner: Address;
+  linkedWallet: Address;
 };
 
 export type InitializeInstructionDataArgs = {
   identifier: Secp256r1PubkeyArgs;
   secp256r1Pubkey: Secp256r1PubkeyArgs;
   tokenType: PhygitalTokenTypeArgs;
-  owner: Address;
+  linkedWallet: Address;
 };
 
 export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<InitializeInstructionDataArgs> {
@@ -106,7 +106,7 @@ export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<Initiali
       ["identifier", getSecp256r1PubkeyEncoder()],
       ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
       ["tokenType", getPhygitalTokenTypeEncoder()],
-      ["owner", getAddressEncoder()],
+      ["linkedWallet", getAddressEncoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_DISCRIMINATOR }),
   );
@@ -118,7 +118,7 @@ export function getInitializeInstructionDataDecoder(): FixedSizeDecoder<Initiali
     ["identifier", getSecp256r1PubkeyDecoder()],
     ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
     ["tokenType", getPhygitalTokenTypeDecoder()],
-    ["owner", getAddressDecoder()],
+    ["linkedWallet", getAddressDecoder()],
   ]);
 }
 
@@ -143,7 +143,7 @@ export type InitializeInput<
   identifier: InitializeInstructionDataArgs["identifier"];
   secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
   tokenType: InitializeInstructionDataArgs["tokenType"];
-  owner: InitializeInstructionDataArgs["owner"];
+  linkedWallet: InitializeInstructionDataArgs["linkedWallet"];
 };
 
 export function getInitializeInstruction<

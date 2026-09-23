@@ -8,15 +8,15 @@ use crate::utils::{build_transfer_challenge, Secp256r1VerifyArgs};
 use crate::{PhygitalTokenType, Secp256r1Pubkey};
 
 #[event]
-pub struct TransferEvent {
+pub struct SetLinkedWalletEvent {
     pub recipient: Pubkey,
-    pub owner: Pubkey,
+    pub linked_wallet: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
 }
 
 #[derive(Accounts)]
-pub struct TransferOwnership<'info> {
+pub struct SetLinkedWallet<'info> {
     pub recipient: Signer<'info>,
 
     #[account(mut)]
@@ -32,7 +32,7 @@ pub struct TransferOwnership<'info> {
 }
 
 pub fn handler(
-    ctx: Context<TransferOwnership>,
+    ctx: Context<SetLinkedWallet>,
     secp256r1_verify_args: Secp256r1VerifyArgs,
     slot_number: u64,
 ) -> Result<()> {
@@ -40,7 +40,7 @@ pub fn handler(
 
     require!(
         token.token_type != PhygitalTokenType::Permanent as u8,
-        PhygitalError::PermanentOwnershipImmutable
+        PhygitalError::PermanentLinkedWalletImmutable
     );
 
     if token.token_type == PhygitalTokenType::Controlled as u8 {
@@ -68,15 +68,15 @@ pub fn handler(
         PhygitalError::StaleSignCount
     );
 
-    emit!(TransferEvent {
-        owner: token.owner,
+    emit!(SetLinkedWalletEvent {
+        linked_wallet: token.linked_wallet,
         recipient: ctx.accounts.recipient.key(),
         public_key: token.public_key,
         identifier: token.identifier,
     });
 
     token.last_sign_count = sign_count;
-    token.owner = ctx.accounts.recipient.key();
+    token.linked_wallet = ctx.accounts.recipient.key();
 
     Ok(())
 }

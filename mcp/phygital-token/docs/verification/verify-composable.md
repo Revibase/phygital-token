@@ -72,4 +72,4 @@ These bindings are set on **your** CPI (`VerifyCpiBuilder.expected_rp_id` / `.ex
 
 - Verifies WebAuthn signature against `messageHash`
 - Sets `phygital_token.last_sign_count` from the WebAuthn authenticatorData `signCount`
-- Does **not** change `phygital_token.owner`
+- Does **not** change `phygital_token.linked_wallet`

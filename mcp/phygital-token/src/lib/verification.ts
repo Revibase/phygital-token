@@ -1,6 +1,6 @@
 export type VerificationUseCase =
   | "login_ui_only"
-  | "transfer_ownership"
+  | "set_linked_wallet"
   | "native_mobile_app"
   | "lookup_after_tap"
   | "onchain_cpi_verify";
@@ -29,17 +29,17 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
       "Pass Kit Rpc to startAuthentication even when using transceive (rpc is unused on the native path).",
     ],
   },
-  transfer_ownership: {
+  set_linked_wallet: {
     method: "transfer — beginTransfer / completeTransfer",
     sdkExports: ["beginTransfer", "authenticatePasskeyForTransfer", "completeTransfer"],
     requiresTap: true,
     onChain: true,
     rationale:
-      "Ownership claim uses transfer_ownership (updates phygital_token.owner; no SPL token). beginTransfer takes secp256r1Pubkey and derives the token PDA.",
+      "Linked-wallet claim uses set_linked_wallet (updates phygital_token.linked_wallet; no SPL token). beginTransfer takes secp256r1Pubkey and derives the token PDA.",
     docIds: ["verification:overview", "sdk:surface-area"],
     cautions: [
-      "Do not use verifyResponse alone for transfers — it does not change on-chain ownership.",
-      "Do not use verify for transfers — it proves possession without changing owner.",
+      "Do not use verifyResponse alone for transfers — it does not change phygital_token.linked_wallet.",
+      "Do not use verify for transfers — it proves possession without changing linked_wallet.",
       "Recipient must sign the transaction — pass completeTransfer a Kit TransactionSigner.",
     ],
   },
@@ -92,7 +92,7 @@ export function listVerificationUseCases(): Array<{
 }> {
   return [
     { id: "login_ui_only", summary: "Off-chain tap-to-login (no chain tx)" },
-    { id: "transfer_ownership", summary: "Claim/transfer ownership to a new wallet" },
+    { id: "set_linked_wallet", summary: "Claim/set linked wallet to a new address" },
     { id: "native_mobile_app", summary: "Native app off-chain authentication" },
     { id: "lookup_after_tap", summary: "Verify tap then load on-chain token state" },
     {
@@ -104,8 +104,8 @@ export function listVerificationUseCases(): Array<{
 
 export const VERIFICATION_DECISION_TREE = `
 Authentication (live NFC tap required)
-├── Need on-chain ownership change?
-│   YES → beginTransfer({ rpc, secp256r1Pubkey }) → completeTransfer (transfer_ownership)
+├── Need on-chain linked-wallet change?
+│   YES → beginTransfer({ rpc, secp256r1Pubkey }) → completeTransfer (set_linked_wallet)
 │   NO  → Need on-chain possession proof for your program?
 │         YES → buildMessageHash(message)
 │               → authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })

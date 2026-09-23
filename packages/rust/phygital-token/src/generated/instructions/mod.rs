@@ -6,14 +6,14 @@
 //!
 
   pub(crate) mod r#initialize;
-  pub(crate) mod r#remove_ownership;
+  pub(crate) mod r#remove_linked_wallet;
+  pub(crate) mod r#set_linked_wallet;
   pub(crate) mod r#set_mint;
-  pub(crate) mod r#transfer_ownership;
   pub(crate) mod r#verify;
 
   pub use self::r#initialize::*;
-  pub use self::r#remove_ownership::*;
+  pub use self::r#remove_linked_wallet::*;
+  pub use self::r#set_linked_wallet::*;
   pub use self::r#set_mint::*;
-  pub use self::r#transfer_ownership::*;
   pub use self::r#verify::*;
 

@@ -25,9 +25,9 @@ pub enum PhygitalTokenError {
     /// 6004 - secp256r1 pubkey does not match phygital token record
     #[error("secp256r1 pubkey does not match phygital token record")]
     Secp256r1PubkeyMismatch = 0x1774,
-    /// 6005 - Phygital token owner mismatch
-    #[error("Phygital token owner mismatch")]
-    OwnerMismatch = 0x1775,
+    /// 6005 - Phygital token linked wallet mismatch
+    #[error("Phygital token linked wallet mismatch")]
+    LinkedWalletMismatch = 0x1775,
     /// 6006 - Slot not found in SlotHashes sysvar — signature has expired or is being replayed
     #[error("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
     InvalidSlotHash = 0x1776,
@@ -43,8 +43,8 @@ pub enum PhygitalTokenError {
     /// 6010 - Invalid sysvar data format
     #[error("Invalid sysvar data format")]
     InvalidSysvarDataFormat = 0x177A,
-    /// 6011 - The owner needs to unlock the phygital token to enable transfer.
-    #[error("The owner needs to unlock the phygital token to enable transfer.")]
+    /// 6011 - The linked wallet needs to unlock the phygital token to enable transfer.
+    #[error("The linked wallet needs to unlock the phygital token to enable transfer.")]
     TokenIsCurrentlyLocked = 0x177B,
     /// 6012 - This phygital token is not lockable.
     #[error("This phygital token is not lockable.")]
@@ -70,12 +70,12 @@ pub enum PhygitalTokenError {
     /// 6019 - Only the designated authority can perform this action.
     #[error("Only the designated authority can perform this action.")]
     UnauthorizedAuthority = 0x1783,
-    /// 6020 - Permanent phygital tokens require a non-default owner at initialize.
-    #[error("Permanent phygital tokens require a non-default owner at initialize.")]
-    PermanentOwnerRequired = 0x1784,
-    /// 6021 - Permanent phygital token ownership cannot be transferred or removed.
-    #[error("Permanent phygital token ownership cannot be transferred or removed.")]
-    PermanentOwnershipImmutable = 0x1785,
+    /// 6020 - Permanent phygital tokens require a non-default linked wallet at initialize.
+    #[error("Permanent phygital tokens require a non-default linked wallet at initialize.")]
+    PermanentLinkedWalletRequired = 0x1784,
+    /// 6021 - Permanent phygital token linked wallet cannot be transferred or removed.
+    #[error("Permanent phygital token linked wallet cannot be transferred or removed.")]
+    PermanentLinkedWalletImmutable = 0x1785,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {

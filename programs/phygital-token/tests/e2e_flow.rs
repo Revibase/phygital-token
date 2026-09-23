@@ -17,7 +17,7 @@ fn e2e_initialize_and_transfer() {
     // identifier (binding field) and the transfer-authorizing passkey public key
     // (which also seeds the PDA).
     let instance = ctx.phygital_token_account(phygital_token.phygital_token);
-    assert_eq!(instance.owner, Pubkey::default());
+    assert_eq!(instance.linked_wallet, Pubkey::default());
     assert_eq!(instance.identifier, phygital_token.identifier);
     assert_eq!(
         instance.public_key,
@@ -34,8 +34,8 @@ fn e2e_initialize_and_transfer() {
         "mint is unset until set_mint"
     );
 
-    ctx.send_transfer_ownership(&phygital_token, &recipient, true)
-        .expect("transfer_ownership should succeed");
+    ctx.send_set_linked_wallet(&phygital_token, &recipient, true)
+        .expect("set_linked_wallet should succeed");
 
     assert_eq!(
         ctx.last_sign_count(phygital_token.phygital_token),
@@ -43,7 +43,7 @@ fn e2e_initialize_and_transfer() {
         "phygital_token should record the WebAuthn signCount used for the transfer"
     );
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         recipient.pubkey()
     );
 }

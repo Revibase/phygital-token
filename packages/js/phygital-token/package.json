@@ -1,6 +1,6 @@
 {
   "name": "phygital-token-sdk",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "TypeScript client for the Phygital Token Solana program",
   "license": "MIT",
   "author": "Revibase",

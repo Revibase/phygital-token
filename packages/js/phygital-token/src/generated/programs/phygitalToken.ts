@@ -40,24 +40,24 @@ import {
 } from "../accounts/index.js";
 import {
   getInitializeInstruction,
-  getRemoveOwnershipInstruction,
+  getRemoveLinkedWalletInstruction,
+  getSetLinkedWalletInstruction,
   getSetMintInstruction,
-  getTransferOwnershipInstruction,
   getVerifyInstruction,
   parseInitializeInstruction,
-  parseRemoveOwnershipInstruction,
+  parseRemoveLinkedWalletInstruction,
+  parseSetLinkedWalletInstruction,
   parseSetMintInstruction,
-  parseTransferOwnershipInstruction,
   parseVerifyInstruction,
   type InitializeInput,
   type ParsedInitializeInstruction,
-  type ParsedRemoveOwnershipInstruction,
+  type ParsedRemoveLinkedWalletInstruction,
+  type ParsedSetLinkedWalletInstruction,
   type ParsedSetMintInstruction,
-  type ParsedTransferOwnershipInstruction,
   type ParsedVerifyInstruction,
-  type RemoveOwnershipInput,
+  type RemoveLinkedWalletInput,
+  type SetLinkedWalletInput,
   type SetMintInput,
-  type TransferOwnershipInput,
   type VerifyInput,
 } from "../instructions/index.js";
 
@@ -91,9 +91,9 @@ export function identifyPhygitalTokenAccount(
 
 export enum PhygitalTokenInstruction {
   Initialize,
-  RemoveOwnership,
+  RemoveLinkedWallet,
+  SetLinkedWallet,
   SetMint,
-  TransferOwnership,
   Verify,
 }
 
@@ -116,12 +116,23 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([58, 70, 125, 46, 39, 24, 46, 240]),
+        new Uint8Array([7, 178, 142, 3, 161, 131, 177, 97]),
       ),
       0,
     )
   ) {
-    return PhygitalTokenInstruction.RemoveOwnership;
+    return PhygitalTokenInstruction.RemoveLinkedWallet;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([118, 134, 6, 114, 75, 108, 86, 199]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.SetLinkedWallet;
   }
   if (
     containsBytes(
@@ -133,17 +144,6 @@ export function identifyPhygitalTokenInstruction(
     )
   ) {
     return PhygitalTokenInstruction.SetMint;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([65, 177, 215, 73, 53, 45, 99, 47]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.TransferOwnership;
   }
   if (
     containsBytes(
@@ -169,14 +169,14 @@ export type ParsedPhygitalTokenInstruction<
       instructionType: PhygitalTokenInstruction.Initialize;
     } & ParsedInitializeInstruction<TProgram>)
   | ({
-      instructionType: PhygitalTokenInstruction.RemoveOwnership;
-    } & ParsedRemoveOwnershipInstruction<TProgram>)
+      instructionType: PhygitalTokenInstruction.RemoveLinkedWallet;
+    } & ParsedRemoveLinkedWalletInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalTokenInstruction.SetLinkedWallet;
+    } & ParsedSetLinkedWalletInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.SetMint;
     } & ParsedSetMintInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalTokenInstruction.TransferOwnership;
-    } & ParsedTransferOwnershipInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.Verify;
     } & ParsedVerifyInstruction<TProgram>);
@@ -193,11 +193,18 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseInitializeInstruction(instruction),
       };
     }
-    case PhygitalTokenInstruction.RemoveOwnership: {
+    case PhygitalTokenInstruction.RemoveLinkedWallet: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: PhygitalTokenInstruction.RemoveOwnership,
-        ...parseRemoveOwnershipInstruction(instruction),
+        instructionType: PhygitalTokenInstruction.RemoveLinkedWallet,
+        ...parseRemoveLinkedWalletInstruction(instruction),
+      };
+    }
+    case PhygitalTokenInstruction.SetLinkedWallet: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.SetLinkedWallet,
+        ...parseSetLinkedWalletInstruction(instruction),
       };
     }
     case PhygitalTokenInstruction.SetMint: {
@@ -205,13 +212,6 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
       return {
         instructionType: PhygitalTokenInstruction.SetMint,
         ...parseSetMintInstruction(instruction),
-      };
-    }
-    case PhygitalTokenInstruction.TransferOwnership: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.TransferOwnership,
-        ...parseTransferOwnershipInstruction(instruction),
       };
     }
     case PhygitalTokenInstruction.Verify: {
@@ -249,17 +249,17 @@ export type PhygitalTokenPluginInstructions = {
   initialize: (
     input: InitializeInput,
   ) => ReturnType<typeof getInitializeInstruction> & SelfPlanAndSendFunctions;
-  removeOwnership: (
-    input: RemoveOwnershipInput,
-  ) => ReturnType<typeof getRemoveOwnershipInstruction> &
+  removeLinkedWallet: (
+    input: RemoveLinkedWalletInput,
+  ) => ReturnType<typeof getRemoveLinkedWalletInstruction> &
+    SelfPlanAndSendFunctions;
+  setLinkedWallet: (
+    input: SetLinkedWalletInput,
+  ) => ReturnType<typeof getSetLinkedWalletInstruction> &
     SelfPlanAndSendFunctions;
   setMint: (
     input: SetMintInput,
   ) => ReturnType<typeof getSetMintInstruction> & SelfPlanAndSendFunctions;
-  transferOwnership: (
-    input: TransferOwnershipInput,
-  ) => ReturnType<typeof getTransferOwnershipInstruction> &
-    SelfPlanAndSendFunctions;
   verify: (
     input: VerifyInput,
   ) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
@@ -286,18 +286,18 @@ export function phygitalTokenProgram() {
               client,
               getInitializeInstruction(input),
             ),
-          removeOwnership: (input) =>
+          removeLinkedWallet: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getRemoveOwnershipInstruction(input),
+              getRemoveLinkedWalletInstruction(input),
+            ),
+          setLinkedWallet: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetLinkedWalletInstruction(input),
             ),
           setMint: (input) =>
             addSelfPlanAndSendFunctions(client, getSetMintInstruction(input)),
-          transferOwnership: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getTransferOwnershipInstruction(input),
-            ),
           verify: (input) =>
             addSelfPlanAndSendFunctions(client, getVerifyInstruction(input)),
         },

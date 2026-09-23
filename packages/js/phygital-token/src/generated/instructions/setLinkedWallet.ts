@@ -46,16 +46,16 @@ import {
   type Secp256r1VerifyArgsArgs,
 } from "../types/index.js";
 
-export const TRANSFER_OWNERSHIP_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([65, 177, 215, 73, 53, 45, 99, 47]);
+export const SET_LINKED_WALLET_DISCRIMINATOR: ReadonlyUint8Array =
+  new Uint8Array([118, 134, 6, 114, 75, 108, 86, 199]);
 
-export function getTransferOwnershipDiscriminatorBytes(): ReadonlyUint8Array {
+export function getSetLinkedWalletDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    TRANSFER_OWNERSHIP_DISCRIMINATOR,
+    SET_LINKED_WALLET_DISCRIMINATOR,
   );
 }
 
-export type TransferOwnershipInstruction<
+export type SetLinkedWalletInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountRecipient extends string | AccountMeta<string> = string,
   TAccountPhygitalToken extends string | AccountMeta<string> = string,
@@ -85,29 +85,29 @@ export type TransferOwnershipInstruction<
     ]
   >;
 
-export type TransferOwnershipInstructionData = {
+export type SetLinkedWalletInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
   slotNumber: bigint;
 };
 
-export type TransferOwnershipInstructionDataArgs = {
+export type SetLinkedWalletInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
   slotNumber: number | bigint;
 };
 
-export function getTransferOwnershipInstructionDataEncoder(): Encoder<TransferOwnershipInstructionDataArgs> {
+export function getSetLinkedWalletInstructionDataEncoder(): Encoder<SetLinkedWalletInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
       ["slotNumber", getU64Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: TRANSFER_OWNERSHIP_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: SET_LINKED_WALLET_DISCRIMINATOR }),
   );
 }
 
-export function getTransferOwnershipInstructionDataDecoder(): Decoder<TransferOwnershipInstructionData> {
+export function getSetLinkedWalletInstructionDataDecoder(): Decoder<SetLinkedWalletInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
@@ -115,17 +115,17 @@ export function getTransferOwnershipInstructionDataDecoder(): Decoder<TransferOw
   ]);
 }
 
-export function getTransferOwnershipInstructionDataCodec(): Codec<
-  TransferOwnershipInstructionDataArgs,
-  TransferOwnershipInstructionData
+export function getSetLinkedWalletInstructionDataCodec(): Codec<
+  SetLinkedWalletInstructionDataArgs,
+  SetLinkedWalletInstructionData
 > {
   return combineCodec(
-    getTransferOwnershipInstructionDataEncoder(),
-    getTransferOwnershipInstructionDataDecoder(),
+    getSetLinkedWalletInstructionDataEncoder(),
+    getSetLinkedWalletInstructionDataDecoder(),
   );
 }
 
-export type TransferOwnershipInput<
+export type SetLinkedWalletInput<
   TAccountRecipient extends string = string,
   TAccountPhygitalToken extends string = string,
   TAccountSlotHashes extends string = string,
@@ -135,25 +135,25 @@ export type TransferOwnershipInput<
   phygitalToken: Address<TAccountPhygitalToken>;
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-  secp256r1VerifyArgs: TransferOwnershipInstructionDataArgs["secp256r1VerifyArgs"];
-  slotNumber: TransferOwnershipInstructionDataArgs["slotNumber"];
+  secp256r1VerifyArgs: SetLinkedWalletInstructionDataArgs["secp256r1VerifyArgs"];
+  slotNumber: SetLinkedWalletInstructionDataArgs["slotNumber"];
 };
 
-export function getTransferOwnershipInstruction<
+export function getSetLinkedWalletInstruction<
   TAccountRecipient extends string,
   TAccountPhygitalToken extends string,
   TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: TransferOwnershipInput<
+  input: SetLinkedWalletInput<
     TAccountRecipient,
     TAccountPhygitalToken,
     TAccountSlotHashes,
     TAccountInstructionsSysvar
   >,
   config?: { programAddress?: TProgramAddress },
-): TransferOwnershipInstruction<
+): SetLinkedWalletInstruction<
   TProgramAddress,
   TAccountRecipient,
   TAccountPhygitalToken,
@@ -200,11 +200,11 @@ export function getTransferOwnershipInstruction<
       getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
     ],
-    data: getTransferOwnershipInstructionDataEncoder().encode(
-      args as TransferOwnershipInstructionDataArgs,
+    data: getSetLinkedWalletInstructionDataEncoder().encode(
+      args as SetLinkedWalletInstructionDataArgs,
     ),
     programAddress,
-  } as TransferOwnershipInstruction<
+  } as SetLinkedWalletInstruction<
     TProgramAddress,
     TAccountRecipient,
     TAccountPhygitalToken,
@@ -213,7 +213,7 @@ export function getTransferOwnershipInstruction<
   >);
 }
 
-export type ParsedTransferOwnershipInstruction<
+export type ParsedSetLinkedWalletInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
@@ -224,17 +224,17 @@ export type ParsedTransferOwnershipInstruction<
     slotHashes: TAccountMetas[2];
     instructionsSysvar: TAccountMetas[3];
   };
-  data: TransferOwnershipInstructionData;
+  data: SetLinkedWalletInstructionData;
 };
 
-export function parseTransferOwnershipInstruction<
+export function parseSetLinkedWalletInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedTransferOwnershipInstruction<TProgram, TAccountMetas> {
+): ParsedSetLinkedWalletInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -258,6 +258,6 @@ export function parseTransferOwnershipInstruction<
       slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
     },
-    data: getTransferOwnershipInstructionDataDecoder().decode(instruction.data),
+    data: getSetLinkedWalletInstructionDataDecoder().decode(instruction.data),
   };
 }

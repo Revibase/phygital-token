@@ -14,7 +14,7 @@ use borsh::BorshDeserialize;
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct PhygitalToken {
 pub discriminator: [u8; 8],
-pub owner: Address,
+pub linked_wallet: Address,
 pub mint: Address,
 pub last_sign_count: u32,
 pub token_type: u8,

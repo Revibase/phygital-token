@@ -88,7 +88,7 @@ impl Default for InitializeInstructionData {
                   pub identifier: Secp256r1Pubkey,
                 pub secp256r1_pubkey: Secp256r1Pubkey,
                 pub token_type: PhygitalTokenType,
-                pub owner: Address,
+                pub linked_wallet: Address,
       }
 
 impl InitializeInstructionArgs {
@@ -113,7 +113,7 @@ pub struct InitializeBuilder {
                         identifier: Option<Secp256r1Pubkey>,
                 secp256r1_pubkey: Option<Secp256r1Pubkey>,
                 token_type: Option<PhygitalTokenType>,
-                owner: Option<Address>,
+                linked_wallet: Option<Address>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -154,8 +154,8 @@ impl InitializeBuilder {
         self
       }
                 #[inline(always)]
-      pub fn owner(&mut self, owner: Address) -> &mut Self {
-        self.owner = Some(owner);
+      pub fn linked_wallet(&mut self, linked_wallet: Address) -> &mut Self {
+        self.linked_wallet = Some(linked_wallet);
         self
       }
         /// Add an additional account to the instruction.
@@ -181,7 +181,7 @@ impl InitializeBuilder {
                                                               identifier: self.identifier.clone().expect("identifier is not set"),
                                                                   secp256r1_pubkey: self.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
                                                                   token_type: self.token_type.clone().expect("token_type is not set"),
-                                                                  owner: self.owner.clone().expect("owner is not set"),
+                                                                  linked_wallet: self.linked_wallet.clone().expect("linked_wallet is not set"),
                                     };
     
     accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
@@ -318,7 +318,7 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
                                             identifier: None,
                                 secp256r1_pubkey: None,
                                 token_type: None,
-                                owner: None,
+                                linked_wallet: None,
                     __remaining_accounts: Vec::new(),
     });
     Self { instruction }
@@ -354,8 +354,8 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
         self
       }
                 #[inline(always)]
-      pub fn owner(&mut self, owner: Address) -> &mut Self {
-        self.instruction.owner = Some(owner);
+      pub fn linked_wallet(&mut self, linked_wallet: Address) -> &mut Self {
+        self.instruction.linked_wallet = Some(linked_wallet);
         self
       }
         /// Add an additional account to the instruction.
@@ -384,7 +384,7 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
                                                               identifier: self.instruction.identifier.clone().expect("identifier is not set"),
                                                                   secp256r1_pubkey: self.instruction.secp256r1_pubkey.clone().expect("secp256r1_pubkey is not set"),
                                                                   token_type: self.instruction.token_type.clone().expect("token_type is not set"),
-                                                                  owner: self.instruction.owner.clone().expect("owner is not set"),
+                                                                  linked_wallet: self.instruction.linked_wallet.clone().expect("linked_wallet is not set"),
                                     };
         let instruction = InitializeCpi {
         __program: self.instruction.__program,
@@ -409,7 +409,7 @@ struct InitializeCpiBuilderInstruction<'a, 'b> {
                         identifier: Option<Secp256r1Pubkey>,
                 secp256r1_pubkey: Option<Secp256r1Pubkey>,
                 token_type: Option<PhygitalTokenType>,
-                owner: Option<Address>,
+                linked_wallet: Option<Address>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

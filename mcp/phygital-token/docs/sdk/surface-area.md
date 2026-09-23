@@ -15,7 +15,7 @@ When recovery is ambiguous, the SDK selects the candidate with an initialized Ph
 
 | Export | Purpose |
 |--------|---------|
-| `getInitializeInstruction` | Create token PDA (seeded by passkey `secp256r1Pubkey`; pass token PDA from `findPhygitalTokenPda`; requires `owner`) |
+| `getInitializeInstruction` | Create token PDA (seeded by passkey `secp256r1Pubkey`; pass token PDA from `findPhygitalTokenPda`; requires `linkedWallet`) |
 | `parseSecp256r1Pubkey` | Parse a base64url 33-byte compressed secp256r1 public key |
 | `ADMIN` / `INITIALIZE_MULTISIG_PDA` | Admin vault and the Squads multisig that owns it on mainnet |
 
@@ -49,11 +49,11 @@ When recovery is ambiguous, the SDK selects the candidate with an initialized Ph
 
 See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `expectedOrigins` is set, `clientDataJSON.origin` must match one listed origin.
 
-## Remove ownership
+## Remove linked wallet
 
 | Export | Purpose |
 |--------|---------|
-| `getRemoveOwnershipInstruction` | Wallet-signed forfeiture — reset `phygital_token.owner` to default |
+| `getRemoveLinkedWalletInstruction` | Wallet-signed forfeiture — reset `phygital_token.linked_wallet` to default |
 
 ## Verification (off-chain only)
 
@@ -70,7 +70,7 @@ Pair `startAuthentication` (client) with `verifyResponse` (server). Every auth c
 |--------|---------|
 | `findPhygitalTokenPda` | Derive token PDA from passkey public key (base64url string or parsed `Secp256r1Pubkey`) |
 | `fetchPhygitalTokenByIdentifier` | Kit `Rpc`; `getProgramAccounts` memcmp on chip `identifier` |
-| `fetchPhygitalTokensByOwner` | Kit `Rpc` + `Address` owner |
+| `fetchPhygitalTokensByLinkedWallet` | Kit `Rpc` + `Address` linkedWallet |
 | `fetchPhygitalTokenByMint` | Kit `Address` mint + Kit `Rpc` |
 | `fetchPhygitalToken` | Generated helper — Kit `Rpc` + token PDA |
 
@@ -102,7 +102,7 @@ tx.add(...toWeb3Instructions(ixs));
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getInitializeInstruction`, `getTransferOwnershipInstruction`, `getVerifyInstruction`, `getRemoveOwnershipInstruction`, `getSetMintInstruction`, ...
+- Instructions: `getInitializeInstruction`, `getSetLinkedWalletInstruction`, `getVerifyInstruction`, `getRemoveLinkedWalletInstruction`, `getSetMintInstruction`, ...
 - Accounts: `fetchPhygitalToken`, `PhygitalToken`, ...
 - Types: `PhygitalTokenType` (`Permanent` | `Bearer` | `Controlled`), `Secp256r1Pubkey`, ...
 
@@ -110,8 +110,8 @@ Re-exported from `./generated/index.js`:
 
 Crate: `phygital-token-client` at `packages/rust/phygital-token`.
 
-On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `SetMintCpiBuilder`, `TransferOwnershipCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
+On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `SetMintCpiBuilder`, `SetLinkedWalletCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
 
-`PhygitalTokenType`: `Permanent` (0, immutable owner), `Bearer` (1), `Controlled` (2, lock/forfeit).
+`PhygitalTokenType`: `Permanent` (0, immutable linked wallet), `Bearer` (1), `Controlled` (2, lock/forfeit).
 
 Off-chain (`fetch` feature): RPC account fetching helpers.

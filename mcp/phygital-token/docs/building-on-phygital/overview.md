@@ -4,7 +4,7 @@ Third-party developers can:
 
 - **Authenticate off-chain** with a live NFC tap → `startAuthentication(message, rpc)` + `verifyResponse`
 - **Prove possession on-chain** (composable) → `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })` / `buildSecp256r1VerifyInstruction` (`verify` CPI)
-- **Transfer ownership on-chain** → `beginTransfer({ rpc, secp256r1Pubkey })` / `completeTransfer` (`transfer_ownership`)
+- **Set linked wallet on-chain** → `beginTransfer({ rpc, secp256r1Pubkey })` / `completeTransfer` (`set_linked_wallet`)
 - **Initialize tokens** → `findPhygitalTokenPda` + `getInitializeInstruction` (passkey seeds PDA; chip `identifier` stored for binding)
 - **Bind an SPL mint** → `getSetMintInstruction` (`set_mint`)
 
@@ -34,9 +34,9 @@ buildSecp256r1VerifyInstruction(tap)  // phygitalTokenPda from tap
 
 Hash with `buildMessageHash`, then tap. Pass the same digest to `VerifyCpiBuilder.message_hash`. Token PDA is derived after the NFC tap from `response.id`. Optional `.expected_rp_id(...)` / `.expected_origins(...)` are set on your CPI — omit them to skip; when `expected_origins` is set, the signed origin must match one entry. See `verification:verify-composable` and `building-on-phygital:rust-cpi`.
 
-`verify` advances `last_sign_count` — it does **not** change `phygital_token.owner`.
+`verify` advances `last_sign_count` — it does **not** change `phygital_token.linked_wallet`.
 
-## On-chain ownership
+## On-chain linked wallet
 
 ```
 beginTransfer({ rpc, secp256r1Pubkey, rpId? })
@@ -45,16 +45,16 @@ authenticatePasskeyForTransfer(session)
         ↓
 completeTransfer(session, response, recipient)  // passkey from response.id
         ↓
-send [secp256r1_verify, transfer_ownership]
+send [secp256r1_verify, set_linked_wallet]
 ```
 
-`beginTransfer` takes Kit `Rpc` and base64url `secp256r1Pubkey`; it derives the phygital token PDA internally. Optional `rpId` defaults to `window.location.hostname`. The passkey is taken from `response.id` in `completeTransfer`. `transfer_ownership` updates `phygital_token.owner` only — there is no SPL token / Token-2022 linkage.
+`beginTransfer` takes Kit `Rpc` and base64url `secp256r1Pubkey`; it derives the phygital token PDA internally. Optional `rpId` defaults to `window.location.hostname`. The passkey is taken from `response.id` in `completeTransfer`. `set_linked_wallet` updates `phygital_token.linked_wallet` only — there is no SPL token / Token-2022 linkage.
 
 Token types:
 
-- **Permanent** — `owner` must be set at `initialize`; `transfer_ownership` and `remove_ownership` are rejected (`PermanentOwnershipImmutable`). Discriminant `0` remaps former Controlled accounts.
+- **Permanent** — `linked_wallet` must be set at `initialize`; `set_linked_wallet` and `remove_linked_wallet` are rejected (`PermanentLinkedWalletImmutable`). Discriminant `0` remaps former Controlled accounts.
 - **Bearer** — freely re-transferable by passkey possession.
-- **Controlled** — must be unlocked (`is_locked == 0`) before transfer; re-locks after claim; forfeit via `remove_ownership` to unlock.
+- **Controlled** — must be unlocked (`is_locked == 0`) before transfer; re-locks after claim; forfeit via `remove_linked_wallet` to unlock.
 
 ## Message design checklist
 
@@ -69,4 +69,4 @@ Token types:
 
 **TypeScript:** `phygital-token-sdk` — `startAuthentication`, `verifyResponse`, `buildMessageHash`, `authenticatePasskeyForSecp256r1Verify`, `buildSecp256r1VerifyInstruction`, `beginTransfer`, `completeTransfer`, `getInitializeInstruction`, `getSetMintInstruction`
 
-**Rust:** `phygital-token-client` at `packages/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify`, `transfer_ownership`, `remove_ownership`, `set_mint`
+**Rust:** `phygital-token-client` at `packages/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify`, `set_linked_wallet`, `remove_linked_wallet`, `set_mint`

@@ -40,7 +40,7 @@ if (isVerified) {
     rpc,
     await findPhygitalTokenPda(secp256r1PublicKey),
   );
-  // Proceed with custom logic using data.owner or data.mint
+  // Proceed with custom logic using data.linkedWallet or data.mint
 }
 ```
 

@@ -2,7 +2,7 @@
   "address": "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
   "metadata": {
     "name": "phygital_token",
-    "version": "0.4.0",
+    "version": "0.6.0",
     "spec": "0.1.0",
     "description": "Solana program for phygital tokens with WebAuthn passkey verification",
     "repository": "https://github.com/Revibase/phygital-token"
@@ -48,20 +48,20 @@
       ]
     },
     {
-      "name": "remove_ownership",
+      "name": "remove_linked_wallet",
       "discriminator": [
-        58,
-        70,
-        125,
-        46,
-        39,
-        24,
-        46,
-        240
+        7,
+        178,
+        142,
+        3,
+        161,
+        131,
+        177,
+        97
       ],
       "accounts": [
         {
-          "name": "owner",
+          "name": "linked_wallet",
           "signer": true
         },
         {
@@ -72,46 +72,16 @@
       "args": []
     },
     {
-      "name": "set_mint",
+      "name": "set_linked_wallet",
       "discriminator": [
-        166,
-        129,
-        167,
-        223,
-        137,
         118,
-        212,
-        47
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "signer": true,
-          "address": "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF"
-        },
-        {
-          "name": "phygital_token",
-          "writable": true
-        }
-      ],
-      "args": [
-        {
-          "name": "mint",
-          "type": "pubkey"
-        }
-      ]
-    },
-    {
-      "name": "transfer_ownership",
-      "discriminator": [
-        65,
-        177,
-        215,
-        73,
-        53,
-        45,
-        99,
-        47
+        134,
+        6,
+        114,
+        75,
+        108,
+        86,
+        199
       ],
       "accounts": [
         {
@@ -143,6 +113,36 @@
         {
           "name": "slot_number",
           "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_mint",
+      "discriminator": [
+        166,
+        129,
+        167,
+        223,
+        137,
+        118,
+        212,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "address": "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF"
+        },
+        {
+          "name": "phygital_token",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "mint",
+          "type": "pubkey"
         }
       ]
     },
@@ -240,16 +240,29 @@
       ]
     },
     {
-      "name": "RemoveOwnershipEvent",
+      "name": "RemoveLinkedWalletEvent",
       "discriminator": [
-        61,
-        189,
-        181,
-        181,
-        66,
-        180,
-        172,
-        3
+        95,
+        70,
+        121,
+        173,
+        81,
+        218,
+        242,
+        83
+      ]
+    },
+    {
+      "name": "SetLinkedWalletEvent",
+      "discriminator": [
+        155,
+        114,
+        79,
+        24,
+        64,
+        122,
+        22,
+        188
       ]
     },
     {
@@ -263,19 +276,6 @@
         104,
         87,
         76
-      ]
-    },
-    {
-      "name": "TransferEvent",
-      "discriminator": [
-        100,
-        10,
-        46,
-        113,
-        8,
-        28,
-        179,
-        125
       ]
     }
   ],
@@ -307,13 +307,13 @@
     },
     {
       "code": 6005,
-      "name": "OwnerMismatch",
-      "msg": "Phygital token owner mismatch"
+      "name": "LinkedWalletMismatch",
+      "msg": "Phygital token linked wallet mismatch"
     },
     {
       "code": 6006,
       "name": "InvalidSlotHash",
-      "msg": "Slot not found in SlotHashes sysvar — signature has expired or is being replayed"
+      "msg": "Slot not found in SlotHashes sysvar \u2014 signature has expired or is being replayed"
     },
     {
       "code": 6007,
@@ -338,7 +338,7 @@
     {
       "code": 6011,
       "name": "TokenIsCurrentlyLocked",
-      "msg": "The owner needs to unlock the phygital token to enable transfer."
+      "msg": "The linked wallet needs to unlock the phygital token to enable transfer."
     },
     {
       "code": 6012,
@@ -382,13 +382,13 @@
     },
     {
       "code": 6020,
-      "name": "PermanentOwnerRequired",
-      "msg": "Permanent phygital tokens require a non-default owner at initialize."
+      "name": "PermanentLinkedWalletRequired",
+      "msg": "Permanent phygital tokens require a non-default linked wallet at initialize."
     },
     {
       "code": 6021,
-      "name": "PermanentOwnershipImmutable",
-      "msg": "Permanent phygital token ownership cannot be transferred or removed."
+      "name": "PermanentLinkedWalletImmutable",
+      "msg": "Permanent phygital token linked wallet cannot be transferred or removed."
     }
   ],
   "types": [
@@ -422,7 +422,7 @@
             }
           },
           {
-            "name": "owner",
+            "name": "linked_wallet",
             "type": "pubkey"
           }
         ]
@@ -454,7 +454,7 @@
             }
           },
           {
-            "name": "owner",
+            "name": "linked_wallet",
             "type": "pubkey"
           },
           {
@@ -478,7 +478,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "owner",
+            "name": "linked_wallet",
             "type": "pubkey"
           },
           {
@@ -537,12 +537,12 @@
       }
     },
     {
-      "name": "RemoveOwnershipEvent",
+      "name": "RemoveLinkedWalletEvent",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "owner",
+            "name": "linked_wallet",
             "type": "pubkey"
           },
           {
@@ -602,6 +602,38 @@
       }
     },
     {
+      "name": "SetLinkedWalletEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "linked_wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "identifier",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "SetMintEvent",
       "type": {
         "kind": "struct",
@@ -629,38 +661,6 @@
           {
             "name": "mint",
             "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "TransferEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "recipient",
-            "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "public_key",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "identifier",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
           }
         ]
       }

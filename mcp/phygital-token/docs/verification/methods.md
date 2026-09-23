@@ -74,7 +74,7 @@ Typical flow:
 | UI login / vault gate, no tx | `startAuthentication(message, rpc)` + `verifyResponse` |
 | Load on-chain state after a tap | `verifyResponse` → `findPhygitalTokenPda` + `fetchPhygitalToken` |
 | Look up by chip identifier | `fetchPhygitalTokenByIdentifier` |
-| Transfer ownership | `beginTransfer({ rpc, secp256r1Pubkey })` → `completeTransfer` (passkey from `response.id`) |
+| Set linked wallet | `beginTransfer({ rpc, secp256r1Pubkey })` → `completeTransfer` (passkey from `response.id`) |
 | On-chain possession proof / CPI | `buildMessageHash` → `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })` → `buildSecp256r1VerifyInstruction` |
 
 ## Message binding
@@ -85,4 +85,4 @@ Typical flow:
 | `beginTransfer` | slot-bound challenge | Built from phygital token PDA + slot hash — not the same as `expectedMessage` |
 | `authenticatePasskeyForSecp256r1Verify` | `Uint8Array` (`messageHash`, 32 bytes) | WebAuthn challenge and on-chain `message_hash`. Hash with `buildMessageHash` first. |
 
-An off-chain `expectedMessage` does **not** change on-chain ownership. Use the transfer flow when you need `transfer_ownership`. Use `verify` when another program needs an on-chain possession proof. Optional on-chain origin/rpId checks are `expected_origins: Option<Vec<String>>` and `expected_rp_id: Option<String>` on the `verify` CPI.
+An off-chain `expectedMessage` does **not** change `phygital_token.linked_wallet`. Use the transfer flow when you need `set_linked_wallet`. Use `verify` when another program needs an on-chain possession proof. Optional on-chain origin/rpId checks are `expected_origins: Option<Vec<String>>` and `expected_rp_id: Option<String>` on the `verify` CPI.

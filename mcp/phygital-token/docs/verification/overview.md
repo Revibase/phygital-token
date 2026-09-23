@@ -7,8 +7,8 @@ Phygital authentication always requires a **live NFC tap**. There is no signed-U
 ```
 Need the holder physically present?
 └─ YES (always for auth)
-    ├── Need on-chain ownership change?
-    │     YES → beginTransfer({ rpc, secp256r1Pubkey }) → completeTransfer (transfer_ownership)
+    ├── Need on-chain linked-wallet change?
+    │     YES → beginTransfer({ rpc, secp256r1Pubkey }) → completeTransfer (set_linked_wallet)
     │     NO  → Need on-chain possession proof for your program?
     │           YES → buildMessageHash → authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })
     │                 → buildSecp256r1VerifyInstruction
@@ -42,11 +42,11 @@ After a successful verify, look up on-chain state with `findPhygitalTokenPda(sec
 
 ## On-chain `verify` (composable)
 
-Use `buildMessageHash(message)` then `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })` when another program needs an on-chain possession proof. Pass the same digest to `VerifyCpiBuilder.message_hash`. Optional `expected_rp_id` / `expected_origins` are set on your CPI (`None` skips; when `expected_origins` is set, the signed origin must match one listed origin) — not on the tap helper. The phygital token PDA is derived after the NFC tap (`phygitalTokenPda`). Does **not** change `phygital_token.owner`. See [Composable verify](./verify-composable.md) and [Rust CPI](../building-on-phygital/rust-cpi.md).
+Use `buildMessageHash(message)` then `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })` when another program needs an on-chain possession proof. Pass the same digest to `VerifyCpiBuilder.message_hash`. Optional `expected_rp_id` / `expected_origins` are set on your CPI (`None` skips; when `expected_origins` is set, the signed origin must match one listed origin) — not on the tap helper. The phygital token PDA is derived after the NFC tap (`phygitalTokenPda`). Does **not** change `phygital_token.linked_wallet`. See [Composable verify](./verify-composable.md) and [Rust CPI](../building-on-phygital/rust-cpi.md).
 
-## On-chain ownership change
+## On-chain linked-wallet change
 
-Use `beginTransfer({ rpc, secp256r1Pubkey, rpId? })` → `authenticatePasskeyForTransfer` → `completeTransfer`. `beginTransfer` derives the phygital token PDA from the passkey. Optional `rpId` defaults to `window.location.hostname`. The passkey comes from `response.id` at complete time. That builds `secp256r1_verify` + `transfer_ownership`, which updates `phygital_token.owner` only (no SPL token).
+Use `beginTransfer({ rpc, secp256r1Pubkey, rpId? })` → `authenticatePasskeyForTransfer` → `completeTransfer`. `beginTransfer` derives the phygital token PDA from the passkey. Optional `rpId` defaults to `window.location.hostname`. The passkey comes from `response.id` at complete time. That builds `secp256r1_verify` + `set_linked_wallet`, which updates `phygital_token.linked_wallet` only (no SPL token).
 
 ## Message binding
 

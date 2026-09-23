@@ -11,7 +11,7 @@ pub struct InitializeEvent {
     pub authority: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
-    pub owner: Pubkey,
+    pub linked_wallet: Pubkey,
     pub token_type: PhygitalTokenType,
 }
 
@@ -20,7 +20,7 @@ pub struct InitializeArgs {
     pub identifier: Secp256r1Pubkey,
     pub secp256r1_pubkey: Secp256r1Pubkey,
     pub token_type: PhygitalTokenType,
-    pub owner: Pubkey,
+    pub linked_wallet: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -48,22 +48,22 @@ pub fn handler(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
     let mut token = ctx.accounts.phygital_token.load_init()?;
     if args.token_type == PhygitalTokenType::Permanent {
         require!(
-            args.owner != Pubkey::default(),
-            PhygitalError::PermanentOwnerRequired
+            args.linked_wallet != Pubkey::default(),
+            PhygitalError::PermanentLinkedWalletRequired
         );
     }
     token.init(
         args.identifier,
         args.token_type,
         args.secp256r1_pubkey,
-        args.owner,
+        args.linked_wallet,
     );
 
     emit!(InitializeEvent {
         identifier: args.identifier,
         authority: ctx.accounts.authority.key(),
         public_key: args.secp256r1_pubkey,
-        owner: args.owner,
+        linked_wallet: args.linked_wallet,
         token_type: args.token_type
     });
 

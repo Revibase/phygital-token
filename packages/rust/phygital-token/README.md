@@ -12,13 +12,13 @@ phygital-token-client = "1.1"
 For on-chain CPI helpers (Anchor):
 
 ```toml
-phygital-token-client = { version = "1.1", features = ["anchor"] }
+phygital-token-client = { version = "1.2", features = ["anchor"] }
 ```
 
 For off-chain account fetching:
 
 ```toml
-phygital-token-client = { version = "1.1", features = ["fetch"] }
+phygital-token-client = { version = "1.2", features = ["fetch"] }
 ```
 
 ## Usage
@@ -27,7 +27,7 @@ The crate re-exports generated instruction builders, account layouts, types, and
 
 ```rust
 use phygital_token_client::{
-    instructions::{TransferOwnershipCpiBuilder, VerifyCpiBuilder, SetMintCpiBuilder},
+    instructions::{SetLinkedWalletCpiBuilder, VerifyCpiBuilder, SetMintCpiBuilder},
     types::PhygitalTokenType,
     PHYGITAL_TOKEN_ID,
 };

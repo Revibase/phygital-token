@@ -34,18 +34,18 @@ fn verify_succeeds_and_records_sign_count() {
 }
 
 #[test]
-fn verify_does_not_change_owner() {
+fn verify_does_not_change_linked_wallet() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
-    let owner_before = ctx.phygital_token_owner(phygital_token.phygital_token);
+    let linked_wallet_before = ctx.phygital_token_linked_wallet(phygital_token.phygital_token);
 
     ctx.send_verify(&phygital_token, TEST_MESSAGE_HASH, true)
         .expect("verify should succeed");
 
-    let owner_after = ctx.phygital_token_owner(phygital_token.phygital_token);
-    assert_eq!(owner_before, owner_after);
-    assert_eq!(owner_after, Pubkey::default());
+    let linked_wallet_after = ctx.phygital_token_linked_wallet(phygital_token.phygital_token);
+    assert_eq!(linked_wallet_before, linked_wallet_after);
+    assert_eq!(linked_wallet_after, Pubkey::default());
 }
 
 #[test]
@@ -170,7 +170,7 @@ fn verify_sign_count_monotonicity_survives_transfer() {
         .expect("verify before transfer");
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 1);
 
-    ctx.send_transfer_ownership(&phygital_token, &recipient, true)
+    ctx.send_set_linked_wallet(&phygital_token, &recipient, true)
         .expect("transfer after verify");
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 2);
 

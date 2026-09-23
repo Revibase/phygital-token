@@ -1,8 +1,8 @@
 pub mod initialize;
 pub use initialize::*;
 
-pub mod transfer_ownership;
-pub use transfer_ownership::*;
+pub mod set_linked_wallet;
+pub use set_linked_wallet::*;
 
 pub mod set_mint;
 pub use set_mint::*;
@@ -10,5 +10,5 @@ pub use set_mint::*;
 pub mod verify;
 pub use verify::*;
 
-pub mod remove_ownership;
-pub use remove_ownership::*;
+pub mod remove_linked_wallet;
+pub use remove_linked_wallet::*;

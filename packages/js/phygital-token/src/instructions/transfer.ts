@@ -17,7 +17,7 @@ import {
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
-import { getTransferOwnershipInstruction } from "../generated/index.js";
+import { getSetLinkedWalletInstruction } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 import { findPhygitalTokenPda } from "../utils/pdas/token.js";
 import type { Base64URLString } from "../utils/passkey/webauthn.js";
@@ -90,7 +90,7 @@ export async function authenticatePasskeyForTransfer(
 
 /**
  * Builds the two on-chain instructions after passkey authentication.
- * Ownership is updated on the phygital token PDA only — no SPL token transfer.
+ * Linked wallet is updated on the phygital token PDA only — no SPL token transfer.
  *
  * @param recipient - Kit `TransactionSigner`. Convert a web3.js Keypair with `toTransactionSigner`.
  */
@@ -107,7 +107,7 @@ export async function completeTransfer(
       existingSecp256r1VerifyInputs,
     });
 
-  const transferOwnership = getTransferOwnershipInstruction({
+  const setLinkedWallet = getSetLinkedWalletInstruction({
     recipient,
     phygitalToken: session.phygitalToken,
     slotNumber: session.slotNumber,
@@ -118,5 +118,5 @@ export async function completeTransfer(
     },
   });
 
-  return [secp256r1VerifyInstruction, transferOwnership];
+  return [secp256r1VerifyInstruction, setLinkedWallet];
 }

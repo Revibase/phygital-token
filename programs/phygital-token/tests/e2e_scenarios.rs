@@ -19,11 +19,11 @@ fn e2e_happy_lifecycle_with_retransfer() {
     let second_recipient = Keypair::new();
 
     let (first_slot, _) = current_slot_entry(&ctx.svm);
-    ctx.send_transfer_ownership(&phygital_token, &first_recipient, true)
+    ctx.send_set_linked_wallet(&phygital_token, &first_recipient, true)
         .expect("claim");
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 1);
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         first_recipient.pubkey()
     );
 
@@ -31,7 +31,7 @@ fn e2e_happy_lifecycle_with_retransfer() {
     ctx.set_current_slot(second_slot);
     let (second_slot, second_hash) = current_slot_entry(&ctx.svm);
 
-    ctx.send_transfer_ownership_at_slot(
+    ctx.send_set_linked_wallet_at_slot(
         &phygital_token,
         &second_recipient,
         true,
@@ -43,13 +43,13 @@ fn e2e_happy_lifecycle_with_retransfer() {
 
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 2);
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         second_recipient.pubkey()
     );
 }
 
 #[test]
-fn e2e_remove_ownership_then_reclaim() {
+fn e2e_remove_linked_wallet_then_reclaim() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -57,91 +57,91 @@ fn e2e_remove_ownership_then_reclaim() {
     let second_holder = Keypair::new();
 
     let (first_slot, _) = current_slot_entry(&ctx.svm);
-    ctx.send_transfer_ownership(&phygital_token, &first_holder, true)
+    ctx.send_set_linked_wallet(&phygital_token, &first_holder, true)
         .expect("initial claim");
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         first_holder.pubkey()
     );
 
-    ctx.send_remove_ownership(&phygital_token, &first_holder)
-        .expect("holder relinquishes ownership");
+    ctx.send_remove_linked_wallet(&phygital_token, &first_holder)
+        .expect("holder relinquishes linked wallet");
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         Pubkey::default()
     );
 
     let second_slot = first_slot.saturating_add(1);
     ctx.set_current_slot(second_slot);
 
-    ctx.send_transfer_ownership(&phygital_token, &second_holder, true)
-        .expect("re-claim after remove ownership");
+    ctx.send_set_linked_wallet(&phygital_token, &second_holder, true)
+        .expect("re-claim after remove linked wallet");
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 2);
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         second_holder.pubkey()
     );
 }
 
 #[test]
-fn e2e_remove_ownership_from_unowned_token_is_rejected() {
+fn e2e_remove_linked_wallet_from_unowned_token_is_rejected() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
 
-    // Nobody has claimed the phygital_token, so owner is the default pubkey.
+    // Nobody has claimed the phygital_token, so linked_wallet is the default pubkey.
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         Pubkey::default()
     );
 
-    let fake_owner = Keypair::new();
+    let fake_linked_wallet = Keypair::new();
     ctx.svm
-        .airdrop(&fake_owner.pubkey(), common::LAMPORTS_PER_SOL)
+        .airdrop(&fake_linked_wallet.pubkey(), common::LAMPORTS_PER_SOL)
         .unwrap();
 
-    let err = ctx.send_remove_ownership(&phygital_token, &fake_owner);
-    assert_phygital_token_program_error(err, "OwnerMismatch");
+    let err = ctx.send_remove_linked_wallet(&phygital_token, &fake_linked_wallet);
+    assert_phygital_token_program_error(err, "LinkedWalletMismatch");
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         Pubkey::default()
     );
 }
 
 #[test]
-fn e2e_permanent_owner_cannot_transfer_or_forfeit() {
+fn e2e_permanent_linked_wallet_cannot_transfer_or_forfeit() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let owner = Keypair::new();
     let next_recipient = Keypair::new();
     let phygital_token =
-        ctx.init_phygital_token_with_owner(&passkey, PhygitalTokenType::Permanent, owner.pubkey());
+        ctx.init_phygital_token_with_linked_wallet(&passkey, PhygitalTokenType::Permanent, owner.pubkey());
 
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         owner.pubkey()
     );
 
-    let err = ctx.send_transfer_ownership(&phygital_token, &next_recipient, true);
-    assert_phygital_token_program_error(err, "PermanentOwnershipImmutable");
+    let err = ctx.send_set_linked_wallet(&phygital_token, &next_recipient, true);
+    assert_phygital_token_program_error(err, "PermanentLinkedWalletImmutable");
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         owner.pubkey()
     );
 
     ctx.svm
         .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
         .unwrap();
-    let err = ctx.send_remove_ownership(&phygital_token, &owner);
-    assert_phygital_token_program_error(err, "PermanentOwnershipImmutable");
+    let err = ctx.send_remove_linked_wallet(&phygital_token, &owner);
+    assert_phygital_token_program_error(err, "PermanentLinkedWalletImmutable");
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         owner.pubkey()
     );
 }
 
 #[test]
-fn e2e_permanent_initialize_requires_owner() {
+fn e2e_permanent_initialize_requires_linked_wallet() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
@@ -150,11 +150,11 @@ fn e2e_permanent_initialize_requires_owner() {
         identifier: unique_identifier(),
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Permanent,
-        owner: Pubkey::default(),
+        linked_wallet: Pubkey::default(),
     };
     let ix = ctx.initialize_ix(ADMIN, phygital_token, args);
     let result = TestContext::send_instruction_as(&mut ctx.svm, ix, ADMIN);
-    assert_phygital_token_program_error(result, "PermanentOwnerRequired");
+    assert_phygital_token_program_error(result, "PermanentLinkedWalletRequired");
 }
 
 #[test]
@@ -168,7 +168,7 @@ fn e2e_token_pubkey_reinit_is_blocked() {
         identifier: unique_identifier(),
         secp256r1_pubkey: Secp256r1Pubkey(passkey.compressed_pubkey),
         token_type: PhygitalTokenType::Bearer,
-        owner: Pubkey::default(),
+        linked_wallet: Pubkey::default(),
     };
     let ix = ctx.initialize_ix(ADMIN, phygital_token.phygital_token, args);
     TestContext::send_instruction_as(&mut ctx.svm, ix, ADMIN)
@@ -185,7 +185,7 @@ fn e2e_initialize_rejects_non_authority() {
         identifier: unique_identifier(),
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
-        owner: Pubkey::default(),
+        linked_wallet: Pubkey::default(),
     };
     let stranger = ctx.payer.insecure_clone();
     let ix = ctx.initialize_ix(stranger.pubkey(), phygital_token, args);
@@ -210,11 +210,11 @@ fn e2e_set_mint_then_transfer() {
         .expect("bind mint before first claim");
     assert_eq!(ctx.phygital_token_mint(phygital_token.phygital_token), mint);
 
-    ctx.send_transfer_ownership(&phygital_token, &recipient, true)
+    ctx.send_set_linked_wallet(&phygital_token, &recipient, true)
         .expect("claim after set_mint");
 
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         recipient.pubkey()
     );
     assert_eq!(

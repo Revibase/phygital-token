@@ -7,7 +7,7 @@
  */
 
 export * from "./initialize.js";
-export * from "./removeOwnership.js";
+export * from "./removeLinkedWallet.js";
+export * from "./setLinkedWallet.js";
 export * from "./setMint.js";
-export * from "./transferOwnership.js";
 export * from "./verify.js";

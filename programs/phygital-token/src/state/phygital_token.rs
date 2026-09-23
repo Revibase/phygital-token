@@ -5,7 +5,7 @@ use crate::utils::Secp256r1Pubkey;
 #[repr(u8)]
 #[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone, Copy)]
 pub enum PhygitalTokenType {
-    /// Owner must be set at initialize and can never be transferred or removed.
+    /// Linked wallet must be set at initialize and can never be transferred or removed.
     Permanent,
     /// Freely transferable by possession.
     Bearer,
@@ -16,7 +16,7 @@ pub enum PhygitalTokenType {
 #[account(zero_copy(unsafe))]
 #[repr(C)]
 pub struct PhygitalToken {
-    pub owner: Pubkey,
+    pub linked_wallet: Pubkey,
     pub mint: Pubkey,
     pub last_sign_count: u32,
     pub token_type: u8,
@@ -33,12 +33,12 @@ impl PhygitalToken {
         identifier: Secp256r1Pubkey,
         token_type: PhygitalTokenType,
         public_key: Secp256r1Pubkey,
-        owner: Pubkey,
+        linked_wallet: Pubkey,
     ) {
         self.identifier = identifier;
         self.token_type = token_type as u8;
         self.public_key = public_key;
-        self.owner = owner;
-        self.is_locked = (owner != Pubkey::default()) as u8;
+        self.linked_wallet = linked_wallet;
+        self.is_locked = (linked_wallet != Pubkey::default()) as u8;
     }
 }

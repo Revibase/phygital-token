@@ -67,16 +67,16 @@ fn set_mint_rejects_non_authority() {
 }
 
 #[test]
-fn set_mint_does_not_change_owner_or_sign_count() {
+fn set_mint_does_not_change_linked_wallet_or_sign_count() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
     let holder = Keypair::new();
     let mint = Keypair::new().pubkey();
 
-    ctx.send_transfer_ownership(&phygital_token, &holder, true)
+    ctx.send_set_linked_wallet(&phygital_token, &holder, true)
         .expect("claim phygital_token");
-    let owner_before = ctx.phygital_token_owner(phygital_token.phygital_token);
+    let linked_wallet_before = ctx.phygital_token_linked_wallet(phygital_token.phygital_token);
     let sign_count_before = ctx.last_sign_count(phygital_token.phygital_token);
 
     ctx.send_set_mint(phygital_token.phygital_token, mint)
@@ -84,12 +84,12 @@ fn set_mint_does_not_change_owner_or_sign_count() {
 
     assert_eq!(ctx.phygital_token_mint(phygital_token.phygital_token), mint);
     assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
-        owner_before
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
+        linked_wallet_before
     );
     assert_eq!(
         ctx.last_sign_count(phygital_token.phygital_token),
         sign_count_before
     );
-    assert_eq!(owner_before, holder.pubkey());
+    assert_eq!(linked_wallet_before, holder.pubkey());
 }

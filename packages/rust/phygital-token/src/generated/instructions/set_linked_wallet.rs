@@ -9,11 +9,11 @@ use crate::generated::types::Secp256r1VerifyArgs;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
-pub const TRANSFER_OWNERSHIP_DISCRIMINATOR: [u8; 8] = [65, 177, 215, 73, 53, 45, 99, 47];
+pub const SET_LINKED_WALLET_DISCRIMINATOR: [u8; 8] = [118, 134, 6, 114, 75, 108, 86, 199];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct TransferOwnership {
+pub struct SetLinkedWallet {
       
               
           pub recipient: solana_address::Address,
@@ -28,13 +28,13 @@ pub struct TransferOwnership {
           pub instructions_sysvar: solana_address::Address,
       }
 
-impl TransferOwnership {
-  pub fn instruction(&self, args: TransferOwnershipInstructionArgs) -> solana_instruction::Instruction {
+impl SetLinkedWallet {
+  pub fn instruction(&self, args: SetLinkedWalletInstructionArgs) -> solana_instruction::Instruction {
     self.instruction_with_remaining_accounts(args, &[])
   }
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: TransferOwnershipInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
+  pub fn instruction_with_remaining_accounts(&self, args: SetLinkedWalletInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
     let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.recipient,
@@ -53,7 +53,7 @@ impl TransferOwnership {
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
-    let mut data = TransferOwnershipInstructionData::new().try_to_vec().unwrap();
+    let mut data = SetLinkedWalletInstructionData::new().try_to_vec().unwrap();
           let mut args = args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -66,14 +66,14 @@ impl TransferOwnership {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct TransferOwnershipInstructionData {
+ pub struct SetLinkedWalletInstructionData {
             discriminator: [u8; 8],
                   }
 
-impl TransferOwnershipInstructionData {
+impl SetLinkedWalletInstructionData {
   pub fn new() -> Self {
     Self {
-                        discriminator: [65, 177, 215, 73, 53, 45, 99, 47],
+                        discriminator: [118, 134, 6, 114, 75, 108, 86, 199],
                                               }
   }
 
@@ -82,26 +82,26 @@ impl TransferOwnershipInstructionData {
   }
   }
 
-impl Default for TransferOwnershipInstructionData {
+impl Default for SetLinkedWalletInstructionData {
   fn default() -> Self {
     Self::new()
   }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct TransferOwnershipInstructionArgs {
+ pub struct SetLinkedWalletInstructionArgs {
                   pub secp256r1_verify_args: Secp256r1VerifyArgs,
                 pub slot_number: u64,
       }
 
-impl TransferOwnershipInstructionArgs {
+impl SetLinkedWalletInstructionArgs {
   pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
     borsh::to_vec(self)
   }
 }
 
 
-/// Instruction builder for `TransferOwnership`.
+/// Instruction builder for `SetLinkedWallet`.
 ///
 /// ### Accounts:
 ///
@@ -110,7 +110,7 @@ impl TransferOwnershipInstructionArgs {
                 ///   2. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
                 ///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct TransferOwnershipBuilder {
+pub struct SetLinkedWalletBuilder {
             recipient: Option<solana_address::Address>,
                 phygital_token: Option<solana_address::Address>,
                 slot_hashes: Option<solana_address::Address>,
@@ -120,7 +120,7 @@ pub struct TransferOwnershipBuilder {
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl TransferOwnershipBuilder {
+impl SetLinkedWalletBuilder {
   pub fn new() -> Self {
     Self::default()
   }
@@ -170,13 +170,13 @@ impl TransferOwnershipBuilder {
   }
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = TransferOwnership {
+    let accounts = SetLinkedWallet {
                               recipient: self.recipient.expect("recipient is not set"),
                                         phygital_token: self.phygital_token.expect("phygital_token is not set"),
                                         slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!("SysvarS1otHashes111111111111111111111111111")),
                                         instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
                       };
-          let args = TransferOwnershipInstructionArgs {
+          let args = SetLinkedWalletInstructionArgs {
                                                               secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
                                                                   slot_number: self.slot_number.clone().expect("slot_number is not set"),
                                     };
@@ -185,8 +185,8 @@ impl TransferOwnershipBuilder {
   }
 }
 
-  /// `transfer_ownership` CPI accounts.
-  pub struct TransferOwnershipCpiAccounts<'a, 'b> {
+  /// `set_linked_wallet` CPI accounts.
+  pub struct SetLinkedWalletCpiAccounts<'a, 'b> {
           
                     
               pub recipient: &'b solana_account_info::AccountInfo<'a>,
@@ -201,8 +201,8 @@ impl TransferOwnershipBuilder {
               pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
             }
 
-/// `transfer_ownership` CPI instruction.
-pub struct TransferOwnershipCpi<'a, 'b> {
+/// `set_linked_wallet` CPI instruction.
+pub struct SetLinkedWalletCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_account_info::AccountInfo<'a>,
       
@@ -218,14 +218,14 @@ pub struct TransferOwnershipCpi<'a, 'b> {
               
           pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
             /// The arguments for the instruction.
-    pub __args: TransferOwnershipInstructionArgs,
+    pub __args: SetLinkedWalletInstructionArgs,
   }
 
-impl<'a, 'b> TransferOwnershipCpi<'a, 'b> {
+impl<'a, 'b> SetLinkedWalletCpi<'a, 'b> {
   pub fn new(
     program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: TransferOwnershipCpiAccounts<'a, 'b>,
-              args: TransferOwnershipInstructionArgs,
+          accounts: SetLinkedWalletCpiAccounts<'a, 'b>,
+              args: SetLinkedWalletInstructionArgs,
       ) -> Self {
     Self {
       __program: program,
@@ -280,7 +280,7 @@ impl<'a, 'b> TransferOwnershipCpi<'a, 'b> {
           is_writable: remaining_account.2,
       })
     });
-    let mut data = TransferOwnershipInstructionData::new().try_to_vec().unwrap();
+    let mut data = SetLinkedWalletInstructionData::new().try_to_vec().unwrap();
           let mut args = self.__args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -305,7 +305,7 @@ impl<'a, 'b> TransferOwnershipCpi<'a, 'b> {
   }
 }
 
-/// Instruction builder for `TransferOwnership` via CPI.
+/// Instruction builder for `SetLinkedWallet` via CPI.
 ///
 /// ### Accounts:
 ///
@@ -314,13 +314,13 @@ impl<'a, 'b> TransferOwnershipCpi<'a, 'b> {
           ///   2. `[]` slot_hashes
           ///   3. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
-pub struct TransferOwnershipCpiBuilder<'a, 'b> {
-  instruction: Box<TransferOwnershipCpiBuilderInstruction<'a, 'b>>,
+pub struct SetLinkedWalletCpiBuilder<'a, 'b> {
+  instruction: Box<SetLinkedWalletCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> TransferOwnershipCpiBuilder<'a, 'b> {
+impl<'a, 'b> SetLinkedWalletCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(TransferOwnershipCpiBuilderInstruction {
+    let instruction = Box::new(SetLinkedWalletCpiBuilderInstruction {
       __program: program,
               recipient: None,
               phygital_token: None,
@@ -384,11 +384,11 @@ impl<'a, 'b> TransferOwnershipCpiBuilder<'a, 'b> {
   #[allow(clippy::clone_on_copy)]
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = TransferOwnershipInstructionArgs {
+          let args = SetLinkedWalletInstructionArgs {
                                                               secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
                                                                   slot_number: self.instruction.slot_number.clone().expect("slot_number is not set"),
                                     };
-        let instruction = TransferOwnershipCpi {
+        let instruction = SetLinkedWalletCpi {
         __program: self.instruction.__program,
                   
           recipient: self.instruction.recipient.expect("recipient is not set"),
@@ -405,7 +405,7 @@ impl<'a, 'b> TransferOwnershipCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct TransferOwnershipCpiBuilderInstruction<'a, 'b> {
+struct SetLinkedWalletCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
                 phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,

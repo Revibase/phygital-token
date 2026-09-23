@@ -8,20 +8,20 @@
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
-pub const REMOVE_OWNERSHIP_DISCRIMINATOR: [u8; 8] = [58, 70, 125, 46, 39, 24, 46, 240];
+pub const REMOVE_LINKED_WALLET_DISCRIMINATOR: [u8; 8] = [7, 178, 142, 3, 161, 131, 177, 97];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct RemoveOwnership {
+pub struct RemoveLinkedWallet {
       
               
-          pub owner: solana_address::Address,
+          pub linked_wallet: solana_address::Address,
           
               
           pub phygital_token: solana_address::Address,
       }
 
-impl RemoveOwnership {
+impl RemoveLinkedWallet {
   pub fn instruction(&self) -> solana_instruction::Instruction {
     self.instruction_with_remaining_accounts(&[])
   }
@@ -30,7 +30,7 @@ impl RemoveOwnership {
   pub fn instruction_with_remaining_accounts(&self, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
     let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.owner,
+            self.linked_wallet,
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
@@ -38,7 +38,7 @@ impl RemoveOwnership {
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
-    let data = RemoveOwnershipInstructionData::new().try_to_vec().unwrap();
+    let data = RemoveLinkedWalletInstructionData::new().try_to_vec().unwrap();
     
     solana_instruction::Instruction {
       program_id: crate::PHYGITAL_TOKEN_ID,
@@ -49,14 +49,14 @@ impl RemoveOwnership {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct RemoveOwnershipInstructionData {
+ pub struct RemoveLinkedWalletInstructionData {
             discriminator: [u8; 8],
       }
 
-impl RemoveOwnershipInstructionData {
+impl RemoveLinkedWalletInstructionData {
   pub fn new() -> Self {
     Self {
-                        discriminator: [58, 70, 125, 46, 39, 24, 46, 240],
+                        discriminator: [7, 178, 142, 3, 161, 131, 177, 97],
                   }
   }
 
@@ -65,7 +65,7 @@ impl RemoveOwnershipInstructionData {
   }
   }
 
-impl Default for RemoveOwnershipInstructionData {
+impl Default for RemoveLinkedWalletInstructionData {
   fn default() -> Self {
     Self::new()
   }
@@ -73,26 +73,26 @@ impl Default for RemoveOwnershipInstructionData {
 
 
 
-/// Instruction builder for `RemoveOwnership`.
+/// Instruction builder for `RemoveLinkedWallet`.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` owner
+                ///   0. `[signer]` linked_wallet
                 ///   1. `[writable]` phygital_token
 #[derive(Clone, Debug, Default)]
-pub struct RemoveOwnershipBuilder {
-            owner: Option<solana_address::Address>,
+pub struct RemoveLinkedWalletBuilder {
+            linked_wallet: Option<solana_address::Address>,
                 phygital_token: Option<solana_address::Address>,
                 __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl RemoveOwnershipBuilder {
+impl RemoveLinkedWalletBuilder {
   pub fn new() -> Self {
     Self::default()
   }
             #[inline(always)]
-    pub fn owner(&mut self, owner: solana_address::Address) -> &mut Self {
-                        self.owner = Some(owner);
+    pub fn linked_wallet(&mut self, linked_wallet: solana_address::Address) -> &mut Self {
+                        self.linked_wallet = Some(linked_wallet);
                     self
     }
             #[inline(always)]
@@ -114,8 +114,8 @@ impl RemoveOwnershipBuilder {
   }
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = RemoveOwnership {
-                              owner: self.owner.expect("owner is not set"),
+    let accounts = RemoveLinkedWallet {
+                              linked_wallet: self.linked_wallet.expect("linked_wallet is not set"),
                                         phygital_token: self.phygital_token.expect("phygital_token is not set"),
                       };
     
@@ -123,36 +123,36 @@ impl RemoveOwnershipBuilder {
   }
 }
 
-  /// `remove_ownership` CPI accounts.
-  pub struct RemoveOwnershipCpiAccounts<'a, 'b> {
+  /// `remove_linked_wallet` CPI accounts.
+  pub struct RemoveLinkedWalletCpiAccounts<'a, 'b> {
           
                     
-              pub owner: &'b solana_account_info::AccountInfo<'a>,
+              pub linked_wallet: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
             }
 
-/// `remove_ownership` CPI instruction.
-pub struct RemoveOwnershipCpi<'a, 'b> {
+/// `remove_linked_wallet` CPI instruction.
+pub struct RemoveLinkedWalletCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_account_info::AccountInfo<'a>,
       
               
-          pub owner: &'b solana_account_info::AccountInfo<'a>,
+          pub linked_wallet: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
         }
 
-impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
+impl<'a, 'b> RemoveLinkedWalletCpi<'a, 'b> {
   pub fn new(
     program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: RemoveOwnershipCpiAccounts<'a, 'b>,
+          accounts: RemoveLinkedWalletCpiAccounts<'a, 'b>,
           ) -> Self {
     Self {
       __program: program,
-              owner: accounts.owner,
+              linked_wallet: accounts.linked_wallet,
               phygital_token: accounts.phygital_token,
                 }
   }
@@ -178,7 +178,7 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
   ) -> solana_program_error::ProgramResult {
     let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.owner.key,
+            *self.linked_wallet.key,
             true
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
@@ -192,7 +192,7 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
           is_writable: remaining_account.2,
       })
     });
-    let data = RemoveOwnershipInstructionData::new().try_to_vec().unwrap();
+    let data = RemoveLinkedWalletInstructionData::new().try_to_vec().unwrap();
     
     let instruction = solana_instruction::Instruction {
       program_id: crate::PHYGITAL_TOKEN_ID,
@@ -201,7 +201,7 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
     };
     let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
-                  account_infos.push(self.owner.clone());
+                  account_infos.push(self.linked_wallet.clone());
                         account_infos.push(self.phygital_token.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -213,30 +213,30 @@ impl<'a, 'b> RemoveOwnershipCpi<'a, 'b> {
   }
 }
 
-/// Instruction builder for `RemoveOwnership` via CPI.
+/// Instruction builder for `RemoveLinkedWallet` via CPI.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` owner
+                ///   0. `[signer]` linked_wallet
                 ///   1. `[writable]` phygital_token
 #[derive(Clone, Debug)]
-pub struct RemoveOwnershipCpiBuilder<'a, 'b> {
-  instruction: Box<RemoveOwnershipCpiBuilderInstruction<'a, 'b>>,
+pub struct RemoveLinkedWalletCpiBuilder<'a, 'b> {
+  instruction: Box<RemoveLinkedWalletCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
+impl<'a, 'b> RemoveLinkedWalletCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(RemoveOwnershipCpiBuilderInstruction {
+    let instruction = Box::new(RemoveLinkedWalletCpiBuilderInstruction {
       __program: program,
-              owner: None,
+              linked_wallet: None,
               phygital_token: None,
                                 __remaining_accounts: Vec::new(),
     });
     Self { instruction }
   }
       #[inline(always)]
-    pub fn owner(&mut self, owner: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.owner = Some(owner);
+    pub fn linked_wallet(&mut self, linked_wallet: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.linked_wallet = Some(linked_wallet);
                     self
     }
       #[inline(always)]
@@ -266,10 +266,10 @@ impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
   #[allow(clippy::clone_on_copy)]
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-        let instruction = RemoveOwnershipCpi {
+        let instruction = RemoveLinkedWalletCpi {
         __program: self.instruction.__program,
                   
-          owner: self.instruction.owner.expect("owner is not set"),
+          linked_wallet: self.instruction.linked_wallet.expect("linked_wallet is not set"),
                   
           phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
                     };
@@ -278,9 +278,9 @@ impl<'a, 'b> RemoveOwnershipCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct RemoveOwnershipCpiBuilderInstruction<'a, 'b> {
+struct RemoveLinkedWalletCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
-            owner: Option<&'b solana_account_info::AccountInfo<'a>>,
+            linked_wallet: Option<&'b solana_account_info::AccountInfo<'a>>,
                 phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
                 /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
   __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
