@@ -1,0 +1,4 @@
+# Copy to .dev.vars for `vite dev` / `wrangler dev`.
+SOLANA_RPC_URL=https://api.devnet.solana.com
+# 32+ random bytes, e.g. `openssl rand -base64 32`
+SESSION_SECRET=replace-me

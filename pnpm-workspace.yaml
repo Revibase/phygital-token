@@ -1,6 +1,7 @@
 packages:
   - "packages/js/*"
   - "mcp/*"
+  - "app"
 
 # Build-script approval (pnpm asks for an explicit decision per dependency).
 # esbuild ships a required platform binary via its install script.
@@ -12,6 +13,7 @@ allowBuilds:
   bufferutil: false
   utf-8-validate: false
   bigint-buffer: true
+  workerd: true
 
 minimumReleaseAgeExclude:
   - '@noble/hashes@2.4.0'

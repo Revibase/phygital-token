@@ -1,0 +1,39 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "phygital-accessory",
+	"compatibility_date": "2026-09-27",
+	"compatibility_flags": ["nodejs_als"],
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".svelte-kit/cloudflare"
+	},
+	"workers_dev": true,
+	"preview_urls": false,
+	"d1_databases": [
+		{
+			// Shared with phygital-wallet's API: ONE tap-counter high-water mark
+			// per chip across every service that accepts these tap URLs.
+			// This app only touches the `tap_counters` table; migrations for it
+			// live in phygital-wallet (apps/api/d1/migrations/0006_tap_counters.sql).
+			"binding": "TAP_DB",
+			"database_name": "phygital-token",
+			"database_id": "356d6b15-cd60-47b5-a014-648246bd27b5",
+			"migrations_dir": "migrations-tap-local"
+		},
+		{
+			"binding": "APP_DB",
+			"database_name": "phygital-accessory",
+			// Replace with the id printed by `wrangler d1 create phygital-accessory`.
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "migrations"
+		}
+	],
+	"vars": {
+		// WebAuthn relying party id and the exact origin the tap page runs on.
+		"RP_ID": "localhost",
+		"ORIGIN": "http://localhost:5173",
+		"SOLANA_CLUSTER": "devnet"
+	},
+	"observability": { "enabled": true }
+}

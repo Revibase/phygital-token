@@ -9,6 +9,7 @@ Solana program, TypeScript SDK, Rust CPI client, and MCP server for phygital tok
 | **phygital-token-sdk** | [`packages/js/phygital-token`](./packages/js/phygital-token) | `pnpm add phygital-token-sdk @solana/kit` |
 | **phygital-token-client** | [`packages/rust/phygital-token`](./packages/rust/phygital-token) | `phygital-token-client = "1.1"` |
 | **phygital-token-mcp** | [`mcp/phygital-token`](./mcp/phygital-token) | `npx -y phygital-token-mcp` |
+| **phygital-accessory-app** | [`app`](./app) | tap-to-link web app (SvelteKit on Cloudflare) |
 | **phygital-token** (on-chain) | [`programs/phygital-token`](./programs/phygital-token) | program id `DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ` |
 
 ## License
