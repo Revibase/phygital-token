@@ -6,8 +6,12 @@
  * @see https://github.com/codama-idl/codama
  */
 
+export * from "./assignMint.js";
+export * from "./createConfig.js";
 export * from "./initialize.js";
 export * from "./removeLinkedWallet.js";
+export * from "./setAdmin.js";
+export * from "./setIssuer.js";
 export * from "./setLinkedWallet.js";
-export * from "./setMint.js";
+export * from "./setMinter.js";
 export * from "./verify.js";

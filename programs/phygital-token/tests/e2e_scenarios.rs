@@ -5,7 +5,6 @@ use common::{
     assert_phygital_token_program_error, current_slot_entry, unique_identifier, TestContext,
     TestPasskey,
 };
-use phygital_token::constants::ADMIN;
 use phygital_token::{InitializeArgs, PhygitalTokenType, Secp256r1Pubkey};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
@@ -114,20 +113,26 @@ fn e2e_permanent_linked_wallet_cannot_transfer_or_forfeit() {
     let passkey = TestPasskey::generate();
     let owner = Keypair::new();
     let next_recipient = Keypair::new();
-    let phygital_token =
-        ctx.init_phygital_token_with_linked_wallet(&passkey, PhygitalTokenType::Permanent, owner.pubkey());
+    let phygital_token = ctx.init_phygital_token_with_linked_wallet(
+        &passkey,
+        PhygitalTokenType::Permanent,
+        owner.pubkey(),
+    );
 
     assert_eq!(
         ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         owner.pubkey()
     );
 
+    // Permanent tokens are initialized locked (linked wallet set at init), so
+    // set_linked_wallet fails on the lock check rather than a Permanent-specific error.
     let err = ctx.send_set_linked_wallet(&phygital_token, &next_recipient, true);
-    assert_phygital_token_program_error(err, "PermanentLinkedWalletImmutable");
+    assert_phygital_token_program_error(err, "TokenIsCurrentlyLocked");
     assert_eq!(
         ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         owner.pubkey()
     );
+    assert!(ctx.phygital_token_lock_state(phygital_token.phygital_token));
 
     ctx.svm
         .airdrop(&owner.pubkey(), common::LAMPORTS_PER_SOL)
@@ -152,8 +157,9 @@ fn e2e_permanent_initialize_requires_linked_wallet() {
         token_type: PhygitalTokenType::Permanent,
         linked_wallet: Pubkey::default(),
     };
-    let ix = ctx.initialize_ix(ADMIN, phygital_token, args);
-    let result = TestContext::send_instruction_as(&mut ctx.svm, ix, ADMIN);
+    let ix = ctx.initialize_ix(ctx.issuer.pubkey(), phygital_token, args);
+    let issuer = ctx.issuer.insecure_clone();
+    let result = TestContext::send_instruction(&mut ctx.svm, ix, &[&issuer]);
     assert_phygital_token_program_error(result, "PermanentLinkedWalletRequired");
 }
 
@@ -170,8 +176,9 @@ fn e2e_token_pubkey_reinit_is_blocked() {
         token_type: PhygitalTokenType::Bearer,
         linked_wallet: Pubkey::default(),
     };
-    let ix = ctx.initialize_ix(ADMIN, phygital_token.phygital_token, args);
-    TestContext::send_instruction_as(&mut ctx.svm, ix, ADMIN)
+    let ix = ctx.initialize_ix(ctx.issuer.pubkey(), phygital_token.phygital_token, args);
+    let issuer = ctx.issuer.insecure_clone();
+    TestContext::send_instruction(&mut ctx.svm, ix, &[&issuer])
         .expect_err("re-initializing an existing phygital_token PDA should fail");
 }
 
@@ -206,12 +213,12 @@ fn e2e_set_mint_then_transfer() {
         Pubkey::default()
     );
 
-    ctx.send_set_mint(phygital_token.phygital_token, mint)
+    ctx.send_assign_mint(phygital_token.phygital_token, mint)
         .expect("bind mint before first claim");
     assert_eq!(ctx.phygital_token_mint(phygital_token.phygital_token), mint);
 
     ctx.send_set_linked_wallet(&phygital_token, &recipient, true)
-        .expect("claim after set_mint");
+        .expect("claim after assign_mint");
 
     assert_eq!(
         ctx.phygital_token_linked_wallet(phygital_token.phygital_token),

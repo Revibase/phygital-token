@@ -28,9 +28,9 @@ export {
   type VerifyResponseOptions,
 } from "./utils/verify.js";
 
-export { findPhygitalTokenPda } from "./utils/pdas/index.js";
+export type { NfcTransceive, AuthenticatePasskeyOptions } from "./utils/passkey/authenticate.js";
 
-export { ADMIN, INITIALIZE_MULTISIG_PDA } from "./utils/consts.js";
+export { findPhygitalTokenPda } from "./utils/pdas/index.js";
 
 export {
   toAddress,

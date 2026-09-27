@@ -16,12 +16,28 @@ declare_id!("DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ");
 pub mod phygital_token {
     use super::*;
 
+    pub fn create_config(ctx: Context<CreateConfig>) -> Result<()> {
+        create_config::handler(ctx)
+    }
+
+    pub fn set_admin(ctx: Context<SetAdmin>, new_admin: Pubkey) -> Result<()> {
+        set_admin::handler(ctx, new_admin)
+    }
+
+    pub fn set_issuer(ctx: Context<SetIssuer>, issuer: Pubkey) -> Result<()> {
+        set_issuer::handler(ctx, issuer)
+    }
+
+    pub fn set_minter(ctx: Context<SetMinter>, minter: Pubkey) -> Result<()> {
+        set_minter::handler(ctx, minter)
+    }
+
     pub fn initialize(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
         initialize::handler(ctx, args)
     }
 
-    pub fn set_mint(ctx: Context<SetMint>, mint: Pubkey) -> Result<()> {
-        set_mint::handler(ctx, mint)
+    pub fn assign_mint(ctx: Context<AssignMint>, mint: Pubkey) -> Result<()> {
+        assign_mint::handler(ctx, mint)
     }
 
     pub fn set_linked_wallet(

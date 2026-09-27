@@ -1,7 +1,8 @@
 mod common;
 
 use anchor_lang::prelude::Pubkey;
-use common::{current_slot_entry, TestContext, TestPasskey};
+use common::{assert_phygital_token_program_error, current_slot_entry, TestContext, TestPasskey};
+use phygital_token::PhygitalTokenType;
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -127,4 +128,55 @@ fn set_linked_wallet_allows_next_transfer_with_higher_sign_count() {
         ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
         second_recipient.pubkey()
     );
+}
+
+#[test]
+fn set_linked_wallet_rejects_when_locked() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let owner = Keypair::new();
+    let next_recipient = Keypair::new();
+    // Any type initialized with a linked wallet starts locked.
+    let phygital_token = ctx.init_phygital_token_with_linked_wallet(
+        &passkey,
+        PhygitalTokenType::Bearer,
+        owner.pubkey(),
+    );
+    assert!(ctx.phygital_token_lock_state(phygital_token.phygital_token));
+
+    let err = ctx.send_set_linked_wallet(&phygital_token, &next_recipient, true);
+    assert_phygital_token_program_error(err, "TokenIsCurrentlyLocked");
+    assert_eq!(
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
+        owner.pubkey()
+    );
+}
+
+#[test]
+fn controlled_re_locks_after_transfer_until_forfeit() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let phygital_token = ctx.init_phygital_token_of_type(&passkey, PhygitalTokenType::Controlled);
+    let first = Keypair::new();
+    let second = Keypair::new();
+
+    assert!(!ctx.phygital_token_lock_state(phygital_token.phygital_token));
+    ctx.send_set_linked_wallet(&phygital_token, &first, true)
+        .expect("first controlled claim");
+    assert!(ctx.phygital_token_lock_state(phygital_token.phygital_token));
+
+    let err = ctx.send_set_linked_wallet(&phygital_token, &second, true);
+    assert_phygital_token_program_error(err, "TokenIsCurrentlyLocked");
+
+    ctx.send_remove_linked_wallet(&phygital_token, &first)
+        .expect("forfeit unlocks");
+    assert!(!ctx.phygital_token_lock_state(phygital_token.phygital_token));
+
+    ctx.send_set_linked_wallet(&phygital_token, &second, true)
+        .expect("claim after unlock");
+    assert_eq!(
+        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
+        second.pubkey()
+    );
+    assert!(ctx.phygital_token_lock_state(phygital_token.phygital_token));
 }

@@ -62,6 +62,12 @@ pub enum PhygitalError {
     #[msg("Only the designated authority can perform this action.")]
     UnauthorizedAuthority,
 
+    #[msg("Only the admin can perform this action.")]
+    UnauthorizedAdmin,
+
+    #[msg("Key already exists on the admin config.")]
+    KeyAlreadyExists,
+
     #[msg("Permanent phygital tokens require a non-default linked wallet at initialize.")]
     PermanentLinkedWalletRequired,
 

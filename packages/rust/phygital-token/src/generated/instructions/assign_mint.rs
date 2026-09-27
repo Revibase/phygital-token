@@ -9,37 +9,46 @@ use solana_address::Address;
 use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
 
-pub const SET_MINT_DISCRIMINATOR: [u8; 8] = [166, 129, 167, 223, 137, 118, 212, 47];
+pub const ASSIGN_MINT_DISCRIMINATOR: [u8; 8] = [68, 110, 45, 87, 4, 80, 186, 177];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct SetMint {
+pub struct AssignMint {
       
               
           pub authority: solana_address::Address,
+                /// Authority must be the admin or an issuer on this config.
+
+    
+              
+          pub admin_config: solana_address::Address,
           
               
           pub phygital_token: solana_address::Address,
       }
 
-impl SetMint {
-  pub fn instruction(&self, args: SetMintInstructionArgs) -> solana_instruction::Instruction {
+impl AssignMint {
+  pub fn instruction(&self, args: AssignMintInstructionArgs) -> solana_instruction::Instruction {
     self.instruction_with_remaining_accounts(args, &[])
   }
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: SetMintInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
+  pub fn instruction_with_remaining_accounts(&self, args: AssignMintInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
+    let mut accounts = Vec::with_capacity(3+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.authority,
             true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.admin_config,
+            false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
             self.phygital_token,
             false
           ));
                       accounts.extend_from_slice(remaining_accounts);
-    let mut data = SetMintInstructionData::new().try_to_vec().unwrap();
+    let mut data = AssignMintInstructionData::new().try_to_vec().unwrap();
           let mut args = args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -52,14 +61,14 @@ impl SetMint {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct SetMintInstructionData {
+ pub struct AssignMintInstructionData {
             discriminator: [u8; 8],
             }
 
-impl SetMintInstructionData {
+impl AssignMintInstructionData {
   pub fn new() -> Self {
     Self {
-                        discriminator: [166, 129, 167, 223, 137, 118, 212, 47],
+                        discriminator: [68, 110, 45, 87, 4, 80, 186, 177],
                                 }
   }
 
@@ -68,46 +77,53 @@ impl SetMintInstructionData {
   }
   }
 
-impl Default for SetMintInstructionData {
+impl Default for AssignMintInstructionData {
   fn default() -> Self {
     Self::new()
   }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct SetMintInstructionArgs {
+ pub struct AssignMintInstructionArgs {
                   pub mint: Address,
       }
 
-impl SetMintInstructionArgs {
+impl AssignMintInstructionArgs {
   pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
     borsh::to_vec(self)
   }
 }
 
 
-/// Instruction builder for `SetMint`.
+/// Instruction builder for `AssignMint`.
 ///
 /// ### Accounts:
 ///
-                      ///   0. `[signer, optional]` authority (default to `G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF`)
-                ///   1. `[writable]` phygital_token
+                ///   0. `[signer]` authority
+          ///   1. `[]` admin_config
+                ///   2. `[writable]` phygital_token
 #[derive(Clone, Debug, Default)]
-pub struct SetMintBuilder {
+pub struct AssignMintBuilder {
             authority: Option<solana_address::Address>,
+                admin_config: Option<solana_address::Address>,
                 phygital_token: Option<solana_address::Address>,
                         mint: Option<Address>,
         __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl SetMintBuilder {
+impl AssignMintBuilder {
   pub fn new() -> Self {
     Self::default()
   }
-            /// `[optional account, default to 'G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF']`
-#[inline(always)]
+            #[inline(always)]
     pub fn authority(&mut self, authority: solana_address::Address) -> &mut Self {
                         self.authority = Some(authority);
+                    self
+    }
+            /// Authority must be the admin or an issuer on this config.
+#[inline(always)]
+    pub fn admin_config(&mut self, admin_config: solana_address::Address) -> &mut Self {
+                        self.admin_config = Some(admin_config);
                     self
     }
             #[inline(always)]
@@ -134,11 +150,12 @@ impl SetMintBuilder {
   }
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = SetMint {
-                              authority: self.authority.unwrap_or(solana_address::address!("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF")),
+    let accounts = AssignMint {
+                              authority: self.authority.expect("authority is not set"),
+                                        admin_config: self.admin_config.expect("admin_config is not set"),
                                         phygital_token: self.phygital_token.expect("phygital_token is not set"),
                       };
-          let args = SetMintInstructionArgs {
+          let args = AssignMintInstructionArgs {
                                                               mint: self.mint.clone().expect("mint is not set"),
                                     };
     
@@ -146,39 +163,50 @@ impl SetMintBuilder {
   }
 }
 
-  /// `set_mint` CPI accounts.
-  pub struct SetMintCpiAccounts<'a, 'b> {
+  /// `assign_mint` CPI accounts.
+  pub struct AssignMintCpiAccounts<'a, 'b> {
           
                     
               pub authority: &'b solana_account_info::AccountInfo<'a>,
+                        /// Authority must be the admin or an issuer on this config.
+
+      
+                    
+              pub admin_config: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
             }
 
-/// `set_mint` CPI instruction.
-pub struct SetMintCpi<'a, 'b> {
+/// `assign_mint` CPI instruction.
+pub struct AssignMintCpi<'a, 'b> {
   /// The program to invoke.
   pub __program: &'b solana_account_info::AccountInfo<'a>,
       
               
           pub authority: &'b solana_account_info::AccountInfo<'a>,
+                /// Authority must be the admin or an issuer on this config.
+
+    
+              
+          pub admin_config: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
             /// The arguments for the instruction.
-    pub __args: SetMintInstructionArgs,
+    pub __args: AssignMintInstructionArgs,
   }
 
-impl<'a, 'b> SetMintCpi<'a, 'b> {
+impl<'a, 'b> AssignMintCpi<'a, 'b> {
   pub fn new(
     program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: SetMintCpiAccounts<'a, 'b>,
-              args: SetMintInstructionArgs,
+          accounts: AssignMintCpiAccounts<'a, 'b>,
+              args: AssignMintInstructionArgs,
       ) -> Self {
     Self {
       __program: program,
               authority: accounts.authority,
+              admin_config: accounts.admin_config,
               phygital_token: accounts.phygital_token,
                     __args: args,
           }
@@ -203,10 +231,14 @@ impl<'a, 'b> SetMintCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(3+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.authority.key,
             true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.admin_config.key,
+            false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
             *self.phygital_token.key,
@@ -219,7 +251,7 @@ impl<'a, 'b> SetMintCpi<'a, 'b> {
           is_writable: remaining_account.2,
       })
     });
-    let mut data = SetMintInstructionData::new().try_to_vec().unwrap();
+    let mut data = AssignMintInstructionData::new().try_to_vec().unwrap();
           let mut args = self.__args.try_to_vec().unwrap();
       data.append(&mut args);
     
@@ -228,9 +260,10 @@ impl<'a, 'b> SetMintCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(4 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.authority.clone());
+                        account_infos.push(self.admin_config.clone());
                         account_infos.push(self.phygital_token.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
@@ -242,22 +275,24 @@ impl<'a, 'b> SetMintCpi<'a, 'b> {
   }
 }
 
-/// Instruction builder for `SetMint` via CPI.
+/// Instruction builder for `AssignMint` via CPI.
 ///
 /// ### Accounts:
 ///
                 ///   0. `[signer]` authority
-                ///   1. `[writable]` phygital_token
+          ///   1. `[]` admin_config
+                ///   2. `[writable]` phygital_token
 #[derive(Clone, Debug)]
-pub struct SetMintCpiBuilder<'a, 'b> {
-  instruction: Box<SetMintCpiBuilderInstruction<'a, 'b>>,
+pub struct AssignMintCpiBuilder<'a, 'b> {
+  instruction: Box<AssignMintCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> SetMintCpiBuilder<'a, 'b> {
+impl<'a, 'b> AssignMintCpiBuilder<'a, 'b> {
   pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(SetMintCpiBuilderInstruction {
+    let instruction = Box::new(AssignMintCpiBuilderInstruction {
       __program: program,
               authority: None,
+              admin_config: None,
               phygital_token: None,
                                             mint: None,
                     __remaining_accounts: Vec::new(),
@@ -267,6 +302,12 @@ impl<'a, 'b> SetMintCpiBuilder<'a, 'b> {
       #[inline(always)]
     pub fn authority(&mut self, authority: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.authority = Some(authority);
+                    self
+    }
+      /// Authority must be the admin or an issuer on this config.
+#[inline(always)]
+    pub fn admin_config(&mut self, admin_config: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.admin_config = Some(admin_config);
                     self
     }
       #[inline(always)]
@@ -301,13 +342,15 @@ impl<'a, 'b> SetMintCpiBuilder<'a, 'b> {
   #[allow(clippy::clone_on_copy)]
   #[allow(clippy::vec_init_then_push)]
   pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = SetMintInstructionArgs {
+          let args = AssignMintInstructionArgs {
                                                               mint: self.instruction.mint.clone().expect("mint is not set"),
                                     };
-        let instruction = SetMintCpi {
+        let instruction = AssignMintCpi {
         __program: self.instruction.__program,
                   
           authority: self.instruction.authority.expect("authority is not set"),
+                  
+          admin_config: self.instruction.admin_config.expect("admin_config is not set"),
                   
           phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
                           __args: args,
@@ -317,9 +360,10 @@ impl<'a, 'b> SetMintCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct SetMintCpiBuilderInstruction<'a, 'b> {
+struct AssignMintCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             authority: Option<&'b solana_account_info::AccountInfo<'a>>,
+                admin_config: Option<&'b solana_account_info::AccountInfo<'a>>,
                 phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
                         mint: Option<Address>,
         /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.

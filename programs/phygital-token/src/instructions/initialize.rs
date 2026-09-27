@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 
-use crate::constants::{ADMIN, PHYGITAL_TOKEN_SEED};
+use crate::constants::{ADMIN_CONFIG_SEED, PHYGITAL_TOKEN_SEED};
 use crate::error::PhygitalError;
-use crate::state::PhygitalToken;
+use crate::state::{AdminConfig, PhygitalToken};
 use crate::utils::secp256r1_pda_seed;
 use crate::{PhygitalTokenType, Secp256r1Pubkey};
 
@@ -26,11 +26,16 @@ pub struct InitializeArgs {
 #[derive(Accounts)]
 #[instruction(args: InitializeArgs)]
 pub struct Initialize<'info> {
-    #[account(
-        mut,
-        address = ADMIN @ PhygitalError::UnauthorizedAuthority
-    )]
+    #[account(mut)]
     pub authority: Signer<'info>,
+
+    /// Authority must be the admin or an issuer on this config.
+    #[account(
+        seeds = [ADMIN_CONFIG_SEED],
+        bump = admin_config.load()?.bump,
+        constraint = admin_config.load()?.is_issuer(&authority.key()) @ PhygitalError::UnauthorizedAuthority,
+    )]
+    pub admin_config: AccountLoader<'info, AdminConfig>,
 
     #[account(
         init,

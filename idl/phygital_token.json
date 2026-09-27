@@ -9,6 +9,101 @@
   },
   "instructions": [
     {
+      "name": "assign_mint",
+      "discriminator": [
+        68,
+        110,
+        45,
+        87,
+        4,
+        80,
+        186,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "admin_config",
+          "docs": [
+            "Authority must be the admin or an issuer on this config."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "phygital_token",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "mint",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "create_config",
+      "discriminator": [
+        201,
+        207,
+        243,
+        114,
+        75,
+        111,
+        47,
+        189
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "docs": [
+            "Becomes the sole admin on the singleton config. Callable once."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "admin_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initialize",
       "discriminator": [
         175,
@@ -24,8 +119,27 @@
         {
           "name": "authority",
           "writable": true,
-          "signer": true,
-          "address": "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF"
+          "signer": true
+        },
+        {
+          "name": "admin_config",
+          "docs": [
+            "Authority must be the admin or an issuer on this config."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "phygital_token",
@@ -70,6 +184,92 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "set_admin",
+      "discriminator": [
+        251,
+        163,
+        0,
+        52,
+        91,
+        194,
+        187,
+        92
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true
+        },
+        {
+          "name": "admin_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_admin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_issuer",
+      "discriminator": [
+        122,
+        240,
+        209,
+        127,
+        179,
+        164,
+        175,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true
+        },
+        {
+          "name": "admin_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "issuer",
+          "type": "pubkey"
+        }
+      ]
     },
     {
       "name": "set_linked_wallet",
@@ -117,31 +317,44 @@
       ]
     },
     {
-      "name": "set_mint",
+      "name": "set_minter",
       "discriminator": [
-        166,
-        129,
-        167,
-        223,
+        13,
+        170,
+        92,
+        172,
         137,
-        118,
-        212,
-        47
+        194,
+        39,
+        2
       ],
       "accounts": [
         {
-          "name": "authority",
-          "signer": true,
-          "address": "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF"
+          "name": "admin",
+          "signer": true
         },
         {
-          "name": "phygital_token",
-          "writable": true
+          "name": "admin_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
         }
       ],
       "args": [
         {
-          "name": "mint",
+          "name": "minter",
           "type": "pubkey"
         }
       ]
@@ -212,6 +425,19 @@
   ],
   "accounts": [
     {
+      "name": "AdminConfig",
+      "discriminator": [
+        156,
+        10,
+        79,
+        161,
+        71,
+        9,
+        62,
+        77
+      ]
+    },
+    {
       "name": "PhygitalToken",
       "discriminator": [
         123,
@@ -226,6 +452,32 @@
     }
   ],
   "events": [
+    {
+      "name": "AssignMintEvent",
+      "discriminator": [
+        232,
+        80,
+        198,
+        243,
+        228,
+        74,
+        254,
+        97
+      ]
+    },
+    {
+      "name": "CreateConfigEvent",
+      "discriminator": [
+        107,
+        52,
+        89,
+        129,
+        55,
+        226,
+        81,
+        22
+      ]
+    },
     {
       "name": "InitializeEvent",
       "discriminator": [
@@ -253,6 +505,32 @@
       ]
     },
     {
+      "name": "SetAdminEvent",
+      "discriminator": [
+        240,
+        117,
+        204,
+        254,
+        89,
+        150,
+        132,
+        94
+      ]
+    },
+    {
+      "name": "SetIssuerEvent",
+      "discriminator": [
+        74,
+        236,
+        181,
+        176,
+        64,
+        144,
+        67,
+        152
+      ]
+    },
+    {
       "name": "SetLinkedWalletEvent",
       "discriminator": [
         155,
@@ -266,16 +544,16 @@
       ]
     },
     {
-      "name": "SetMintEvent",
+      "name": "SetMinterEvent",
       "discriminator": [
-        145,
-        196,
-        27,
-        38,
-        159,
-        104,
-        87,
-        76
+        8,
+        89,
+        210,
+        22,
+        102,
+        98,
+        240,
+        242
       ]
     }
   ],
@@ -313,7 +591,7 @@
     {
       "code": 6006,
       "name": "InvalidSlotHash",
-      "msg": "Slot not found in SlotHashes sysvar \u2014 signature has expired or is being replayed"
+      "msg": "Slot not found in SlotHashes sysvar — signature has expired or is being replayed"
     },
     {
       "code": 6007,
@@ -382,16 +660,98 @@
     },
     {
       "code": 6020,
+      "name": "UnauthorizedAdmin",
+      "msg": "Only the admin can perform this action."
+    },
+    {
+      "code": 6021,
+      "name": "KeyAlreadyExists",
+      "msg": "Key already exists on the admin config."
+    },
+    {
+      "code": 6022,
       "name": "PermanentLinkedWalletRequired",
       "msg": "Permanent phygital tokens require a non-default linked wallet at initialize."
     },
     {
-      "code": 6021,
+      "code": 6023,
       "name": "PermanentLinkedWalletImmutable",
       "msg": "Permanent phygital token linked wallet cannot be transferred or removed."
     }
   ],
   "types": [
+    {
+      "name": "AdminConfig",
+      "serialization": "bytemuckunsafe",
+      "repr": {
+        "kind": "c"
+      },
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "issuer",
+            "type": "pubkey"
+          },
+          {
+            "name": "minter",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssignMintEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "identifier",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateConfigEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
     {
       "name": "InitializeArgs",
       "type": {
@@ -602,6 +962,38 @@
       }
     },
     {
+      "name": "SetAdminEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previous_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_admin",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetIssuerEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "issuer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
       "name": "SetLinkedWalletEvent",
       "type": {
         "kind": "struct",
@@ -634,32 +1026,16 @@
       }
     },
     {
-      "name": "SetMintEvent",
+      "name": "SetMinterEvent",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "public_key",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "authority",
+            "name": "admin",
             "type": "pubkey"
           },
           {
-            "name": "identifier",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "mint",
+            "name": "minter",
             "type": "pubkey"
           }
         ]

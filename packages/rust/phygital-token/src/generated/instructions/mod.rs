@@ -5,15 +5,23 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
+  pub(crate) mod r#assign_mint;
+  pub(crate) mod r#create_config;
   pub(crate) mod r#initialize;
   pub(crate) mod r#remove_linked_wallet;
+  pub(crate) mod r#set_admin;
+  pub(crate) mod r#set_issuer;
   pub(crate) mod r#set_linked_wallet;
-  pub(crate) mod r#set_mint;
+  pub(crate) mod r#set_minter;
   pub(crate) mod r#verify;
 
+  pub use self::r#assign_mint::*;
+  pub use self::r#create_config::*;
   pub use self::r#initialize::*;
   pub use self::r#remove_linked_wallet::*;
+  pub use self::r#set_admin::*;
+  pub use self::r#set_issuer::*;
   pub use self::r#set_linked_wallet::*;
-  pub use self::r#set_mint::*;
+  pub use self::r#set_minter::*;
   pub use self::r#verify::*;
 

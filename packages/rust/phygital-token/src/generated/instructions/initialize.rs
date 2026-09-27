@@ -19,6 +19,11 @@ pub struct Initialize {
       
               
           pub authority: solana_address::Address,
+                /// Authority must be the admin or an issuer on this config.
+
+    
+              
+          pub admin_config: solana_address::Address,
           
               
           pub phygital_token: solana_address::Address,
@@ -34,10 +39,14 @@ impl Initialize {
   #[allow(clippy::arithmetic_side_effects)]
   #[allow(clippy::vec_init_then_push)]
   pub fn instruction_with_remaining_accounts(&self, args: InitializeInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(3+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
             self.authority,
             true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.admin_config,
+            false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
             self.phygital_token,
@@ -102,12 +111,14 @@ impl InitializeInstructionArgs {
 ///
 /// ### Accounts:
 ///
-                            ///   0. `[writable, signer, optional]` authority (default to `G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF`)
-                ///   1. `[writable]` phygital_token
-                ///   2. `[optional]` system_program (default to `11111111111111111111111111111111`)
+                      ///   0. `[writable, signer]` authority
+          ///   1. `[]` admin_config
+                ///   2. `[writable]` phygital_token
+                ///   3. `[optional]` system_program (default to `11111111111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct InitializeBuilder {
             authority: Option<solana_address::Address>,
+                admin_config: Option<solana_address::Address>,
                 phygital_token: Option<solana_address::Address>,
                 system_program: Option<solana_address::Address>,
                         identifier: Option<Secp256r1Pubkey>,
@@ -121,10 +132,15 @@ impl InitializeBuilder {
   pub fn new() -> Self {
     Self::default()
   }
-            /// `[optional account, default to 'G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF']`
-#[inline(always)]
+            #[inline(always)]
     pub fn authority(&mut self, authority: solana_address::Address) -> &mut Self {
                         self.authority = Some(authority);
+                    self
+    }
+            /// Authority must be the admin or an issuer on this config.
+#[inline(always)]
+    pub fn admin_config(&mut self, admin_config: solana_address::Address) -> &mut Self {
+                        self.admin_config = Some(admin_config);
                     self
     }
             #[inline(always)]
@@ -173,7 +189,8 @@ impl InitializeBuilder {
   #[allow(clippy::clone_on_copy)]
   pub fn instruction(&self) -> solana_instruction::Instruction {
     let accounts = Initialize {
-                              authority: self.authority.unwrap_or(solana_address::address!("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF")),
+                              authority: self.authority.expect("authority is not set"),
+                                        admin_config: self.admin_config.expect("admin_config is not set"),
                                         phygital_token: self.phygital_token.expect("phygital_token is not set"),
                                         system_program: self.system_program.unwrap_or(solana_address::address!("11111111111111111111111111111111")),
                       };
@@ -193,6 +210,11 @@ impl InitializeBuilder {
           
                     
               pub authority: &'b solana_account_info::AccountInfo<'a>,
+                        /// Authority must be the admin or an issuer on this config.
+
+      
+                    
+              pub admin_config: &'b solana_account_info::AccountInfo<'a>,
                 
                     
               pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
@@ -208,6 +230,11 @@ pub struct InitializeCpi<'a, 'b> {
       
               
           pub authority: &'b solana_account_info::AccountInfo<'a>,
+                /// Authority must be the admin or an issuer on this config.
+
+    
+              
+          pub admin_config: &'b solana_account_info::AccountInfo<'a>,
           
               
           pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
@@ -227,6 +254,7 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
     Self {
       __program: program,
               authority: accounts.authority,
+              admin_config: accounts.admin_config,
               phygital_token: accounts.phygital_token,
               system_program: accounts.system_program,
                     __args: args,
@@ -252,10 +280,14 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
     signers_seeds: &[&[&[u8]]],
     remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
   ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(3+ remaining_accounts.len());
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
                             accounts.push(solana_instruction::AccountMeta::new(
             *self.authority.key,
             true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.admin_config.key,
+            false
           ));
                                           accounts.push(solana_instruction::AccountMeta::new(
             *self.phygital_token.key,
@@ -281,9 +313,10 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
       accounts,
       data,
     };
-    let mut account_infos = Vec::with_capacity(4 + remaining_accounts.len());
+    let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
     account_infos.push(self.__program.clone());
                   account_infos.push(self.authority.clone());
+                        account_infos.push(self.admin_config.clone());
                         account_infos.push(self.phygital_token.clone());
                         account_infos.push(self.system_program.clone());
               remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -301,8 +334,9 @@ impl<'a, 'b> InitializeCpi<'a, 'b> {
 /// ### Accounts:
 ///
                       ///   0. `[writable, signer]` authority
-                ///   1. `[writable]` phygital_token
-          ///   2. `[]` system_program
+          ///   1. `[]` admin_config
+                ///   2. `[writable]` phygital_token
+          ///   3. `[]` system_program
 #[derive(Clone, Debug)]
 pub struct InitializeCpiBuilder<'a, 'b> {
   instruction: Box<InitializeCpiBuilderInstruction<'a, 'b>>,
@@ -313,6 +347,7 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
     let instruction = Box::new(InitializeCpiBuilderInstruction {
       __program: program,
               authority: None,
+              admin_config: None,
               phygital_token: None,
               system_program: None,
                                             identifier: None,
@@ -326,6 +361,12 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
       #[inline(always)]
     pub fn authority(&mut self, authority: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
                         self.instruction.authority = Some(authority);
+                    self
+    }
+      /// Authority must be the admin or an issuer on this config.
+#[inline(always)]
+    pub fn admin_config(&mut self, admin_config: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.admin_config = Some(admin_config);
                     self
     }
       #[inline(always)]
@@ -391,6 +432,8 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
                   
           authority: self.instruction.authority.expect("authority is not set"),
                   
+          admin_config: self.instruction.admin_config.expect("admin_config is not set"),
+                  
           phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
                   
           system_program: self.instruction.system_program.expect("system_program is not set"),
@@ -404,6 +447,7 @@ impl<'a, 'b> InitializeCpiBuilder<'a, 'b> {
 struct InitializeCpiBuilderInstruction<'a, 'b> {
   __program: &'b solana_account_info::AccountInfo<'a>,
             authority: Option<&'b solana_account_info::AccountInfo<'a>>,
+                admin_config: Option<&'b solana_account_info::AccountInfo<'a>>,
                 phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
                 system_program: Option<&'b solana_account_info::AccountInfo<'a>>,
                         identifier: Option<Secp256r1Pubkey>,

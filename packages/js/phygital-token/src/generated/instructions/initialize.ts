@@ -38,6 +38,7 @@ import {
   getAccountMetaFactory,
   type ResolvedInstructionAccount,
 } from "@solana/kit/program-client-core";
+import { findAdminConfigPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getPhygitalTokenTypeDecoder,
@@ -60,8 +61,8 @@ export function getInitializeDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type InitializeInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-  TAccountAuthority extends string | AccountMeta<string> =
-    "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF",
+  TAccountAuthority extends string | AccountMeta<string> = string,
+  TAccountAdminConfig extends string | AccountMeta<string> = string,
   TAccountPhygitalToken extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
@@ -74,6 +75,9 @@ export type InitializeInstruction<
         ? WritableSignerAccount<TAccountAuthority> &
             AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
+      TAccountAdminConfig extends string
+        ? ReadonlyAccount<TAccountAdminConfig>
+        : TAccountAdminConfig,
       TAccountPhygitalToken extends string
         ? WritableAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
@@ -132,12 +136,15 @@ export function getInitializeInstructionDataCodec(): FixedSizeCodec<
   );
 }
 
-export type InitializeInput<
+export type InitializeAsyncInput<
   TAccountAuthority extends string = string,
+  TAccountAdminConfig extends string = string,
   TAccountPhygitalToken extends string = string,
   TAccountSystemProgram extends string = string,
 > = {
-  authority?: TransactionSigner<TAccountAuthority>;
+  authority: TransactionSigner<TAccountAuthority>;
+  /** Authority must be the admin or an issuer on this config. */
+  adminConfig?: Address<TAccountAdminConfig>;
   phygitalToken: Address<TAccountPhygitalToken>;
   systemProgram?: Address<TAccountSystemProgram>;
   identifier: InitializeInstructionDataArgs["identifier"];
@@ -146,23 +153,28 @@ export type InitializeInput<
   linkedWallet: InitializeInstructionDataArgs["linkedWallet"];
 };
 
-export function getInitializeInstruction<
+export async function getInitializeInstructionAsync<
   TAccountAuthority extends string,
+  TAccountAdminConfig extends string,
   TAccountPhygitalToken extends string,
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: InitializeInput<
+  input: InitializeAsyncInput<
     TAccountAuthority,
+    TAccountAdminConfig,
     TAccountPhygitalToken,
     TAccountSystemProgram
   >,
   config?: { programAddress?: TProgramAddress },
-): InitializeInstruction<
-  TProgramAddress,
-  TAccountAuthority,
-  TAccountPhygitalToken,
-  TAccountSystemProgram
+): Promise<
+  InitializeInstruction<
+    TProgramAddress,
+    TAccountAuthority,
+    TAccountAdminConfig,
+    TAccountPhygitalToken,
+    TAccountSystemProgram
+  >
 > {
   // Program address.
   const programAddress =
@@ -171,6 +183,7 @@ export function getInitializeInstruction<
   // Original accounts.
   const originalAccounts = {
     authority: { value: input.authority ?? null, isWritable: true },
+    adminConfig: { value: input.adminConfig ?? null, isWritable: false },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
     systemProgram: { value: input.systemProgram ?? null, isWritable: false },
   };
@@ -183,9 +196,8 @@ export function getInitializeInstruction<
   const args = { ...input };
 
   // Resolve default values.
-  if (!accounts.authority.value) {
-    accounts.authority.value =
-      "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF" as Address<"G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF">;
+  if (!accounts.adminConfig.value) {
+    accounts.adminConfig.value = await findAdminConfigPda();
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
@@ -196,6 +208,7 @@ export function getInitializeInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
+      getAccountMeta("adminConfig", accounts.adminConfig),
       getAccountMeta("phygitalToken", accounts.phygitalToken),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
@@ -206,6 +219,91 @@ export function getInitializeInstruction<
   } as InitializeInstruction<
     TProgramAddress,
     TAccountAuthority,
+    TAccountAdminConfig,
+    TAccountPhygitalToken,
+    TAccountSystemProgram
+  >);
+}
+
+export type InitializeInput<
+  TAccountAuthority extends string = string,
+  TAccountAdminConfig extends string = string,
+  TAccountPhygitalToken extends string = string,
+  TAccountSystemProgram extends string = string,
+> = {
+  authority: TransactionSigner<TAccountAuthority>;
+  /** Authority must be the admin or an issuer on this config. */
+  adminConfig: Address<TAccountAdminConfig>;
+  phygitalToken: Address<TAccountPhygitalToken>;
+  systemProgram?: Address<TAccountSystemProgram>;
+  identifier: InitializeInstructionDataArgs["identifier"];
+  secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
+  tokenType: InitializeInstructionDataArgs["tokenType"];
+  linkedWallet: InitializeInstructionDataArgs["linkedWallet"];
+};
+
+export function getInitializeInstruction<
+  TAccountAuthority extends string,
+  TAccountAdminConfig extends string,
+  TAccountPhygitalToken extends string,
+  TAccountSystemProgram extends string,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+>(
+  input: InitializeInput<
+    TAccountAuthority,
+    TAccountAdminConfig,
+    TAccountPhygitalToken,
+    TAccountSystemProgram
+  >,
+  config?: { programAddress?: TProgramAddress },
+): InitializeInstruction<
+  TProgramAddress,
+  TAccountAuthority,
+  TAccountAdminConfig,
+  TAccountPhygitalToken,
+  TAccountSystemProgram
+> {
+  // Program address.
+  const programAddress =
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+
+  // Original accounts.
+  const originalAccounts = {
+    authority: { value: input.authority ?? null, isWritable: true },
+    adminConfig: { value: input.adminConfig ?? null, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+  };
+  const accounts = originalAccounts as Record<
+    keyof typeof originalAccounts,
+    ResolvedInstructionAccount
+  >;
+
+  // Original args.
+  const args = { ...input };
+
+  // Resolve default values.
+  if (!accounts.systemProgram.value) {
+    accounts.systemProgram.value =
+      "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
+  }
+
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
+  return Object.freeze({
+    accounts: [
+      getAccountMeta("authority", accounts.authority),
+      getAccountMeta("adminConfig", accounts.adminConfig),
+      getAccountMeta("phygitalToken", accounts.phygitalToken),
+      getAccountMeta("systemProgram", accounts.systemProgram),
+    ],
+    data: getInitializeInstructionDataEncoder().encode(
+      args as InitializeInstructionDataArgs,
+    ),
+    programAddress,
+  } as InitializeInstruction<
+    TProgramAddress,
+    TAccountAuthority,
+    TAccountAdminConfig,
     TAccountPhygitalToken,
     TAccountSystemProgram
   >);
@@ -218,8 +316,10 @@ export type ParsedInitializeInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     authority: TAccountMetas[0];
-    phygitalToken: TAccountMetas[1];
-    systemProgram: TAccountMetas[2];
+    /** Authority must be the admin or an issuer on this config. */
+    adminConfig: TAccountMetas[1];
+    phygitalToken: TAccountMetas[2];
+    systemProgram: TAccountMetas[3];
   };
   data: InitializeInstructionData;
 };
@@ -232,12 +332,12 @@ export function parseInitializeInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedInitializeInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 3) {
+  if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 3,
+        expectedAccountMetas: 4,
       },
     );
   }
@@ -251,6 +351,7 @@ export function parseInitializeInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       authority: getNextAccount(),
+      adminConfig: getNextAccount(),
       phygitalToken: getNextAccount(),
       systemProgram: getNextAccount(),
     },

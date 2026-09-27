@@ -6,19 +6,19 @@ Codama-generated Rust client for the [phygital-token](https://github.com/Revibas
 
 ```toml
 [dependencies]
-phygital-token-client = "1.1"
+phygital-token-client = "1.3"
 ```
 
 For on-chain CPI helpers (Anchor):
 
 ```toml
-phygital-token-client = { version = "1.2", features = ["anchor"] }
+phygital-token-client = { version = "1.3", features = ["anchor"] }
 ```
 
 For off-chain account fetching:
 
 ```toml
-phygital-token-client = { version = "1.2", features = ["fetch"] }
+phygital-token-client = { version = "1.3", features = ["fetch"] }
 ```
 
 ## Usage
@@ -27,7 +27,7 @@ The crate re-exports generated instruction builders, account layouts, types, and
 
 ```rust
 use phygital_token_client::{
-    instructions::{SetLinkedWalletCpiBuilder, VerifyCpiBuilder, SetMintCpiBuilder},
+    instructions::{SetLinkedWalletCpiBuilder, VerifyCpiBuilder, AssignMintCpiBuilder},
     types::PhygitalTokenType,
     PHYGITAL_TOKEN_ID,
 };

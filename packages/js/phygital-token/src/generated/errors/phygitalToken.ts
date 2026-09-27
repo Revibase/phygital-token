@@ -54,10 +54,14 @@ export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1781; // 6017
 export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1782; // 6018
 /** UnauthorizedAuthority: Only the designated authority can perform this action. */
 export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1783; // 6019
+/** UnauthorizedAdmin: Only the admin can perform this action. */
+export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN = 0x1784; // 6020
+/** KeyAlreadyExists: Key already exists on the admin config. */
+export const PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS = 0x1785; // 6021
 /** PermanentLinkedWalletRequired: Permanent phygital tokens require a non-default linked wallet at initialize. */
-export const PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_REQUIRED = 0x1784; // 6020
+export const PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_REQUIRED = 0x1786; // 6022
 /** PermanentLinkedWalletImmutable: Permanent phygital token linked wallet cannot be transferred or removed. */
-export const PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_IMMUTABLE = 0x1785; // 6021
+export const PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_IMMUTABLE = 0x1787; // 6023
 
 export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH
@@ -68,6 +72,7 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT
+  | typeof PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS
   | typeof PHYGITAL_TOKEN_ERROR__LINKED_WALLET_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR
   | typeof PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH
@@ -80,6 +85,7 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED
   | typeof PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE
   | typeof PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA
+  | typeof PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN
   | typeof PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY
   | typeof PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED;
 
@@ -94,6 +100,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS]: `Failed to deserialize secp256r1 signature offsets from the instruction data`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH]: `Slot not found in SlotHashes sysvar — signature has expired or is being replayed`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT]: `Invalid sysvar data format`,
+    [PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS]: `Key already exists on the admin config.`,
     [PHYGITAL_TOKEN_ERROR__LINKED_WALLET_MISMATCH]: `Phygital token linked wallet mismatch`,
     [PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
     [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH]: `WebAuthn origin does not match any expected origin.`,
@@ -106,6 +113,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED]: `The linked wallet needs to unlock the phygital token to enable transfer.`,
     [PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE]: `This phygital token is not lockable.`,
     [PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA]: `Unable to parse client data JSON.`,
+    [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN]: `Only the admin can perform this action.`,
     [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY]: `Only the designated authority can perform this action.`,
     [PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED]: `WebAuthn user presence flag (UP) was not set by the authenticator.`,
   };

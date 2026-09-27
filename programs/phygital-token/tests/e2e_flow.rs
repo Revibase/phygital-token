@@ -31,7 +31,7 @@ fn e2e_initialize_and_transfer() {
     assert_eq!(
         instance.mint,
         Pubkey::default(),
-        "mint is unset until set_mint"
+        "mint is unset until assign_mint"
     );
 
     ctx.send_set_linked_wallet(&phygital_token, &recipient, true)

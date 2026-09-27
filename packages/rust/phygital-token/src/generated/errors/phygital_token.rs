@@ -70,12 +70,18 @@ pub enum PhygitalTokenError {
     /// 6019 - Only the designated authority can perform this action.
     #[error("Only the designated authority can perform this action.")]
     UnauthorizedAuthority = 0x1783,
-    /// 6020 - Permanent phygital tokens require a non-default linked wallet at initialize.
+    /// 6020 - Only the admin can perform this action.
+    #[error("Only the admin can perform this action.")]
+    UnauthorizedAdmin = 0x1784,
+    /// 6021 - Key already exists on the admin config.
+    #[error("Key already exists on the admin config.")]
+    KeyAlreadyExists = 0x1785,
+    /// 6022 - Permanent phygital tokens require a non-default linked wallet at initialize.
     #[error("Permanent phygital tokens require a non-default linked wallet at initialize.")]
-    PermanentLinkedWalletRequired = 0x1784,
-    /// 6021 - Permanent phygital token linked wallet cannot be transferred or removed.
+    PermanentLinkedWalletRequired = 0x1786,
+    /// 6023 - Permanent phygital token linked wallet cannot be transferred or removed.
     #[error("Permanent phygital token linked wallet cannot be transferred or removed.")]
-    PermanentLinkedWalletImmutable = 0x1785,
+    PermanentLinkedWalletImmutable = 0x1787,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {

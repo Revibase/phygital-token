@@ -7,10 +7,13 @@ import {
 } from "@solana/kit";
 import {
   bufferToBase64URLString,
-  authenticateWithWebauthn,
-  nfcWebAuthnRequestOptions,
   type AuthenticationResponseJSON,
+  type Base64URLString,
 } from "../utils/passkey/webauthn.js";
+import {
+  authenticatePasskey,
+  type NfcTransceive,
+} from "../utils/passkey/authenticate.js";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
@@ -20,7 +23,6 @@ import { getLatestSlotHash } from "../utils/slotHash.js";
 import { getSetLinkedWalletInstruction } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 import { findPhygitalTokenPda } from "../utils/pdas/token.js";
-import type { Base64URLString } from "../utils/passkey/webauthn.js";
 
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
@@ -71,20 +73,27 @@ export async function beginTransfer(input: {
 
 /**
  * Prompts the physical token passkey (WebAuthn / NFC tap).
- * Passes {@link TransferSession.secp256r1Pubkey} in `allowCredentials` for the browser UI.
+ *
+ * Browser: passes {@link TransferSession.secp256r1Pubkey} in `allowCredentials`.
  * If the platform echoes a random placeholder id, recovery disambiguates by checking
  * which candidate has an initialized PhygitalToken PDA on-chain.
+ *
+ * Native / kiosk: pass `transceive` to use IsoDep APDUs instead of browser WebAuthn.
  */
 export async function authenticatePasskeyForTransfer(
   session: TransferSession,
+  options?: {
+    transceive?: NfcTransceive;
+  },
 ): Promise<AuthenticationResponseJSON> {
-  return authenticateWithWebauthn(
-    nfcWebAuthnRequestOptions(
-      bufferToBase64URLString(session.challenge),
-      session.rpId,
-      session.secp256r1Pubkey,
-    ),
+  return authenticatePasskey(
+    bufferToBase64URLString(session.challenge),
     session.rpc,
+    {
+      rpId: session.rpId,
+      credentialId: session.secp256r1Pubkey,
+      transceive: options?.transceive,
+    },
   );
 }
 

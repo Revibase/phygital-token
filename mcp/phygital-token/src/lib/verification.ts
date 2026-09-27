@@ -35,12 +35,13 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: true,
     rationale:
-      "Linked-wallet claim uses set_linked_wallet (updates phygital_token.linked_wallet; no SPL token). beginTransfer takes secp256r1Pubkey and derives the token PDA.",
+      "Linked-wallet claim uses set_linked_wallet (updates phygital_token.linked_wallet; no SPL token). Requires is_locked == 0. beginTransfer takes secp256r1Pubkey and derives the token PDA. Pass { transceive } for native APDU.",
     docIds: ["verification:overview", "sdk:surface-area"],
     cautions: [
       "Do not use verifyResponse alone for transfers — it does not change phygital_token.linked_wallet.",
       "Do not use verify for transfers — it proves possession without changing linked_wallet.",
       "Recipient must sign the transaction — pass completeTransfer a Kit TransactionSigner.",
+      "Token must be unlocked (is_locked == 0). Permanent tokens stay locked and always fail with TokenIsCurrentlyLocked.",
     ],
   },
   native_mobile_app: {
@@ -49,7 +50,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: false,
     rationale:
-      "Pass transceive in startAuthentication options for native NFC readers; verify on server. Rpc is still required but unused when transceive is set.",
+      "Pass { transceive } in startAuthentication options for native NFC readers (authenticatePasskey → APDU); verify on server. Rpc is still required but unused when transceive is set.",
     docIds: ["verification:methods", "verification:verify-composable"],
     cautions: ["Run verifyResponse on your server, not in the native client."],
   },
@@ -105,13 +106,15 @@ export function listVerificationUseCases(): Array<{
 export const VERIFICATION_DECISION_TREE = `
 Authentication (live NFC tap required)
 ├── Need on-chain linked-wallet change?
-│   YES → beginTransfer({ rpc, secp256r1Pubkey }) → completeTransfer (set_linked_wallet)
+│   YES → beginTransfer({ rpc, secp256r1Pubkey })
+│         → authenticatePasskeyForTransfer(session, { transceive? })
+│         → completeTransfer (set_linked_wallet; requires is_locked == 0)
 │   NO  → Need on-chain possession proof for your program?
 │         YES → buildMessageHash(message)
-│               → authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })
+│               → authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, transceive? })
 │               → buildSecp256r1VerifyInstruction(tap)
 │               [secp256r1_verify, your_program_instruction] — program CPIs verify
-│         NO  → startAuthentication(message, rpc) (client tap)
+│         NO  → startAuthentication(message, rpc, { transceive? }) (client tap)
 │               → verifyResponse (server verify)
 │               → optional: findPhygitalTokenPda(secp256r1PublicKey) / fetchPhygitalToken
 └── Know the passkey already?
@@ -122,9 +125,11 @@ WebAuthn credential id:
 - rawId 16 bytes → platform echoed random placeholder; SDK recovers from signature
 - ambiguous recovery → pick candidate with initialized PhygitalToken PDA on-chain
 
+All tap helpers share authenticatePasskey: { transceive } → APDU; else browser WebAuthn.
 Browser WebAuthn requires Kit Rpc on all tap helpers.
 verifyResponse never submits verify. Run it on your server.
 Token PDA is seeded by the passkey public key; chip identifier is a separate binding field.
 Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder (omit to skip).
 PDA is derived after the NFC tap. Your program always CPIs verify — do not post a client-side verify instruction.
+set_linked_wallet requires is_locked == 0 (Permanent stays locked → TokenIsCurrentlyLocked).
 `.trim();

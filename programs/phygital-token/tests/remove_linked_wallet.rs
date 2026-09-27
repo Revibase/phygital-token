@@ -83,8 +83,11 @@ fn remove_linked_wallet_rejects_permanent_token() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let owner = Keypair::new();
-    let phygital_token =
-        ctx.init_phygital_token_with_linked_wallet(&passkey, PhygitalTokenType::Permanent, owner.pubkey());
+    let phygital_token = ctx.init_phygital_token_with_linked_wallet(
+        &passkey,
+        PhygitalTokenType::Permanent,
+        owner.pubkey(),
+    );
 
     ctx.svm.airdrop(&owner.pubkey(), LAMPORTS_PER_SOL).unwrap();
 

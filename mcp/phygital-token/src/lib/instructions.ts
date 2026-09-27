@@ -3,6 +3,7 @@ import {
   PhygitalTokenType,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   findPhygitalTokenPda,
+  findAdminConfigPda,
 } from "phygital-token-sdk";
 
 export async function planInitialize(input: {
@@ -11,7 +12,8 @@ export async function planInitialize(input: {
   tokenType: "Permanent" | "Controlled" | "Bearer";
   linkedWallet: string;
 }) {
-  const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
+  const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
+  const [adminConfig] = await findAdminConfigPda();
   const tokenType =
     input.tokenType === "Permanent"
       ? PhygitalTokenType.Permanent
@@ -25,12 +27,13 @@ export async function planInitialize(input: {
     tokenType: input.tokenType,
     derivedAccounts: {
       tokenPda,
+      adminConfig,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
     requiredSigners: [
       {
         name: "authority",
-        role: "Must be ADMIN (G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF); pays rent and creates the token PDA",
+        role: "Must be AdminConfig.issuer; pays rent and creates the token PDA",
       },
     ],
     requiredInputs: {
@@ -43,31 +46,34 @@ export async function planInitialize(input: {
       "Creates a token PDA seeded by the passkey public key.",
       "identifier is stored on the token for binding and is distinct from the passkey.",
       "linkedWallet is stored on phygital_token.linked_wallet at init (required non-default for Permanent; use the default zero pubkey for unowned Bearer/Controlled tokens).",
-      "Permanent linked wallet is immutable after initialize — set_linked_wallet and remove_linked_wallet are rejected.",
-      "mint starts as the default pubkey until set_mint.",
-      "Derive the token PDA with findPhygitalTokenPda, then pass it to getInitializeInstruction.",
-      "On mainnet the authority is a Squads vault — wrap `getInitializeInstruction` with your own Squads client so the vault can sign.",
+      "Tokens initialized with a non-default linkedWallet start locked (is_locked = 1).",
+      "Permanent tokens stay locked forever (remove_linked_wallet is rejected); set_linked_wallet fails with TokenIsCurrentlyLocked.",
+      "mint starts as the default pubkey until assign_mint.",
+      "Bootstrap AdminConfig with create_config, then set_issuer before calling initialize.",
+      "Derive the token PDA with findPhygitalTokenPda; AdminConfig with findAdminConfigPda.",
     ],
   };
 }
 
-export async function planSetMint(input: {
+export async function planAssignMint(input: {
   secp256r1PublicKey: string;
   mint: string;
 }) {
-  const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
+  const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
+  const [adminConfig] = await findAdminConfigPda();
 
   return {
-    instruction: "set_mint",
-    sdk: "getSetMintInstruction",
+    instruction: "assign_mint",
+    sdk: "getAssignMintInstruction",
     derivedAccounts: {
       tokenPda,
+      adminConfig,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
     requiredSigners: [
       {
         name: "authority",
-        role: "Must be ADMIN (G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF); signer only (not writable)",
+        role: "Must be AdminConfig.minter; signer only (not writable)",
       },
     ],
     requiredInputs: {
@@ -76,9 +82,41 @@ export async function planSetMint(input: {
     },
     notes: [
       "Binds an SPL mint pubkey onto phygital_token.mint. Does not mint or transfer tokens.",
-      "Only the designated admin may call set_mint.",
-      "Derive the token PDA with findPhygitalTokenPda, then pass it to getSetMintInstruction.",
-      "On mainnet the authority is a Squads vault — wrap `getSetMintInstruction` with your own Squads client so the vault can sign.",
+      "Only AdminConfig.minter may call assign_mint (admin and issuer cannot).",
+      "Bootstrap with create_config → set_minter before calling assign_mint.",
+      "Derive the token PDA with findPhygitalTokenPda; AdminConfig with findAdminConfigPda.",
+    ],
+  };
+}
+
+/** @deprecated Use {@link planAssignMint}. */
+export const planSetMint = planAssignMint;
+
+export async function planCreateConfig() {
+  const [adminConfig] = await findAdminConfigPda();
+  return {
+    instruction: "create_config",
+    sdk: "getCreateConfigInstruction",
+    derivedAccounts: {
+      adminConfig,
+      program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+    },
+    requiredSigners: [
+      {
+        name: "authority",
+        role: "Becomes AdminConfig.admin; pays rent. Callable once.",
+      },
+    ],
+    related: {
+      set_admin: "getSetAdminInstruction — transfer sole admin (cannot promote issuer/minter)",
+      set_issuer: "getSetIssuerInstruction — set the single issuer pubkey",
+      set_minter: "getSetMinterInstruction — set the single minter pubkey",
+    },
+    notes: [
+      "Creates the singleton AdminConfig PDA (seeds = [\"admin\"]).",
+      "Signer becomes the sole admin. issuer and minter start as default until set.",
+      "Roles must be distinct pubkeys (KeyAlreadyExists if overlapping).",
+      "initialize requires issuer; assign_mint requires minter.",
     ],
   };
 }
@@ -87,12 +125,12 @@ export async function planTransfer(input: {
   secp256r1PublicKey: string;
   recipient: string;
 }) {
-  const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
+  const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
 
   return {
     flow: [
       "1. beginTransfer({ rpc, secp256r1Pubkey, rpId? }) — derives token PDA from passkey; fetch slot hash, build challenge; rpId defaults to hostname",
-      "2. authenticatePasskeyForTransfer(session) — NFC/WebAuthn tap; passes secp256r1Pubkey in allowCredentials",
+      "2. authenticatePasskeyForTransfer(session, { transceive? }) — browser WebAuthn or native APDU when transceive is set",
       "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + set_linked_wallet",
     ],
     sdk: {
@@ -129,13 +167,13 @@ export async function planTransfer(input: {
     instructions: ["secp256r1_verify", "set_linked_wallet"],
     notes: [
       "No SPL token transfer — set_linked_wallet only updates phygital_token.linked_wallet.",
-      "Permanent tokens reject set_linked_wallet and remove_linked_wallet entirely.",
-      "Controlled tokens must be unlocked (is_locked == 0) before set and auto-lock after a successful claim; remove_linked_wallet clears the lock.",
+      "Requires is_locked == 0 for every token type. Tokens with a linked wallet at init start locked.",
+      "Controlled tokens re-lock after a successful claim; remove_linked_wallet clears the lock.",
+      "Permanent tokens remain locked (cannot forfeit), so set_linked_wallet always fails with TokenIsCurrentlyLocked.",
       "beginTransfer takes Kit Rpc + base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
-      "Browser tap requires rpc for placeholder credential-id recovery (16-byte rawId). When rawId is 33 bytes, authenticator returned the passkey directly.",
+      "Browser tap requires rpc for placeholder credential-id recovery (16-byte rawId). Pass { transceive } for native/kiosk APDU.",
       "completeTransfer takes a Kit TransactionSigner for recipient. web3.js callers convert with toRpc / toAddress / toTransactionSigner, then toWeb3Instructions.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
-      "PDA is derived from the passkey public key, which also authorizes the signature.",
     ],
   };
 }
@@ -154,13 +192,13 @@ export async function planVerify(input: {
 
   let tokenPda: string | undefined;
   if (input.secp256r1PublicKey) {
-    tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
+    [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
   }
 
   return {
     flow: [
       "buildMessageHash(message) — 32-byte digest",
-      "authenticatePasskeyForSecp256r1Verify({ rpc, messageHash }) — rpc required; optional rpId defaults to hostname",
+      "authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId?, transceive? }) — browser or native APDU",
       "buildSecp256r1VerifyInstruction(tap) — { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }",
       "sendTransaction([secp256r1VerifyInstruction, yourProgramInstruction]) — your instruction carries phygitalTokenPda + secp256r1VerifyArgs; message_hash and instructions sysvar are yours",
     ],
@@ -169,7 +207,7 @@ export async function planVerify(input: {
       authenticate: "authenticatePasskeyForSecp256r1Verify",
       build: "buildSecp256r1VerifyInstruction",
       offChainAuthOnly:
-        "startAuthentication (client) + verifyResponse (server); does NOT submit verify",
+        "startAuthentication(message, rpc, { transceive? }) + verifyResponse; does NOT submit verify",
     },
     message: {
       utf8: input.message,
@@ -204,15 +242,12 @@ export async function planVerify(input: {
       secp256r1VerifyArgs: "VerifyCpiBuilder.secp256r1_verify_args (relative index -1)",
     },
     notes: [
-      "startAuthentication(message, rpc) + verifyResponse is off-chain only — it does not submit verify. Verify on your server.",
-      "Browser WebAuthn requires rpc for placeholder recovery (rawId length 16). Authenticator returns passkey directly when rawId is 33 bytes.",
-      "When recovery is ambiguous, the SDK picks the candidate with an initialized PhygitalToken PDA on-chain.",
+      "startAuthentication(message, rpc, { transceive? }) + verifyResponse is off-chain only — it does not submit verify.",
+      "All three tap helpers (startAuthentication, authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify) share authenticatePasskey: transceive → APDU, else browser WebAuthn.",
+      "Browser WebAuthn requires rpc for placeholder recovery (rawId length 16).",
       "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
-      "Hash with buildMessageHash before authenticatePasskeyForSecp256r1Verify. Optional rpId defaults to window.location.hostname.",
-      "Your program CPIs verify. Do not include a client-side verify instruction. message_hash and instructions sysvar come from your instruction.",
-      "Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder, not the tap helper. Omit them to skip. When expected_origins is set, clientDataJSON.origin must match one listed origin.",
-      "verify updates phygital_token.last_sign_count; WebAuthn signCount must be strictly increasing.",
-      "verify does not change phygital_token.linked_wallet.",
+      "Your program CPIs verify. Do not include a client-side verify instruction.",
+      "verify updates phygital_token.last_sign_count; it does not change linked_wallet.",
     ],
   };
 }
@@ -221,7 +256,7 @@ export async function planRemoveLinkedWallet(input: {
   secp256r1PublicKey: string;
   linkedWallet: string;
 }) {
-  const tokenPda = await findPhygitalTokenPda(input.secp256r1PublicKey);
+  const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
 
   return {
     instruction: "remove_linked_wallet",
@@ -245,13 +280,13 @@ export async function planRemoveLinkedWallet(input: {
     ],
     onChainEffects: [
       "Sets phygital_token.linked_wallet to the default (zero) pubkey",
-      "Clears phygital_token.is_locked (forfeiture unlocks Controlled tokens)",
+      "Clears phygital_token.is_locked (required before the next set_linked_wallet when locked)",
       "Preserves phygital_token.last_sign_count",
     ],
     notes: [
       "Wallet-signed forfeiture — unlike set_linked_wallet, no secp256r1_verify or passkey tap.",
       "Fails if signer is not phygital_token.linked_wallet.",
-      "Rejected for Permanent tokens (linked wallet is immutable).",
+      "Rejected for Permanent tokens (PermanentLinkedWalletImmutable).",
     ],
   };
 }

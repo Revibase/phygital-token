@@ -1,9 +1,11 @@
 import {
   type AuthenticationResponseJSON,
-  authenticateWithWebauthn,
   bufferToBase64URLString,
-  nfcWebAuthnRequestOptions,
 } from "../utils/passkey/webauthn.js";
+import {
+  authenticatePasskey,
+  type NfcTransceive,
+} from "../utils/passkey/authenticate.js";
 import type { Address, Instruction, Rpc, SolanaRpcApi } from "@solana/kit";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
@@ -31,18 +33,21 @@ export function buildMessageHash(message: Uint8Array): Uint8Array {
  * @param input.rpId - WebAuthn relying party for the **browser tap** only.
  *   Defaults to `window.location.hostname`. On-chain `expected_rp_id` /
  *   `expected_origins` are set on your CPI, not here.
+ * @param input.transceive - Native / kiosk IsoDep reader; when set, skips browser WebAuthn.
  */
 export async function authenticatePasskeyForSecp256r1Verify(input: {
   rpc: Rpc<SolanaRpcApi>;
   messageHash: Uint8Array;
   rpId?: string;
+  transceive?: NfcTransceive;
 }): Promise<AuthenticationResponseJSON> {
-  return authenticateWithWebauthn(
-    nfcWebAuthnRequestOptions(
-      bufferToBase64URLString(input.messageHash),
-      input.rpId ?? window.location.hostname,
-    ),
+  return authenticatePasskey(
+    bufferToBase64URLString(input.messageHash),
     input.rpc,
+    {
+      rpId: input.rpId,
+      transceive: input.transceive,
+    },
   );
 }
 

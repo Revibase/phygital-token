@@ -11,39 +11,64 @@ TypeScript package: `phygital-token-sdk` (`packages/js/phygital-token`).
 
 When recovery is ambiguous, the SDK selects the candidate with an initialized PhygitalToken PDA on-chain. **Browser WebAuthn requires Kit `Rpc`** on all tap helpers.
 
+## Shared tap helper
+
+All three tap entry points (`startAuthentication`, `authenticatePasskeyForTransfer`, `authenticatePasskeyForSecp256r1Verify`) call `authenticatePasskey`:
+
+| Option | Behavior |
+|--------|----------|
+| `{ transceive }` | Native/kiosk APDU via `authenticateWithApdu` |
+| omitted | Browser WebAuthn via `authenticateWithWebauthn` (needs `rpc`) |
+
+## Admin / roles
+
+| Export | Purpose |
+|--------|---------|
+| `getCreateConfigInstruction` | Create singleton AdminConfig PDA; signer becomes sole admin |
+| `getSetAdminInstruction` | Transfer admin (cannot promote issuer/minter) |
+| `getSetIssuerInstruction` | Set the single issuer pubkey |
+| `getSetMinterInstruction` | Set the single minter pubkey |
+| `findAdminConfigPda` | Derive AdminConfig PDA (`["admin"]`) |
+
+Roles must be distinct pubkeys. `initialize` requires issuer; `assign_mint` requires minter.
+
 ## Initialize
 
 | Export | Purpose |
 |--------|---------|
-| `getInitializeInstruction` | Create token PDA (seeded by passkey `secp256r1Pubkey`; pass token PDA from `findPhygitalTokenPda`; requires `linkedWallet`) |
+| `getInitializeInstruction` | Create token PDA (seeded by passkey; requires `linkedWallet` + `AdminConfig`) |
 | `parseSecp256r1Pubkey` | Parse a base64url 33-byte compressed secp256r1 public key |
-| `ADMIN` / `INITIALIZE_MULTISIG_PDA` | Admin vault and the Squads multisig that owns it on mainnet |
+| `findPhygitalTokenPda` | Derive the phygital token PDA from a passkey public key |
+| `findAdminConfigPda` | Derive AdminConfig for the initialize accounts |
 
-`ADMIN` (`G6k…EjoF`) is Squads vault-0 of `INITIALIZE_MULTISIG_PDA` (`EU7…Kn7U`). Derive the token PDA with `findPhygitalTokenPda`, then pass it to `getInitializeInstruction`. Wrap the kit instruction with your own Squads client if the vault must sign.
+Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_issuer`. Tokens with a non-default `linkedWallet` at init start locked (`is_locked = 1`).
 
-## Set mint
+## Assign mint
 
 | Export | Purpose |
 |--------|---------|
-| `getSetMintInstruction` | Bind an SPL mint pubkey onto `phygital_token.mint` (authority defaults to `ADMIN`) |
+| `getAssignMintInstruction` | Bind an SPL mint pubkey onto `phygital_token.mint` |
 | `findPhygitalTokenPda` | Derive the phygital token PDA from a passkey public key |
+| `findAdminConfigPda` | Derive AdminConfig for the assign_mint accounts |
 
-`set_mint` authority must be `ADMIN`. The authority account is a signer but is **not** writable.
+`assign_mint` authority must be `AdminConfig.minter`. The authority account is a signer but is **not** writable. Bootstrap with `create_config` → `set_minter`.
 
 ## Transfer
 
 | Export | Purpose |
 |--------|---------|
 | `beginTransfer({ rpc, secp256r1Pubkey, rpId? })` | Derives token PDA from passkey; slot-bound challenge; `rpId` defaults to hostname |
-| `authenticatePasskeyForTransfer(session)` | WebAuthn NFC tap; passes `secp256r1Pubkey` in `allowCredentials` |
-| `completeTransfer` | Kit `TransactionSigner` recipient; `response.id` as passkey; builds secp + transfer |
+| `authenticatePasskeyForTransfer(session, { transceive? })` | NFC tap; optional `transceive` for native APDU |
+| `completeTransfer` | Kit `TransactionSigner` recipient; `response.id` as passkey; builds secp + set_linked_wallet |
+
+`set_linked_wallet` requires `is_locked == 0` for **every** token type. Permanent tokens stay locked and always fail with `TokenIsCurrentlyLocked`. Controlled tokens re-lock after claim.
 
 ## Verify (on-chain composable)
 
 | Export | Purpose |
 |--------|---------|
 | `buildMessageHash(message)` | SHA-256 `message` to a 32-byte `messageHash` |
-| `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId? })` | Uses `messageHash` as WebAuthn challenge; `rpc` required |
+| `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId?, transceive? })` | Uses `messageHash` as WebAuthn challenge; `rpc` for browser recovery; optional `transceive` for native APDU |
 | `buildSecp256r1VerifyInstruction` | After tap: `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }` |
 | `getVerifyInstruction` | Generated `verify` ix — `expectedRpId` / `expectedOrigins` are `Option` (`null` skips). CPI callers set these on `VerifyCpiBuilder`, not the tap helper. |
 
@@ -53,13 +78,13 @@ See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `
 
 | Export | Purpose |
 |--------|---------|
-| `getRemoveLinkedWalletInstruction` | Wallet-signed forfeiture — reset `phygital_token.linked_wallet` to default |
+| `getRemoveLinkedWalletInstruction` | Wallet-signed forfeiture — reset `phygital_token.linked_wallet` to default and clear `is_locked` |
 
 ## Verification (off-chain only)
 
 | Export | Purpose |
 |--------|---------|
-| `startAuthentication(message, rpc, options?)` | Client: NFC tap; `rpc` required for browser placeholder recovery |
+| `startAuthentication(message, rpc, { rpId?, credentialId?, transceive? })` | Client: NFC tap; `rpc` required for browser placeholder recovery |
 | `verifyResponse` | Server: verify tap signature; returns `{ isVerified, secp256r1PublicKey }` |
 
 Pair `startAuthentication` (client) with `verifyResponse` (server). Every auth check needs a fresh tap — there is no signed-URL identification helper.
@@ -69,10 +94,12 @@ Pair `startAuthentication` (client) with `verifyResponse` (server). Every auth c
 | Export | Purpose |
 |--------|---------|
 | `findPhygitalTokenPda` | Derive token PDA from passkey public key (base64url string or parsed `Secp256r1Pubkey`) |
+| `findAdminConfigPda` | Derive AdminConfig PDA |
 | `fetchPhygitalTokenByIdentifier` | Kit `Rpc`; `getProgramAccounts` memcmp on chip `identifier` |
 | `fetchPhygitalTokensByLinkedWallet` | Kit `Rpc` + `Address` linkedWallet |
 | `fetchPhygitalTokenByMint` | Kit `Address` mint + Kit `Rpc` |
 | `fetchPhygitalToken` | Generated helper — Kit `Rpc` + token PDA |
+| `fetchAdminConfig` | Generated helper — Kit `Rpc` + AdminConfig PDA |
 
 ## web3.js
 
@@ -102,16 +129,16 @@ tx.add(...toWeb3Instructions(ixs));
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getInitializeInstruction`, `getSetLinkedWalletInstruction`, `getVerifyInstruction`, `getRemoveLinkedWalletInstruction`, `getSetMintInstruction`, ...
-- Accounts: `fetchPhygitalToken`, `PhygitalToken`, ...
-- Types: `PhygitalTokenType` (`Permanent` | `Bearer` | `Controlled`), `Secp256r1Pubkey`, ...
+- Instructions: `getInitializeInstruction`, `getAssignMintInstruction`, `getSetLinkedWalletInstruction`, `getVerifyInstruction`, `getRemoveLinkedWalletInstruction`, `getCreateConfigInstruction`, `getSetAdminInstruction`, `getSetIssuerInstruction`, `getSetMinterInstruction`, …
+- Accounts: `fetchPhygitalToken`, `fetchAdminConfig`, `findAdminConfigPda`, `PhygitalToken`, `AdminConfig`, …
+- Types: `PhygitalTokenType` (`Permanent` | `Bearer` | `Controlled`), `Secp256r1Pubkey`, …
 
 ## Rust client
 
 Crate: `phygital-token-client` at `packages/rust/phygital-token`.
 
-On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `SetMintCpiBuilder`, `SetLinkedWalletCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
+On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `AssignMintCpiBuilder`, `SetLinkedWalletCpiBuilder`, `CreateConfigCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
 
-`PhygitalTokenType`: `Permanent` (0, immutable linked wallet), `Bearer` (1), `Controlled` (2, lock/forfeit).
+`PhygitalTokenType`: `Permanent` (0, immutable linked wallet, stays locked), `Bearer` (1), `Controlled` (2, lock/forfeit).
 
 Off-chain (`fetch` feature): RPC account fetching helpers.

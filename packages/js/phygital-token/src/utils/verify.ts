@@ -1,8 +1,6 @@
 import { p256 } from "@noble/curves/nist.js";
 import type { Rpc, SolanaRpcApi } from "@solana/kit";
 import {
-  authenticateWithWebauthn,
-  nfcWebAuthnRequestOptions,
   utf8ToBase64URLString,
   type AuthenticationResponseJSON,
 } from "./passkey/webauthn.js";
@@ -10,7 +8,10 @@ import {
   parseWebAuthnAssertion,
   parseWebAuthnClientData,
 } from "./passkey/internal.js";
-import { authenticateWithApdu } from "./passkey/nfc/index.js";
+import {
+  authenticatePasskey,
+  type NfcTransceive,
+} from "./passkey/authenticate.js";
 import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 
 /** Result of {@link verifyResponse}. */
@@ -40,33 +41,11 @@ export async function startAuthentication(
   message: string,
   rpc: Rpc<SolanaRpcApi>,
   options?: {
-    transceive?: (apdu: Uint8Array) => Promise<Uint8Array>;
+    transceive?: NfcTransceive;
     rpId?: string;
   },
 ): Promise<AuthenticationResponseJSON> {
-  const challenge = utf8ToBase64URLString(message);
-  const rpId = options?.rpId ?? window.location.hostname;
-
-  if (options?.transceive) {
-    return authenticateWithApdu(
-      {
-        challenge,
-        rpId: "",
-        userVerification: "preferred",
-        origin: "",
-        allowCredentials: [
-          {
-            id: "",
-            type: "public-key",
-            transports: ["nfc"],
-          },
-        ],
-      },
-      options.transceive,
-    );
-  }
-
-  return authenticateWithWebauthn(nfcWebAuthnRequestOptions(challenge, rpId), rpc);
+  return authenticatePasskey(utf8ToBase64URLString(message), rpc, options);
 }
 
 /**

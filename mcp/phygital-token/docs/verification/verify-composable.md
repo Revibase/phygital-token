@@ -24,10 +24,9 @@ buildSecp256r1VerifyInstruction(tap)
 
 SHA-256s `message` to a 32-byte digest. Use this digest as the WebAuthn challenge and as `VerifyCpiBuilder.message_hash`.
 
-### `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId? })`
+### `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId?, transceive? })`
 
-Uses `messageHash` (32 bytes) directly as the WebAuthn challenge — the same digest your program must pass to `VerifyCpiBuilder.message_hash`. Hash with `buildMessageHash` first. **`rpc`** is required for browser placeholder recovery. `rpId` defaults to `window.location.hostname`.
-
+Uses `messageHash` (32 bytes) as the WebAuthn challenge — the same digest for `VerifyCpiBuilder.message_hash`. Hash with `buildMessageHash` first. Browser path needs `rpc` for placeholder recovery; `rpId` defaults to hostname. Pass `transceive` for native / kiosk APDU instead of browser WebAuthn.
 ### `buildSecp256r1VerifyInstruction(tap)`
 
 Returns `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }`. Prepend `secp256r1VerifyInstruction`. Pass `phygitalTokenPda` and `secp256r1VerifyArgs` into your instruction. `message_hash`, the instructions sysvar, and optional origin bindings come from your program.

@@ -7,10 +7,6 @@ import {
 
 const CURVE_ORDER = p256.Point.CURVE().n;
 
-function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
-  return a.length === b.length && a.every((byte, index) => byte === b[index]);
-}
-
 type ParsedWebAuthnSignature = {
   noble: InstanceType<typeof p256.Signature>;
   compact: Uint8Array;

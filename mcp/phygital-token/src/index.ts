@@ -8,9 +8,10 @@ import { listDocs, readDocById, searchDocs } from "./lib/docs.js";
 import { jsonResult, textResult } from "./lib/format.js";
 import {
   parseTokenType,
+  planAssignMint,
+  planCreateConfig,
   planInitialize,
   planRemoveLinkedWallet,
-  planSetMint,
   planTransfer,
   planVerify,
 } from "./lib/instructions.js";
@@ -22,7 +23,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "1.2.0";
+const VERSION = "1.3.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -31,13 +32,19 @@ const SERVER_INSTRUCTIONS = [
   "Routing:",
   "- Which verification method to use → recommend_verification",
   "- On-chain verify (your program CPIs verify) → plan_verify",
-  "- Initialize / set_mint / transfer / forfeiture → plan_initialize, plan_set_mint, plan_transfer, plan_remove_linked_wallet",
+  "- Admin bootstrap → plan_create_config",
+  "- Initialize / assign_mint / transfer / forfeiture → plan_initialize, plan_assign_mint, plan_transfer, plan_remove_linked_wallet",
   "- Token PDA from passkey public key → find_token_pda",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
   "",
+  "Roles: AdminConfig has one admin, one issuer, one minter (distinct pubkeys).",
+  "initialize = issuer only; assign_mint = minter only.",
+  "set_linked_wallet requires is_locked == 0 for all token types.",
+  "",
   "Live token fetch and auth: call phygital-token-sdk directly in your app",
-  "(verifyResponse, findPhygitalTokenPda, buildMessageHash, authenticatePasskeyForSecp256r1Verify({ rpc, messageHash }), startAuthentication(message, rpc), etc.).",
+  "(verifyResponse, findPhygitalTokenPda, buildMessageHash, authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, transceive? }), startAuthentication(message, rpc, { transceive? }), etc.).",
+  "All tap helpers share authenticatePasskey: pass { transceive } for native APDU; omit for browser WebAuthn.",
   "Browser WebAuthn taps require Kit Rpc for placeholder credential-id recovery (rawId length 16).",
 ].join("\n");
 
@@ -120,10 +127,21 @@ function registerTools(server: McpServer) {
   );
 
   server.registerTool(
+    "plan_create_config",
+    {
+      description:
+        "Plan create_config bootstrap for the singleton AdminConfig (getCreateConfigInstruction).",
+      inputSchema: {},
+      annotations: { title: "Plan create_config", ...READ_ONLY },
+    },
+    async () => jsonResult(await planCreateConfig()),
+  );
+
+  server.registerTool(
     "plan_initialize",
     {
       description:
-        "Derive accounts and list signers/inputs for initialize (getInitializeInstruction).",
+        "Derive accounts and list signers/inputs for initialize (getInitializeInstruction). Authority must be AdminConfig.issuer.",
       inputSchema: {
         identifier: z
           .string()
@@ -134,12 +152,12 @@ function registerTools(server: McpServer) {
         tokenType: z
           .enum(["Permanent", "Controlled", "Bearer"])
           .describe(
-            "Token linked-wallet behavior: Permanent (immutable linked wallet), Controlled (lock/forfeit), or Bearer (freely transferable)",
+            "Token linked-wallet behavior: Permanent (immutable linked wallet), Controlled (lock/forfeit), or Bearer (freely transferable when unlocked)",
           ),
         linkedWallet: z
           .string()
           .describe(
-            "Initial phygital_token.linked_wallet (required non-default for Permanent; use the default zero pubkey for unowned Bearer/Controlled tokens)",
+            "Initial phygital_token.linked_wallet (required non-default for Permanent; use the default zero pubkey for unowned Bearer/Controlled tokens). Non-default starts locked.",
           ),
       },
       annotations: { title: "Plan initialize", ...READ_ONLY },
@@ -156,27 +174,45 @@ function registerTools(server: McpServer) {
   );
 
   server.registerTool(
-    "plan_set_mint",
+    "plan_assign_mint",
     {
       description:
-        "Derive accounts and list signers/inputs for set_mint (getSetMintInstruction).",
+        "Derive accounts and list signers/inputs for assign_mint (getAssignMintInstruction). Authority must be AdminConfig.minter.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
           .describe("Base64url passkey public key used as the token PDA seed"),
         mint: z.string().describe("SPL mint address to bind onto phygital_token.mint"),
       },
-      annotations: { title: "Plan set_mint", ...READ_ONLY },
+      annotations: { title: "Plan assign_mint", ...READ_ONLY },
     },
     async ({ secp256r1PublicKey, mint }) =>
-      jsonResult(await planSetMint({ secp256r1PublicKey, mint })),
+      jsonResult(await planAssignMint({ secp256r1PublicKey, mint })),
+  );
+
+  /** @deprecated Prefer plan_assign_mint. Kept for older clients. */
+  server.registerTool(
+    "plan_set_mint",
+    {
+      description:
+        "Deprecated alias of plan_assign_mint (assign_mint / getAssignMintInstruction).",
+      inputSchema: {
+        secp256r1PublicKey: z
+          .string()
+          .describe("Base64url passkey public key used as the token PDA seed"),
+        mint: z.string().describe("SPL mint address to bind onto phygital_token.mint"),
+      },
+      annotations: { title: "Plan assign_mint (alias)", ...READ_ONLY },
+    },
+    async ({ secp256r1PublicKey, mint }) =>
+      jsonResult(await planAssignMint({ secp256r1PublicKey, mint })),
   );
 
   server.registerTool(
     "plan_transfer",
     {
       description:
-        "Plan a passkey-authorized set_linked_wallet (offline): flow steps, derived accounts, challenge formula, and required signers.",
+        "Plan a passkey-authorized set_linked_wallet (offline): flow steps, derived accounts, challenge formula, lock rules, and required signers.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
@@ -224,7 +260,7 @@ function registerTools(server: McpServer) {
     "plan_remove_linked_wallet",
     {
       description:
-        "Plan a wallet-signed forfeiture (offline): reset phygital_token.linked_wallet to the default pubkey.",
+        "Plan a wallet-signed forfeiture (offline): reset phygital_token.linked_wallet to the default pubkey and clear is_locked.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()

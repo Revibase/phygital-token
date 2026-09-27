@@ -72,6 +72,7 @@ const tap = await authenticatePasskeyForSecp256r1Verify({
   rpc,
   messageHash,
 });
+// Native / kiosk: authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, transceive })
 const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
   buildSecp256r1VerifyInstruction(tap);
 

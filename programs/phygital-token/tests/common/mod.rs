@@ -11,7 +11,7 @@ pub use assertions::{assert_phygital_token_program_error, assert_transaction_fai
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::{prelude::*, InstructionData, ToAccountMetas};
 use litesvm::LiteSVM;
-use phygital_token::constants::{ADMIN, PHYGITAL_TOKEN_SEED};
+use phygital_token::constants::{ADMIN_CONFIG_SEED, PHYGITAL_TOKEN_SEED};
 use phygital_token::state::PhygitalToken;
 use phygital_token::utils::secp256r1_pda_seed;
 use phygital_token::{InitializeArgs, PhygitalTokenType, Secp256r1Pubkey, Secp256r1VerifyArgs};
@@ -33,10 +33,12 @@ pub const TEST_ORIGIN: &str = "http://localhost:3000";
 // Domain vocabulary (see GLOSSARY.md at repo root):
 //   Token      = PhygitalToken PDA created by `initialize` (1:1 with a passkey)
 //   LinkedWallet = phygital_token.linked_wallet (current custodian; `Pubkey::default()` when unowned)
-//   Mint       = optional SPL mint pubkey, set later via `set_mint` (default until then)
+//   Mint       = optional SPL mint pubkey, set later via `assign_mint` (default until then)
 //
 // Linked wallet lives in the PhygitalToken PDA and is moved by `set_linked_wallet`
-// after a secp256r1/WebAuthn proof. `set_mint` binds an SPL mint after init.
+// after a secp256r1/WebAuthn proof. `assign_mint` binds an SPL mint after init.
+//
+// AdminConfig roles: admin (manages roles), issuer (initialize), minter (assign_mint).
 
 /// A freshly `initialize`d phygital_token plus the passkey that controls its transfers.
 ///
@@ -61,6 +63,12 @@ pub fn unique_identifier() -> Secp256r1Pubkey {
 pub struct TestContext {
     pub svm: LiteSVM,
     pub payer: Keypair,
+    /// Sole admin after `create_config` bootstrap.
+    pub admin: Keypair,
+    /// Issuer role — sole authority for `initialize`.
+    pub issuer: Keypair,
+    /// Minter role — sole authority for `assign_mint`.
+    pub minter: Keypair,
     pub program_id: Pubkey,
 }
 
@@ -82,8 +90,8 @@ fn program_artifact_paths(manifest_dir: &std::path::Path, name: &str) -> Vec<std
 impl TestContext {
     pub fn new() -> Self {
         let program_id = phygital_token::ID;
-        // Sigverify off so tests can submit `initialize` as INITIALIZE_AUTHORITY
-        // without the mainnet private key. secp256r1 precompile checks still run.
+        // Sigverify off so secp256r1 precompile tests can submit without real ed25519
+        // signatures on some paths; admin ops still use real keypairs below.
         let mut svm = LiteSVM::new().with_precompiles().with_sigverify(false);
         let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
         Self::deploy_program(
@@ -93,18 +101,28 @@ impl TestContext {
             "phygital_token",
         );
 
-        svm.airdrop(&ADMIN, 10 * LAMPORTS_PER_SOL)
-            .expect("airdrop initialize authority");
+        let admin = Keypair::new();
+        let issuer = Keypair::new();
+        let minter = Keypair::new();
+        for kp in [&admin, &issuer, &minter] {
+            svm.airdrop(&kp.pubkey(), 10 * LAMPORTS_PER_SOL)
+                .expect("airdrop role key");
+        }
 
         let payer = Keypair::new();
         svm.airdrop(&payer.pubkey(), 10 * LAMPORTS_PER_SOL)
             .expect("airdrop payer");
 
-        Self {
+        let mut ctx = Self {
             svm,
             payer,
+            admin,
+            issuer,
+            minter,
             program_id,
-        }
+        };
+        ctx.bootstrap_admin_config();
+        ctx
     }
 
     fn deploy_program(
@@ -136,6 +154,84 @@ impl TestContext {
             &self.program_id,
         )
         .0
+    }
+
+    pub fn admin_config_pda(&self) -> Pubkey {
+        Pubkey::find_program_address(&[ADMIN_CONFIG_SEED], &self.program_id).0
+    }
+
+    // --- admin config --------------------------------------------------------
+
+    pub fn create_config_ix(&self, authority: Pubkey) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_token::accounts::CreateConfig {
+                authority,
+                admin_config: self.admin_config_pda(),
+                system_program: anchor_lang::solana_program::system_program::ID,
+            }
+            .to_account_metas(None),
+            data: phygital_token::instruction::CreateConfig {}.data(),
+        }
+    }
+
+    fn bootstrap_admin_config(&mut self) {
+        let admin = self.admin.insecure_clone();
+        let ix = self.create_config_ix(admin.pubkey());
+        Self::send_instruction(&mut self.svm, ix, &[&admin]).expect("create_config");
+
+        self.send_set_issuer(self.issuer.pubkey())
+            .expect("bootstrap set_issuer");
+        self.send_set_minter(self.minter.pubkey())
+            .expect("bootstrap set_minter");
+    }
+
+    pub fn set_issuer_ix(&self, admin: Pubkey, issuer: Pubkey) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_token::accounts::SetIssuer {
+                admin,
+                admin_config: self.admin_config_pda(),
+            }
+            .to_account_metas(None),
+            data: phygital_token::instruction::SetIssuer { issuer }.data(),
+        }
+    }
+
+    pub fn send_set_issuer(&mut self, issuer: Pubkey) -> litesvm::types::TransactionResult {
+        let ix = self.set_issuer_ix(self.admin.pubkey(), issuer);
+        let admin = self.admin.insecure_clone();
+        Self::send_instruction(&mut self.svm, ix, &[&admin])
+    }
+
+    pub fn set_minter_ix(&self, admin: Pubkey, minter: Pubkey) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_token::accounts::SetMinter {
+                admin,
+                admin_config: self.admin_config_pda(),
+            }
+            .to_account_metas(None),
+            data: phygital_token::instruction::SetMinter { minter }.data(),
+        }
+    }
+
+    pub fn send_set_minter(&mut self, minter: Pubkey) -> litesvm::types::TransactionResult {
+        let ix = self.set_minter_ix(self.admin.pubkey(), minter);
+        let admin = self.admin.insecure_clone();
+        Self::send_instruction(&mut self.svm, ix, &[&admin])
+    }
+
+    pub fn set_admin_ix(&self, admin: Pubkey, new_admin: Pubkey) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_token::accounts::SetAdmin {
+                admin,
+                admin_config: self.admin_config_pda(),
+            }
+            .to_account_metas(None),
+            data: phygital_token::instruction::SetAdmin { new_admin }.data(),
+        }
     }
 
     // --- phygital_token state readers -------------------------------------------------
@@ -188,6 +284,7 @@ impl TestContext {
             program_id: self.program_id,
             accounts: phygital_token::accounts::Initialize {
                 authority,
+                admin_config: self.admin_config_pda(),
                 phygital_token,
                 system_program: anchor_lang::solana_program::system_program::ID,
             }
@@ -250,8 +347,9 @@ impl TestContext {
             token_type,
             linked_wallet,
         };
-        let ix = self.initialize_ix(ADMIN, phygital_token, args);
-        Self::send_instruction_as(&mut self.svm, ix, ADMIN).expect("initialize phygital_token");
+        let ix = self.initialize_ix(self.issuer.pubkey(), phygital_token, args);
+        let issuer = self.issuer.insecure_clone();
+        Self::send_instruction(&mut self.svm, ix, &[&issuer]).expect("initialize phygital_token");
 
         MintedPhygitalToken {
             phygital_token,
@@ -430,9 +528,9 @@ impl TestContext {
         Self::send_instructions(&mut self.svm, &instructions, signers)
     }
 
-    // --- set_mint ------------------------------------------------------------
+    // --- assign_mint ---------------------------------------------------------
 
-    pub fn set_mint_ix(
+    pub fn assign_mint_ix(
         &self,
         authority: Pubkey,
         phygital_token: Pubkey,
@@ -440,22 +538,24 @@ impl TestContext {
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
-            accounts: phygital_token::accounts::SetMint {
+            accounts: phygital_token::accounts::AssignMint {
                 authority,
+                admin_config: self.admin_config_pda(),
                 phygital_token,
             }
             .to_account_metas(None),
-            data: phygital_token::instruction::SetMint { mint }.data(),
+            data: phygital_token::instruction::AssignMint { mint }.data(),
         }
     }
 
-    pub fn send_set_mint(
+    pub fn send_assign_mint(
         &mut self,
         phygital_token: Pubkey,
         mint: Pubkey,
     ) -> litesvm::types::TransactionResult {
-        let ix = self.set_mint_ix(ADMIN, phygital_token, mint);
-        Self::send_instruction_as(&mut self.svm, ix, ADMIN)
+        let ix = self.assign_mint_ix(self.minter.pubkey(), phygital_token, mint);
+        let minter = self.minter.insecure_clone();
+        Self::send_instruction(&mut self.svm, ix, &[&minter])
     }
 
     // --- remove_linked_wallet ----------------------------------------------------
