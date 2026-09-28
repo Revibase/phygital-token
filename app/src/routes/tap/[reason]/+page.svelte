@@ -19,6 +19,6 @@
 		<PageHeader align="center" title={copy.title} body={copy.body} />
 	</section>
 	{#snippet footer()}
-		<Button href="/" variant="ghost" class="h-11 w-full text-muted-foreground">Back to start</Button>
+		<Button href="/" variant="ghost" class="h-11 w-full text-muted-foreground">Use your wallet instead</Button>
 	{/snippet}
 </PageShell>

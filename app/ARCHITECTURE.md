@@ -107,7 +107,7 @@ These rules sit on top of the on-chain lock flag. The app never presents an unex
   - `solflare.com/ul/v1/browse/…`
 - Where this applies:
   - after the tap, the target is the `/continue#h=…` link;
-  - for release and recovery, it is `/wallet`;
+  - for release and the wallet home, it is `/`;
   - the desktop flow never shows deep links.
 - **`/continue` claims `h` only once a wallet is detected.** Opened somewhere without one, such as Safari, the link stays unclaimed and is offered for reopening in a wallet app. A browser with no wallet can't burn the single-use link.
 - `catalog.ts` holds the logic and `WalletPicker` renders it everywhere.
@@ -204,18 +204,17 @@ The app does one job: make the object stand in for your wallet.
 
 | Route | Purpose |
 |---|---|
-| `/` | Tap target. With parameters it runs the tap ceremony; without them, "Tap your accessory". |
+| `/` | Two jobs. With tap parameters, the server load runs the tap ceremony and redirects to `/accessory`, so people holding an accessory never see this page. Without them, it's **Your accessories**: connect your wallet, see every accessory linked to it (with artwork), and release any of them without the accessory. |
 | `/tap/[reason]` | malformed · invalid · replayed · unknown · network · expired: one calm sentence, with diagnostics folded away |
 | `/accessory` | Server-rendered home driven by state: ready to link · ready to use · locked (Controlled) · permanently yours · linked to a different wallet than this device last saw |
 | `/accessory/link` | Two steps: **Tap to approve** → **Finish in your wallet** (a detected wallet here, open in Phantom/Backpack/Solflare, copy link, or use a computer) |
 | `/continue` | Wallet side: connect → "Link this wallet" → approve |
 | `/link`, `/pair` | Desktop QR pairing, the computer side and the phone side |
-| `/wallet` | **Recovery without the accessory**: the linked wallet releases a lost or stolen accessory |
 | `/demo/sign-in` | The payoff: `startAuthentication` → server check (single-use challenge, origin, rpId, signature) → "Signed in as ‹linked wallet›" |
 
 Each secondary feature exists for the core idea:
 - **Release** handles revocation and handing the accessory to someone else. It's required for Controlled tokens.
-- **`/wallet`** is the answer to a lost accessory.
+- **The home page (`/`)** is the answer to a lost accessory: the linked wallet can release it there.
 - **Technical details** are there for crypto-native users.
 - **Sign-in** shows what the delegation is *for*.
 

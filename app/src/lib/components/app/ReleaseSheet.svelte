@@ -82,7 +82,7 @@
 					options={walletStore.options}
 					{connecting}
 					onpick={pick}
-					browseTarget={`${page.url.origin}/wallet`}
+					browseTarget={`${page.url.origin}/`}
 				/>
 			{:else}
 				<List>

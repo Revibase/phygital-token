@@ -55,7 +55,7 @@
 				<Notice tone="info" title="That’s a different wallet" body={`You connected ${shortAddress(walletStore.address!)}. Switch to ${short} in your wallet app.`} />
 				<Button variant="secondary" size="xl" class="w-full" onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
 			{:else}
-				<WalletPicker options={walletStore.options} {connecting} onpick={pick} browseTarget={`${page.url.origin}/wallet`} />
+				<WalletPicker options={walletStore.options} {connecting} onpick={pick} browseTarget={`${page.url.origin}/`} />
 			{/if}
 		</div>
 	</Drawer.Content>
