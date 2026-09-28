@@ -17,7 +17,7 @@ const random = (n: number) => bytesToBase64Url(crypto.getRandomValues(new Uint8A
  */
 export async function issueSignInChallenge(db: D1Database, now = Date.now()) {
 	const id = random(16);
-	const message = `phygital-signin:${random(32)}`;
+	const message = `revibase-signin:${random(32)}`;
 	await db.prepare('DELETE FROM auth_challenges WHERE expires_at < ?').bind(now - 60_000).run();
 	await db
 		.prepare('INSERT INTO auth_challenges (id, message, expires_at) VALUES (?, ?, ?)')

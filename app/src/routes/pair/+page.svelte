@@ -41,7 +41,7 @@
 </script>
 
 <svelte:head>
-	<title>Connect to your computer</title>
+	<title>Connect to your computer · Revibase</title>
 	<meta name="referrer" content="no-referrer" />
 </svelte:head>
 

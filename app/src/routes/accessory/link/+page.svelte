@@ -179,7 +179,7 @@
 	}
 </script>
 
-<svelte:head><title>Link your wallet</title></svelte:head>
+<svelte:head><title>Link your wallet · Revibase</title></svelte:head>
 
 <PageShell>
 	<section class="flex flex-1 flex-col gap-6 pt-4">

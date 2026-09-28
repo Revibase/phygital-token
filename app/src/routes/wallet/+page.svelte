@@ -48,7 +48,7 @@
 	}
 </script>
 
-<svelte:head><title>Manage without your accessory</title></svelte:head>
+<svelte:head><title>Manage without your accessory · Revibase</title></svelte:head>
 
 <PageShell>
 	<section class="flex flex-1 flex-col gap-6 pt-4">

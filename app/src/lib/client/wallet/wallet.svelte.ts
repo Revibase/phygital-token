@@ -38,7 +38,7 @@ class WalletStore {
 		this.#cluster = cluster;
 		const client = new ConnectorClient(
 			getDefaultConfig({
-				appName: 'Phygital',
+				appName: 'Revibase',
 				appUrl: window.location.origin,
 				autoConnect: true,
 				network: cluster,
@@ -57,7 +57,7 @@ class WalletStore {
 		try {
 			const mwa = await import('@solana-mobile/wallet-standard-mobile');
 			mwa.registerMwa({
-				appIdentity: { name: 'Phygital', uri: window.location.origin },
+				appIdentity: { name: 'Revibase', uri: window.location.origin, icon: 'icon-192.png' },
 				authorizationCache: mwa.createDefaultAuthorizationCache(),
 				chains: [`solana:${cluster}`],
 				chainSelector: mwa.createDefaultChainSelector(),

@@ -27,7 +27,7 @@
 	const changedElsewhere = $derived(!!a?.linkedWallet && !!remembered && remembered !== a.linkedWallet);
 </script>
 
-<svelte:head><title>Your accessory</title></svelte:head>
+<svelte:head><title>Your accessory · Revibase</title></svelte:head>
 
 <PageShell>
 	{#if !a}

@@ -1,6 +1,6 @@
-# phygital-accessory-app
+# Revibase
 
-A mobile-first SvelteKit app on Cloudflare Workers. It turns an NFC accessory into a physical extension of a Solana wallet: tap the accessory, link a wallet once with `set_linked_wallet`, and after that a tap signs you in as that wallet.
+`phygital-accessory-app`: a mobile-first SvelteKit app on Cloudflare Workers. It turns a Revibase NFC accessory into a physical extension of a Solana wallet: tap the accessory, link a wallet once with `set_linked_wallet`, and after that a tap signs you in as that wallet.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the protocol model, trust boundaries and ceremony design.
 

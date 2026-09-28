@@ -10,7 +10,7 @@
 	const retryable = $derived(data.reason !== 'unknown');
 </script>
 
-<svelte:head><title>{copy.title}</title></svelte:head>
+<svelte:head><title>{copy.title} · Revibase</title></svelte:head>
 
 <PageShell>
 	<section class="flex flex-1 flex-col justify-center gap-8">

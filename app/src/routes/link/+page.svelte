@@ -122,7 +122,7 @@
 	}
 </script>
 
-<svelte:head><title>Link from a computer</title></svelte:head>
+<svelte:head><title>Link from a computer · Revibase</title></svelte:head>
 
 <PageShell>
 	<section class="flex flex-1 flex-col gap-6 pt-4">

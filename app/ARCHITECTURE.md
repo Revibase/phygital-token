@@ -1,4 +1,4 @@
-# Phygital accessory app — architecture
+# Revibase accessory app — architecture
 
 > Tap your accessory. Your identity comes with you.
 
@@ -217,8 +217,9 @@ Each secondary feature exists for the core idea:
 - **Sign-in** shows what the delegation is *for*.
 
 **UI:** shadcn-svelte (bits-ui) on Tailwind v4.
-- Dark-first, with a light theme when the system asks for it.
-- One brass accent, and the accessory drawn as a metal token.
+- Revibase brand: teal `#00C2B8` and cream `#F7F4EF`, from the app icon. The accessory is drawn as a Revibase tile carrying the traced mark (`src/lib/brand/RevibaseMark.svelte`).
+- Dark-first (deep teal-ink background), with a cream light theme when the system asks for it.
+- Light mode uses a deeper teal (`#00766F`) for text and buttons: brand teal on cream is only 2:1, so it is kept for fills. Every text pairing is at least 5:1 (WCAG AA).
 - Tap targets are at least 44 px, `aria-live` announces step changes, and `prefers-reduced-motion` is respected.
 - No Web3 jargon outside the Details sheet.
 

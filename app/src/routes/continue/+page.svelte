@@ -102,7 +102,7 @@
 </script>
 
 <svelte:head>
-	<title>Finish linking</title>
+	<title>Finish linking · Revibase</title>
 	<meta name="referrer" content="no-referrer" />
 </svelte:head>
 

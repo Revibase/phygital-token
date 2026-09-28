@@ -3,7 +3,7 @@
  * Public information only (a wallet address) — used to notice when the link
  * changed elsewhere. Storage may be unavailable (private mode); never required.
  */
-const key = (pda: string) => `phygital:linked:${pda}`;
+const key = (pda: string) => `revibase:linked:${pda}`;
 
 export function rememberedWallet(pda: string): string | null {
 	try {
