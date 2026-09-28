@@ -3,18 +3,17 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
-	import * as Alert from '$lib/components/ui/alert';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
 	import BondVisual from '$lib/components/app/BondVisual.svelte';
 	import Countdown from '$lib/components/app/Countdown.svelte';
-	import ErrorCard from '$lib/components/app/ErrorCard.svelte';
 	import HandoffPanel from '$lib/components/app/HandoffPanel.svelte';
+	import List from '$lib/components/app/List.svelte';
+	import Notice from '$lib/components/app/Notice.svelte';
+	import PageHeader from '$lib/components/app/PageHeader.svelte';
 	import PageShell from '$lib/components/app/PageShell.svelte';
 	import PairingCode from '$lib/components/app/PairingCode.svelte';
-	import StepList, { type Step } from '$lib/components/app/StepList.svelte';
-	import TapPrompt from '$lib/components/app/TapPrompt.svelte';
-	import WalletChip from '$lib/components/app/WalletChip.svelte';
+	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import { canTapHere, tapHint } from '$lib/client/capability';
 	import {
 		cancelLink,
@@ -32,7 +31,6 @@
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import { shortAddress } from '$lib/shared/encoding';
 	import type { LinkStatusView, TransferChallenge } from '$lib/shared/types';
-	import ShieldAlertIcon from '@lucide/svelte/icons/shield-alert';
 
 	let { data } = $props();
 	const a = $derived(data.accessory);
@@ -47,7 +45,7 @@
 	let localFinish = $state(false);
 	let connecting = $state<string | null>(null);
 	let phase = $state<FinishPhase | null>(null);
-	let hint = $state('Hold your accessory to your phone.');
+	let hint = $state('Tap Approve, then hold your accessory to your phone.');
 	let webauthnOk = $state(true);
 
 	const poller = new AbortController();
@@ -59,14 +57,21 @@
 	const done = $derived(s === 'linked');
 	const dead = $derived(s === 'cancelled' || s === 'expired' || s === 'failed');
 
-	const steps = $derived<Step[]>([
-		{ label: 'Tap to approve', detail: hint, status: needsTap || !status ? 'active' : 'done' },
-		{
-			label: isDesktop ? 'Finish on your computer' : 'Finish in your wallet',
-			detail: isDesktop ? 'Approve the link in your wallet on the computer.' : 'Choose the wallet this accessory should represent.',
-			status: done ? 'done' : needsTap || !status ? 'pending' : 'active'
-		}
-	]);
+	type View = 'loading' | 'dead' | 'confirm_computer' | 'tap' | 'choose' | 'local' | 'remote' | 'desktop_remote' | 'done';
+	const view = $derived.by((): View => {
+		if (!status) return failure ? 'dead' : 'loading';
+		if (done) return 'done';
+		if (dead) return 'dead';
+		if (s === 'accessory_attached') return 'confirm_computer';
+		if (needsTap) return 'tap';
+		if (isDesktop) return 'desktop_remote';
+		if (s === 'tapped' && handoffUrl && !localFinish) return 'choose';
+		if (localFinish && (s === 'claimed' || s === 'finishing')) return 'local';
+		return 'remote';
+	});
+
+	/** Only claim "your wallet" when the wallet connected here is the one that was linked. */
+	const ownedResult = $derived(!!status?.recipient && walletStore.address === status.recipient);
 
 	function apply(next: LinkStatusView) {
 		status = next;
@@ -95,7 +100,7 @@
 	}
 
 	onMount(async () => {
-		hint = tapHint();
+		hint = `Tap Approve, then ${tapHint().charAt(0).toLowerCase()}${tapHint().slice(1)}`;
 		webauthnOk = canTapHere();
 		walletStore.init(data.cluster);
 		try {
@@ -182,132 +187,120 @@
 <svelte:head><title>Link your wallet · Revibase</title></svelte:head>
 
 <PageShell>
-	<section class="flex flex-1 flex-col gap-6 pt-4">
-		{#if done && status}
-			<div class="flex flex-1 flex-col items-center justify-center gap-6 text-center" role="status">
-				<BondVisual tag={a.tag} />
-				<div class="animate-rise space-y-2">
-					<h1 class="text-3xl font-semibold">Linked</h1>
-					<p class="text-muted-foreground">Your accessory now carries your wallet identity.</p>
-				</div>
-				{#if status.recipient}<div class="w-full"><WalletChip address={status.recipient} label="Linked wallet" /></div>{/if}
-			</div>
-		{:else}
-			<div class="flex items-center gap-4">
-				<AccessoryMark tag={a.tag} size="sm" state={needsTap ? 'waiting' : 'verified'} />
-				<div>
-					<h1 class="text-xl font-semibold">Link your wallet</h1>
-					<p class="text-sm text-muted-foreground">Accessory ••{a.tag}</p>
-				</div>
-			</div>
-
-			<StepList {steps} />
-
-			{#if status?.claimConflict}
-				<Alert.Root variant="destructive" class="rounded-2xl">
-					<ShieldAlertIcon />
-					<Alert.Title>Opened on another device</Alert.Title>
-					<Alert.Description>Someone tried to open your link a second time. If that wasn’t you, cancel and start again.</Alert.Description>
-				</Alert.Root>
-			{/if}
-
-			{#if failure}
-				<ErrorCard title={failure.title} body={failure.body} detail={failure.detail} />
-			{/if}
-
-			{#if !status && !failure}
-				<div class="grid flex-1 place-items-center"><Spinner class="size-6" /></div>
-			{:else if dead}
-				<ErrorCard
-					title={s === 'cancelled' ? 'Linking cancelled' : linkErrorCopy(status?.errorCode).title}
-					body={s === 'cancelled' ? 'Nothing was changed.' : linkErrorCopy(status?.errorCode).body}
-				>
-					{#snippet actions()}
-						<Button href="/accessory" size="lg" class="h-12 rounded-xl">Back to your accessory</Button>
-					{/snippet}
-				</ErrorCard>
-			{:else if s === 'accessory_attached'}
-				<!-- Desktop pairing: the computer must confirm this is the accessory it expects. -->
-				<div class="space-y-6 rounded-2xl border p-5">
-					{#if status?.pairingCode}<PairingCode code={status.pairingCode} caption="Confirm this code on your computer" />{/if}
-					<p class="text-center text-sm text-muted-foreground">Waiting for your computer…</p>
-				</div>
-			{:else if needsTap}
-				{#if !webauthnOk}
-					<ErrorCard
-						title="Open in Safari or Chrome to tap"
-						body="This browser can’t read your accessory. Open this page in your phone’s main browser."
-					/>
-				{:else}
-					<TapPrompt {hint} title={tapping ? 'Hold still…' : 'Tap to approve linking'} />
-				{/if}
-			{:else if isDesktop}
-				<div class="flex flex-col items-center gap-3 rounded-2xl border p-6 text-center" role="status" aria-live="polite">
-					<Spinner class="size-5" />
-					<p class="font-medium">
-						{s === 'submitted' ? 'Confirming on the network…' : 'Approve in your wallet on the computer'}
-					</p>
-					{#if status?.tapExpiresAt}<div class="w-full"><Countdown until={status.tapExpiresAt} total={status.tapWindowMs ?? undefined} /></div>{/if}
-				</div>
-			{:else if s === 'tapped' && handoffUrl && !localFinish}
-				<div class="space-y-4">
-					{#if status?.tapExpiresAt}<Countdown until={status.tapExpiresAt} total={status.tapWindowMs ?? undefined} />{/if}
-					{#if showComputer}
-						<div class="space-y-3 rounded-2xl border p-5 text-sm">
-							<p class="font-medium">Link from a computer</p>
-							<ol class="list-decimal space-y-1 pl-5 text-muted-foreground">
-								<li>On your computer, open <span class="font-mono text-foreground">{page.url.host}/link</span></li>
-								<li>Connect your wallet there</li>
-								<li>Scan the code it shows with this phone’s camera</li>
-							</ol>
-							<Button variant="ghost" class="h-11 w-full" onclick={() => (showComputer = false)}>Back</Button>
-						</div>
-					{:else}
-						<HandoffPanel
-							{handoffUrl}
-							options={walletStore.options}
-							{connecting}
-							onpick={useLocalWallet}
-							oncomputer={() => (showComputer = true)}
+	<section class="flex flex-1 flex-col pt-4" aria-live="polite">
+		{#key view + (showComputer ? ':computer' : '')}
+			<div class="animate-rise flex flex-1 flex-col gap-7">
+				{#if view === 'loading'}
+					<div class="grid flex-1 place-items-center"><Spinner class="size-5 text-muted-foreground" /></div>
+				{:else if view === 'done' && status}
+					<div class="flex flex-1 flex-col justify-center gap-8">
+						<BondVisual wallet={status.recipient} icon={ownedResult ? walletStore.walletIcon : null} />
+						<PageHeader
+							align="center"
+							title="Linked"
+							body={ownedResult
+								? 'Tap your accessory anytime to sign in as your wallet.'
+								: `This accessory now signs in as ${status.recipient ? shortAddress(status.recipient) : 'the wallet you chose'}.`}
 						/>
+						{#if status.recipient}
+							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Linked wallet'} icon={ownedResult ? walletStore.walletIcon : null} /></List>
+						{/if}
+					</div>
+				{:else if view === 'dead'}
+					<div class="flex flex-1 flex-col justify-center">
+						<Notice
+							title={s === 'cancelled' ? 'Linking cancelled' : (failure?.title ?? linkErrorCopy(status?.errorCode).title)}
+							body={s === 'cancelled' ? 'Nothing was changed.' : (failure?.body ?? linkErrorCopy(status?.errorCode).body)}
+							detail={failure?.detail}
+						/>
+					</div>
+				{:else}
+					{#if view === 'tap'}
+						<PageHeader step={{ current: 1, total: 2 }} title="Approve with your accessory" body={hint} />
+					{:else if view === 'confirm_computer'}
+						<PageHeader step={{ current: 1, total: 2 }} title="Confirm on your computer" body="Make sure your computer shows this code, then approve there." />
+					{:else if view === 'choose' && showComputer}
+						<PageHeader step={{ current: 2, total: 2 }} title="Use a computer" body="Link from a wallet on your computer instead." />
+					{:else if view === 'choose'}
+						<PageHeader step={{ current: 2, total: 2 }} title="Choose a wallet" body="This accessory will sign in as the wallet you pick." />
+					{:else if view === 'local'}
+						<PageHeader step={{ current: 2, total: 2 }} title="Link this wallet?" body="Anyone holding this accessory will be able to sign in as it." />
+					{:else if view === 'desktop_remote'}
+						<PageHeader step={{ current: 2, total: 2 }} title="Finish on your computer" body="Approve the link in your wallet there." />
+					{:else}
+						<PageHeader step={{ current: 2, total: 2 }} title="Finish in your wallet" body="Approve the link there, then come back." />
 					{/if}
-				</div>
-			{:else if localFinish && walletStore.address && (s === 'claimed' || s === 'finishing')}
-				<div class="space-y-4">
-					<WalletChip address={walletStore.address} label={`Link to ${walletStore.walletName ?? 'this wallet'}`} icon={walletStore.walletIcon} />
-					{#if status?.tapExpiresAt}<Countdown until={status.tapExpiresAt} total={status.tapWindowMs ?? undefined} />{/if}
-				</div>
-			{:else}
-				<div class="flex flex-col items-center gap-3 rounded-2xl border p-6 text-center" role="status" aria-live="polite">
-					<Spinner class="size-5" />
-					<p class="font-medium">
-						{#if s === 'submitted'}Confirming on the network…
-						{:else if status?.recipient}Linking to {shortAddress(status.recipient)}…
-						{:else if s === 'claimed'}Opened in your wallet
-						{:else}Working…{/if}
-					</p>
-					<p class="text-sm text-muted-foreground">Finish in your wallet, then come back here.</p>
-					{#if status?.tapExpiresAt}<div class="w-full"><Countdown until={status.tapExpiresAt} total={status.tapWindowMs ?? undefined} /></div>{/if}
-				</div>
-			{/if}
-		{/if}
+
+					{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
+
+					{#if status?.claimConflict}
+						<Notice title="Opened on another device" body="Your link was opened a second time. If that wasn’t you, cancel and start again." />
+					{/if}
+
+					{#if view === 'tap'}
+						<div class="grid flex-1 place-items-center py-6">
+							<AccessoryMark state={tapping ? 'waiting' : 'idle'} />
+						</div>
+						{#if !webauthnOk}
+							<Notice title="Open this page in Safari or Chrome" body="This browser can’t read your accessory." />
+						{/if}
+					{:else if view === 'confirm_computer'}
+						<div class="grid flex-1 place-items-center">
+							{#if status?.pairingCode}<PairingCode code={status.pairingCode} caption="Your code" />{/if}
+						</div>
+					{:else if view === 'choose' && showComputer}
+						<ol class="space-y-3 text-[15px]">
+							{#each [`On your computer, open ${page.url.host}/link`, 'Connect your wallet there', 'Scan the code it shows with this phone'] as line, i (line)}
+								<li class="flex gap-3">
+									<span class="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-[13px] font-medium tabular-nums">{i + 1}</span>
+									<span class="pt-0.5">{line}</span>
+								</li>
+							{/each}
+						</ol>
+					{:else if view === 'choose' && handoffUrl}
+						<HandoffPanel {handoffUrl} options={walletStore.options} {connecting} onpick={useLocalWallet} oncomputer={() => (showComputer = true)} />
+					{:else if view === 'local' && walletStore.address}
+						<List><WalletRow address={walletStore.address} label={walletStore.walletName ?? 'This wallet'} icon={walletStore.walletIcon} /></List>
+					{:else if view === 'remote' || view === 'desktop_remote'}
+						<div class="flex items-center gap-3 rounded-[14px] bg-muted px-4 py-3.5 text-[15px]">
+							<Spinner class="size-4 text-muted-foreground" />
+							<span>
+								{#if s === 'submitted'}Confirming on the network…
+								{:else if status?.recipient}Linking to {shortAddress(status.recipient)}…
+								{:else if s === 'claimed'}Opened in your wallet
+								{:else}Waiting for your wallet…{/if}
+							</span>
+						</div>
+					{/if}
+
+					{#if status?.tapExpiresAt && (view === 'choose' || view === 'local' || view === 'remote' || view === 'desktop_remote')}
+						<Countdown until={status.tapExpiresAt} />
+					{/if}
+				{/if}
+			</div>
+		{/key}
 	</section>
 
 	{#snippet footer()}
-		<div class="grid gap-2">
-			{#if done}
-				<Button href="/accessory" size="lg" class="h-14 rounded-xl text-base">Done</Button>
-			{:else if needsTap && webauthnOk && status}
-				<Button size="lg" class="h-14 rounded-xl text-base" disabled={tapping || !challenge} onclick={tap}>
-					{#if tapping}<Spinner /> Waiting for your accessory…{:else if !challenge}<Spinner /> Preparing…{:else}Tap to approve{/if}
+		<div class="grid gap-1">
+			{#if view === 'done' || view === 'dead'}
+				<Button href="/accessory" size="xl" class="w-full">{view === 'done' ? 'Done' : 'Back to your accessory'}</Button>
+			{:else if view === 'tap' && webauthnOk}
+				<Button size="xl" class="w-full" disabled={tapping || !challenge} onclick={tap}>
+					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !challenge}<Spinner /> Preparing…{:else}Approve{/if}
 				</Button>
-			{:else if localFinish && walletStore.address && (s === 'claimed' || s === 'finishing')}
-				<Button size="lg" class="h-14 rounded-xl text-base" disabled={!!phase} onclick={approveHere}>
-					{#if phase === 'approve'}<Spinner /> Approve in your wallet…{:else if phase}<Spinner /> Preparing…{:else}Link this wallet{/if}
+			{:else if view === 'local' && walletStore.address}
+				<Button size="xl" class="w-full" disabled={!!phase} onclick={approveHere}>
+					{#if phase === 'approve'}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…
+					{:else if phase === 'confirming'}<Spinner /> Confirming…
+					{:else if phase}<Spinner /> Preparing…
+					{:else}Link wallet{/if}
 				</Button>
+			{:else if view === 'choose' && showComputer}
+				<Button variant="secondary" size="xl" class="w-full" onclick={() => (showComputer = false)}>Back</Button>
 			{/if}
-			{#if !done}
-				<Button variant="ghost" size="lg" class="h-12 rounded-xl text-muted-foreground" onclick={cancel}>Cancel</Button>
+			{#if view !== 'done' && view !== 'dead'}
+				<Button variant="ghost" class="h-11 text-muted-foreground" onclick={cancel}>Cancel</Button>
 			{/if}
 		</div>
 	{/snippet}

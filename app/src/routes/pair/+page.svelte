@@ -3,7 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
-	import ErrorCard from '$lib/components/app/ErrorCard.svelte';
+	import Notice from '$lib/components/app/Notice.svelte';
+	import PageHeader from '$lib/components/app/PageHeader.svelte';
 	import PageShell from '$lib/components/app/PageShell.svelte';
 	import { postJson } from '$lib/client/api';
 	import { pollLink } from '$lib/client/link/flow';
@@ -46,19 +47,18 @@
 </svelte:head>
 
 <PageShell>
-	<section class="flex flex-1 flex-col items-center justify-center gap-8 text-center">
+	<section class="flex flex-1 flex-col items-center justify-center gap-8 pb-8" aria-live="polite">
 		{#if failure}
-			<div class="w-full"><ErrorCard title={failure.title} body={failure.body} detail={failure.detail} /></div>
+			<div class="w-full"><Notice title={failure.title} body={failure.body} detail={failure.detail} /></div>
 		{:else if status?.state === 'cancelled' || status?.state === 'expired'}
-			<div class="w-full"><ErrorCard title="Pairing ended" body="Start again on your computer." /></div>
+			<div class="w-full"><Notice title="Pairing ended" body="Start again on your computer." /></div>
 		{:else if status}
 			<AccessoryMark state="waiting" />
-			<div class="animate-rise space-y-2" role="status" aria-live="polite">
-				<h1 class="text-2xl font-semibold">Connected to your computer</h1>
-				<p class="text-muted-foreground">Now hold your accessory to your phone, just like the first time.</p>
+			<div class="animate-rise w-full">
+				<PageHeader align="center" eyebrow="Connected to your computer" eyebrowTone="success" title="Now tap your accessory" body="Hold it to your phone, just like the first time." />
 			</div>
 		{:else}
-			<Spinner class="size-6" />
+			<Spinner class="size-5 text-muted-foreground" />
 		{/if}
 	</section>
 </PageShell>

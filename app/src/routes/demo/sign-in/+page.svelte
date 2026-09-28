@@ -2,14 +2,14 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { startAuthentication } from 'phygital-token-sdk';
 	import { Button } from '$lib/components/ui/button';
-	import * as Card from '$lib/components/ui/card';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
 	import BondVisual from '$lib/components/app/BondVisual.svelte';
-	import ErrorCard from '$lib/components/app/ErrorCard.svelte';
+	import List from '$lib/components/app/List.svelte';
+	import Notice from '$lib/components/app/Notice.svelte';
+	import PageHeader from '$lib/components/app/PageHeader.svelte';
 	import PageShell from '$lib/components/app/PageShell.svelte';
-	import TapPrompt from '$lib/components/app/TapPrompt.svelte';
-	import WalletChip from '$lib/components/app/WalletChip.svelte';
+	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import { postJson } from '$lib/client/api';
 	import { canTapHere, tapHint } from '$lib/client/capability';
 	import { describeError, type FriendlyError } from '$lib/client/link/messages';
@@ -22,7 +22,7 @@
 	let tapping = $state(false);
 	let failure = $state<FriendlyError | null>(null);
 	let result = $state<{ accessory: AccessoryView; wallet: string | null } | null>(null);
-	let hint = $state('Hold your accessory to your phone.');
+	let hint = $state('Tap Sign in, then hold your accessory to your phone.');
 	let webauthnOk = $state(true);
 
 	// Fetched ahead of the click: iOS only allows WebAuthn inside the user gesture.
@@ -40,7 +40,7 @@
 	onDestroy(() => clearInterval(refresher));
 
 	onMount(() => {
-		hint = tapHint();
+		hint = `Tap Sign in, then ${tapHint().charAt(0).toLowerCase()}${tapHint().slice(1)}`;
 		webauthnOk = canTapHere();
 		void prepare();
 	});
@@ -72,49 +72,36 @@
 <svelte:head><title>Sign in with your accessory · Revibase</title></svelte:head>
 
 <PageShell>
-	<section class="flex flex-1 flex-col gap-6 pt-4">
-		<div class="space-y-1">
-			<p class="text-xs font-medium tracking-wide text-primary uppercase">Demo</p>
-			<h1 class="text-2xl font-semibold">Sign in with your accessory</h1>
-			<p class="text-muted-foreground">
-				What a partner app sees: one tap proves the accessory is here, and it signs you in as the wallet it’s linked to.
-			</p>
-		</div>
-
-		{#if failure}<ErrorCard title={failure.title} body={failure.body} detail={failure.detail} />{/if}
-
-		{#if result}
-			<div class="flex flex-col items-center gap-5 text-center" role="status" aria-live="polite">
-				{#if result.wallet}
-					<BondVisual tag={result.accessory.tag} />
-					<div class="animate-rise space-y-1">
-						<h2 class="text-2xl font-semibold">Signed in</h2>
-						<p class="text-muted-foreground">No wallet popup, no seed phrase — just the accessory.</p>
+	<section class="flex flex-1 flex-col pt-4" aria-live="polite">
+		{#key result ? 'result' : 'tap'}
+			<div class="animate-rise flex flex-1 flex-col gap-7">
+				{#if result?.wallet}
+					<div class="flex flex-1 flex-col justify-center gap-8">
+						<BondVisual wallet={result.wallet} />
+						<PageHeader align="center" eyebrow={`Accessory · ${result.accessory.tag}`} eyebrowTone="success" title="Signed in" body="One tap. No wallet pop-up." />
+						<List><WalletRow address={result.wallet} label="Signed in as" /></List>
 					</div>
-					<div class="w-full"><WalletChip address={result.wallet} label="Signed in as" /></div>
+				{:else if result}
+					<div class="flex flex-1 flex-col items-center justify-center gap-8">
+						<AccessoryMark state="verified" />
+						<PageHeader align="center" eyebrow={`Accessory · ${result.accessory.tag}`} eyebrowTone="success" title="Not linked yet" body="This accessory is genuine, but no wallet is linked to it. Link one first, then sign in." />
+					</div>
 				{:else}
-					<AccessoryMark tag={result.accessory.tag} state="verified" />
-					<Card.Root class="w-full rounded-2xl">
-						<Card.Content class="space-y-1 text-left text-sm">
-							<p class="font-medium">Authentic, but not linked yet</p>
-							<p class="text-muted-foreground">Link a wallet to this accessory first, then it can sign you in.</p>
-						</Card.Content>
-					</Card.Root>
+					<PageHeader eyebrow="Demo" title="Sign in with your accessory" body={hint} />
+					{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
+					<div class="grid flex-1 place-items-center py-6"><AccessoryMark state={tapping ? 'waiting' : 'idle'} /></div>
+					{#if !webauthnOk}<Notice title="Open this page in Safari or Chrome" body="This browser can’t read your accessory." />{/if}
 				{/if}
 			</div>
-		{:else if !webauthnOk}
-			<ErrorCard title="Open in Safari or Chrome" body="This browser can’t read your accessory. Open this page in your phone’s main browser." />
-		{:else}
-			<TapPrompt {hint} title={tapping ? 'Hold still…' : 'Tap to sign in'} />
-		{/if}
+		{/key}
 	</section>
 
 	{#snippet footer()}
 		{#if result}
-			<Button variant="outline" size="lg" class="h-12 w-full rounded-xl" onclick={again}>Try again</Button>
+			<Button variant="secondary" size="xl" class="w-full" onclick={again}>Sign in again</Button>
 		{:else if webauthnOk}
-			<Button size="lg" class="h-14 w-full rounded-xl text-base" disabled={tapping || !challenge} onclick={signIn}>
-				{#if tapping}<Spinner /> Waiting for your accessory…{:else if !challenge}<Spinner /> Preparing…{:else}Sign in with accessory{/if}
+			<Button size="xl" class="w-full" disabled={tapping || !challenge} onclick={signIn}>
+				{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !challenge}<Spinner /> Preparing…{:else}Sign in{/if}
 			</Button>
 		{/if}
 	{/snippet}

@@ -1,8 +1,12 @@
 <script lang="ts">
-	import { Progress } from '$lib/components/ui/progress';
 	import { onDestroy } from 'svelte';
+	import { cn } from '$lib/utils';
 
-	let { until, total = 180_000, onexpire }: { until: number; total?: number; onexpire?: () => void } = $props();
+	/**
+	 * Quiet text countdown ("Expires in 2:31"). No progress bar: the number is
+	 * the information. Turns red in the last 30 seconds, when it matters.
+	 */
+	let { until, onexpire }: { until: number; total?: number; onexpire?: () => void } = $props();
 	let now = $state(Date.now());
 	const timer = setInterval(() => (now = Date.now()), 500);
 	onDestroy(() => clearInterval(timer));
@@ -18,7 +22,6 @@
 	});
 </script>
 
-<div class="space-y-1.5">
-	<Progress value={Math.min(100, (remaining / total) * 100)} class="h-1" aria-label="Time left to finish" />
-	<p class="text-right font-mono text-xs text-muted-foreground tabular-nums">{label} left</p>
-</div>
+<p class={cn('text-[13px] tabular-nums transition-colors duration-300', remaining < 30_000 ? 'text-destructive' : 'text-muted-foreground')}>
+	{remaining > 0 ? `Expires in ${label}` : 'Expired'}
+</p>

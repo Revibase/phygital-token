@@ -116,24 +116,24 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 
 export const TAP_FAILURE_COPY: Record<TapFailureReason, { title: string; body: string }> = {
 	malformed: {
-		title: 'We couldn’t read that tap',
-		body: 'The link looks incomplete. Hold your accessory to your phone again.'
+		title: 'Couldn’t read that tap',
+		body: 'Hold your accessory to your phone again and keep it there for a moment.'
 	},
 	invalid: {
-		title: 'This accessory couldn’t be verified',
-		body: 'The tap didn’t carry a valid signature. If you opened a copied link, tap the accessory itself instead.'
+		title: 'Couldn’t verify this accessory',
+		body: 'The link didn’t come from a genuine accessory. If it was copied or shared, tap the accessory itself.'
 	},
 	replayed: {
 		title: 'That tap was already used',
-		body: 'Each tap works once. Hold your accessory to your phone again for a fresh one.'
+		body: 'Each tap works once. Hold your accessory to your phone again.'
 	},
 	unknown: {
-		title: 'Authentic, but not registered',
-		body: 'This accessory is genuine but hasn’t been set up yet. Please contact the issuer.'
+		title: 'Not set up yet',
+		body: 'This accessory is genuine but hasn’t been registered. Contact the issuer.'
 	},
 	network: {
 		title: 'Connection problem',
-		body: 'We couldn’t finish checking your accessory. Check your connection and tap again.'
+		body: 'Your accessory is fine — we just couldn’t reach the network. Check your connection and tap again.'
 	},
 	expired: {
 		title: 'Tap to continue',

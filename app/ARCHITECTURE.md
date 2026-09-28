@@ -219,11 +219,22 @@ Each secondary feature exists for the core idea:
 - **Technical details** are there for crypto-native users.
 - **Sign-in** shows what the delegation is *for*.
 
+**Ownership wording.** On-chain, `linked_wallet` only proves which wallet the accessory points to, not who is holding the phone.
+- By default the app says "Linked" or "Permanently linked" and labels the row "Linked wallet".
+- It says "your wallet", "Ready to use" or "Permanently yours" only when `@solana/connector` has that same wallet connected in this browser: a silent reconnect, or the "Confirm it's your wallet" sheet.
+- Success screens use "your wallet" only where the connected wallet just signed the link.
+
 **UI:** shadcn-svelte (bits-ui) on Tailwind v4.
 - Revibase brand: teal `#00C2B8` and cream `#F7F4EF`, from the app icon. The accessory is drawn as a Revibase tile carrying the traced mark (`src/lib/brand/RevibaseMark.svelte`).
 - Light by default (cream background). Dark tokens exist in `layout.css` for a future toggle, but the app does not follow the system setting.
 - Light mode uses a deeper teal (`#00766F`) for text and buttons: brand teal on cream is only 2:1, so it is kept for fills. Every text pairing is at least 5:1 (WCAG AA).
-- Tap targets are at least 44 px, `aria-live` announces step changes, and `prefers-reduced-motion` is respected.
+- Every screen has one heading, one line of copy and one primary action. Flows show a thin step bar instead of numbered lists. Grouped lists replace stacked cards.
+- **Motion:**
+  - buttons press to 98% in 75 ms;
+  - screen content changes with a 240 ms fade and 4 px rise;
+  - the verified check pops in once;
+  - the only looping motion is a single ring while the app waits for a physical tap.
+- Tap targets are at least 44 px, `aria-live` announces step changes, and `prefers-reduced-motion` collapses all motion.
 - No Web3 jargon outside the Details sheet.
 
 ---

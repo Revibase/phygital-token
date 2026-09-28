@@ -4,21 +4,26 @@
 	import * as Drawer from '$lib/components/ui/drawer';
 	import { Button } from '$lib/components/ui/button';
 	import { Spinner } from '$lib/components/ui/spinner';
-	import WalletPicker from '$lib/components/app/WalletPicker.svelte';
-	import WalletChip from '$lib/components/app/WalletChip.svelte';
-	import ErrorCard from '$lib/components/app/ErrorCard.svelte';
+	import List from './List.svelte';
+	import Notice from './Notice.svelte';
+	import WalletPicker from './WalletPicker.svelte';
+	import WalletRow from './WalletRow.svelte';
 	import { walletStore, type Cluster } from '$lib/client/wallet/wallet.svelte';
 	import { releaseAccessory } from '$lib/client/link/flow';
 	import { describeError, type FriendlyError } from '$lib/client/link/messages';
 	import { rememberWallet } from '$lib/client/memory';
 	import { shortAddress } from '$lib/shared/encoding';
 	import type { AccessoryView } from '$lib/shared/types';
-	import UnlinkIcon from '@lucide/svelte/icons/unlink';
 	import { toast } from 'svelte-sonner';
 
-	let { accessory, cluster, onreleased }: { accessory: AccessoryView; cluster: Cluster; onreleased?: () => void } = $props();
+	/** Releasing is signed by the linked wallet only; the accessory isn't needed. */
+	let {
+		accessory,
+		cluster,
+		open = $bindable(false),
+		onreleased
+	}: { accessory: AccessoryView; cluster: Cluster; open?: boolean; onreleased?: () => void } = $props();
 
-	let open = $state(false);
 	let connecting = $state<string | null>(null);
 	let busy = $state(false);
 	let failure = $state<FriendlyError | null>(null);
@@ -27,7 +32,8 @@
 		if (open) walletStore.init(cluster);
 	});
 
-	const isLinkedWallet = $derived(walletStore.address === accessory.linkedWallet);
+	const linked = $derived(accessory.linkedWallet ? shortAddress(accessory.linkedWallet) : 'its wallet');
+	const isLinkedWallet = $derived(!!walletStore.address && walletStore.address === accessory.linkedWallet);
 
 	async function pick(id: string) {
 		connecting = id;
@@ -59,40 +65,39 @@
 </script>
 
 <Drawer.Root bind:open>
-	<Drawer.Trigger>
-		{#snippet child({ props })}
-			<Button {...props} variant="outline" size="lg" class="h-12 rounded-xl"><UnlinkIcon /> Release from wallet</Button>
-		{/snippet}
-	</Drawer.Trigger>
 	<Drawer.Content>
-		<div class="mx-auto w-full max-w-md space-y-5 px-4 pb-8">
-			<Drawer.Header class="px-0 text-left">
-				<Drawer.Title>Release this accessory</Drawer.Title>
-				<Drawer.Description>
-					It will stop representing {accessory.linkedWallet ? shortAddress(accessory.linkedWallet) : 'your wallet'}. Only the
-					linked wallet can do this, and it doesn’t need the accessory.
+		<div class="mx-auto w-full max-w-md space-y-5 px-4 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+			<Drawer.Header class="p-0 text-left">
+				<Drawer.Title class="text-[20px] font-semibold tracking-[-0.02em]">Release this accessory?</Drawer.Title>
+				<Drawer.Description class="text-[14px] leading-snug">
+					It will stop signing in as {linked}. Only that wallet can release it — the accessory isn’t needed.
 				</Drawer.Description>
 			</Drawer.Header>
 
-			{#if failure}<ErrorCard title={failure.title} body={failure.body} detail={failure.detail} />{/if}
+			{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
 
 			{#if !walletStore.address}
-				<!-- Releasing needs no accessory session, so a wallet app can do it from /wallet. -->
-				<WalletPicker options={walletStore.options} {connecting} onpick={pick} browseTarget={`${page.url.origin}/wallet`} />
+				<WalletPicker
+					label={`Connect ${linked}`}
+					options={walletStore.options}
+					{connecting}
+					onpick={pick}
+					browseTarget={`${page.url.origin}/wallet`}
+				/>
 			{:else}
-				<WalletChip address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} />
+				<List>
+					<WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} />
+				</List>
 				{#if isLinkedWallet}
-					<Button size="lg" class="h-14 w-full rounded-xl text-base" disabled={busy} onclick={release}>
-						{#if busy}<Spinner /> Approve in your wallet…{:else}Release accessory{/if}
+					<Button variant="destructive" size="xl" class="w-full" disabled={busy} onclick={release}>
+						{#if busy}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…{:else}Release accessory{/if}
 					</Button>
 				{:else}
-					<p class="text-sm text-muted-foreground">
-						This isn’t the linked wallet. Switch to {accessory.linkedWallet ? shortAddress(accessory.linkedWallet) : 'it'} in your
-						wallet app.
-					</p>
-					<Button variant="ghost" class="h-11 w-full" onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
+					<Notice tone="info" title="This isn’t the linked wallet" body={`Switch to ${linked} in your wallet app, then try again.`} />
+					<Button variant="secondary" size="xl" class="w-full" onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
 				{/if}
 			{/if}
+			<Button variant="ghost" class="h-11 w-full text-muted-foreground" onclick={() => (open = false)}>Cancel</Button>
 		</div>
 	</Drawer.Content>
 </Drawer.Root>

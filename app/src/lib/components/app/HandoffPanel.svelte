@@ -1,16 +1,10 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { Separator } from '$lib/components/ui/separator';
 	import WalletPicker from './WalletPicker.svelte';
 	import type { WalletOption } from '$lib/client/wallet/wallet.svelte';
-	import LinkIcon from '@lucide/svelte/icons/link';
-	import MonitorIcon from '@lucide/svelte/icons/monitor';
 	import { toast } from 'svelte-sonner';
 
-	/**
-	 * After the approval tap: finish with a wallet detected in this browser, or
-	 * reopen the single-use `/continue#h=…` link inside a wallet app.
-	 */
+	/** After the approval tap: pick a wallet here, or reopen the one-time link in a wallet app. */
 	let {
 		handoffUrl,
 		options,
@@ -28,25 +22,18 @@
 	async function copyLink() {
 		try {
 			await navigator.clipboard.writeText(handoffUrl);
-			toast.success('Link copied — open it in your wallet app’s browser');
+			toast.success('Link copied', { description: 'Paste it into your wallet app’s browser. It works once.' });
 		} catch {
 			toast.error('Couldn’t copy the link');
 		}
 	}
 </script>
 
-<div class="space-y-3">
+<div class="space-y-4">
 	<WalletPicker {options} {connecting} {onpick} browseTarget={handoffUrl} />
-	<Button variant="outline" size="lg" class="h-12 w-full rounded-xl" onclick={copyLink}>
-		<LinkIcon /> Copy link for another wallet
-	</Button>
-	<div class="flex items-center gap-3 py-1">
-		<Separator class="flex-1" /><span class="text-xs text-muted-foreground">or</span><Separator class="flex-1" />
+	<div class="flex items-center justify-center gap-1 text-[14px]">
+		<Button variant="ghost" class="h-11 px-3 text-muted-foreground hover:text-foreground" onclick={copyLink}>Copy link</Button>
+		<span class="text-border" aria-hidden="true">|</span>
+		<Button variant="ghost" class="h-11 px-3 text-muted-foreground hover:text-foreground" onclick={oncomputer}>Use a computer</Button>
 	</div>
-	<Button variant="ghost" size="lg" class="h-12 w-full rounded-xl" onclick={oncomputer}>
-		<MonitorIcon /> Use a computer instead
-	</Button>
-	<p class="text-center text-xs text-muted-foreground">
-		This link works once and only for a few minutes. Don’t share it.
-	</p>
 </div>

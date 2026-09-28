@@ -1,23 +1,34 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
-	import * as Card from '$lib/components/ui/card';
-	import * as Alert from '$lib/components/ui/alert';
 	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
-	import BondVisual from '$lib/components/app/BondVisual.svelte';
-	import ErrorCard from '$lib/components/app/ErrorCard.svelte';
+	import ConfirmOwnerSheet from '$lib/components/app/ConfirmOwnerSheet.svelte';
+	import List from '$lib/components/app/List.svelte';
+	import ListRow from '$lib/components/app/ListRow.svelte';
+	import Notice from '$lib/components/app/Notice.svelte';
+	import PageHeader from '$lib/components/app/PageHeader.svelte';
 	import PageShell from '$lib/components/app/PageShell.svelte';
-	import StatusPill from '$lib/components/app/StatusPill.svelte';
-	import TechnicalDetails from '$lib/components/app/TechnicalDetails.svelte';
-	import WalletChip from '$lib/components/app/WalletChip.svelte';
 	import ReleaseSheet from '$lib/components/app/ReleaseSheet.svelte';
+	import TechnicalDetails from '$lib/components/app/TechnicalDetails.svelte';
+	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import { rememberedWallet } from '$lib/client/memory';
-	import LockIcon from '@lucide/svelte/icons/lock';
-	import ArrowRightIcon from '@lucide/svelte/icons/arrow-right';
-	import ShieldCheckIcon from '@lucide/svelte/icons/shield-check';
+	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 
 	let { data } = $props();
 	const a = $derived(data.accessory);
+
+	let detailsOpen = $state(false);
+	let releaseOpen = $state(false);
+	let confirmOpen = $state(false);
+	let refreshing = $state(false);
+
+	// Silent reconnect only: if this browser already connected a wallet via
+	// @solana/connector, we can tell whether the linked wallet is the viewer's.
+	onMount(() => walletStore.init(data.cluster));
+
+	/** "Yours" is claimed only when the linked wallet is connected here. */
+	const owned = $derived(!!a?.linkedWallet && walletStore.address === a.linkedWallet);
 
 	// "Linked wallet changed" is only knowable against what this device linked before.
 	let remembered = $state<string | null>(null);
@@ -25,90 +36,100 @@
 		if (a) remembered = rememberedWallet(a.pda);
 	});
 	const changedElsewhere = $derived(!!a?.linkedWallet && !!remembered && remembered !== a.linkedWallet);
+
+	const copy = $derived.by(() => {
+		if (!a) return null;
+		if (a.status === 'unavailable') {
+			return { title: 'Unavailable', body: 'This accessory’s record is in an unexpected state. Contact the issuer.' };
+		}
+		if (!a.linkedWallet) {
+			return { title: 'Ready to link', body: 'Link a wallet once. After that, a tap is all it takes to sign in.' };
+		}
+		if (a.kind === 'permanent') {
+			return owned
+				? { title: 'Permanently yours', body: 'This accessory always signs in as your wallet.' }
+				: { title: 'Permanently linked', body: 'This accessory always signs in as the wallet below.' };
+		}
+		return owned
+			? { title: 'Ready to use', body: 'Tap this accessory to sign in as your wallet.' }
+			: { title: 'Linked', body: 'This accessory signs in as the wallet below.' };
+	});
+
+	const footerNote = $derived(
+		!a?.linkedWallet
+			? undefined
+			: a.kind === 'permanent'
+				? 'This link can’t be changed.'
+				: a.kind === 'controlled'
+					? 'Locked to this wallet. Release it to link a different one.'
+					: undefined
+	);
+
+	async function retry() {
+		refreshing = true;
+		await invalidateAll();
+		refreshing = false;
+	}
 </script>
 
 <svelte:head><title>Your accessory · Revibase</title></svelte:head>
 
 <PageShell>
-	{#if !a}
+	{#if !a || !copy}
 		<section class="flex flex-1 flex-col justify-center">
-			<ErrorCard title="Connection problem" body="Your accessory is authentic, but we couldn’t load its status. Check your connection.">
+			<Notice title="Couldn’t load your accessory" body="It’s authentic, but we couldn’t reach the network. Check your connection and try again.">
 				{#snippet actions()}
-					<Button size="lg" class="h-12 rounded-xl" onclick={() => invalidateAll()}>Try again</Button>
+					<Button size="xl" disabled={refreshing} onclick={retry}>{refreshing ? 'Trying again…' : 'Try again'}</Button>
 				{/snippet}
-			</ErrorCard>
+			</Notice>
 		</section>
 	{:else}
-		<section class="flex flex-1 flex-col gap-8 pt-6">
-			<div class="flex flex-col items-center gap-5 text-center">
-				{#if a.linkedWallet}
-					<BondVisual tag={a.tag} />
-				{:else}
-					<AccessoryMark tag={a.tag} state="verified" />
-				{/if}
-				<div class="animate-rise space-y-3">
-					<div class="flex justify-center">
-						<StatusPill tone="ok" label="Authentic" />
-					</div>
-					{#if a.status === 'ready_to_link'}
-						<h1 class="text-3xl font-semibold">Your accessory is ready</h1>
-						<p class="text-muted-foreground">Link your wallet once. After that, a tap is all it takes to be you.</p>
-					{:else if a.status === 'linked' || a.status === 'linked_locked'}
-						<h1 class="text-3xl font-semibold">{a.kind === 'permanent' ? 'Permanently yours' : 'Ready to use'}</h1>
-						<p class="text-muted-foreground">This accessory carries your wallet identity.</p>
-					{:else}
-						<h1 class="text-2xl font-semibold">This accessory isn’t available</h1>
-						<p class="text-muted-foreground">Its record is in an unexpected state. Please contact the issuer.</p>
-					{/if}
-				</div>
+		<section class="flex flex-1 flex-col justify-center gap-8 pt-4 pb-10">
+			<div class="flex flex-col items-center gap-6">
+				<AccessoryMark state="verified" />
+				<PageHeader align="center" eyebrow={`Verified accessory · ${a.tag}`} eyebrowTone="success" title={copy.title} body={copy.body} />
 			</div>
 
 			{#if changedElsewhere}
-				<Alert.Root class="rounded-2xl">
-					<ShieldCheckIcon />
-					<Alert.Title>Linked to a different wallet now</Alert.Title>
-					<Alert.Description>
-						This accessory was linked to another wallet since you last used it here. If that wasn’t you, keep the accessory safe
-						and link it again.
-					</Alert.Description>
-				</Alert.Root>
+				<Notice
+					tone="info"
+					title="Linked to a different wallet"
+					body="Since you last used it here, this accessory was linked to another wallet. If that wasn’t you, keep it safe and link it again."
+				/>
 			{/if}
 
 			{#if a.linkedWallet}
-				<WalletChip address={a.linkedWallet} label="Linked wallet" />
-			{/if}
-
-			{#if a.linkedWallet && (a.kind === 'controlled' || a.kind === 'permanent')}
-				<Card.Root class="rounded-2xl">
-					<Card.Content class="flex flex-row gap-3 text-sm">
-						<LockIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-						<p class="text-muted-foreground">
-							{#if a.kind === 'permanent'}
-								Fixed to this wallet forever. It can’t be released or linked to a different wallet.
-							{:else}
-								Locked to this wallet. To link a different wallet, release it from this one first.
-							{/if}
-						</p>
-					</Card.Content>
-				</Card.Root>
+				<List footer={footerNote}>
+					<WalletRow address={a.linkedWallet} label={owned ? 'Your wallet' : 'Linked wallet'} icon={owned ? walletStore.walletIcon : null} />
+				</List>
 			{/if}
 		</section>
 	{/if}
 
 	{#snippet footer()}
 		{#if a}
-			<div class="grid gap-2">
-				{#if a.canLink}
-					<Button href="/accessory/link" size="lg" class="h-14 rounded-xl text-base">
-						{a.linkedWallet ? 'Link a different wallet' : 'Link wallet'}
-						<ArrowRightIcon />
-					</Button>
-				{/if}
-				{#if a.canRelease}
-					<ReleaseSheet accessory={a} cluster={data.cluster} />
-				{/if}
-				<div class="flex justify-center"><TechnicalDetails accessory={a} cluster={data.cluster} /></div>
-			</div>
+			{#if a.status === 'ready_to_link'}
+				<div class="grid gap-1">
+					<Button href="/accessory/link" size="xl" class="w-full">Link wallet</Button>
+					<Button variant="ghost" class="h-11 text-muted-foreground" onclick={() => (detailsOpen = true)}>Details</Button>
+				</div>
+			{:else}
+				<List>
+					{#if a.linkedWallet && !owned}
+						<ListRow label="Confirm it’s your wallet" onclick={() => (confirmOpen = true)} chevron />
+					{/if}
+					{#if a.canLink}
+						<ListRow label="Link a different wallet" href="/accessory/link" chevron />
+					{/if}
+					{#if a.canRelease}
+						<ListRow label="Release from wallet" onclick={() => (releaseOpen = true)} chevron />
+					{/if}
+					<ListRow label="Details" onclick={() => (detailsOpen = true)} chevron />
+				</List>
+			{/if}
+			<TechnicalDetails accessory={a} cluster={data.cluster} bind:open={detailsOpen} />
+			{#if a.canRelease}<ReleaseSheet accessory={a} cluster={data.cluster} bind:open={releaseOpen} />{/if}
+			{#if a.linkedWallet && !owned}<ConfirmOwnerSheet linkedWallet={a.linkedWallet} cluster={data.cluster} bind:open={confirmOpen} />{/if}
 		{/if}
 	{/snippet}
 </PageShell>

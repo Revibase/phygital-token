@@ -1,17 +1,17 @@
 <script lang="ts">
 	import AccessoryMark from './AccessoryMark.svelte';
-	import WalletIcon from '@lucide/svelte/icons/wallet';
+	import WalletAvatar from './WalletAvatar.svelte';
 
-	let { tag }: { tag: string } = $props();
+	/** Success moment: accessory ↔ wallet. The connecting line draws once (420ms) to confirm the link. */
+	let { wallet = null, icon = null }: { wallet?: string | null; icon?: string | null } = $props();
 </script>
 
-<!-- Accessory ↔ Wallet: the one idea the product is about. -->
 <div class="flex items-center justify-center gap-3" aria-hidden="true">
-	<AccessoryMark {tag} state="linked" size="sm" />
-	<div class="relative h-0.5 w-16 overflow-hidden rounded-full bg-border">
-		<span class="animate-bond absolute inset-0 bg-gradient-to-r from-primary to-success"></span>
+	<AccessoryMark size="md" />
+	<div class="relative h-[3px] w-14 overflow-hidden rounded-full bg-border">
+		<span class="animate-bond absolute inset-0 rounded-full bg-primary"></span>
 	</div>
-	<div class="grid size-16 place-items-center rounded-[32%] border bg-card shadow-lg">
-		<WalletIcon class="size-6 text-primary" />
+	<div class="grid size-20 place-items-center rounded-[26%] bg-card shadow-[0_0_0_1px_rgb(14_26_26/0.06),0_8px_24px_-14px_rgb(14_26_26/0.3)]">
+		{#if wallet}<WalletAvatar address={wallet} {icon} />{/if}
 	</div>
 </div>
