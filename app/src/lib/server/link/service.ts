@@ -96,7 +96,7 @@ function isPairedPhone(caller: Caller, row: IntentRow): boolean {
 
 async function loadIntent(env: ServerEnv, id: string): Promise<IntentRow> {
 	if (!/^[A-Za-z0-9_-]{16,32}$/.test(id)) throw notFound();
-	const row = await getIntent(env.appDb, id);
+	const row = await getIntent(env.db, id);
 	if (!row) throw notFound();
 	return row;
 }
@@ -117,7 +117,7 @@ async function tapWindow(rpc: Rpc<SolanaRpcApi>, row: IntentRow) {
 async function recycleStaleTap(env: ServerEnv, row: IntentRow): Promise<IntentRow> {
 	const back = row.kind === 'desktop' ? 'accessory_confirmed' : 'created';
 	const unclaimed = row.capability_claimed_at === null;
-	await transition(env.appDb, row.id, ['tapped', 'claimed', 'finishing'], back, {
+	await transition(env.db, row.id, ['tapped', 'claimed', 'finishing'], back, {
 		assertion: null,
 		slot_number: null,
 		slot_hash: null,
@@ -126,7 +126,7 @@ async function recycleStaleTap(env: ServerEnv, row: IntentRow): Promise<IntentRo
 		error_code: 'too_slow',
 		...(row.kind === 'phone' && unclaimed ? { capability_hash: null, capability_expires_at: null, finisher: null } : {})
 	});
-	return (await getIntent(env.appDb, row.id))!;
+	return (await getIntent(env.db, row.id))!;
 }
 
 async function statusFor(env: ServerEnv, row: IntentRow, rpc: Rpc<SolanaRpcApi>) {
@@ -143,16 +143,16 @@ async function statusFor(env: ServerEnv, row: IntentRow, rpc: Rpc<SolanaRpcApi>)
 			tapWindowOver: window.over
 		});
 		if (outcome.status === 'linked') {
-			await transition(env.appDb, current.id, ['submitted'], 'linked', { error_code: null });
-			current = (await getIntent(env.appDb, current.id))!;
+			await transition(env.db, current.id, ['submitted'], 'linked', { error_code: null });
+			current = (await getIntent(env.db, current.id))!;
 		} else if (outcome.status === 'failed') {
 			if (outcome.code === 'too_slow') {
 				// Did not land in time: let the user tap again rather than dead-ending.
-				await transition(env.appDb, current.id, ['submitted'], 'finishing', { tx_signature: null });
-				current = await recycleStaleTap(env, (await getIntent(env.appDb, current.id))!);
+				await transition(env.db, current.id, ['submitted'], 'finishing', { tx_signature: null });
+				current = await recycleStaleTap(env, (await getIntent(env.db, current.id))!);
 			} else {
-				await transition(env.appDb, current.id, ['submitted'], 'failed', { error_code: outcome.code });
-				current = (await getIntent(env.appDb, current.id))!;
+				await transition(env.db, current.id, ['submitted'], 'failed', { error_code: outcome.code });
+				current = (await getIntent(env.db, current.id))!;
 			}
 		}
 	} else if (['tapped', 'claimed', 'finishing'].includes(current.state)) {
@@ -181,8 +181,8 @@ export async function startPhoneLink(env: ServerEnv, caller: Caller) {
 	if (!view.canLink) {
 		throw new LinkApiError(409, view.kind === 'permanent' ? 'accessory_permanent' : 'accessory_locked', 'This accessory can’t be linked right now.');
 	}
-	await pruneIntents(env.appDb);
-	const row = await createIntent(env.appDb, {
+	await pruneIntents(env.db);
+	const row = await createIntent(env.db, {
 		kind: 'phone',
 		state: 'created',
 		acc_sid: caller.acc.sid,
@@ -208,7 +208,7 @@ export async function issueChallenge(env: ServerEnv, caller: Caller, id: string)
 		slot_hash: bytesToBase64(new Uint8Array(session.slotHash)),
 		challenge: bytesToBase64Url(new Uint8Array(session.challenge))
 	};
-	const ok = await transition(env.appDb, row.id, [row.state], 'awaiting_passkey', {
+	const ok = await transition(env.db, row.id, [row.state], 'awaiting_passkey', {
 		...fields,
 		error_code: null,
 		...(redoUnclaimedTap ? { assertion: null, capability_hash: null, capability_expires_at: null, finisher: null } : {})
@@ -276,10 +276,10 @@ export async function acceptAssertion(
 		patch.capability_expires_at = window.expiresAt;
 	}
 	const next = alreadyClaimed ? 'claimed' : 'tapped';
-	if (!(await transition(env.appDb, row.id, ['awaiting_passkey'], next, patch))) throw conflict();
+	if (!(await transition(env.db, row.id, ['awaiting_passkey'], next, patch))) throw conflict();
 
 	return {
-		status: await statusFor(env, (await getIntent(env.appDb, row.id))!, rpc),
+		status: await statusFor(env, (await getIntent(env.db, row.id))!, rpc),
 		// Fragment only: never reaches our logs or a Referer header.
 		handoffUrl: handoffToken ? `${env.origin}/continue#h=${handoffToken}` : null
 	};
@@ -287,7 +287,7 @@ export async function acceptAssertion(
 
 export async function claimHandoff(env: ServerEnv, cookies: Cookies, body: { h?: unknown }) {
 	if (!isWellFormedCapability(body.h)) throw new LinkApiError(400, 'bad_request', 'This link is incomplete.');
-	const claim = await claimCapability(env.appDb, hashCapability(body.h));
+	const claim = await claimCapability(env.db, hashCapability(body.h));
 	if (claim.status === 'already_claimed') {
 		throw new LinkApiError(409, 'already_used', 'This link was already opened on another device.');
 	}
@@ -295,9 +295,9 @@ export async function claimHandoff(env: ServerEnv, cookies: Cookies, body: { h?:
 		throw new LinkApiError(410, 'expired', 'This link has expired. Tap your accessory again.');
 	}
 	const session = await setFinisherSession(cookies, env.sessionSecret, 'hof', claim.row.id);
-	const ok = await transition(env.appDb, claim.row.id, ['tapped'], 'claimed', { finisher: 'hof', finisher_sid: session.sid });
+	const ok = await transition(env.db, claim.row.id, ['tapped'], 'claimed', { finisher: 'hof', finisher_sid: session.sid });
 	if (!ok) throw new LinkApiError(410, 'expired', 'This link has expired. Tap your accessory again.');
-	return statusFor(env, (await getIntent(env.appDb, claim.row.id))!, getRpc(env));
+	return statusFor(env, (await getIntent(env.db, claim.row.id))!, getRpc(env));
 }
 
 // ---------------------------------------------------------------------------
@@ -320,11 +320,11 @@ export async function setRecipient(env: ServerEnv, caller: Caller, id: string, b
 	const simulation = await simulateLink(rpc, payload, body.address);
 	if (!simulation.ok) {
 		if (['accessory_locked', 'accessory_permanent', 'already_used', 'different_accessory'].includes(simulation.code)) {
-			await transition(env.appDb, row.id, [row.state], 'failed', { error_code: simulation.code });
+			await transition(env.db, row.id, [row.state], 'failed', { error_code: simulation.code });
 		}
 		throw new LinkApiError(409, simulation.code, 'The network rejected this link.');
 	}
-	if (!(await transition(env.appDb, row.id, [row.state], 'finishing', { recipient: body.address, error_code: null }))) {
+	if (!(await transition(env.db, row.id, [row.state], 'finishing', { recipient: body.address, error_code: null }))) {
 		throw conflict();
 	}
 	return { payload, tapExpiresAt: window.expiresAt, tapWindowMs: window.totalMs };
@@ -352,8 +352,8 @@ export async function markSubmitted(env: ServerEnv, caller: Caller, id: string, 
 	if (typeof body.signature !== 'string' || !/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(body.signature)) {
 		throw new LinkApiError(400, 'bad_request', 'Invalid transaction signature.');
 	}
-	if (!(await transition(env.appDb, row.id, ['finishing'], 'submitted', { tx_signature: body.signature }))) throw conflict();
-	return statusFor(env, (await getIntent(env.appDb, row.id))!, getRpc(env));
+	if (!(await transition(env.db, row.id, ['finishing'], 'submitted', { tx_signature: body.signature }))) throw conflict();
+	return statusFor(env, (await getIntent(env.db, row.id))!, getRpc(env));
 }
 
 export async function linkStatus(env: ServerEnv, caller: Caller, id: string) {
@@ -366,32 +366,32 @@ export async function cancelLink(env: ServerEnv, caller: Caller, id: string) {
 	const row = await loadIntent(env, id);
 	if (!isOrigin(caller, row) && !isFinisher(caller, row) && !isPairedPhone(caller, row)) throw forbidden();
 	if (isTerminal(row.state) || row.state === 'submitted') throw conflict('This link can no longer be cancelled.');
-	await transition(env.appDb, row.id, [row.state], 'cancelled');
-	return toStatusView((await getIntent(env.appDb, row.id))!);
+	await transition(env.db, row.id, [row.state], 'cancelled');
+	return toStatusView((await getIntent(env.db, row.id))!);
 }
 
 // ---------------------------------------------------------------------------
 // Desktop pairing
 
 export async function startDesktopPairing(env: ServerEnv, cookies: Cookies) {
-	await pruneIntents(env.appDb);
-	const row = await createIntent(env.appDb, { kind: 'desktop', state: 'pairing', finisher: 'dsk' });
+	await pruneIntents(env.db);
+	const row = await createIntent(env.db, { kind: 'desktop', state: 'pairing', finisher: 'dsk' });
 	const session = await setFinisherSession(cookies, env.sessionSecret, 'dsk', row.id);
 	const cap = mintCapability();
-	await transition(env.appDb, row.id, ['pairing'], 'pairing', {
+	await transition(env.db, row.id, ['pairing'], 'pairing', {
 		finisher_sid: session.sid,
 		capability_hash: cap.hash,
 		capability_expires_at: Date.now() + PAIR_CAPABILITY_TTL_MS
 	});
 	return {
-		status: toStatusView((await getIntent(env.appDb, row.id))!),
+		status: toStatusView((await getIntent(env.db, row.id))!),
 		pairUrl: `${env.origin}/pair#p=${cap.token}`
 	};
 }
 
 export async function claimPairing(env: ServerEnv, cookies: Cookies, caller: Caller, body: { p?: unknown }) {
 	if (!isWellFormedCapability(body.p)) throw new LinkApiError(400, 'bad_request', 'This code is incomplete.');
-	const claim = await claimCapability(env.appDb, hashCapability(body.p));
+	const claim = await claimCapability(env.db, hashCapability(body.p));
 	if (claim.status === 'already_claimed') {
 		throw new LinkApiError(409, 'already_used', 'This code was already scanned by another phone.');
 	}
@@ -399,12 +399,12 @@ export async function claimPairing(env: ServerEnv, cookies: Cookies, caller: Cal
 		throw new LinkApiError(410, 'expired', 'This code has expired. Start again on your computer.');
 	}
 	await setPairSession(cookies, env.sessionSecret, claim.row.id);
-	if (!(await transition(env.appDb, claim.row.id, ['pairing'], 'paired'))) {
+	if (!(await transition(env.db, claim.row.id, ['pairing'], 'paired'))) {
 		throw new LinkApiError(410, 'expired', 'This code has expired. Start again on your computer.');
 	}
 	// Tapped before scanning? Attach the accessory straight away.
 	if (caller.acc) await attachAccessoryToPairing(env, claim.row.id, caller.acc);
-	return toStatusView((await getIntent(env.appDb, claim.row.id))!);
+	return toStatusView((await getIntent(env.db, claim.row.id))!);
 }
 
 /** Called after a verified tap when this phone holds a pair session (either order). */
@@ -413,14 +413,14 @@ export async function attachAccessoryToPairing(env: ServerEnv, linkId: string, a
 	const accessory = await fetchAccessory(rpc, acc.pda);
 	if (!accessory) return false;
 	const view = toAccessoryView(accessory.pda, accessory.account);
-	const ok = await transition(env.appDb, linkId, ['paired'], 'accessory_attached', {
+	const ok = await transition(env.db, linkId, ['paired'], 'accessory_attached', {
 		acc_sid: acc.sid,
 		pda: accessory.pda,
 		identifier: view.identifier,
 		public_key: view.publicKey,
 		error_code: view.canLink ? null : view.kind === 'permanent' ? 'accessory_permanent' : 'accessory_locked'
 	});
-	if (ok) await supersedeOthers(env.appDb, accessory.pda, linkId);
+	if (ok) await supersedeOthers(env.db, accessory.pda, linkId);
 	return ok;
 }
 
@@ -430,8 +430,8 @@ export async function confirmPairedAccessory(env: ServerEnv, caller: Caller, id:
 	if (row.error_code === 'accessory_locked' || row.error_code === 'accessory_permanent') {
 		throw new LinkApiError(409, row.error_code, 'This accessory can’t be linked right now.');
 	}
-	if (!(await transition(env.appDb, row.id, ['accessory_attached'], 'accessory_confirmed'))) throw conflict();
-	return statusFor(env, (await getIntent(env.appDb, row.id))!, getRpc(env));
+	if (!(await transition(env.db, row.id, ['accessory_attached'], 'accessory_confirmed'))) throw conflict();
+	return statusFor(env, (await getIntent(env.db, row.id))!, getRpc(env));
 }
 
 export async function readJson(request: Request): Promise<Record<string, unknown>> {

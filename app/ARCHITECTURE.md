@@ -74,7 +74,10 @@ These rules sit on top of the on-chain lock flag. The app never presents an unex
 
 ### Tap counter (anti-replay)
 
-- The high-water mark lives in the **shared** D1 `tap_counters` table, owned by phygital-wallet. Every service that accepts these URLs shares one mark per chip.
+- **Database:** the app uses a single D1 database, the shared `phygital-token` one.
+  - `tap_counters` and `auth_challenges` are owned by phygital-wallet. Sign-in rows go in `auth_challenges` under the `revibase-signin` namespace and are consumed atomically with `DELETE … RETURNING`.
+  - The app's own tables are prefixed `revibase_`.
+- The high-water mark lives in the shared `tap_counters` table, so every service that accepts these URLs shares one mark per chip.
 - If each service kept its own mark, a URL already used in one could be replayed in another.
 - The consume step is a single conditional upsert (`… WHERE c < excluded.c`). The identifier is canonicalised to unpadded base64url exactly as phygital-wallet does.
 - Signature verification happens first, so garbage can't burn a chip's counter.
@@ -166,7 +169,7 @@ If the tapping browser also has a wallet (Android MWA, or a desktop extension), 
 4. **Both screens show the accessory and a 4-character code**, `HMAC(secret, linkId ‖ pda)`. The desktop must **confirm the accessory** before anything else happens. Linking your wallet to someone else's accessory would hand them your identity.
 5. **The phone does the approval tap.** The desktop, as the pre-bound finisher, receives the payload, validates, signs and submits.
 
-### State machine (D1 `link_intents`, compare-and-set transitions)
+### State machine (D1 `revibase_link_intents`, compare-and-set transitions)
 
 - Phone: `created → awaiting_passkey → tapped → [claimed] → finishing → submitted → linked`
 - Desktop: `pairing → paired → accessory_attached → accessory_confirmed → awaiting_passkey → tapped → finishing → submitted → linked`
@@ -218,7 +221,7 @@ Each secondary feature exists for the core idea:
 
 **UI:** shadcn-svelte (bits-ui) on Tailwind v4.
 - Revibase brand: teal `#00C2B8` and cream `#F7F4EF`, from the app icon. The accessory is drawn as a Revibase tile carrying the traced mark (`src/lib/brand/RevibaseMark.svelte`).
-- Dark-first (deep teal-ink background), with a cream light theme when the system asks for it.
+- Light by default (cream background). Dark tokens exist in `layout.css` for a future toggle, but the app does not follow the system setting.
 - Light mode uses a deeper teal (`#00766F`) for text and buttons: brand teal on cream is only 2:1, so it is kept for fills. Every text pairing is at least 5:1 (WCAG AA).
 - Tap targets are at least 44 px, `aria-live` announces step changes, and `prefers-reduced-motion` is respected.
 - No Web3 jargon outside the Details sheet.

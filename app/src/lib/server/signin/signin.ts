@@ -9,6 +9,9 @@ import { verifyWebAuthnAssertion } from '../link/assertion';
 /** A sign-in challenge is only good for this long, and only once. */
 export const SIGNIN_CHALLENGE_TTL_MS = 2 * 60 * 1000;
 
+/** Namespace for our rows in phygital-wallet's shared `auth_challenges` table. */
+export const SIGNIN_NAMESPACE = 'revibase-signin';
+
 const random = (n: number) => bytesToBase64Url(crypto.getRandomValues(new Uint8Array(n)));
 
 /**
@@ -18,10 +21,14 @@ const random = (n: number) => bytesToBase64Url(crypto.getRandomValues(new Uint8A
 export async function issueSignInChallenge(db: D1Database, now = Date.now()) {
 	const id = random(16);
 	const message = `revibase-signin:${random(32)}`;
-	await db.prepare('DELETE FROM auth_challenges WHERE expires_at < ?').bind(now - 60_000).run();
+	// Shared phygital-wallet table; our rows live under their own namespace.
 	await db
-		.prepare('INSERT INTO auth_challenges (id, message, expires_at) VALUES (?, ?, ?)')
-		.bind(id, message, now + SIGNIN_CHALLENGE_TTL_MS)
+		.prepare('DELETE FROM auth_challenges WHERE namespace = ? AND expires_at < ?')
+		.bind(SIGNIN_NAMESPACE, now)
+		.run();
+	await db
+		.prepare('INSERT INTO auth_challenges (id, namespace, value, expires_at) VALUES (?, ?, ?, ?)')
+		.bind(id, SIGNIN_NAMESPACE, message, now + SIGNIN_CHALLENGE_TTL_MS)
 		.run();
 	return { challengeId: id, message };
 }
@@ -42,22 +49,18 @@ export async function verifySignIn(
 	if (typeof input.challengeId !== 'string' || !/^[A-Za-z0-9_-]{22}$/.test(input.challengeId)) {
 		return { ok: false, status: 400, error: 'Missing challenge.' };
 	}
+	// Atomic consume (DELETE … RETURNING): a challenge can be redeemed once,
+	// whether or not the response then verifies.
 	const row = await deps.db
-		.prepare('SELECT message FROM auth_challenges WHERE id = ? AND used_at IS NULL AND expires_at > ?')
-		.bind(input.challengeId, now)
-		.first<{ message: string }>();
+		.prepare('DELETE FROM auth_challenges WHERE id = ? AND namespace = ? AND expires_at > ? RETURNING value')
+		.bind(input.challengeId, SIGNIN_NAMESPACE, now)
+		.first<{ value: string }>();
 	if (!row) return { ok: false, status: 409, error: 'This sign-in expired. Try again.' };
-
-	// Consume first (compare-and-set) so a response can never be replayed, valid or not.
-	const consumed = await deps.db
-		.prepare('UPDATE auth_challenges SET used_at = ? WHERE id = ? AND used_at IS NULL')
-		.bind(now, input.challengeId)
-		.run();
-	if ((consumed.meta?.changes ?? 0) === 0) return { ok: false, status: 409, error: 'This sign-in expired. Try again.' };
+	const message = row.value;
 
 	const verified = verifyWebAuthnAssertion({
 		response: input.response,
-		expectedChallenge: bytesToBase64Url(new TextEncoder().encode(row.message)),
+		expectedChallenge: bytesToBase64Url(new TextEncoder().encode(message)),
 		rpId: deps.rpId,
 		origin: deps.origin
 	});

@@ -1,5 +1,5 @@
 {
-	"name": "phygital-accessory-app",
+	"name": "revibase",
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
@@ -13,7 +13,7 @@
 		"gen": "wrangler types",
 		"test:unit": "vitest",
 		"test": "vitest --run",
-		"db:migrate:local": "wrangler d1 migrations apply APP_DB --local && wrangler d1 migrations apply TAP_DB --local",
+		"db:migrate:local": "wrangler d1 migrations apply DB --local",
 		"e2e:local": "tsx scripts/e2e-local.ts",
 		"dev:accessory": "tsx scripts/dev-accessory.ts"
 	},

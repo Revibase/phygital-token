@@ -3,8 +3,8 @@
  *
  *   solana-test-validator --reset --bpf-program DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ target/deploy/phygital_token.so
  *   (app/.dev.vars: SOLANA_RPC_URL=http://127.0.0.1:8899, SOLANA_CLUSTER=localnet)
- *   pnpm --filter phygital-accessory-app dev
- *   pnpm --filter phygital-accessory-app e2e:local
+ *   pnpm --filter revibase dev
+ *   pnpm --filter revibase e2e:local
  *
  * A software "accessory" plays both chip roles: the NDEF key that signs
  * dynamic tap URLs and the FIDO key that answers WebAuthn. Browsers are

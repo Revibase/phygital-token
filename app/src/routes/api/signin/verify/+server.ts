@@ -14,7 +14,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 	}
 	try {
 		const result = await verifySignIn(
-			{ db: env.appDb, rpc: getRpc(env), rpId: env.rpId, origin: env.origin },
+			{ db: env.db, rpc: getRpc(env), rpId: env.rpId, origin: env.origin },
 			{ challengeId: body.challengeId, response: body.response }
 		);
 		if (!result.ok) return json({ error: result.error }, { status: result.status });

@@ -1,5 +1,5 @@
 -- Short-lived linking ceremonies (set_linked_wallet). Rows are pruned after expiry.
-CREATE TABLE IF NOT EXISTS link_intents (
+CREATE TABLE IF NOT EXISTS revibase_link_intents (
   id TEXT PRIMARY KEY NOT NULL,
   kind TEXT NOT NULL,                  -- 'phone' | 'desktop'
   state TEXT NOT NULL,
@@ -24,5 +24,5 @@ CREATE TABLE IF NOT EXISTS link_intents (
   updated_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL
 );
-CREATE INDEX IF NOT EXISTS link_intents_pda ON link_intents (pda);
-CREATE UNIQUE INDEX IF NOT EXISTS link_intents_capability ON link_intents (capability_hash);
+CREATE INDEX IF NOT EXISTS link_intents_pda ON revibase_link_intents (pda);
+CREATE UNIQUE INDEX IF NOT EXISTS link_intents_capability ON revibase_link_intents (capability_hash);

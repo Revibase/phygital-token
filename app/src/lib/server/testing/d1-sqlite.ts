@@ -37,5 +37,5 @@ export function createTestD1(migrationDirs: string[]): D1Database {
 	} as unknown as D1Database;
 }
 
-export const APP_MIGRATIONS = new URL('../../../../migrations', import.meta.url).pathname;
-export const TAP_MIGRATIONS = new URL('../../../../migrations-tap-local', import.meta.url).pathname;
+/** The app's migrations, including the local mirror of the shared phygital-wallet tables. */
+export const MIGRATIONS = new URL('../../../../migrations', import.meta.url).pathname;

@@ -23,7 +23,7 @@ export async function resolveAccessoryByIdentifier(
 	identifier: string
 ): Promise<ResolvedAccessory | null> {
 	const cached = await db
-		.prepare('SELECT pda FROM identifier_cache WHERE identifier = ?')
+		.prepare('SELECT pda FROM revibase_identifier_cache WHERE identifier = ?')
 		.bind(identifier)
 		.first<{ pda: string }>();
 
@@ -41,7 +41,7 @@ export async function resolveAccessoryByIdentifier(
 
 	await db
 		.prepare(
-			`INSERT INTO identifier_cache (identifier, pda, created_at) VALUES (?, ?, ?)
+			`INSERT INTO revibase_identifier_cache (identifier, pda, created_at) VALUES (?, ?, ?)
        ON CONFLICT(identifier) DO UPDATE SET pda = excluded.pda`
 		)
 		.bind(identifier, pda, Date.now())

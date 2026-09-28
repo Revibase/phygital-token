@@ -2,8 +2,11 @@ import { error } from '@sveltejs/kit';
 import { createSolanaRpc, type Rpc, type SolanaRpcApi } from '@solana/kit';
 
 export type ServerEnv = {
-	tapDb: D1Database;
-	appDb: D1Database;
+	/**
+	 * The shared `phygital-token` D1 database: `tap_counters` and `auth_challenges`
+	 * (schema owned by phygital-wallet) plus this app's `revibase_*` tables.
+	 */
+	db: D1Database;
 	rpcUrl: string;
 	sessionSecret: string;
 	rpId: string;
@@ -18,8 +21,7 @@ export function getEnv(platform: App.Platform | undefined): ServerEnv {
 	if (!secret || secret.length < 32) error(500, 'SESSION_SECRET is missing or too short');
 	if (!env.SOLANA_RPC_URL) error(500, 'SOLANA_RPC_URL is missing');
 	return {
-		tapDb: env.TAP_DB,
-		appDb: env.APP_DB,
+		db: env.DB,
 		rpcUrl: env.SOLANA_RPC_URL,
 		sessionSecret: secret,
 		rpId: env.RP_ID,

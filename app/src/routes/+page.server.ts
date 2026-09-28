@@ -27,7 +27,7 @@ export const load: PageServerLoad = async ({ url, request, cookies, platform, se
 	if (/prefetch|prerender/i.test(purpose)) return {};
 
 	const env = getEnv(platform);
-	const outcome = await handleTap({ tapDb: env.tapDb, appDb: env.appDb, rpc: getRpc(env) }, url.searchParams);
+	const outcome = await handleTap({ db: env.db, rpc: getRpc(env) }, url.searchParams);
 
 	if (!outcome.ok) {
 		// Opened the same URL twice (or taps arrived out of order) while this

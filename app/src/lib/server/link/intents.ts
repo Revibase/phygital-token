@@ -112,7 +112,7 @@ export async function createIntent(
 	};
 	await db
 		.prepare(
-			`INSERT INTO link_intents (id, kind, state, acc_sid, finisher, finisher_sid, pda, identifier, public_key,
+			`INSERT INTO revibase_link_intents (id, kind, state, acc_sid, finisher, finisher_sid, pda, identifier, public_key,
          capability_conflicts, created_at, updated_at, expires_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`
 		)
@@ -139,7 +139,7 @@ export async function createIntent(
 export async function supersedeOthers(db: D1Database, pda: string, keepId: string, now = Date.now()) {
 	await db
 		.prepare(
-			`UPDATE link_intents SET state = 'cancelled', assertion = NULL, updated_at = ?
+			`UPDATE revibase_link_intents SET state = 'cancelled', assertion = NULL, updated_at = ?
        WHERE pda = ? AND id != ? AND state NOT IN ('linked', 'cancelled', 'expired', 'failed')`
 		)
 		.bind(now, pda, keepId)
@@ -147,7 +147,7 @@ export async function supersedeOthers(db: D1Database, pda: string, keepId: strin
 }
 
 export async function getIntent(db: D1Database, id: string, now = Date.now()): Promise<IntentRow | null> {
-	const row = await db.prepare('SELECT * FROM link_intents WHERE id = ?').bind(id).first<IntentRow>();
+	const row = await db.prepare('SELECT * FROM revibase_link_intents WHERE id = ?').bind(id).first<IntentRow>();
 	if (!row) return null;
 	if (!isTerminal(row.state) && row.state !== 'submitted' && row.expires_at <= now) {
 		await transition(db, row.id, [row.state], 'expired', { assertion: null }, now);
@@ -179,7 +179,7 @@ export async function transition(
 	const sets = keys.map((k) => `${k} = ?`).join(', ');
 	const placeholders = from.map(() => '?').join(', ');
 	const result = await db
-		.prepare(`UPDATE link_intents SET ${sets}, updated_at = ? WHERE id = ? AND state IN (${placeholders})`)
+		.prepare(`UPDATE revibase_link_intents SET ${sets}, updated_at = ? WHERE id = ? AND state IN (${placeholders})`)
 		.bind(...keys.map((k) => effective[k] ?? null), now, id, ...from)
 		.run();
 	return (result.meta?.changes ?? 0) > 0;
@@ -200,7 +200,7 @@ export async function claimCapability(
 	now = Date.now()
 ): Promise<ClaimResult> {
 	const row = await db
-		.prepare('SELECT * FROM link_intents WHERE capability_hash = ?')
+		.prepare('SELECT * FROM revibase_link_intents WHERE capability_hash = ?')
 		.bind(capabilityHash)
 		.first<IntentRow>();
 	if (!row) return { status: 'invalid' };
@@ -209,14 +209,14 @@ export async function claimCapability(
 	}
 	const result = await db
 		.prepare(
-			`UPDATE link_intents SET capability_claimed_at = ?, updated_at = ?
+			`UPDATE revibase_link_intents SET capability_claimed_at = ?, updated_at = ?
        WHERE id = ? AND capability_claimed_at IS NULL`
 		)
 		.bind(now, now, row.id)
 		.run();
 	if ((result.meta?.changes ?? 0) === 0) {
 		await db
-			.prepare('UPDATE link_intents SET capability_conflicts = capability_conflicts + 1, updated_at = ? WHERE id = ?')
+			.prepare('UPDATE revibase_link_intents SET capability_conflicts = capability_conflicts + 1, updated_at = ? WHERE id = ?')
 			.bind(now, row.id)
 			.run();
 		return { status: 'already_claimed' };
@@ -247,7 +247,7 @@ export function toStatusView(
 /** Remove rows well past expiry (called opportunistically). */
 export async function pruneIntents(db: D1Database, now = Date.now()) {
 	await db
-		.prepare('DELETE FROM link_intents WHERE expires_at < ?')
+		.prepare('DELETE FROM revibase_link_intents WHERE expires_at < ?')
 		.bind(now - 24 * 60 * 60 * 1000)
 		.run();
 }

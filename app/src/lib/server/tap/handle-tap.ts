@@ -24,7 +24,7 @@ export function hasTapParams(params: URLSearchParams): boolean {
  * RPC lookup, so a replayed URL is rejected even when the RPC is down.
  */
 export async function handleTap(
-	deps: { tapDb: D1Database; appDb: D1Database; rpc: Rpc<SolanaRpcApi> },
+	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi> },
 	params: URLSearchParams
 ): Promise<TapOutcome> {
 	let verified;
@@ -39,7 +39,7 @@ export async function handleTap(
 
 	let verdict;
 	try {
-		verdict = await consumeTapCounter(deps.tapDb, verified.identifier, verified.counter);
+		verdict = await consumeTapCounter(deps.db, verified.identifier, verified.counter);
 	} catch {
 		return { ok: false, reason: 'network', identifier: verified.identifier, detail: 'counter store unavailable' };
 	}
@@ -49,7 +49,7 @@ export async function handleTap(
 
 	let accessory: ResolvedAccessory | null;
 	try {
-		accessory = await resolveAccessoryByIdentifier(deps.appDb, deps.rpc, verified.identifier);
+		accessory = await resolveAccessoryByIdentifier(deps.db, deps.rpc, verified.identifier);
 	} catch {
 		return { ok: false, reason: 'network', identifier: verified.identifier, detail: 'rpc unavailable' };
 	}

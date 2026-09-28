@@ -3,7 +3,7 @@ import { Endian, getU32Encoder } from '@solana/kit';
 import { p256 } from '@noble/curves/nist.js';
 
 import { bytesToBase64Url, base64UrlToBytes } from '$lib/shared/encoding';
-import { createTestD1, TAP_MIGRATIONS } from '../testing/d1-sqlite';
+import { createTestD1, MIGRATIONS } from '../testing/d1-sqlite';
 import { consumeTapCounter } from './counter-store';
 import { verifyDynamicUrlWithoutCounterCheck } from './verify-dynamic-url';
 
@@ -81,7 +81,7 @@ describe('verifyDynamicUrlWithoutCounterCheck', () => {
 
 describe('consumeTapCounter (shared high-water mark)', () => {
 	it('accepts strictly increasing counters and rejects replays and out-of-order taps', async () => {
-		const db = createTestD1([TAP_MIGRATIONS]);
+		const db = createTestD1([MIGRATIONS]);
 		expect(await consumeTapCounter(db, 'chip', 5)).toBe('new');
 		expect(await consumeTapCounter(db, 'chip', 5)).toBe('replay');
 		expect(await consumeTapCounter(db, 'chip', 4)).toBe('replay');
@@ -92,7 +92,7 @@ describe('consumeTapCounter (shared high-water mark)', () => {
 	});
 
 	it('lets exactly one of many concurrent submissions of the same URL through', async () => {
-		const db = createTestD1([TAP_MIGRATIONS]);
+		const db = createTestD1([MIGRATIONS]);
 		const verdicts = await Promise.all(Array.from({ length: 20 }, () => consumeTapCounter(db, 'chip', 42)));
 		expect(verdicts.filter((v) => v === 'new')).toHaveLength(1);
 	});

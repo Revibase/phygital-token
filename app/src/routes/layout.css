@@ -7,6 +7,7 @@
 
 /*
  * Revibase brand: teal #00C2B8 + cream #F7F4EF (from the app icon).
+ * Light (:root) is the default theme; `.dark` is kept for an explicit toggle.
  * Pure brand teal is used for fills (accessory tile, glow). Light mode uses a
  * deeper teal for text/buttons so it keeps WCAG AA contrast on cream.
  */

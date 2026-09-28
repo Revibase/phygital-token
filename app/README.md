@@ -1,6 +1,6 @@
 # Revibase
 
-`phygital-accessory-app`: a mobile-first SvelteKit app on Cloudflare Workers. It turns a Revibase NFC accessory into a physical extension of a Solana wallet: tap the accessory, link a wallet once with `set_linked_wallet`, and after that a tap signs you in as that wallet.
+A mobile-first SvelteKit app (package and worker `revibase`) on Cloudflare Workers. It turns a Revibase NFC accessory into a physical extension of a Solana wallet: tap the accessory, link a wallet once with `set_linked_wallet`, and after that a tap signs you in as that wallet.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the protocol model, trust boundaries and ceremony design.
 
@@ -11,8 +11,8 @@ Stack: SvelteKit 2 · Svelte 5 · Tailwind v4 + shadcn-svelte · `@solana/kit` 8
 ```bash
 pnpm install                          # from the repo root (the app is a workspace package)
 cp app/.dev.vars.example app/.dev.vars
-pnpm --filter phygital-accessory-app db:migrate:local
-pnpm --filter phygital-accessory-app dev
+pnpm --filter revibase db:migrate:local
+pnpm --filter revibase dev
 ```
 
 `.dev.vars` sets `SOLANA_RPC_URL`, `SESSION_SECRET` (32+ chars) and, optionally, `SOLANA_CLUSTER`. `RP_ID` and `ORIGIN` in `wrangler.jsonc` must match the exact origin the tap page is served from, because WebAuthn is bound to them.
@@ -23,22 +23,27 @@ pnpm --filter phygital-accessory-app dev
 solana-test-validator --reset --bpf-program DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ target/deploy/phygital_token.so
 # app/.dev.vars: SOLANA_RPC_URL=http://127.0.0.1:8899  SOLANA_CLUSTER=localnet
 
-pnpm --filter phygital-accessory-app dev:accessory init
-pnpm --filter phygital-accessory-app dev:accessory add mine controlled   # bearer | controlled | permanent
-pnpm --filter phygital-accessory-app dev:accessory tap mine              # prints an NFC tap URL to open
-pnpm --filter phygital-accessory-app dev:accessory link mine             # links it to a fresh wallet
+pnpm --filter revibase dev:accessory init
+pnpm --filter revibase dev:accessory add mine controlled   # bearer | controlled | permanent
+pnpm --filter revibase dev:accessory tap mine              # prints an NFC tap URL to open
+pnpm --filter revibase dev:accessory link mine             # links it to a fresh wallet
 ```
 
 ## Test
 
 ```bash
-pnpm --filter phygital-accessory-app check      # svelte-check
-pnpm --filter phygital-accessory-app test       # unit tests (real SQL via node:sqlite)
-pnpm --filter phygital-accessory-app e2e:local  # full ceremonies against the real program (fresh validator)
+pnpm --filter revibase check      # svelte-check
+pnpm --filter revibase test       # unit tests (real SQL via node:sqlite)
+pnpm --filter revibase e2e:local  # full ceremonies against the real program (fresh validator)
 ```
 
 ## Deploy
 
-- `TAP_DB` binds the **shared** `phygital-token` D1 database; only its `tap_counters` table is used, and its schema is owned by phygital-wallet.
-- `APP_DB` is this app's own database. Create it with `wrangler d1 create phygital-accessory`, put the id in `wrangler.jsonc`, and apply `migrations/`.
+There is **one** D1 binding, `DB`: the shared `phygital-token` database that phygital-wallet's API also uses.
+
+- **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned by phygital-wallet.
+  - `tap_counters` must be shared so there is one tap-counter high-water mark per chip across every service.
+  - Sign-in challenges are stored in `auth_challenges` under the `revibase-signin` namespace.
+- **This app's tables:** `revibase_link_intents` and `revibase_identifier_cache`.
+- **Migrations:** apply the app's own with `wrangler d1 migrations apply DB --remote`. The files are prefixed `revibase_` so they never clash with phygital-wallet's migration history. `revibase_0000_shared_tables_mirror.sql` only mirrors the shared tables for local dev; it uses `IF NOT EXISTS` and is a no-op remotely.
 - Set the `SOLANA_RPC_URL` and `SESSION_SECRET` secrets with `wrangler secret put`.

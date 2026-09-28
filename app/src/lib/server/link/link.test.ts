@@ -21,7 +21,7 @@ import {
 	LinkTransactionRejected,
 	validateLinkTransaction
 } from '$lib/shared/link-transaction';
-import { createTestD1, APP_MIGRATIONS } from '../testing/d1-sqlite';
+import { createTestD1, MIGRATIONS } from '../testing/d1-sqlite';
 import { fakeAccessory, fakePayload, ORIGIN, RP_ID } from '../testing/fixtures';
 import { checkTransferAssertion } from './assertion';
 import { hashCapability, mintCapability } from './capability';
@@ -147,7 +147,7 @@ describe('link transaction (SDK completeTransfer) + validator', () => {
 
 describe('link intents', () => {
 	it('transitions are compare-and-set', async () => {
-		const db = createTestD1([APP_MIGRATIONS]);
+		const db = createTestD1([MIGRATIONS]);
 		const row = await createIntent(db, { kind: 'phone', state: 'created', pda: 'pda1' });
 		expect(await transition(db, row.id, ['created'], 'awaiting_passkey')).toBe(true);
 		expect(await transition(db, row.id, ['created'], 'awaiting_passkey')).toBe(false);
@@ -155,7 +155,7 @@ describe('link intents', () => {
 	});
 
 	it('terminal states drop the stored assertion', async () => {
-		const db = createTestD1([APP_MIGRATIONS]);
+		const db = createTestD1([MIGRATIONS]);
 		const row = await createIntent(db, { kind: 'phone', state: 'awaiting_passkey', pda: 'pda1' });
 		await transition(db, row.id, ['awaiting_passkey'], 'tapped', { assertion: '{"secret":true}' });
 		await transition(db, row.id, ['tapped'], 'cancelled');
@@ -163,7 +163,7 @@ describe('link intents', () => {
 	});
 
 	it('a new ceremony for the same accessory cancels the old one', async () => {
-		const db = createTestD1([APP_MIGRATIONS]);
+		const db = createTestD1([MIGRATIONS]);
 		const first = await createIntent(db, { kind: 'phone', state: 'created', pda: 'pda1' });
 		await transition(db, first.id, ['created'], 'tapped', { assertion: 'x' });
 		const second = await createIntent(db, { kind: 'phone', state: 'created', pda: 'pda1' });
@@ -172,13 +172,13 @@ describe('link intents', () => {
 	});
 
 	it('expires ceremonies past their TTL', async () => {
-		const db = createTestD1([APP_MIGRATIONS]);
+		const db = createTestD1([MIGRATIONS]);
 		const row = await createIntent(db, { kind: 'phone', state: 'created' }, 1_000);
 		expect((await getIntent(db, row.id, 1_000 + 11 * 60 * 1000))?.state).toBe('expired');
 	});
 
 	it('capabilities are single-use and a second claim is recorded as a conflict', async () => {
-		const db = createTestD1([APP_MIGRATIONS]);
+		const db = createTestD1([MIGRATIONS]);
 		const row = await createIntent(db, { kind: 'phone', state: 'tapped' });
 		const cap = mintCapability();
 		await transition(db, row.id, ['tapped'], 'tapped', { capability_hash: cap.hash, capability_expires_at: Date.now() + 60_000 });
@@ -190,7 +190,7 @@ describe('link intents', () => {
 	});
 
 	it('expired capabilities cannot be claimed', async () => {
-		const db = createTestD1([APP_MIGRATIONS]);
+		const db = createTestD1([MIGRATIONS]);
 		const row = await createIntent(db, { kind: 'phone', state: 'tapped' });
 		const cap = mintCapability();
 		await transition(db, row.id, ['tapped'], 'tapped', { capability_hash: cap.hash, capability_expires_at: Date.now() - 1 });
