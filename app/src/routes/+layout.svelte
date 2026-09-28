@@ -1,7 +1,6 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { ModeWatcher } from 'mode-watcher';
 	import { Toaster } from '$lib/components/ui/sonner';
 
 	let { children } = $props();
@@ -18,7 +17,10 @@
 	<title>Revibase</title>
 </svelte:head>
 
-<!-- Light by default. Dark tokens remain in layout.css for a future toggle. -->
-<ModeWatcher defaultMode="light" disableHeadScriptInjection />
-<Toaster position="top-center" />
+<!--
+	Light only. No theme persistence or system tracking (mode-watcher would
+	restore a stored "system"/"dark" choice). Dark tokens stay in layout.css
+	for a future explicit toggle.
+-->
+<Toaster position="top-center" theme="light" />
 {@render children()}
