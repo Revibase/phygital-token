@@ -5,6 +5,7 @@
 	import List from './List.svelte';
 	import ListRow from './ListRow.svelte';
 	import CopyButton from './CopyButton.svelte';
+	import { accessoryMedia } from '$lib/client/media';
 
 	/** For people who want the on-chain record. Short values, full value on copy. */
 	let { accessory, cluster, open = $bindable(false) }: { accessory: AccessoryView; cluster: string; open?: boolean } = $props();
@@ -12,6 +13,11 @@
 	const explorer = $derived(
 		`https://explorer.solana.com/address/${accessory.pda}${cluster === 'mainnet' ? '' : `?cluster=${cluster === 'localnet' ? 'custom' : cluster}`}`
 	);
+	let collectibleName = $state<string | null>(null);
+	$effect(() => {
+		collectibleName = null;
+		if (open && accessory.mint) void accessoryMedia(accessory.pda).then((m) => (collectibleName = m.name));
+	});
 	const kindLabel = { permanent: 'Permanent', bearer: 'Transferable', controlled: 'Controlled', unknown: 'Unknown' };
 	const copyable = $derived(
 		[
@@ -38,7 +44,14 @@
 			</List>
 			<List>
 				{#each copyable as [label, value] (label)}
-					<ListRow {label} detail={value ? shortAddress(value) : 'None'}>
+					<ListRow
+						{label}
+						detail={value
+							? label === 'Collectible' && collectibleName
+								? `${collectibleName} · ${shortAddress(value)}`
+								: shortAddress(value)
+							: 'None'}
+					>
 						{#snippet trailing()}{#if value}<CopyButton {value} label={`Copy ${label.toLowerCase()}`} />{/if}{/snippet}
 					</ListRow>
 				{/each}

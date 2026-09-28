@@ -7,17 +7,20 @@
  *   pnpm dev:accessory tap <name>                    # print a fresh NFC tap URL
  *   pnpm dev:accessory link <name>                   # full link ceremony via the API to a new funded wallet
  *   pnpm dev:accessory handoff <name>                # tap + approve on a scripted phone; print the /continue link
+ *   pnpm dev:accessory mint <name> [mintAddress]     # bind a mint (assign_mint) — random address if omitted
  *
  * Keys live in scripts/.dev-accessory.json (gitignored, local validator only).
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { address } from '@solana/kit';
+import { address, generateKeyPairSigner } from '@solana/kit';
 import {
 	findAdminConfigPda,
 	findPhygitalTokenPda,
 	getCreateConfigInstructionAsync,
 	getInitializeInstructionAsync,
+	getAssignMintInstructionAsync,
 	getSetIssuerInstructionAsync,
+	getSetMinterInstructionAsync,
 	PhygitalTokenType
 } from 'phygital-token-sdk';
 
@@ -26,7 +29,7 @@ import type { LinkStatusView, TransferChallenge } from '../src/lib/shared/types'
 import { Browser, fakeAccessory, finish, funded, rpc, send, type AccessoryKeys } from './lib';
 
 const STATE = new URL('./.dev-accessory.json', import.meta.url);
-type State = { issuer: string; accessories: Record<string, { keys: AccessoryKeys; pda: string; kind: string }> };
+type State = { issuer: string; minter?: string; accessories: Record<string, { keys: AccessoryKeys; pda: string; kind: string }> };
 const load = (): State => {
 	if (!existsSync(STATE)) throw new Error('Run `pnpm dev:accessory init` first.');
 	return JSON.parse(readFileSync(STATE, 'utf8'));
@@ -44,7 +47,10 @@ async function init() {
 	const issuer = await funded(issuerKey);
 	await send(admin, [await getCreateConfigInstructionAsync({ authority: admin })]);
 	await send(admin, [await getSetIssuerInstructionAsync({ admin, issuer: issuer.address })]);
-	save({ issuer: bytesToBase64Url(issuerKey), accessories: {} });
+	const minterKey = crypto.getRandomValues(new Uint8Array(32));
+	const minter = await funded(minterKey);
+	await send(admin, [await getSetMinterInstructionAsync({ admin, minter: minter.address })]);
+	save({ issuer: bytesToBase64Url(issuerKey), minter: bytesToBase64Url(minterKey), accessories: {} });
 	console.log(`issuer ${issuer.address} ready`);
 }
 
@@ -101,10 +107,22 @@ async function tapThenApprove(acc: ReturnType<typeof fakeAccessory>) {
 	return { linkId: start.body.id, handoffUrl: res.body.handoffUrl };
 }
 
+async function bindMint(name: string, mintArg?: string) {
+	const s = load();
+	const entry = s.accessories[name];
+	if (!entry) throw new Error(`no accessory "${name}"`);
+	if (!s.minter) throw new Error('no minter saved; re-run init on a fresh validator');
+	const minter = await funded(base64UrlToBytes(s.minter));
+	const mint = mintArg ? address(mintArg) : (await generateKeyPairSigner()).address;
+	await send(minter, [await getAssignMintInstructionAsync({ authority: minter, phygitalToken: address(entry.pda), mint })]);
+	console.log(mint);
+}
+
 const [cmd, name, arg] = process.argv.slice(2);
 const commands: Record<string, () => Promise<unknown>> = {
 	init,
 	add: () => add(name, arg),
+	mint: () => bindMint(name, arg),
 	tap: withAccessory(name, async (acc) => console.log(acc.tapUrl())),
 	handoff: withAccessory(name, async (acc) => console.log((await tapThenApprove(acc)).handoffUrl)),
 	link: withAccessory(name, async (acc) => {
@@ -118,7 +136,7 @@ const commands: Record<string, () => Promise<unknown>> = {
 };
 const run = commands[cmd];
 if (!run || (cmd !== 'init' && !name)) {
-	console.log('usage: dev-accessory init | add <name> [bearer|controlled|permanent] | tap <name> | link <name> | handoff <name>');
+	console.log('usage: dev-accessory init | add <name> [bearer|controlled|permanent] | tap <name> | link <name> | handoff <name> | mint <name> [mint]');
 	process.exit(1);
 }
 run().catch((err) => {

@@ -115,7 +115,7 @@
 			<div class="animate-rise flex flex-1 flex-col gap-7">
 				{#if s === 'linked'}
 					<div class="flex flex-1 flex-col justify-center gap-8">
-						<BondVisual wallet={status?.recipient ?? walletStore.address} icon={walletStore.walletIcon} />
+						<BondVisual wallet={status?.recipient ?? walletStore.address} icon={walletStore.walletIcon} pda={status?.accessory?.pda} />
 						<!-- This wallet just signed the link here, so "your wallet" is proven. -->
 						<PageHeader align="center" title="Linked" body="Your accessory now signs in as your wallet. You can close this page." />
 					</div>

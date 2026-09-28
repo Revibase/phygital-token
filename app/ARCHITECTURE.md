@@ -263,6 +263,11 @@ src/lib/components/app/   product components built from shadcn primitives in com
 - **Deep links:** the Phantom, Backpack and Solflare browse formats follow their current docs; re-check them on real devices. Jupiter is intentionally not offered as a deep link because it publishes no browse link. If the connector detects it, it still appears as a normal wallet.
 - **Chip binding:** the issuer's honesty is what binds `identifier` (NDEF key) and `public_key` (FIDO key) to the same chip. Nothing on-chain proves it.
 - **iOS wallet browsers** can't run WebAuthn for our rpId, which is why the tap stays in Safari or Chrome.
-- **Collectible metadata for `mint`** isn't shown yet. The mint address appears in Technical details.
+- **Collectible artwork:**
+  - When an accessory has a bound `mint`, the app shows its artwork instead of the Revibase tile.
+  - The server looks it up with Helius DAS `getAsset` on `SOLANA_RPC_URL`, preferring Helius's image-CDN copy (`cdn_uri`), then `links.image`.
+  - Results are cached in `revibase_mint_media` (a hit for 24 hours, a miss for 30 minutes). Failed requests are never cached.
+  - Only `https` images are used; `ipfs://` and `ar://` links go through public gateways.
+  - The endpoint is `GET /api/accessory/[pda]/media`. It takes an accessory account, not an arbitrary mint.
 - **Rate limiting** should be configured at the Cloudflare edge for `/`, `/api/link`, `/api/pair/claim`, `/api/handoff/claim` and `/api/signin/*`.
 - **Program follow-up:** optional `expected_origins` on `set_linked_wallet` (see threats above).

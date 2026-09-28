@@ -92,7 +92,7 @@
 				<List label="Your accessories">
 					{#each accessories as acc (acc.pda)}
 						<ListRow label={`Accessory · ${acc.tag}`} detail={kindLabel(acc)}>
-							{#snippet leading()}<AccessoryMark size="sm" />{/snippet}
+							{#snippet leading()}<AccessoryMark size="sm" pda={acc.pda} hasMint={!!acc.mint} />{/snippet}
 							{#snippet trailing()}
 								{#if acc.canRelease}
 									<Button variant="secondary" size="sm" class="h-9 px-3.5" onclick={() => { releasing = acc; releaseOpen = true; }}>Release</Button>

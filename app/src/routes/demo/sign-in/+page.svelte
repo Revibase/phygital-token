@@ -77,13 +77,13 @@
 			<div class="animate-rise flex flex-1 flex-col gap-7">
 				{#if result?.wallet}
 					<div class="flex flex-1 flex-col justify-center gap-8">
-						<BondVisual wallet={result.wallet} />
+						<BondVisual wallet={result.wallet} pda={result.accessory.pda} hasMint={!!result.accessory.mint} />
 						<PageHeader align="center" eyebrow={`Accessory · ${result.accessory.tag}`} eyebrowTone="success" title="Signed in" body="One tap. No wallet pop-up." />
 						<List><WalletRow address={result.wallet} label="Signed in as" /></List>
 					</div>
 				{:else if result}
 					<div class="flex flex-1 flex-col items-center justify-center gap-8">
-						<AccessoryMark state="verified" />
+						<AccessoryMark state="verified" pda={result.accessory.pda} hasMint={!!result.accessory.mint} />
 						<PageHeader align="center" eyebrow={`Accessory · ${result.accessory.tag}`} eyebrowTone="success" title="Not linked yet" body="This accessory is genuine, but no wallet is linked to it. Link one first, then sign in." />
 					</div>
 				{:else}

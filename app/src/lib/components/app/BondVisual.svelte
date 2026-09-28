@@ -3,11 +3,16 @@
 	import WalletAvatar from './WalletAvatar.svelte';
 
 	/** Success moment: accessory ↔ wallet. The connecting line draws once (420ms) to confirm the link. */
-	let { wallet = null, icon = null }: { wallet?: string | null; icon?: string | null } = $props();
+	let {
+		wallet = null,
+		icon = null,
+		pda = null,
+		hasMint
+	}: { wallet?: string | null; icon?: string | null; pda?: string | null; hasMint?: boolean } = $props();
 </script>
 
 <div class="flex items-center justify-center gap-3" aria-hidden="true">
-	<AccessoryMark size="md" />
+	<AccessoryMark size="md" {pda} {hasMint} />
 	<div class="relative h-[3px] w-14 overflow-hidden rounded-full bg-border">
 		<span class="animate-bond absolute inset-0 rounded-full bg-primary"></span>
 	</div>

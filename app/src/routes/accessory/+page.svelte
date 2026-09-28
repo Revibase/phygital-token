@@ -86,7 +86,7 @@
 	{:else}
 		<section class="flex flex-1 flex-col justify-center gap-8 pt-4 pb-10">
 			<div class="flex flex-col items-center gap-6">
-				<AccessoryMark state="verified" />
+				<AccessoryMark state="verified" pda={a.pda} hasMint={!!a.mint} />
 				<PageHeader align="center" eyebrow={`Verified accessory · ${a.tag}`} eyebrowTone="success" title={copy.title} body={copy.body} />
 			</div>
 

@@ -194,7 +194,7 @@
 					<div class="grid flex-1 place-items-center"><Spinner class="size-5 text-muted-foreground" /></div>
 				{:else if view === 'done' && status}
 					<div class="flex flex-1 flex-col justify-center gap-8">
-						<BondVisual wallet={status.recipient} icon={ownedResult ? walletStore.walletIcon : null} />
+						<BondVisual wallet={status.recipient} icon={ownedResult ? walletStore.walletIcon : null} pda={a.pda} hasMint={!!a.mint} />
 						<PageHeader
 							align="center"
 							title="Linked"
@@ -239,7 +239,7 @@
 
 					{#if view === 'tap'}
 						<div class="grid flex-1 place-items-center py-6">
-							<AccessoryMark state={tapping ? 'waiting' : 'idle'} />
+							<AccessoryMark state={tapping ? 'waiting' : 'idle'} pda={a.pda} hasMint={!!a.mint} />
 						</div>
 						{#if !webauthnOk}
 							<Notice title="Open this page in Safari or Chrome" body="This browser can’t read your accessory." />

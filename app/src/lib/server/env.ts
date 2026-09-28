@@ -7,6 +7,7 @@ export type ServerEnv = {
 	 * (schema owned by phygital-wallet) plus this app's `revibase_*` tables.
 	 */
 	db: D1Database;
+	/** Helius RPC: standard Solana methods plus DAS (`getAsset`, `getAssetsByOwner`, …). */
 	rpcUrl: string;
 	sessionSecret: string;
 	rpId: string;
