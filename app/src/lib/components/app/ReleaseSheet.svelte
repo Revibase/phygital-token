@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import * as Drawer from '$lib/components/ui/drawer';
 	import { Button } from '$lib/components/ui/button';
 	import { Spinner } from '$lib/components/ui/spinner';
@@ -76,7 +77,8 @@
 			{#if failure}<ErrorCard title={failure.title} body={failure.body} detail={failure.detail} />{/if}
 
 			{#if !walletStore.address}
-				<WalletPicker options={walletStore.options} {connecting} onpick={pick} />
+				<!-- Releasing needs no accessory session, so a wallet app can do it from /wallet. -->
+				<WalletPicker options={walletStore.options} {connecting} onpick={pick} browseTarget={`${page.url.origin}/wallet`} />
 			{:else}
 				<WalletChip address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} />
 				{#if isLinkedWallet}

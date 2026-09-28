@@ -8,6 +8,7 @@ import {
 } from '@solana/wallet-standard-features';
 
 import { platform } from '../capability';
+import { FEATURED_WALLET_NAMES } from './catalog';
 
 export type Cluster = 'mainnet' | 'devnet' | 'testnet' | 'localnet';
 
@@ -40,7 +41,8 @@ class WalletStore {
 				appName: 'Phygital',
 				appUrl: window.location.origin,
 				autoConnect: true,
-				network: cluster
+				network: cluster,
+				wallets: { featured: FEATURED_WALLET_NAMES }
 			})
 		);
 		// Mirrors what the connector's React provider does on mount.

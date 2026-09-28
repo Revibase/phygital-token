@@ -27,6 +27,15 @@
 	const ready = $derived(s === 'claimed' || s === 'finishing');
 	const waitingForTap = $derived(s === 'created' || s === 'awaiting_passkey');
 
+	/**
+	 * The single-use link is only claimed where a wallet is available. If none
+	 * is detected here (e.g. it was opened in Safari), it stays unclaimed and
+	 * the picker offers to reopen it inside Phantom / Backpack / Solflare.
+	 */
+	let pendingH = $state<string | null>(null);
+	let claiming = false;
+	const browseTarget = $derived(pendingH ? `${window.location.origin}/continue#h=${pendingH}` : null);
+
 	onMount(async () => {
 		// The capability lives only in the fragment. Read it once, then scrub it
 		// from the address bar and history before doing anything else.
@@ -37,9 +46,23 @@
 			failure = { title: 'This link is incomplete', body: 'Go back to your phone’s browser and open the wallet link again.', recovery: 'start_over', code: 'bad_request' };
 			return;
 		}
+		// Injected wallets register right after load; give detection a moment.
+		for (let i = 0; i < 10 && walletStore.options.length === 0; i++) await new Promise((r) => setTimeout(r, 100));
+		pendingH = h;
+	});
+
+	// Claim as soon as a wallet is available here (including late MWA registration).
+	$effect(() => {
+		if (pendingH && walletStore.options.length > 0 && !claiming) void claim(pendingH);
+	});
+
+	async function claim(h: string) {
+		claiming = true;
 		try {
 			status = await claimHandoff(h);
+			pendingH = null;
 		} catch (err) {
+			pendingH = null;
 			failure = describeError(err);
 			return;
 		}
@@ -51,7 +74,7 @@
 			},
 			poller.signal
 		);
-	});
+	}
 
 	async function pick(id: string) {
 		connecting = id;
@@ -126,6 +149,14 @@
 					</p>
 				{/if}
 				{#if status.tapExpiresAt}<Countdown until={status.tapExpiresAt} total={status.tapWindowMs ?? undefined} />{/if}
+			{:else if !status && pendingH}
+				<p class="text-sm text-muted-foreground">Open this link inside your wallet app to finish linking.</p>
+				<WalletPicker
+					options={[]}
+					onpick={() => {}}
+					{browseTarget}
+					emptyHint="Open this link inside your wallet app’s browser (copy it from your phone’s browser, then paste it into the wallet’s browser)."
+				/>
 			{:else if s === 'submitted'}
 				<div class="flex flex-col items-center gap-3 rounded-2xl border p-6 text-center" role="status">
 					<Spinner class="size-5" /><p class="font-medium">Confirming on the network…</p>

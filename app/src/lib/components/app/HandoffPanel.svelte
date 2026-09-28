@@ -1,14 +1,29 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
-	import { walletHandoffLinks } from '$lib/client/wallet/handoff';
+	import WalletPicker from './WalletPicker.svelte';
+	import type { WalletOption } from '$lib/client/wallet/wallet.svelte';
 	import LinkIcon from '@lucide/svelte/icons/link';
 	import MonitorIcon from '@lucide/svelte/icons/monitor';
-	import ExternalLinkIcon from '@lucide/svelte/icons/external-link';
 	import { toast } from 'svelte-sonner';
 
-	let { handoffUrl, oncomputer }: { handoffUrl: string; oncomputer: () => void } = $props();
-	const wallets = $derived(walletHandoffLinks(handoffUrl));
+	/**
+	 * After the approval tap: finish with a wallet detected in this browser, or
+	 * reopen the single-use `/continue#h=…` link inside a wallet app.
+	 */
+	let {
+		handoffUrl,
+		options,
+		connecting = null,
+		onpick,
+		oncomputer
+	}: {
+		handoffUrl: string;
+		options: WalletOption[];
+		connecting?: string | null;
+		onpick: (id: string) => void;
+		oncomputer: () => void;
+	} = $props();
 
 	async function copyLink() {
 		try {
@@ -21,12 +36,7 @@
 </script>
 
 <div class="space-y-3">
-	{#each wallets as w (w.id)}
-		<Button href={w.href} size="lg" class="h-14 w-full justify-between rounded-xl px-5 text-base" rel="noopener">
-			Open in {w.name}
-			<ExternalLinkIcon />
-		</Button>
-	{/each}
+	<WalletPicker {options} {connecting} {onpick} browseTarget={handoffUrl} />
 	<Button variant="outline" size="lg" class="h-12 w-full rounded-xl" onclick={copyLink}>
 		<LinkIcon /> Copy link for another wallet
 	</Button>

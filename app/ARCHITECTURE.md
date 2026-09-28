@@ -93,7 +93,21 @@ These rules sit on top of the on-chain lock flag. The app never presents an unex
   - The server stores only their SHA-256.
   - On first load the page claims one for an HttpOnly finisher cookie, then scrubs it from the address bar.
   - A second claim fails and raises an alarm on the other screen.
-- **No endpoint takes a redirect or return URL.** Wallet deep links are fixed templates wrapped around our own `/continue` URL.
+- **No endpoint takes a redirect or return URL.** Wallet deep links are fixed templates, and they only ever wrap a same-origin URL that we built.
+
+### Wallet discovery
+
+- **Wallets come from `@solana/connector` auto-detection:** Wallet Standard injection, extensions, and Mobile Wallet Adapter on Android. Phantom, Backpack and Solflare are featured first.
+- **On phones, any of those three that isn't detected gets an "Open in …" option.** It uses the wallet's documented browse deep link to reopen the page inside that wallet's in-app browser:
+  - `phantom.app/ul/browse/…`
+  - `backpack.app/ul/v1/browse/…`
+  - `solflare.com/ul/v1/browse/…`
+- Where this applies:
+  - after the tap, the target is the `/continue#h=…` link;
+  - for release and recovery, it is `/wallet`;
+  - the desktop flow never shows deep links.
+- **`/continue` claims `h` only once a wallet is detected.** Opened somewhere without one, such as Safari, the link stays unclaimed and is offered for reopening in a wallet app. A browser with no wallet can't burn the single-use link.
+- `catalog.ts` holds the logic and `WalletPicker` renders it everywhere.
 - CSP (`script-src 'self'` plus nonces, `frame-ancestors 'none'`), same-origin `Origin` checks on every JSON POST, and a method-allow-listed RPC proxy that keeps the provider key server-side.
 
 ---
@@ -190,7 +204,7 @@ The app does one job: make the object stand in for your wallet.
 | `/` | Tap target. With parameters it runs the tap ceremony; without them, "Tap your accessory". |
 | `/tap/[reason]` | malformed · invalid · replayed · unknown · network · expired: one calm sentence, with diagnostics folded away |
 | `/accessory` | Server-rendered home driven by state: ready to link · ready to use · locked (Controlled) · permanently yours · linked to a different wallet than this device last saw |
-| `/accessory/link` | Two steps: **Tap to approve** → **Finish in your wallet** (Phantom, Solflare, copy link, or use a computer) |
+| `/accessory/link` | Two steps: **Tap to approve** → **Finish in your wallet** (a detected wallet here, open in Phantom/Backpack/Solflare, copy link, or use a computer) |
 | `/continue` | Wallet side: connect → "Link this wallet" → approve |
 | `/link`, `/pair` | Desktop QR pairing, the computer side and the phone side |
 | `/wallet` | **Recovery without the accessory**: the linked wallet releases a lost or stolen accessory |
@@ -231,7 +245,7 @@ src/lib/components/app/   product components built from shadcn primitives in com
 
 ## 6. Open items and assumptions
 
-- **Deep links:** verify the Phantom and Solflare browse templates against current wallet documentation before launch.
+- **Deep links:** the Phantom, Backpack and Solflare browse formats follow their current docs; re-check them on real devices. Jupiter is intentionally not offered as a deep link because it publishes no browse link. If the connector detects it, it still appears as a normal wallet.
 - **Chip binding:** the issuer's honesty is what binds `identifier` (NDEF key) and `public_key` (FIDO key) to the same chip. Nothing on-chain proves it.
 - **iOS wallet browsers** can't run WebAuthn for our rpId, which is why the tap stays in Safari or Chrome.
 - **Collectible metadata for `mint`** isn't shown yet. The mint address appears in Technical details.

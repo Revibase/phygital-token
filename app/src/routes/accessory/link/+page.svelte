@@ -15,7 +15,6 @@
 	import StepList, { type Step } from '$lib/components/app/StepList.svelte';
 	import TapPrompt from '$lib/components/app/TapPrompt.svelte';
 	import WalletChip from '$lib/components/app/WalletChip.svelte';
-	import WalletPicker from '$lib/components/app/WalletPicker.svelte';
 	import { canTapHere, tapHint } from '$lib/client/capability';
 	import {
 		cancelLink,
@@ -34,7 +33,6 @@
 	import { shortAddress } from '$lib/shared/encoding';
 	import type { LinkStatusView, TransferChallenge } from '$lib/shared/types';
 	import ShieldAlertIcon from '@lucide/svelte/icons/shield-alert';
-	import SmartphoneIcon from '@lucide/svelte/icons/smartphone';
 
 	let { data } = $props();
 	const a = $derived(data.accessory);
@@ -265,13 +263,13 @@
 							<Button variant="ghost" class="h-11 w-full" onclick={() => (showComputer = false)}>Back</Button>
 						</div>
 					{:else}
-						{#if walletStore.options.length > 0}
-							<div class="space-y-2">
-								<p class="flex items-center gap-2 text-sm text-muted-foreground"><SmartphoneIcon class="size-4" /> On this device</p>
-								<WalletPicker options={walletStore.options} {connecting} onpick={useLocalWallet} />
-							</div>
-						{/if}
-						<HandoffPanel {handoffUrl} oncomputer={() => (showComputer = true)} />
+						<HandoffPanel
+							{handoffUrl}
+							options={walletStore.options}
+							{connecting}
+							onpick={useLocalWallet}
+							oncomputer={() => (showComputer = true)}
+						/>
 					{/if}
 				</div>
 			{:else if localFinish && walletStore.address && (s === 'claimed' || s === 'finishing')}

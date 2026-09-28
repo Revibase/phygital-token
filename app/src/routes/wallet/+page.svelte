@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Skeleton } from '$lib/components/ui/skeleton';
@@ -61,7 +62,7 @@
 		{#if failure}<ErrorCard title={failure.title} body={failure.body} detail={failure.detail} />{/if}
 
 		{#if !walletStore.address}
-			<WalletPicker options={walletStore.options} {connecting} onpick={pick} />
+			<WalletPicker options={walletStore.options} {connecting} onpick={pick} browseTarget={`${page.url.origin}/wallet`} />
 		{:else}
 			<WalletChip address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} />
 			{#if accessories === null && !failure}
