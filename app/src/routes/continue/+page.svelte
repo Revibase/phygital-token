@@ -10,6 +10,7 @@
 	import PageShell from '$lib/components/app/PageShell.svelte';
 	import WalletPicker from '$lib/components/app/WalletPicker.svelte';
 	import WalletRow from '$lib/components/app/WalletRow.svelte';
+	import { linkCopy } from '$lib/client/accessory/link-copy';
 	import { claimHandoff, finishInWallet, pollLink, type FinishPhase } from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
@@ -29,6 +30,7 @@
 	const waitingForTap = $derived(s === 'created' || s === 'awaiting_passkey');
 	const ended = $derived(s === 'cancelled' || s === 'expired' || s === 'failed');
 	const tag = $derived(status?.accessory?.tag);
+	const copy = $derived(linkCopy(status?.accessory?.kind));
 
 	/**
 	 * The single-use link is only claimed where a wallet is available. If none
@@ -117,14 +119,14 @@
 					<div class="flex flex-1 flex-col justify-center gap-8">
 						<BondVisual wallet={status?.recipient ?? walletStore.address} icon={walletStore.walletIcon} pda={status?.accessory?.pda} />
 						<!-- This wallet just signed the link here, so "your wallet" is proven. -->
-						<PageHeader align="center" title="Linked" body="Your accessory now signs in as your wallet. You can close this page." />
+						<PageHeader align="center" title={copy.done.title} body={`${copy.done.body(true, '')} You can close this page.`} />
 					</div>
 				{:else if failure && !status}
 					<div class="flex flex-1 flex-col justify-center"><Notice title={failure.title} body={failure.body} detail={failure.detail} /></div>
 				{:else if ended}
 					<div class="flex flex-1 flex-col justify-center">
 						<Notice
-							title={s === 'cancelled' ? 'Linking cancelled' : linkErrorCopy(status?.errorCode).title}
+							title={s === 'cancelled' ? copy.cancelled : linkErrorCopy(status?.errorCode).title}
 							body={s === 'cancelled' ? 'It was cancelled or replaced by a newer tap. Nothing was changed.' : linkErrorCopy(status?.errorCode).body}
 						/>
 					</div>
@@ -144,10 +146,8 @@
 				{:else if status && ready}
 					<PageHeader
 						eyebrow={tag ? `Accessory · ${tag}` : undefined}
-						title={walletStore.address ? 'Link this wallet?' : 'Choose a wallet'}
-						body={walletStore.address
-							? 'Anyone holding this accessory will be able to sign in as it. Only continue if the accessory is yours.'
-							: 'This accessory will sign in as the wallet you pick.'}
+						title={walletStore.address ? copy.confirm.title : copy.choose.title}
+						body={walletStore.address ? copy.confirm.body : copy.choose.body}
 					/>
 					{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
 					{#if !walletStore.address}
@@ -175,7 +175,7 @@
 					{#if phase === 'approve'}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…
 					{:else if phase === 'confirming'}<Spinner /> Confirming…
 					{:else if phase}<Spinner /> Preparing…
-					{:else}Link wallet{/if}
+					{:else}{copy.action}{/if}
 				</Button>
 				<Button variant="ghost" class="h-11 text-muted-foreground" disabled={!!phase} onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
 			</div>

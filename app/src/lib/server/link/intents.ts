@@ -4,7 +4,8 @@ import {
 	type LinkErrorCode,
 	type LinkKind,
 	type LinkState,
-	type LinkStatusView
+	type LinkStatusView,
+	type TokenKind
 } from '$lib/shared/types';
 import { accessoryTag } from '$lib/shared/encoding';
 
@@ -23,6 +24,7 @@ export type IntentRow = {
 	pda: string | null;
 	identifier: string | null;
 	public_key: string | null;
+	token_kind: TokenKind | null;
 	capability_hash: string | null;
 	capability_expires_at: number | null;
 	capability_claimed_at: number | null;
@@ -49,6 +51,7 @@ const PATCHABLE = new Set<keyof Patch>([
 	'pda',
 	'identifier',
 	'public_key',
+	'token_kind',
 	'capability_hash',
 	'capability_expires_at',
 	'capability_claimed_at',
@@ -82,6 +85,7 @@ export async function createIntent(
 		pda?: string | null;
 		identifier?: string | null;
 		public_key?: string | null;
+		token_kind?: TokenKind | null;
 	},
 	now = Date.now()
 ): Promise<IntentRow> {
@@ -95,6 +99,7 @@ export async function createIntent(
 		pda: input.pda ?? null,
 		identifier: input.identifier ?? null,
 		public_key: input.public_key ?? null,
+		token_kind: input.token_kind ?? null,
 		capability_hash: null,
 		capability_expires_at: null,
 		capability_claimed_at: null,
@@ -113,8 +118,8 @@ export async function createIntent(
 	await db
 		.prepare(
 			`INSERT INTO revibase_link_intents (id, kind, state, acc_sid, finisher, finisher_sid, pda, identifier, public_key,
-         capability_conflicts, created_at, updated_at, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`
+         token_kind, capability_conflicts, created_at, updated_at, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`
 		)
 		.bind(
 			row.id,
@@ -126,6 +131,7 @@ export async function createIntent(
 			row.pda,
 			row.identifier,
 			row.public_key,
+			row.token_kind,
 			now,
 			now,
 			row.expires_at
@@ -232,7 +238,8 @@ export function toStatusView(
 		id: row.id,
 		kind: row.kind,
 		state: row.state,
-		accessory: row.pda && row.identifier ? { pda: row.pda, tag: accessoryTag(row.identifier) } : null,
+		accessory:
+			row.pda && row.identifier ? { pda: row.pda, tag: accessoryTag(row.identifier), kind: row.token_kind ?? 'unknown' } : null,
 		recipient: row.recipient,
 		pairingCode: extra.pairingCode ?? null,
 		claimConflict: row.capability_conflicts > 0,

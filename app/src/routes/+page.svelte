@@ -15,6 +15,7 @@
 	import WalletPicker from '$lib/components/app/WalletPicker.svelte';
 	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import { getJson } from '$lib/client/api';
+	import { openOwnedAccessory } from '$lib/client/accessory/open-owned';
 	import { platform } from '$lib/client/capability';
 	import { describeError, type FriendlyError } from '$lib/client/link/messages';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
@@ -25,7 +26,7 @@
 	 * here: a tap goes straight to /accessory (this route's server load handles
 	 * the tap URL and redirects). This page is for signing in with the wallet
 	 * itself — see every linked accessory and release any of them, no
-	 * accessory required.
+	 * accessory required. Opening a row mints owner_browse and goes to /accessory.
 	 */
 	let { data } = $props();
 	let connecting = $state<string | null>(null);
@@ -35,6 +36,7 @@
 	let releaseOpen = $state(false);
 	let onDesktop = $state(false);
 	let pairOpen = $state(false);
+	let opening = $state<string | null>(null);
 
 	onMount(() => {
 		walletStore.init(data.cluster);
@@ -68,14 +70,27 @@
 		}
 	}
 
+	async function openAccessory(acc: AccessoryView) {
+		opening = acc.pda;
+		failure = null;
+		try {
+			await openOwnedAccessory(acc.pda);
+		} catch (err) {
+			failure = describeError(err);
+		} finally {
+			opening = null;
+		}
+	}
+
+	// "Linked", not "signs in as": tradable (Bearer) accessories are collectibles, not keys.
 	const summary = $derived(
 		!walletStore.address
-			? 'Connect your wallet to see the accessories that sign in as it.'
+			? 'Connect your wallet to see the accessories linked to it.'
 			: accessories === null
-				? 'Accessories that sign in as this wallet.'
+				? 'Accessories linked to this wallet.'
 				: accessories.length === 1
-					? 'One accessory signs in as this wallet.'
-					: `${accessories.length === 0 ? 'No' : accessories.length} accessories sign in as this wallet.`
+					? 'One accessory is linked to this wallet.'
+					: `${accessories.length === 0 ? 'No' : accessories.length} accessories are linked to this wallet.`
 	);
 </script>
 
@@ -109,16 +124,16 @@
 			{:else if accessories?.length === 0 && !onDesktop}
 				<div class="rounded-[14px] bg-muted px-4 py-5 text-center">
 					<p class="text-[15px] font-medium">No accessories yet</p>
-					<p class="mt-0.5 text-[14px] text-muted-foreground">Hold an accessory to your phone to link it to this wallet.</p>
+					<p class="mt-0.5 text-[14px] text-muted-foreground">Hold an accessory to your phone to make it yours.</p>
 				</div>
 			{:else if accessories?.length === 0}
 				<List label="Accessories" footer="You’ll scan a code with your phone and tap the accessory to it.">
 					{@render linkRow()}
 				</List>
 			{:else if accessories}
-				<List label="Accessories" footer="Releasing an accessory stops it signing in as this wallet. You don’t need it with you.">
+				<List label="Accessories" footer="Releasing unlinks an accessory from this wallet, so whoever holds it next can make it theirs. You don’t need it with you.">
 					{#each accessories as acc (acc.pda)}
-						<AccessoryRow accessory={acc}>
+						<AccessoryRow accessory={acc} busy={opening === acc.pda} onclick={() => openAccessory(acc)}>
 							{#snippet trailing()}
 								{#if acc.canRelease}
 									<Button

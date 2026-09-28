@@ -12,6 +12,7 @@
 	import PairingCode from './PairingCode.svelte';
 	import PairQr from './PairQr.svelte';
 	import WalletRow from './WalletRow.svelte';
+	import { linkCopy } from '$lib/client/accessory/link-copy';
 	import { postJson } from '$lib/client/api';
 	import { cancelLink, finishInWallet, pollLink, type FinishPhase } from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
@@ -51,18 +52,21 @@
 		if (s === 'submitted') return 'submitted';
 		return 'approve_phone';
 	});
+	/** Unknown until the phone taps; `linkCopy` then words it for the accessory's type. */
+	const copy = $derived(linkCopy(status?.accessory?.kind));
+
 	/** Announced title for the overlay; the visible heading is the per-step PageHeader. */
 	const a11yTitle = $derived(
 		{
 			starting: 'Link an accessory',
 			scan: 'Scan with your phone',
 			paired: 'Now tap your accessory',
-			confirm: 'Is this your accessory?',
+			confirm: copy.checkAccessory,
 			approve_phone: 'Approve on your phone',
-			sign: 'Link this wallet?',
+			sign: copy.confirm.title,
 			submitted: 'Almost done',
-			done: 'Linked',
-			dead: 'Linking stopped'
+			done: copy.done.title,
+			dead: copy.stopped
 		}[view]
 	);
 
@@ -156,7 +160,7 @@
 						<div class="space-y-6 py-4">
 							<BondVisual wallet={status?.recipient ?? walletStore.address} icon={walletStore.walletIcon} pda={status?.accessory?.pda} />
 							<!-- This computer's connected wallet just signed, so "your wallet" is proven. -->
-							<PageHeader align="center" title="Linked" body="Your accessory now signs in as your wallet." />
+							<PageHeader align="center" title={copy.done.title} body={copy.done.body(true, '')} />
 						</div>
 					{:else}
 						{#if view === 'scan' || view === 'starting'}
@@ -164,15 +168,15 @@
 						{:else if view === 'paired'}
 							<PageHeader step={{ current: 1, total: 2 }} eyebrow="Phone connected" eyebrowTone="success" title="Now tap your accessory" body="Hold it to your phone." />
 						{:else if view === 'confirm'}
-							<PageHeader step={{ current: 1, total: 2 }} eyebrow={status?.accessory ? `Accessory · ${status.accessory.tag}` : undefined} title="Is this your accessory?" body="Check that your phone shows the same code." />
+							<PageHeader step={{ current: 1, total: 2 }} eyebrow={status?.accessory ? `Accessory · ${status.accessory.tag}` : undefined} title={copy.checkAccessory} body="Check that your phone shows the same code." />
 						{:else if view === 'approve_phone'}
 							<PageHeader step={{ current: 2, total: 2 }} title="Approve on your phone" body="Tap Approve, then hold your accessory to your phone." />
 						{:else if view === 'sign'}
-							<PageHeader step={{ current: 2, total: 2 }} title="Link this wallet?" body="Anyone holding this accessory will be able to sign in as it." />
+							<PageHeader step={{ current: 2, total: 2 }} title={copy.confirm.title} body={copy.confirm.body} />
 						{:else if view === 'submitted'}
 							<PageHeader step={{ current: 2, total: 2 }} title="Almost done" />
 						{:else}
-							<PageHeader title={status?.claimConflict ? 'Start over' : 'Linking stopped'} />
+							<PageHeader title={status?.claimConflict ? 'Start over' : copy.stopped} />
 						{/if}
 
 						{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
@@ -208,7 +212,7 @@
 								body={status?.claimConflict
 									? 'This code was scanned twice. For your safety, start over and keep the code to yourself.'
 									: s === 'cancelled'
-										? 'Linking was cancelled. Nothing was changed.'
+										? `${copy.cancelled}. Nothing was changed.`
 										: linkErrorCopy(status?.errorCode).body}
 							/>
 						{/if}
@@ -223,7 +227,7 @@
 								{#if phase === 'approve'}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…
 								{:else if phase === 'confirming'}<Spinner /> Confirming…
 								{:else if phase}<Spinner /> Preparing…
-								{:else}Link wallet{/if}
+								{:else}{copy.action}{/if}
 							</Button>
 						{:else if view === 'dead' || (view === 'scan' && pairExpiresAt < Date.now()) || (view === 'confirm' && status?.errorCode)}
 							<Button size="xl" class="w-full" onclick={startPairing}>Start over</Button>

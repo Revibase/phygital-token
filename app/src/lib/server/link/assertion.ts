@@ -52,22 +52,27 @@ export type WebAuthnCheck =
 	| { ok: true; assertion: Assertion; signCount: number; publicKey: string }
 	| { ok: false; code: LinkErrorCode; detail: string };
 
+type AssertionContext =
+	| {
+			ok: true;
+			assertion: Assertion;
+			challenge: unknown;
+			clientDataBytes: Uint8Array;
+			authData: Uint8Array;
+			signature: Uint8Array;
+			signCount: number;
+			credentialKey: Uint8Array;
+			publicKey: string;
+		}
+	| { ok: false; code: LinkErrorCode; detail: string };
+
 /**
- * Verify a WebAuthn assertion from the accessory for OUR relying party:
- * ceremony type, exact challenge, origin, rpId hash, user presence, and the
- * P-256 signature over `authenticatorData || SHA-256(clientDataJSON)`.
- *
- * The program never checks rpId/origin, and the SDK's `verifyResponse` checks
- * only challenge + signature — so every server path goes through this.
- * `expectedPublicKey` pins the accessory when we already know which one it is.
+ * Everything about an assertion except its challenge and signature: shape,
+ * ceremony type, origin, rpId hash, user presence, and a passkey-shaped
+ * credential id. These are exactly the checks the SDK's `verifyResponse`
+ * leaves out, so a path that verifies with the SDK must run this too.
  */
-export function verifyWebAuthnAssertion(input: {
-	response: unknown;
-	expectedChallenge: string;
-	rpId: string;
-	origin: string;
-	expectedPublicKey?: string;
-}): WebAuthnCheck {
+export function checkAssertionContext(input: { response: unknown; rpId: string; origin: string }): AssertionContext {
 	const assertion = parseAssertion(input.response);
 	if (!assertion) return { ok: false, code: 'tap_rejected', detail: 'malformed assertion' };
 
@@ -85,9 +90,6 @@ export function verifyWebAuthnAssertion(input: {
 	}
 
 	if (clientData.type !== 'webauthn.get') return { ok: false, code: 'tap_rejected', detail: 'wrong ceremony type' };
-	if (clientData.challenge !== input.expectedChallenge) {
-		return { ok: false, code: 'tap_rejected', detail: 'challenge mismatch' };
-	}
 	if (clientData.origin !== input.origin || clientData.crossOrigin === true) {
 		return { ok: false, code: 'tap_rejected', detail: 'origin mismatch' };
 	}
@@ -106,23 +108,57 @@ export function verifyWebAuthnAssertion(input: {
 	} catch {
 		return { ok: false, code: 'tap_rejected', detail: 'credential id is not a passkey' };
 	}
-	const publicKey = bytesToBase64Url(credentialKey);
-	if (input.expectedPublicKey !== undefined && publicKey !== input.expectedPublicKey) {
+
+	return {
+		ok: true,
+		assertion,
+		challenge: clientData.challenge,
+		clientDataBytes,
+		authData,
+		signature,
+		signCount,
+		credentialKey,
+		publicKey: bytesToBase64Url(credentialKey)
+	};
+}
+
+/**
+ * Verify a WebAuthn assertion from the accessory for OUR relying party:
+ * {@link checkAssertionContext}, the exact challenge, and the P-256 signature
+ * over `authenticatorData || SHA-256(clientDataJSON)`.
+ *
+ * The program never checks rpId/origin, and the SDK's `verifyResponse` checks
+ * only challenge + signature — so every server path goes through the context check.
+ * `expectedPublicKey` pins the accessory when we already know which one it is.
+ */
+export function verifyWebAuthnAssertion(input: {
+	response: unknown;
+	expectedChallenge: string;
+	rpId: string;
+	origin: string;
+	expectedPublicKey?: string;
+}): WebAuthnCheck {
+	const ctx = checkAssertionContext(input);
+	if (!ctx.ok) return ctx;
+	if (ctx.challenge !== input.expectedChallenge) {
+		return { ok: false, code: 'tap_rejected', detail: 'challenge mismatch' };
+	}
+	if (input.expectedPublicKey !== undefined && ctx.publicKey !== input.expectedPublicKey) {
 		return { ok: false, code: 'different_accessory', detail: 'assertion from a different accessory' };
 	}
 
-	const signed = new Uint8Array(authData.length + 32);
-	signed.set(authData, 0);
-	signed.set(sha256(clientDataBytes), authData.length);
+	const signed = new Uint8Array(ctx.authData.length + 32);
+	signed.set(ctx.authData, 0);
+	signed.set(sha256(ctx.clientDataBytes), ctx.authData.length);
 	let valid = false;
 	try {
-		valid = p256.verify(compactLowS(signature), signed, credentialKey);
+		valid = p256.verify(compactLowS(ctx.signature), signed, ctx.credentialKey);
 	} catch {
 		valid = false;
 	}
 	if (!valid) return { ok: false, code: 'tap_rejected', detail: 'bad signature' };
 
-	return { ok: true, assertion, signCount, publicKey };
+	return { ok: true, assertion: ctx.assertion, signCount: ctx.signCount, publicKey: ctx.publicKey };
 }
 
 /**

@@ -188,7 +188,8 @@ export async function startPhoneLink(env: ServerEnv, caller: Caller) {
 		acc_sid: caller.acc.sid,
 		pda: accessory.pda,
 		identifier: view.identifier,
-		public_key: view.publicKey
+		public_key: view.publicKey,
+		token_kind: view.kind
 	});
 	return toStatusView(row);
 }
@@ -418,6 +419,7 @@ export async function attachAccessoryToPairing(env: ServerEnv, linkId: string, a
 		pda: accessory.pda,
 		identifier: view.identifier,
 		public_key: view.publicKey,
+		token_kind: view.kind,
 		error_code: view.canLink ? null : view.kind === 'permanent' ? 'accessory_permanent' : 'accessory_locked'
 	});
 	if (ok) await supersedeOthers(env.db, accessory.pda, linkId);

@@ -17,7 +17,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 			{ db: env.db, rpc: getRpc(env), rpId: env.rpId, origin: env.origin },
 			{ challengeId: body.challengeId, response: body.response }
 		);
-		if (!result.ok) return json({ error: result.error }, { status: result.status });
+		if (!result.ok) return json({ error: result.error, code: result.code }, { status: result.status });
 		return json({ accessory: result.accessory, wallet: result.wallet });
 	} catch {
 		return json({ error: 'Couldn’t reach the network. Try again.' }, { status: 502 });

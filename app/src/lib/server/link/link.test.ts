@@ -25,7 +25,7 @@ import { createTestD1, MIGRATIONS } from '../testing/d1-sqlite';
 import { fakeAccessory, fakePayload, ORIGIN, RP_ID } from '../testing/fixtures';
 import { checkTransferAssertion } from './assertion';
 import { hashCapability, mintCapability } from './capability';
-import { claimCapability, createIntent, getIntent, transition } from './intents';
+import { claimCapability, createIntent, getIntent, toStatusView, transition } from './intents';
 
 const rpc = {} as Rpc<SolanaRpcApi>; // completeTransfer never calls it
 const BLOCKHASH = { blockhash: blockhash('EkSnNWid2cvwEVnVx9aBqawnmiCNiDgp3gUdkDPTKN1N'), lastValidBlockHeight: 100n };
@@ -169,6 +169,22 @@ describe('link intents', () => {
 		const second = await createIntent(db, { kind: 'phone', state: 'created', pda: 'pda1' });
 		expect((await getIntent(db, first.id))).toMatchObject({ state: 'cancelled', assertion: null });
 		expect((await getIntent(db, second.id))?.state).toBe('created');
+	});
+
+	it('reports the accessory’s token type so each side can word the link for it', async () => {
+		const db = createTestD1([MIGRATIONS]);
+		const phone = await createIntent(db, { kind: 'phone', state: 'created', pda: 'pda1', identifier: 'AAAA', token_kind: 'bearer' });
+		expect(toStatusView((await getIntent(db, phone.id))!).accessory).toMatchObject({ pda: 'pda1', kind: 'bearer' });
+
+		// Desktop: the type arrives with the accessory, once the phone taps.
+		const desktop = await createIntent(db, { kind: 'desktop', state: 'paired' });
+		expect(toStatusView(desktop).accessory).toBeNull();
+		await transition(db, desktop.id, ['paired'], 'accessory_attached', { pda: 'pda2', identifier: 'BBBB', token_kind: 'controlled' });
+		expect(toStatusView((await getIntent(db, desktop.id))!).accessory).toMatchObject({ pda: 'pda2', kind: 'controlled' });
+
+		// Rows from before the type was recorded.
+		const old = await createIntent(db, { kind: 'phone', state: 'created', pda: 'pda3', identifier: 'CCCC' });
+		expect(toStatusView(old).accessory?.kind).toBe('unknown');
 	});
 
 	it('expires ceremonies past their TTL', async () => {

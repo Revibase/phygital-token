@@ -21,9 +21,12 @@ function rpcWith(account: Uint8Array | null) {
 	} as unknown as Rpc<SolanaRpcApi>;
 }
 
-async function setup(linked: string | null = W) {
+/** A Controlled accessory by default: only personal keys sign in. */
+async function setup(linked: string | null = W, tokenType = 2) {
 	const acc = fakeAccessory();
-	const data = new Uint8Array(getPhygitalTokenEncoder().encode(acc.account(linked ? { linkedWallet: address(linked) } : {})));
+	const data = new Uint8Array(
+		getPhygitalTokenEncoder().encode(acc.account({ tokenType, isLocked: linked ? 1 : 0, ...(linked ? { linkedWallet: address(linked) } : {}) }))
+	);
 	const db = createTestD1([MIGRATIONS]);
 	const deps = { db, rpc: rpcWith(data), rpId: RP_ID, origin: ORIGIN };
 	const { challengeId, message } = await issueSignInChallenge(db);
@@ -40,6 +43,16 @@ describe('sign in with accessory', () => {
 	it('reports an authentic but unlinked accessory', async () => {
 		const { deps, challengeId, response } = await setup(null);
 		expect(await verifySignIn(deps, { challengeId, response })).toMatchObject({ ok: true, wallet: null });
+	});
+
+	it('signs in with Permanent accessories too', async () => {
+		const { deps, challengeId, response } = await setup(W, 0);
+		expect(await verifySignIn(deps, { challengeId, response })).toMatchObject({ ok: true, wallet: W });
+	});
+
+	it('refuses Bearer accessories: a tradable collectible never stands in for a wallet', async () => {
+		const { deps, challengeId, response } = await setup(W, 1);
+		expect(await verifySignIn(deps, { challengeId, response })).toMatchObject({ ok: false, status: 403, code: 'not_a_key' });
 	});
 
 	it('challenges are single-use, even after a failed attempt', async () => {

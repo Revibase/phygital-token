@@ -18,7 +18,7 @@
 		collectibleName = null;
 		if (open && accessory.mint) void accessoryMedia(accessory.pda).then((m) => (collectibleName = m.name));
 	});
-	const kindLabel = { permanent: 'Permanent', bearer: 'Transferable', controlled: 'Controlled', unknown: 'Unknown' };
+	const kindLabel = { permanent: 'Bound to one wallet', bearer: 'Tradable', controlled: 'Locks to its owner', unknown: 'Unknown' };
 	const copyable = $derived(
 		[
 			['Accessory account', accessory.pda],
@@ -34,7 +34,7 @@
 	<List>
 		<ListRow label="Type" detail={kindLabel[accessory.kind]} />
 		<ListRow label="Status" detail={accessory.isLocked ? 'Locked' : 'Unlocked'} />
-		<ListRow label="Approvals used" detail={String(accessory.lastSignCount)} />
+		<ListRow label="Signature counter" detail={String(accessory.lastSignCount)} />
 	</List>
 	<List>
 		{#each copyable as [label, value] (label)}

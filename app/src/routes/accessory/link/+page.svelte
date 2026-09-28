@@ -27,6 +27,7 @@
 		type FinishPhase
 	} from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
+	import { linkCopy } from '$lib/client/accessory/link-copy';
 	import { rememberWallet } from '$lib/client/memory';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import { shortAddress } from '$lib/shared/encoding';
@@ -34,6 +35,7 @@
 
 	let { data } = $props();
 	const a = $derived(data.accessory);
+	const copy = $derived(linkCopy(a.kind));
 
 	let status = $state<LinkStatusView | null>(null);
 	let challenge = $state<TransferChallenge | null>(null);
@@ -184,7 +186,7 @@
 	}
 </script>
 
-<svelte:head><title>Link your wallet · Revibase</title></svelte:head>
+<svelte:head><title>{copy.pageTitle} · Revibase</title></svelte:head>
 
 <PageShell>
 	<section class="flex flex-1 flex-col pt-4" aria-live="polite">
@@ -197,19 +199,17 @@
 						<BondVisual wallet={status.recipient} icon={ownedResult ? walletStore.walletIcon : null} pda={a.pda} hasMint={!!a.mint} />
 						<PageHeader
 							align="center"
-							title="Linked"
-							body={ownedResult
-								? 'Tap your accessory anytime to sign in as your wallet.'
-								: `This accessory now signs in as ${status.recipient ? shortAddress(status.recipient) : 'the wallet you chose'}.`}
+							title={copy.done.title}
+							body={copy.done.body(ownedResult, status.recipient ? shortAddress(status.recipient) : 'the wallet you chose')}
 						/>
 						{#if status.recipient}
-							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Linked wallet'} icon={ownedResult ? walletStore.walletIcon : null} /></List>
+							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Owned by'} icon={ownedResult ? walletStore.walletIcon : null} /></List>
 						{/if}
 					</div>
 				{:else if view === 'dead'}
 					<div class="flex flex-1 flex-col justify-center">
 						<Notice
-							title={s === 'cancelled' ? 'Linking cancelled' : (failure?.title ?? linkErrorCopy(status?.errorCode).title)}
+							title={s === 'cancelled' ? copy.cancelled : (failure?.title ?? linkErrorCopy(status?.errorCode).title)}
 							body={s === 'cancelled' ? 'Nothing was changed.' : (failure?.body ?? linkErrorCopy(status?.errorCode).body)}
 							detail={failure?.detail}
 						/>
@@ -222,13 +222,13 @@
 					{:else if view === 'choose' && showComputer}
 						<PageHeader step={{ current: 2, total: 2 }} title="Use a computer" body="Link from a wallet on your computer instead." />
 					{:else if view === 'choose'}
-						<PageHeader step={{ current: 2, total: 2 }} title="Choose a wallet" body="This accessory will sign in as the wallet you pick." />
+						<PageHeader step={{ current: 2, total: 2 }} title={copy.choose.title} body={copy.choose.body} />
 					{:else if view === 'local'}
-						<PageHeader step={{ current: 2, total: 2 }} title="Link this wallet?" body="Anyone holding this accessory will be able to sign in as it." />
+						<PageHeader step={{ current: 2, total: 2 }} title={copy.confirm.title} body={copy.confirm.body} />
 					{:else if view === 'desktop_remote'}
-						<PageHeader step={{ current: 2, total: 2 }} title="Finish on your computer" body="Approve the link in your wallet there." />
+						<PageHeader step={{ current: 2, total: 2 }} title="Finish on your computer" body={copy.finishOnComputer} />
 					{:else}
-						<PageHeader step={{ current: 2, total: 2 }} title="Finish in your wallet" body="Approve the link there, then come back." />
+						<PageHeader step={{ current: 2, total: 2 }} title="Finish in your wallet" body={copy.finishInWallet} />
 					{/if}
 
 					{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
@@ -266,7 +266,7 @@
 							<Spinner class="size-4 text-muted-foreground" />
 							<span>
 								{#if s === 'submitted'}Confirming on the network…
-								{:else if status?.recipient}Linking to {shortAddress(status.recipient)}…
+								{:else if status?.recipient}{copy.progress(shortAddress(status.recipient))}
 								{:else if s === 'claimed'}Opened in your wallet
 								{:else}Waiting for your wallet…{/if}
 							</span>
@@ -294,7 +294,7 @@
 					{#if phase === 'approve'}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…
 					{:else if phase === 'confirming'}<Spinner /> Confirming…
 					{:else if phase}<Spinner /> Preparing…
-					{:else}Link wallet{/if}
+					{:else}{copy.action}{/if}
 				</Button>
 			{:else if view === 'choose' && showComputer}
 				<Button variant="secondary" size="xl" class="w-full" onclick={() => (showComputer = false)}>Back</Button>

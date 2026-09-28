@@ -6,25 +6,68 @@ import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
 /**
  * Stateless, HMAC-SHA256-signed session cookies.
  *
- * - `acc`  — accessory session from a verified, counter-consumed NFC tap.
+ * Admit (opens `/accessory`):
+ * - `bu`  — browse_unlock: physical possession (NFC tap or WebAuthn Hold).
+ * - `ob`  — owner_browse: the linked wallet proved ownership (no tap needed).
+ *
+ * Ceremony:
  * - `hof`  — handoff finisher: the one wallet context that claimed `h`.
  * - `dsk`  — desktop finisher bound when the desktop starts a pairing.
  * - `pair` — phone that scanned the desktop QR (claimed `p`).
+ *
+ * Purpose is bound into the token (`t`), so a browse_unlock cookie never
+ * verifies as owner_browse (and vice versa). Matches phygital-wallet's
+ * browse_unlock / authority_browse admit model.
  *
  * All are HttpOnly + SameSite=Lax + Secure, with the `__Host-` prefix in
  * production so they cannot be set by a subdomain or scoped to a sub-path.
  */
 
-export const ACCESSORY_SESSION_TTL_MS = 10 * 60 * 1000;
+export const BROWSE_SESSION_TTL_MS = 10 * 60 * 1000;
 export const FINISHER_SESSION_TTL_MS = 10 * 60 * 1000;
 
-export type AccessorySession = { v: 1; t: 'acc'; sid: string; pda: string; identifier: string; exp: number };
+/** @deprecated use BROWSE_SESSION_TTL_MS */
+export const ACCESSORY_SESSION_TTL_MS = BROWSE_SESSION_TTL_MS;
+
+/** Physical-possession admit. Seed of the link ceremony. */
+export type BrowseUnlockSession = {
+	v: 1;
+	t: 'bu';
+	sid: string;
+	pda: string;
+	identifier: string;
+	exp: number;
+};
+
+/** Owner admit: linked wallet opened this accessory from Home. */
+export type OwnerBrowseSession = {
+	v: 1;
+	t: 'ob';
+	sid: string;
+	pda: string;
+	identifier: string;
+	/** The linked wallet that signed to open it. */
+	wallet: string;
+	exp: number;
+};
+
+/** Either admit cookie — enough to view `/accessory`. */
+export type AdmitSession = BrowseUnlockSession | OwnerBrowseSession;
+
+/**
+ * @deprecated Alias for {@link BrowseUnlockSession}. Prefer the new name;
+ * kept so ceremony code that still says "accessory session" compiles during
+ * the rename.
+ */
+export type AccessorySession = BrowseUnlockSession;
+
 export type FinisherSession = { v: 1; t: 'hof' | 'dsk'; sid: string; linkId: string; exp: number };
 export type PairSession = { v: 1; t: 'pair'; sid: string; linkId: string; exp: number };
-type AnySession = AccessorySession | FinisherSession | PairSession;
+type AnySession = BrowseUnlockSession | OwnerBrowseSession | FinisherSession | PairSession;
 
 const NAMES = {
-	acc: dev ? 'acc' : '__Host-acc',
+	bu: dev ? 'bu' : '__Host-bu',
+	ob: dev ? 'ob' : '__Host-ob',
 	hof: dev ? 'hof' : '__Host-hof',
 	dsk: dev ? 'dsk' : '__Host-dsk',
 	pair: dev ? 'pair' : '__Host-pair'
@@ -106,13 +149,43 @@ export function clearCookie(cookies: Cookies, t: AnySession['t']) {
 	cookies.delete(NAMES[t], { path: '/', secure: !dev });
 }
 
-export async function setAccessorySession(
+/** Issue browse_unlock. A physical tap always replaces leftover owner_browse. */
+export async function setBrowseUnlock(
 	cookies: Cookies,
 	secret: string,
 	data: { pda: string; identifier: string },
 	now = Date.now()
-): Promise<AccessorySession> {
-	const session: AccessorySession = { v: 1, t: 'acc', sid: newSessionId(), ...data, exp: now + ACCESSORY_SESSION_TTL_MS };
+): Promise<BrowseUnlockSession> {
+	clearCookie(cookies, 'ob');
+	const session: BrowseUnlockSession = {
+		v: 1,
+		t: 'bu',
+		sid: newSessionId(),
+		...data,
+		exp: now + BROWSE_SESSION_TTL_MS
+	};
+	await writeCookie(cookies, secret, session);
+	return session;
+}
+
+/** @deprecated use setBrowseUnlock */
+export const setAccessorySession = setBrowseUnlock;
+
+/** Issue owner_browse. Clears browse_unlock so one admit cookie is live. */
+export async function setOwnerBrowse(
+	cookies: Cookies,
+	secret: string,
+	data: { pda: string; identifier: string; wallet: string },
+	now = Date.now()
+): Promise<OwnerBrowseSession> {
+	clearCookie(cookies, 'bu');
+	const session: OwnerBrowseSession = {
+		v: 1,
+		t: 'ob',
+		sid: newSessionId(),
+		...data,
+		exp: now + BROWSE_SESSION_TTL_MS
+	};
 	await writeCookie(cookies, secret, session);
 	return session;
 }
@@ -140,8 +213,25 @@ export async function setPairSession(
 	return session;
 }
 
-export function readAccessorySession(cookies: Cookies, secret: string) {
-	return verifyToken<AccessorySession>(secret, cookies.get(NAMES.acc), 'acc');
+export function readBrowseUnlock(cookies: Cookies, secret: string) {
+	return verifyToken<BrowseUnlockSession>(secret, cookies.get(NAMES.bu), 'bu');
+}
+
+/** @deprecated use readBrowseUnlock */
+export const readAccessorySession = readBrowseUnlock;
+
+export function readOwnerBrowse(cookies: Cookies, secret: string) {
+	return verifyToken<OwnerBrowseSession>(secret, cookies.get(NAMES.ob), 'ob');
+}
+
+/**
+ * Admit for viewing `/accessory`: browse_unlock wins when both somehow remain
+ * (a physical tap is fresher proof than an owner open).
+ */
+export async function readAdmitSession(cookies: Cookies, secret: string): Promise<AdmitSession | null> {
+	const browse = await readBrowseUnlock(cookies, secret);
+	if (browse) return browse;
+	return readOwnerBrowse(cookies, secret);
 }
 
 export function readFinisherSession(cookies: Cookies, secret: string, t: FinisherSession['t']) {

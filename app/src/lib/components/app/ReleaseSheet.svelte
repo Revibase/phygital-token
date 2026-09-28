@@ -33,6 +33,12 @@
 	});
 
 	const linked = $derived(accessory.linkedWallet ? shortAddress(accessory.linkedWallet) : 'its wallet');
+	/** Either way it unlocks, so whoever holds it next can make it theirs. */
+	const outcome = $derived(
+		accessory.kind === 'bearer'
+			? `It leaves ${linked}’s collection, and whoever holds it can claim it.`
+			: `It will stop signing in as ${linked}, and whoever holds it can link it to their wallet.`
+	);
 	const isLinkedWallet = $derived(!!walletStore.address && walletStore.address === accessory.linkedWallet);
 
 	async function pick(id: string) {
@@ -67,7 +73,7 @@
 <ResponsiveSheet
 	bind:open
 	title="Release this accessory?"
-	description={`It will stop signing in as ${linked}. Only that wallet can release it — the accessory isn’t needed.`}
+	description={`${outcome} Only that wallet can release it — you don’t need the accessory.`}
 >
 	{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
 

@@ -55,7 +55,7 @@
 		{:else if status}
 			<AccessoryMark state="waiting" />
 			<div class="animate-rise w-full">
-				<PageHeader align="center" eyebrow="Connected to your computer" eyebrowTone="success" title="Now tap your accessory" body="Hold it to your phone, just like the first time." />
+				<PageHeader align="center" eyebrow="Connected to your computer" eyebrowTone="success" title="Now tap your accessory" body="Hold it to your phone." />
 			</div>
 		{:else}
 			<Spinner class="size-5 text-muted-foreground" />

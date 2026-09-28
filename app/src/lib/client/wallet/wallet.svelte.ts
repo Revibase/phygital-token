@@ -2,12 +2,15 @@ import { ConnectorClient, getDefaultConfig, type ConnectorState } from '@solana/
 import type { Wallet, WalletAccount } from '@wallet-standard/base';
 import {
 	SolanaSignAndSendTransaction,
+	SolanaSignMessage,
 	SolanaSignTransaction,
 	type SolanaSignAndSendTransactionFeature,
+	type SolanaSignMessageFeature,
 	type SolanaSignTransactionFeature
 } from '@solana/wallet-standard-features';
 
 import { platform } from '../capability';
+import { bytesToBase64Url } from '$lib/shared/encoding';
 import { FEATURED_WALLET_NAMES } from './catalog';
 
 export type Cluster = 'mainnet' | 'devnet' | 'testnet' | 'localnet';
@@ -149,4 +152,14 @@ export async function signWithWallet(ctx: SigningContext, wireBytes: Uint8Array)
 		return { kind: 'sent', signature: new Uint8Array(result.signature) };
 	}
 	throw new Error('This wallet can’t sign Solana transactions.');
+}
+
+/** Off-chain message signature for owner_browse (and similar). Returns base64url sig bytes. */
+export async function signMessageWithWallet(ctx: SigningContext, message: string): Promise<string> {
+	const features = ctx.wallet.features as Partial<SolanaSignMessageFeature>;
+	const sign = features[SolanaSignMessage];
+	if (!sign) throw new Error('This wallet can’t sign messages.');
+	const bytes = new TextEncoder().encode(message);
+	const [result] = await sign.signMessage({ account: ctx.account, message: bytes });
+	return bytesToBase64Url(new Uint8Array(result.signature));
 }

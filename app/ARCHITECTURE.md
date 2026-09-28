@@ -41,13 +41,15 @@ SDK path: `beginTransfer` → `authenticatePasskeyForTransfer` → `completeTran
 - Resets the wallet to unset and unlocks the token.
 - Rejected for Permanent tokens.
 
-### What each token type allows (enforced in `accessoryRules`)
+### What each token type allows (enforced in `accessoryRules` and `verifySignIn`)
 
-| Type | Link | Release |
-|---|---|---|
-| **Bearer** | While unlocked. A tap can move it to a new wallet. | By the linked wallet |
-| **Controlled** | **Only when no wallet is linked.** Once linked, it must be released first. | By the linked wallet |
-| **Permanent** | Never. Fixed forever from `initialize`. | Never |
+| Type | Meant for | Link | Release | Sign in |
+|---|---|---|---|---|
+| **Bearer** | Tradable collectibles (e.g. NFC trading cards) | While unlocked. A tap can move it to a new wallet. | By the linked wallet | **Never.** Whoever holds it can claim it, so it can't stand in for a wallet. |
+| **Controlled** | Personal keys | **Only when no wallet is linked.** Once linked, it must be released first. | By the linked wallet | Yes |
+| **Permanent** | Personal keys | Never. Fixed forever from `initialize`. | Never | Yes |
+
+The screens and copy follow the same split: `tapScreen` and `linkCopy` (`src/lib/client/accessory/`) word a Bearer accessory as a collectible ("Claim it", "In your collection") and the others as keys ("Link wallet", "Signs in as your wallet"). A ceremony records the accessory's `token_kind` when it joins, so the wallet app and the computer can use the right wording without an RPC per poll.
 
 These rules sit on top of the on-chain lock flag. The app never presents an unexpected on-chain combination as linkable, and the server enforces the same rules when starting a ceremony, attaching a desktop pairing, and accepting a tap.
 
@@ -57,7 +59,7 @@ These rules sit on top of the on-chain lock flag. The app never presents an unex
 
 | Operation | Runs in |
 |---|---|
-| Parse and verify the dynamic-URL signature, consume the tap counter, resolve the token, issue the accessory session | **Backend** (Worker plus D1) |
+| Parse and verify the dynamic-URL signature, consume the tap counter, resolve the token, issue browse_unlock | **Backend** (Worker plus D1) |
 | Ceremony state machine, custody of the tap, origin/rpId/UP checks, simulation, on-chain confirmation | **Backend** |
 | FIDO assertion over the slot-bound challenge | **Accessory authenticator**, via WebAuthn in the phone's browser |
 | Choosing the recipient (the connected account) and signing | **Wallet** (Wallet Standard via `@solana/connector`, or MWA on Android) |
@@ -69,7 +71,7 @@ These rules sit on top of the on-chain lock flag. The app never presents an unex
 - An NFC dynamic-URL tap (`pk`, `c`, `n`, `s`) proves the chip's identifier key signed `counter ‖ nonce` at some point after the last accepted counter.
 - It does **not** prove the accessory is present *now*: a skimmed, photographed or unsubmitted URL stays valid until a newer tap is consumed.
 - It also does not prove who is holding the accessory, or who owns any wallet.
-- So the accessory session it creates grants **reading plus the right to start a ceremony**, and nothing else.
+- So the browse_unlock session it creates grants **reading plus the right to start a ceremony**, and nothing else. Owner_browse grants reading only.
 - Every state change needs either a fresh FIDO assertion over a recent slot hash, or the linked wallet's own signature.
 
 ### Tap counter (anti-replay)
@@ -84,13 +86,24 @@ These rules sit on top of the on-chain lock flag. The app never presents an unex
 
 ### Sessions and URLs
 
+Admit cookies (same model as phygital-wallet's browse_unlock | authority_browse):
+
+| Cookie | Purpose | Issued by | Opens |
+|---|---|---|---|
+| `__Host-bu` (`bu`) | **browse_unlock** — physical possession | NFC tap (`/?pk&c&n&s`) or WebAuthn Hold (`POST /api/tap/resume`) | `/accessory` (view) and `/accessory/link` (ceremony) |
+| `__Host-ob` (`ob`) | **owner_browse** — linked wallet proved ownership | `POST /api/accessory/owner-browse` after `solana:signMessage` | `/accessory` (view only) |
+
+`readAdmitSession` prefers browse_unlock when both somehow remain. Issuing either clears the other. Ceremony finishers (`hof`, `dsk`, `pair`) are unchanged.
+
 - `GET /?pk&c&n&s`:
   - prefetch requests (`Sec-Purpose` / `Purpose`) are ignored;
   - the tap is verified and its counter consumed;
-  - `__Host-acc` is set (HMAC-signed, HttpOnly, Secure, SameSite=Lax, 10 minutes);
+  - `__Host-bu` is set (HMAC-signed, HttpOnly, Secure, SameSite=Lax, 10 minutes) and any leftover `__Host-ob` is cleared;
   - the response is a **303 to `/accessory`**, with `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
 
   The raw signed URL is never rendered and never kept as a history entry.
+- **`/tap/expired`:** **Continue** runs SDK `startAuthentication` → `POST /api/tap/resume` (`verifyResponse` + origin/rpId/UP checks) → reissues browse_unlock.
+- **Home → open accessory:** connected wallet signs a challenge → owner_browse → `/accessory`.
 - **Opening the same URL twice** in the same browser continues silently. Anywhere else it shows "That tap was already used". When taps arrive out of order, the newest wins.
 - **Capabilities** (`h` for a wallet app, `p` for desktop pairing) are 256-bit, single-use, and travel **only in URL fragments**, so they never reach server logs or a Referer header.
   - The server stores only their SHA-256.
@@ -130,7 +143,7 @@ The tap is a short-lived bearer capability: whoever redeems it first chooses the
 Safari/Chrome (tap origin)          Server (Worker + D1)                    Wallet in-app browser
 ──────────────────────────          ────────────────────                    ─────────────────────
 NFC tap ──GET /?pk&c&n&s──────────▶ verify P-256 · consume counter
-                                    resolve token · __Host-acc · 303
+                                    resolve token · __Host-bu · 303
 "Link wallet" ─POST /api/link─────▶ intent: created (1 per accessory)
 (prefetched) ─POST …/challenge────▶ SDK beginTransfer(rpId) → slot, hash,
                                     challenge stored → awaiting_passkey
@@ -204,13 +217,13 @@ The app does one job: make the object stand in for your wallet.
 
 | Route | Purpose |
 |---|---|
-| `/` | Two jobs. With tap parameters, the server load runs the tap ceremony and redirects to `/accessory`, so people holding an accessory never see this page. Without them, it's **Your accessories**: connect your wallet, see every accessory linked to it (with artwork), and release any of them without the accessory. |
-| `/tap/[reason]` | malformed · invalid · replayed · unknown · network · expired: one calm sentence, with diagnostics folded away |
-| `/accessory` | Server-rendered home driven by state: ready to link · ready to use · locked (Controlled) · permanently yours · linked to a different wallet than this device last saw |
-| `/accessory/link` | Two steps: **Tap to approve** → **Finish in your wallet** (a detected wallet here, open in Phantom/Backpack/Solflare, copy link, or use a computer) |
+| `/` | Two jobs. With tap parameters, the server load runs the tap ceremony and redirects to `/accessory`, so people holding an accessory never see this page. Without them, it's **Your accessories**: connect your wallet, open any accessory via owner_browse, and release any of them without the accessory. |
+| `/tap/[reason]` | malformed · invalid · replayed · unknown · network · expired. Expired offers **Continue** (WebAuthn Hold → browse_unlock). |
+| `/accessory` | Gated by browse_unlock **or** owner_browse. Ready to link · ready to use · locked (Controlled) · permanently yours · linked to a different wallet than this device last saw |
+| `/accessory/link` | Needs browse_unlock. Two steps: **Tap to approve** → **Finish in your wallet** (a detected wallet here, open in Phantom/Backpack/Solflare, copy link, or use a computer) |
 | `/continue` | Wallet side: connect → "Link this wallet" → approve |
 | `/pair` | Phone side of desktop QR pairing. The computer side is the **Link an accessory** sheet on `/`, shown only on computers once a wallet is connected. |
-| `/demo/sign-in` | The payoff: `startAuthentication` → server check (single-use challenge, origin, rpId, signature) → "Signed in as ‹linked wallet›" |
+| `/demo/sign-in` | The payoff: `startAuthentication` → server check (single-use challenge, origin, rpId, signature, Controlled or Permanent only) → "Signed in as ‹linked wallet›" |
 
 Each secondary feature exists for the core idea:
 - **Release** handles revocation and handing the accessory to someone else. It's required for Controlled tokens.
@@ -242,14 +255,16 @@ Each secondary feature exists for the core idea:
 
 ```
 src/lib/server/
-  tap/            verify-dynamic-url (port of phygital-wallet), counter-store (shared D1), handle-tap
-  accessory/      resolve (identifier → PDA, cached), view (on-chain → AccessoryView + per-type rules)
-  session/        HMAC cookies (acc · hof · dsk · pair)
+  tap/            verify-dynamic-url (port of phygital-wallet), counter-store (shared D1), handle-tap, resume (WebAuthn Hold)
+  accessory/      resolve (identifier → PDA, cached), view (on-chain → AccessoryView + per-type rules), owner-browse
+  challenges.ts   single-use auth_challenges helpers (sign-in · resume · owner-browse namespaces)
+  session/        HMAC cookies (bu · ob · hof · dsk · pair)
   link/           service (ceremony + authorization), intents (D1 CAS), assertion (WebAuthn gate),
                   slot-window (SlotHashes), simulate, confirm, capability, errors
   signin/         single-use challenges + verification for "Sign in with accessory"
 src/lib/shared/   link-transaction (SDK completeTransfer → v0 tx, byte-level validator), types, encoding
-src/lib/client/   wallet (connector headless + Wallet Standard signing), link/flow, messages (copy), rpc proxy
+src/lib/client/   wallet (connector headless + Wallet Standard signing), link/flow, messages (copy), rpc proxy,
+                  accessory/ (tapScreen · linkCopy · openOwned)
 src/lib/components/app/   product components built from shadcn primitives in components/ui/
 ```
 

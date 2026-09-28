@@ -35,7 +35,7 @@ const LINK_COPY: Record<LinkErrorCode, Omit<FriendlyError, 'code'>> = {
 	},
 	insufficient_sol: {
 		title: 'Your wallet needs a little SOL',
-		body: 'Linking costs a tiny network fee (well under 0.001 SOL). Add some SOL to this wallet, then try again.',
+		body: 'The wallet you’re linking pays a tiny network fee (well under 0.001 SOL). Add some SOL to it, then try again.',
 		recovery: 'add_sol'
 	},
 	already_used: {
@@ -76,6 +76,18 @@ function isUserRejection(err: unknown): boolean {
 export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'): FriendlyError {
 	if (err instanceof ApiClientError) {
 		if (err.code in LINK_COPY) return { ...linkErrorCopy(err.code as LinkErrorCode), detail: err.message };
+		if (err.code === 'unknown_accessory') {
+			return { title: 'We don’t recognize this accessory', body: 'It isn’t registered, so we can’t confirm it’s genuine.', recovery: 'none', code: err.code };
+		}
+		if (err.code === 'not_a_key') {
+			return { title: 'This one can’t sign in', body: 'It’s a tradable collectible, so it can’t stand in for a wallet.', recovery: 'none', code: err.code };
+		}
+		if (err.code === 'not_owner') {
+			return { title: 'That’s a different wallet', body: 'This accessory isn’t linked to the wallet you connected.', recovery: 'none', code: err.code };
+		}
+		if (err.code === 'bad_signature') {
+			return { title: 'We couldn’t verify that signature', body: 'Approve the message in your wallet, then try again.', recovery: 'retry', code: err.code };
+		}
 		if (err.code === 'expired') return { title: 'This session expired', body: err.message, recovery: 'start_over', code: err.code };
 		if (err.code === 'forbidden' || err.code === 'not_found' || err.code === 'conflict') {
 			return { title: 'This link isn’t active anymore', body: err.message, recovery: 'start_over', code: err.code };
@@ -120,23 +132,23 @@ export const TAP_FAILURE_COPY: Record<TapFailureReason, { title: string; body: s
 		body: 'Hold your accessory to your phone again and keep it there for a moment.'
 	},
 	invalid: {
-		title: 'Couldn’t verify this accessory',
-		body: 'The link didn’t come from a genuine accessory. If it was copied or shared, tap the accessory itself.'
+		title: 'Couldn’t verify this tap',
+		body: 'The link wasn’t signed by an accessory. If it was copied or edited, tap the accessory itself.'
 	},
 	replayed: {
 		title: 'That tap was already used',
 		body: 'Each tap works once. Hold your accessory to your phone again.'
 	},
 	unknown: {
-		title: 'Not set up yet',
-		body: 'This accessory is genuine but hasn’t been registered. Contact the issuer.'
+		title: 'We don’t recognize this accessory',
+		body: 'It isn’t registered, so we can’t confirm it’s genuine. If you were expecting it to work, contact whoever issued it.'
 	},
 	network: {
 		title: 'Connection problem',
-		body: 'Your accessory is fine — we just couldn’t reach the network. Check your connection and tap again.'
+		body: 'We couldn’t reach the network to check this accessory. Check your connection and tap again.'
 	},
 	expired: {
 		title: 'Tap to continue',
-		body: 'For your security, sessions end after a few minutes. Hold your accessory to your phone again.'
+		body: 'For your security, this page closes after a few minutes. Tap Continue, then hold your accessory to your phone.'
 	}
 };

@@ -67,7 +67,8 @@ export type LinkStatusView = {
 	id: string;
 	kind: LinkKind;
 	state: LinkState;
-	accessory: { pda: string; tag: string } | null;
+	/** `kind` is the token type, so each side can word the link for it ('unknown' on older rows). */
+	accessory: { pda: string; tag: string; kind: TokenKind } | null;
 	recipient: string | null;
 	/** Desktop flow: shown on both screens so the user can match them. */
 	pairingCode: string | null;
