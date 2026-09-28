@@ -1,5 +1,0 @@
-# Copy to .dev.vars for `vite dev` / `wrangler dev`.
-# Helius RPC (also serves DAS getAsset for accessory artwork).
-SOLANA_RPC_URL=https://devnet.helius-rpc.com/?api-key=...
-# 32+ random bytes, e.g. `openssl rand -base64 32`
-SESSION_SECRET=replace-me
