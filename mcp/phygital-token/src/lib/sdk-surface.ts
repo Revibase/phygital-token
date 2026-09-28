@@ -2,17 +2,18 @@ export const SDK_SURFACE = {
   webAuthn: {
     credentialId: "33 bytes = authenticator passkey; 16 bytes = platform echoed placeholder (recovery runs)",
     rpcRequired:
-      "Kit Rpc required on all browser WebAuthn taps (startAuthentication, authenticatePasskeyForSecp256r1Verify, authenticatePasskeyForTransfer)",
+      "Kit Rpc required for startAuthentication(message, { rpc }) recovery and on-chain browser taps (authenticatePasskeyForSecp256r1Verify, authenticatePasskeyForTransfer)",
     recovery:
       "When multiple keys verify, disambiguates via initialized PhygitalToken PDA on-chain",
     authenticatePasskey:
-      "Shared helper: options.transceive → authenticateWithApdu; else authenticateWithWebauthn. Used by startAuthentication, authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify.",
+      "Shared helper for on-chain flows: options.transceive → authenticateWithApdu; else authenticateWithWebauthn. Used by authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify.",
   },
   admin: [
     "getCreateConfigInstruction",
     "getSetAdminInstruction",
     "getSetIssuerInstruction",
     "getSetMinterInstruction",
+    "getClosePhygitalTokenInstruction",
     "findAdminConfigPda",
   ],
   initialize: [
@@ -28,23 +29,23 @@ export const SDK_SURFACE = {
   ],
   transfer: [
     "beginTransfer({ rpc, secp256r1Pubkey, rpId? })",
-    "authenticatePasskeyForTransfer(session, { transceive? })",
+    "authenticatePasskeyForTransfer(session, { transceive?, origin? })",
     "completeTransfer",
   ],
   removeLinkedWallet: ["getRemoveLinkedWalletInstruction"],
   verifyComposable: [
     "buildMessageHash",
-    "authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId?, transceive? })",
+    "authenticatePasskeyForSecp256r1Verify({ rpc?, messageHash, rpId?, origin?, transceive? })",
     "buildSecp256r1VerifyInstruction",
   ],
   verification: [
-    "startAuthentication(message, rpc, { rpId?, credentialId?, transceive? })",
-    "verifyResponse",
+    "startAuthentication(message, { rpc?, transceive? })",
+    "verifyResponse({ expectedMessage, response })",
   ],
   onChainComposition: {
     client: [
       "buildMessageHash",
-      "authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, transceive? })",
+      "authenticatePasskeyForSecp256r1Verify({ rpc?, messageHash, transceive?, rpId?, origin? })",
       "buildSecp256r1VerifyInstruction",
     ],
     transaction: ["secp256r1_verify", "your_program_instruction"],
@@ -61,13 +62,6 @@ export const SDK_SURFACE = {
     "fetchPhygitalTokenByIdentifier",
     "fetchPhygitalTokenByMint",
   ],
-  web3js: [
-    "toRpc",
-    "toAddress",
-    "toTransactionSigner",
-    "toWeb3Instruction",
-    "toWeb3Instructions",
-  ],
   generated: [
     "getInitializeInstruction",
     "getAssignMintInstruction",
@@ -78,6 +72,7 @@ export const SDK_SURFACE = {
     "getSetAdminInstruction",
     "getSetIssuerInstruction",
     "getSetMinterInstruction",
+    "getClosePhygitalTokenInstruction",
     "fetchPhygitalToken",
     "fetchAdminConfig",
     "findAdminConfigPda",
@@ -89,6 +84,8 @@ export const SDK_SURFACE = {
     crate: "phygital-token-client",
     path: "packages/rust/phygital-token",
     cpi: [
+      "ClosePhygitalTokenCpi",
+      "ClosePhygitalTokenCpiBuilder",
       "VerifyCpi",
       "VerifyCpiBuilder",
       "VerifyInstructionArgs",
@@ -107,7 +104,7 @@ export const SDK_SURFACE = {
     ],
     types: ["PhygitalToken", "AdminConfig", "Secp256r1VerifyArgs", "PhygitalTokenType"],
     roles: {
-      admin: "sole AdminConfig.admin — create_config signer; set_admin / set_issuer / set_minter",
+      admin: "sole AdminConfig.admin — create_config signer; set_admin / set_issuer / set_minter / close_phygital_token",
       issuer: "sole AdminConfig.issuer — may call initialize",
       minter: "sole AdminConfig.minter — may call assign_mint",
     },

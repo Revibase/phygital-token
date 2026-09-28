@@ -198,3 +198,64 @@ fn non_issuer_cannot_initialize() {
         "UnauthorizedAuthority",
     );
 }
+
+#[test]
+fn admin_can_close_phygital_token_and_reclaim_rent() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let minted = ctx.init_phygital_token(&passkey);
+    let phygital_token = minted.phygital_token;
+
+    let before = ctx
+        .svm
+        .get_account(&phygital_token)
+        .expect("phygital_token exists before close");
+    let rent_lamports = before.lamports;
+    assert!(rent_lamports > 0);
+
+    let recipient = Keypair::new();
+    ctx.svm
+        .airdrop(&recipient.pubkey(), common::LAMPORTS_PER_SOL)
+        .expect("airdrop rent recipient");
+    let recipient_before = ctx
+        .svm
+        .get_account(&recipient.pubkey())
+        .expect("recipient funded")
+        .lamports;
+
+    ctx.send_close_phygital_token(recipient.pubkey(), phygital_token)
+        .expect("admin close_phygital_token");
+
+    assert!(
+        ctx.svm.get_account(&phygital_token).is_none(),
+        "phygital_token account should be closed"
+    );
+    let recipient_after = ctx
+        .svm
+        .get_account(&recipient.pubkey())
+        .expect("recipient still funded")
+        .lamports;
+    assert_eq!(recipient_after, recipient_before + rent_lamports);
+
+    // Same passkey can be re-initialized after close.
+    let reinit = ctx.init_phygital_token(&passkey);
+    assert_eq!(reinit.phygital_token, phygital_token);
+}
+
+#[test]
+fn non_admin_cannot_close_phygital_token() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let minted = ctx.init_phygital_token(&passkey);
+    let issuer = ctx.issuer.insecure_clone();
+
+    let ix = ctx.close_phygital_token_ix(
+        issuer.pubkey(),
+        issuer.pubkey(),
+        minted.phygital_token,
+    );
+    assert_phygital_token_program_error(
+        TestContext::send_instruction(&mut ctx.svm, ix, &[&issuer]),
+        "UnauthorizedAdmin",
+    );
+}

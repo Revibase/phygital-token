@@ -172,7 +172,7 @@ export async function planTransfer(input: {
       "Permanent tokens remain locked (cannot forfeit), so set_linked_wallet always fails with TokenIsCurrentlyLocked.",
       "beginTransfer takes Kit Rpc + base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
       "Browser tap requires rpc for placeholder credential-id recovery (16-byte rawId). Pass { transceive } for native/kiosk APDU.",
-      "completeTransfer takes a Kit TransactionSigner for recipient. web3.js callers convert with toRpc / toAddress / toTransactionSigner, then toWeb3Instructions.",
+      "completeTransfer takes a Kit TransactionSigner for recipient.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
     ],
   };
@@ -207,7 +207,7 @@ export async function planVerify(input: {
       authenticate: "authenticatePasskeyForSecp256r1Verify",
       build: "buildSecp256r1VerifyInstruction",
       offChainAuthOnly:
-        "startAuthentication(message, rpc, { transceive? }) + verifyResponse; does NOT submit verify",
+        "startAuthentication + verifyResponse → your session; does NOT submit verify",
     },
     message: {
       utf8: input.message,
@@ -242,8 +242,8 @@ export async function planVerify(input: {
       secp256r1VerifyArgs: "VerifyCpiBuilder.secp256r1_verify_args (relative index -1)",
     },
     notes: [
-      "startAuthentication(message, rpc, { transceive? }) + verifyResponse is off-chain only — it does not submit verify.",
-      "All three tap helpers (startAuthentication, authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify) share authenticatePasskey: transceive → APDU, else browser WebAuthn.",
+      "Off-chain login (startAuthentication + verifyResponse) does not submit verify.",
+      "On-chain tap helpers (authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify) share authenticatePasskey: transceive → APDU, else browser WebAuthn.",
       "Browser WebAuthn requires rpc for placeholder recovery (rawId length 16).",
       "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
       "Your program CPIs verify. Do not include a client-side verify instruction.",

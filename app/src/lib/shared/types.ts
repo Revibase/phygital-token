@@ -99,7 +99,7 @@ export type TransferPayload = {
 	response: {
 		id: string;
 		rawId: string;
-		type: string;
+		type: 'public-key';
 		clientExtensionResults: Record<string, unknown>;
 		authenticatorAttachment?: string;
 		response: {

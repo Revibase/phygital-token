@@ -15,7 +15,7 @@ pnpm --filter revibase db:migrate:local
 pnpm --filter revibase dev
 ```
 
-`.dev.vars` sets `SOLANA_RPC_URL`, `SESSION_SECRET` (32+ chars) and, optionally, `SOLANA_CLUSTER`. `RP_ID` and `ORIGIN` in `wrangler.jsonc` must match the exact origin the tap page is served from, because WebAuthn is bound to them.
+`.dev.vars` sets `SOLANA_RPC_URL`, `SESSION_SECRET` (32+ chars) and, optionally, `SOLANA_CLUSTER`. `RP_ID` and `ORIGIN` in `wrangler.jsonc` must match the exact origin the tap page is served from — linking ceremonies bind WebAuthn to them. Off-chain accessory sign-in uses a message challenge + `verifyResponse` (no rpId/origin binding).
 
 ### Without hardware: local validator + software accessory
 
@@ -43,7 +43,7 @@ There is **one** D1 binding, `DB`: the shared `phygital-token` database that phy
 
 - **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned by phygital-wallet.
   - `tap_counters` must be shared so there is one tap-counter high-water mark per chip across every service.
-  - Sign-in challenges are stored in `auth_challenges` under the `revibase-signin` namespace.
+  - Sign-in challenges are stored in `auth_challenges` under the `revibase-signin` namespace (message string → `startAuthentication` / `verifyResponse`).
 - **This app's tables:** `revibase_link_intents` and `revibase_identifier_cache`.
 - **Migrations:** apply the app's own with `wrangler d1 migrations apply DB --remote`. The files are prefixed `revibase_` so they never clash with phygital-wallet's migration history. `revibase_0000_shared_tables_mirror.sql` only mirrors the shared tables for local dev; it uses `IF NOT EXISTS` and is a no-op remotely.
 - Set the `SOLANA_RPC_URL` and `SESSION_SECRET` secrets with `wrangler secret put`.

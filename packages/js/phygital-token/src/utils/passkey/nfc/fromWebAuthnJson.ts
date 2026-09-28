@@ -1,9 +1,18 @@
 import { sha256 } from "@noble/hashes/sha2.js";
-import { base64URLStringToBuffer } from "../webauthn.js";
-import { ApduError } from "./errors.js";
+import {
+  base64URLStringToBuffer,
+  type PublicKeyCredentialRequestOptionsJSON,
+} from "../webauthn.js";
 import type { AuthenticatorGetAssertionRequest } from "./getAssertion.js";
-import type { PublicKeyCredentialRequestOptionsJSONWithNfc } from "./types.js";
 import { buildCollectedClientDataJSON } from "./clientData.js";
+
+/** WebAuthn request options plus NFC clientData fields for APDU. */
+export type PublicKeyCredentialRequestOptionsJSONWithNfc =
+  PublicKeyCredentialRequestOptionsJSON & {
+    origin: string;
+    crossOrigin?: boolean;
+    topOrigin?: string;
+  };
 
 function userVerificationToOptionalUvBool(
   uv: UserVerificationRequirement | undefined,
@@ -50,8 +59,6 @@ export function authenticatorGetAssertionRequestFromPublicKeyCredentialRequestOp
     origin,
   } = args;
 
-  if (!rpId) throw new ApduError("WebAuthn options: rpId is required");
-
   const clientDataJSON = buildCollectedClientDataJSON("webauthn.get", {
     challenge,
     origin,
@@ -68,7 +75,7 @@ export function authenticatorGetAssertionRequestFromPublicKeyCredentialRequestOp
     : undefined;
 
   return {
-    rpId,
+    rpId: rpId ?? "",
     clientDataHash,
     allowCredentials: allowCredentials?.map((d) => ({
       id: new Uint8Array(base64URLStringToBuffer(d.id)),

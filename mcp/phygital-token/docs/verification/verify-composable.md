@@ -1,6 +1,6 @@
 # Composable `verify` (TypeScript)
 
-On-chain passkey authentication for custom programs. **Not** the same as off-chain `startAuthentication` + `verifyResponse`.
+On-chain passkey authentication for custom programs. **Not** the same as off-chain `startAuthentication` / `verifyResponse` login.
 
 Do **not** pass a token PDA up front — after the NFC tap, `buildSecp256r1VerifyInstruction` derives it from `response.id` via `findPhygitalTokenPda`.
 

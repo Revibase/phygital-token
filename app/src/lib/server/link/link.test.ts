@@ -46,7 +46,7 @@ describe('checkTransferAssertion', () => {
 
 	it('accepts a fresh assertion from the session accessory', async () => {
 		const { acc, challenge, base } = await setup();
-		const result = checkTransferAssertion({ ...base, response: acc.assert(challenge, { signCount: 4 }) });
+		const result = await checkTransferAssertion({ ...base, response: acc.assert(challenge, { signCount: 4 }) });
 		expect(result).toMatchObject({ ok: true, signCount: 4 });
 	});
 
@@ -58,19 +58,19 @@ describe('checkTransferAssertion', () => {
 		['stale signCount', { signCount: 3 }, 'already_used']
 	])('rejects wrong %s', async (_label, opts, code) => {
 		const { acc, challenge, base } = await setup();
-		expect(checkTransferAssertion({ ...base, response: acc.assert(challenge, opts) })).toMatchObject({ ok: false, code });
+		expect(await checkTransferAssertion({ ...base, response: acc.assert(challenge, opts) })).toMatchObject({ ok: false, code });
 	});
 
 	it('rejects a different challenge', async () => {
 		const { acc, base } = await setup();
 		const other = crypto.getRandomValues(new Uint8Array(32));
-		expect(checkTransferAssertion({ ...base, response: acc.assert(other) })).toMatchObject({ ok: false, code: 'tap_rejected' });
+		expect(await checkTransferAssertion({ ...base, response: acc.assert(other) })).toMatchObject({ ok: false, code: 'tap_rejected' });
 	});
 
 	it('rejects a tap from a different accessory', async () => {
 		const { challenge, base } = await setup();
 		const other = fakeAccessory();
-		expect(checkTransferAssertion({ ...base, response: other.assert(challenge) })).toMatchObject({
+		expect(await checkTransferAssertion({ ...base, response: other.assert(challenge) })).toMatchObject({
 			ok: false,
 			code: 'different_accessory'
 		});
@@ -81,14 +81,14 @@ describe('checkTransferAssertion', () => {
 		const forged = fakeAccessory().assert(challenge);
 		forged.id = acc.publicKeyB64;
 		forged.rawId = acc.publicKeyB64;
-		expect(checkTransferAssertion({ ...base, response: forged })).toMatchObject({ ok: false, detail: 'bad signature' });
+		expect(await checkTransferAssertion({ ...base, response: forged })).toMatchObject({ ok: false, code: 'tap_rejected' });
 	});
 
 	it('rejects locked and permanent accessories', async () => {
 		const { acc, challenge, base } = await setup();
 		const response = acc.assert(challenge);
-		expect(checkTransferAssertion({ ...base, response, account: acc.account({ isLocked: 1 }) })).toMatchObject({ code: 'accessory_locked' });
-		expect(checkTransferAssertion({ ...base, response, account: acc.account({ tokenType: 0, isLocked: 1 }) })).toMatchObject({ code: 'accessory_permanent' });
+		expect(await checkTransferAssertion({ ...base, response, account: acc.account({ isLocked: 1 }) })).toMatchObject({ code: 'accessory_locked' });
+		expect(await checkTransferAssertion({ ...base, response, account: acc.account({ tokenType: 0, isLocked: 1 }) })).toMatchObject({ code: 'accessory_permanent' });
 	});
 });
 
@@ -218,7 +218,7 @@ describe('checkTransferAssertion type rules', () => {
 	it('refuses a tap for a linked Controlled token, even with the lock flag clear', async () => {
 		const acc = fakeAccessory();
 		const challenge = crypto.getRandomValues(new Uint8Array(32));
-		const result = checkTransferAssertion({
+		const result = await checkTransferAssertion({
 			response: acc.assert(challenge),
 			expectedChallenge: Buffer.from(challenge).toString('base64url'),
 			expectedPublicKey: acc.publicKeyB64,

@@ -6,7 +6,8 @@ vi.mock("../utils/passkey/nfc/index.js", () => ({
 }));
 
 vi.mock("../utils/passkey/webauthn.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../utils/passkey/webauthn.js")>();
+  const actual =
+    await importOriginal<typeof import("../utils/passkey/webauthn.js")>();
   return {
     ...actual,
     authenticateWithWebauthn: vi.fn(async () => ({ id: "webauthn-response" })),
@@ -31,19 +32,24 @@ describe("authenticatePasskey", () => {
 
   it("uses authenticateWithApdu when transceive is provided", async () => {
     const transceive = vi.fn(async (apdu: Uint8Array) => apdu);
-    const result = await authenticatePasskey(challenge, rpc, { transceive });
+    const result = await authenticatePasskey(challenge, {
+      transceive,
+      rpId: "app.example.com",
+      origin: "https://app.example.com",
+      credentialId: "cred",
+    });
 
     expect(result).toEqual({ id: "apdu-response" });
     expect(authenticateWithApdu).toHaveBeenCalledTimes(1);
     expect(authenticateWithApdu).toHaveBeenCalledWith(
       expect.objectContaining({
         challenge,
-        rpId: "",
-        origin: "",
+        rpId: "app.example.com",
+        origin: "https://app.example.com",
         userVerification: "preferred",
         allowCredentials: [
           {
-            id: "",
+            id: "cred",
             type: "public-key",
             transports: ["nfc"],
           },
@@ -54,8 +60,23 @@ describe("authenticatePasskey", () => {
     expect(authenticateWithWebauthn).not.toHaveBeenCalled();
   });
 
+  it("allows empty rpId/origin for transceive", async () => {
+    const transceive = vi.fn(async (apdu: Uint8Array) => apdu);
+    const result = await authenticatePasskey(challenge, { transceive });
+    expect(result).toEqual({ id: "apdu-response" });
+    expect(authenticateWithApdu).toHaveBeenCalledWith(
+      expect.objectContaining({
+        challenge,
+        rpId: "",
+        origin: "",
+      }),
+      transceive,
+    );
+  });
+
   it("uses authenticateWithWebauthn when transceive is omitted", async () => {
-    const result = await authenticatePasskey(challenge, rpc, {
+    const result = await authenticatePasskey(challenge, {
+      rpc,
       rpId: "app.example",
       credentialId: "cred",
     });
@@ -63,10 +84,15 @@ describe("authenticatePasskey", () => {
     expect(result).toEqual({ id: "webauthn-response" });
     expect(authenticateWithWebauthn).toHaveBeenCalledTimes(1);
     expect(authenticateWithApdu).not.toHaveBeenCalled();
-    const [options, passedRpc] = vi.mocked(authenticateWithWebauthn).mock.calls[0]!;
+    const [options, passedRpc] = vi.mocked(authenticateWithWebauthn).mock
+      .calls[0]!;
     expect(passedRpc).toBe(rpc);
     expect(options.challenge).toBe(challenge);
     expect(options.rpId).toBe("app.example");
     expect(options.allowCredentials?.[0]?.id).toBe("cred");
+  });
+
+  it("requires rpc for browser WebAuthn", async () => {
+    await expect(authenticatePasskey(challenge)).rejects.toThrow(/rpc/);
   });
 });

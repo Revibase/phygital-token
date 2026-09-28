@@ -7,41 +7,51 @@
 
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
-use solana_address::Address;
 
-pub const SET_MINTER_DISCRIMINATOR: [u8; 8] = [13, 170, 92, 172, 137, 194, 39, 2];
+pub const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: [u8; 8] = [254, 245, 167, 180, 210, 121, 241, 102];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct SetMinter {
+pub struct ClosePhygitalToken {
     pub admin: solana_address::Address,
 
+    pub rent_recipient: solana_address::Address,
+
     pub admin_config: solana_address::Address,
+
+    pub phygital_token: solana_address::Address,
 }
 
-impl SetMinter {
-    pub fn instruction(&self, args: SetMinterInstructionArgs) -> solana_instruction::Instruction {
-        self.instruction_with_remaining_accounts(args, &[])
+impl ClosePhygitalToken {
+    pub fn instruction(&self) -> solana_instruction::Instruction {
+        self.instruction_with_remaining_accounts(&[])
     }
     #[allow(clippy::arithmetic_side_effects)]
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: SetMinterInstructionArgs,
         remaining_accounts: &[solana_instruction::AccountMeta],
     ) -> solana_instruction::Instruction {
-        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.admin, true,
         ));
         accounts.push(solana_instruction::AccountMeta::new(
+            self.rent_recipient,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.admin_config,
             false,
         ));
+        accounts.push(solana_instruction::AccountMeta::new(
+            self.phygital_token,
+            false,
+        ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = SetMinterInstructionData::new().try_to_vec().unwrap();
-        let mut args = args.try_to_vec().unwrap();
-        data.append(&mut args);
+        let data = ClosePhygitalTokenInstructionData::new()
+            .try_to_vec()
+            .unwrap();
 
         solana_instruction::Instruction {
             program_id: crate::PHYGITAL_TOKEN_ID,
@@ -52,14 +62,14 @@ impl SetMinter {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
-pub struct SetMinterInstructionData {
+pub struct ClosePhygitalTokenInstructionData {
     discriminator: [u8; 8],
 }
 
-impl SetMinterInstructionData {
+impl ClosePhygitalTokenInstructionData {
     pub fn new() -> Self {
         Self {
-            discriminator: [13, 170, 92, 172, 137, 194, 39, 2],
+            discriminator: [254, 245, 167, 180, 210, 121, 241, 102],
         }
     }
 
@@ -68,38 +78,30 @@ impl SetMinterInstructionData {
     }
 }
 
-impl Default for SetMinterInstructionData {
+impl Default for ClosePhygitalTokenInstructionData {
     fn default() -> Self {
         Self::new()
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
-pub struct SetMinterInstructionArgs {
-    pub minter: Address,
-}
-
-impl SetMinterInstructionArgs {
-    pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-        borsh::to_vec(self)
-    }
-}
-
-/// Instruction builder for `SetMinter`.
+/// Instruction builder for `ClosePhygitalToken`.
 ///
 /// ### Accounts:
 ///
 ///   0. `[signer]` admin
-///   1. `[writable]` admin_config
+///   1. `[writable]` rent_recipient
+///   2. `[]` admin_config
+///   3. `[writable]` phygital_token
 #[derive(Clone, Debug, Default)]
-pub struct SetMinterBuilder {
+pub struct ClosePhygitalTokenBuilder {
     admin: Option<solana_address::Address>,
+    rent_recipient: Option<solana_address::Address>,
     admin_config: Option<solana_address::Address>,
-    minter: Option<Address>,
+    phygital_token: Option<solana_address::Address>,
     __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl SetMinterBuilder {
+impl ClosePhygitalTokenBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -109,13 +111,18 @@ impl SetMinterBuilder {
         self
     }
     #[inline(always)]
+    pub fn rent_recipient(&mut self, rent_recipient: solana_address::Address) -> &mut Self {
+        self.rent_recipient = Some(rent_recipient);
+        self
+    }
+    #[inline(always)]
     pub fn admin_config(&mut self, admin_config: solana_address::Address) -> &mut Self {
         self.admin_config = Some(admin_config);
         self
     }
     #[inline(always)]
-    pub fn minter(&mut self, minter: Address) -> &mut Self {
-        self.minter = Some(minter);
+    pub fn phygital_token(&mut self, phygital_token: solana_address::Address) -> &mut Self {
+        self.phygital_token = Some(phygital_token);
         self
     }
     /// Add an additional account to the instruction.
@@ -135,48 +142,53 @@ impl SetMinterBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_instruction::Instruction {
-        let accounts = SetMinter {
+        let accounts = ClosePhygitalToken {
             admin: self.admin.expect("admin is not set"),
+            rent_recipient: self.rent_recipient.expect("rent_recipient is not set"),
             admin_config: self.admin_config.expect("admin_config is not set"),
-        };
-        let args = SetMinterInstructionArgs {
-            minter: self.minter.clone().expect("minter is not set"),
+            phygital_token: self.phygital_token.expect("phygital_token is not set"),
         };
 
-        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
+        accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
     }
 }
 
-/// `set_minter` CPI accounts.
-pub struct SetMinterCpiAccounts<'a, 'b> {
+/// `close_phygital_token` CPI accounts.
+pub struct ClosePhygitalTokenCpiAccounts<'a, 'b> {
     pub admin: &'b solana_account_info::AccountInfo<'a>,
 
+    pub rent_recipient: &'b solana_account_info::AccountInfo<'a>,
+
     pub admin_config: &'b solana_account_info::AccountInfo<'a>,
+
+    pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
 }
 
-/// `set_minter` CPI instruction.
-pub struct SetMinterCpi<'a, 'b> {
+/// `close_phygital_token` CPI instruction.
+pub struct ClosePhygitalTokenCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_account_info::AccountInfo<'a>,
 
     pub admin: &'b solana_account_info::AccountInfo<'a>,
 
+    pub rent_recipient: &'b solana_account_info::AccountInfo<'a>,
+
     pub admin_config: &'b solana_account_info::AccountInfo<'a>,
-    /// The arguments for the instruction.
-    pub __args: SetMinterInstructionArgs,
+
+    pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
 }
 
-impl<'a, 'b> SetMinterCpi<'a, 'b> {
+impl<'a, 'b> ClosePhygitalTokenCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_account_info::AccountInfo<'a>,
-        accounts: SetMinterCpiAccounts<'a, 'b>,
-        args: SetMinterInstructionArgs,
+        accounts: ClosePhygitalTokenCpiAccounts<'a, 'b>,
     ) -> Self {
         Self {
             __program: program,
             admin: accounts.admin,
+            rent_recipient: accounts.rent_recipient,
             admin_config: accounts.admin_config,
-            __args: args,
+            phygital_token: accounts.phygital_token,
         }
     }
     #[inline(always)]
@@ -202,13 +214,21 @@ impl<'a, 'b> SetMinterCpi<'a, 'b> {
         signers_seeds: &[&[&[u8]]],
         remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
     ) -> solana_program_error::ProgramResult {
-        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.admin.key,
             true,
         ));
         accounts.push(solana_instruction::AccountMeta::new(
+            *self.rent_recipient.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.admin_config.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new(
+            *self.phygital_token.key,
             false,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
@@ -218,19 +238,21 @@ impl<'a, 'b> SetMinterCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = SetMinterInstructionData::new().try_to_vec().unwrap();
-        let mut args = self.__args.try_to_vec().unwrap();
-        data.append(&mut args);
+        let data = ClosePhygitalTokenInstructionData::new()
+            .try_to_vec()
+            .unwrap();
 
         let instruction = solana_instruction::Instruction {
             program_id: crate::PHYGITAL_TOKEN_ID,
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.admin.clone());
+        account_infos.push(self.rent_recipient.clone());
         account_infos.push(self.admin_config.clone());
+        account_infos.push(self.phygital_token.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -243,24 +265,27 @@ impl<'a, 'b> SetMinterCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `SetMinter` via CPI.
+/// Instruction builder for `ClosePhygitalToken` via CPI.
 ///
 /// ### Accounts:
 ///
 ///   0. `[signer]` admin
-///   1. `[writable]` admin_config
+///   1. `[writable]` rent_recipient
+///   2. `[]` admin_config
+///   3. `[writable]` phygital_token
 #[derive(Clone, Debug)]
-pub struct SetMinterCpiBuilder<'a, 'b> {
-    instruction: Box<SetMinterCpiBuilderInstruction<'a, 'b>>,
+pub struct ClosePhygitalTokenCpiBuilder<'a, 'b> {
+    instruction: Box<ClosePhygitalTokenCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> SetMinterCpiBuilder<'a, 'b> {
+impl<'a, 'b> ClosePhygitalTokenCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(SetMinterCpiBuilderInstruction {
+        let instruction = Box::new(ClosePhygitalTokenCpiBuilderInstruction {
             __program: program,
             admin: None,
+            rent_recipient: None,
             admin_config: None,
-            minter: None,
+            phygital_token: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -268,6 +293,14 @@ impl<'a, 'b> SetMinterCpiBuilder<'a, 'b> {
     #[inline(always)]
     pub fn admin(&mut self, admin: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
         self.instruction.admin = Some(admin);
+        self
+    }
+    #[inline(always)]
+    pub fn rent_recipient(
+        &mut self,
+        rent_recipient: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.rent_recipient = Some(rent_recipient);
         self
     }
     #[inline(always)]
@@ -279,8 +312,11 @@ impl<'a, 'b> SetMinterCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn minter(&mut self, minter: Address) -> &mut Self {
-        self.instruction.minter = Some(minter);
+    pub fn phygital_token(
+        &mut self,
+        phygital_token: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.phygital_token = Some(phygital_token);
         self
     }
     /// Add an additional account to the instruction.
@@ -317,19 +353,25 @@ impl<'a, 'b> SetMinterCpiBuilder<'a, 'b> {
     #[allow(clippy::clone_on_copy)]
     #[allow(clippy::vec_init_then_push)]
     pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-        let args = SetMinterInstructionArgs {
-            minter: self.instruction.minter.clone().expect("minter is not set"),
-        };
-        let instruction = SetMinterCpi {
+        let instruction = ClosePhygitalTokenCpi {
             __program: self.instruction.__program,
 
             admin: self.instruction.admin.expect("admin is not set"),
+
+            rent_recipient: self
+                .instruction
+                .rent_recipient
+                .expect("rent_recipient is not set"),
 
             admin_config: self
                 .instruction
                 .admin_config
                 .expect("admin_config is not set"),
-            __args: args,
+
+            phygital_token: self
+                .instruction
+                .phygital_token
+                .expect("phygital_token is not set"),
         };
         instruction.invoke_signed_with_remaining_accounts(
             signers_seeds,
@@ -339,11 +381,12 @@ impl<'a, 'b> SetMinterCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct SetMinterCpiBuilderInstruction<'a, 'b> {
+struct ClosePhygitalTokenCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_account_info::AccountInfo<'a>,
     admin: Option<&'b solana_account_info::AccountInfo<'a>>,
+    rent_recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
     admin_config: Option<&'b solana_account_info::AccountInfo<'a>>,
-    minter: Option<Address>,
+    phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

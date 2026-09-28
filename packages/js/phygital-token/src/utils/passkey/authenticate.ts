@@ -4,48 +4,48 @@ import {
   authenticateWithWebauthn,
   nfcWebAuthnRequestOptions,
   type AuthenticationResponseJSON,
-  type Base64URLString,
 } from "./webauthn.js";
 
-/** IsoDep APDU transport for native / kiosk NFC readers. */
 export type NfcTransceive = (apdu: Uint8Array) => Promise<Uint8Array>;
 
 export type AuthenticatePasskeyOptions = {
-  /**
-   * Native / kiosk IsoDep reader. When set, skips browser WebAuthn (and does
-   * not use `rpc`).
-   */
+  /** Kit `Rpc` for browser placeholder recovery. Not needed when `transceive` is set. */
+  rpc?: Rpc<SolanaRpcApi>;
+  /** Native IsoDep; skips browser WebAuthn (no `rpc` needed). */
   transceive?: NfcTransceive;
-  /** Relying party ID for browser WebAuthn. Defaults to `window.location.hostname`. */
+  /** Browser defaults to `window.location.hostname`. Optional for `transceive`. */
   rpId?: string;
-  /**
-   * Optional base64url credential id for browser `allowCredentials`
-   * (e.g. transfer passkey). Ignored when `transceive` is set.
-   */
-  credentialId?: Base64URLString;
+  /** clientDataJSON origin for `transceive`. Optional (defaults to ""). */
+  origin?: string;
+  /** `allowCredentials` id when known. */
+  credentialId?: string;
 };
 
-/**
- * Prompt an NFC tap: browser WebAuthn, or native APDU when `transceive` is set.
- *
- * @param challenge - Base64url WebAuthn challenge
- * @param rpc - Kit `Rpc` for browser placeholder credential-id recovery
- */
+function resolveBrowserRpId(rpId: string | undefined): string {
+  if (rpId) return rpId;
+  if (typeof window !== "undefined" && window.location?.hostname) {
+    return window.location.hostname;
+  }
+  throw new Error(
+    "authenticatePasskey: pass `rpId` (no window.location available).",
+  );
+}
+
+/** NFC tap via browser WebAuthn, or APDU when `transceive` is set. */
 export async function authenticatePasskey(
-  challenge: Base64URLString,
-  rpc: Rpc<SolanaRpcApi>,
+  challenge: string,
   options?: AuthenticatePasskeyOptions,
 ): Promise<AuthenticationResponseJSON> {
   if (options?.transceive) {
     return authenticateWithApdu(
       {
         challenge,
-        rpId: "",
+        rpId: options.rpId ?? "",
+        origin: options.origin ?? "",
         userVerification: "preferred",
-        origin: "",
         allowCredentials: [
           {
-            id: "",
+            id: options.credentialId ?? "",
             type: "public-key",
             transports: ["nfc"],
           },
@@ -55,9 +55,18 @@ export async function authenticatePasskey(
     );
   }
 
-  const rpId = options?.rpId ?? window.location.hostname;
+  if (!options?.rpc) {
+    throw new Error(
+      "authenticatePasskey: `rpc` is required for browser WebAuthn (passkey recovery).",
+    );
+  }
+
   return authenticateWithWebauthn(
-    nfcWebAuthnRequestOptions(challenge, rpId, options?.credentialId),
-    rpc,
+    nfcWebAuthnRequestOptions(
+      challenge,
+      resolveBrowserRpId(options.rpId),
+      options.credentialId,
+    ),
+    options.rpc,
   );
 }

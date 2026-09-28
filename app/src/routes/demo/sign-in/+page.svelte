@@ -16,7 +16,11 @@
 	import { browserRpc } from '$lib/client/rpc';
 	import type { AccessoryView } from '$lib/shared/types';
 
-	type Challenge = { challengeId: string; message: string; at: number };
+	type Challenge = {
+		challengeId: string;
+		message: string;
+		at: number;
+	};
 
 	let challenge = $state<Challenge | null>(null);
 	let tapping = $state(false);
@@ -25,7 +29,7 @@
 	let hint = $state('Tap Sign in, then hold your accessory to your phone.');
 	let webauthnOk = $state(true);
 
-	// Fetched ahead of the click: iOS only allows WebAuthn inside the user gesture.
+	// Prefetch: iOS only allows WebAuthn inside the user gesture.
 	async function prepare() {
 		try {
 			const c = await postJson<{ challengeId: string; message: string }>('/api/signin/challenge');
@@ -52,8 +56,7 @@
 		tapping = true;
 		failure = null;
 		try {
-			// SDK: browser WebAuthn with the accessory's FIDO key; recovers the passkey id if the platform masks it.
-			const response = await startAuthentication(c.message, browserRpc());
+			const response = await startAuthentication(c.message, { rpc: browserRpc() });
 			result = await postJson('/api/signin/verify', { challengeId: c.challengeId, response });
 		} catch (err) {
 			failure = describeError(err, 'tap');

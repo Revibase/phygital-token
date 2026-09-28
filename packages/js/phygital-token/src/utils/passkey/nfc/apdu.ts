@@ -32,7 +32,7 @@ interface ParsedIso7816Response {
   statusWord: number;
 }
 
-export interface NfcShortApduSegment {
+interface NfcShortApduSegment {
   bytes: Uint8Array;
   chained: boolean;
 }

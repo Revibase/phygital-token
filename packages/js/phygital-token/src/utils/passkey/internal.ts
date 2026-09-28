@@ -120,6 +120,15 @@ function readRequiredClientDataString(value: unknown, field: string): string {
   return value;
 }
 
+function readOptionalClientDataString(value: unknown, field: string): string {
+  if (typeof value !== "string") {
+    throw new Error(
+      `WebAuthn clientDataJSON.${field} must be a string.`,
+    );
+  }
+  return value;
+}
+
 export function parseWebAuthnClientData(clientDataJSON: string): {
   challenge: string;
   origin: string;
@@ -136,7 +145,8 @@ export function parseWebAuthnClientData(clientDataJSON: string): {
 
   return {
     challenge: readRequiredClientDataString(parsed.challenge, "challenge"),
-    origin: readRequiredClientDataString(parsed.origin, "origin"),
+    // Empty origin is allowed (native APDU often omits it).
+    origin: readOptionalClientDataString(parsed.origin, "origin"),
     crossOrigin: parsed.crossOrigin === true,
   };
 }

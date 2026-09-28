@@ -9,7 +9,7 @@ import { encodeAuthenticatorGetAssertionRequest } from "./getAssertion.js";
 import { authenticatorGetAssertionRequestFromPublicKeyCredentialRequestOptionsJSON } from "./fromWebAuthnJson.js";
 import { parseApduToAuthenticationResponse } from "./parseResponses.js";
 import { ApduError } from "./errors.js";
-import type { PublicKeyCredentialRequestOptionsJSONWithNfc } from "./types.js";
+import type { PublicKeyCredentialRequestOptionsJSONWithNfc } from "./fromWebAuthnJson.js";
 
 /**
  * Wraps `transceive` so failures and short reads get a stable {@link ApduError}
@@ -68,7 +68,7 @@ async function runAuthenticateWithNfc(
  * Native / kiosk NFC against a Java Card FIDO2 applet: SELECT FIDO AID, then
  * getAssertion with short APDU chaining + GET RESPONSE.
  *
- * Prefer the browser path (`authenticateWithNfc` in `webauthn.ts`) when
+ * Prefer the browser path (`authenticateWithWebauthn`) when
  * `navigator.credentials` is available. Use this when you have a raw IsoDep
  * `transceive` that receives a command APDU and resolves with the response
  * APDU (including SW1/SW2).

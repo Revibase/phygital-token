@@ -43,6 +43,7 @@ import {
 } from "../accounts/index.js";
 import {
   getAssignMintInstructionAsync,
+  getClosePhygitalTokenInstructionAsync,
   getCreateConfigInstructionAsync,
   getInitializeInstructionAsync,
   getRemoveLinkedWalletInstruction,
@@ -52,6 +53,7 @@ import {
   getSetMinterInstructionAsync,
   getVerifyInstruction,
   parseAssignMintInstruction,
+  parseClosePhygitalTokenInstruction,
   parseCreateConfigInstruction,
   parseInitializeInstruction,
   parseRemoveLinkedWalletInstruction,
@@ -61,9 +63,11 @@ import {
   parseSetMinterInstruction,
   parseVerifyInstruction,
   type AssignMintAsyncInput,
+  type ClosePhygitalTokenAsyncInput,
   type CreateConfigAsyncInput,
   type InitializeAsyncInput,
   type ParsedAssignMintInstruction,
+  type ParsedClosePhygitalTokenInstruction,
   type ParsedCreateConfigInstruction,
   type ParsedInitializeInstruction,
   type ParsedRemoveLinkedWalletInstruction,
@@ -123,6 +127,7 @@ export function identifyPhygitalTokenAccount(
 
 export enum PhygitalTokenInstruction {
   AssignMint,
+  ClosePhygitalToken,
   CreateConfig,
   Initialize,
   RemoveLinkedWallet,
@@ -147,6 +152,17 @@ export function identifyPhygitalTokenInstruction(
     )
   ) {
     return PhygitalTokenInstruction.AssignMint;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([254, 245, 167, 180, 210, 121, 241, 102]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.ClosePhygitalToken;
   }
   if (
     containsBytes(
@@ -249,6 +265,9 @@ export type ParsedPhygitalTokenInstruction<
       instructionType: PhygitalTokenInstruction.AssignMint;
     } & ParsedAssignMintInstruction<TProgram>)
   | ({
+      instructionType: PhygitalTokenInstruction.ClosePhygitalToken;
+    } & ParsedClosePhygitalTokenInstruction<TProgram>)
+  | ({
       instructionType: PhygitalTokenInstruction.CreateConfig;
     } & ParsedCreateConfigInstruction<TProgram>)
   | ({
@@ -283,6 +302,13 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
       return {
         instructionType: PhygitalTokenInstruction.AssignMint,
         ...parseAssignMintInstruction(instruction),
+      };
+    }
+    case PhygitalTokenInstruction.ClosePhygitalToken: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.ClosePhygitalToken,
+        ...parseClosePhygitalTokenInstruction(instruction),
       };
     }
     case PhygitalTokenInstruction.CreateConfig: {
@@ -373,6 +399,10 @@ export type PhygitalTokenPluginInstructions = {
     input: AssignMintAsyncInput,
   ) => ReturnType<typeof getAssignMintInstructionAsync> &
     SelfPlanAndSendFunctions;
+  closePhygitalToken: (
+    input: ClosePhygitalTokenAsyncInput,
+  ) => ReturnType<typeof getClosePhygitalTokenInstructionAsync> &
+    SelfPlanAndSendFunctions;
   createConfig: (
     input: CreateConfigAsyncInput,
   ) => ReturnType<typeof getCreateConfigInstructionAsync> &
@@ -431,6 +461,11 @@ export function phygitalTokenProgram() {
             addSelfPlanAndSendFunctions(
               client,
               getAssignMintInstructionAsync(input),
+            ),
+          closePhygitalToken: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getClosePhygitalTokenInstructionAsync(input),
             ),
           createConfig: (input) =>
             addSelfPlanAndSendFunctions(

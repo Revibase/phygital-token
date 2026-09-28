@@ -2,7 +2,7 @@
   "address": "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
   "metadata": {
     "name": "phygital_token",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "spec": "0.1.0",
     "description": "Solana program for phygital tokens with WebAuthn passkey verification",
     "repository": "https://github.com/Revibase/phygital-token"
@@ -56,6 +56,56 @@
           "type": "pubkey"
         }
       ]
+    },
+    {
+      "name": "close_phygital_token",
+      "docs": [
+        "Close a phygital token PDA and send its rent to `rent_recipient`.",
+        "Admin-only. Irreversible — the chip can be re-initialized later with a",
+        "fresh `initialize` if the same passkey is reused."
+      ],
+      "discriminator": [
+        254,
+        245,
+        167,
+        180,
+        210,
+        121,
+        241,
+        102
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true
+        },
+        {
+          "name": "rent_recipient",
+          "writable": true
+        },
+        {
+          "name": "admin_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  100,
+                  109,
+                  105,
+                  110
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "phygital_token",
+          "writable": true
+        }
+      ],
+      "args": []
     },
     {
       "name": "create_config",
@@ -466,6 +516,19 @@
       ]
     },
     {
+      "name": "ClosePhygitalTokenEvent",
+      "discriminator": [
+        185,
+        239,
+        243,
+        121,
+        34,
+        202,
+        10,
+        99
+      ]
+    },
+    {
       "name": "CreateConfigEvent",
       "discriminator": [
         107,
@@ -732,6 +795,46 @@
                 "name": "Secp256r1Pubkey"
               }
             }
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClosePhygitalTokenEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "public_key",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "identifier",
+            "type": {
+              "defined": {
+                "name": "Secp256r1Pubkey"
+              }
+            }
+          },
+          {
+            "name": "linked_wallet",
+            "type": "pubkey"
           },
           {
             "name": "mint",

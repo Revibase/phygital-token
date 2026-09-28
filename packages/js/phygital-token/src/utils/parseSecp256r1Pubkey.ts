@@ -2,10 +2,7 @@ import type { Secp256r1Pubkey } from "../generated/types/secp256r1Pubkey.js";
 import { base64URLStringToBuffer } from "./passkey/webauthn.js";
 import type { Base64URLString } from "./passkey/webauthn.js";
 
-/**
- * Parse a base64url-encoded 33-byte compressed secp256r1 value
- * (passkey public key **or** chip identifier — both use the same wire shape).
- */
+/** Parse base64url 33-byte compressed secp256r1 (passkey or chip identifier). */
 export function parseSecp256r1Pubkey(input: Base64URLString): Secp256r1Pubkey {
   const trimmed = input.trim();
   if (!trimmed) {

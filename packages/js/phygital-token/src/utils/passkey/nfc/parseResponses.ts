@@ -2,7 +2,7 @@ import type { AuthenticationResponseJSON } from "../webauthn.js";
 import { parseAuthenticatorGetAssertionResponse } from "./getAssertion.js";
 import { buildCollectedClientDataJSON } from "./clientData.js";
 import { toAuthenticationResponseJSON } from "./webauthnResponses.js";
-import type { PublicKeyCredentialRequestOptionsJSONWithNfc } from "./types.js";
+import type { PublicKeyCredentialRequestOptionsJSONWithNfc } from "./fromWebAuthnJson.js";
 
 export function parseApduToAuthenticationResponse(input: {
   apduResponse: Uint8Array;

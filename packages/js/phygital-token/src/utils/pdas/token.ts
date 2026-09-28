@@ -19,7 +19,7 @@ const TOKEN_SEED = new TextEncoder().encode("token");
 /**
  * Derive the token PDA from the compressed secp256r1 passkey public key.
  * Accepts a parsed {@link Secp256r1Pubkey} or a base64url-encoded string
- * (the same shape as `verifyResponse().secp256r1PublicKey`).
+ * (the same shape as a recovered phygital `response.id` / compressed passkey).
  * PDA seeds: `["token", pubkey[1..]]` — the compressed-point prefix byte is dropped.
  */
 export async function findPhygitalTokenPda(

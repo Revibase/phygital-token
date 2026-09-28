@@ -234,6 +234,35 @@ impl TestContext {
         }
     }
 
+    pub fn close_phygital_token_ix(
+        &self,
+        admin: Pubkey,
+        rent_recipient: Pubkey,
+        phygital_token: Pubkey,
+    ) -> Instruction {
+        Instruction {
+            program_id: self.program_id,
+            accounts: phygital_token::accounts::ClosePhygitalToken {
+                admin,
+                rent_recipient,
+                admin_config: self.admin_config_pda(),
+                phygital_token,
+            }
+            .to_account_metas(None),
+            data: phygital_token::instruction::ClosePhygitalToken {}.data(),
+        }
+    }
+
+    pub fn send_close_phygital_token(
+        &mut self,
+        rent_recipient: Pubkey,
+        phygital_token: Pubkey,
+    ) -> litesvm::types::TransactionResult {
+        let ix = self.close_phygital_token_ix(self.admin.pubkey(), rent_recipient, phygital_token);
+        let admin = self.admin.insecure_clone();
+        Self::send_instruction(&mut self.svm, ix, &[&admin])
+    }
+
     // --- phygital_token state readers -------------------------------------------------
 
     fn load_phygital_token(&self, phygital_token: Pubkey) -> PhygitalToken {

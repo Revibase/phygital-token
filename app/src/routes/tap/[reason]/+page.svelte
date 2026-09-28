@@ -15,23 +15,21 @@
 
 	let { data } = $props();
 	const copy = $derived(TAP_FAILURE_COPY[data.reason]);
-	// Everything except "not registered" is fixed by tapping again.
 	const retryable = $derived(data.reason !== 'unknown');
-
-	/**
-	 * Expired session: resume with a FIDO tap right here (SDK `startAuthentication`,
-	 * verified server-side) instead of sending people back to find the NFC spot.
-	 */
 	const resumable = $derived(data.reason === 'expired');
 
-	type Challenge = { challengeId: string; message: string; at: number };
+	type Challenge = {
+		challengeId: string;
+		message: string;
+		at: number;
+	};
 	let challenge = $state<Challenge | null>(null);
 	let tapping = $state(false);
 	let failure = $state<FriendlyError | null>(null);
 	let webauthnOk = $state(true);
 	let body = $state<string | null>(null);
 
-	// Fetched ahead of the click: iOS only allows WebAuthn inside the user gesture.
+	// Prefetch: iOS only allows WebAuthn inside the user gesture.
 	async function prepare() {
 		try {
 			const c = await postJson<{ challengeId: string; message: string }>('/api/tap/challenge');
@@ -40,7 +38,6 @@
 			failure = describeError(err);
 		}
 	}
-	// Challenges last two minutes; keep one fresh while the page is open.
 	const refresher = setInterval(() => {
 		if (resumable && webauthnOk && !tapping && (!challenge || Date.now() - challenge.at > 90_000)) void prepare();
 	}, 15_000);
@@ -50,7 +47,6 @@
 		if (!resumable) return;
 		webauthnOk = canTapHere();
 		const hint = tapHint();
-		// No WebAuthn here (e.g. an in-app browser): an NFC tap still opens a fresh session.
 		body = webauthnOk
 			? `For your security, this page closes after a few minutes. Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`
 			: 'For your security, this page closes after a few minutes. Hold your accessory to your phone again.';
@@ -64,7 +60,7 @@
 		tapping = true;
 		failure = null;
 		try {
-			const response = await startAuthentication(c.message, browserRpc());
+			const response = await startAuthentication(c.message, { rpc: browserRpc() });
 			const { next } = await postJson<{ next: string }>('/api/tap/resume', { challengeId: c.challengeId, response });
 			await goto(next, { replaceState: true, invalidateAll: true });
 		} catch (err) {

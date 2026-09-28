@@ -102,7 +102,7 @@ Admit cookies (same model as phygital-wallet's browse_unlock | authority_browse)
   - the response is a **303 to `/accessory`**, with `Cache-Control: no-store` and `Referrer-Policy: no-referrer`.
 
   The raw signed URL is never rendered and never kept as a history entry.
-- **`/tap/expired`:** **Continue** runs SDK `startAuthentication` → `POST /api/tap/resume` (`verifyResponse` + origin/rpId/UP checks) → reissues browse_unlock.
+- **`/tap/expired`:** **Continue** runs `startAuthentication(message, { rpc })` → `POST /api/tap/resume` (`verifyResponse`) → reissues browse_unlock.
 - **Home → open accessory:** connected wallet signs a challenge → owner_browse → `/accessory`.
 - **Opening the same URL twice** in the same browser continues silently. Anywhere else it shows "That tap was already used". When taps arrive out of order, the newest wins.
 - **Capabilities** (`h` for a wallet app, `p` for desktop pairing) are 256-bit, single-use, and travel **only in URL fragments**, so they never reach server logs or a Referer header.
@@ -223,7 +223,7 @@ The app does one job: make the object stand in for your wallet.
 | `/accessory/link` | Needs browse_unlock. Two steps: **Tap to approve** → **Finish in your wallet** (a detected wallet here, open in Phantom/Backpack/Solflare, copy link, or use a computer) |
 | `/continue` | Wallet side: connect → "Link this wallet" → approve |
 | `/pair` | Phone side of desktop QR pairing. The computer side is the **Link an accessory** sheet on `/`, shown only on computers once a wallet is connected. |
-| `/demo/sign-in` | The payoff: `startAuthentication` → server check (single-use challenge, origin, rpId, signature, Controlled or Permanent only) → "Signed in as ‹linked wallet›" |
+| `/demo/sign-in` | Web2 accessory login: message challenge → `startAuthentication` → `verifyResponse` (Controlled/Permanent only) → "Signed in as ‹linked wallet›" |
 
 Each secondary feature exists for the core idea:
 - **Release** handles revocation and handing the accessory to someone else. It's required for Controlled tokens.
@@ -257,11 +257,11 @@ Each secondary feature exists for the core idea:
 src/lib/server/
   tap/            verify-dynamic-url (port of phygital-wallet), counter-store (shared D1), handle-tap, resume (WebAuthn Hold)
   accessory/      resolve (identifier → PDA, cached), view (on-chain → AccessoryView + per-type rules), owner-browse
-  challenges.ts   single-use auth_challenges helpers (sign-in · resume · owner-browse namespaces)
+  challenges.ts   single-use auth_challenges helpers (message challenges for sign-in · resume · owner-browse)
   session/        HMAC cookies (bu · ob · hof · dsk · pair)
   link/           service (ceremony + authorization), intents (D1 CAS), assertion (WebAuthn gate),
                   slot-window (SlotHashes), simulate, confirm, capability, errors
-  signin/         single-use challenges + verification for "Sign in with accessory"
+  signin/         message challenge + verifyResponse for "Sign in with accessory"
 src/lib/shared/   link-transaction (SDK completeTransfer → v0 tx, byte-level validator), types, encoding
 src/lib/client/   wallet (connector headless + Wallet Standard signing), link/flow, messages (copy), rpc proxy,
                   accessory/ (tapScreen · linkCopy · openOwned)

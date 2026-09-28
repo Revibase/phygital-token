@@ -13,12 +13,14 @@ When recovery is ambiguous, the SDK selects the candidate with an initialized Ph
 
 ## Shared tap helper
 
-All three tap entry points (`startAuthentication`, `authenticatePasskeyForTransfer`, `authenticatePasskeyForSecp256r1Verify`) call `authenticatePasskey`:
+All three on-chain tap entry points (`authenticatePasskey`, `authenticatePasskeyForTransfer`, `authenticatePasskeyForSecp256r1Verify`) share:
 
 | Option | Behavior |
 |--------|----------|
+| `{ rpc }` | Browser WebAuthn via `authenticateWithWebauthn` (required unless `transceive`) |
 | `{ transceive }` | Native/kiosk APDU via `authenticateWithApdu` |
-| omitted | Browser WebAuthn via `authenticateWithWebauthn` (needs `rpc`) |
+
+Off-chain login uses `startAuthentication(message, { rpc })` + `verifyResponse({ expectedMessage, response })`.
 
 ## Admin / roles
 
@@ -28,9 +30,10 @@ All three tap entry points (`startAuthentication`, `authenticatePasskeyForTransf
 | `getSetAdminInstruction` | Transfer admin (cannot promote issuer/minter) |
 | `getSetIssuerInstruction` | Set the single issuer pubkey |
 | `getSetMinterInstruction` | Set the single minter pubkey |
+| `getClosePhygitalTokenInstruction` / `getClosePhygitalTokenInstructionAsync` | Admin closes a phygital token PDA and sends rent to `rentRecipient` |
 | `findAdminConfigPda` | Derive AdminConfig PDA (`["admin"]`) |
 
-Roles must be distinct pubkeys. `initialize` requires issuer; `assign_mint` requires minter.
+Roles must be distinct pubkeys. `initialize` requires issuer; `assign_mint` requires minter; `close_phygital_token` requires admin.
 
 ## Initialize
 
@@ -84,10 +87,10 @@ See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `
 
 | Export | Purpose |
 |--------|---------|
-| `startAuthentication(message, rpc, { rpId?, credentialId?, transceive? })` | Client: NFC tap; `rpc` required for browser placeholder recovery |
-| `verifyResponse` | Server: verify tap signature; returns `{ isVerified, secp256r1PublicKey }` |
+| `startAuthentication(message, { rpc? })` | NFC tap; `rpc` for browser recovery, or `{ transceive }` for APDU |
+| `verifyResponse({ expectedMessage, response })` | secp256r1 check (no rpId/origin); returns `secp256r1PublicKey` |
 
-Pair `startAuthentication` (client) with `verifyResponse` (server). Every auth check needs a fresh tap — there is no signed-URL identification helper.
+Issue any short-lived message string — no `generateAuthenticationOptions`. Then create your normal session.
 
 ## Token lookup
 
@@ -101,35 +104,11 @@ Pair `startAuthentication` (client) with `verifyResponse` (server). Every auth c
 | `fetchPhygitalToken` | Generated helper — Kit `Rpc` + token PDA |
 | `fetchAdminConfig` | Generated helper — Kit `Rpc` + AdminConfig PDA |
 
-## web3.js
-
-No `@solana/web3.js` dependency. SDK functions take Kit types (`Rpc`, `Address`, `TransactionSigner`, `Instruction`). Convert yourself:
-
-| Export | Purpose |
-|--------|---------|
-| `toRpc` | `Connection` or RPC URL → Kit `Rpc` |
-| `toAddress` | `PublicKey` or base58 string → Kit `Address` |
-| `toTransactionSigner` | `Keypair` / `{ publicKey }` → no-op Kit signer (caller signs the web3.js tx) |
-| `toWeb3Instruction` / `toWeb3Instructions` | Kit `Instruction` → web3.js `TransactionInstruction` shape for `tx.add()` |
-
-```ts
-const session = await beginTransfer({
-  rpc: toRpc(connection),
-  secp256r1Pubkey: secp256r1PublicKey, // base64url compressed passkey
-});
-const ixs = await completeTransfer(
-  session,
-  tap,
-  toTransactionSigner(recipientKeypair),
-);
-tx.add(...toWeb3Instructions(ixs));
-```
-
 ## Generated (Codama)
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getInitializeInstruction`, `getAssignMintInstruction`, `getSetLinkedWalletInstruction`, `getVerifyInstruction`, `getRemoveLinkedWalletInstruction`, `getCreateConfigInstruction`, `getSetAdminInstruction`, `getSetIssuerInstruction`, `getSetMinterInstruction`, …
+- Instructions: `getInitializeInstruction`, `getAssignMintInstruction`, `getSetLinkedWalletInstruction`, `getVerifyInstruction`, `getRemoveLinkedWalletInstruction`, `getCreateConfigInstruction`, `getSetAdminInstruction`, `getSetIssuerInstruction`, `getSetMinterInstruction`, `getClosePhygitalTokenInstruction`, …
 - Accounts: `fetchPhygitalToken`, `fetchAdminConfig`, `findAdminConfigPda`, `PhygitalToken`, `AdminConfig`, …
 - Types: `PhygitalTokenType` (`Permanent` | `Bearer` | `Controlled`), `Secp256r1Pubkey`, …
 

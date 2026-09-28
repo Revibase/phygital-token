@@ -4,4 +4,7 @@ import { getEnv } from '$lib/server/env';
 import { issueSignInChallenge } from '$lib/server/signin/signin';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ platform }) => json(await issueSignInChallenge(getEnv(platform).db));
+export const POST: RequestHandler = async ({ platform }) => {
+	const env = getEnv(platform);
+	return json(await issueSignInChallenge(env.db));
+};

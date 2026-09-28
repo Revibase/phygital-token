@@ -1,90 +1,79 @@
+/**
+ * Accessory passkey login — message challenge, no SimpleWebAuthn ceremony setup.
+ *
+ * ```ts
+ * const message = crypto.randomUUID();
+ * const response = await startAuthentication(message, { rpc });
+ * // native: startAuthentication(message, { transceive })
+ * const { isVerified, secp256r1PublicKey } = verifyResponse({
+ *   expectedMessage: message,
+ *   response,
+ * });
+ * ```
+ */
 import { p256 } from "@noble/curves/nist.js";
-import type { Rpc, SolanaRpcApi } from "@solana/kit";
+
+import { parseSecp256r1Pubkey } from "./parseSecp256r1Pubkey.js";
 import {
-  utf8ToBase64URLString,
-  type AuthenticationResponseJSON,
-} from "./passkey/webauthn.js";
+  authenticatePasskey,
+  type AuthenticatePasskeyOptions,
+} from "./passkey/authenticate.js";
 import {
   parseWebAuthnAssertion,
   parseWebAuthnClientData,
 } from "./passkey/internal.js";
 import {
-  authenticatePasskey,
-  type NfcTransceive,
-} from "./passkey/authenticate.js";
-import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
+  utf8ToBase64URLString,
+  type AuthenticationResponseJSON,
+} from "./passkey/webauthn.js";
 
-/** Result of {@link verifyResponse}. */
-export type VerifyResponseResult = {
-  isVerified: boolean;
-  /** Base64url compressed secp256r1 vault key (not a Solana ed25519 address). */
-  secp256r1PublicKey: string;
-};
-
-/** Options for {@link verifyResponse}. */
-export type VerifyResponseOptions = {
-  expectedMessage: string;
-  response: AuthenticationResponseJSON;
-};
+export type { AuthenticationResponseJSON } from "./passkey/webauthn.js";
 
 /**
  * **Authentication (client)** — prompt an NFC tap for `message`.
  *
- * Browser: opens the system WebAuthn/NFC modal.
- * Native / kiosk: pass `transceive` to talk to an IsoDep reader via APDUs.
- *
- * @param rpc - Kit `Rpc`. Required for browser WebAuthn recovery disambiguation.
- * @param options.transceive - Native NFC reader; when set, skips browser WebAuthn.
- * @param options.rpId - Relying party ID. Defaults to `window.location.hostname`.
+ * Browser: opens the system WebAuthn/NFC modal (`rpc` required for recovery).
+ * Native / kiosk: pass `transceive` (rpId/origin not required).
  */
 export async function startAuthentication(
   message: string,
-  rpc: Rpc<SolanaRpcApi>,
-  options?: {
-    transceive?: NfcTransceive;
-    rpId?: string;
-  },
+  options?: AuthenticatePasskeyOptions,
 ): Promise<AuthenticationResponseJSON> {
-  return authenticatePasskey(utf8ToBase64URLString(message), rpc, options);
+  return authenticatePasskey(utf8ToBase64URLString(message), options);
 }
 
 /**
  * **Authentication (server)** — verify a fresh tap signature.
  *
- * Call after {@link startAuthentication} on the client. Pass the same
- * `expectedMessage` you issued as the challenge and the WebAuthn `response`
- * from the tap. Treats `response.id` as the compressed secp256r1 public key
- * and checks the signature.
- *
- * Returns `{ isVerified, secp256r1PublicKey }`. Throws on challenge mismatch
- * (`Message mismatch.`); a bad signature returns `isVerified: false` instead
- * of throwing.
- *
- * Does not submit a transaction. After a successful verify, look up on-chain
- * state with `findPhygitalTokenPda` + `fetchPhygitalToken` (PDA is seeded by the passkey).
+ * Pass the same `expectedMessage` you issued as the challenge. Treats
+ * `response.id` as the compressed secp256r1 public key. Does not check
+ * rpId/origin. Throws on challenge mismatch (`Message mismatch.`); a bad
+ * signature returns `isVerified: false`.
  */
-export function verifyResponse({
-  expectedMessage,
-  response,
-}: VerifyResponseOptions): VerifyResponseResult {
-  const expectedChallenge = utf8ToBase64URLString(expectedMessage);
+export function verifyResponse(input: {
+  expectedMessage: string;
+  response: AuthenticationResponseJSON;
+}): { isVerified: boolean; secp256r1PublicKey: string } {
+  const expectedChallenge = utf8ToBase64URLString(input.expectedMessage);
 
-  const clientData = parseWebAuthnClientData(response.response.clientDataJSON);
+  const clientData = parseWebAuthnClientData(
+    input.response.response.clientDataJSON,
+  );
 
   if (clientData.challenge !== expectedChallenge) {
     throw new Error("Message mismatch.");
   }
 
-  const { signature, message } = parseWebAuthnAssertion(response);
+  const { signature, message } = parseWebAuthnAssertion(input.response);
 
   const isVerified = p256.verify(
     signature,
     message,
-    new Uint8Array(parseSecp256r1Pubkey(response.id)[0]),
+    new Uint8Array(parseSecp256r1Pubkey(input.response.id)[0]),
   );
 
   return {
     isVerified,
-    secp256r1PublicKey: response.id,
+    secp256r1PublicKey: input.response.id,
   };
 }

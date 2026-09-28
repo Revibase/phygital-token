@@ -245,7 +245,7 @@ export async function acceptAssertion(
 	const accessory = await fetchAccessory(rpc, row.pda);
 	if (!accessory) throw notFound();
 
-	const check = checkTransferAssertion({
+	const check = await checkTransferAssertion({
 		response: body.response,
 		expectedChallenge: row.challenge,
 		expectedPublicKey: row.public_key,

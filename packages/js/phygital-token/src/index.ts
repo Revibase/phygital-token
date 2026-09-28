@@ -11,9 +11,7 @@ export {
   buildSecp256r1VerifyInstruction,
 } from "./instructions/verify.js";
 
-export {
-  parseSecp256r1Pubkey,
-} from "./utils/parseSecp256r1Pubkey.js";
+export { parseSecp256r1Pubkey } from "./utils/parseSecp256r1Pubkey.js";
 
 export {
   fetchPhygitalTokenByIdentifier,
@@ -24,25 +22,15 @@ export {
 export {
   startAuthentication,
   verifyResponse,
-  type VerifyResponseResult,
-  type VerifyResponseOptions,
+  type AuthenticationResponseJSON,
 } from "./utils/verify.js";
 
-export type { NfcTransceive, AuthenticatePasskeyOptions } from "./utils/passkey/authenticate.js";
+export {
+  authenticatePasskey,
+  type AuthenticatePasskeyOptions,
+  type NfcTransceive,
+} from "./utils/passkey/authenticate.js";
 
 export { findPhygitalTokenPda } from "./utils/pdas/index.js";
-
-export {
-  toAddress,
-  toRpc,
-  toTransactionSigner,
-  toWeb3Instruction,
-  toWeb3Instructions,
-  type AddressInput,
-  type RpcInput,
-  type SignerInput,
-  type Web3Instruction,
-  type Web3PublicKeyLike,
-} from "./utils/compat.js";
 
 export * from "./generated/index.js";

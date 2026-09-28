@@ -15,3 +15,6 @@ pub use assign_mint::*;
 
 pub mod initialize;
 pub use initialize::*;
+
+pub mod close_phygital_token;
+pub use close_phygital_token::*;

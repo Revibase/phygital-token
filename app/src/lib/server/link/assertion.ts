@@ -1,5 +1,5 @@
-import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
+import { p256 } from '@noble/curves/nist.js';
 import { parseSecp256r1Pubkey, type PhygitalToken } from 'phygital-token-sdk';
 
 import { base64UrlToBytes, bytesEqual, bytesToBase64Url } from '$lib/shared/encoding';
@@ -13,13 +13,16 @@ export type AssertionCheck =
 	| { ok: false; code: LinkErrorCode; detail: string };
 
 const FLAG_USER_PRESENT = 0x01;
-const CURVE_ORDER = p256.Point.CURVE().n;
 
 function isString(v: unknown): v is string {
 	return typeof v === 'string' && v.length > 0 && v.length < 4096;
 }
 
-/** Validate the shape of an untrusted `AuthenticationResponseJSON`. */
+function signatureToCompact(signature: Uint8Array): Uint8Array {
+	if (signature.length === 64) return signature;
+	return p256.Signature.fromBytes(signature, 'der').toBytes('compact');
+}
+
 export function parseAssertion(input: unknown): Assertion | null {
 	if (!input || typeof input !== 'object') return null;
 	const r = input as Record<string, unknown>;
@@ -41,13 +44,6 @@ export function parseAssertion(input: unknown): Assertion | null {
 	};
 }
 
-function compactLowS(signature: Uint8Array): Uint8Array {
-	const sig =
-		signature.length === 64 ? p256.Signature.fromBytes(signature, 'compact') : p256.Signature.fromBytes(signature, 'der');
-	const low = sig.hasHighS() ? new p256.Signature(sig.r, CURVE_ORDER - sig.s) : sig;
-	return low.toBytes('compact');
-}
-
 export type WebAuthnCheck =
 	| { ok: true; assertion: Assertion; signCount: number; publicKey: string }
 	| { ok: false; code: LinkErrorCode; detail: string };
@@ -66,12 +62,6 @@ type AssertionContext =
 		}
 	| { ok: false; code: LinkErrorCode; detail: string };
 
-/**
- * Everything about an assertion except its challenge and signature: shape,
- * ceremony type, origin, rpId hash, user presence, and a passkey-shaped
- * credential id. These are exactly the checks the SDK's `verifyResponse`
- * leaves out, so a path that verifies with the SDK must run this too.
- */
 export function checkAssertionContext(input: { response: unknown; rpId: string; origin: string }): AssertionContext {
 	const assertion = parseAssertion(input.response);
 	if (!assertion) return { ok: false, code: 'tap_rejected', detail: 'malformed assertion' };
@@ -122,59 +112,61 @@ export function checkAssertionContext(input: { response: unknown; rpId: string; 
 	};
 }
 
-/**
- * Verify a WebAuthn assertion from the accessory for OUR relying party:
- * {@link checkAssertionContext}, the exact challenge, and the P-256 signature
- * over `authenticatorData || SHA-256(clientDataJSON)`.
- *
- * The program never checks rpId/origin, and the SDK's `verifyResponse` checks
- * only challenge + signature — so every server path goes through the context check.
- * `expectedPublicKey` pins the accessory when we already know which one it is.
- */
-export function verifyWebAuthnAssertion(input: {
+/** Verify transfer assertion: challenge + secp256r1 + app binding checks. */
+export async function verifyWebAuthnAssertion(input: {
 	response: unknown;
 	expectedChallenge: string;
 	rpId: string;
 	origin: string;
 	expectedPublicKey?: string;
-}): WebAuthnCheck {
+}): Promise<WebAuthnCheck> {
 	const ctx = checkAssertionContext(input);
 	if (!ctx.ok) return ctx;
+
 	if (ctx.challenge !== input.expectedChallenge) {
 		return { ok: false, code: 'tap_rejected', detail: 'challenge mismatch' };
 	}
-	if (input.expectedPublicKey !== undefined && ctx.publicKey !== input.expectedPublicKey) {
-		return { ok: false, code: 'different_accessory', detail: 'assertion from a different accessory' };
+
+	if (input.expectedPublicKey) {
+		let expectedKey: Uint8Array;
+		try {
+			expectedKey = new Uint8Array(parseSecp256r1Pubkey(input.expectedPublicKey)[0]);
+		} catch {
+			return { ok: false, code: 'tap_rejected', detail: 'expected public key is invalid' };
+		}
+		if (!bytesEqual(ctx.credentialKey, expectedKey)) {
+			return { ok: false, code: 'different_accessory', detail: 'assertion rejected' };
+		}
 	}
 
-	const signed = new Uint8Array(ctx.authData.length + 32);
-	signed.set(ctx.authData, 0);
-	signed.set(sha256(ctx.clientDataBytes), ctx.authData.length);
-	let valid = false;
 	try {
-		valid = p256.verify(compactLowS(ctx.signature), signed, ctx.credentialKey);
+		const message = new Uint8Array(ctx.authData.length + 32);
+		message.set(ctx.authData);
+		message.set(sha256(ctx.clientDataBytes), ctx.authData.length);
+		const compact = signatureToCompact(ctx.signature);
+		if (!p256.verify(compact, message, ctx.credentialKey)) {
+			return { ok: false, code: 'tap_rejected', detail: 'assertion rejected' };
+		}
+		return {
+			ok: true,
+			assertion: ctx.assertion,
+			signCount: ctx.signCount,
+			publicKey: ctx.publicKey
+		};
 	} catch {
-		valid = false;
+		return { ok: false, code: 'tap_rejected', detail: 'assertion rejected' };
 	}
-	if (!valid) return { ok: false, code: 'tap_rejected', detail: 'bad signature' };
-
-	return { ok: true, assertion: ctx.assertion, signCount: ctx.signCount, publicKey: ctx.publicKey };
 }
 
-/**
- * Server-side gate before a transfer assertion is taken into custody:
- * {@link verifyWebAuthnAssertion} pinned to the session's accessory, then the
- * product rules for its token type and the program's signCount rule.
- */
-export function checkTransferAssertion(input: {
+export async function checkTransferAssertion(input: {
 	response: unknown;
 	expectedChallenge: string;
 	expectedPublicKey: string;
 	account: PhygitalToken;
 	rpId: string;
 	origin: string;
-}): AssertionCheck {
-	const verified = verifyWebAuthnAssertion(input);
+}): Promise<AssertionCheck> {
+	const verified = await verifyWebAuthnAssertion(input);
 	if (!verified.ok) return verified;
 
 	const kind = TOKEN_KINDS[input.account.tokenType] ?? 'unknown';

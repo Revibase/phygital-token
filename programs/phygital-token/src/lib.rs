@@ -32,6 +32,10 @@ pub mod phygital_token {
         set_minter::handler(ctx, minter)
     }
 
+    pub fn close_phygital_token(ctx: Context<ClosePhygitalToken>) -> Result<()> {
+        close_phygital_token::handler(ctx)
+    }
+
     pub fn initialize(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
         initialize::handler(ctx, args)
     }

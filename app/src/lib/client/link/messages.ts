@@ -123,6 +123,15 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 			code: 'no_webauthn'
 		};
 	}
+	if (/startAuthentication|credential id length|placeholder credential|No recovered|Failed to recover/i.test(message)) {
+		return {
+			title: 'We couldn’t confirm that tap',
+			body: 'Hold your accessory steady against your phone until it finishes, then try again.',
+			recovery: 'tap_again',
+			code: 'tap_rejected',
+			detail: message
+		};
+	}
 	return { ...linkErrorCopy('unknown'), detail: message };
 }
 

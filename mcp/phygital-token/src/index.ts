@@ -23,7 +23,7 @@ import {
   type VerificationUseCase,
 } from "./lib/verification.js";
 
-const VERSION = "1.3.0";
+const VERSION = "1.9.0";
 
 const SERVER_INSTRUCTIONS = [
   "MCP server for the phygital-token Solana program, TypeScript SDK, and Rust client.",
@@ -43,7 +43,7 @@ const SERVER_INSTRUCTIONS = [
   "set_linked_wallet requires is_locked == 0 for all token types.",
   "",
   "Live token fetch and auth: call phygital-token-sdk directly in your app",
-  "(verifyResponse, findPhygitalTokenPda, buildMessageHash, authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, transceive? }), startAuthentication(message, rpc, { transceive? }), etc.).",
+  "(startAuthentication, verifyResponse, findPhygitalTokenPda, etc.).",
   "All tap helpers share authenticatePasskey: pass { transceive } for native APDU; omit for browser WebAuthn.",
   "Browser WebAuthn taps require Kit Rpc for placeholder credential-id recovery (rawId length 16).",
 ].join("\n");

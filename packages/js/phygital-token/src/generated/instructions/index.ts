@@ -7,6 +7,7 @@
  */
 
 export * from "./assignMint.js";
+export * from "./closePhygitalToken.js";
 export * from "./createConfig.js";
 export * from "./initialize.js";
 export * from "./removeLinkedWallet.js";

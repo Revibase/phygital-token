@@ -6,7 +6,7 @@ Shared vocabulary for on-chain accounts, instructions, tests, and the TypeScript
 
 ```
 AdminConfig (singleton PDA, seeds=["admin"])
-  ├── admin    ← sole admin (create_config signer; set_admin / set_issuer / set_minter)
+  ├── admin    ← sole admin (create_config signer; set_admin / set_issuer / set_minter / close_phygital_token)
   ├── issuer   ← sole issuer (may call initialize)
   └── minter   ← sole minter (may call assign_mint)
 
@@ -41,6 +41,7 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 | `set_admin` | Transfers the sole admin role (cannot promote issuer or minter). |
 | `set_issuer` | Sets the single issuer pubkey (admin-only; must not collide with admin/minter). |
 | `set_minter` | Sets the single minter pubkey (admin-only; must not collide with admin/issuer). |
+| `close_phygital_token` | Admin closes a **phygital_token** PDA and sends its rent lamports to `rent_recipient`. Irreversible; the same passkey can be re-`initialize`d later. |
 | `initialize` | Creates a **phygital_token** PDA seeded by `secp256r1_pubkey`, stores `identifier`, `token_type`, and `linked_wallet`. Permanent requires a non-default `linked_wallet`. Non-default linked wallet starts locked. Restricted to **AdminConfig.issuer**. |
 | `assign_mint` | Binds an SPL mint pubkey onto `phygital_token.mint`. Restricted to **AdminConfig.minter**. |
 | `set_linked_wallet` | Passkey-authorized linked-wallet update to `recipient` (no SPL token). Requires `is_locked == 0`. Permanent stays locked → always `TokenIsCurrentlyLocked`. Controlled re-locks after claim. |
@@ -53,11 +54,12 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 |------------|---------------------------|
 | `create_config` | `getCreateConfigInstruction` / `findAdminConfigPda` |
 | `set_issuer` / `set_minter` / `set_admin` | `getSetIssuerInstruction` / `getSetMinterInstruction` / `getSetAdminInstruction` |
+| `close_phygital_token` | `getClosePhygitalTokenInstruction` / `getClosePhygitalTokenInstructionAsync` |
 | `initialize` | `getInitializeInstruction` |
 | `assign_mint` | `getAssignMintInstruction` |
 | `set_linked_wallet` | `beginTransfer` / `authenticatePasskeyForTransfer` / `completeTransfer` |
 | `verify` | `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify` / `buildSecp256r1VerifyInstruction` |
 | `phygital_token` PDA | `findPhygitalTokenPda(secp256r1Pubkey)`, `fetchPhygitalTokenByIdentifier` |
-| off-chain auth | `startAuthentication` + `verifyResponse` (both use `authenticatePasskey`; pass `{ transceive }` for native APDU) |
+| off-chain auth | `startAuthentication(message, { rpc })` + `verifyResponse` → your session (or `startAuthentication(message, { transceive })` for native APDU — rpId/origin optional) |
 
 Test helpers mirror on-chain instruction names (`initialize`, `assign_mint`, `set_linked_wallet`, `verify`, etc.).

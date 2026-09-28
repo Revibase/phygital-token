@@ -5,79 +5,81 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use solana_address::Address;
 use crate::generated::types::Secp256r1Pubkey;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
-
+use borsh::BorshSerialize;
+use solana_address::Address;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct PhygitalToken {
-pub discriminator: [u8; 8],
-pub linked_wallet: Address,
-pub mint: Address,
-pub last_sign_count: u32,
-pub token_type: u8,
-pub is_locked: u8,
-pub public_key: Secp256r1Pubkey,
-pub identifier: Secp256r1Pubkey,
+    pub discriminator: [u8; 8],
+    pub linked_wallet: Address,
+    pub mint: Address,
+    pub last_sign_count: u32,
+    pub token_type: u8,
+    pub is_locked: u8,
+    pub public_key: Secp256r1Pubkey,
+    pub identifier: Secp256r1Pubkey,
 }
-
 
 pub const PHYGITAL_TOKEN_DISCRIMINATOR: [u8; 8] = [123, 198, 67, 145, 58, 49, 38, 72];
 
 impl PhygitalToken {
-      pub const LEN: usize = 144;
-  
-  
-  
-  #[inline(always)]
-  pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {
-    let mut data = data;
-    Self::deserialize(&mut data)
-  }
+    pub const LEN: usize = 144;
+
+    #[inline(always)]
+    pub fn from_bytes(data: &[u8]) -> Result<Self, std::io::Error> {
+        let mut data = data;
+        Self::deserialize(&mut data)
+    }
 }
 
 impl<'a> TryFrom<&solana_account_info::AccountInfo<'a>> for PhygitalToken {
-  type Error = std::io::Error;
+    type Error = std::io::Error;
 
-  fn try_from(account_info: &solana_account_info::AccountInfo<'a>) -> Result<Self, Self::Error> {
-      let mut data: &[u8] = &(*account_info.data).borrow();
-      Self::deserialize(&mut data)
-  }
+    fn try_from(account_info: &solana_account_info::AccountInfo<'a>) -> Result<Self, Self::Error> {
+        let mut data: &[u8] = &(*account_info.data).borrow();
+        Self::deserialize(&mut data)
+    }
 }
 
 #[cfg(feature = "fetch")]
 pub fn fetch_phygital_token(
-  rpc: &solana_rpc_client::rpc_client::RpcClient,
-  address: &solana_address::Address,
+    rpc: &solana_rpc_client::rpc_client::RpcClient,
+    address: &solana_address::Address,
 ) -> Result<crate::shared::DecodedAccount<PhygitalToken>, std::io::Error> {
-  let accounts = fetch_all_phygital_token(rpc, &[*address])?;
-  Ok(accounts[0].clone())
+    let accounts = fetch_all_phygital_token(rpc, &[*address])?;
+    Ok(accounts[0].clone())
 }
 
 #[cfg(feature = "fetch")]
 pub fn fetch_all_phygital_token(
-  rpc: &solana_rpc_client::rpc_client::RpcClient,
-  addresses: &[solana_address::Address],
+    rpc: &solana_rpc_client::rpc_client::RpcClient,
+    addresses: &[solana_address::Address],
 ) -> Result<Vec<crate::shared::DecodedAccount<PhygitalToken>>, std::io::Error> {
-    let accounts = rpc.get_multiple_accounts(addresses)
-      .map_err(|e| std::io::Error::other(e.to_string()))?;
+    let accounts = rpc
+        .get_multiple_accounts(addresses)
+        .map_err(|e| std::io::Error::other(e.to_string()))?;
     let mut decoded_accounts: Vec<crate::shared::DecodedAccount<PhygitalToken>> = Vec::new();
     for i in 0..addresses.len() {
-      let address = addresses[i];
-      let account = accounts[i].as_ref()
-        .ok_or(std::io::Error::other(format!("Account not found: {address}")))?;
-      let data = PhygitalToken::from_bytes(&account.data)?;
-      decoded_accounts.push(crate::shared::DecodedAccount { address, account: account.clone(), data });
+        let address = addresses[i];
+        let account = accounts[i].as_ref().ok_or(std::io::Error::other(format!(
+            "Account not found: {address}"
+        )))?;
+        let data = PhygitalToken::from_bytes(&account.data)?;
+        decoded_accounts.push(crate::shared::DecodedAccount {
+            address,
+            account: account.clone(),
+            data,
+        });
     }
     Ok(decoded_accounts)
 }
 
 #[cfg(feature = "fetch")]
 pub fn fetch_maybe_phygital_token(
-  rpc: &solana_rpc_client::rpc_client::RpcClient,
-  address: &solana_address::Address,
+    rpc: &solana_rpc_client::rpc_client::RpcClient,
+    address: &solana_address::Address,
 ) -> Result<crate::shared::MaybeAccount<PhygitalToken>, std::io::Error> {
     let accounts = fetch_all_maybe_phygital_token(rpc, &[*address])?;
     Ok(accounts[0].clone())
@@ -85,49 +87,52 @@ pub fn fetch_maybe_phygital_token(
 
 #[cfg(feature = "fetch")]
 pub fn fetch_all_maybe_phygital_token(
-  rpc: &solana_rpc_client::rpc_client::RpcClient,
-  addresses: &[solana_address::Address],
+    rpc: &solana_rpc_client::rpc_client::RpcClient,
+    addresses: &[solana_address::Address],
 ) -> Result<Vec<crate::shared::MaybeAccount<PhygitalToken>>, std::io::Error> {
-    let accounts = rpc.get_multiple_accounts(addresses)
-      .map_err(|e| std::io::Error::other(e.to_string()))?;
+    let accounts = rpc
+        .get_multiple_accounts(addresses)
+        .map_err(|e| std::io::Error::other(e.to_string()))?;
     let mut decoded_accounts: Vec<crate::shared::MaybeAccount<PhygitalToken>> = Vec::new();
     for i in 0..addresses.len() {
-      let address = addresses[i];
-      if let Some(account) = accounts[i].as_ref() {
-        let data = PhygitalToken::from_bytes(&account.data)?;
-        decoded_accounts.push(crate::shared::MaybeAccount::Exists(crate::shared::DecodedAccount { address, account: account.clone(), data }));
-      } else {
-        decoded_accounts.push(crate::shared::MaybeAccount::NotFound(address));
-      }
+        let address = addresses[i];
+        if let Some(account) = accounts[i].as_ref() {
+            let data = PhygitalToken::from_bytes(&account.data)?;
+            decoded_accounts.push(crate::shared::MaybeAccount::Exists(
+                crate::shared::DecodedAccount {
+                    address,
+                    account: account.clone(),
+                    data,
+                },
+            ));
+        } else {
+            decoded_accounts.push(crate::shared::MaybeAccount::NotFound(address));
+        }
     }
-  Ok(decoded_accounts)
+    Ok(decoded_accounts)
 }
 
-  #[cfg(feature = "anchor")]
-  impl anchor_lang::AccountDeserialize for PhygitalToken {
-      fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_lang::Result<Self> {
+#[cfg(feature = "anchor")]
+impl anchor_lang::AccountDeserialize for PhygitalToken {
+    fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_lang::Result<Self> {
         Ok(Self::deserialize(buf)?)
-      }
-  }
+    }
+}
 
-  #[cfg(feature = "anchor")]
-  impl anchor_lang::AccountSerialize for PhygitalToken {}
+#[cfg(feature = "anchor")]
+impl anchor_lang::AccountSerialize for PhygitalToken {}
 
-  #[cfg(feature = "anchor")]
-  impl anchor_lang::Owner for PhygitalToken {
-      fn owner() -> anchor_lang::solana_program::pubkey::Pubkey {
-        anchor_lang::solana_program::pubkey::Pubkey::from(
-          crate::PHYGITAL_TOKEN_ID.to_bytes()
-        )
-      }
-  }
+#[cfg(feature = "anchor")]
+impl anchor_lang::Owner for PhygitalToken {
+    fn owner() -> anchor_lang::solana_program::pubkey::Pubkey {
+        anchor_lang::solana_program::pubkey::Pubkey::from(crate::PHYGITAL_TOKEN_ID.to_bytes())
+    }
+}
 
-  #[cfg(feature = "anchor-idl-build")]
-  impl anchor_lang::IdlBuild for PhygitalToken {}
+#[cfg(feature = "anchor-idl-build")]
+impl anchor_lang::IdlBuild for PhygitalToken {}
 
-  
-  #[cfg(feature = "anchor-idl-build")]
-  impl anchor_lang::Discriminator for PhygitalToken {
+#[cfg(feature = "anchor-idl-build")]
+impl anchor_lang::Discriminator for PhygitalToken {
     const DISCRIMINATOR: &[u8] = &[0; 8];
-  }
-
+}

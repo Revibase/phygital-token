@@ -4,6 +4,14 @@
 
 **Docs, schema reference, and offline planning only** — no live RPC or on-chain calls. Use [`phygital-token-sdk`](https://www.npmjs.com/package/phygital-token-sdk) in your app for verification, token fetch, and transaction building.
 
+Off-chain accessory login:
+
+```ts
+const message = crypto.randomUUID();          // server — store single-use
+await startAuthentication(message, { rpc });      // client (or { transceive })
+verifyResponse({ expectedMessage: message, response }); // server
+```
+
 ## Install
 
 Add to your MCP client config (`~/.cursor/mcp.json` or project `.cursor/mcp.json`):

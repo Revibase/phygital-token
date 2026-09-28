@@ -28,27 +28,25 @@ export function buildMessageHash(message: Uint8Array): Uint8Array {
  * digest your program must pass to `VerifyCpiBuilder.message_hash`. Hash with
  * {@link buildMessageHash} first.
  *
- * @param input.rpc - Kit `Rpc`. Used when the platform echoes a placeholder credential id.
+ * @param input.rpc - Kit `Rpc` for browser placeholder recovery. Optional when `transceive` is set.
  * @param input.messageHash - SHA-256 of the message you bind on-chain (32 bytes).
- * @param input.rpId - WebAuthn relying party for the **browser tap** only.
- *   Defaults to `window.location.hostname`. On-chain `expected_rp_id` /
- *   `expected_origins` are set on your CPI, not here.
+ * @param input.rpId - Relying party ID. Required for `transceive`; browser defaults to hostname.
+ * @param input.origin - Required for `transceive` (clientDataJSON), e.g. `https://app.example.com`.
  * @param input.transceive - Native / kiosk IsoDep reader; when set, skips browser WebAuthn.
  */
 export async function authenticatePasskeyForSecp256r1Verify(input: {
-  rpc: Rpc<SolanaRpcApi>;
+  rpc?: Rpc<SolanaRpcApi>;
   messageHash: Uint8Array;
   rpId?: string;
+  origin?: string;
   transceive?: NfcTransceive;
 }): Promise<AuthenticationResponseJSON> {
-  return authenticatePasskey(
-    bufferToBase64URLString(input.messageHash),
-    input.rpc,
-    {
-      rpId: input.rpId,
-      transceive: input.transceive,
-    },
-  );
+  return authenticatePasskey(bufferToBase64URLString(input.messageHash), {
+    rpc: input.rpc,
+    rpId: input.rpId,
+    origin: input.origin,
+    transceive: input.transceive,
+  });
 }
 
 /**
