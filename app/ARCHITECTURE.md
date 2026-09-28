@@ -220,7 +220,7 @@ Each secondary feature exists for the core idea:
 
 **Ownership wording.** On-chain, `linked_wallet` only proves which wallet the accessory points to, not who is holding the phone.
 - By default the app says "Linked" or "Permanently linked" and labels the row "Linked wallet".
-- It says "your wallet", "Ready to use" or "Permanently yours" only when `@solana/connector` has that same wallet connected in this browser: a silent reconnect, or the "Confirm it's your wallet" sheet.
+- It says "your wallet", "Ready to use" or "Permanently yours" only when `@solana/connector` has that same wallet connected in this browser, through a silent reconnect. There's no separate confirm step; owners manage their accessories from the home page.
 - Success screens use "your wallet" only where the connected wallet just signed the link.
 
 **UI:** shadcn-svelte (bits-ui) on Tailwind v4.

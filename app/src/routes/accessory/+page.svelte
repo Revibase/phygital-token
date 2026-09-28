@@ -3,7 +3,6 @@
 	import { invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
-	import ConfirmOwnerSheet from '$lib/components/app/ConfirmOwnerSheet.svelte';
 	import List from '$lib/components/app/List.svelte';
 	import ListRow from '$lib/components/app/ListRow.svelte';
 	import Notice from '$lib/components/app/Notice.svelte';
@@ -20,7 +19,6 @@
 
 	let detailsOpen = $state(false);
 	let releaseOpen = $state(false);
-	let confirmOpen = $state(false);
 	let refreshing = $state(false);
 
 	// Silent reconnect only: if this browser already connected a wallet via
@@ -115,9 +113,6 @@
 				</div>
 			{:else}
 				<List>
-					{#if a.linkedWallet && !owned}
-						<ListRow label="Confirm it’s your wallet" onclick={() => (confirmOpen = true)} chevron />
-					{/if}
 					{#if a.canLink}
 						<ListRow label="Link a different wallet" href="/accessory/link" chevron />
 					{/if}
@@ -129,7 +124,6 @@
 			{/if}
 			<TechnicalDetails accessory={a} cluster={data.cluster} bind:open={detailsOpen} />
 			{#if a.canRelease}<ReleaseSheet accessory={a} cluster={data.cluster} bind:open={releaseOpen} />{/if}
-			{#if a.linkedWallet && !owned}<ConfirmOwnerSheet linkedWallet={a.linkedWallet} cluster={data.cluster} bind:open={confirmOpen} />{/if}
 		{/if}
 	{/snippet}
 </PageShell>
