@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import * as Drawer from '$lib/components/ui/drawer';
+	import ResponsiveSheet from './ResponsiveSheet.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import AccessoryMark from './AccessoryMark.svelte';
@@ -51,6 +51,21 @@
 		if (s === 'submitted') return 'submitted';
 		return 'approve_phone';
 	});
+	/** Announced title for the overlay; the visible heading is the per-step PageHeader. */
+	const a11yTitle = $derived(
+		{
+			starting: 'Link an accessory',
+			scan: 'Scan with your phone',
+			paired: 'Now tap your accessory',
+			confirm: 'Is this your accessory?',
+			approve_phone: 'Approve on your phone',
+			sign: 'Link this wallet?',
+			submitted: 'Almost done',
+			done: 'Linked',
+			dead: 'Linking stopped'
+		}[view]
+	);
+
 	let notified = false;
 	function linked() {
 		if (notified) return;
@@ -133,9 +148,8 @@
 	}
 </script>
 
-<Drawer.Root bind:open>
-	<Drawer.Content>
-		<div class="mx-auto w-full max-w-md px-4 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]" aria-live="polite">
+<ResponsiveSheet bind:open title={a11yTitle} hideTitle>
+		<div aria-live="polite">
 			{#key view}
 				<div class="animate-rise space-y-6">
 					{#if view === 'done'}
@@ -164,10 +178,13 @@
 						{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
 
 						{#if view === 'starting'}
-							<div class="grid aspect-square w-full max-w-60 place-items-center justify-self-center"><Spinner class="size-5 text-muted-foreground" /></div>
+							<!-- Same footprint as the QR, so the dialog doesn't resize when it arrives. -->
+							<div class="mx-auto grid aspect-square w-full max-w-60 place-items-center rounded-[20px] bg-muted/60"><Spinner class="size-5 text-muted-foreground" /></div>
 						{:else if view === 'scan' && pairUrl}
-							<PairQr value={pairUrl} label="Only scan this with your own phone." />
-							<Countdown until={pairExpiresAt} />
+							<div class="space-y-1">
+								<PairQr value={pairUrl} label="Only scan this with your own phone." />
+								<Countdown until={pairExpiresAt} class="text-center" />
+							</div>
 						{:else if view === 'paired'}
 							<div class="grid place-items-center py-6"><AccessoryMark state="waiting" /></div>
 						{:else if view === 'confirm'}
@@ -220,5 +237,4 @@
 				</div>
 			{/key}
 		</div>
-	</Drawer.Content>
-</Drawer.Root>
+</ResponsiveSheet>

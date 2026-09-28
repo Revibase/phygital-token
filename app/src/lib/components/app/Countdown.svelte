@@ -6,7 +6,7 @@
 	 * Quiet text countdown ("Expires in 2:31"). No progress bar: the number is
 	 * the information. Turns red in the last 30 seconds, when it matters.
 	 */
-	let { until, onexpire }: { until: number; total?: number; onexpire?: () => void } = $props();
+	let { until, onexpire, class: className = '' }: { until: number; total?: number; onexpire?: () => void; class?: string } = $props();
 	let now = $state(Date.now());
 	const timer = setInterval(() => (now = Date.now()), 500);
 	onDestroy(() => clearInterval(timer));
@@ -22,6 +22,6 @@
 	});
 </script>
 
-<p class={cn('text-[13px] tabular-nums transition-colors duration-300', remaining < 30_000 ? 'text-destructive' : 'text-muted-foreground')}>
+<p class={cn('text-[13px] tabular-nums transition-colors duration-300', remaining < 30_000 ? 'text-destructive' : 'text-muted-foreground', className)}>
 	{remaining > 0 ? `Expires in ${label}` : 'Expired'}
 </p>

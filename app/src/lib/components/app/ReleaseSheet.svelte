@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import * as Drawer from '$lib/components/ui/drawer';
+	import ResponsiveSheet from './ResponsiveSheet.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import List from './List.svelte';
@@ -64,40 +64,27 @@
 	}
 </script>
 
-<Drawer.Root bind:open>
-	<Drawer.Content>
-		<div class="mx-auto w-full max-w-md space-y-5 px-4 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-			<Drawer.Header class="p-0 text-left">
-				<Drawer.Title class="text-[20px] font-semibold tracking-[-0.02em]">Release this accessory?</Drawer.Title>
-				<Drawer.Description class="text-[14px] leading-snug">
-					It will stop signing in as {linked}. Only that wallet can release it — the accessory isn’t needed.
-				</Drawer.Description>
-			</Drawer.Header>
+<ResponsiveSheet
+	bind:open
+	title="Release this accessory?"
+	description={`It will stop signing in as ${linked}. Only that wallet can release it — the accessory isn’t needed.`}
+>
+	{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
 
-			{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
-
-			{#if !walletStore.address}
-				<WalletPicker
-					label={`Connect ${linked}`}
-					options={walletStore.options}
-					{connecting}
-					onpick={pick}
-					browseTarget={`${page.url.origin}/`}
-				/>
-			{:else}
-				<List>
-					<WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} />
-				</List>
-				{#if isLinkedWallet}
-					<Button variant="destructive" size="xl" class="w-full" disabled={busy} onclick={release}>
-						{#if busy}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…{:else}Release accessory{/if}
-					</Button>
-				{:else}
-					<Notice tone="info" title="This isn’t the linked wallet" body={`Switch to ${linked} in your wallet app, then try again.`} />
-					<Button variant="secondary" size="xl" class="w-full" onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
-				{/if}
-			{/if}
-			<Button variant="ghost" class="h-11 w-full text-muted-foreground" onclick={() => (open = false)}>Cancel</Button>
-		</div>
-	</Drawer.Content>
-</Drawer.Root>
+	{#if !walletStore.address}
+		<WalletPicker label={`Connect ${linked}`} options={walletStore.options} {connecting} onpick={pick} browseTarget={`${page.url.origin}/`} />
+	{:else}
+		<List>
+			<WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} />
+		</List>
+		{#if isLinkedWallet}
+			<Button variant="destructive" size="xl" class="w-full" disabled={busy} onclick={release}>
+				{#if busy}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…{:else}Release accessory{/if}
+			</Button>
+		{:else}
+			<Notice tone="info" title="This isn’t the linked wallet" body={`Switch to ${linked} in your wallet app, then try again.`} />
+			<Button variant="secondary" size="xl" class="w-full" onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
+		{/if}
+	{/if}
+	<Button variant="ghost" class="h-11 w-full text-muted-foreground" onclick={() => (open = false)}>Cancel</Button>
+</ResponsiveSheet>
