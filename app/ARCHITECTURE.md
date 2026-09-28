@@ -163,7 +163,7 @@ If the tapping browser also has a wallet (Android MWA, or a desktop extension), 
 
 ### Desktop shows a QR, phone scans it
 
-1. **Desktop `/link`:** connect the extension wallet, then `POST /api/pair`. This creates an intent in state `pairing`, binds the finisher cookie `__Host-dsk` up front, and shows a QR for `/pair#p=…` (5 minutes).
+1. **Desktop, home page (`/`):** with the extension wallet connected, choose **Link an accessory**. A sheet opens and calls `POST /api/pair`. This creates an intent in state `pairing`, binds the finisher cookie `__Host-dsk` up front, and shows a QR for `/pair#p=…` (5 minutes).
 2. **Phone scans:** it claims `p` and gets `__Host-pair`; the state becomes `paired`. A second scan fails and alarms the desktop.
 3. **Accessory tap on the phone** (either order): the tap handler attaches that accessory to the intent (`accessory_attached`).
 4. **Both screens show the accessory and a 4-character code**, `HMAC(secret, linkId ‖ pda)`. The desktop must **confirm the accessory** before anything else happens. Linking your wallet to someone else's accessory would hand them your identity.
@@ -209,7 +209,7 @@ The app does one job: make the object stand in for your wallet.
 | `/accessory` | Server-rendered home driven by state: ready to link · ready to use · locked (Controlled) · permanently yours · linked to a different wallet than this device last saw |
 | `/accessory/link` | Two steps: **Tap to approve** → **Finish in your wallet** (a detected wallet here, open in Phantom/Backpack/Solflare, copy link, or use a computer) |
 | `/continue` | Wallet side: connect → "Link this wallet" → approve |
-| `/link`, `/pair` | Desktop QR pairing, the computer side and the phone side |
+| `/pair` | Phone side of desktop QR pairing. The computer side is the **Link an accessory** sheet on `/`, shown only on computers once a wallet is connected. |
 | `/demo/sign-in` | The payoff: `startAuthentication` → server check (single-use challenge, origin, rpId, signature) → "Signed in as ‹linked wallet›" |
 
 Each secondary feature exists for the core idea:

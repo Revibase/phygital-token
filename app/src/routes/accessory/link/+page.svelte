@@ -250,7 +250,7 @@
 						</div>
 					{:else if view === 'choose' && showComputer}
 						<ol class="space-y-3 text-[15px]">
-							{#each [`On your computer, open ${page.url.host}/link`, 'Connect your wallet there', 'Scan the code it shows with this phone'] as line, i (line)}
+							{#each [`On your computer, open ${page.url.host}`, 'Connect your wallet, then choose Link an accessory', 'Scan the code it shows with this phone'] as line, i (line)}
 								<li class="flex gap-3">
 									<span class="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-[13px] font-medium tabular-nums">{i + 1}</span>
 									<span class="pt-0.5">{line}</span>

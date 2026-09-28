@@ -4,6 +4,9 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import AccessoryRow from '$lib/components/app/AccessoryRow.svelte';
+	import ListRow from '$lib/components/app/ListRow.svelte';
+	import PairSheet from '$lib/components/app/PairSheet.svelte';
+	import PlusIcon from '@lucide/svelte/icons/plus';
 	import List from '$lib/components/app/List.svelte';
 	import Notice from '$lib/components/app/Notice.svelte';
 	import PageHeader from '$lib/components/app/PageHeader.svelte';
@@ -31,6 +34,7 @@
 	let releasing = $state<AccessoryView | null>(null);
 	let releaseOpen = $state(false);
 	let onDesktop = $state(false);
+	let pairOpen = $state(false);
 
 	onMount(() => {
 		walletStore.init(data.cluster);
@@ -102,11 +106,15 @@
 						</li>
 					{/each}
 				</List>
-			{:else if accessories?.length === 0}
+			{:else if accessories?.length === 0 && !onDesktop}
 				<div class="rounded-[14px] bg-muted px-4 py-5 text-center">
 					<p class="text-[15px] font-medium">No accessories yet</p>
 					<p class="mt-0.5 text-[14px] text-muted-foreground">Hold an accessory to your phone to link it to this wallet.</p>
 				</div>
+			{:else if accessories?.length === 0}
+				<List label="Accessories" footer="You’ll scan a code with your phone and tap the accessory to it.">
+					{@render linkRow()}
+				</List>
 			{:else if accessories}
 				<List label="Accessories" footer="Releasing an accessory stops it signing in as this wallet. You don’t need it with you.">
 					{#each accessories as acc (acc.pda)}
@@ -126,22 +134,31 @@
 							{/snippet}
 						</AccessoryRow>
 					{/each}
+					{#if onDesktop}{@render linkRow()}{/if}
 				</List>
 			{/if}
 		{/if}
 	</section>
 
 	{#snippet footer()}
-		<div class="grid gap-1">
-			{#if onDesktop}
-				<Button href="/link" variant="secondary" size="xl" class="w-full">Link an accessory from this computer</Button>
-			{/if}
-			{#if walletStore.address}
-				<Button variant="ghost" class="h-11 text-muted-foreground" onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
-			{/if}
-		</div>
+		{#if walletStore.address}
+			<Button variant="ghost" class="h-11 w-full text-muted-foreground" onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
+		{/if}
 	{/snippet}
 </PageShell>
+
+<!-- Computers only: the tap happens on a phone, so the phone scans a code shown here. -->
+{#snippet linkRow()}
+	<ListRow label="Link an accessory" onclick={() => (pairOpen = true)} chevron>
+		{#snippet leading()}
+			<span class="grid size-12 place-items-center rounded-[26%] bg-muted text-muted-foreground"><PlusIcon class="size-5" /></span>
+		{/snippet}
+	</ListRow>
+{/snippet}
+
+{#if onDesktop && walletStore.address}
+	<PairSheet bind:open={pairOpen} onlinked={() => load(walletStore.address!)} />
+{/if}
 
 {#if releasing}
 	<ReleaseSheet accessory={releasing} cluster={data.cluster} bind:open={releaseOpen} onreleased={() => load(walletStore.address!)} />
