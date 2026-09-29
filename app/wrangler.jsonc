@@ -1,0 +1,33 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "revibase",
+	"compatibility_date": "2026-09-27",
+	"compatibility_flags": ["nodejs_als"],
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".svelte-kit/cloudflare"
+	},
+	"workers_dev": true,
+	"preview_urls": false,
+	"d1_databases": [
+		{
+			// The shared `phygital-token` database (also used by phygital-wallet's API):
+			// - tap_counters / auth_challenges: owned by phygital-wallet. Sharing
+			//   tap_counters gives ONE counter high-water mark per chip across every
+			//   service that accepts these tap URLs.
+			// - revibase_*: this app's tables (migrations/revibase_*.sql).
+			"binding": "DB",
+			"database_name": "phygital-token",
+			"database_id": "356d6b15-cd60-47b5-a014-648246bd27b5",
+			"migrations_dir": "migrations"
+		}
+	],
+	"vars": {
+		"RP_ID": "revibase.com",
+		"ORIGIN": "https://portal.revibase.com",
+		"SOLANA_CLUSTER": "mainnet",
+		"SOLANA_RPC_URL":"https://rpc.revibase.com",
+	},
+	"observability": { "enabled": true }
+}
