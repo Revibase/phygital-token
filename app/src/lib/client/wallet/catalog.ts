@@ -32,28 +32,31 @@ export const KNOWN_WALLETS: readonly KnownWallet[] = [
 export const FEATURED_WALLET_NAMES = KNOWN_WALLETS.map((w) => w.name);
 
 export type WalletChoice =
-	| { kind: 'detected'; key: string; connectorId: string; name: string; icon: string; ready: boolean }
-	| { kind: 'browse'; key: string; name: string; icon: string; href: string };
+	| { kind: 'detected'; key: string; connectorId: string; name: string; icon: string; ready: boolean; recent: boolean }
+	| { kind: 'browse'; key: string; name: string; icon: string; href: string; recent: boolean };
 
 export function walletChoices(
 	detected: WalletOption[],
-	opts: { browseTarget: string | null; platform: Platform; origin: string }
+	opts: { browseTarget: string | null; platform: Platform; origin: string; recent?: string | null }
 ): WalletChoice[] {
 	const known = (name: string) => KNOWN_WALLETS.find((w) => w.match.test(name));
+	const isRecent = (name: string) => !!opts.recent && name.toLowerCase() === opts.recent.toLowerCase();
 	const rank = (name: string) => {
 		const i = KNOWN_WALLETS.findIndex((w) => w.match.test(name));
 		return i === -1 ? KNOWN_WALLETS.length : i;
 	};
 	const choices: WalletChoice[] = [...detected]
 		.sort((a, b) => rank(a.name) - rank(b.name))
-		.map((w) => ({ kind: 'detected', key: `detected:${w.id}`, connectorId: w.id, name: w.name, icon: w.icon || known(w.name)?.icon || '', ready: w.ready }));
+		.map((w) => ({ kind: 'detected', key: `detected:${w.id}`, connectorId: w.id, name: w.name, icon: w.icon || known(w.name)?.icon || '', ready: w.ready, recent: isRecent(w.name) }));
+	// Recent first, otherwise the order above (sort is stable).
+	const recentFirst = (list: WalletChoice[]) => list.sort((a, b) => Number(b.recent) - Number(a.recent));
 
 	const target = opts.browseTarget;
-	if (!target || !target.startsWith(`${opts.origin}/`) || opts.platform === 'desktop') return choices;
+	if (!target || !target.startsWith(`${opts.origin}/`) || opts.platform === 'desktop') return recentFirst(choices);
 
 	for (const w of KNOWN_WALLETS) {
 		if (detected.some((d) => known(d.name) === w)) continue;
-		choices.push({ kind: 'browse', key: `browse:${w.id}`, name: w.name, icon: w.icon, href: w.browse(target, opts.origin) });
+		choices.push({ kind: 'browse', key: `browse:${w.id}`, name: w.name, icon: w.icon, href: w.browse(target, opts.origin), recent: isRecent(w.name) });
 	}
-	return choices;
+	return recentFirst(choices);
 }

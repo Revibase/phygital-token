@@ -36,6 +36,7 @@ export type IntentRow = {
 	assertion: string | null;
 	recipient: string | null;
 	tx_signature: string | null;
+	wallet_app: string | null;
 	error_code: LinkErrorCode | null;
 	created_at: number;
 	updated_at: number;
@@ -64,6 +65,7 @@ const PATCHABLE = new Set<keyof Patch>([
 	'assertion',
 	'recipient',
 	'tx_signature',
+	'wallet_app',
 	'error_code',
 	'expires_at'
 ]);
@@ -113,6 +115,7 @@ export async function createIntent(
 		assertion: null,
 		recipient: null,
 		tx_signature: null,
+		wallet_app: null,
 		error_code: null,
 		created_at: now,
 		updated_at: now,
@@ -250,6 +253,7 @@ export function toStatusView(
 		tapWindowMs: extra.tapWindowMs ?? null,
 		expiresAt: row.expires_at,
 		txSignature: row.tx_signature,
+		walletApp: row.wallet_app,
 		errorCode: row.error_code
 	};
 }

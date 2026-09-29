@@ -28,7 +28,7 @@
 	} from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
 	import { linkCopy } from '$lib/client/accessory/link-copy';
-	import { rememberWallet } from '$lib/client/memory';
+	import { rememberRecentWallet, rememberWallet } from '$lib/client/memory';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import { shortAddress } from '$lib/shared/encoding';
 	import type { LinkStatusView, TransferChallenge } from '$lib/shared/types';
@@ -77,7 +77,10 @@
 
 	function apply(next: LinkStatusView) {
 		status = next;
-		if (next.state === 'linked' && next.recipient) rememberWallet(a.pda, next.recipient);
+		if (next.state === 'linked' && next.recipient) {
+			rememberWallet(a.pda, next.recipient);
+			rememberRecentWallet(next.walletApp);
+		}
 		if ((next.state === 'created' || next.state === 'accessory_confirmed') && next.errorCode === 'too_slow' && !failure) {
 			failure = linkErrorCopy('too_slow');
 			handoffUrl = null;

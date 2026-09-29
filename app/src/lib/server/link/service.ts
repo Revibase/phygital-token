@@ -318,14 +318,17 @@ function payloadFor(env: ServerEnv, row: IntentRow): TransferPayload {
 	};
 }
 
-export async function markSubmitted(env: ServerEnv, caller: Caller, id: string, body: { signature?: unknown }) {
+export async function markSubmitted(env: ServerEnv, caller: Caller, id: string, body: { signature?: unknown; app?: unknown }) {
 	const row = await loadIntent(env, id);
 	if (!isFinisher(caller, row)) throw forbidden();
 	if (row.state !== 'finishing') throw conflict();
 	if (typeof body.signature !== 'string' || !/^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(body.signature)) {
 		throw new LinkApiError(400, 'bad_request', 'Invalid transaction signature.');
 	}
-	if (!(await transition(env.db, row.id, ['finishing'], 'submitted', { tx_signature: body.signature }))) throw conflict();
+	const walletApp = typeof body.app === 'string' && body.app.trim() ? body.app.trim().slice(0, 40) : null;
+	if (!(await transition(env.db, row.id, ['finishing'], 'submitted', { tx_signature: body.signature, wallet_app: walletApp }))) {
+		throw conflict();
+	}
 	// Not yet landed: the status poll settles it.
 	return toStatusView((await getIntent(env.db, row.id))!);
 }

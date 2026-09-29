@@ -41,4 +41,13 @@ describe('walletChoices', () => {
 		expect(walletChoices([], { browseTarget: 'https://evil.example/continue', platform: 'ios', origin: ORIGIN })).toEqual([]);
 		expect(walletChoices([], { browseTarget: `${ORIGIN}.evil.example/x`, platform: 'ios', origin: ORIGIN })).toEqual([]);
 	});
+
+	it('puts the recently used wallet first and marks it, detected or not', () => {
+		const detected = walletChoices([opt('Phantom'), opt('Solflare')], { browseTarget: null, platform: 'ios', origin: ORIGIN, recent: 'solflare' });
+		expect(detected.map((c) => [c.name, c.recent])).toEqual([['Solflare', true], ['Phantom', false]]);
+
+		const browse = walletChoices([], { browseTarget: TARGET, platform: 'ios', origin: ORIGIN, recent: 'Backpack' });
+		expect(browse.map((c) => c.name)).toEqual(['Backpack', 'Phantom', 'Solflare']);
+		expect(browse[0].recent).toBe(true);
+	});
 });

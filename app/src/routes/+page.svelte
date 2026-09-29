@@ -17,6 +17,7 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { walletAccessoriesQuery } from '$lib/client/queries';
 	import { loginOwner, openOwnedAccessory } from '$lib/client/accessory/open-owned';
+	import { rememberRecentWallet } from '$lib/client/memory';
 	import { platform } from '$lib/client/capability';
 	import { describeError, type FriendlyError } from '$lib/client/link/messages';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
@@ -47,6 +48,7 @@
 		failure = null;
 		try {
 			await walletStore.connect(id);
+			rememberRecentWallet(walletStore.walletName);
 			// The one signature: it logs this browser in, so opening accessories never asks again.
 			// Declining it doesn't block browsing the list; opening an accessory asks then.
 			await loginOwner(walletStore.signingContext()).catch(() => {});

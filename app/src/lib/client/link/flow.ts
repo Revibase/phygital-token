@@ -128,7 +128,7 @@ export async function finishInWallet(
 	}
 
 	onPhase('confirming');
-	return postJson<LinkStatusView>(`/api/link/${linkId}/submitted`, { signature: sig });
+	return postJson<LinkStatusView>(`/api/link/${linkId}/submitted`, { signature: sig, app: ctx.wallet.name });
 }
 
 export async function releaseAccessory(ctx: SigningContext, pda: string): Promise<string> {

@@ -125,6 +125,7 @@ Admit cookies (same model as phygital-wallet's browse_unlock | authority_browse)
   - the desktop flow never shows deep links.
 - **`/continue` claims `h` only once a wallet is detected.** Opened somewhere without one, such as Safari, the link stays unclaimed and is offered for reopening in a wallet app. A browser with no wallet can't burn the single-use link.
 - `catalog.ts` holds the logic and `WalletPicker` renders it everywhere.
+- **Recent wallet:** the finisher sends its wallet app's name with `POST …/submitted` (stored as `wallet_app`, surfaced in the status view). When the tapping browser sees `linked` it remembers that name locally, and connecting a wallet on Home does the same. `WalletPicker` lists the recent app first with a "Recent" tag, including the "Open in …" rows, which is what the tapping browser (usually Safari, with no wallet detected) shows.
 - CSP (`script-src 'self'` plus nonces, `frame-ancestors 'none'`), same-origin `Origin` checks on every JSON POST. `SOLANA_RPC_URL` is itself a public proxy Worker with no secret in it, so the browser calls it directly (reads, DAS and sending); the CSP `connect-src` allows `https:` for it.
 
 ---

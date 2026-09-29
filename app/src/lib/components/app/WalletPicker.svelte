@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { platform, type Platform } from '$lib/client/capability';
+	import { recentWallet } from '$lib/client/memory';
 	import { walletChoices } from '$lib/client/wallet/catalog';
 	import type { WalletOption } from '$lib/client/wallet/wallet.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton';
@@ -26,11 +27,13 @@
 
 	let device = $state<Platform>('desktop');
 	let origin = $state('');
+	let recent = $state<string | null>(null);
 	onMount(() => {
 		device = platform();
 		origin = window.location.origin;
+		recent = recentWallet();
 	});
-	const choices = $derived(origin ? walletChoices(options, { browseTarget, platform: device, origin }) : []);
+	const choices = $derived(origin ? walletChoices(options, { browseTarget, platform: device, origin, recent }) : []);
 </script>
 
 {#if !origin}
@@ -53,7 +56,7 @@
 			{#if c.kind === 'detected'}
 				<ListRow
 					label={c.name}
-					detail={connecting === c.connectorId ? 'Connecting…' : undefined}
+					detail={connecting === c.connectorId ? 'Connecting…' : c.recent ? 'Recent' : undefined}
 					onclick={() => onpick(c.connectorId)}
 					busy={connecting === c.connectorId}
 					disabled={(!!connecting && connecting !== c.connectorId) || !c.ready}
@@ -64,7 +67,7 @@
 					{/snippet}
 				</ListRow>
 			{:else}
-				<ListRow label={`Open in ${c.name}`} href={c.href} rel="noopener" external>
+				<ListRow label={`Open in ${c.name}`} detail={c.recent ? 'Recent' : undefined} href={c.href} rel="noopener" external>
 					{#snippet leading()}<img src={c.icon} alt="" class="size-9 rounded-[9px]" />{/snippet}
 				</ListRow>
 			{/if}

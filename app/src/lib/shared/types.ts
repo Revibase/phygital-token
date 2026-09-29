@@ -78,6 +78,8 @@ export type LinkStatusView = {
 	tapWindowMs: number | null;
 	expiresAt: number;
 	txSignature: string | null;
+	/** Name of the wallet app that finished the link (e.g. "Phantom"), for the picker's "Recent". */
+	walletApp: string | null;
 	errorCode: LinkErrorCode | null;
 };
 
