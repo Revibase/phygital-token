@@ -1,0 +1,193 @@
+@import 'tailwindcss';
+@import "tw-animate-css";
+@import "shadcn-svelte/tailwind.css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Revibase brand: teal #00C2B8 + cream #F7F4EF (from the app icon).
+ * Light (:root) is the default theme; `.dark` is kept for an explicit toggle.
+ * Pure brand teal is used for fills (accessory tile, glow). Light mode uses a
+ * deeper teal for text/buttons so it keeps WCAG AA contrast on cream.
+ */
+:root {
+	--brand: #00c2b8;
+	--brand-cream: #f7f4ef;
+	--background: #f7f4ef;
+	--foreground: #0e1a1a;
+	--card: #ffffff;
+	--card-foreground: #0e1a1a;
+	--popover: #ffffff;
+	--popover-foreground: #0e1a1a;
+	--primary: #00766f;
+	--primary-foreground: #f7f4ef;
+	--secondary: #ece8e1;
+	--secondary-foreground: #0e1a1a;
+	--muted: #ece8e1;
+	--muted-foreground: #5b6b6a;
+	--accent: #d9f4f1;
+	--accent-foreground: #055550;
+	--destructive: oklch(0.577 0.245 27.325);
+	--success: #00766f;
+	--border: #e3ded5;
+	--input: #e3ded5;
+	--ring: #00a89f;
+	--radius: 0.875rem;
+	--glow: rgb(0 194 184 / 0.3);
+}
+
+.dark {
+	--background: #0c1717;
+	--foreground: #f7f4ef;
+	--card: #122120;
+	--card-foreground: #f7f4ef;
+	--popover: #122120;
+	--popover-foreground: #f7f4ef;
+	--primary: #00c2b8;
+	--primary-foreground: #042523;
+	--secondary: #1a2c2b;
+	--secondary-foreground: #f7f4ef;
+	--muted: #1a2c2b;
+	--muted-foreground: #a3b4b2;
+	--accent: #123a37;
+	--accent-foreground: #7fe3dc;
+	--destructive: oklch(0.704 0.191 22.216);
+	--success: #3ddc97;
+	--border: rgb(247 244 239 / 0.09);
+	--input: rgb(247 244 239 / 0.14);
+	--ring: #00c2b8;
+	--glow: rgb(0 194 184 / 0.28);
+}
+
+@theme inline {
+	--font-sans: 'Inter Variable', sans-serif;
+	--color-ring: var(--ring);
+	--color-input: var(--input);
+	--color-border: var(--border);
+	--color-destructive: var(--destructive);
+	--color-success: var(--success);
+	--color-glow: var(--glow);
+	--color-brand: var(--brand);
+	--color-brand-cream: var(--brand-cream);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-accent: var(--accent);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-muted: var(--muted);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-secondary: var(--secondary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-primary: var(--primary);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-popover: var(--popover);
+	--color-card-foreground: var(--card-foreground);
+	--color-card: var(--card);
+	--color-foreground: var(--foreground);
+	--color-background: var(--background);
+	--radius-sm: calc(var(--radius) * 0.6);
+	--radius-md: calc(var(--radius) * 0.8);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) * 1.4);
+	--radius-2xl: calc(var(--radius) * 1.8);
+	--radius-3xl: calc(var(--radius) * 2.2);
+	--radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
+	html {
+		@apply font-sans;
+	}
+}
+
+@layer base {
+	/* Tailwind v4 resets buttons to the default cursor; anything you can press should say so on desktop. */
+	button:not(:disabled),
+	[role='button']:not([aria-disabled='true']),
+	a[href] {
+		cursor: pointer;
+	}
+	html {
+		-webkit-tap-highlight-color: transparent;
+		text-rendering: optimizeLegibility;
+	}
+	body {
+		min-height: 100dvh;
+		font-feature-settings: 'cv11', 'ss01';
+	}
+	h1,
+	h2,
+	h3 {
+		letter-spacing: -0.02em;
+		text-wrap: balance;
+	}
+	p {
+		text-wrap: pretty;
+	}
+}
+
+/*
+ * Motion: every animation confirms an action or communicates a state change.
+ * Entrances decelerate (ease-out-quint); nothing loops except the single
+ * "waiting for your tap" ring. Everything collapses under reduced motion.
+ */
+@theme {
+	--ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes nfc-ring {
+	0% { transform: scale(0.92); opacity: 0.5; }
+	70%, 100% { transform: scale(1.35); opacity: 0; }
+}
+@keyframes rise-in {
+	from { transform: translateY(4px); opacity: 0; }
+	to { transform: translateY(0); opacity: 1; }
+}
+@keyframes draw-check {
+	from { stroke-dashoffset: 24; }
+	to { stroke-dashoffset: 0; }
+}
+@keyframes bond {
+	from { transform: scaleX(0); }
+	to { transform: scaleX(1); }
+}
+@keyframes pop-in {
+	from { transform: scale(0.6); opacity: 0; }
+	to { transform: scale(1); opacity: 1; }
+}
+
+/* State change within a screen (new step, result): 240ms, 4px. */
+@utility animate-rise {
+	animation: rise-in 240ms var(--ease-out-quint) both;
+}
+/* Only while the app is waiting for a physical tap. */
+@utility animate-ripple {
+	animation: nfc-ring 2.2s var(--ease-out-quint) infinite;
+}
+/* Confirmation: verified badge appears, then its check draws. */
+@utility animate-pop {
+	animation: pop-in 220ms var(--ease-out-quint) 120ms both;
+}
+@utility animate-draw {
+	stroke-dasharray: 24;
+	animation: draw-check 280ms ease-out 260ms both;
+}
+/* Success: accessory ↔ wallet connect. */
+@utility animate-bond {
+	transform-origin: left;
+	animation: bond 420ms var(--ease-out-quint) 150ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 1ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 1ms !important;
+	}
+}

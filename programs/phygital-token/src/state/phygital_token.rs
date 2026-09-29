@@ -34,11 +34,17 @@ impl PhygitalToken {
         token_type: PhygitalTokenType,
         public_key: Secp256r1Pubkey,
         linked_wallet: Pubkey,
-    ) {
+    ) -> Result<()> {
+        require!(
+            (token_type == PhygitalTokenType::Permanent) == (linked_wallet != Pubkey::default()),
+            crate::error::PhygitalError::PermanentLinkedWalletRequired
+        );
+
         self.identifier = identifier;
         self.token_type = token_type as u8;
         self.public_key = public_key;
         self.linked_wallet = linked_wallet;
         self.is_locked = (linked_wallet != Pubkey::default()) as u8;
+        Ok(())
     }
 }

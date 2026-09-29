@@ -51,18 +51,12 @@ pub struct Initialize<'info> {
 
 pub fn handler(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
     let mut token = ctx.accounts.phygital_token.load_init()?;
-    if args.token_type == PhygitalTokenType::Permanent {
-        require!(
-            args.linked_wallet != Pubkey::default(),
-            PhygitalError::PermanentLinkedWalletRequired
-        );
-    }
     token.init(
         args.identifier,
         args.token_type,
         args.secp256r1_pubkey,
         args.linked_wallet,
-    );
+    )?;
 
     emit!(InitializeEvent {
         identifier: args.identifier,

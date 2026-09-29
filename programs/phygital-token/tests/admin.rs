@@ -249,11 +249,7 @@ fn non_admin_cannot_close_phygital_token() {
     let minted = ctx.init_phygital_token(&passkey);
     let issuer = ctx.issuer.insecure_clone();
 
-    let ix = ctx.close_phygital_token_ix(
-        issuer.pubkey(),
-        issuer.pubkey(),
-        minted.phygital_token,
-    );
+    let ix = ctx.close_phygital_token_ix(issuer.pubkey(), issuer.pubkey(), minted.phygital_token);
     assert_phygital_token_program_error(
         TestContext::send_instruction(&mut ctx.svm, ix, &[&issuer]),
         "UnauthorizedAdmin",
