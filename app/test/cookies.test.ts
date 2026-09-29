@@ -4,7 +4,8 @@ import {
 	signToken,
 	verifyToken,
 	type BrowseUnlockSession,
-	type OwnerBrowseSession
+	type OwnerBrowseSession,
+	type OwnerSession
 } from '$lib/server/session/cookies';
 
 const SECRET = 'x'.repeat(48);
@@ -35,6 +36,13 @@ describe('session tokens', () => {
 	it('round-trips an owner_browse session', async () => {
 		const token = await signToken(SECRET, owner);
 		expect(await verifyToken<OwnerBrowseSession>(SECRET, token, 'ob')).toEqual(owner);
+	});
+
+	it('round-trips an owner_session and never verifies it as owner_browse', async () => {
+		const login: OwnerSession = { v: 1, t: 'os', sid: 'sid3', wallet: owner.wallet, exp: Date.now() + 60_000 };
+		const token = await signToken(SECRET, login);
+		expect(await verifyToken<OwnerSession>(SECRET, token, 'os')).toEqual(login);
+		expect(await verifyToken<OwnerBrowseSession>(SECRET, token, 'ob')).toBeNull();
 	});
 
 	it('never verifies a browse_unlock token as owner_browse (or the reverse)', async () => {

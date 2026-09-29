@@ -77,7 +77,7 @@ These rules sit on top of the on-chain lock flag. The app never presents an unex
 ### Tap counter (anti-replay)
 
 - **Database:** the app uses a single D1 database, the shared `phygital-token` one.
-  - `tap_counters` and `auth_challenges` are owned by phygital-wallet. Resume and owner-browse challenges go in `auth_challenges` under their own namespaces and are consumed atomically with `DELETE … RETURNING`.
+  - `tap_counters` and `auth_challenges` are owned by phygital-wallet. Resume and owner-login challenges go in `auth_challenges` under their own namespaces and are consumed atomically with `DELETE … RETURNING`.
   - The app's own tables are prefixed `revibase_`.
 - The high-water mark lives in the shared `tap_counters` table, so every service that accepts these URLs shares one mark per chip.
 - If each service kept its own mark, a URL already used in one could be replayed in another.
@@ -91,7 +91,8 @@ Admit cookies (same model as phygital-wallet's browse_unlock | authority_browse)
 | Cookie | Purpose | Issued by | Opens |
 |---|---|---|---|
 | `__Host-bu` (`bu`) | **browse_unlock** — physical possession | NFC tap (`/accessory?pk&c&n&s`) or WebAuthn Hold (`POST /api/tap/resume`) | `/accessory` (view) and `/accessory/link` (ceremony) |
-| `__Host-ob` (`ob`) | **owner_browse** — linked wallet proved ownership | `POST /api/accessory/owner-browse` after `solana:signMessage` | `/accessory` (view only) |
+| `__Host-os` (`os`) | **owner_session** — this browser proved control of a wallet (12 h) | `POST /api/owner/session` after one `solana:signMessage`; cleared by `DELETE` when the wallet disconnects | nothing by itself; mints `ob` |
+| `__Host-ob` (`ob`) | **owner_browse** — the logged-in wallet owns this accessory | `POST /api/accessory/owner-browse {pda, address}`: needs `os` for that wallet and the chain's `linked_wallet` to match; no signature | `/accessory` (view only) |
 
 `readAdmitSession` prefers browse_unlock when both somehow remain. Issuing either clears the other. Ceremony finishers (`hof`, `dsk`, `pair`) are unchanged.
 
@@ -103,7 +104,7 @@ Admit cookies (same model as phygital-wallet's browse_unlock | authority_browse)
 
   The raw signed URL is never rendered and never kept as a history entry.
 - **`/tap/expired`:** **Continue** runs `startAuthentication(message, { rpc })` → `POST /api/tap/resume` (`verifyResponse`) → reissues browse_unlock.
-- **Home → open accessory:** connected wallet signs a challenge → owner_browse → `/accessory`.
+- **Home → open accessory:** connecting a wallet signs one challenge → `os`. Opening an accessory then needs no signature: `os` plus a chain check of `linked_wallet` issues `ob` → `/accessory`. If `os` is missing or belongs to another wallet the server answers 401 `unauthenticated`, and the client logs in again and retries.
 - **Opening the same URL twice** in the same browser continues silently. Anywhere else it shows "That tap was already used". When taps arrive out of order, the newest wins.
 - **Capabilities** (`h` for a wallet app, `p` for desktop pairing) are 256-bit, single-use, and travel **only in URL fragments**, so they never reach server logs or a Referer header.
   - The server stores only their SHA-256.
@@ -217,7 +218,7 @@ The app does one job: make the object stand in for your wallet.
 
 | Route | Purpose |
 |---|---|
-| `/` | Two jobs. With tap parameters, the server load runs the tap ceremony and redirects to `/accessory`, so people holding an accessory never see this page. Without them, it's **Your accessories**: connect your wallet, open any accessory via owner_browse, and release any of them without the accessory. |
+| `/` | Two jobs. With tap parameters, the server load runs the tap ceremony and redirects to `/accessory`, so people holding an accessory never see this page. Without them, it's **Your accessories**: connect your wallet (one signature), open any accessory via owner_browse, and release any of them without the accessory. |
 | `/tap/[reason]` | malformed · invalid · replayed · unknown · network · expired. Expired offers **Continue** (WebAuthn Hold → browse_unlock). |
 | `/accessory` | Gated by browse_unlock **or** owner_browse. Ready to link · ready to use · locked (Controlled) · permanently yours · linked to a different wallet than this device last saw |
 | `/accessory/link` | Needs browse_unlock. Two steps: **Tap to approve** → **Finish in your wallet** (a detected wallet here, open in Phantom/Backpack/Solflare, copy link, or use a computer) |

@@ -43,7 +43,7 @@ There is **one** D1 binding, `DB`: the shared `phygital-token` database that phy
 
 - **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned by phygital-wallet.
   - `tap_counters` must be shared so there is one tap-counter high-water mark per chip across every service.
-  - Resume and owner-browse challenges are stored in `auth_challenges` under their own namespaces (message string → `startAuthentication` / `verifyResponse`).
+  - Resume and owner-login challenges are stored in `auth_challenges` under their own namespaces (message string → `startAuthentication` / `verifyResponse`).
 - **This app's tables:** `revibase_link_intents` and `revibase_identifier_cache`.
 - **Migrations:** apply the app's own with `wrangler d1 migrations apply DB --remote`. The files are prefixed `revibase_` so they never clash with phygital-wallet's migration history. `revibase_0000_shared_tables_mirror.sql` only mirrors the shared tables for local dev; it uses `IF NOT EXISTS` and is a no-op remotely.
 - Set `SESSION_SECRET` with `wrangler secret put`. `SOLANA_RPC_URL` is sent to the browser, which calls it directly (reads, DAS and sending), so it must be your public RPC proxy Worker, not a URL with an API key. Set it as a plain var.

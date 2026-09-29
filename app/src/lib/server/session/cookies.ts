@@ -8,7 +8,11 @@ import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
  *
  * Admit (opens `/accessory`):
  * - `bu`  — browse_unlock: physical possession (NFC tap or WebAuthn Hold).
- * - `ob`  — owner_browse: the linked wallet proved ownership (no tap needed).
+ * - `ob`  — owner_browse: the linked wallet owns this accessory (no tap needed).
+ *   Issued from `os` alone, so opening an accessory never asks for a signature.
+ *
+ * Login:
+ * - `os`  — owner_session: this browser proved control of a wallet (one signMessage).
  *
  * Ceremony:
  * - `hof`  — handoff finisher: the one wallet context that claimed `h`.
@@ -25,6 +29,8 @@ import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
 
 export const BROWSE_SESSION_TTL_MS = 10 * 60 * 1000;
 export const FINISHER_SESSION_TTL_MS = 10 * 60 * 1000;
+/** Wallet login lifetime (phygital-wallet's authority session). */
+export const OWNER_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 /** Physical-possession admit. Seed of the link ceremony. */
 export type BrowseUnlockSession = {
@@ -48,16 +54,20 @@ export type OwnerBrowseSession = {
 	exp: number;
 };
 
+/** Wallet login: proof this browser controls `wallet`. Not an admit on its own. */
+export type OwnerSession = { v: 1; t: 'os'; sid: string; wallet: string; exp: number };
+
 /** Either admit cookie — enough to view `/accessory`. */
 export type AdmitSession = BrowseUnlockSession | OwnerBrowseSession;
 
 export type FinisherSession = { v: 1; t: 'hof' | 'dsk'; sid: string; linkId: string; exp: number };
 export type PairSession = { v: 1; t: 'pair'; sid: string; linkId: string; exp: number };
-type AnySession = BrowseUnlockSession | OwnerBrowseSession | FinisherSession | PairSession;
+type AnySession = BrowseUnlockSession | OwnerBrowseSession | OwnerSession | FinisherSession | PairSession;
 
 const NAMES = {
 	bu: dev ? 'bu' : '__Host-bu',
 	ob: dev ? 'ob' : '__Host-ob',
+	os: dev ? 'os' : '__Host-os',
 	hof: dev ? 'hof' : '__Host-hof',
 	dsk: dev ? 'dsk' : '__Host-dsk',
 	pair: dev ? 'pair' : '__Host-pair'
@@ -177,6 +187,17 @@ export async function setOwnerBrowse(
 	return session;
 }
 
+export async function setOwnerSession(
+	cookies: Cookies,
+	secret: string,
+	wallet: string,
+	now = Date.now()
+): Promise<OwnerSession> {
+	const session: OwnerSession = { v: 1, t: 'os', sid: newSessionId(), wallet, exp: now + OWNER_SESSION_TTL_MS };
+	await writeCookie(cookies, secret, session);
+	return session;
+}
+
 export async function setFinisherSession(
 	cookies: Cookies,
 	secret: string,
@@ -202,6 +223,10 @@ export async function setPairSession(
 
 export function readBrowseUnlock(cookies: Cookies, secret: string) {
 	return verifyToken<BrowseUnlockSession>(secret, cookies.get(NAMES.bu), 'bu');
+}
+
+export function readOwnerSession(cookies: Cookies, secret: string) {
+	return verifyToken<OwnerSession>(secret, cookies.get(NAMES.os), 'os');
 }
 
 export function readOwnerBrowse(cookies: Cookies, secret: string) {

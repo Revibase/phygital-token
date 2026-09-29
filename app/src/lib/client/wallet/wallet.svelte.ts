@@ -109,6 +109,8 @@ class WalletStore {
 
 	async disconnect() {
 		await this.#client?.disconnectWallet();
+		// Best effort: the wallet login and any owner_browse it issued end with the connection.
+		void fetch('/api/owner/session', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
 	}
 
 	signingContext(): SigningContext {

@@ -6,7 +6,7 @@ import { getPhygitalTokenEncoder } from 'phygital-token-sdk';
 import { bytesToBase64, bytesToBase64Url } from '$lib/shared/encoding';
 import { MIGRATIONS, createTestD1 } from './support/d1-sqlite';
 import { fakeAccessory } from './support/fixtures';
-import { issueOwnerBrowseChallenge, verifyOwnerBrowse } from '$lib/server/accessory/owner-browse';
+import { issueOwnerLoginChallenge, verifyOwnerBrowse, verifyOwnerLogin } from '$lib/server/accessory/owner-browse';
 
 function rpcWith(account: Uint8Array | null) {
 	return {
@@ -33,57 +33,46 @@ function walletKey() {
 	return { secret, address: addr };
 }
 
-describe('owner_browse', () => {
-	it('admits the linked wallet after a fresh message signature', async () => {
+describe('owner login (owner_session)', () => {
+	it('accepts a fresh message signature, once', async () => {
 		const w = walletKey();
-		const acc = fakeAccessory();
-		const pda = await acc.pda();
-		const data = new Uint8Array(
-			getPhygitalTokenEncoder().encode(acc.account({ linkedWallet: address(w.address), tokenType: 2, isLocked: 1 }))
-		);
 		const db = createTestD1([MIGRATIONS]);
-		const deps = { db, rpc: rpcWith(data) };
-		const { challengeId, message } = await issueOwnerBrowseChallenge(db);
+		const { challengeId, message } = await issueOwnerLoginChallenge(db);
 		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), w.secret));
 
-		expect(await verifyOwnerBrowse(deps, { challengeId, pda, address: w.address, signature })).toMatchObject({
-			ok: true,
-			pda,
-			wallet: w.address
-		});
+		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toEqual({ ok: true, wallet: w.address });
+		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toMatchObject({ ok: false, code: 'too_slow' });
+	});
+
+	it('rejects a signature from another key', async () => {
+		const w = walletKey();
+		const other = walletKey();
+		const db = createTestD1([MIGRATIONS]);
+		const { challengeId, message } = await issueOwnerLoginChallenge(db);
+		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), other.secret));
+
+		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toMatchObject({ ok: false, code: 'bad_signature' });
+	});
+});
+
+describe('owner_browse', () => {
+	async function linkedTo(wallet: string) {
+		const acc = fakeAccessory();
+		const data = new Uint8Array(
+			getPhygitalTokenEncoder().encode(acc.account({ linkedWallet: address(wallet), tokenType: 2, isLocked: 1 }))
+		);
+		return { pda: await acc.pda(), rpc: rpcWith(data) };
+	}
+
+	it('admits the logged-in wallet the accessory is linked to', async () => {
+		const owner = walletKey();
+		const { pda, rpc } = await linkedTo(owner.address);
+		expect(await verifyOwnerBrowse(rpc, owner.address, pda)).toMatchObject({ ok: true, pda });
 	});
 
 	it('rejects a wallet that isn’t the linked one', async () => {
 		const owner = walletKey();
-		const stranger = walletKey();
-		const acc = fakeAccessory();
-		const pda = await acc.pda();
-		const data = new Uint8Array(
-			getPhygitalTokenEncoder().encode(acc.account({ linkedWallet: address(owner.address), tokenType: 2, isLocked: 1 }))
-		);
-		const db = createTestD1([MIGRATIONS]);
-		const deps = { db, rpc: rpcWith(data) };
-		const { challengeId, message } = await issueOwnerBrowseChallenge(db);
-		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), stranger.secret));
-
-		expect(
-			await verifyOwnerBrowse(deps, { challengeId, pda, address: stranger.address, signature })
-		).toMatchObject({ ok: false, code: 'not_owner' });
-	});
-
-	it('rejects a bad signature', async () => {
-		const w = walletKey();
-		const acc = fakeAccessory();
-		const pda = await acc.pda();
-		const data = new Uint8Array(
-			getPhygitalTokenEncoder().encode(acc.account({ linkedWallet: address(w.address), tokenType: 2, isLocked: 1 }))
-		);
-		const db = createTestD1([MIGRATIONS]);
-		const { challengeId } = await issueOwnerBrowseChallenge(db);
-		const signature = bytesToBase64Url(new Uint8Array(64));
-
-		expect(
-			await verifyOwnerBrowse({ db, rpc: rpcWith(data) }, { challengeId, pda, address: w.address, signature })
-		).toMatchObject({ ok: false, code: 'bad_signature' });
+		const { pda, rpc } = await linkedTo(owner.address);
+		expect(await verifyOwnerBrowse(rpc, walletKey().address, pda)).toMatchObject({ ok: false, code: 'not_owner' });
 	});
 });
