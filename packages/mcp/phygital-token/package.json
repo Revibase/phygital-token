@@ -7,9 +7,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Revibase/phygital-token.git",
-    "directory": "mcp/phygital-token"
+    "directory": "packages/mcp/phygital-token"
   },
-  "homepage": "https://github.com/Revibase/phygital-token/tree/master/mcp/phygital-token",
+  "homepage": "https://github.com/Revibase/phygital-token/tree/master/packages/mcp/phygital-token",
   "bugs": {
     "url": "https://github.com/Revibase/phygital-token/issues"
   },

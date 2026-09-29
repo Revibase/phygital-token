@@ -1,6 +1,6 @@
 packages:
   - "packages/js/*"
-  - "mcp/*"
+  - "packages/mcp/*"
   - "app"
 
 # Build-script approval (pnpm asks for an explicit decision per dependency).

@@ -20,7 +20,7 @@ export function resolveRepoRoot(): string {
   if (override) {
     return override;
   }
-  return path.resolve(PACKAGE_ROOT, "../..");
+  return path.resolve(PACKAGE_ROOT, "../../..");
 }
 
 function resolveSdkPackageRoot(): string | undefined {
