@@ -24,10 +24,10 @@
 		}
 	],
 	"vars": {
-		// WebAuthn relying party id and the exact origin the tap page runs on.
 		"RP_ID": "revibase.com",
 		"ORIGIN": "https://portal.revibase.com",
-		"SOLANA_CLUSTER": "mainnet"
+		"SOLANA_CLUSTER": "mainnet",
+		"SOLANA_RPC_URL":"https://rpc.revibase.com",
 	},
 	"observability": { "enabled": true }
 }
