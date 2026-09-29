@@ -66,9 +66,7 @@
 	const kindLabel = { permanent: 'Bound to one wallet', bearer: 'Tradable', controlled: 'Locks to its owner', unknown: 'Unknown' };
 	const copyable = $derived(
 		[
-			['Accessory account', accessory.pda],
-			['Chip ID', accessory.identifier],
-			['Passkey', accessory.publicKey],
+			['Public Key', accessory.publicKey],
 			['Linked wallet', accessory.linkedWallet],
 			['Collectible', accessory.mint]
 		] as const
@@ -103,7 +101,6 @@
 	<List>
 		<ListRow label="Type" detail={kindLabel[accessory.kind]} />
 		<ListRow label="Status" detail={accessory.isLocked ? 'Locked' : 'Unlocked'} />
-		<ListRow label="Signature counter" detail={String(accessory.lastSignCount)} />
 	</List>
 	<List>
 		{#each copyable as [label, value] (label)}

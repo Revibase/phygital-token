@@ -38,6 +38,7 @@ export function toAccessoryView(pda: string, account: PhygitalToken): AccessoryV
 	const linkedWallet = account.linkedWallet === DEFAULT_PUBKEY ? null : String(account.linkedWallet);
 	const isLocked = account.isLocked !== 0;
 	const identifier = bytesToBase64Url(new Uint8Array(account.identifier[0]));
+	const publicKey = bytesToBase64Url(new Uint8Array(account.publicKey[0]));
 	const rules = accessoryRules(kind, linkedWallet, isLocked);
 
 	let status: AccessoryStatus;
@@ -48,8 +49,8 @@ export function toAccessoryView(pda: string, account: PhygitalToken): AccessoryV
 	return {
 		pda,
 		identifier,
-		tag: accessoryTag(identifier),
-		publicKey: bytesToBase64Url(new Uint8Array(account.publicKey[0])),
+		tag: accessoryTag(publicKey),
+		publicKey,
 		kind,
 		status,
 		linkedWallet,
