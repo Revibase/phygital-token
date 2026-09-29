@@ -30,7 +30,7 @@ import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
 export const BROWSE_SESSION_TTL_MS = 10 * 60 * 1000;
 export const FINISHER_SESSION_TTL_MS = 10 * 60 * 1000;
 /** Wallet login lifetime (phygital-wallet's authority session). */
-export const OWNER_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+export const OWNER_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Physical-possession admit. Seed of the link ceremony. */
 export type BrowseUnlockSession = {

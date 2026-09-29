@@ -2,10 +2,10 @@ import type { Platform } from '../capability';
 import type { WalletOption } from './wallet.svelte';
 
 /**
- * Wallets we always offer. When `@solana/connector` detects one (Wallet
- * Standard injection, extension, or MWA) we connect to it directly; when it
- * doesn't, on a phone we offer to open this page inside that wallet's in-app
- * browser instead. Any other wallet the connector detects is listed too.
+ * Featured wallets. When `@solana/connector` detects any wallet (Wallet
+ * Standard injection, extension, or MWA) we list only the detected ones and
+ * connect directly. Only when none is detected, on a phone, do we offer to
+ * open this page inside one of these wallets' in-app browsers instead.
  *
  * Browse deep links (URL-encoded target + URL-encoded `ref`):
  * - Phantom  https://docs.phantom.com/phantom-deeplinks/other-methods/browse
@@ -52,10 +52,12 @@ export function walletChoices(
 	const recentFirst = (list: WalletChoice[]) => list.sort((a, b) => Number(b.recent) - Number(a.recent));
 
 	const target = opts.browseTarget;
-	if (!target || !target.startsWith(`${opts.origin}/`) || opts.platform === 'desktop') return recentFirst(choices);
+	// Any detected wallet means we can connect right here; "Open in …" is only the fallback.
+	if (detected.length > 0 || !target || !target.startsWith(`${opts.origin}/`) || opts.platform === 'desktop') {
+		return recentFirst(choices);
+	}
 
 	for (const w of KNOWN_WALLETS) {
-		if (detected.some((d) => known(d.name) === w)) continue;
 		choices.push({ kind: 'browse', key: `browse:${w.id}`, name: w.name, icon: w.icon, href: w.browse(target, opts.origin), recent: isRecent(w.name) });
 	}
 	return recentFirst(choices);

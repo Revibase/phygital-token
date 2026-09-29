@@ -8,14 +8,9 @@ const TARGET = `${ORIGIN}/continue#h=abc`;
 const opt = (name: string): WalletOption => ({ id: name.toLowerCase(), name, icon: '', ready: true });
 
 describe('walletChoices', () => {
-	it('lists detected wallets first, known ones in order, then deep links for the rest on phones', () => {
+	it('lists only detected wallets, known ones first, when any wallet is detected', () => {
 		const choices = walletChoices([opt('Glow'), opt('Solflare')], { browseTarget: TARGET, platform: 'ios', origin: ORIGIN });
-		expect(choices.map((c) => `${c.kind}:${c.name}`)).toEqual([
-			'detected:Solflare',
-			'detected:Glow',
-			'browse:Phantom',
-			'browse:Backpack'
-		]);
+		expect(choices.map((c) => `${c.kind}:${c.name}`)).toEqual(['detected:Solflare', 'detected:Glow']);
 	});
 
 	it('builds each wallet’s documented browse deep link with an encoded target and ref', () => {
@@ -29,10 +24,9 @@ describe('walletChoices', () => {
 		]);
 	});
 
-	it('offers no deep link for a wallet the connector already detected', () => {
+	it('offers no deep links once the connector detects a wallet', () => {
 		const choices = walletChoices([opt('Phantom')], { browseTarget: TARGET, platform: 'ios', origin: ORIGIN });
-		expect(choices.filter((c) => c.name === 'Phantom')).toHaveLength(1);
-		expect(choices[0].kind).toBe('detected');
+		expect(choices.map((c) => `${c.kind}:${c.name}`)).toEqual(['detected:Phantom']);
 	});
 
 	it('offers no deep links on desktop, without a target, or for a foreign target', () => {
