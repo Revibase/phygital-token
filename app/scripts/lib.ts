@@ -84,7 +84,7 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 				n: bytesToBase64Url(nonce),
 				s: bytesToBase64Url(p256.sign(msg, ndefKey))
 			});
-			return `${APP}/?${q}`;
+			return `${APP}/accessory?${q}`;
 		},
 		webauthn(challengeB64: string) {
 			signCount += 1;

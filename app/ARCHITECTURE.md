@@ -90,12 +90,12 @@ Admit cookies (same model as phygital-wallet's browse_unlock | authority_browse)
 
 | Cookie | Purpose | Issued by | Opens |
 |---|---|---|---|
-| `__Host-bu` (`bu`) | **browse_unlock** — physical possession | NFC tap (`/?pk&c&n&s`) or WebAuthn Hold (`POST /api/tap/resume`) | `/accessory` (view) and `/accessory/link` (ceremony) |
+| `__Host-bu` (`bu`) | **browse_unlock** — physical possession | NFC tap (`/accessory?pk&c&n&s`) or WebAuthn Hold (`POST /api/tap/resume`) | `/accessory` (view) and `/accessory/link` (ceremony) |
 | `__Host-ob` (`ob`) | **owner_browse** — linked wallet proved ownership | `POST /api/accessory/owner-browse` after `solana:signMessage` | `/accessory` (view only) |
 
 `readAdmitSession` prefers browse_unlock when both somehow remain. Issuing either clears the other. Ceremony finishers (`hof`, `dsk`, `pair`) are unchanged.
 
-- `GET /?pk&c&n&s`:
+- `GET /accessory?pk&c&n&s`:
   - prefetch requests (`Sec-Purpose` / `Purpose`) are ignored;
   - the tap is verified and its counter consumed;
   - `__Host-bu` is set (HMAC-signed, HttpOnly, Secure, SameSite=Lax, 10 minutes) and any leftover `__Host-ob` is cleared;
@@ -142,7 +142,7 @@ The tap is a short-lived bearer capability: whoever redeems it first chooses the
 ```
 Safari/Chrome (tap origin)          Server (Worker + D1)                    Wallet in-app browser
 ──────────────────────────          ────────────────────                    ─────────────────────
-NFC tap ──GET /?pk&c&n&s──────────▶ verify P-256 · consume counter
+NFC tap ──GET /accessory?pk&c&n&s─▶ verify P-256 · consume counter
                                     resolve token · __Host-bu · 303
 "Link wallet" ─POST /api/link─────▶ intent: created (1 per accessory)
 (prefetched) ─POST …/challenge────▶ SDK beginTransfer(rpId) → slot, hash,
