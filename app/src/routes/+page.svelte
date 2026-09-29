@@ -50,8 +50,13 @@
 			await walletStore.connect(id);
 			rememberRecentWallet(walletStore.walletName);
 			// The one signature: it logs this browser in, so opening accessories never asks again.
-			// Declining it doesn't block browsing the list; opening an accessory asks then.
-			await loginOwner(walletStore.signingContext()).catch(() => {});
+			// Declining it cancels the connection and returns to the wallet picker.
+			try {
+				await loginOwner(walletStore.signingContext());
+			} catch (err) {
+				await walletStore.disconnect().catch(() => {});
+				throw err;
+			}
 		} catch (err) {
 			failure = describeError(err);
 		} finally {
