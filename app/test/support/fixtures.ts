@@ -35,24 +35,26 @@ export function fakeAccessory() {
 		},
 		assert(
 			challenge: Uint8Array,
-			opts: { signCount?: number; origin?: string; rpId?: string; flags?: number; type?: string } = {}
+			opts: { highS?: boolean } = {}
 		): TransferPayload['response'] {
 			const clientData = new TextEncoder().encode(
 				JSON.stringify({
-					type: opts.type ?? 'webauthn.get',
+					type: 'webauthn.get',
 					challenge: bytesToBase64Url(challenge),
-					origin: opts.origin ?? ORIGIN,
+					origin: ORIGIN,
 					crossOrigin: false
 				})
 			);
 			const authData = new Uint8Array(37);
-			authData.set(sha256(new TextEncoder().encode(opts.rpId ?? RP_ID)), 0);
-			authData[32] = opts.flags ?? 0x01;
-			new DataView(authData.buffer).setUint32(33, opts.signCount ?? 4, false);
+			authData.set(sha256(new TextEncoder().encode(RP_ID)), 0);
+			authData[32] = 0x01;
+			new DataView(authData.buffer).setUint32(33, 4, false);
 			const signed = new Uint8Array(authData.length + 32);
 			signed.set(authData);
 			signed.set(sha256(clientData), authData.length);
-			const der = p256.sign(signed, priv, { format: 'der' });
+			let sig = p256.Signature.fromBytes(p256.sign(signed, priv), 'compact');
+			if (!!opts.highS !== sig.hasHighS()) sig = new p256.Signature(sig.r, p256.Point.CURVE().n - sig.s);
+			const der = sig.toBytes('der');
 			return {
 				id: bytesToBase64Url(publicKey),
 				rawId: bytesToBase64Url(publicKey),

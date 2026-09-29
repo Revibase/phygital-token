@@ -36,6 +36,8 @@ import type { TransferChallenge, TransferPayload } from './types';
 export const SECP256R1_PROGRAM_ADDRESS = address('Secp256r1SigVerify1111111111111111111111111');
 export const SLOT_HASHES_SYSVAR = address('SysvarS1otHashes111111111111111111111111111');
 export const INSTRUCTIONS_SYSVAR = address('Sysvar1nstructions1111111111111111111111111');
+/** Wallet guard program (Phantom and others wrap what they sign with its assertions). */
+export const LIGHTHOUSE_PROGRAM_ADDRESS = address('L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95');
 
 /** set_linked_wallet is cheap; the secp256r1 precompile is charged per signature, not per CU. */
 export const LINK_COMPUTE_UNIT_LIMIT = 60_000;
@@ -138,11 +140,13 @@ export function validateLinkTransaction(
 		if (ix.programAddress === COMPUTE_BUDGET_PROGRAM_ADDRESS) budget++;
 		else if (ix.programAddress === SECP256R1_PROGRAM_ADDRESS) secpIndex = secpIndex === -1 ? i : reject('multiple secp256r1 instructions');
 		else if (ix.programAddress === PHYGITAL_TOKEN_PROGRAM_ADDRESS) linkIndex = linkIndex === -1 ? i : reject('multiple phygital instructions');
+		else if (options.allowWalletAdditions && ix.programAddress === LIGHTHOUSE_PROGRAM_ADDRESS) return;
 		else if (!(options.allowWalletAdditions && linkIndex !== -1)) reject(`unexpected program ${ix.programAddress}`);
 	});
-	// Some wallets append their own guard instructions (e.g. Lighthouse) when
-	// signing. Allowed only after set_linked_wallet, only on the signed copy,
-	// and never with an additional signer (checked below).
+	// On the signed copy a wallet may add compute-budget and Lighthouse guard
+	// instructions anywhere (Lighthouse often wraps the whole message); any other
+	// program is tolerated only after set_linked_wallet. Never an additional
+	// signer (checked below).
 	if (budget > 2 && !options.allowWalletAdditions) reject('too many compute budget instructions');
 	if (linkIndex === -1 || secpIndex !== linkIndex - 1) {
 		reject('secp256r1_verify must immediately precede set_linked_wallet');

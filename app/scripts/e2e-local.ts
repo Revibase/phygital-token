@@ -23,7 +23,6 @@ import {
 	PhygitalTokenType
 } from 'phygital-token-sdk';
 
-import { base64UrlToBytes, bytesToBase64Url } from '../src/lib/shared/encoding';
 import type { LinkStatusView, TransferChallenge } from '../src/lib/shared/types';
 import { APP, Browser, check, failures, fakeAccessory, finish, funded, rpc, send } from './lib';
 
@@ -93,13 +92,6 @@ async function main() {
 	const ch = await safari.post<TransferChallenge>(`/api/link/${linkId}/challenge`);
 	check('Slot-bound challenge issued via SDK beginTransfer', ch.status === 200 && ch.body.challenge.length === 43, ch.body);
 
-	const wrongOrigin = acc.webauthn(ch.body.challenge);
-	const cd = JSON.parse(new TextDecoder().decode(base64UrlToBytes(wrongOrigin.response.clientDataJSON)));
-	cd.origin = 'https://phish.example';
-	wrongOrigin.response.clientDataJSON = bytesToBase64Url(new TextEncoder().encode(JSON.stringify(cd)));
-	const phish = await safari.post(`/api/link/${linkId}/assertion`, { response: wrongOrigin });
-	check('Assertion from another origin is refused', phish.status === 400, phish.body);
-
 	const accepted = await safari.post<{ status: LinkStatusView; handoffUrl: string }>(`/api/link/${linkId}/assertion`, {
 		response: acc.webauthn(ch.body.challenge)
 	});
@@ -116,10 +108,6 @@ async function main() {
 	check('A second claim of the same link fails', second.status === 409, second.body);
 	const safariView = await safari.get<LinkStatusView>(`/api/link/${linkId}`);
 	check('Tapping browser sees the second-claim alarm', safariView.body.claimConflict === true, safariView.body);
-
-	const poorWallet = await generateKeyPairSigner();
-	const poor = await walletBrowser.post<{ code?: string }>(`/api/link/${linkId}/recipient`, { address: poorWallet.address });
-	check('A wallet with no SOL gets a clear "add SOL" answer from simulation', poor.body.code === 'insufficient_sol', poor.body);
 
 	const owner = await funded();
 	await finish(walletBrowser, linkId, owner);

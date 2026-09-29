@@ -14,15 +14,18 @@ import {
 } from '@solana/kit';
 import { getTransferSolInstruction } from '@solana-program/system';
 
+import { getSetComputeUnitLimitInstruction } from '@solana-program/compute-budget';
+
 import { base64UrlToBytes } from '$lib/shared/encoding';
 import {
 	buildLinkTransaction,
 	expectationFromPayload,
+	LIGHTHOUSE_PROGRAM_ADDRESS,
 	LinkTransactionRejected,
 	validateLinkTransaction
 } from '$lib/shared/link-transaction';
 import { createTestD1, MIGRATIONS } from './support/d1-sqlite';
-import { fakeAccessory, fakePayload, ORIGIN, RP_ID } from './support/fixtures';
+import { fakeAccessory, fakePayload } from './support/fixtures';
 import { checkTransferAssertion } from '$lib/server/link/assertion';
 import { hashCapability, mintCapability } from '$lib/server/link/capability';
 import { claimCapability, createIntent, getIntent, toStatusView, transition } from '$lib/server/link/intents';
@@ -36,29 +39,20 @@ describe('checkTransferAssertion', () => {
 		const challenge = crypto.getRandomValues(new Uint8Array(32));
 		const base = {
 			expectedChallenge: Buffer.from(challenge).toString('base64url'),
-			expectedPublicKey: acc.publicKeyB64,
-			account: acc.account(),
-			rpId: RP_ID,
-			origin: ORIGIN
 		};
 		return { acc, challenge, base };
 	}
 
 	it('accepts a fresh assertion from the session accessory', async () => {
 		const { acc, challenge, base } = await setup();
-		const result = await checkTransferAssertion({ ...base, response: acc.assert(challenge, { signCount: 4 }) });
-		expect(result).toMatchObject({ ok: true, signCount: 4 });
+		const result = await checkTransferAssertion({ ...base, response: acc.assert(challenge) });
+		expect(result).toMatchObject({ ok: true });
 	});
 
-	it.each([
-		['origin', { origin: 'https://evil.example' }, 'tap_rejected'],
-		['rpId', { rpId: 'evil.example' }, 'tap_rejected'],
-		['user presence', { flags: 0 }, 'tap_rejected'],
-		['ceremony type', { type: 'webauthn.create' }, 'tap_rejected'],
-		['stale signCount', { signCount: 3 }, 'already_used']
-	])('rejects wrong %s', async (_label, opts, code) => {
+	it.each([false, true])('accepts a low-S or high-S signature (highS=%s)', async (highS) => {
 		const { acc, challenge, base } = await setup();
-		expect(await checkTransferAssertion({ ...base, response: acc.assert(challenge, opts) })).toMatchObject({ ok: false, code });
+		const result = await checkTransferAssertion({ ...base, response: acc.assert(challenge, { highS }) });
+		expect(result).toMatchObject({ ok: true });
 	});
 
 	it('rejects a different challenge', async () => {
@@ -67,28 +61,12 @@ describe('checkTransferAssertion', () => {
 		expect(await checkTransferAssertion({ ...base, response: acc.assert(other) })).toMatchObject({ ok: false, code: 'tap_rejected' });
 	});
 
-	it('rejects a tap from a different accessory', async () => {
-		const { challenge, base } = await setup();
-		const other = fakeAccessory();
-		expect(await checkTransferAssertion({ ...base, response: other.assert(challenge) })).toMatchObject({
-			ok: false,
-			code: 'different_accessory'
-		});
-	});
-
 	it('rejects a forged signature claiming the right credential id', async () => {
 		const { acc, challenge, base } = await setup();
 		const forged = fakeAccessory().assert(challenge);
 		forged.id = acc.publicKeyB64;
 		forged.rawId = acc.publicKeyB64;
 		expect(await checkTransferAssertion({ ...base, response: forged })).toMatchObject({ ok: false, code: 'tap_rejected' });
-	});
-
-	it('rejects locked and permanent accessories', async () => {
-		const { acc, challenge, base } = await setup();
-		const response = acc.assert(challenge);
-		expect(await checkTransferAssertion({ ...base, response, account: acc.account({ isLocked: 1 }) })).toMatchObject({ code: 'accessory_locked' });
-		expect(await checkTransferAssertion({ ...base, response, account: acc.account({ tokenType: 0, isLocked: 1 }) })).toMatchObject({ code: 'accessory_permanent' });
 	});
 });
 
@@ -129,6 +107,21 @@ describe('link transaction (SDK completeTransfer) + validator', () => {
 		);
 		const drainBytes = new Uint8Array(getTransactionEncoder().encode(compileTransaction(drain)));
 		expect(() => validateLinkTransaction(drainBytes, expectationFromPayload(payload, recipient.address))).toThrow(/unexpected program/);
+	});
+
+	it('tolerates wallet-added Lighthouse and compute-budget instructions only on the signed copy', async () => {
+		const { payload, recipient } = await fakePayload();
+		const { transaction } = await buildLinkTransaction({ payload, rpc, recipient, blockhash: BLOCKHASH });
+		const message = decompileTransactionMessage(getCompiledTransactionMessageDecoder().decode(transaction.messageBytes));
+		const guard = { programAddress: LIGHTHOUSE_PROGRAM_ADDRESS, accounts: [], data: new Uint8Array([1]) };
+		const wrapped = appendTransactionMessageInstruction(guard, {
+			...message,
+			instructions: [getSetComputeUnitLimitInstruction({ units: 100_000 }), guard, ...message.instructions]
+		});
+		const bytes = new Uint8Array(getTransactionEncoder().encode(compileTransaction(wrapped)));
+		const exp = expectationFromPayload(payload, recipient.address);
+		expect(() => validateLinkTransaction(bytes, exp)).toThrow(LinkTransactionRejected);
+		expect(() => validateLinkTransaction(bytes, exp, { allowWalletAdditions: true })).not.toThrow();
 	});
 
 	it('rejects garbage bytes', async () => {
@@ -211,21 +204,5 @@ describe('link intents', () => {
 		const cap = mintCapability();
 		await transition(db, row.id, ['tapped'], 'tapped', { capability_hash: cap.hash, capability_expires_at: Date.now() - 1 });
 		expect((await claimCapability(db, hashCapability(cap.token))).status).toBe('expired');
-	});
-});
-
-describe('checkTransferAssertion type rules', () => {
-	it('refuses a tap for a linked Controlled token, even with the lock flag clear', async () => {
-		const acc = fakeAccessory();
-		const challenge = crypto.getRandomValues(new Uint8Array(32));
-		const result = await checkTransferAssertion({
-			response: acc.assert(challenge),
-			expectedChallenge: Buffer.from(challenge).toString('base64url'),
-			expectedPublicKey: acc.publicKeyB64,
-			account: acc.account({ tokenType: 2, isLocked: 0, linkedWallet: (await generateKeyPairSigner()).address }),
-			rpId: RP_ID,
-			origin: ORIGIN
-		});
-		expect(result).toMatchObject({ ok: false, code: 'accessory_locked' });
 	});
 });

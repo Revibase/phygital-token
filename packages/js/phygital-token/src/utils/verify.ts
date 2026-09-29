@@ -48,17 +48,22 @@ export async function startAuthentication(
 /**
  * **Authentication (server)** — verify a fresh tap signature.
  *
- * Pass the same `expectedMessage` you issued as the challenge. Treats
+ * Pass the same `expectedMessage` you issued as the challenge, or — when the
+ * challenge is raw bytes rather than text (e.g. a hash) — the base64url
+ * `expectedChallenge` exactly as it was given to the authenticator. Treats
  * `response.id` as the compressed secp256r1 public key. Does not check
  * rpId/origin. Throws `MESSAGE_MISMATCH` when the signed challenge differs from
  * `expectedMessage` and `INVALID_ASSERTION` for a malformed response; a bad
  * signature returns `isVerified: false`.
  */
-export function verifyResponse(input: {
-  expectedMessage: string;
-  response: AuthenticationResponseJSON;
-}): { isVerified: boolean; secp256r1PublicKey: string } {
-  const expectedChallenge = utf8ToBase64URLString(input.expectedMessage);
+export function verifyResponse(
+  input: { response: AuthenticationResponseJSON } & (
+    | { expectedMessage: string; expectedChallenge?: never }
+    | { expectedChallenge: string; expectedMessage?: never }
+  )
+): { isVerified: boolean; secp256r1PublicKey: string } {
+  const expectedChallenge =
+    input.expectedChallenge ?? utf8ToBase64URLString(input.expectedMessage);
 
   const clientData = parseWebAuthnClientData(
     input.response.response.clientDataJSON

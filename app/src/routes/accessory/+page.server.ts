@@ -42,7 +42,7 @@ async function processTap(
 	}
 
 	const session = await setBrowseUnlock(cookies, env.sessionSecret, {
-		pda: outcome.accessory.pda,
+		pda: outcome.pda,
 		identifier: outcome.identifier
 	});
 

@@ -1,14 +1,14 @@
 import type { Rpc, SolanaRpcApi } from '@solana/kit';
 
 import type { TapFailureReason } from '$lib/shared/types';
-import { resolveAccessoryByIdentifier, type ResolvedAccessory } from '../accessory/resolve';
+import { resolveAccessoryByIdentifier } from '../accessory/resolve';
 import { consumeTapCounter } from './counter-store';
 import { TapParamError, verifyDynamicUrlWithoutCounterCheck } from './verify-dynamic-url';
 
 export const TAP_PARAMS = ['pk', 'c', 'n', 's'] as const;
 
 export type TapOutcome =
-	| { ok: true; identifier: string; counter: number; accessory: ResolvedAccessory }
+	| { ok: true; identifier: string; counter: number; pda: string }
 	| { ok: false; reason: TapFailureReason; identifier?: string; detail?: string };
 
 export function hasTapParams(params: URLSearchParams): boolean {
@@ -47,15 +47,15 @@ export async function handleTap(
 		return { ok: false, reason: 'replayed', identifier: verified.identifier };
 	}
 
-	let accessory: ResolvedAccessory | null;
+	let pda: string | null;
 	try {
-		accessory = await resolveAccessoryByIdentifier(deps.db, deps.rpc, verified.identifier);
+		pda = await resolveAccessoryByIdentifier(deps.db, deps.rpc, verified.identifier);
 	} catch {
 		return { ok: false, reason: 'network', identifier: verified.identifier, detail: 'rpc unavailable' };
 	}
-	if (!accessory) {
+	if (!pda) {
 		return { ok: false, reason: 'unknown', identifier: verified.identifier };
 	}
 
-	return { ok: true, identifier: verified.identifier, counter: verified.counter, accessory };
+	return { ok: true, identifier: verified.identifier, counter: verified.counter, pda };
 }

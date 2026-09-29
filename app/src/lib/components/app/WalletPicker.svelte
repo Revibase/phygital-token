@@ -65,7 +65,7 @@
 				</ListRow>
 			{:else}
 				<ListRow label={`Open in ${c.name}`} href={c.href} rel="noopener" external>
-					{#snippet leading()}<span class="grid size-9 place-items-center rounded-[9px] bg-muted"><WalletIcon class="size-4 text-muted-foreground" /></span>{/snippet}
+					{#snippet leading()}<img src={c.icon} alt="" class="size-9 rounded-[9px]" />{/snippet}
 				</ListRow>
 			{/if}
 		{/each}

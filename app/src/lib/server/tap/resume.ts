@@ -20,7 +20,7 @@ export type ResumeResult =
 	| { ok: false; status: number; code: 'bad_request' | 'too_slow' | 'tap_rejected' | 'unknown_accessory'; error: string };
 
 export async function verifyResume(
-	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi>; rpId: string; origin: string },
+	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi> },
 	input: { challengeId: unknown; response: unknown },
 	now = Date.now()
 ): Promise<ResumeResult> {

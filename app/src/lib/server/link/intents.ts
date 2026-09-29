@@ -30,6 +30,7 @@ export type IntentRow = {
 	capability_claimed_at: number | null;
 	capability_conflicts: number;
 	slot_number: string | null;
+	slot_expires_at: number | null;
 	slot_hash: string | null;
 	challenge: string | null;
 	assertion: string | null;
@@ -57,6 +58,7 @@ const PATCHABLE = new Set<keyof Patch>([
 	'capability_claimed_at',
 	'capability_conflicts',
 	'slot_number',
+	'slot_expires_at',
 	'slot_hash',
 	'challenge',
 	'assertion',
@@ -105,6 +107,7 @@ export async function createIntent(
 		capability_claimed_at: null,
 		capability_conflicts: 0,
 		slot_number: null,
+		slot_expires_at: null,
 		slot_hash: null,
 		challenge: null,
 		assertion: null,

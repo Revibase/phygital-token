@@ -2,7 +2,7 @@ import { signature as toSignature, type Rpc, type SolanaRpcApi } from '@solana/k
 
 import type { LinkErrorCode } from '$lib/shared/types';
 import { fetchAccessory } from '../accessory/resolve';
-import { fromTransactionError } from './errors';
+import { fromTransactionError } from '$lib/shared/link-errors';
 
 export type ConfirmOutcome =
 	| { status: 'linked' }

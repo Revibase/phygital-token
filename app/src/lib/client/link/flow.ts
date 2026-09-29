@@ -39,7 +39,8 @@ import { browserRpc } from '../rpc';
 import { forgetWalletAccessories } from '../queries';
 import { signWithWallet, type SigningContext } from '../wallet/wallet.svelte';
 
-export function startPhoneLink(): Promise<LinkStatusView> {
+/** Creates the ceremony and returns its first slot-bound challenge in one round trip. */
+export function startPhoneLink(): Promise<LinkStatusView & { challenge: TransferChallenge }> {
 	return postJson('/api/link');
 }
 

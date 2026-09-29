@@ -76,6 +76,18 @@ describe("startAuthentication / verifyResponse", () => {
     expect(result.secp256r1PublicKey).toBe(response.id);
   });
 
+  it("verifies against a raw base64url expectedChallenge", () => {
+    const privateKey = p256.utils.randomSecretKey();
+    const message = "revibase-signin:abc";
+    const { response } = buildAssertion({ privateKey, message });
+    const expectedChallenge = utf8ToBase64URLString(message);
+
+    expect(verifyResponse({ expectedChallenge, response }).isVerified).toBe(true);
+    expect(() =>
+      verifyResponse({ expectedChallenge: utf8ToBase64URLString("other"), response }),
+    ).toThrow(/Message mismatch/);
+  });
+
   it("throws on message mismatch", () => {
     const privateKey = p256.utils.randomSecretKey();
     const { response } = buildAssertion({

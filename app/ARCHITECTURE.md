@@ -60,7 +60,7 @@ These rules sit on top of the on-chain lock flag. The app never presents an unex
 | Operation | Runs in |
 |---|---|
 | Parse and verify the dynamic-URL signature, consume the tap counter, resolve the token, issue browse_unlock | **Backend** (Worker plus D1) |
-| Ceremony state machine, custody of the tap, origin/rpId/UP checks, simulation, on-chain confirmation | **Backend** |
+| Ceremony state machine, custody of the tap, on-chain confirmation | **Backend** |
 | FIDO assertion over the slot-bound challenge | **Accessory authenticator**, via WebAuthn in the phone's browser |
 | Choosing the recipient (the connected account) and signing | **Wallet** (Wallet Standard via `@solana/connector`, or MWA on Android) |
 | Re-validating the exact transaction bytes before and after signing | **Client**, in the wallet context |
@@ -144,14 +144,15 @@ Safari/Chrome (tap origin)          Server (Worker + D1)                    Wall
 ──────────────────────────          ────────────────────                    ─────────────────────
 NFC tap ──GET /accessory?pk&c&n&s─▶ verify P-256 · consume counter
                                     resolve token · __Host-bu · 303
-"Link wallet" ─POST /api/link─────▶ intent: created (1 per accessory)
-(prefetched) ─POST …/challenge────▶ SDK beginTransfer(rpId) → slot, hash,
+"Link wallet" ─POST /api/link─────▶ intent: created (1 per accessory) +
+                                    SDK beginTransfer(rpId) → slot, hash,
                                     challenge stored → awaiting_passkey
+(refresh only) ─POST …/challenge──▶ new slot-bound challenge
 "Tap to approve" (user gesture)
  SDK authenticatePasskeyForTransfer
- ─POST …/assertion {response}─────▶ type · challenge · ORIGIN · rpIdHash ·
-                                    UP · P-256 sig · passkey == token's ·
-                                    type rules · signCount > on-chain
+ ─POST …/assertion {response}─────▶ challenge ·
+                                    P-256 sig ·
+                                    type rules
                                     → tapped; tap kept in custody
 ◀── handoffUrl = /continue#h=… ──── mint h (single-use, dies with the tap)
 "Open in Phantom/Solflare" ──────────────────────────────────────────────▶ /continue#h=…
@@ -159,8 +160,6 @@ NFC tap ──GET /accessory?pk&c&n&s─▶ verify P-256 · consume counter
                                     claimed; __Host-hof = the finisher ───▶
                                                                             connect wallet (connector)
                                     ◀──────── POST …/recipient {address} ─
-                                    SDK completeTransfer(noop signer W) →
-                                    simulateTransaction (real program)
                                     finishing; release payload to hof only ▶
                                                                             SDK completeTransfer(W)
                                                                             validate bytes → wallet signs
@@ -192,8 +191,9 @@ If the tapping browser also has a wallet (Android MWA, or a desktop extension), 
 ### Tap window (the countdown)
 
 - `set_linked_wallet` looks the tap's slot up in SlotHashes when it executes.
-- The server reads the sysvar and finds the slot's **position** `i` among the 512 entries, newest first. It can survive `511 − i` more blocks; skipped slots don't use up entries.
-- The usable window ends **20 blocks before eviction**, so a signature made at the last second can still land. Remaining time is `(511 − i − 20) × 200 ms`.
+- The slot hash is fetched **once per challenge**, at issue time. The server then stores `slot_expires_at = fetchedAt + (511 − 20) × 200 ms`: the hash survives 511 more blocks, minus **20 blocks** so a signature made at the last second can still land.
+- **Nothing reads the SlotHashes sysvar after that.** Status polls, the assertion, the recipient step and the handoff compare `Date.now()` with the stored expiry. The estimate is conservative (real slots are slower than 200 ms and skipped slots don't use up entries), and it only drives the countdown. The program is the final authority.
+- The tapping page fetches a challenge only when a tap is due and refreshes it once, after 45 s. It doesn't poll. iOS only allows WebAuthn inside a user gesture, so the hash has to be fetched before the click.
 - When the window closes, the ceremony returns to "tap again" and keeps its finisher, so the wallet side just waits for the new tap.
 
 ### Threats → defenses
@@ -203,9 +203,9 @@ If the tapping browser also has a wallet (Android MWA, or a desktop extension), 
 | Replayed, stale or copied tap URL | Shared counter high-water mark; the tap session is read-only; changes need a fresh FIDO tap |
 | Session hijacking | `__Host-` HttpOnly Secure SameSite cookies with HMAC and short TTLs; ceremonies bound to the session id; payload only to the one finisher |
 | Wallet substitution / wrong wallet | By design, the finisher picks the recipient. `h` is minted only after the tap, single-use, fragment-only and dies with the tap. The recipient is shown live on the phone, which can cancel before submission. |
-| Accessory substitution | The assertion's passkey must equal the session token's `public_key` (the program also checks). Desktop requires explicit accessory confirmation with a matching code. |
-| Transaction substitution | Server simulation of the exact SDK instructions; client byte-level validation before and after the wallet signs (programs, accounts, PDA, recipient, slot, tap data, secp key, single signer, no lookup tables) |
-| Assertion made on another site | Server requires our origin and rpId. **Residual:** the program doesn't, so a phishing site can harvest a transfer tap for an unlocked token and use it directly on-chain. Proposed follow-up: an `expected_origins` allow-list on `set_linked_wallet`. It keeps tap-first handoff intact, because the origin is the tap page. |
+| Accessory substitution | The program requires the tap's passkey to equal the token's `public_key`; the server doesn't check it at the assertion step, so a wrong accessory fails when the wallet sends. Desktop requires explicit accessory confirmation with a matching code. |
+| Transaction substitution | Client byte-level validation before and after the wallet signs (programs, accounts, PDA, recipient, slot, tap data, secp key, single signer, no lookup tables) |
+| Assertion made on another site | Neither the server nor the program checks origin or rpId. **Residual:** so a phishing site can harvest a transfer tap for an unlocked token and use it directly on-chain. Proposed follow-up: an `expected_origins` allow-list on `set_linked_wallet`. It keeps tap-first handoff intact, because the origin is the tap page. |
 | Malicious deep links / redirects | No redirect parameters; fixed wallet templates; secrets only in fragments |
 | Clickjacking / CSRF | `frame-ancestors 'none'`; same-origin `Origin` check on JSON POSTs |
 
@@ -258,7 +258,7 @@ src/lib/server/
   challenges.ts   single-use auth_challenges helpers (message challenges for resume · owner-browse)
   session/        HMAC cookies (bu · ob · hof · dsk · pair)
   link/           service (ceremony + authorization), intents (D1 CAS), assertion (WebAuthn gate),
-                  slot-window (SlotHashes), simulate, confirm, capability, errors
+                  slot-window (SlotHashes), confirm, capability
 src/lib/shared/   link-transaction (SDK completeTransfer → v0 tx, byte-level validator), types, encoding
 src/lib/client/   wallet (connector headless + Wallet Standard signing), link/flow, messages (copy), rpc (browser client for `SOLANA_RPC_URL`), media and wallet-accessories reads,
                   accessory/ (tapScreen · linkCopy · openOwned)

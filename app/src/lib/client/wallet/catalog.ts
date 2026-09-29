@@ -15,6 +15,8 @@ import type { WalletOption } from './wallet.svelte';
 type KnownWallet = {
 	id: 'phantom' | 'backpack' | 'solflare';
 	name: string;
+	/** Bundled icon in `static/wallets/`, so the row never depends on detection. */
+	icon: string;
 	match: RegExp;
 	browse: (target: string, ref: string) => string;
 };
@@ -22,35 +24,36 @@ type KnownWallet = {
 const enc = encodeURIComponent;
 
 export const KNOWN_WALLETS: readonly KnownWallet[] = [
-	{ id: 'phantom', name: 'Phantom', match: /phantom/i, browse: (t, r) => `https://phantom.app/ul/browse/${enc(t)}?ref=${enc(r)}` },
-	{ id: 'backpack', name: 'Backpack', match: /backpack/i, browse: (t, r) => `https://backpack.app/ul/v1/browse/${enc(t)}?ref=${enc(r)}` },
-	{ id: 'solflare', name: 'Solflare', match: /solflare/i, browse: (t, r) => `https://solflare.com/ul/v1/browse/${enc(t)}?ref=${enc(r)}` }
+	{ id: 'phantom', name: 'Phantom', icon: '/wallets/phantom.svg', match: /phantom/i, browse: (t, r) => `https://phantom.app/ul/browse/${enc(t)}?ref=${enc(r)}` },
+	{ id: 'backpack', name: 'Backpack', icon: '/wallets/backpack.png', match: /backpack/i, browse: (t, r) => `https://backpack.app/ul/v1/browse/${enc(t)}?ref=${enc(r)}` },
+	{ id: 'solflare', name: 'Solflare', icon: '/wallets/solflare.svg', match: /solflare/i, browse: (t, r) => `https://solflare.com/ul/v1/browse/${enc(t)}?ref=${enc(r)}` }
 ];
 
 export const FEATURED_WALLET_NAMES = KNOWN_WALLETS.map((w) => w.name);
 
 export type WalletChoice =
 	| { kind: 'detected'; key: string; connectorId: string; name: string; icon: string; ready: boolean }
-	| { kind: 'browse'; key: string; name: string; href: string };
+	| { kind: 'browse'; key: string; name: string; icon: string; href: string };
 
 export function walletChoices(
 	detected: WalletOption[],
 	opts: { browseTarget: string | null; platform: Platform; origin: string }
 ): WalletChoice[] {
+	const known = (name: string) => KNOWN_WALLETS.find((w) => w.match.test(name));
 	const rank = (name: string) => {
 		const i = KNOWN_WALLETS.findIndex((w) => w.match.test(name));
 		return i === -1 ? KNOWN_WALLETS.length : i;
 	};
 	const choices: WalletChoice[] = [...detected]
 		.sort((a, b) => rank(a.name) - rank(b.name))
-		.map((w) => ({ kind: 'detected', key: `detected:${w.id}`, connectorId: w.id, name: w.name, icon: w.icon, ready: w.ready }));
+		.map((w) => ({ kind: 'detected', key: `detected:${w.id}`, connectorId: w.id, name: w.name, icon: w.icon || known(w.name)?.icon || '', ready: w.ready }));
 
 	const target = opts.browseTarget;
 	if (!target || !target.startsWith(`${opts.origin}/`) || opts.platform === 'desktop') return choices;
 
 	for (const w of KNOWN_WALLETS) {
-		if (detected.some((d) => w.match.test(d.name))) continue;
-		choices.push({ kind: 'browse', key: `browse:${w.id}`, name: w.name, href: w.browse(target, opts.origin) });
+		if (detected.some((d) => known(d.name) === w)) continue;
+		choices.push({ kind: 'browse', key: `browse:${w.id}`, name: w.name, icon: w.icon, href: w.browse(target, opts.origin) });
 	}
 	return choices;
 }

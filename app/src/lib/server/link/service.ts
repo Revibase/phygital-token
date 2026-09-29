@@ -29,8 +29,7 @@ import {
 	transition,
 	type IntentRow
 } from './intents';
-import { simulateLink } from './simulate';
-import { tapWindow as slotHashWindow } from './slot-window';
+import { TAP_WINDOW_MS } from './slot-window';
 
 /** Desktop pair QR lifetime. */
 export const PAIR_CAPABILITY_TTL_MS = 5 * 60 * 1000;
@@ -98,10 +97,10 @@ async function loadIntent(env: ServerEnv, id: string): Promise<IntentRow> {
 	return row;
 }
 
-async function tapWindow(rpc: Rpc<SolanaRpcApi>, row: IntentRow) {
-	if (!row.slot_number || !row.assertion) return { over: false, expiresAt: null as number | null, totalMs: null as number | null };
-	const w = await slotHashWindow(rpc, BigInt(row.slot_number));
-	return { over: !w.alive, expiresAt: w.expiresAt, totalMs: w.totalMs };
+/** Whether the stored tap is still usable, from the expiry set when its slot hash was fetched. */
+function tapWindow(row: IntentRow) {
+	if (!row.slot_expires_at || !row.assertion) return { over: false, expiresAt: null as number | null, totalMs: null as number | null };
+	return { over: Date.now() >= row.slot_expires_at, expiresAt: row.slot_expires_at, totalMs: TAP_WINDOW_MS };
 }
 
 /**
@@ -114,6 +113,7 @@ async function recycleStaleTap(env: ServerEnv, row: IntentRow): Promise<IntentRo
 	await transition(env.db, row.id, ['tapped', 'claimed', 'finishing'], back, {
 		assertion: null,
 		slot_number: null,
+		slot_expires_at: null,
 		slot_hash: null,
 		challenge: null,
 		recipient: null,
@@ -129,7 +129,7 @@ async function statusFor(env: ServerEnv, row: IntentRow, rpc: Rpc<SolanaRpcApi>)
 	let tapWindowMs: number | null = null;
 
 	if (current.state === 'submitted' && current.tx_signature && current.pda && current.recipient) {
-		const window = await tapWindow(rpc, current);
+		const window = tapWindow(current);
 		const outcome = await checkSubmittedLink(rpc, {
 			txSignature: current.tx_signature,
 			pda: current.pda,
@@ -150,7 +150,7 @@ async function statusFor(env: ServerEnv, row: IntentRow, rpc: Rpc<SolanaRpcApi>)
 			}
 		}
 	} else if (['tapped', 'claimed', 'finishing'].includes(current.state)) {
-		const window = await tapWindow(rpc, current);
+		const window = tapWindow(current);
 		if (window.over) current = await recycleStaleTap(env, current);
 		else {
 			tapExpiresAt = window.expiresAt;
@@ -182,7 +182,8 @@ export async function startPhoneLink(env: ServerEnv, caller: Caller) {
 		public_key: view.publicKey,
 		token_kind: view.kind
 	});
-	return toStatusView(row);
+	// First challenge in the same round trip, so the tap is ready immediately.
+	return { ...toStatusView(row), challenge: await issueChallenge(env, caller, row.id) };
 }
 
 export async function issueChallenge(env: ServerEnv, caller: Caller, id: string): Promise<TransferChallenge> {
@@ -194,9 +195,11 @@ export async function issueChallenge(env: ServerEnv, caller: Caller, id: string)
 	if (!row.pda || !row.public_key) throw conflict();
 
 	const rpc = getRpc(env);
+	const fetchedAt = Date.now();
 	const session = await beginTransfer({ rpc, secp256r1Pubkey: row.public_key, rpId: env.rpId });
 	const fields = {
 		slot_number: session.slotNumber.toString(),
+		slot_expires_at: fetchedAt + TAP_WINDOW_MS,
 		slot_hash: bytesToBase64(new Uint8Array(session.slotHash)),
 		challenge: bytesToBase64Url(new Uint8Array(session.challenge))
 	};
@@ -229,25 +232,12 @@ export async function acceptAssertion(
 		throw conflict();
 	}
 	const rpc = getRpc(env);
-	const window = await slotHashWindow(rpc, BigInt(row.slot_number));
-	if (!window.alive) {
+	if (!row.slot_expires_at || Date.now() >= row.slot_expires_at) {
 		throw new LinkApiError(409, 'too_slow', 'That took a little too long. Tap again.');
 	}
-	const accessory = await fetchAccessory(rpc, row.pda);
-	if (!accessory) throw notFound();
 
-	const check = await checkTransferAssertion({
-		response: body.response,
-		expectedChallenge: row.challenge,
-		expectedPublicKey: row.public_key,
-		account: accessory.account,
-		rpId: env.rpId,
-		origin: env.origin
-	});
-	if (!check.ok) {
-		const status = check.code === 'different_accessory' ? 409 : 400;
-		throw new LinkApiError(status, check.code, check.detail);
-	}
+	const check = checkTransferAssertion({ response: body.response, expectedChallenge: row.challenge });
+	if (!check.ok) throw new LinkApiError(400, check.code, check.detail);
 
 	const finishHere = body.finishHere === true && row.kind === 'phone';
 	const alreadyClaimed = row.kind === 'phone' && row.capability_claimed_at !== null && !!row.finisher_sid;
@@ -265,7 +255,7 @@ export async function acceptAssertion(
 		patch.capability_hash = cap.hash;
 		patch.capability_claimed_at = null;
 		// `h` must not outlive the tap it unlocks.
-		patch.capability_expires_at = window.expiresAt;
+		patch.capability_expires_at = row.slot_expires_at;
 	}
 	const next = alreadyClaimed ? 'claimed' : 'tapped';
 	if (!(await transition(env.db, row.id, ['awaiting_passkey'], next, patch))) throw conflict();
@@ -299,20 +289,14 @@ export async function setRecipient(env: ServerEnv, caller: Caller, id: string, b
 	if (typeof body.address !== 'string' || !isAddress(body.address)) {
 		throw new LinkApiError(400, 'bad_request', 'That doesn’t look like a wallet address.');
 	}
-	const rpc = getRpc(env);
-	const window = await tapWindow(rpc, row);
+	const window = tapWindow(row);
 	if (window.over) {
 		await recycleStaleTap(env, row);
 		throw new LinkApiError(409, 'too_slow', 'That took a little too long. Tap your accessory again.');
 	}
+	// No simulation: the program decides (lock state, passkey, signCount, slot) when the
+	// wallet sends, and the client surfaces its error.
 	const payload = payloadFor(env, row);
-	const simulation = await simulateLink(rpc, payload, body.address);
-	if (!simulation.ok) {
-		if (['accessory_locked', 'accessory_permanent', 'already_used', 'different_accessory'].includes(simulation.code)) {
-			await transition(env.db, row.id, [row.state], 'failed', { error_code: simulation.code });
-		}
-		throw new LinkApiError(409, simulation.code, 'The network rejected this link.');
-	}
 	if (!(await transition(env.db, row.id, [row.state], 'finishing', { recipient: body.address, error_code: null }))) {
 		throw conflict();
 	}
@@ -342,7 +326,8 @@ export async function markSubmitted(env: ServerEnv, caller: Caller, id: string, 
 		throw new LinkApiError(400, 'bad_request', 'Invalid transaction signature.');
 	}
 	if (!(await transition(env.db, row.id, ['finishing'], 'submitted', { tx_signature: body.signature }))) throw conflict();
-	return statusFor(env, (await getIntent(env.db, row.id))!, getRpc(env));
+	// Not yet landed: the status poll settles it.
+	return toStatusView((await getIntent(env.db, row.id))!);
 }
 
 export async function linkStatus(env: ServerEnv, caller: Caller, id: string) {

@@ -1,6 +1,7 @@
 import { PhygitalTokenError, type PhygitalTokenErrorCode } from 'phygital-token-sdk';
 import { ApiClientError } from '../api';
 import { LinkTransactionRejected } from '$lib/shared/link-transaction';
+import { fromSendError } from '$lib/shared/link-errors';
 import type { LinkErrorCode, TapFailureReason } from '$lib/shared/types';
 
 export type Recovery = 'tap_again' | 'retry' | 'add_sol' | 'start_over' | 'none';
@@ -99,6 +100,8 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 		}
 		return { title: 'Something went wrong', body: err.message, recovery: 'retry', code: String(err.code) };
 	}
+	const onChain = fromSendError(err);
+	if (onChain && onChain !== 'unknown') return { ...linkErrorCopy(onChain), detail: err instanceof Error ? err.message : undefined };
 	if (err instanceof LinkTransactionRejected) {
 		return {
 			title: 'We stopped an unexpected transaction',

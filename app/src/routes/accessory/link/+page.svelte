@@ -84,14 +84,22 @@
 		}
 	}
 
+	// Fetched when a tap is due, then re-fetched once as it goes stale (not polled).
+	const STALE_MS = 45_000;
+	let staleTimer: ReturnType<typeof setTimeout> | undefined;
+	function setChallenge(next: TransferChallenge) {
+		challenge = next;
+		challengeAt = Date.now();
+		clearTimeout(staleTimer);
+		staleTimer = setTimeout(() => void refreshChallenge(), STALE_MS);
+	}
 	let preparing = false;
 	let prepareFailures = 0;
 	async function refreshChallenge() {
 		if (!status || !needsTap || tapping || preparing) return;
 		preparing = true;
 		try {
-			challenge = await prepareTap(status.id);
-			challengeAt = Date.now();
+			setChallenge(await prepareTap(status.id));
 			prepareFailures = 0;
 		} catch (err) {
 			// Background refresh: only surface it if it keeps failing.
@@ -106,7 +114,12 @@
 		webauthnOk = canTapHere();
 		walletStore.init(data.cluster);
 		try {
-			apply(data.pairedLinkId ? await linkStatus(data.pairedLinkId) : await startPhoneLink());
+			if (data.pairedLinkId) apply(await linkStatus(data.pairedLinkId));
+			else {
+				const { challenge: first, ...started } = await startPhoneLink();
+				apply(started);
+				setChallenge(first);
+			}
 		} catch (err) {
 			failure = describeError(err);
 			return;
@@ -124,12 +137,9 @@
 
 	// Keep a fresh challenge ready so the tap button can call WebAuthn synchronously (iOS).
 	$effect(() => {
-		if (needsTap && !tapping && (!challenge || Date.now() - challengeAt > 45_000)) void refreshChallenge();
+		if (needsTap && !tapping && (!challenge || Date.now() - challengeAt > STALE_MS)) void refreshChallenge();
 	});
-	const staleTimer = setInterval(() => {
-		if (needsTap && !tapping && Date.now() - challengeAt > 45_000) void refreshChallenge();
-	}, 15_000);
-	onDestroy(() => clearInterval(staleTimer));
+	onDestroy(() => clearTimeout(staleTimer));
 
 	async function tap() {
 		if (!challenge || !status) return;

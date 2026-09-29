@@ -1,3 +1,4 @@
+import { isSolanaError, SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM } from '@solana/kit';
 import {
 	PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH,
 	PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH,
@@ -51,4 +52,15 @@ export function fromTransactionError(err: unknown): LinkErrorCode {
 	}
 	if (err === 'BlockhashNotFound') return 'too_slow';
 	return 'unknown';
+}
+
+/**
+ * Classify what `sendTransaction`'s preflight threw: the program's custom error
+ * sits somewhere down the `cause` chain. `null` when it isn't a program error.
+ */
+export function fromSendError(err: unknown): LinkErrorCode | null {
+	for (let e = err, depth = 0; e && depth < 5; e = (e as { cause?: unknown }).cause, depth++) {
+		if (isSolanaError(e, SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM)) return fromProgramError(e.context.code);
+	}
+	return null;
 }

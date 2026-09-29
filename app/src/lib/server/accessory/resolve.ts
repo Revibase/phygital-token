@@ -6,8 +6,6 @@ import {
 	type PhygitalToken
 } from 'phygital-token-sdk';
 
-import { bytesToBase64Url } from '$lib/shared/encoding';
-
 export type ResolvedAccessory = { pda: string; account: PhygitalToken };
 
 /**
@@ -15,25 +13,20 @@ export type ResolvedAccessory = { pda: string; account: PhygitalToken };
  *
  * The PDA is seeded by the FIDO passkey, not the identifier, so the first
  * lookup scans with `fetchPhygitalTokenByIdentifier` (getProgramAccounts +
- * memcmp) and caches identifier → PDA. Both are immutable after `initialize`.
+ * memcmp) and caches identifier → PDA. Both are immutable after `initialize`,
+ * so a cache hit needs no RPC at all; pages that render the account fetch it.
  */
 export async function resolveAccessoryByIdentifier(
 	db: D1Database,
 	rpc: Rpc<SolanaRpcApi>,
 	identifier: string
-): Promise<ResolvedAccessory | null> {
+): Promise<string | null> {
 	const cached = await db
 		.prepare('SELECT pda FROM revibase_identifier_cache WHERE identifier = ?')
 		.bind(identifier)
 		.first<{ pda: string }>();
 
-	if (cached) {
-		const resolved = await fetchAccessory(rpc, cached.pda);
-		// Defensive: never trust the cache over chain state.
-		if (resolved && bytesToBase64Url(new Uint8Array(resolved.account.identifier[0])) === identifier) {
-			return resolved;
-		}
-	}
+	if (cached) return cached.pda;
 
 	const account = await fetchPhygitalTokenByIdentifier(rpc, identifier);
 	if (!account) return null;
@@ -47,7 +40,7 @@ export async function resolveAccessoryByIdentifier(
 		.bind(identifier, pda, Date.now())
 		.run();
 
-	return { pda, account };
+	return pda;
 }
 
 export async function fetchAccessory(rpc: Rpc<SolanaRpcApi>, pda: string): Promise<ResolvedAccessory | null> {

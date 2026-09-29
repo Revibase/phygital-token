@@ -16,7 +16,7 @@ export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 	}
 	try {
 		const result = await verifyResume(
-			{ db: env.db, rpc: getRpc(env), rpId: env.rpId, origin: env.origin },
+			{ db: env.db, rpc: getRpc(env) },
 			{ challengeId: body.challengeId, response: body.response }
 		);
 		if (!result.ok) return json({ error: result.error, code: result.code }, { status: result.status });
