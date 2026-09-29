@@ -31,6 +31,11 @@ export {
   type NfcTransceive,
 } from "./utils/passkey/authenticate.js";
 
+export {
+  PhygitalTokenError,
+  type PhygitalTokenErrorCode,
+} from "./utils/errors.js";
+
 export { findPhygitalTokenPda } from "./utils/pdas/index.js";
 
 export * from "./generated/index.js";

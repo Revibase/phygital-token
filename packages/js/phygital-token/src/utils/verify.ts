@@ -13,6 +13,7 @@
  */
 import { p256 } from "@noble/curves/nist.js";
 
+import { PhygitalTokenError } from "./errors.js";
 import { parseSecp256r1Pubkey } from "./parseSecp256r1Pubkey.js";
 import {
   authenticatePasskey,
@@ -32,12 +33,14 @@ export type { AuthenticationResponseJSON } from "./passkey/webauthn.js";
 /**
  * **Authentication (client)** — prompt an NFC tap for `message`.
  *
- * Browser: opens the system WebAuthn/NFC modal (`rpc` required for recovery).
- * Native / kiosk: pass `transceive` (rpId/origin not required).
+ * Browser: opens the system WebAuthn/NFC modal. Pass `rpc` to recover a
+ * placeholder credential id on-chain, or `allowList` to recover it locally;
+ * when `allowList` is passed, a tag outside it throws `PASSKEY_NOT_RECOGNIZED`.
+ * Native / kiosk: pass `transceive` (`rpId`/`origin` optional).
  */
 export async function startAuthentication(
   message: string,
-  options?: AuthenticatePasskeyOptions,
+  options?: AuthenticatePasskeyOptions
 ): Promise<AuthenticationResponseJSON> {
   return authenticatePasskey(utf8ToBase64URLString(message), options);
 }
@@ -47,7 +50,8 @@ export async function startAuthentication(
  *
  * Pass the same `expectedMessage` you issued as the challenge. Treats
  * `response.id` as the compressed secp256r1 public key. Does not check
- * rpId/origin. Throws on challenge mismatch (`Message mismatch.`); a bad
+ * rpId/origin. Throws `MESSAGE_MISMATCH` when the signed challenge differs from
+ * `expectedMessage` and `INVALID_ASSERTION` for a malformed response; a bad
  * signature returns `isVerified: false`.
  */
 export function verifyResponse(input: {
@@ -57,11 +61,14 @@ export function verifyResponse(input: {
   const expectedChallenge = utf8ToBase64URLString(input.expectedMessage);
 
   const clientData = parseWebAuthnClientData(
-    input.response.response.clientDataJSON,
+    input.response.response.clientDataJSON
   );
 
   if (clientData.challenge !== expectedChallenge) {
-    throw new Error("Message mismatch.");
+    throw new PhygitalTokenError(
+      "MESSAGE_MISMATCH",
+      "Message mismatch: the signed challenge does not match the expected message."
+    );
   }
 
   const { signature, message } = parseWebAuthnAssertion(input.response);
@@ -69,7 +76,7 @@ export function verifyResponse(input: {
   const isVerified = p256.verify(
     signature,
     message,
-    new Uint8Array(parseSecp256r1Pubkey(input.response.id)[0]),
+    new Uint8Array(parseSecp256r1Pubkey(input.response.id)[0])
   );
 
   return {

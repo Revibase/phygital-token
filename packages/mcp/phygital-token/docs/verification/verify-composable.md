@@ -11,7 +11,7 @@ Your program always CPIs `verify`. The client prepends `secp256r1_verify` and do
 ```
 buildMessageHash(message)
         ↓
-authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })
+authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash })
         ↓
 buildSecp256r1VerifyInstruction(tap)
         ↓
@@ -24,9 +24,9 @@ buildSecp256r1VerifyInstruction(tap)
 
 SHA-256s `message` to a 32-byte digest. Use this digest as the WebAuthn challenge and as `VerifyCpiBuilder.message_hash`.
 
-### `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId?, transceive? })`
+### `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId?, transceive? })`
 
-Uses `messageHash` (32 bytes) as the WebAuthn challenge — the same digest for `VerifyCpiBuilder.message_hash`. Hash with `buildMessageHash` first. Browser path needs `rpc` for placeholder recovery; `rpId` defaults to hostname. Pass `transceive` for native / kiosk APDU instead of browser WebAuthn.
+Uses `messageHash` (32 bytes) as the WebAuthn challenge — the same digest for `VerifyCpiBuilder.message_hash`. Hash with `buildMessageHash` first. Placeholder recovery uses `rpc` (on-chain), falling back to `allowList` (local) when no `rpc` is given; when `allowList` is passed the tapped credential id must be in it; `rpId` defaults to hostname. Pass `transceive` for native / kiosk APDU instead of browser WebAuthn.
 ### `buildSecp256r1VerifyInstruction(tap)`
 
 Returns `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }`. Prepend `secp256r1VerifyInstruction`. Pass `phygitalTokenPda` and `secp256r1VerifyArgs` into your instruction. `message_hash`, the instructions sysvar, and optional origin bindings come from your program.
@@ -40,11 +40,10 @@ secp256r1_verify → your_program_instruction
 ```
 
 ```ts
-const rpc = createSolanaRpc(RPC_URL);
 const messageHash = buildMessageHash(message);
 const tap = await authenticatePasskeyForSecp256r1Verify({ rpc, messageHash });
 const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
-  buildSecp256r1VerifyInstruction(tap);
+  await buildSecp256r1VerifyInstruction(tap);
 
 const instructions = [
   secp256r1VerifyInstruction, // immediately before your instruction

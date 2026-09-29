@@ -1,10 +1,10 @@
 export const SDK_SURFACE = {
   webAuthn: {
     credentialId: "33 bytes = authenticator passkey; 16 bytes = platform echoed placeholder (recovery runs)",
-    rpcRequired:
-      "Kit Rpc required for startAuthentication(message, { rpc }) recovery and on-chain browser taps (authenticatePasskeyForSecp256r1Verify, authenticatePasskeyForTransfer)",
+    allowList:
+      "Set of base64url compressed public keys. When passed, the tapped credential id must always be in it (else PASSKEY_NOT_RECOGNIZED); it is also the no-RPC fallback for recovering a placeholder id when rpc is omitted. authenticatePasskeyForTransfer derives it from the session",
     recovery:
-      "When multiple keys verify, disambiguates via initialized PhygitalToken PDA on-chain",
+      "When multiple keys verify, picks the initialized PhygitalToken PDA on-chain (rpc), or the one in allowList when no rpc is given",
     authenticatePasskey:
       "Shared helper for on-chain flows: options.transceive → authenticateWithApdu; else authenticateWithWebauthn. Used by authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify.",
   },
@@ -35,17 +35,17 @@ export const SDK_SURFACE = {
   removeLinkedWallet: ["getRemoveLinkedWalletInstruction"],
   verifyComposable: [
     "buildMessageHash",
-    "authenticatePasskeyForSecp256r1Verify({ rpc?, messageHash, rpId?, origin?, transceive? })",
+    "authenticatePasskeyForSecp256r1Verify({ rpc?, allowList?, messageHash, rpId?, origin?, transceive? })",
     "buildSecp256r1VerifyInstruction",
   ],
   verification: [
-    "startAuthentication(message, { rpc?, transceive? })",
+    "startAuthentication(message, { rpc?, allowList?, transceive? })",
     "verifyResponse({ expectedMessage, response })",
   ],
   onChainComposition: {
     client: [
       "buildMessageHash",
-      "authenticatePasskeyForSecp256r1Verify({ rpc?, messageHash, transceive?, rpId?, origin? })",
+      "authenticatePasskeyForSecp256r1Verify({ rpc?, allowList?, messageHash, transceive?, rpId?, origin? })",
       "buildSecp256r1VerifyInstruction",
     ],
     transaction: ["secp256r1_verify", "your_program_instruction"],

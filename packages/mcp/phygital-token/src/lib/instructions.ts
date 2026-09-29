@@ -171,7 +171,7 @@ export async function planTransfer(input: {
       "Controlled tokens re-lock after a successful claim; remove_linked_wallet clears the lock.",
       "Permanent tokens remain locked (cannot forfeit), so set_linked_wallet always fails with TokenIsCurrentlyLocked.",
       "beginTransfer takes Kit Rpc + base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
-      "Browser tap requires rpc for placeholder credential-id recovery (16-byte rawId). Pass { transceive } for native/kiosk APDU.",
+      "Browser tap: pass rpc to recover a 16-byte placeholder on-chain; allowList gates the tapped credential id and is the no-RPC recovery fallback. Pass { transceive } for native/kiosk APDU.",
       "completeTransfer takes a Kit TransactionSigner for recipient.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
     ],
@@ -198,7 +198,7 @@ export async function planVerify(input: {
   return {
     flow: [
       "buildMessageHash(message) — 32-byte digest",
-      "authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId?, transceive? }) — browser or native APDU",
+      "authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId?, transceive? }) — browser or native APDU",
       "buildSecp256r1VerifyInstruction(tap) — { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }",
       "sendTransaction([secp256r1VerifyInstruction, yourProgramInstruction]) — your instruction carries phygitalTokenPda + secp256r1VerifyArgs; message_hash and instructions sysvar are yours",
     ],
@@ -216,7 +216,7 @@ export async function planVerify(input: {
     },
     challenge: {
       formula: buildVerifyChallengeDescription(),
-      note: "Hash with buildMessageHash, then pass { rpc, messageHash } to authenticatePasskeyForSecp256r1Verify. Use the same digest as VerifyCpiBuilder.message_hash.",
+      note: "Hash with buildMessageHash, then pass { rpc, allowList?, messageHash } to authenticatePasskeyForSecp256r1Verify. Use the same digest as VerifyCpiBuilder.message_hash.",
     },
     derived: tokenPda
       ? { tokenPda, secp256r1PublicKey: input.secp256r1PublicKey }
@@ -244,7 +244,7 @@ export async function planVerify(input: {
     notes: [
       "Off-chain login (startAuthentication + verifyResponse) does not submit verify.",
       "On-chain tap helpers (authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify) share authenticatePasskey: transceive → APDU, else browser WebAuthn.",
-      "Browser WebAuthn requires rpc for placeholder recovery (rawId length 16).",
+      "Browser WebAuthn: rpc recovers a rawId-length-16 placeholder on-chain; allowList gates the tapped id and is the no-RPC recovery fallback.",
       "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
       "Your program CPIs verify. Do not include a client-side verify instruction.",
       "verify updates phygital_token.last_sign_count; it does not change linked_wallet.",

@@ -21,6 +21,7 @@ import {
 import { getLatestSlotHash } from "../utils/slotHash.js";
 import { getSetLinkedWalletInstruction } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
+import { PhygitalTokenError } from "../utils/errors.js";
 import { findPhygitalTokenPda } from "../utils/pdas/token.js";
 
 export type TransferSession = {
@@ -41,7 +42,7 @@ export type TransferSession = {
  * Must be followed promptly by {@link authenticatePasskeyForTransfer} and
  * {@link completeTransfer}.
  *
- * @param input.rpc - Kit `Rpc`.
+ * @param input.rpc - Kit `Rpc`, used to read the latest slot hash.
  * @param input.secp256r1Pubkey - Base64url compressed secp256r1 public key for the
  *   physical token (same shape as a phygital `response.id` / compressed passkey). The phygital
  *   token PDA is derived via {@link findPhygitalTokenPda}.
@@ -52,6 +53,7 @@ export async function beginTransfer(input: {
   secp256r1Pubkey: string;
   rpId?: string;
 }): Promise<TransferSession> {
+  const rpId = resolveTransferRpId(input.rpId);
   const phygitalToken = await findPhygitalTokenPda(input.secp256r1Pubkey);
   const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
   const challenge = await buildTransferChallenge({
@@ -66,7 +68,7 @@ export async function beginTransfer(input: {
     slotHash,
     slotNumber,
     challenge,
-    rpId: resolveTransferRpId(input.rpId),
+    rpId,
   };
 }
 
@@ -75,7 +77,10 @@ function resolveTransferRpId(rpId: string | undefined): string {
   if (typeof window !== "undefined" && window.location?.hostname) {
     return window.location.hostname;
   }
-  throw new Error("beginTransfer: pass `rpId` (no window.location available).");
+  throw new PhygitalTokenError(
+    "RP_ID_REQUIRED",
+    "Pass `rpId`; it cannot be inferred outside a browser."
+  );
 }
 
 /**
@@ -83,7 +88,9 @@ function resolveTransferRpId(rpId: string | undefined): string {
  *
  * Browser: passes {@link TransferSession.secp256r1Pubkey} in `allowCredentials`.
  * If the platform echoes a random placeholder id, recovery disambiguates by checking
- * which candidate has an initialized PhygitalToken PDA on-chain.
+ * which candidate matches {@link TransferSession.secp256r1Pubkey}.
+ *
+ * Throws `PASSKEY_NOT_RECOGNIZED` if a different tag is tapped.
  *
  * Native / kiosk: pass `transceive` to use IsoDep APDUs instead of browser WebAuthn.
  */
@@ -91,12 +98,12 @@ export async function authenticatePasskeyForTransfer(
   session: TransferSession,
   options?: {
     transceive?: NfcTransceive;
-    /** Required when `transceive` is set (clientDataJSON origin). */
+    /** `clientDataJSON` origin for `transceive`. Set it if your program checks `expected_origins`. */
     origin?: string;
-  },
+  }
 ): Promise<AuthenticationResponseJSON> {
   return authenticatePasskey(bufferToBase64URLString(session.challenge), {
-    rpc: session.rpc,
+    allowList: new Set([session.secp256r1Pubkey]),
     rpId: session.rpId,
     credentialId: session.secp256r1Pubkey,
     transceive: options?.transceive,
@@ -108,13 +115,13 @@ export async function authenticatePasskeyForTransfer(
  * Builds the two on-chain instructions after passkey authentication.
  * Linked wallet is updated on the phygital token PDA only — no SPL token transfer.
  *
- * @param recipient - Kit `TransactionSigner`.
+ * @param recipient - Kit `TransactionSigner` for the wallet that will be linked.
  */
 export async function completeTransfer(
   session: TransferSession,
   response: AuthenticationResponseJSON,
   recipient: TransactionSigner,
-  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
+  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[]
 ): Promise<Instruction[]> {
   const { secp256r1VerifyInstruction, signedMessageIndex, clientDataJson } =
     buildSecp256r1VerifyInstructionFromWebAuthnResponse({

@@ -1,3 +1,4 @@
+import { PhygitalTokenError } from "./errors.js";
 import {
   getBase64Encoder,
   getU64Decoder,
@@ -7,7 +8,7 @@ import {
 import { SLOT_HASHES_SYSVAR_ADDRESS } from "./consts.js";
 
 export function decodeBase64AccountData(
-  data: string | [string, string] | Uint8Array,
+  data: string | [string, string] | Uint8Array
 ): Uint8Array {
   if (data instanceof Uint8Array) {
     return data;
@@ -28,7 +29,10 @@ export async function getLatestSlotHash(rpc: Rpc<SolanaRpcApi>) {
   ).value?.data;
 
   if (!slotSysvarData) {
-    throw new Error("Unable to fetch slot hashes sysvar");
+    throw new PhygitalTokenError(
+      "SLOT_HASH_UNAVAILABLE",
+      "Unable to fetch the latest slot hash from the RPC. Check the connection and retry."
+    );
   }
 
   const slotHashData = decodeBase64AccountData(slotSysvarData);

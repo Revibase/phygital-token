@@ -1,3 +1,4 @@
+import { PhygitalTokenError } from "../errors.js";
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import {
@@ -17,7 +18,7 @@ function isDerEcdsaSignature(signature: Uint8Array): boolean {
 }
 
 function parseWebAuthnSignature(
-  signature: Uint8Array,
+  signature: Uint8Array
 ): ParsedWebAuthnSignature {
   if (signature.length === 64) {
     return {
@@ -29,13 +30,17 @@ function parseWebAuthnSignature(
     const noble = p256.Signature.fromBytes(signature, "der");
     return { noble, compact: noble.toBytes("compact") };
   }
-  throw new Error("expected 64-byte compact or DER ECDSA signature");
+  throw new PhygitalTokenError(
+    "INVALID_ASSERTION",
+    "The passkey signature is malformed (expected 64-byte compact or DER)."
+  );
 }
 
 function normalizeSignatureToLowS(signature: Uint8Array): Uint8Array {
   if (signature.length !== 64) {
-    throw new Error(
-      `expected 64-byte raw r||s signature, got ${signature.length} bytes`,
+    throw new PhygitalTokenError(
+      "INVALID_ASSERTION",
+      `The passkey signature is malformed (expected 64 bytes, got ${signature.length}).`
     );
   }
 
@@ -54,11 +59,11 @@ export function convertSignatureDERtoRS(signature: Uint8Array): Uint8Array {
 /** WebAuthn signed payload: `authenticatorData || SHA-256(clientDataJSON)`. */
 export function buildSecp256r1Message(
   authenticatorData: Uint8Array,
-  clientDataJSON: Uint8Array,
+  clientDataJSON: Uint8Array
 ): Uint8Array {
   const clientDataHash = sha256(clientDataJSON);
   const message = new Uint8Array(
-    authenticatorData.length + clientDataHash.length,
+    authenticatorData.length + clientDataHash.length
   );
   message.set(authenticatorData, 0);
   message.set(clientDataHash, authenticatorData.length);
@@ -72,17 +77,17 @@ export function parseWebAuthnAssertion(response: AuthenticationResponseJSON): {
 } {
   return {
     signature: convertSignatureDERtoRS(
-      base64URLStringToBuffer(response.response.signature),
+      base64URLStringToBuffer(response.response.signature)
     ),
     message: buildSecp256r1Message(
       base64URLStringToBuffer(response.response.authenticatorData),
-      base64URLStringToBuffer(response.response.clientDataJSON),
+      base64URLStringToBuffer(response.response.clientDataJSON)
     ),
   };
 }
 export function recoverSecp256r1PublicKeyCandidates(
   signature: Uint8Array,
-  message: Uint8Array,
+  message: Uint8Array
 ): Uint8Array[] {
   const parsed = parseWebAuthnSignature(signature);
   const digest = sha256(message);
@@ -113,8 +118,9 @@ type WebAuthnClientDataJson = {
 
 function readRequiredClientDataString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
-    throw new Error(
-      `WebAuthn clientDataJSON.${field} must be a non-empty string.`,
+    throw new PhygitalTokenError(
+      "INVALID_ASSERTION",
+      `The passkey response is malformed: clientDataJSON.${field} is missing.`
     );
   }
   return value;
@@ -122,8 +128,9 @@ function readRequiredClientDataString(value: unknown, field: string): string {
 
 function readOptionalClientDataString(value: unknown, field: string): string {
   if (typeof value !== "string") {
-    throw new Error(
-      `WebAuthn clientDataJSON.${field} must be a string.`,
+    throw new PhygitalTokenError(
+      "INVALID_ASSERTION",
+      `The passkey response is malformed: clientDataJSON.${field} must be a string.`
     );
   }
   return value;
@@ -137,10 +144,13 @@ export function parseWebAuthnClientData(clientDataJSON: string): {
   let parsed: WebAuthnClientDataJson;
   try {
     parsed = JSON.parse(
-      new TextDecoder().decode(base64URLStringToBuffer(clientDataJSON)),
+      new TextDecoder().decode(base64URLStringToBuffer(clientDataJSON))
     ) as WebAuthnClientDataJson;
   } catch {
-    throw new Error("WebAuthn clientDataJSON must be valid JSON.");
+    throw new PhygitalTokenError(
+      "INVALID_ASSERTION",
+      "The passkey response is malformed: clientDataJSON is not valid JSON."
+    );
   }
 
   return {

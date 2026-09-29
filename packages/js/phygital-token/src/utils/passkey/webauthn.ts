@@ -1,9 +1,6 @@
-import type { Rpc, SolanaRpcApi } from "@solana/kit";
+import { PhygitalTokenError } from "../errors.js";
 
-import {
-  PLACEHOLDER_CREDENTIAL_ID_LENGTH,
-  recoverPlaceholderCredentialId,
-} from "./recoverCredentialId.js";
+import { PLACEHOLDER_CREDENTIAL_ID_LENGTH } from "./recoverCredentialId.js";
 
 /** Base64URL-encoded bytes (unpadded). */
 export type Base64URLString = string;
@@ -16,13 +13,7 @@ export type PublicKeyCredentialRequestOptionsJSON = {
     id: Base64URLString;
     type: PublicKeyCredentialType;
     transports?: Array<
-      | "ble"
-      | "cable"
-      | "hybrid"
-      | "internal"
-      | "nfc"
-      | "smart-card"
-      | "usb"
+      "ble" | "cable" | "hybrid" | "internal" | "nfc" | "smart-card" | "usb"
     >;
   }>;
   userVerification?: UserVerificationRequirement;
@@ -45,7 +36,7 @@ export type AuthenticationResponseJSON = {
 };
 
 export function bufferToBase64URLString(
-  buffer: ArrayBuffer | ArrayBufferView,
+  buffer: ArrayBuffer | ArrayBufferView
 ): Base64URLString {
   const bytes =
     buffer instanceof ArrayBuffer
@@ -79,7 +70,7 @@ function base64URLStringToArrayBuffer(base64URLString: string): ArrayBuffer {
   const bytes = base64URLStringToBuffer(base64URLString);
   return bytes.buffer.slice(
     bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength,
+    bytes.byteOffset + bytes.byteLength
   ) as ArrayBuffer;
 }
 
@@ -101,7 +92,7 @@ function toPublicKeyCredentialDescriptor(descriptor: {
 export function nfcWebAuthnRequestOptions(
   challenge: Base64URLString,
   rpId: string,
-  credentialId?: Base64URLString,
+  credentialId?: Base64URLString
 ): PublicKeyCredentialRequestOptionsJSON {
   return {
     challenge,
@@ -113,8 +104,8 @@ export function nfcWebAuthnRequestOptions(
           credentialId ??
           bufferToBase64URLString(
             crypto.getRandomValues(
-              new Uint8Array(PLACEHOLDER_CREDENTIAL_ID_LENGTH),
-            ),
+              new Uint8Array(PLACEHOLDER_CREDENTIAL_ID_LENGTH)
+            )
           ),
         type: "public-key",
         transports: ["nfc"],
@@ -123,22 +114,23 @@ export function nfcWebAuthnRequestOptions(
   };
 }
 
-/** `navigator.credentials.get`; recovers passkey via `rpc` when `rawId` is the 16-byte placeholder. */
 export async function authenticateWithWebauthn(
-  optionsJSON: PublicKeyCredentialRequestOptionsJSON,
-  rpc: Rpc<SolanaRpcApi>,
+  optionsJSON: PublicKeyCredentialRequestOptionsJSON
 ): Promise<AuthenticationResponseJSON> {
   if (
     typeof window === "undefined" ||
     typeof window.PublicKeyCredential === "undefined"
   ) {
-    throw new Error("WebAuthn is not supported in this browser");
+    throw new PhygitalTokenError(
+      "WEBAUTHN_UNSUPPORTED",
+      "This browser does not support WebAuthn."
+    );
   }
 
   let allowCredentials: PublicKeyCredentialDescriptor[] | undefined;
   if (optionsJSON.allowCredentials?.length !== 0) {
     allowCredentials = optionsJSON.allowCredentials?.map(
-      toPublicKeyCredentialDescriptor,
+      toPublicKeyCredentialDescriptor
     );
   }
 
@@ -148,12 +140,27 @@ export async function authenticateWithWebauthn(
     allowCredentials,
   };
 
-  const credential = (await navigator.credentials.get({
-    publicKey,
-  })) as PublicKeyCredential | null;
+  let credential: PublicKeyCredential | null;
+  try {
+    credential = (await navigator.credentials.get({
+      publicKey,
+    })) as PublicKeyCredential | null;
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "NotAllowedError") {
+      throw new PhygitalTokenError(
+        "AUTHENTICATION_CANCELLED",
+        "Authentication was cancelled or timed out. Tap the tag again.",
+        { cause: e }
+      );
+    }
+    throw e;
+  }
 
   if (!credential) {
-    throw new Error("Authentication was not completed");
+    throw new PhygitalTokenError(
+      "AUTHENTICATION_CANCELLED",
+      "Authentication was not completed. Tap the tag again."
+    );
   }
 
   const response = credential.response as AuthenticatorAssertionResponse;
@@ -178,5 +185,5 @@ export async function authenticateWithWebauthn(
       undefined,
   };
 
-  return recoverPlaceholderCredentialId(assertion, rpc);
+  return assertion;
 }

@@ -24,11 +24,11 @@ const rpc = createSolanaRpc("https://api.devnet.solana.com");
 // Server: issue a short-lived challenge
 const message = crypto.randomUUID();
 
-// Client: NFC tap (rpc required for placeholder recovery)
+// Client: NFC tap. `rpc`
 const response = await startAuthentication(message, { rpc });
 // Native / kiosk: startAuthentication(message, { transceive })
 
-// Server: check the signature 
+// Server: check the signature
 const { isVerified, secp256r1PublicKey } = verifyResponse({
   expectedMessage: message,
   response,
@@ -54,5 +54,5 @@ import {
 const messageHash = buildMessageHash(message);
 const tap = await authenticatePasskeyForSecp256r1Verify({ rpc, messageHash });
 const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
-  buildSecp256r1VerifyInstruction(tap);
+  await buildSecp256r1VerifyInstruction(tap);
 ```

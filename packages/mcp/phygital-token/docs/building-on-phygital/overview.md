@@ -2,8 +2,8 @@
 
 Third-party developers can:
 
-- **Authenticate off-chain** (Web2 passkey login) → `startAuthentication(message, { rpc })` / `verifyResponse` → your session
-- **Prove possession on-chain** (composable) → `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, transceive? })` / `buildSecp256r1VerifyInstruction` (`verify` CPI)
+- **Authenticate off-chain** (Web2 passkey login) → `startAuthentication(message, { rpc, allowList? })` / `verifyResponse` → your session
+- **Prove possession on-chain** (composable) → `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, transceive? })` / `buildSecp256r1VerifyInstruction` (`verify` CPI)
 - **Set linked wallet on-chain** → `beginTransfer({ rpc, secp256r1Pubkey })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_linked_wallet`)
 - **Bootstrap roles** → `getCreateConfigInstruction` → `getSetIssuerInstruction` / `getSetMinterInstruction`
 - **Initialize tokens** → `findPhygitalTokenPda` + `getInitializeInstruction` (issuer-only; passkey seeds PDA; chip `identifier` stored for binding)
@@ -22,14 +22,14 @@ Third-party developers can:
 
 ## WebAuthn credential id
 
-Custom authenticators use the compressed secp256r1 public key as `credential.id` (33 bytes). Browser NFC uses a random 16-byte placeholder in `allowCredentials`; when the platform echoes it (`rawId` length 16), the SDK recovers the public key from the signature and disambiguates via on-chain PhygitalToken PDAs. **Browser taps require Kit `Rpc`.**
+Custom authenticators use the compressed secp256r1 public key as `credential.id` (33 bytes). Browser NFC uses a random 16-byte placeholder in `allowCredentials`; when the platform echoes it (`rawId` length 16), the SDK recovers the public key from the signature and disambiguates via on-chain PhygitalToken PDAs (`rpc`), or against your `allowList` when no `rpc` is given. **When `allowList` is passed, the tapped credential id must always be in it.**
 
 All tap helpers share `authenticatePasskey`: pass `{ transceive }` for native/kiosk APDU; omit for browser WebAuthn. For APDU, `rpId`/`origin` are optional (empty defaults).
 
 ## Off-chain authentication (Web2 passkey login)
 
 1. **Server:** issue any short-lived `message` string → store single-use → return `{ challengeId, message }`.
-2. **Client:** `startAuthentication(message, { rpc })` — NFC tap (prefetch message before the click for iOS). Native: `startAuthentication(message, { transceive })`.
+2. **Client:** `startAuthentication(message, { rpc, allowList? })` — NFC tap (prefetch message before the click for iOS). Native: `startAuthentication(message, { transceive })`.
 3. **Client → server:** `POST { challengeId, response }`.
 4. **Server:** `verifyResponse({ expectedMessage: message, response })`.
 5. **Server:** on `isVerified`, map `secp256r1PublicKey` → user (`findPhygitalTokenPda` + `fetchPhygitalToken` → `linkedWallet`) and **create your normal session**.
@@ -40,7 +40,7 @@ Does **not** write to chain and does **not** set a cookie for you. Does **not** 
 ```
 buildMessageHash(message)
         ↓
-authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, transceive? })
+authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, transceive? })
         ↓
 buildSecp256r1VerifyInstruction(tap)  // phygitalTokenPda from tap
         ↓
@@ -77,7 +77,7 @@ send [secp256r1_verify, set_linked_wallet]
 - [ ] Issue a fresh short-lived message challenge per login (single-use)
 - [ ] Verify on the server with `verifyResponse` — never trust a client-side “success”
 - [ ] Create your own session after `isVerified: true` (SDK does not set cookies)
-- [ ] Pass Kit `Rpc` to `startAuthentication` / on-chain browser taps (or `transceive` for native)
+- [ ] Pass `rpc` to `startAuthentication` / on-chain browser taps for recovery, and `allowList` to gate the tapped id (or as the no-RPC recovery fallback); `transceive` for native
 - [ ] Never reuse challenges across authorization scopes
 - [ ] For transfers, use the slot-bound transfer challenge — not a login message
 - [ ] Ensure `is_locked == 0` before `set_linked_wallet`

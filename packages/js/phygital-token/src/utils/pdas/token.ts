@@ -10,9 +10,13 @@ import {
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 } from "../../generated/index.js";
 import { fetchAllMaybePhygitalToken } from "../../generated/accounts/phygitalToken.js";
+import { PhygitalTokenError } from "../errors.js";
 import { parseSecp256r1Pubkey } from "../parseSecp256r1Pubkey.js";
 import { recoverSecp256r1PublicKeyCandidates } from "../passkey/internal.js";
-import type { Base64URLString } from "../passkey/webauthn.js";
+import {
+  bufferToBase64URLString,
+  type Base64URLString,
+} from "../passkey/webauthn.js";
 
 const TOKEN_SEED = new TextEncoder().encode("token");
 
@@ -23,7 +27,7 @@ const TOKEN_SEED = new TextEncoder().encode("token");
  * PDA seeds: `["token", pubkey[1..]]` — the compressed-point prefix byte is dropped.
  */
 export async function findPhygitalTokenPda(
-  secp256r1Pubkey: Secp256r1Pubkey | Base64URLString,
+  secp256r1Pubkey: Secp256r1Pubkey | Base64URLString
 ): Promise<Address> {
   const pubkey =
     typeof secp256r1Pubkey === "string"
@@ -49,11 +53,14 @@ export async function findPhygitalTokenPda(
 export async function recoverSecp256r1PublicKeyWithPhygitalToken(
   rpc: Rpc<SolanaRpcApi>,
   signature: Uint8Array,
-  message: Uint8Array,
+  message: Uint8Array
 ): Promise<Uint8Array> {
   const candidates = recoverSecp256r1PublicKeyCandidates(signature, message);
   if (candidates.length === 0) {
-    throw new Error("Failed to recover secp256r1 public key from signature");
+    throw new PhygitalTokenError(
+      "PASSKEY_RECOVERY_FAILED",
+      "Could not read a passkey from this tap. Tap the tag again."
+    );
   }
 
   if (candidates.length === 1) {
@@ -62,7 +69,9 @@ export async function recoverSecp256r1PublicKeyWithPhygitalToken(
 
   const tokenAccounts = await fetchAllMaybePhygitalToken(
     rpc,
-    await Promise.all(candidates.map((candidate) => findPhygitalTokenPda([candidate]))),
+    await Promise.all(
+      candidates.map((candidate) => findPhygitalTokenPda([candidate]))
+    )
   );
   const matches = tokenAccounts.filter((account) => account.exists);
 
@@ -71,12 +80,52 @@ export async function recoverSecp256r1PublicKeyWithPhygitalToken(
   }
 
   if (matches.length === 0) {
-    throw new Error(
-      "No recovered secp256r1 public key matches an initialized PhygitalToken on-chain.",
+    throw new PhygitalTokenError(
+      "PASSKEY_NOT_RECOGNIZED",
+      "This tag is not a registered phygital token."
     );
   }
 
-  throw new Error(
-    "Ambiguous secp256r1 public key recovery: multiple keys match PhygitalToken accounts.",
+  throw new PhygitalTokenError(
+    "PASSKEY_AMBIGUOUS",
+    "Could not tell which passkey signed: multiple registered tokens match. Tap again."
+  );
+}
+
+/**
+ * Offline variant of {@link recoverSecp256r1PublicKeyWithPhygitalToken}: picks
+ * the single verifying candidate that is in `allowList`, with no network call.
+ */
+export function recoverSecp256r1PublicKeyWithAllowList(
+  allowList: ReadonlySet<Base64URLString>,
+  signature: Uint8Array,
+  message: Uint8Array
+): Uint8Array {
+  const candidates = recoverSecp256r1PublicKeyCandidates(signature, message);
+  if (candidates.length === 0) {
+    throw new PhygitalTokenError(
+      "PASSKEY_RECOVERY_FAILED",
+      "Could not read a passkey from this tap. Tap the tag again."
+    );
+  }
+
+  const matches = candidates.filter((candidate) =>
+    allowList.has(bufferToBase64URLString(candidate))
+  );
+
+  if (matches.length === 1) {
+    return matches[0];
+  }
+
+  if (matches.length === 0) {
+    throw new PhygitalTokenError(
+      "PASSKEY_NOT_RECOGNIZED",
+      "This tag is not in the allowed set of passkeys."
+    );
+  }
+
+  throw new PhygitalTokenError(
+    "PASSKEY_AMBIGUOUS",
+    "Could not tell which passkey signed: multiple allowed keys match. Tap again."
   );
 }

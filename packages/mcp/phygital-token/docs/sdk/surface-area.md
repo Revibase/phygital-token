@@ -9,7 +9,7 @@ TypeScript package: `phygital-token-sdk` (`packages/js/phygital-token`).
 | 33 bytes | Authenticator returned the secp256r1 public key — used as `response.id` |
 | 16 bytes | Platform echoed random placeholder — recover from signature |
 
-When recovery is ambiguous, the SDK selects the candidate with an initialized PhygitalToken PDA on-chain. **Browser WebAuthn requires Kit `Rpc`** on all tap helpers.
+When recovery is ambiguous, the SDK selects the candidate with an initialized PhygitalToken PDA on-chain (`rpc`), or the one in your `allowList` when no `rpc` is given.
 
 ## Shared tap helper
 
@@ -17,10 +17,11 @@ All three on-chain tap entry points (`authenticatePasskey`, `authenticatePasskey
 
 | Option | Behavior |
 |--------|----------|
-| `{ rpc }` | Browser WebAuthn via `authenticateWithWebauthn` (required unless `transceive`) |
+| `{ rpc }` | Browser WebAuthn; recovers a placeholder id via on-chain PhygitalToken lookup. |
+| `{ allowList }` | Set of base64url compressed public keys. Always gates: the tapped credential id must be in it, else `PASSKEY_NOT_RECOGNIZED`. Fallback for recovering a placeholder id locally when no `rpc` is given. |
 | `{ transceive }` | Native/kiosk APDU via `authenticateWithApdu` |
 
-Off-chain login uses `startAuthentication(message, { rpc })` + `verifyResponse({ expectedMessage, response })`.
+Off-chain login uses `startAuthentication(message, { rpc, allowList? })` + `verifyResponse({ expectedMessage, response })`.
 
 ## Admin / roles
 
@@ -71,7 +72,7 @@ Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_
 | Export | Purpose |
 |--------|---------|
 | `buildMessageHash(message)` | SHA-256 `message` to a 32-byte `messageHash` |
-| `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, rpId?, transceive? })` | Uses `messageHash` as WebAuthn challenge; `rpc` for browser recovery; optional `transceive` for native APDU |
+| `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId?, transceive? })` | Uses `messageHash` as WebAuthn challenge; `rpc` recovers a placeholder id, `allowList` gates the tapped id (and is the no-RPC recovery fallback); optional `transceive` for native APDU |
 | `buildSecp256r1VerifyInstruction` | After tap: `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }` |
 | `getVerifyInstruction` | Generated `verify` ix — `expectedRpId` / `expectedOrigins` are `Option` (`null` skips). CPI callers set these on `VerifyCpiBuilder`, not the tap helper. |
 
@@ -87,7 +88,7 @@ See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `
 
 | Export | Purpose |
 |--------|---------|
-| `startAuthentication(message, { rpc? })` | NFC tap; `rpc` for browser recovery, or `{ transceive }` for APDU |
+| `startAuthentication(message, { rpc, allowList? })` | NFC tap; `rpc` recovers a placeholder id, `allowList` gates the tapped id (and is the no-RPC fallback), or `{ transceive }` for APDU |
 | `verifyResponse({ expectedMessage, response })` | secp256r1 check (no rpId/origin); returns `secp256r1PublicKey` |
 
 Issue any short-lived message string — no `generateAuthenticationOptions`. Then create your normal session.

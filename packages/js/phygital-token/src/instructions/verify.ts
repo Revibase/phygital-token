@@ -28,13 +28,15 @@ export function buildMessageHash(message: Uint8Array): Uint8Array {
  * digest your program must pass to `VerifyCpiBuilder.message_hash`. Hash with
  * {@link buildMessageHash} first.
  *
- * @param input.rpc - Kit `Rpc` for browser placeholder recovery. Optional when `transceive` is set.
+ * @param input.allowList - Base64url compressed secp256r1 public keys. The tapped credential id must be in it; recovers a placeholder id locally when `rpc` is omitted.
+ * @param input.rpc - Kit `Rpc` to recover a placeholder id on-chain (preferred over `allowList` for recovery).
  * @param input.messageHash - SHA-256 of the message you bind on-chain (32 bytes).
- * @param input.rpId - Relying party ID. Required for `transceive`; browser defaults to hostname.
- * @param input.origin - Required for `transceive` (clientDataJSON), e.g. `https://app.example.com`.
+ * @param input.rpId - Relying party ID. Browser defaults to the page hostname; optional for `transceive`.
+ * @param input.origin - `clientDataJSON` origin for `transceive`, e.g. `https://app.example.com`. Set it if your program checks `expected_origins`.
  * @param input.transceive - Native / kiosk IsoDep reader; when set, skips browser WebAuthn.
  */
 export async function authenticatePasskeyForSecp256r1Verify(input: {
+  allowList?: ReadonlySet<string>;
   rpc?: Rpc<SolanaRpcApi>;
   messageHash: Uint8Array;
   rpId?: string;
@@ -42,6 +44,7 @@ export async function authenticatePasskeyForSecp256r1Verify(input: {
   transceive?: NfcTransceive;
 }): Promise<AuthenticationResponseJSON> {
   return authenticatePasskey(bufferToBase64URLString(input.messageHash), {
+    allowList: input.allowList,
     rpc: input.rpc,
     rpId: input.rpId,
     origin: input.origin,
@@ -65,7 +68,7 @@ export async function authenticatePasskeyForSecp256r1Verify(input: {
 export async function buildSecp256r1VerifyInstruction(
   response: AuthenticationResponseJSON,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
-  verifyArgsRelativeIndex = -1,
+  verifyArgsRelativeIndex = -1
 ): Promise<{
   secp256r1VerifyInstruction: Instruction;
   phygitalTokenPda: Address;

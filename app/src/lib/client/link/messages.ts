@@ -1,3 +1,4 @@
+import { PhygitalTokenError, type PhygitalTokenErrorCode } from 'phygital-token-sdk';
 import { ApiClientError } from '../api';
 import { LinkTransactionRejected } from '$lib/shared/link-transaction';
 import type { LinkErrorCode, TapFailureReason } from '$lib/shared/types';
@@ -64,7 +65,16 @@ export function linkErrorCopy(code: LinkErrorCode | null | undefined): FriendlyE
 	return { ...(LINK_COPY[c] ?? LINK_COPY.unknown), code: c };
 }
 
+const TAP_REJECTED_CODES: PhygitalTokenErrorCode[] = [
+	'INVALID_CREDENTIAL_ID',
+	'PASSKEY_RECOVERY_FAILED',
+	'PASSKEY_NOT_RECOGNIZED',
+	'PASSKEY_AMBIGUOUS',
+	'INVALID_ASSERTION'
+];
+
 function isUserRejection(err: unknown): boolean {
+	if (err instanceof PhygitalTokenError && err.code === 'AUTHENTICATION_CANCELLED') return true;
 	const e = err as { name?: string; message?: string; code?: number };
 	if (e?.code === 4001) return true;
 	if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') return true;
@@ -110,7 +120,7 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 		return linkErrorCopy('wallet_rejected');
 	}
 	const message = err instanceof Error ? err.message : String(err);
-	if (/WebAuthn is not supported/i.test(message)) {
+	if (err instanceof PhygitalTokenError && err.code === 'WEBAUTHN_UNSUPPORTED') {
 		return {
 			title: 'This browser can’t read your accessory',
 			body: 'Open this page in Safari (iPhone) or Chrome (Android) to tap.',
@@ -118,7 +128,7 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 			code: 'no_webauthn'
 		};
 	}
-	if (/startAuthentication|credential id length|placeholder credential|No recovered|Failed to recover/i.test(message)) {
+	if (err instanceof PhygitalTokenError && TAP_REJECTED_CODES.includes(err.code)) {
 		return {
 			title: 'We couldn’t confirm that tap',
 			body: 'Hold your accessory steady against your phone until it finishes, then try again.',

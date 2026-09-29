@@ -40,7 +40,7 @@ pub struct Secp256r1VerifyArgs {
 
 ## Challenge
 
-`message_hash` is `SHA-256(message)` — hash with TypeScript `buildMessageHash` (or equivalent) before the tap. Pass the same digest to `authenticatePasskeyForSecp256r1Verify({ rpc, messageHash })` and `VerifyCpiBuilder.message_hash`. Browser taps require Kit `Rpc` for placeholder credential-id recovery. Callers that need slot freshness or action-type domain separation must fold those into `message` before hashing.
+`message_hash` is `SHA-256(message)` — hash with TypeScript `buildMessageHash` (or equivalent) before the tap. Pass the same digest to `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash })` and `VerifyCpiBuilder.message_hash`. Browser taps recover a placeholder credential id via Kit `Rpc`; `allowList` (Set of base64url compressed public keys) is the no-RPC fallback and always gates: the tapped credential id must be in it. Callers that need slot freshness or action-type domain separation must fold those into `message` before hashing.
 
 ## Testing
 

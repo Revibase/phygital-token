@@ -17,16 +17,16 @@ export type VerificationRecommendation = {
 
 const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> = {
   login_ui_only: {
-    method: "startAuthentication(message, { rpc }) + verifyResponse → your session",
+    method: "startAuthentication(message, { rpc, allowList? }) + verifyResponse → your session",
     sdkExports: ["startAuthentication", "verifyResponse"],
     requiresTap: true,
     onChain: false,
     rationale:
-      "Issue any short-lived message string as the challenge. Client taps with startAuthentication; server verifies with verifyResponse (secp256r1 only — no rpId/origin binding). Then create your session. Browser recovery needs Kit Rpc.",
+      "Issue any short-lived message string as the challenge. Client taps with startAuthentication; server verifies with verifyResponse (secp256r1 only — no rpId/origin binding). Then create your session. Browser taps recover a placeholder id via Kit Rpc, falling back to allowList; allowList also gates the tapped id.",
     docIds: ["verification:methods", "verification:overview"],
     cautions: [
       "Run verifyResponse on your server, not in the browser.",
-      "Native APDU: startAuthentication(message, { transceive }) — rpId/origin not required.",
+      "Native APDU: startAuthentication(message, { transceive }) — rpId/origin optional (set origin if your program checks expected_origins).",
       "SDK does not set cookies — create the session after isVerified: true.",
     ],
   },
@@ -51,7 +51,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: false,
     rationale:
-      "Pass { transceive } for native NFC readers (rpId/origin optional). Verify on server with verifyResponse. Rpc is optional when transceive is set.",
+      "Pass { transceive } for native NFC readers (rpId/origin optional). Verify on server with verifyResponse. rpc/allowList are optional when transceive is set.",
     docIds: ["verification:methods", "verification:verify-composable"],
     cautions: [
       "Run verifyResponse on your server, not in the native client.",
@@ -77,7 +77,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: true,
     rationale:
-      "Client prepends secp256r1_verify and passes phygitalTokenPda + secp256r1VerifyArgs into your instruction. Tap requires rpc. Your program CPIs verify with VerifyCpiBuilder.",
+      "Client prepends secp256r1_verify and passes phygitalTokenPda + secp256r1VerifyArgs into your instruction. Tap takes rpc (recovery) and/or allowList (gate, no-RPC fallback). Your program CPIs verify with VerifyCpiBuilder.",
     docIds: [
       "verification:verify-composable",
       "building-on-phygital:rust-cpi",
@@ -115,10 +115,10 @@ Authentication (live NFC tap required)
 │         → completeTransfer (set_linked_wallet; requires is_locked == 0)
 │   NO  → Need on-chain possession proof for your program?
 │         YES → buildMessageHash(message)
-│               → authenticatePasskeyForSecp256r1Verify({ rpc, messageHash, transceive? })
+│               → authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, transceive? })
 │               → buildSecp256r1VerifyInstruction(tap)
 │               [secp256r1_verify, your_program_instruction] — program CPIs verify
-│         NO  → startAuthentication(message, { rpc }) → verifyResponse
+│         NO  → startAuthentication(message, { rpc, allowList? }) → verifyResponse
 │               → create your session
 │               optional: findPhygitalTokenPda / fetchPhygitalToken
 └── Know the passkey already?
@@ -126,12 +126,12 @@ Authentication (live NFC tap required)
 
 WebAuthn credential id:
 - rawId 33 bytes → authenticator returned the passkey public key
-- rawId 16 bytes → platform echoed random placeholder; startAuthentication needs rpc
+- rawId 16 bytes → platform echoed random placeholder; startAuthentication recovers via rpc, falling back to allowList
 - ambiguous recovery → pick candidate with initialized PhygitalToken PDA on-chain
 
 On-chain tap helpers share authenticatePasskey: { transceive } → APDU; else browser WebAuthn.
 Off-chain login: issue any message string → startAuthentication → verifyResponse (no rpId/origin checks).
-Browser placeholder recovery requires Kit Rpc (optional when transceive is set).
+Browser placeholder recovery uses Kit Rpc, falling back to allowList (both optional when transceive is set).
 verifyResponse never submits on-chain verify. Run it on your server.
 Token PDA is seeded by the passkey public key; chip identifier is a separate binding field.
 Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder (omit to skip).

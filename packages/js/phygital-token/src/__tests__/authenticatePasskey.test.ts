@@ -1,16 +1,20 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import type { Rpc, SolanaRpcApi } from "@solana/kit";
+
+const { CRED } = vi.hoisted(() => ({
+  CRED: Buffer.from(new Uint8Array(33).fill(2)).toString("base64url"),
+}));
 
 vi.mock("../utils/passkey/nfc/index.js", () => ({
   authenticateWithApdu: vi.fn(async () => ({ id: "apdu-response" })),
 }));
 
 vi.mock("../utils/passkey/webauthn.js", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../utils/passkey/webauthn.js")>();
+  const actual = await importOriginal<
+    typeof import("../utils/passkey/webauthn.js")
+  >();
   return {
     ...actual,
-    authenticateWithWebauthn: vi.fn(async () => ({ id: "webauthn-response" })),
+    authenticateWithWebauthn: vi.fn(async () => ({ id: CRED, rawId: CRED })),
   };
 });
 
@@ -21,7 +25,8 @@ import {
 } from "../utils/passkey/webauthn.js";
 import { authenticatePasskey } from "../utils/passkey/authenticate.js";
 
-const rpc = {} as Rpc<SolanaRpcApi>;
+const allowList = new Set([CRED]);
+const OTHER = Buffer.from(new Uint8Array(33).fill(3)).toString("base64url");
 const challenge = bufferToBase64URLString(new Uint8Array(32).fill(7));
 
 describe("authenticatePasskey", () => {
@@ -55,7 +60,7 @@ describe("authenticatePasskey", () => {
           },
         ],
       }),
-      transceive,
+      transceive
     );
     expect(authenticateWithWebauthn).not.toHaveBeenCalled();
   });
@@ -70,29 +75,33 @@ describe("authenticatePasskey", () => {
         rpId: "",
         origin: "",
       }),
-      transceive,
+      transceive
     );
   });
 
   it("uses authenticateWithWebauthn when transceive is omitted", async () => {
     const result = await authenticatePasskey(challenge, {
-      rpc,
+      allowList,
       rpId: "app.example",
       credentialId: "cred",
     });
 
-    expect(result).toEqual({ id: "webauthn-response" });
+    expect(result.id).toBe(CRED);
     expect(authenticateWithWebauthn).toHaveBeenCalledTimes(1);
     expect(authenticateWithApdu).not.toHaveBeenCalled();
-    const [options, passedRpc] = vi.mocked(authenticateWithWebauthn).mock
-      .calls[0]!;
-    expect(passedRpc).toBe(rpc);
+    const [options] = vi.mocked(authenticateWithWebauthn).mock.calls[0]!;
     expect(options.challenge).toBe(challenge);
     expect(options.rpId).toBe("app.example");
     expect(options.allowCredentials?.[0]?.id).toBe("cred");
   });
 
-  it("requires rpc for browser WebAuthn", async () => {
-    await expect(authenticatePasskey(challenge)).rejects.toThrow(/rpc/);
+  it("rejects a credential id outside the allowList", async () => {
+    vi.mocked(authenticateWithWebauthn).mockResolvedValueOnce({
+      id: OTHER,
+      rawId: OTHER,
+    } as never);
+    await expect(
+      authenticatePasskey(challenge, { allowList, rpId: "app.example" })
+    ).rejects.toMatchObject({ code: "PASSKEY_NOT_RECOGNIZED" });
   });
 });

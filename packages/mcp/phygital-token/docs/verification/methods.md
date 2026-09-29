@@ -4,7 +4,7 @@
 
 ```
 Server: const message = crypto.randomUUID()   // store single-use
-Client: startAuthentication(message, { rpc })
+Client: startAuthentication(message, { rpc, allowList? })
 Server: verifyResponse({ expectedMessage: message, response })
       → findPhygitalTokenPda(secp256r1PublicKey) → your session
 ```
@@ -28,7 +28,7 @@ No `generateAuthenticationOptions`. No rpId/origin binding on verify.
 
 | | |
 |--|--|
-| `startAuthentication(message, { rpc })` | browser tap + placeholder recovery |
+| `startAuthentication(message, { rpc, allowList? })` | browser tap + placeholder recovery |
 | `startAuthentication(message, { transceive })` | native APDU |
 | `verifyResponse({ expectedMessage, response })` | secp256r1 check; returns `secp256r1PublicKey` |
 
