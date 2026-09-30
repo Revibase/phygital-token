@@ -3,6 +3,7 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import { browser } from '$app/environment';
 
 import { fetchAccessoryMedia } from './media';
+import { fetchAccessoryShortcuts } from './shortcuts';
 import { fetchWalletAccessories } from './wallet-accessories';
 
 /**
@@ -12,6 +13,10 @@ import { fetchWalletAccessories } from './wallet-accessories';
  *   for a day, treated as fresh for an hour once artwork exists (five minutes
  *   while there is none, since a mint can be bound later), and persisted to
  *   localStorage so a returning visitor sees artwork on first paint.
+ * - accessory shortcuts (the project's links): the Worker edge-caches the
+ *   project's file, and session proofs are minted only when a shortcut is
+ *   opened, so this is only kept in memory for ten minutes. Keyed by the
+ *   linked wallet too, since `{{ownerAddress}}` is filled from it.
  * - wallet accessories: changes with every link and unlink, so it is never
  *   persisted. It is shown from memory instantly and always revalidated.
  *
@@ -23,6 +28,7 @@ const MINUTE = 60 * 1000;
 
 export const queryKeys = {
 	media: (pda: string) => ['accessory-media', pda] as const,
+	shortcuts: (pda: string, owner: string | null) => ['accessory-shortcuts', pda, owner ?? ''] as const,
 	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const
 };
 
@@ -32,6 +38,16 @@ export const accessoryMediaQuery = (pda: string) =>
 		queryFn: () => fetchAccessoryMedia(pda),
 		staleTime: (query) => (query.state.data?.image ? HOUR : 5 * MINUTE),
 		gcTime: DAY,
+		retry: 1
+	});
+
+/** The session decides which accessory the server reads; `pda` and `owner` only key the cache. */
+export const accessoryShortcutsQuery = (pda: string, owner: string | null) =>
+	queryOptions({
+		queryKey: queryKeys.shortcuts(pda, owner),
+		queryFn: fetchAccessoryShortcuts,
+		staleTime: 10 * MINUTE,
+		gcTime: HOUR,
 		retry: 1
 	});
 

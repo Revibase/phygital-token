@@ -8,13 +8,19 @@
 	import Notice from '$lib/components/app/Notice.svelte';
 	import PageHeader from '$lib/components/app/PageHeader.svelte';
 	import PageShell from '$lib/components/app/PageShell.svelte';
+	import OpenInWalletSheet from '$lib/components/app/OpenInWalletSheet.svelte';
 	import ReleaseSheet from '$lib/components/app/ReleaseSheet.svelte';
+	import ShortcutGrid from '$lib/components/app/ShortcutGrid.svelte';
 	import TechnicalDetails from '$lib/components/app/TechnicalDetails.svelte';
 	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { accessoryMediaQuery } from '$lib/client/queries';
-	import { rememberedWallet } from '$lib/client/memory';
+	import { accessoryMediaQuery, accessoryShortcutsQuery } from '$lib/client/queries';
+	import { recentWallet, rememberedWallet } from '$lib/client/memory';
+	import { isLikelyWalletBrowser, platform, type Platform } from '$lib/client/capability';
+	import { shortcutLaunch, walletLaunchHref, type ShortcutLaunch } from '$lib/client/shortcuts';
+	import type { KnownWallet } from '$lib/client/wallet/catalog';
+	import { shortcutsFor, type Shortcut } from '$lib/shared/shortcuts';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import { changedElsewhereNotice, tapScreen } from '$lib/client/accessory/screen';
 
@@ -47,6 +53,35 @@
 	const namedCollectible = $derived(a?.kind === 'bearer' && !!a.mint);
 	const collectibleLoading = $derived(namedCollectible && mediaQuery.isPending);
 	const collectibleName = $derived(namedCollectible ? media?.name : null);
+
+	// How each shortcut opens depends on this device, which is only known after hydration.
+	const shortcutsQuery = createQuery(() => ({ ...accessoryShortcutsQuery(a?.pda ?? '', a?.linkedWallet ?? null), enabled: !!a?.mint }));
+	let device = $state<{ platform: Platform; inWallet: boolean; recent: string | null; origin: string } | null>(null);
+	onMount(() => {
+		device = { platform: platform(), inWallet: isLikelyWalletBrowser(), recent: recentWallet(), origin: window.location.origin };
+	});
+	type Launchable = { s: Shortcut; index: number; launch: ShortcutLaunch };
+	const shortcuts = $derived.by((): Launchable[] => {
+		const d = device;
+		const all = shortcutsQuery.data;
+		if (!d || !all) return [];
+		return shortcutsFor(all, d.platform === 'desktop' ? 'desktop' : 'mobile').map((s) => {
+			const index = all.indexOf(s);
+			return { s, index, launch: shortcutLaunch(s, d, index) };
+		});
+	});
+
+	let picking = $state<Launchable | null>(null);
+	let pickOpen = $state(false);
+	function pickWallet(item: Launchable) {
+		picking = item;
+		pickOpen = true;
+	}
+	const pickHref = $derived.by(() => {
+		const p = picking;
+		const origin = device?.origin;
+		return p && origin ? (w: KnownWallet) => walletLaunchHref(p.s, p.index, w, origin) : null;
+	});
 
 	async function retry() {
 		refreshing = true;
@@ -91,8 +126,12 @@
 
 				{#if a.linkedWallet && screen.walletLabel}
 					<List footer={screen.footnote}>
-						<WalletRow address={a.linkedWallet} label={screen.walletLabel} icon={owned ? walletStore.walletIcon : null} />
+						<WalletRow address={a.linkedWallet} label={screen.walletLabel} icon={owned ? walletStore.walletIcon : null} cluster={data.cluster} />
 					</List>
+				{/if}
+
+				{#if shortcuts.length}
+					<ShortcutGrid label={`From ${media?.collection ?? 'the project'}`} items={shortcuts} onpick={pickWallet} />
 				{/if}
 
 				<div class="hidden lg:block">{@render actions()}</div>
@@ -125,6 +164,8 @@
 		{/if}
 	{/if}
 {/snippet}
+
+<OpenInWalletSheet hrefFor={pickHref} label={picking?.s.label ?? ''} bind:open={pickOpen} />
 
 {#if a && screen}
 	<TechnicalDetails accessory={a} cluster={data.cluster} bind:open={detailsOpen} />

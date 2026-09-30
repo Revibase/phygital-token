@@ -5,6 +5,8 @@ export type ServerEnv = {
 	db: D1Database;
 	rpcUrl: string;
 	sessionSecret: string;
+	/** Ed25519 seed for session proofs sent to project shortcuts; unset turns proofs off. */
+	sessionProofKey: string | null;
 	rpId: string;
 	origin: string;
 	cluster: string;
@@ -20,6 +22,7 @@ export function getEnv(platform: App.Platform | undefined): ServerEnv {
 		db: env.DB,
 		rpcUrl: env.SOLANA_RPC_URL,
 		sessionSecret: secret,
+		sessionProofKey: env.SESSION_PROOF_KEY ?? null,
 		rpId: env.RP_ID,
 		origin: env.ORIGIN,
 		cluster: env.SOLANA_CLUSTER

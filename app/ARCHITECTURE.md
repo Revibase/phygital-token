@@ -126,7 +126,7 @@ Admit cookies (same model as phygital-wallet's browse_unlock | authority_browse)
 - **`/continue` claims `h` only once a wallet is detected.** Opened somewhere without one, such as Safari, the link stays unclaimed and is offered for reopening in a wallet app. A browser with no wallet can't burn the single-use link.
 - `catalog.ts` holds the logic and `WalletPicker` renders it everywhere.
 - **Recent wallet:** the finisher sends its wallet app's name with `POST …/submitted` (stored as `wallet_app`, surfaced in the status view). When the tapping browser sees `linked` it remembers that name locally, and connecting a wallet on Home does the same. `WalletPicker` lists the recent app first with a "Recent" tag, including the "Open in …" rows, which is what the tapping browser (usually Safari, with no wallet detected) shows.
-- CSP (`script-src 'self'` plus nonces, `frame-ancestors 'none'`), same-origin `Origin` checks on every JSON POST. `SOLANA_RPC_URL` is itself a public proxy Worker with no secret in it, so the browser calls it directly (reads, DAS and sending); the CSP `connect-src` allows `https:` for it.
+- CSP (`script-src 'self'` plus nonces, `frame-ancestors 'none'`; `frame-src` only on an embedded-app page, for that app's one origin), same-origin `Origin` checks on every JSON POST. `SOLANA_RPC_URL` is itself a public proxy Worker with no secret in it, so the browser calls it directly (reads, DAS and sending); the CSP `connect-src` allows `https:` for it.
 
 ---
 
@@ -209,6 +209,8 @@ If the tapping browser also has a wallet (Android MWA, or a desktop extension), 
 | Transaction substitution | Client byte-level validation before and after the wallet signs (programs, accounts, PDA, recipient, slot, tap data, secp key, single signer, no lookup tables) |
 | Assertion made on another site | Neither the server nor the program checks origin or rpId. **Residual:** so a phishing site can harvest a transfer tap for an unlocked token and use it directly on-chain. Proposed follow-up: an `expected_origins` allow-list on `set_linked_wallet`. It keeps tap-first handoff intact, because the origin is the tap page. |
 | Malicious deep links / redirects | No redirect parameters; fixed wallet templates; secrets only in fragments |
+| Session proof replayed or leaked from a shortcut URL | Separate signing key (never valid as a cookie); `aud` bound to one shortcut origin; 5-minute expiry within the viewer's session; unique `jti` for projects to reject replays; only sent to the project's own host |
+| Embedded app phishing under our page | Opt-in by the project and by its own framing headers; our bar sits outside the frame with the app's host and close/open buttons; sandbox without top navigation; no passkey, camera, mic or location delegation; `frame-src` for that one origin on that one page |
 | Clickjacking / CSRF | `frame-ancestors 'none'`; same-origin `Origin` check on JSON POSTs |
 
 ---
@@ -230,6 +232,70 @@ Each secondary feature exists for the core idea:
 - **Release** (shown as "Unlink" in the UI) handles revocation and handing the accessory to someone else. It's required for Controlled tokens.
 - **The home page (`/`)** is the answer to a lost accessory: the linked wallet can release it there.
 - **Technical details** are there for crypto-native users.
+
+**Project shortcuts.** A collectible's project decides what its accessory's page offers beyond claiming, using [Phantom's Shortcuts spec](https://github.com/phantom/shortcuts) read as-is. A file written for Phantom works here unchanged, and there are no Revibase-only fields.
+- **Discovery:** the Worker reads the mint's `external_url` from DAS and fetches `<external_url>/shortcuts.json` (`GET /api/accessory/shortcuts`, gated by the same admit session as `/accessory`).
+  - It fetches server-side because most project hosts send no CORS headers, and so the project never sees the tapper's IP.
+  - The fetch has a 3 s timeout, a 64 KB cap and a 10-minute edge cache. Any failure on the project's side means no shortcuts.
+  - Every mint with an https `external_url` qualifies: projects are vetted before their accessories are printed.
+- **Fields honoured:** `label` (clipped to 32), `uri`, `icon` (one of Phantom's 19 names, drawn to match Phantom's reference icons on a coloured tile; or an https image link, see below), `platform`, `limitToCollections`, `type` (only `collectible`), and `prefersExternalTarget`. At most 8 shortcuts are shown.
+- **Placeholders:** `{{tokenId}}` is the mint, `{{collectionId}}` the DAS collection, and `{{ownerAddress}}` the on-chain `linked_wallet`, not the viewer's wallet.
+  - A shortcut whose placeholder has no value is dropped. This includes `{{ownerAddress}}` on an unclaimed accessory.
+  - Values must be base58 addresses, so a substituted value can never change a link's host.
+- **Opening (`prefersExternalTarget: false`, Phantom's default):** the link must stay on the `external_url` host or a subdomain of it, which is Phantom's rule. Like Phantom's in-app browser, it opens inside a wallet:
+  - on a computer, in a new tab, where the extension is;
+  - inside a wallet browser, in place;
+  - in a phone browser, through the recent wallet's browse deep link, or a sheet offering Phantom, Backpack and Solflare.
+- **Opening (`prefersExternalTarget: true`):** a plain link to anywhere, or a `solana:` Solana Pay URI. Only `https:` and (external only) `solana:` are accepted.
+- **Image icons:** an https link in `icon` fills the whole tile. The Worker serves it from `/shortcut-icon?u=…&s=…`, so the project never sees who's looking.
+  - `s` is an HMAC of the URL under `SESSION_SECRET`, with its own context string, so the Worker only fetches icons named in a project's file. It's not an open proxy.
+  - Only PNG, JPEG, GIF, WebP and AVIF are served, recognised by file signature and served as that type, with a size cap of 128 KB. SVG is refused: it's a document that can carry scripts and it would be served from this origin. Responses carry `default-src 'none'; sandbox` and are cached for a day.
+  - A failed image falls back to the `generic-link` glyph.
+- **Layout:** an app grid titled "From {collection}": four icon tiles to a row, each with its label beneath, in the file's order, which is the project's only layout lever. Each tile's tooltip names its destination host. The grid never takes over the page's own actions: "Make it yours" (while claimable), and the owner's Move, Unlink and Details.
+- **Same for everyone:** the list is identical whether the viewer arrived by tap or from the home page.
+
+**Embedded apps (`immerse`).** A shortcut can open framed inside `/accessory/app/[n]`, under our own bar.
+- **Opt-in:** the project writes `preferredPresentation: "immerse"` on a wallet shortcut (on its own host). Phantom's default is `immerse`, but its meaning is left to each platform, so it only counts when written. The project's site must also allow us to frame it: the Worker reads its `frame-ancestors` / `X-Frame-Options` (CSP wins; every policy must allow us). It also requires a 2xx with no cross-origin redirect, edge-cached 10 minutes, and never sends a session proof, since the check would spend its single use. A refusal turns `immerse` off, so the tile opens as a normal link.
+- **Launch page:** `/accessory/app/[n]` looks everything up again from the session; `n` only picks a position in the project's file. It requires the shortcut to still be `immerse`, on an origin other than ours, and still framable.
+  - It signs the frame's proof only once framing is certain. "Open in new tab" goes through `/shortcut/[n]`, which mints its own on click.
+  - It sets `locals.frameSrc`, which `hooks.server.ts` appends as `frame-src <origin>` to SvelteKit's CSP for that one response. A second CSP header can only narrow a policy, never allow a frame.
+  - Links into and out of the page are full loads (`data-sveltekit-reload`), so the widened policy never lingers on other pages.
+- **The frame:** `sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"`. `allow-same-origin` is safe only because the origin is never ours. There's no top navigation, `allow="fullscreen; clipboard-write"` and `referrerpolicy="no-referrer"`.
+- **No passkeys in the frame.** `publickey-credentials-get` stays `(self)` and isn't delegated. The program doesn't check where a tap was made (see threats), so a tap inside the frame could be a transfer tap for an unlocked card, under a page that says "Genuine". Framed apps sign users in with the session proof. Revisit once `set_linked_wallet` checks `expected_origins`.
+- **Limits for projects:** wallets rarely inject into third-party frames, so no signing inside; framed third-party cookies are restricted (Safari blocks them).
+
+**Session proofs.** Each shortcut that goes to the project itself (https, on the `external_url` host or a subdomain) gets `?revibase_session=<jwt>`. The project can then authenticate the viewer without another tap or wallet signature. Third-party links (socials, Solana Pay) never get one.
+- **Format:** an EdDSA (Ed25519) JWT, `typ: revibase-session+jwt`. It is signed with `SESSION_PROOF_KEY`, a 32-byte seed used for nothing else.
+  - Cookies stay HMAC under `SESSION_SECRET`, which also derives the pairing code, so a proof can never be replayed here as a session.
+  - The public keys are served as a JWKS at `/.well-known/session.json`.
+  - If the key is unset, proofs are off and that route answers 404.
+- **Claims:** `iss` (this app's origin) · `aud` (the shortcut's origin) · `iat`/`exp` · `jti` · `sub` (accessory PDA) · `mint` · `kind` (`bearer` | `controlled` | `permanent`) · `wallet` (on-chain linked wallet, or null).
+- **Meaning:** the viewer may sign in as `wallet`. The browser holds a valid session for this accessory, whether it arrived by tap or signed in from the home page, and the proof doesn't say which. This is intended for every kind: whoever holds the accessory can sign in as its on-chain owner. For a Bearer collectible, that is true even before they claim it. The one exception: an owner_browse whose wallet is no longer the linked one gets no proofs.
+- **Minted on open:** the list (`GET /api/accessory/shortcuts`) carries no proofs, only a `proof` flag on each shortcut that will get one. Opening such a shortcut goes through `GET /shortcut/[n]`, which signs a proof at that moment and 303s to the link. For a wallet shortcut opened from a phone browser, `?wallet=` wraps it in that wallet's browse deep link.
+  - Nothing valid sits in the page, its HTML or its cache. The 5 minutes start at the tap, and only opened shortcuts get proofs.
+  - It's a real navigation, not fetch plus `window.open`, so iOS still treats new tabs and wallet deep links as the user's own tap.
+  - The route looks everything up again from the session; `n` only picks a position in the project's file. It serves only shortcuts that get a proof, so it's never a general redirect.
+  - It refuses navigations whose `Sec-Fetch-Site` isn't `same-origin`, so another site can't send a signed-in viewer there to have a proof minted.
+- **Lifetime:** 5 minutes from the tap, and never past the viewer's own session.
+- **Residual risk (query parameter):** a proof is a bearer token in a URL, so it can reach the project's access logs, analytics and history, and a copied link carries it. That is bounded by the audience, the 5-minute expiry and single use. Projects should:
+  - verify it on their backend;
+  - refuse any `jti` they have seen before;
+  - then redirect to the same URL without the parameter.
+
+For projects:
+```ts
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+
+const JWKS = createRemoteJWKSet(new URL('https://portal.revibase.com/.well-known/session.json'));
+
+const { payload } = await jwtVerify(url.searchParams.get('revibase_session')!, JWKS, {
+	issuer: 'https://portal.revibase.com',
+	audience: 'https://game.xyz', // your origin, exactly
+	algorithms: ['EdDSA'],
+	typ: 'revibase-session+jwt'
+});
+// Then: reject a replayed payload.jti, and sign the viewer in as payload.wallet (null while unclaimed).
+```
 
 **Ownership wording.** On-chain, `linked_wallet` only proves which wallet the accessory points to, not who is holding the phone.
 - By default the app says "Linked" or "Permanently linked" and labels the row "Linked wallet" (a Bearer collectible says "Owned by").
@@ -256,13 +322,16 @@ Each secondary feature exists for the core idea:
 ```
 src/lib/server/
   tap/            verify-dynamic-url (port of phygital-wallet), counter-store (shared D1), handle-tap, resume (WebAuthn Hold)
-  accessory/      resolve (identifier → PDA, cached), view (on-chain → AccessoryView + per-type rules), owner-browse
+  accessory/      resolve (identifier → PDA, cached), view (on-chain → AccessoryView + per-type rules), owner-browse,
+                  shortcuts (external_url → the project's shortcuts.json)
   challenges.ts   single-use auth_challenges helpers (message challenges for resume · owner-browse)
-  session/        HMAC cookies (bu · ob · hof · dsk · pair)
+  session/        HMAC cookies (bu · ob · hof · dsk · pair), proof (Ed25519 session proofs for project shortcuts)
   link/           service (ceremony + authorization), intents (D1 CAS), assertion (WebAuthn gate),
                   slot-window (SlotHashes), confirm, capability
-src/lib/shared/   link-transaction (SDK completeTransfer → v0 tx, byte-level validator), types, encoding
+src/lib/shared/   link-transaction (SDK completeTransfer → v0 tx, byte-level validator), types, encoding,
+                  shortcuts (Phantom shortcuts.json → validated, resolved links)
 src/lib/client/   wallet (connector headless + Wallet Standard signing), link/flow, messages (copy), rpc (browser client for `SOLANA_RPC_URL`), media and wallet-accessories reads,
+                  shortcuts (how each project link opens on this device),
                   accessory/ (tapScreen · linkCopy · openOwned)
 src/lib/components/app/   product components built from shadcn primitives in components/ui/
 ```

@@ -21,13 +21,13 @@ export function normalizeMediaUrl(raw: unknown): string | null {
 	}
 }
 
-type GetAssetResult = {
+export type GetAssetResult = {
 	content?: {
 		metadata?: { name?: string; attributes?: Array<{ trait_type?: unknown; value?: unknown }> };
-		links?: { image?: string };
+		links?: { image?: string; external_url?: string };
 		files?: Array<{ uri?: string; cdn_uri?: string; mime?: string }>;
 	};
-	grouping?: Array<{ group_key?: string; collection_metadata?: { name?: string } }>;
+	grouping?: Array<{ group_key?: string; group_value?: string; collection_metadata?: { name?: string } }>;
 };
 
 const clip = (v: unknown, max: number): string | null => {
@@ -55,7 +55,8 @@ export function mediaFromAsset(asset: GetAssetResult | undefined): MintMedia {
 	return { image, name, collection, attributes };
 }
 
-async function getAsset(rpcUrl: string, mint: string): Promise<MintMedia> {
+/** DAS `getAsset` for one mint, with collection metadata. `undefined` when DAS doesn't know the asset. */
+export async function fetchAsset(rpcUrl: string, mint: string): Promise<GetAssetResult | undefined> {
 	const res = await fetch(rpcUrl, {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
@@ -65,7 +66,7 @@ async function getAsset(rpcUrl: string, mint: string): Promise<MintMedia> {
 	if (!res.ok) throw new Error(`getAsset ${res.status}`);
 	const body = (await res.json()) as { result?: GetAssetResult; error?: { message?: string } };
 	if (body.error) throw new Error(body.error.message ?? 'getAsset error');
-	return mediaFromAsset(body.result);
+	return body.result;
 }
 
 /**
@@ -74,4 +75,6 @@ async function getAsset(rpcUrl: string, mint: string): Promise<MintMedia> {
  * Nothing is stored; the client memoises per page session. Throws when DAS is
  * unreachable, so callers can tell "no metadata" apart from "couldn't ask".
  */
-export const fetchMintMedia = getAsset;
+export async function fetchMintMedia(rpcUrl: string, mint: string): Promise<MintMedia> {
+	return mediaFromAsset(await fetchAsset(rpcUrl, mint));
+}

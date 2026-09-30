@@ -4,3 +4,7 @@
 SOLANA_RPC_URL=https://your-rpc-proxy.example.com
 # 32+ random bytes, e.g. `openssl rand -base64 32`
 SESSION_SECRET=replace-me
+# Optional. Ed25519 seed that signs session proofs for project shortcuts (public key served at
+# /.well-known/session.json). Unset turns proofs off. Generate one with:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+SESSION_PROOF_KEY=
