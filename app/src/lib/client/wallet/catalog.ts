@@ -2,17 +2,17 @@ import type { Platform } from '../capability';
 import type { WalletOption } from './wallet.svelte';
 
 /**
- * Featured wallets. When `@solana/connector` detects any wallet (Wallet
- * Standard injection, extension, or MWA) we list only the detected ones and
- * connect directly. Only when none is detected, on a phone, do we offer to
- * open this page inside one of these wallets' in-app browsers instead.
+ * Featured wallets. Wallets `@solana/connector` detects (Wallet Standard
+ * injection, extension, or MWA) connect directly. On a phone, each of these
+ * three that isn't detected is also offered as "Open in …", which reopens the
+ * page inside that wallet's in-app browser. A detected wallet is never listed twice.
  *
  * Browse deep links (URL-encoded target + URL-encoded `ref`):
  * - Phantom  https://docs.phantom.com/phantom-deeplinks/other-methods/browse
  * - Backpack https://docs.backpack.app/deeplinks/other-methods/browse
  * - Solflare https://docs.solflare.com/solflare/technical/deeplinks/other-methods/browse
  */
-type KnownWallet = {
+export type KnownWallet = {
 	id: 'phantom' | 'backpack' | 'solflare';
 	name: string;
 	/** Bundled icon in `static/wallets/`, so the row never depends on detection. */
@@ -52,12 +52,13 @@ export function walletChoices(
 	const recentFirst = (list: WalletChoice[]) => list.sort((a, b) => Number(b.recent) - Number(a.recent));
 
 	const target = opts.browseTarget;
-	// Any detected wallet means we can connect right here; "Open in …" is only the fallback.
-	if (detected.length > 0 || !target || !target.startsWith(`${opts.origin}/`) || opts.platform === 'desktop') {
+	// Deep links only open wallet apps (so phones only), and only ever wrap a page of ours.
+	if (!target || !target.startsWith(`${opts.origin}/`) || opts.platform === 'desktop') {
 		return recentFirst(choices);
 	}
 
 	for (const w of KNOWN_WALLETS) {
+		if (detected.some((d) => w.match.test(d.name))) continue;
 		choices.push({ kind: 'browse', key: `browse:${w.id}`, name: w.name, icon: w.icon, href: w.browse(target, opts.origin), recent: isRecent(w.name) });
 	}
 	return recentFirst(choices);

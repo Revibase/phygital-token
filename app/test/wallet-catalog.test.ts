@@ -8,9 +8,9 @@ const TARGET = `${ORIGIN}/continue#h=abc`;
 const opt = (name: string): WalletOption => ({ id: name.toLowerCase(), name, icon: '', ready: true });
 
 describe('walletChoices', () => {
-	it('lists only detected wallets, known ones first, when any wallet is detected', () => {
+	it('lists detected wallets first, known ones first, then the featured wallets that weren’t detected', () => {
 		const choices = walletChoices([opt('Glow'), opt('Solflare')], { browseTarget: TARGET, platform: 'ios', origin: ORIGIN });
-		expect(choices.map((c) => `${c.kind}:${c.name}`)).toEqual(['detected:Solflare', 'detected:Glow']);
+		expect(choices.map((c) => `${c.kind}:${c.name}`)).toEqual(['detected:Solflare', 'detected:Glow', 'browse:Phantom', 'browse:Backpack']);
 	});
 
 	it('builds each wallet’s documented browse deep link with an encoded target and ref', () => {
@@ -24,12 +24,16 @@ describe('walletChoices', () => {
 		]);
 	});
 
-	it('offers no deep links once the connector detects a wallet', () => {
-		const choices = walletChoices([opt('Phantom')], { browseTarget: TARGET, platform: 'ios', origin: ORIGIN });
-		expect(choices.map((c) => `${c.kind}:${c.name}`)).toEqual(['detected:Phantom']);
+	it('never lists a featured wallet twice when it’s already detected', () => {
+		const choices = walletChoices([opt('Phantom'), opt('Backpack'), opt('Solflare')], { browseTarget: TARGET, platform: 'android', origin: ORIGIN });
+		expect(choices.map((c) => `${c.kind}:${c.name}`)).toEqual(['detected:Phantom', 'detected:Backpack', 'detected:Solflare']);
+		// Detected names vary ("Phantom Wallet"); matching is by the same pattern as the icons.
+		const renamed = walletChoices([opt('Phantom Wallet')], { browseTarget: TARGET, platform: 'ios', origin: ORIGIN });
+		expect(renamed.map((c) => `${c.kind}:${c.name}`)).toEqual(['detected:Phantom Wallet', 'browse:Backpack', 'browse:Solflare']);
 	});
 
 	it('offers no deep links on desktop, without a target, or for a foreign target', () => {
+		expect(walletChoices([opt('Glow')], { browseTarget: TARGET, platform: 'desktop', origin: ORIGIN }).map((c) => c.kind)).toEqual(['detected']);
 		expect(walletChoices([], { browseTarget: TARGET, platform: 'desktop', origin: ORIGIN })).toEqual([]);
 		expect(walletChoices([], { browseTarget: null, platform: 'ios', origin: ORIGIN })).toEqual([]);
 		expect(walletChoices([], { browseTarget: 'https://evil.example/continue', platform: 'ios', origin: ORIGIN })).toEqual([]);
