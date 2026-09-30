@@ -80,7 +80,7 @@
 		<WalletPicker label={`Connect ${linked}`} options={walletStore.options} {connecting} onpick={pick} browseTarget={`${page.url.origin}/`} />
 	{:else}
 		<List>
-			<WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} />
+			<WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} {cluster} />
 		</List>
 		{#if isLinkedWallet}
 			<Button variant="destructive" size="xl" class="w-full" disabled={busy} onclick={release}>

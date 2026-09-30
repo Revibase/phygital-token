@@ -8,6 +8,8 @@ import { MIGRATIONS, createTestD1 } from './support/d1-sqlite';
 import { fakeAccessory } from './support/fixtures';
 import { issueOwnerLoginChallenge, verifyOwnerBrowse, verifyOwnerLogin } from '$lib/server/accessory/owner-browse';
 
+const site = (address: string) => ({ domain: 'portal.revibase.com', uri: 'https://portal.revibase.com', address, cluster: 'mainnet' });
+
 function rpcWith(account: Uint8Array | null) {
 	return {
 		getAccountInfo: () => ({
@@ -37,7 +39,7 @@ describe('owner login (owner_session)', () => {
 	it('accepts a fresh message signature, once', async () => {
 		const w = walletKey();
 		const db = createTestD1([MIGRATIONS]);
-		const { challengeId, message } = await issueOwnerLoginChallenge(db);
+		const { challengeId, message } = await issueOwnerLoginChallenge(db, site(w.address));
 		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), w.secret));
 
 		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toEqual({ ok: true, wallet: w.address });
@@ -48,8 +50,34 @@ describe('owner login (owner_session)', () => {
 		const w = walletKey();
 		const other = walletKey();
 		const db = createTestD1([MIGRATIONS]);
-		const { challengeId, message } = await issueOwnerLoginChallenge(db);
+		const { challengeId, message } = await issueOwnerLoginChallenge(db, site(w.address));
 		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), other.secret));
+
+		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toMatchObject({ ok: false, code: 'bad_signature' });
+	});
+
+	it('is a readable Sign-In With Solana message for the requesting wallet', async () => {
+		const w = walletKey();
+		const db = createTestD1([MIGRATIONS]);
+		const { message } = await issueOwnerLoginChallenge(db, site(w.address), Date.UTC(2026, 0, 1));
+		const lines = message.split('\n');
+
+		expect(lines[0]).toBe('portal.revibase.com wants you to sign in with your Solana account:');
+		expect(lines[1]).toBe(w.address);
+		expect(lines[3]).toBe('Sign in to Revibase to manage the accessories linked to this wallet.');
+		expect(lines).toContain('URI: https://portal.revibase.com');
+		expect(lines).toContain('Chain ID: mainnet');
+		expect(lines).toContain('Issued At: 2026-01-01T00:00:00.000Z');
+		expect(lines).toContain('Expiration Time: 2026-01-01T00:02:00.000Z');
+		expect(lines.find((l) => l.startsWith('Nonce: '))).toMatch(/^Nonce: [0-9a-f]{32}$/);
+	});
+
+	it('rejects a signature for a message issued to another wallet', async () => {
+		const w = walletKey();
+		const other = walletKey();
+		const db = createTestD1([MIGRATIONS]);
+		const { challengeId, message } = await issueOwnerLoginChallenge(db, site(other.address));
+		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), w.secret));
 
 		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toMatchObject({ ok: false, code: 'bad_signature' });
 	});

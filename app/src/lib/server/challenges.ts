@@ -5,9 +5,13 @@ export const CHALLENGE_TTL_MS = 2 * 60 * 1000;
 
 const random = (n: number) => bytesToBase64Url(crypto.getRandomValues(new Uint8Array(n)));
 
-export async function issueChallenge(db: D1Database, namespace: string, now = Date.now()) {
+/** Alphanumeric, as Sign-In With Solana requires of its nonce. */
+const hexNonce = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+
+/** `format` turns a fresh nonce into a human-readable message; without it the message is opaque. */
+export async function issueChallenge(db: D1Database, namespace: string, now = Date.now(), format?: (nonce: string) => string) {
 	const id = random(16);
-	const message = `${namespace}:${random(32)}`;
+	const message = format ? format(hexNonce()) : `${namespace}:${random(32)}`;
 	await db.prepare('DELETE FROM auth_challenges WHERE namespace = ? AND expires_at < ?').bind(namespace, now).run();
 	await db
 		.prepare('INSERT INTO auth_challenges (id, namespace, value, expires_at) VALUES (?, ?, ?, ?)')

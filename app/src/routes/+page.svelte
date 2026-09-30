@@ -79,7 +79,7 @@
 	// "Linked", not "authenticates as": tradable (Bearer) accessories are collectibles, not keys.
 	const summary = $derived(
 		!walletStore.address
-			? 'Connect your wallet to see the accessories linked to it.'
+			? 'Use the Solana wallet you already have to see and manage the accessories linked to it.'
 			: accessories === null
 				? 'Accessories linked to this wallet.'
 				: accessories.length === 1
@@ -90,15 +90,19 @@
 
 <PageShell size="medium">
 	<section class="flex flex-1 flex-col gap-7 pt-4" aria-live="polite">
-		<PageHeader title="Your accessories" body={summary} />
+		<PageHeader title={walletStore.address ? 'Your accessories' : 'Connect your wallet'} body={summary} />
 
 		{#if failure ?? listFailure}{@const f = (failure ?? listFailure)!}<Notice title={f.title} body={f.body} detail={f.detail} />{/if}
 
 		{#if !walletStore.address}
 			<WalletPicker options={walletStore.options} {connecting} onpick={pick} browseTarget={`${page.url.origin}/`} />
+			<!-- Said before the wallet asks, so the one signature isn't a surprise. -->
+			<p class="-mt-4 px-1 text-[13px] leading-snug text-muted-foreground">
+				You’ll sign one Sign-In With Solana message.
+			</p>
 		{:else}
 			<List>
-				<WalletRow address={walletStore.address} label="Your wallet" icon={walletStore.walletIcon} />
+				<WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Your wallet'} icon={walletStore.walletIcon} cluster={data.cluster} />
 			</List>
 
 			{#if accessories === null && !failure && !listFailure}

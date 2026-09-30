@@ -10,6 +10,7 @@
 	import PageShell from '$lib/components/app/PageShell.svelte';
 	import WalletPicker from '$lib/components/app/WalletPicker.svelte';
 	import WalletRow from '$lib/components/app/WalletRow.svelte';
+	import { explorerUrl } from '$lib/shared/explorer';
 	import { linkCopy } from '$lib/client/accessory/link-copy';
 	import { claimHandoff, finishInWallet, pollLink, type FinishPhase } from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
@@ -120,6 +121,9 @@
 						<BondVisual wallet={status?.recipient ?? walletStore.address} icon={walletStore.walletIcon} pda={status?.accessory?.pda} />
 						<!-- This wallet just signed the link here, so "your wallet" is proven. -->
 						<PageHeader align="center" title={copy.done.title} body={`${copy.done.body(true, '')} You can close this page.`} />
+						{#if status?.txSignature}
+							<Button variant="ghost" class="h-11 text-muted-foreground" href={explorerUrl('tx', status.txSignature, data.cluster)} target="_blank" rel="noopener noreferrer">View transaction</Button>
+						{/if}
 					</div>
 				{:else if failure && !status}
 					<div class="flex flex-1 flex-col justify-center"><Notice title={failure.title} body={failure.body} detail={failure.detail} /></div>
@@ -153,7 +157,7 @@
 					{#if !walletStore.address}
 						<WalletPicker options={walletStore.options} {connecting} onpick={pick} />
 					{:else}
-						<List><WalletRow address={walletStore.address} label={walletStore.walletName ?? 'This wallet'} icon={walletStore.walletIcon} /></List>
+						<List><WalletRow address={walletStore.address} label={walletStore.walletName ?? 'This wallet'} icon={walletStore.walletIcon} cluster={data.cluster} /></List>
 					{/if}
 					{#if status.tapExpiresAt}<Countdown until={status.tapExpiresAt} />{/if}
 				{:else if s === 'submitted'}

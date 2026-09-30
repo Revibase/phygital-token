@@ -14,6 +14,7 @@
 	import PageShell from '$lib/components/app/PageShell.svelte';
 	import PairingCode from '$lib/components/app/PairingCode.svelte';
 	import WalletRow from '$lib/components/app/WalletRow.svelte';
+	import { explorerUrl } from '$lib/shared/explorer';
 	import { canTapHere, tapHint } from '$lib/client/capability';
 	import {
 		cancelLink,
@@ -216,7 +217,7 @@
 							body={copy.done.body(ownedResult, status.recipient ? shortAddress(status.recipient) : 'the wallet you chose')}
 						/>
 						{#if status.recipient}
-							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Owned by'} icon={ownedResult ? walletStore.walletIcon : null} /></List>
+							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Owned by'} icon={ownedResult ? walletStore.walletIcon : null} cluster={data.cluster} /></List>
 						{/if}
 					</div>
 				{:else if view === 'dead'}
@@ -273,7 +274,7 @@
 					{:else if view === 'choose' && handoffUrl}
 						<HandoffPanel {handoffUrl} options={walletStore.options} {connecting} onpick={useLocalWallet} oncomputer={() => (showComputer = true)} />
 					{:else if view === 'local' && walletStore.address}
-						<List><WalletRow address={walletStore.address} label={walletStore.walletName ?? 'This wallet'} icon={walletStore.walletIcon} /></List>
+						<List><WalletRow address={walletStore.address} label={walletStore.walletName ?? 'This wallet'} icon={walletStore.walletIcon} cluster={data.cluster} /></List>
 					{:else if view === 'remote' || view === 'desktop_remote'}
 						<div class="flex items-center gap-3 rounded-[14px] bg-muted px-4 py-3.5 text-[15px]">
 							<Spinner class="size-4 text-muted-foreground" />
@@ -298,6 +299,9 @@
 		<div class="grid gap-1">
 			{#if view === 'done' || view === 'dead'}
 				<Button href="/accessory" size="xl" class="w-full">{view === 'done' ? 'Done' : 'Back to your accessory'}</Button>
+				{#if view === 'done' && status?.txSignature}
+					<Button variant="ghost" class="h-11 text-muted-foreground" href={explorerUrl('tx', status.txSignature, data.cluster)} target="_blank" rel="noopener noreferrer">View transaction</Button>
+				{/if}
 			{:else if view === 'tap' && webauthnOk}
 				<Button size="xl" class="w-full" disabled={tapping || !challenge} onclick={tap}>
 					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !challenge}<Spinner /> Preparing…{:else}Approve{/if}

@@ -4,12 +4,48 @@ import { getBase58Encoder, type Rpc, type SolanaRpcApi } from '@solana/kit';
 import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
 import { fetchAccessory } from '../accessory/resolve';
 import { DEFAULT_PUBKEY } from '$lib/shared/accessory-view';
-import { consumeChallenge, isChallengeId, issueChallenge } from '../challenges';
+import { CHALLENGE_TTL_MS, consumeChallenge, isChallengeId, issueChallenge } from '../challenges';
 
 export const OWNER_LOGIN_NAMESPACE = 'revibase-owner-login';
 
-export const issueOwnerLoginChallenge = (db: D1Database, now = Date.now()) =>
-	issueChallenge(db, OWNER_LOGIN_NAMESPACE, now);
+const SIWS_CHAINS = new Set(['mainnet', 'devnet', 'testnet', 'localnet']);
+
+export const isWalletAddress = (v: unknown): v is string => {
+	if (typeof v !== 'string') return false;
+	try {
+		return getBase58Encoder().encode(v).length === 32;
+	} catch {
+		return false;
+	}
+};
+
+/**
+ * A Sign-In With Solana message, so wallets can show it as a sign-in (and warn
+ * when `domain` doesn't match the page) instead of an opaque string. The
+ * statement says plainly what signing in is for.
+ */
+export function ownerLoginMessage(input: { domain: string; uri: string; address: string; cluster: string; nonce: string; now: number }): string {
+	const lines = [
+		`${input.domain} wants you to sign in with your Solana account:`,
+		input.address,
+		'',
+		"Sign in to Revibase to manage the accessories linked to this wallet.",
+		'',
+		`URI: ${input.uri}`,
+		'Version: 1',
+		...(SIWS_CHAINS.has(input.cluster) ? [`Chain ID: ${input.cluster}`] : []),
+		`Nonce: ${input.nonce}`,
+		`Issued At: ${new Date(input.now).toISOString()}`,
+		`Expiration Time: ${new Date(input.now + CHALLENGE_TTL_MS).toISOString()}`
+	];
+	return lines.join('\n');
+}
+
+export const issueOwnerLoginChallenge = (
+	db: D1Database,
+	site: { domain: string; uri: string; address: string; cluster: string },
+	now = Date.now()
+) => issueChallenge(db, OWNER_LOGIN_NAMESPACE, now, (nonce) => ownerLoginMessage({ ...site, nonce, now }));
 
 type Failure<C extends string> = { ok: false; status: number; code: C; error: string };
 
@@ -28,6 +64,10 @@ export async function verifyOwnerLogin(
 	}
 	const message = await consumeChallenge(db, OWNER_LOGIN_NAMESPACE, challengeId, now);
 	if (!message) return { ok: false, status: 409, code: 'too_slow', error: 'That took too long. Try again.' };
+	// The message names the wallet it was issued for; only that wallet's signature counts.
+	if (message.split('\n')[1] !== address) {
+		return { ok: false, status: 401, code: 'bad_signature', error: 'We couldn’t verify that signature.' };
+	}
 
 	try {
 		const pubkey = new Uint8Array(getBase58Encoder().encode(address));

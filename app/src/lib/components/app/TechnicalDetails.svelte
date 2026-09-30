@@ -6,9 +6,9 @@
 	import List from './List.svelte';
 	import ListRow from './ListRow.svelte';
 	import CopyButton from './CopyButton.svelte';
+	import ExplorerLink from './ExplorerLink.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { accessoryMediaQuery } from '$lib/client/queries';
-	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import { startAuthentication, verifyResponse, findPhygitalTokenPda } from 'phygital-token-sdk';
@@ -19,8 +19,6 @@
 
 	let { accessory, cluster, open = $bindable(false) }: { accessory: AccessoryView; cluster: string; open?: boolean } = $props();
 
-	const explorerUrl = (addr: string) =>
-		`https://explorer.solana.com/address/${addr}${cluster === 'mainnet' ? '' : `?cluster=${cluster === 'localnet' ? 'custom' : cluster}`}`;
 	/** Only these two are worth opening in an explorer; the token account and keys aren't. */
 	const explorable = new Set(['Linked wallet', 'Collectible']);
 	const mediaQuery = createQuery(() => ({ ...accessoryMediaQuery(accessory.pda), enabled: !!accessory.mint }));
@@ -116,15 +114,7 @@
 					{#if value}
 						<span class="flex items-center">
 							{#if explorable.has(label)}
-								<a
-									href={explorerUrl(value)}
-									target="_blank"
-									rel="noopener noreferrer"
-									aria-label={`View ${label.toLowerCase()} on Solana Explorer`}
-									class="grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground active:scale-95 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
-								>
-									<ArrowUpRightIcon class="size-4" />
-								</a>
+								<ExplorerLink {value} {cluster} label={`View ${label.toLowerCase()} on Solana Explorer`} />
 							{/if}
 							<CopyButton {value} label={`Copy ${label.toLowerCase()}`} />
 						</span>
