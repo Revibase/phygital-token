@@ -1,6 +1,6 @@
 # Revibase
 
-A mobile-first SvelteKit app (package and worker `revibase`) on Cloudflare Workers. It turns a Revibase NFC accessory into a physical extension of a Solana wallet: tap the accessory, link a wallet once with `set_linked_wallet`, and after that a tap authenticates you as that wallet.
+A mobile-first SvelteKit app (package and worker `revibase`) on Cloudflare Workers. Users tap to inspect an accessory, link a wallet, and open project apps. A tap authenticates the accessory, not control of wallet keys or NFT ownership.
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the protocol model, trust boundaries and ceremony design.
 
@@ -34,10 +34,14 @@ pnpm --filter revibase dev:accessory link mine             # links it to a fresh
 ```bash
 pnpm --filter revibase check      # svelte-check
 pnpm --filter revibase test       # unit tests (real SQL via node:sqlite)
-pnpm --filter revibase e2e:local  # full ceremonies against the real program (fresh validator)
+pnpm --filter revibase e2e:local  # ceremonies against a fresh local validator
+pnpm --filter revibase dev:simulation  # UI preview without hardware, localhost:4187
+pnpm --filter revibase test:browser    # run with the simulation server active
 ```
 
 ## Deploy
+
+Run `pnpm --filter revibase deploy` to build, check the production output for test fixtures, then deploy. Production builds reject imports from test and script directories; the simulation configuration cannot build. Mockups are served only by the simulation server.
 
 There is **one** D1 binding, `DB`: the shared `phygital-token` database that phygital-wallet's API also uses.
 

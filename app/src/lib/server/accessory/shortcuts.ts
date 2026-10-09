@@ -1,5 +1,5 @@
 import { fetchAsset, type GetAssetResult } from '$lib/shared/mint-media';
-import { resolveShortcuts, shortcutsFileUrl, withinProject, type Shortcut } from '$lib/shared/shortcuts';
+import { resolveShortcuts, shortcutsFileUrl, type Shortcut } from '$lib/shared/shortcuts';
 import type { AccessoryView } from '$lib/shared/types';
 import type { AdmitSession } from '../session/cookies';
 import { PROOF_TTL_S, signSessionProof, type ProofKey } from '../session/proof';
@@ -75,19 +75,19 @@ function proofWindow(project: ProjectShortcuts, opts: ProofOptions): { now: numb
 	return exp > now ? { now, exp } : null;
 }
 
-/** Proofs only go to the project itself, never to third-party links. */
-function provable(s: Shortcut, externalUrl: string): boolean {
+/** Every HTTPS destination listed by the project may receive an origin-bound proof. */
+function provable(s: Shortcut): boolean {
 	const url = new URL(s.href);
-	return url.protocol === 'https:' && withinProject(url, externalUrl);
+	return url.protocol === 'https:';
 }
 
 /** Flags the shortcuts that will get a proof when opened, without signing any. */
 export function markProofs(project: ProjectShortcuts, opts: ProofOptions): Shortcut[] {
 	const span = proofWindow(project, opts);
-	return project.shortcuts.map((s) => ({ ...s, proof: !!span && provable(s, project.externalUrl!) }));
+	return project.shortcuts.map((s) => ({ ...s, proof: !!span && provable(s) }));
 }
 
-/** Signs a fresh proof into each project link. Only called when a shortcut is actually opened. */
+/** Signs a fresh proof into each listed HTTPS destination. Only called when a shortcut is actually opened. */
 export function withSessionProofs(project: ProjectShortcuts, opts: ProofOptions): Shortcut[] {
 	const { key, accessory } = opts;
 	const { externalUrl, shortcuts } = project;
@@ -96,7 +96,7 @@ export function withSessionProofs(project: ProjectShortcuts, opts: ProofOptions)
 	const { now, exp } = span;
 
 	return shortcuts.map((s) => {
-		if (!provable(s, externalUrl)) return s;
+		if (!provable(s)) return s;
 		const url = new URL(s.href);
 		const proof = signSessionProof(key, {
 			iss: opts.issuer,
@@ -107,7 +107,8 @@ export function withSessionProofs(project: ProjectShortcuts, opts: ProofOptions)
 			sub: accessory.pda,
 			mint: accessory.mint!,
 			kind: accessory.kind,
-			wallet: accessory.linkedWallet
+			wallet: accessory.linkedWallet,
+			authentication: opts.session.t === 'ob' ? 'wallet' : 'accessory'
 		});
 		url.searchParams.set(PROOF_PARAM, proof);
 		return { ...s, href: url.href, proof: true };

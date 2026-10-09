@@ -23,11 +23,7 @@
 	<title>Revibase</title>
 </svelte:head>
 
-<!--
-	Light only. No theme persistence or system tracking (mode-watcher would
-	restore a stored "system"/"dark" choice). Dark tokens stay in layout.css
-	for a future explicit toggle.
--->
+<!-- Explicit light theme prevents restoring a saved system/dark preference. -->
 <Toaster position="top-center" theme="light" />
 <PersistQueryClientProvider client={queryClient} {persistOptions}>
 	{@render children()}

@@ -10,18 +10,21 @@
 		options,
 		connecting = null,
 		onpick,
+		onbrowse = () => {},
 		oncomputer
 	}: {
 		handoffUrl: string;
 		options: WalletOption[];
 		connecting?: string | null;
 		onpick: (id: string) => void;
+		onbrowse?: () => void;
 		oncomputer: () => void;
 	} = $props();
 
 	async function copyLink() {
 		try {
 			await navigator.clipboard.writeText(handoffUrl);
+			onbrowse();
 			toast.success('Link copied', { description: 'Paste it into your wallet app’s browser. It works once.' });
 		} catch {
 			toast.error('Couldn’t copy the link');
@@ -30,7 +33,7 @@
 </script>
 
 <div class="space-y-4">
-	<WalletPicker {options} {connecting} {onpick} browseTarget={handoffUrl} />
+	<WalletPicker {options} {connecting} {onpick} {onbrowse} browseTarget={handoffUrl} />
 	<div class="flex items-center justify-center gap-1 text-[14px]">
 		<Button variant="ghost" class="h-11 px-3 text-muted-foreground hover:text-foreground" onclick={copyLink}>Copy link</Button>
 		<span class="text-border" aria-hidden="true">|</span>

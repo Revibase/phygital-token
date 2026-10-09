@@ -24,8 +24,10 @@ export type SessionProofClaims = {
 	sub: string;
 	mint: string;
 	kind: TokenKind;
-	/** The accessory's linked wallet on-chain when the proof was issued; null while unclaimed. */
+	/** Linked-wallet context, never evidence that a tapper controls its keys. */
 	wallet: string | null;
+	/** Accessory possession or a wallet-authenticated owner session. */
+	authentication: 'accessory' | 'wallet';
 };
 
 const keyCache = new Map<string, ProofKey | null>();

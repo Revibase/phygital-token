@@ -52,7 +52,6 @@
 </script>
 
 {#if brand}
-	<!-- Filled marks read heavier than lucide's 2px strokes; 88% keeps them the same optical size. -->
 	<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class={className}><path d={brand} transform="translate(1.44 1.44) scale(0.88)" /></svg>
 {:else}
 	<Glyph class={className} />

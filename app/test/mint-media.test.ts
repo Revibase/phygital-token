@@ -17,6 +17,15 @@ describe('mediaFromAsset (Helius getAsset)', () => {
 		expect(mediaFromAsset({ content: { files: [{ uri: 'https://x.test/a.webp', mime: 'image/webp' }] } }).image).toBe('https://x.test/a.webp');
 	});
 
+	it('uses NFT ownership from DAS independently of accessory linkage', () => {
+		expect(mediaFromAsset({ownership:{owner:'nft-owner'},royalty:{basis_points:420},interface:'ProgrammableNFT',content:{json_uri:'ipfs://bafy/meta.json',metadata:{token_standard:'ProgrammableNonFungible'}}})).toMatchObject({owner:'nft-owner',royaltyBps:420,tokenStandard:'ProgrammableNonFungible',metadataUrl:'https://ipfs.io/ipfs/bafy/meta.json'});
+		expect(mediaFromAsset({ownership:{owner:'not-an-exclusive-owner',ownership_model:'fungible'},royalty:{basis_points:-1},content:{}}).owner).toBeUndefined();
+		expect(mediaFromAsset({content:{}}).owner).toBeUndefined();
+	});
+	it('reads description and collection artwork safely', () => {
+		const media = mediaFromAsset({content:{metadata:{name:'NFT',description:'Full description'}},grouping:[{group_key:'collection',group_value:'collection-mint',collection_metadata:{name:'Collection',image:'ipfs://bafy/collection.png'}}]});
+		expect(media).toMatchObject({description:'Full description',collection:'Collection',collectionAddress:'collection-mint',collectionImage:'https://ipfs.io/ipfs/bafy/collection.png'});
+	});
 	it('ignores non-image files and missing content', () => {
 		expect(mediaFromAsset({ content: { files: [{ uri: 'https://x.test/a.mp4', mime: 'video/mp4' }] } }).image).toBeNull();
 		expect(mediaFromAsset(undefined)).toEqual({ image: null, name: null, collection: null, attributes: [] });
@@ -64,6 +73,13 @@ describe('fetchMintMedia (straight from DAS)', () => {
 		expect(calls.body).toMatchObject({ method: 'getAsset', params: { id: MINT, options: { showCollectionMetadata: true } } });
 	});
 
+	it('fetches collection artwork when DAS only provides a collection address', async () => {
+		globalThis.fetch = (async (_url, init) => {
+			const id = JSON.parse(String(init?.body)).params.id;
+			return Response.json({result: id === MINT ? {content:{metadata:{name:'NFT'}},grouping:[{group_key:'collection',group_value:'collection-mint'}]} : {content:{metadata:{name:'Collection'},links:{image:'https://img.test/collection.png'}}}});
+		}) as typeof fetch;
+		expect(await fetchMintMedia('https://rpc.test',MINT)).toMatchObject({name:'NFT',collection:'Collection',collectionImage:'https://img.test/collection.png'});
+	});
 	it('throws when DAS is unreachable, so a failure is never mistaken for "no metadata"', async () => {
 		globalThis.fetch = (async () => new Response('down', { status: 503 })) as typeof fetch;
 		await expect(fetchMintMedia('https://rpc.test', MINT)).rejects.toThrow(/503/);

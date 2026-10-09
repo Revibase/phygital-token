@@ -53,7 +53,8 @@ describe('signSessionProof / verifySessionProof', () => {
 		sub: 'PdaPdaPda',
 		mint: MINT,
 		kind: 'bearer',
-		wallet: null
+		wallet: null,
+		authentication: 'accessory'
 	};
 	const token = signSessionProof(key, claims);
 	const expect_ = { issuer: ISSUER, audience: 'https://game.xyz', now: NOW };
@@ -76,9 +77,9 @@ describe('signSessionProof / verifySessionProof', () => {
 });
 
 describe('markProofs (the list the page holds)', () => {
-	it('marks the project’s own links without signing anything', () => {
+	it('marks every listed HTTPS destination without signing anything', () => {
 		const marked = markProofs(project, { key, issuer: ISSUER, session: tap, accessory, now: NOW });
-		expect(marked.map((s) => s.proof)).toEqual([true, true, false, false]);
+		expect(marked.map((s) => s.proof)).toEqual([true, true, true, false]);
 		expect(marked.map((s) => s.href)).toEqual(project.shortcuts.map((s) => s.href));
 		expect(JSON.stringify(marked)).not.toContain(PROOF_PARAM);
 	});
@@ -109,8 +110,9 @@ describe('opening a shortcut (/shortcut/[n])', () => {
 	});
 
 	it('serves only shortcuts that got a proof, so it is never a general redirect', () => {
-		expect(discord.proof).toBe(false);
-		expect(openedLocation(discord, null, ORIGIN)).toBeNull();
+		expect(discord.proof).toBe(true);
+		expect(openedLocation(discord, null, ORIGIN)).toBe(discord.href);
+		expect(openedLocation({ ...discord, proof: false }, null, ORIGIN)).toBeNull();
 	});
 
 	it('refuses navigations started on another site', () => {
@@ -123,18 +125,18 @@ describe('opening a shortcut (/shortcut/[n])', () => {
 });
 
 describe('withSessionProofs', () => {
-	it('proves the session to the project’s own links only, one audience each', () => {
+	it('proves every listed HTTPS destination, one audience each', () => {
 		const out = withSessionProofs(project, { key, issuer: ISSUER, session: tap, accessory, now: NOW });
 		const [play, board, discord, pay] = out;
 
-		expect(verify(play.href)).toMatchObject({ aud: 'https://app.game.xyz', sub: 'PdaPdaPda', mint: MINT, kind: 'controlled', wallet: OWNER });
+		expect(verify(play.href)).toMatchObject({ aud: 'https://app.game.xyz', sub: 'PdaPdaPda', mint: MINT, kind: 'controlled', wallet: OWNER, authentication: 'accessory' });
 		expect(new URL(play.href).searchParams.get('card')).toBe('1');
 		expect(verify(board.href)?.aud).toBe('https://game.xyz');
 		expect(verify(play.href)?.jti).not.toBe(verify(board.href)?.jti);
 		// A proof for one origin doesn't verify at another.
 		expect(verifySessionProof(proofOf(play.href)!, keys, { issuer: ISSUER, audience: 'https://game.xyz', now: NOW })).toBeNull();
 
-		expect(discord.href).toBe('https://discord.gg/game');
+		expect(verify(discord.href)).toMatchObject({ aud: 'https://discord.gg', authentication: 'accessory', wallet: OWNER });
 		expect(pay.href).toBe(project.shortcuts[3].href);
 	});
 
@@ -149,8 +151,7 @@ describe('withSessionProofs', () => {
 
 	it('proves an owner session the same way, only while that wallet is still linked', () => {
 		const [play] = withSessionProofs(project, { key, issuer: ISSUER, session: owner, accessory, now: NOW });
-		expect(verify(play.href)).toMatchObject({ wallet: OWNER });
-		expect(verify(play.href)).not.toHaveProperty('auth');
+		expect(verify(play.href)).toMatchObject({ wallet: OWNER, authentication: 'wallet' });
 		const moved = { ...accessory, linkedWallet: OTHER };
 		expect(withSessionProofs(project, { key, issuer: ISSUER, session: owner, accessory: moved, now: NOW })).toBe(project.shortcuts);
 	});

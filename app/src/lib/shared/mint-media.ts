@@ -1,9 +1,9 @@
 
 export type MintTrait = { label: string; value: string };
-export type MintMedia = { image: string | null; name: string | null; collection: string | null; attributes: MintTrait[] };
+export type MintMedia = { image: string | null; name: string | null; collection: string | null; description?: string | null; collectionImage?: string | null; collectionAddress?: string | null; owner?: string | null; tokenStandard?: string | null; metadataUrl?: string | null; royaltyBps?: number | null; attributes: MintTrait[] };
 
 export const EMPTY_MEDIA: MintMedia = { image: null, name: null, collection: null, attributes: [] };
-const MAX_TRAITS = 24;
+const MAX_TRAITS = 100;
 
 const TIMEOUT_MS = 3_000;
 
@@ -22,12 +22,16 @@ export function normalizeMediaUrl(raw: unknown): string | null {
 }
 
 export type GetAssetResult = {
+	interface?: string;
+	ownership?: { owner?: string; ownership_model?: string };
+	royalty?: { basis_points?: number };
 	content?: {
-		metadata?: { name?: string; attributes?: Array<{ trait_type?: unknown; value?: unknown }> };
+		json_uri?: string;
+		metadata?: { name?: string; description?: string; token_standard?: string; attributes?: Array<{ trait_type?: unknown; value?: unknown }> };
 		links?: { image?: string; external_url?: string };
 		files?: Array<{ uri?: string; cdn_uri?: string; mime?: string }>;
 	};
-	grouping?: Array<{ group_key?: string; group_value?: string; collection_metadata?: { name?: string } }>;
+	grouping?: Array<{ group_key?: string; group_value?: string; collection_metadata?: { name?: string; image?: string; description?: string } }>;
 };
 
 const clip = (v: unknown, max: number): string | null => {
@@ -47,12 +51,21 @@ export function mediaFromAsset(asset: GetAssetResult | undefined): MintMedia {
 	const collection = clip(asset?.grouping?.find((g) => g.group_key === 'collection')?.collection_metadata?.name, 120);
 	const attributes: MintTrait[] = [];
 	for (const a of content.metadata?.attributes ?? []) {
-		const label = clip(a?.trait_type, 40);
-		const value = clip(a?.value, 80);
+		const label = clip(a?.trait_type, 120);
+		const value = clip(a?.value, 1000);
 		if (label && value) attributes.push({ label, value });
 		if (attributes.length === MAX_TRAITS) break;
 	}
-	return { image, name, collection, attributes };
+	const group = asset?.grouping?.find((g) => g.group_key === 'collection');
+	return { image, name, collection, attributes,
+		...(asset?.ownership?.ownership_model !== 'fungible' && clip(asset?.ownership?.owner, 64) ? { owner: clip(asset?.ownership?.owner, 64) } : {}),
+		...(clip(content.metadata?.token_standard ?? asset?.interface, 80) ? { tokenStandard: clip(content.metadata?.token_standard ?? asset?.interface, 80) } : {}),
+		...(normalizeMediaUrl(content.json_uri) ? { metadataUrl: normalizeMediaUrl(content.json_uri) } : {}),
+		...(typeof asset?.royalty?.basis_points === 'number' && Number.isInteger(asset.royalty.basis_points) && asset.royalty.basis_points >= 0 && asset.royalty.basis_points <= 10000 ? { royaltyBps: asset.royalty.basis_points } : {}),
+		...(clip(content.metadata?.description, 6000) ? { description: clip(content.metadata?.description, 6000) } : {}),
+		...(group?.group_value ? { collectionAddress: group.group_value } : {}),
+		...(normalizeMediaUrl(group?.collection_metadata?.image) ? { collectionImage: normalizeMediaUrl(group?.collection_metadata?.image) } : {})
+	};
 }
 
 /** DAS `getAsset` for one mint, with collection metadata. `undefined` when DAS doesn't know the asset. */
@@ -76,5 +89,13 @@ export async function fetchAsset(rpcUrl: string, mint: string): Promise<GetAsset
  * unreachable, so callers can tell "no metadata" apart from "couldn't ask".
  */
 export async function fetchMintMedia(rpcUrl: string, mint: string): Promise<MintMedia> {
-	return mediaFromAsset(await fetchAsset(rpcUrl, mint));
+	const media = mediaFromAsset(await fetchAsset(rpcUrl, mint));
+	if (media.collectionAddress && (!media.collectionImage || !media.collection)) {
+		try {
+			const collection = mediaFromAsset(await fetchAsset(rpcUrl, media.collectionAddress));
+			media.collection ??= collection.name;
+			media.collectionImage ??= collection.image;
+		} catch { /* The NFT remains usable if collection metadata is unavailable. */ }
+	}
+	return media;
 }

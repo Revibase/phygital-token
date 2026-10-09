@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
+	import { replaceState } from '$app/navigation';
+	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { Spinner } from '$lib/components/ui/spinner';
 	import BondVisual from '$lib/components/app/BondVisual.svelte';
@@ -11,8 +13,10 @@
 	import WalletPicker from '$lib/components/app/WalletPicker.svelte';
 	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import { explorerUrl } from '$lib/shared/explorer';
+	import { rememberAccessoryLink, rememberAccessoryWalletApp, rememberRecentWallet, rememberWallet } from '$lib/client/memory';
+	import { platform, isLikelyWalletBrowser } from '$lib/client/capability';
 	import { linkCopy } from '$lib/client/accessory/link-copy';
-	import { claimHandoff, finishInWallet, pollLink, type FinishPhase } from '$lib/client/link/flow';
+	import { claimHandoff, finishInWallet, linkStatus, pollLink, type FinishPhase } from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import type { LinkStatusView } from '$lib/shared/types';
@@ -25,6 +29,19 @@
 	let phase = $state<FinishPhase | null>(null);
 	const poller = new AbortController();
 	onDestroy(() => poller.abort());
+
+	$effect(() => {
+		if (status?.state !== 'linked' || !status.recipient || !status.accessory?.pda) return;
+		const method = isLikelyWalletBrowser() ? 'wallet' : 'browser';
+		const app = status.walletApp ?? walletStore.walletName;
+		rememberWallet(status.accessory.pda, status.recipient);
+		rememberRecentWallet(app, method);
+		rememberAccessoryWalletApp(status.accessory.pda, status.recipient, app, method);
+		rememberAccessoryLink(status.accessory.pda, {
+			wallet: status.recipient, app,
+			source: method === 'wallet' ? 'wallet' : platform() === 'desktop' ? 'desktop' : 'mobile'
+		});
+	});
 
 	const s = $derived(status?.state);
 	const ready = $derived(s === 'claimed' || s === 'finishing');
@@ -43,12 +60,27 @@
 	const browseTarget = $derived(pendingH ? `${window.location.origin}/continue#h=${pendingH}` : null);
 
 	onMount(async () => {
-		// The capability lives only in the fragment. Read it once, then scrub it
-		// from the address bar and history before doing anything else.
-		const h = new URLSearchParams(window.location.hash.slice(1)).get('h');
-		history.replaceState(null, '', '/continue');
+		// Scrub the capability from the URL; retain it only in this tab until claimed.
+		// After claiming, reloads use the intent ID plus the HttpOnly finisher cookie.
+		let h = new URLSearchParams(window.location.hash.slice(1)).get('h');
+		try {
+			if (h) {
+				sessionStorage.setItem('revibase:pending-handoff', h);
+				sessionStorage.removeItem('revibase:finisher-link');
+			} else h = sessionStorage.getItem('revibase:pending-handoff');
+		} catch {}
+		// The router becomes available after the initial hydration task.
+		await new Promise<void>((resolve) => setTimeout(resolve, 0));
+		replaceState('/continue', page.state);
 		walletStore.init(data.cluster);
 		if (!h) {
+			let linkId: string | null = null;
+			try { linkId = sessionStorage.getItem('revibase:finisher-link'); } catch {}
+			if (linkId) {
+				try { status = await linkStatus(linkId); startPolling(); }
+				catch (err) { failure = describeError(err); }
+				return;
+			}
 			failure = { title: 'This link is incomplete', body: 'Go back to your phone’s browser and open the wallet link again.', recovery: 'start_over', code: 'bad_request' };
 			return;
 		}
@@ -67,11 +99,20 @@
 		try {
 			status = await claimHandoff(h);
 			pendingH = null;
+			try {
+				sessionStorage.setItem('revibase:finisher-link', status.id);
+				sessionStorage.removeItem('revibase:pending-handoff');
+			} catch {}
 		} catch (err) {
 			pendingH = null;
 			failure = describeError(err);
 			return;
 		}
+		startPolling();
+	}
+
+	function startPolling() {
+		if (!status) return;
 		void pollLink(
 			status.id,
 			(next) => {
@@ -119,7 +160,6 @@
 				{#if s === 'linked'}
 					<div class="flex flex-1 flex-col justify-center gap-8">
 						<BondVisual wallet={status?.recipient ?? walletStore.address} icon={walletStore.walletIcon} pda={status?.accessory?.pda} />
-						<!-- This wallet just signed the link here, so "your wallet" is proven. -->
 						<PageHeader align="center" title={copy.done.title} body={`${copy.done.body(true, '')} You can close this page.`} />
 						{#if status?.txSignature}
 							<Button variant="ghost" class="h-11 text-muted-foreground" href={explorerUrl('tx', status.txSignature, data.cluster)} target="_blank" rel="noopener noreferrer">View transaction</Button>

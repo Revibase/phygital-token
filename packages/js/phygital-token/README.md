@@ -21,10 +21,10 @@ import {
 
 const rpc = createSolanaRpc("https://api.devnet.solana.com");
 
-// Server: issue a short-lived challenge
+// Server: store a short-lived, single-use challenge
 const message = crypto.randomUUID();
 
-// Client: NFC tap. `rpc`
+// Client: NFC tap.
 const response = await startAuthentication(message, { rpc });
 // Native / kiosk: startAuthentication(message, { transceive })
 
@@ -41,6 +41,8 @@ const token = await fetchPhygitalToken(
 );
 // token.data.linkedWallet
 ```
+
+Reject expired/reused challenges and unlinked tokens before creating a session. The linked wallet is delegated identity, not proof of wallet-key control or NFT ownership.
 
 ## On-chain `verify` (CPI)
 

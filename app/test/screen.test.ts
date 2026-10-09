@@ -23,55 +23,54 @@ function accessory(kind: TokenKind, linkedWallet: string | null, isLocked = link
 	};
 }
 
-describe('tapScreen: Bearer is a tradable collectible', () => {
+describe('tapScreen: Bearer wallet linkage', () => {
 	it('unclaimed: anyone can make it theirs', () => {
-		expect(tapScreen(accessory('bearer', null), false)).toMatchObject({ title: 'Unclaimed', claim: true, walletLabel: null });
+		expect(tapScreen(accessory('bearer', null), false)).toMatchObject({ title: 'No wallet linked', claim: true, walletLabel: null });
 	});
 
 	it('owner: in their collection, can move it, not pitched as a wallet key', () => {
 		const s = tapScreen(accessory('bearer', W), true);
-		expect(s).toMatchObject({ title: 'In your collection', walletLabel: 'Your wallet', claim: false, move: true });
+		expect(s).toMatchObject({ title: 'Linked to your wallet', walletLabel: 'Your wallet', claim: false, move: true });
 		expect(s.body).not.toMatch(/prove/i);
 	});
 
-	it('claiming is described as two steps: one tap, then one wallet approval', () => {
-		const step = 'Make it yours in two steps: tap it, then approve in your wallet.';
-		expect(tapScreen(accessory('bearer', null), false).body).toContain(step);
-		expect(tapScreen(accessory('bearer', W), false).body).toContain(step);
-		expect(tapScreen(accessory('controlled', null), false).body).toContain(step);
+	it('lets available actions explain linking without repeating instructions', () => {
 		for (const kind of ['bearer', 'controlled'] as const) {
-			expect(tapScreen(accessory(kind, null), false).body).not.toMatch(/two taps/);
+			for (const linkedWallet of [null, W]) for (const owned of [false, true]) {
+				expect(tapScreen(accessory(kind, linkedWallet), owned).body).toBe('');
+			}
 		}
+		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({ title: 'Permanently linked to a wallet', body: '' });
 	});
 
 	it('someone else: shows the owner and offers "Make it yours"', () => {
 		expect(tapScreen(accessory('bearer', W), false)).toMatchObject({
-			title: 'In someone’s collection',
-			walletLabel: 'Owned by',
+			title: 'Linked to a wallet',
+			walletLabel: 'Linked wallet',
 			claim: true,
 			move: false
 		});
 	});
 
 	it('locked since issue: no claim until its owner unlinks it', () => {
-		expect(tapScreen(accessory('bearer', W, true), false)).toMatchObject({ claim: false, body: 'It can change hands once its owner unlinks it.' });
-		expect(tapScreen(accessory('bearer', W, true), true)).toMatchObject({ move: false, body: 'No one else can claim it until you unlink it.' });
+		expect(tapScreen(accessory('bearer', W, true), false)).toMatchObject({ claim: false, body: '' });
+		expect(tapScreen(accessory('bearer', W, true), true)).toMatchObject({ move: false, body: '' });
 	});
 });
 
-describe('tapScreen: Controlled and Permanent are personal keys', () => {
+describe('tapScreen: Controlled and Permanent wallet linkage', () => {
 	it('Controlled unclaimed: anyone holding it can make it theirs', () => {
-		expect(tapScreen(accessory('controlled', null), false)).toMatchObject({ title: 'Ready for its owner', claim: true });
+		expect(tapScreen(accessory('controlled', null), false)).toMatchObject({ title: 'No wallet linked', claim: true });
 	});
 
 	it('Controlled linked: never claimable, framed around authentication', () => {
-		expect(tapScreen(accessory('controlled', W), true)).toMatchObject({ title: 'Yours', walletLabel: 'Your wallet', claim: false, move: false });
+		expect(tapScreen(accessory('controlled', W), true)).toMatchObject({ title: 'Linked to your wallet', walletLabel: 'Your wallet', claim: false, move: false });
 		expect(tapScreen(accessory('controlled', W), false)).toMatchObject({ title: 'Linked to a wallet', walletLabel: 'Linked wallet', claim: false, move: false });
 	});
 
 	it('Permanent: bound for good, never claimable', () => {
-		expect(tapScreen(accessory('permanent', W), true)).toMatchObject({ title: 'Yours for good', claim: false, footnote: 'This can’t be changed.' });
-		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({ title: 'Bound to a wallet', claim: false });
+		expect(tapScreen(accessory('permanent', W), true)).toMatchObject({ title: 'Permanently linked to your wallet', claim: false });
+		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({ title: 'Permanently linked to a wallet', claim: false });
 	});
 
 	it('Permanent without a wallet is unavailable, not claimable', () => {
@@ -80,8 +79,19 @@ describe('tapScreen: Controlled and Permanent are personal keys', () => {
 });
 
 describe('changedElsewhereNotice', () => {
-	it('treats a new Bearer claim as a trade, and a Controlled change as a warning', () => {
-		expect(changedElsewhereNotice(accessory('bearer', W)).title).toBe('Claimed by another wallet');
+	it('describes linkage changes by the applicable relinking rule', () => {
+		expect(changedElsewhereNotice(accessory('bearer', W)).title).toBe('Linked to a different wallet');
 		expect(changedElsewhereNotice(accessory('controlled', W)).title).toBe('Linked to a different wallet');
+	});
+});
+
+describe('trading a card does not change its link rules', () => {
+	it.each(['controlled', 'permanent'] as const)('%s explains wallet linkage for mint-backed cards', kind => {
+		const a = { ...accessory(kind, W), mint: W };
+		const screen = tapScreen(a, false);
+		expect(screen.claim).toBe(false);
+		expect(screen.walletLabel).toBe('Linked wallet');
+		expect(screen.body).not.toMatch(/card|trad(e|ing)|collection/i);
+		expect(screen.body).not.toMatch(/proves.*wallet/);
 	});
 });

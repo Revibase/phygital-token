@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { untrack, onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
+	import CollectibleDialog from '$lib/components/app/CollectibleDialog.svelte';
 	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
 	import List from '$lib/components/app/List.svelte';
 	import ListRow from '$lib/components/app/ListRow.svelte';
@@ -16,10 +17,10 @@
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { accessoryMediaQuery, accessoryShortcutsQuery } from '$lib/client/queries';
-	import { recentWallet, rememberedWallet } from '$lib/client/memory';
+	import { forgetLinkedWalletDetails, shouldChooseWallet, reconcileAccessoryWallet, accessoryLinkContext, type LinkedWalletContext, recentConnectionMethod, accessoryConnectionMethod, type ConnectionMethod, recentWallet, rememberedWallet, accessoryWalletApp, rememberAccessoryWalletApp, rememberRecentWallet } from '$lib/client/memory';
 	import { isLikelyWalletBrowser, platform, type Platform } from '$lib/client/capability';
 	import { shortcutLaunch, walletLaunchHref, type ShortcutLaunch } from '$lib/client/shortcuts';
-	import type { KnownWallet } from '$lib/client/wallet/catalog';
+	import { KNOWN_WALLETS, type KnownWallet } from '$lib/client/wallet/catalog';
 	import { shortcutsFor, type Shortcut } from '$lib/shared/shortcuts';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import { changedElsewhereNotice, tapScreen } from '$lib/client/accessory/screen';
@@ -27,13 +28,30 @@
 	let { data } = $props();
 	const a = $derived(data.accessory);
 
+	let nftOpen = $state(false);
+	let linkedContext = $state<LinkedWalletContext | null>(null);
 	let detailsOpen = $state(false);
 	let releaseOpen = $state(false);
 	let refreshing = $state(false);
 
-	// Silent reconnect only: if this browser already connected a wallet via
-	// @solana/connector, we can tell whether the linked wallet is the viewer's.
-	onMount(() => walletStore.init(data.cluster));
+	// Reconnect silently; never prompt on an accessory visit.
+	onMount(() => {
+		walletStore.init(data.cluster);
+		let checking = false;
+		const refreshLink = async () => {
+			if (document.visibilityState !== 'visible' || checking) return;
+			checking = true;
+			try { await invalidateAll(); } catch { /* Keep the current screen usable while offline. */ } finally { checking = false; }
+		};
+		window.addEventListener('focus', refreshLink);
+		window.addEventListener('storage', refreshLink);
+		document.addEventListener('visibilitychange', refreshLink);
+		return () => {
+			window.removeEventListener('focus', refreshLink);
+			window.removeEventListener('storage', refreshLink);
+			document.removeEventListener('visibilitychange', refreshLink);
+		};
+	});
 
 	const owned = $derived(!!a?.linkedWallet && walletStore.address === a.linkedWallet);
 
@@ -46,20 +64,39 @@
 
 	const screen = $derived(a ? tapScreen(a, owned) : null);
 
-	// A collectible with metadata is introduced by its name; the ownership state moves to the line below.
-	// Held as a skeleton while the metadata loads, so the title never swaps under the reader.
 	const mediaQuery = createQuery(() => ({ ...accessoryMediaQuery(a?.pda ?? ''), enabled: !!a?.mint }));
 	const media = $derived(mediaQuery.data ?? null);
-	const namedCollectible = $derived(a?.kind === 'bearer' && !!a.mint);
+	const namedCollectible = $derived(!!a?.mint);
 	const collectibleLoading = $derived(namedCollectible && mediaQuery.isPending);
 	const collectibleName = $derived(namedCollectible ? media?.name : null);
 
-	// How each shortcut opens depends on this device, which is only known after hydration.
+	const linkedApp = $derived(linkedContext?.app ?? (owned ? walletStore.walletName : null));
+	const linkedIcon = $derived(KNOWN_WALLETS.find(w => linkedApp && w.match.test(linkedApp))?.icon ?? (owned && walletStore.walletName === linkedApp ? walletStore.walletIcon : null));
+	const linkedDetail = $derived([linkedApp, linkedContext ? ({desktop:'Linked from desktop', mobile:'Linked from mobile browser', wallet:'Linked in wallet app'}[linkedContext.source]) : null].filter(Boolean).join(' · ') || null);
+
 	const shortcutsQuery = createQuery(() => ({ ...accessoryShortcutsQuery(a?.pda ?? '', a?.linkedWallet ?? null), enabled: !!a?.mint }));
-	let device = $state<{ platform: Platform; inWallet: boolean; recent: string | null; origin: string } | null>(null);
+	let device = $state<{ platform: Platform; inWallet: boolean; recent: string | null; method: ConnectionMethod | null; chooseWallet?: boolean; origin: string } | null>(null);
 	onMount(() => {
-		device = { platform: platform(), inWallet: isLikelyWalletBrowser(), recent: recentWallet(), origin: window.location.origin };
+		linkedContext = a ? accessoryLinkContext(a.pda, a.linkedWallet) : null;
+		device = { chooseWallet: shouldChooseWallet(a?.pda ?? ''), method: (a ? accessoryConnectionMethod(a.pda, a.linkedWallet) : null) ?? recentConnectionMethod(), platform: platform(), inWallet: isLikelyWalletBrowser(), recent: (a ? accessoryWalletApp(a.pda, a.linkedWallet) : null) ?? recentWallet(), origin: window.location.origin };
 	});
+	$effect(() => {
+		const current = a;
+		untrack(() => {
+			if (!device || !current) return;
+			const stale = reconcileAccessoryWallet(current.pda, current.linkedWallet);
+			linkedContext = accessoryLinkContext(current.pda, current.linkedWallet);
+			device = { ...device, chooseWallet: shouldChooseWallet(a?.pda ?? ''),
+				recent: accessoryWalletApp(current.pda, current.linkedWallet) ?? (stale ? null : recentWallet()),
+				method: accessoryConnectionMethod(current.pda, current.linkedWallet) ?? (stale ? null : recentConnectionMethod())
+			};
+		});
+	});
+	function forgetApps() {
+		if (a) forgetLinkedWalletDetails(a.pda);
+		linkedContext = null;
+		if (device) device = { ...device, recent: null, method: null, chooseWallet: true };
+	}
 	type Launchable = { s: Shortcut; index: number; launch: ShortcutLaunch };
 	const shortcuts = $derived.by((): Launchable[] => {
 		const d = device;
@@ -85,8 +122,7 @@
 
 	async function retry() {
 		refreshing = true;
-		await invalidateAll();
-		refreshing = false;
+		try { await invalidateAll(); } finally { refreshing = false; }
 	}
 </script>
 
@@ -102,10 +138,15 @@
 			</Notice>
 		</section>
 	{:else}
-		<!-- Phone: one centred column. Desktop: two panes, the object on the left, what it is and what you can do on the right. -->
 		<section class="flex flex-1 flex-col justify-center gap-6 pt-4 pb-10 [@media(max-height:640px)]:gap-4 [@media(max-height:640px)]:pb-2 lg:grid lg:flex-none lg:grid-cols-[5fr_6fr] lg:items-center lg:gap-16 lg:py-0">
 			<div class="flex justify-center">
-				<AccessoryMark state="verified" size="xl" pda={a.pda} hasMint={!!a.mint} class="[@media(max-height:640px)]:size-20" />
+				{#if a.mint}
+					<button type="button" aria-label="View NFT details" class="rounded-[26%] outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4" onclick={() => { nftOpen = true; void mediaQuery.refetch(); }}>
+						<AccessoryMark state="verified" size="xl" pda={a.pda} hasMint={!!a.mint} class="[@media(max-height:640px)]:size-20" />
+					</button>
+				{:else}
+					<AccessoryMark state="verified" size="xl" pda={a.pda} hasMint={!!a.mint} class="[@media(max-height:640px)]:size-20" />
+				{/if}
 			</div>
 			<div class="flex flex-col gap-8 lg:gap-6">
 				{#if collectibleLoading}
@@ -114,7 +155,7 @@
 					</div>
 				{:else if collectibleName}
 					<PageHeader align="center-mobile" eyebrow={`Genuine · ${a.tag}`} eyebrowTone="success" title={collectibleName} body={media?.collection ? `${media.collection} · ${screen.title}` : screen.title}>
-						<p class="text-[15px] leading-relaxed text-muted-foreground">{screen.body}</p>
+						{#if screen.body}<p class="text-[15px] leading-relaxed text-muted-foreground">{screen.body}</p>{/if}
 					</PageHeader>
 				{:else}
 					<PageHeader align="center-mobile" eyebrow={`Genuine · ${a.tag}`} eyebrowTone="success" title={screen.title} body={screen.body} />
@@ -126,12 +167,16 @@
 
 				{#if a.linkedWallet && screen.walletLabel}
 					<List footer={screen.footnote}>
-						<WalletRow address={a.linkedWallet} label={screen.walletLabel} icon={owned ? walletStore.walletIcon : null} cluster={data.cluster} />
+						<WalletRow address={a.linkedWallet} label={screen.walletLabel} icon={linkedIcon} context={linkedDetail} nftOwnership={media?.owner ? (media.owner === a.linkedWallet ? 'same' : 'different') : null} onforget={linkedContext?.app || (a && accessoryWalletApp(a.pda, a.linkedWallet)) ? forgetApps : undefined} cluster={data.cluster} />
 					</List>
 				{/if}
 
 				{#if shortcuts.length}
 					<ShortcutGrid label={`From ${media?.collection ?? 'the project'}`} items={shortcuts} onpick={pickWallet} />
+				{:else if a.mint && shortcutsQuery.isError}
+					<Notice title="Couldn’t load project apps">
+						{#snippet actions()}<Button variant="secondary" class="h-11 w-full" disabled={shortcutsQuery.isFetching} onclick={() => void shortcutsQuery.refetch()}>{shortcutsQuery.isFetching ? 'Trying again…' : 'Try again'}</Button>{/snippet}
+					</Notice>
 				{/if}
 
 				<div class="hidden lg:block">{@render actions()}</div>
@@ -148,7 +193,7 @@
 	{#if a && screen}
 		{#if screen.claim}
 			<div class="grid gap-1">
-				<Button href="/accessory/link" size="xl" class="w-full">Make it yours</Button>
+				<Button href="/accessory/link" size="xl" class="w-full">Link a wallet</Button>
 				<Button variant="ghost" class="h-11 text-muted-foreground" onclick={() => (detailsOpen = true)}>Details</Button>
 			</div>
 		{:else}
@@ -165,9 +210,21 @@
 	{/if}
 {/snippet}
 
-<OpenInWalletSheet hrefFor={pickHref} label={picking?.s.label ?? ''} bind:open={pickOpen} />
+<OpenInWalletSheet browserHref={picking ? (picking.s.proof ? `/shortcut/${picking.index}` : picking.s.href) : null} onbrowser={() => {
+	rememberRecentWallet(device?.recent ?? 'Browser', 'browser');
+	if (a) rememberAccessoryWalletApp(a.pda, a.linkedWallet, device?.recent ?? 'Browser', 'browser');
+	if (device) device = { ...device, method: 'browser', chooseWallet: false };
+}} destination={picking?.s.href ?? null} hrefFor={pickHref} label={picking?.s.label ?? ''} onchoose={(w) => {
+	rememberRecentWallet(w.name);
+	if (a) rememberAccessoryWalletApp(a.pda, a.linkedWallet, w.name);
+	if (device) device = { ...device, recent: w.name, method: 'wallet', chooseWallet: false };
+}} bind:open={pickOpen} />
 
 {#if a && screen}
 	<TechnicalDetails accessory={a} cluster={data.cluster} bind:open={detailsOpen} />
 	{#if a.canRelease}<ReleaseSheet accessory={a} cluster={data.cluster} bind:open={releaseOpen} />{/if}
+{/if}
+
+{#if a?.mint}
+	<CollectibleDialog mint={a.mint} {media} cluster={data.cluster} loading={mediaQuery.isPending} bind:open={nftOpen} />
 {/if}

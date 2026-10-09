@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ cookies, platform, url, setHeaders 
 	const resolved = await fetchAccessory(getRpc(env), session.pda).catch(() => null);
 	if (!resolved) redirect(303, '/accessory');
 	const accessory = toAccessoryView(resolved.pda, resolved.account);
-	// `link` = a desktop pairing this phone joined; access is enforced by the API.
+	// `link` resumes this browser’s linking intent or a desktop pairing it joined; the API enforces access.
 	const pairedLinkId = url.searchParams.get('link');
 	if (!accessory.canLink && !pairedLinkId) redirect(303, '/accessory');
 	return { accessory, pairedLinkId: pairedLinkId && /^[A-Za-z0-9_-]{16,32}$/.test(pairedLinkId) ? pairedLinkId : null };

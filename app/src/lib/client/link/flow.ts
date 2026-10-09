@@ -45,9 +45,7 @@ export function startPhoneLink(): Promise<LinkStatusView & { challenge: Transfer
 }
 
 /**
- * Fetch the slot-bound challenge ahead of the user's tap. iOS Safari only
- * allows WebAuthn inside a user gesture, so the click handler must go
- * straight to {@link tapWithChallenge} without awaiting the network first.
+ * Prefetch before the click: iOS WebAuthn requires a user gesture without a network await.
  */
 export function prepareTap(linkId: string): Promise<TransferChallenge> {
 	return postJson<TransferChallenge>(`/api/link/${linkId}/challenge`);

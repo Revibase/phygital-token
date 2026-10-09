@@ -3,7 +3,6 @@
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import { toast } from 'svelte-sonner';
 
-	/** Icon button; the icon swaps to a check for 1.5s — the confirmation is in place, not only in a toast. */
 	let { value, label = 'Copy' }: { value: string; label?: string } = $props();
 	let copied = $state(false);
 

@@ -3,17 +3,6 @@
 	import { page } from '$app/state';
 	import RevibaseMark from '$lib/brand/RevibaseMark.svelte';
 
-	/**
-	 * Stable frame for every screen. Phone: one 440px column, header never
-	 * moves, actions sit in the thumb zone above the safe area.
-	 * Desktop (lg+): a full-width toolbar with a hairline, and the content
-	 * centred in the window at `size` — actions follow the content instead of
-	 * sitting at the bottom of a tall window.
-	 *
-	 * - narrow: 440px, single-purpose flows (linking, tap results)
-	 * - medium: 560px, lists (home)
-	 * - wide:   920px, two-pane screens (the accessory)
-	 */
 	let {
 		children,
 		footer,

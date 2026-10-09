@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { Spinner } from '$lib/components/ui/spinner';
@@ -15,7 +15,7 @@
 	import PairingCode from '$lib/components/app/PairingCode.svelte';
 	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import { explorerUrl } from '$lib/shared/explorer';
-	import { canTapHere, tapHint } from '$lib/client/capability';
+	import { platform, canTapHere, tapHint } from '$lib/client/capability';
 	import {
 		cancelLink,
 		claimHandoff,
@@ -29,7 +29,7 @@
 	} from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
 	import { linkCopy } from '$lib/client/accessory/link-copy';
-	import { rememberRecentWallet, rememberWallet } from '$lib/client/memory';
+	import { rememberAccessoryLink, type ConnectionMethod, rememberRecentWallet, rememberWallet, rememberAccessoryWalletApp } from '$lib/client/memory';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import { shortAddress } from '$lib/shared/encoding';
 	import type { LinkStatusView, TransferChallenge } from '$lib/shared/types';
@@ -53,6 +53,15 @@
 
 	const poller = new AbortController();
 	onDestroy(() => poller.abort());
+	onMount(() => {
+		const refresh = () => {
+			if (document.visibilityState === 'visible' && status && !done && !dead && !tapping && !phase) {
+				void linkStatus(status.id).then(apply).catch(() => {});
+			}
+		};
+		document.addEventListener('visibilitychange', refresh);
+		return () => document.removeEventListener('visibilitychange', refresh);
+	});
 
 	const s = $derived(status?.state);
 	const isDesktop = $derived(status?.kind === 'desktop');
@@ -80,7 +89,12 @@
 		status = next;
 		if (next.state === 'linked' && next.recipient) {
 			rememberWallet(a.pda, next.recipient);
-			rememberRecentWallet(next.walletApp);
+			let method: ConnectionMethod = next.kind === 'desktop' ? 'browser' : 'wallet';
+			try { if (sessionStorage.getItem(`revibase:link-method:${next.id}`) === 'browser') method = 'browser'; } catch {}
+			rememberRecentWallet(next.walletApp, method);
+			rememberAccessoryWalletApp(a.pda, next.recipient, next.walletApp, method);
+			rememberAccessoryLink(a.pda, { wallet: next.recipient, app: next.walletApp ?? null, source: next.kind === 'desktop' || platform() === 'desktop' ? 'desktop' : method === 'wallet' ? 'wallet' : 'mobile' });
+			try { sessionStorage.removeItem(`revibase:handoff:${next.id}`); } catch {}
 		}
 		if ((next.state === 'created' || next.state === 'accessory_confirmed') && next.errorCode === 'too_slow' && !failure) {
 			failure = linkErrorCopy('too_slow');
@@ -118,10 +132,16 @@
 		webauthnOk = canTapHere();
 		walletStore.init(data.cluster);
 		try {
-			if (data.pairedLinkId) apply(await linkStatus(data.pairedLinkId));
+			if (data.pairedLinkId) {
+				apply(await linkStatus(data.pairedLinkId));
+				try { handoffUrl = sessionStorage.getItem(`revibase:handoff:${data.pairedLinkId}`); } catch {}
+			}
 			else {
 				const { challenge: first, ...started } = await startPhoneLink();
 				apply(started);
+				const resumeUrl = new URL(page.url);
+				resumeUrl.searchParams.set('link', started.id);
+				replaceState(resumeUrl, page.state);
 				setChallenge(first);
 			}
 		} catch (err) {
@@ -154,6 +174,7 @@
 		try {
 			const result = await tapWithChallenge(fields, { finishHere: false });
 			handoffUrl = result.handoffUrl;
+			try { if (handoffUrl) sessionStorage.setItem(`revibase:handoff:${fields.linkId}`, handoffUrl); } catch {}
 			apply(result.status);
 		} catch (err) {
 			failure = describeError(err, 'tap');
@@ -161,6 +182,10 @@
 		} finally {
 			tapping = false;
 		}
+	}
+
+	function rememberLinkMethod(method: ConnectionMethod) {
+		try { if (status) sessionStorage.setItem(`revibase:link-method:${status.id}`, method); } catch {}
 	}
 
 	async function useLocalWallet(id: string) {
@@ -175,6 +200,7 @@
 				localFinish = true;
 			}
 			await walletStore.connect(id);
+			rememberLinkMethod('browser');
 		} catch (err) {
 			failure = describeError(err);
 		} finally {
@@ -217,7 +243,7 @@
 							body={copy.done.body(ownedResult, status.recipient ? shortAddress(status.recipient) : 'the wallet you chose')}
 						/>
 						{#if status.recipient}
-							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Owned by'} icon={ownedResult ? walletStore.walletIcon : null} cluster={data.cluster} /></List>
+							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Linked wallet'} icon={ownedResult ? walletStore.walletIcon : null} cluster={data.cluster} /></List>
 						{/if}
 					</div>
 				{:else if view === 'dead'}
@@ -272,7 +298,7 @@
 							{/each}
 						</ol>
 					{:else if view === 'choose' && handoffUrl}
-						<HandoffPanel {handoffUrl} options={walletStore.options} {connecting} onpick={useLocalWallet} oncomputer={() => (showComputer = true)} />
+						<HandoffPanel {handoffUrl} options={walletStore.options} {connecting} onpick={useLocalWallet} onbrowse={() => rememberLinkMethod('wallet')} oncomputer={() => (showComputer = true)} />
 					{:else if view === 'local' && walletStore.address}
 						<List><WalletRow address={walletStore.address} label={walletStore.walletName ?? 'This wallet'} icon={walletStore.walletIcon} cluster={data.cluster} /></List>
 					{:else if view === 'remote' || view === 'desktop_remote'}

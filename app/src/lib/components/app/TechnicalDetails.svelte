@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
 	import ResponsiveSheet from './ResponsiveSheet.svelte';
 	import type { AccessoryView } from '$lib/shared/types';
 	import { shortAddress } from '$lib/shared/encoding';
@@ -19,18 +18,10 @@
 
 	let { accessory, cluster, open = $bindable(false) }: { accessory: AccessoryView; cluster: string; open?: boolean } = $props();
 
-	/** Only these two are worth opening in an explorer; the token account and keys aren't. */
 	const explorable = new Set(['Linked wallet', 'Collectible']);
 	const mediaQuery = createQuery(() => ({ ...accessoryMediaQuery(accessory.pda), enabled: !!accessory.mint }));
 	const media = $derived(mediaQuery.data ?? null);
-	let showAllTraits = $state(false);
 	const collectibleName = $derived(media?.name ?? null);
-	const TRAITS_SHOWN = 6;
-	const traits = $derived(media?.attributes ?? []);
-	const visibleTraits = $derived(showAllTraits ? traits : traits.slice(0, TRAITS_SHOWN));
-	$effect(() => {
-		if (!open) showAllTraits = false;
-	});
 	type Check = 'idle' | 'tapping' | 'genuine' | 'mismatch';
 	let check = $state<Check>('idle');
 	let checkFailure = $state<FriendlyError | null>(null);
@@ -61,7 +52,7 @@
 		}
 	}
 
-	const kindLabel = { permanent: 'Bound to one wallet', bearer: 'Tradable', controlled: 'Locks to its owner', unknown: 'Unknown' };
+	const kindLabel = { permanent: 'Bound to one wallet', bearer: 'Relinkable while unlocked', controlled: 'Unlink before relinking', unknown: 'Unknown' };
 	const copyable = $derived(
 		[
 			['Public Key', accessory.publicKey],
@@ -78,24 +69,7 @@
 		</ListRow>
 	</List>
 	{#if checkFailure}<Notice title={checkFailure.title} body={checkFailure.body} detail={checkFailure.detail} />{/if}
-	{#if traits.length}
-		<section class="space-y-2">
-			<h3 class="px-1 text-[13px] font-medium text-muted-foreground">Traits</h3>
-			<dl class="grid grid-cols-2 gap-px overflow-hidden rounded-[14px] bg-border">
-				{#each visibleTraits as t (t.label + t.value)}
-					<div class="min-w-0 bg-card px-4 py-3">
-						<dt class="truncate text-[12px] text-muted-foreground">{t.label}</dt>
-						<dd class="truncate text-[15px] font-medium">{t.value}</dd>
-					</div>
-				{/each}
-			</dl>
-			{#if traits.length > TRAITS_SHOWN}
-				<Button variant="ghost" class="h-10 w-full text-muted-foreground" onclick={() => (showAllTraits = !showAllTraits)}>
-					{showAllTraits ? 'Show fewer' : `Show all ${traits.length}`}
-				</Button>
-			{/if}
-		</section>
-	{/if}
+
 	<List>
 		<ListRow label="Type" detail={kindLabel[accessory.kind]} />
 		<ListRow label="Status" detail={accessory.isLocked ? 'Locked' : 'Unlocked'} />

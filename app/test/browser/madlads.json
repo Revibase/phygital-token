@@ -1,0 +1,54 @@
+{
+  "image": "https://madlads.s3.us-west-2.amazonaws.com/images/7256.png",
+  "name": "Mad Lads #7256",
+  "owner": "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+  "tokenStandard": "ProgrammableNonFungible",
+  "metadataUrl": "https://madlads.s3.us-west-2.amazonaws.com/json/7256.json",
+  "royaltyBps": 500,
+  "description": "Fock it.",
+  "collection": "Mad Lads",
+  "collectionImage": "https://madlads.s3.us-west-2.amazonaws.com/images/7256.png",
+  "collectionAddress": "J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w",
+  "attributes": [
+    {
+      "label": "Gender",
+      "value": "Male"
+    },
+    {
+      "label": "Type",
+      "value": "Dark"
+    },
+    {
+      "label": "Expression",
+      "value": "Smile"
+    },
+    {
+      "label": "Hat",
+      "value": "Trilby"
+    },
+    {
+      "label": "Eyes",
+      "value": "Blue"
+    },
+    {
+      "label": "Smoke",
+      "value": "White"
+    },
+    {
+      "label": "Clothing",
+      "value": "Tanktop"
+    },
+    {
+      "label": "Hand",
+      "value": "Cigarette"
+    },
+    {
+      "label": "Glove",
+      "value": "Yellow"
+    },
+    {
+      "label": "Background",
+      "value": "Red"
+    }
+  ]
+}

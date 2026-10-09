@@ -1,5 +1,6 @@
 import type { Shortcut } from '$lib/shared/shortcuts';
 import { getJson } from './api';
+import type { ConnectionMethod } from './memory';
 import type { Platform } from './capability';
 import { KNOWN_WALLETS, type KnownWallet } from './wallet/catalog';
 
@@ -14,24 +15,29 @@ export function walletLaunchHref(s: Shortcut, index: number, wallet: KnownWallet
 	return s.proof ? openPath(index, wallet.id) : wallet.browse(s.href, origin);
 }
 
-/**
- * `pick`: it should open inside a wallet, but this phone browser has none we know of, so ask.
- * Wallet shortcuts open in a new tab on a computer, in place inside a wallet browser, and otherwise in the
- * recent wallet app.
- */
+/** Wallet launches use saved routing or prompt for selection; wallet browsers stay in place. */
 export type ShortcutLaunch = { kind: 'link'; href: string; newTab: boolean } | { kind: 'pick' };
 
 export function shortcutLaunch(
 	s: Shortcut,
-	opts: { platform: Platform; inWallet: boolean; recent: string | null; origin: string },
+	opts: { platform: Platform; inWallet: boolean; recent: string | null; method?: ConnectionMethod | null; chooseWallet?: boolean; origin: string },
 	/** Position in the server's list; the routes look the shortcut up again by it. */
 	index: number
 ): ShortcutLaunch {
 	if (s.immerse) return { kind: 'link', href: `/accessory/app/${index}`, newTab: false };
 	const direct = s.proof ? openPath(index) : s.href;
 	if (s.external) return { kind: 'link', href: direct, newTab: s.href.startsWith('https:') };
+	return walletDestinationLaunch(direct, opts, wallet => walletLaunchHref(s, index, wallet, opts.origin));
+}
+
+export type WalletLaunchOptions = { platform: Platform; inWallet: boolean; recent: string | null; method?: ConnectionMethod | null; chooseWallet?: boolean; origin: string };
+
+/** Shared routing for wallet shortcuts and actions that require a wallet signature. */
+export function walletDestinationLaunch(direct: string, opts: WalletLaunchOptions, hrefFor = (wallet: KnownWallet) => wallet.browse(new URL(direct, opts.origin).href, opts.origin)): ShortcutLaunch {
+	if (opts.chooseWallet && !opts.inWallet) return { kind: 'pick' };
 	if (opts.platform === 'desktop') return { kind: 'link', href: direct, newTab: true };
 	if (opts.inWallet) return { kind: 'link', href: direct, newTab: false };
-	const wallet = opts.recent ? KNOWN_WALLETS.find((w) => w.match.test(opts.recent!)) : undefined;
-	return wallet ? { kind: 'link', href: walletLaunchHref(s, index, wallet, opts.origin), newTab: false } : { kind: 'pick' };
+	if (opts.method === 'browser') return { kind: 'link', href: direct, newTab: true };
+	const wallet = opts.recent ? KNOWN_WALLETS.find(w => w.match.test(opts.recent!)) : undefined;
+	return wallet ? { kind: 'link', href: hrefFor(wallet), newTab: false } : { kind: 'pick' };
 }

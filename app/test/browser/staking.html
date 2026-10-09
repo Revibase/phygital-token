@@ -1,0 +1,17 @@
+<!doctype html><html><body>
+<h1>Fixture staking site</h1><p id="status">Checking accessory session…</p>
+<button id="connect">Connect wallet</button><button id="switch">Switch to linked account</button>
+<button id="reject">Reject next signature</button><button id="stake" disabled>Stake NFT</button>
+<script>
+// Simulated destination integration, not a staking feature supplied by Revibase.
+let claims, connected=null, reject=false;
+const status=document.querySelector('#status'),stake=document.querySelector('#stake');
+function render(){stake.disabled=!claims||connected!==claims.wallet;status.textContent=!claims?'No valid accessory session':!connected?'Connect your wallet':connected!==claims.wallet?'Switch to the linked wallet to stake':'Ready to stake';}
+const provider={async connect(){connected='DifferentVisitorAccount';return {publicKey:connected}},async signTransaction(){if(reject){reject=false;throw Error('Signature rejected')}return 'simulated-signature'}};
+window.phantom={solana:provider};
+fetch('/__session?token='+encodeURIComponent(new URL(location.href).searchParams.get('revibase_session'))).then(r=>r.json()).then(p=>{claims=p;render()});
+document.querySelector('#connect').onclick=async()=>{await provider.connect();render()};
+document.querySelector('#switch').onclick=()=>{connected=claims.wallet;window.dispatchEvent(new Event('accountChanged'));render()};
+document.querySelector('#reject').onclick=()=>{reject=true};
+stake.onclick=async()=>{try{await provider.signTransaction();status.textContent='Staking transaction approved'}catch{status.textContent='Signature rejected; try again'}};
+</script></body></html>

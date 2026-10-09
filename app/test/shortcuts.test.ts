@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { resolveShortcuts, shortcutsFileUrl, shortcutsFor, shortcutDestination, MAX_SHORTCUTS, type ShortcutContext } from '$lib/shared/shortcuts';
 import { fetchShortcutsFile, loadShortcuts } from '$lib/server/accessory/shortcuts';
-import { shortcutLaunch, walletLaunchHref } from '$lib/client/shortcuts';
+import { walletDestinationLaunch, shortcutLaunch, walletLaunchHref } from '$lib/client/shortcuts';
 import { KNOWN_WALLETS } from '$lib/client/wallet/catalog';
 import type { AccessoryView } from '$lib/shared/types';
 
@@ -172,13 +172,13 @@ describe('loading a project file', () => {
 	}
 	const das = (result: unknown) => () => Response.json({ jsonrpc: '2.0', id: 1, result });
 
-	it('reads external_url and the collection from DAS, then resolves the file', async () => {
+	it.each(['bearer', 'controlled', 'permanent'] as const)('loads minted %s token shortcuts from DAS and the project file', async (kind) => {
 		const seen = stub({
 			das: das({ content: { links: { external_url: 'https://game.xyz/s1' } }, grouping: [{ group_key: 'collection', group_value: COLLECTION }] }),
 			'https://game.xyz/s1/shortcuts.json': () =>
 				Response.json({ version: 2, shortcuts: [{ label: 'Play', uri: 'https://game.xyz/{{tokenId}}', limitToCollections: [COLLECTION] }] })
 		});
-		const { externalUrl, shortcuts } = await loadShortcuts('https://rpc.test', accessory);
+		const { externalUrl, shortcuts } = await loadShortcuts('https://rpc.test', { ...accessory, kind });
 		expect(externalUrl).toBe('https://game.xyz/s1');
 		expect(shortcuts.map((s) => s.href)).toEqual([`https://game.xyz/${MINT}`]);
 		expect(seen).toEqual(['DAS getAsset', 'https://game.xyz/s1/shortcuts.json']);
@@ -207,5 +207,74 @@ describe('loading a project file', () => {
 	it('throws when DAS is unreachable, so the client retries', async () => {
 		stub({ das: () => new Response('down', { status: 503 }) });
 		await expect(loadShortcuts('https://rpc.test', accessory)).rejects.toThrow();
+	});
+});
+
+describe('Revibase launch modes', () => {
+	it('asks on desktop and mobile after forgetting preferences, while staying in wallet browsers', () => {
+		for (const platform of ['desktop', 'ios', 'android'] as const) {
+			const opts = { platform, inWallet:false, chooseWallet:true, recent:'Phantom', method:'wallet' as const, origin:'https://revibase.test' };
+			expect(walletDestinationLaunch('/unlink/token',opts)).toEqual({kind:'pick'});
+		}
+		expect(walletDestinationLaunch('/unlink/token',{platform:'ios',inWallet:true,chooseWallet:true,recent:null,origin:'https://revibase.test'})).toEqual({kind:'link',href:'/unlink/token',newTab:false});
+	});
+
+	it('allows third-party wallet destinations and overrides Phantom fields', () => {
+		const [s] = one({
+			label: 'Stake',
+			uri: 'https://staking.test/app',
+			prefersExternalTarget: true,
+			preferredPresentation: 'immerse',
+			revibase: { launch: 'wallet' }
+		});
+		expect(s).toMatchObject({ external: false, immerse: false });
+		expect(
+			shortcutLaunch(
+				s,
+				{
+					platform: 'ios',
+					inWallet: false,
+					recent: 'Phantom',
+					origin: 'https://portal.revibase.com'
+				},
+				0
+			)
+		).toMatchObject({
+			href: KNOWN_WALLETS[0].browse(s.href, 'https://portal.revibase.com'),
+			newTab: false
+		});
+	});
+	it('allows explicit embedding and browser launches on any HTTPS domain', () => {
+		expect(
+			one({
+				label: 'Play',
+				uri: 'https://other.test',
+				revibase: { launch: 'embed' }
+			})[0]
+		).toMatchObject({ immerse: true, external: false });
+		expect(
+			one({
+				label: 'Visit',
+				uri: 'https://other.test',
+				revibase: { launch: 'browser' }
+			})[0]
+		).toMatchObject({ immerse: false, external: true });
+	});
+	it('rejects malformed launch settings and refuses Solana URIs except browser launches', () => {
+		for (const revibase of [null, [], 'wallet', {}, { launch: 'invalid' }]) expect(one({ label: 'Go', uri: 'https://game.xyz', revibase })).toEqual([]);
+		expect(
+			one({
+				label: 'Pay',
+				uri: `solana:${OWNER}`,
+				revibase: { launch: 'wallet' }
+			})
+		).toEqual([]);
+		expect(
+			one({
+				label: 'Pay',
+				uri: `solana:${OWNER}`,
+				revibase: { launch: 'browser' }
+			})
+		).toHaveLength(1);
 	});
 });

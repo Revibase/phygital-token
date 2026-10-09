@@ -27,3 +27,6 @@ vite.config.ts.timestamp-*
 
 # Local dev accessory keys (local validator only)
 scripts/.dev-accessory.json
+
+# Browser simulation reports and screenshots
+/test/browser/results/

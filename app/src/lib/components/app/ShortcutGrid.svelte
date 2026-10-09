@@ -3,6 +3,9 @@
 	import { shortcutDestination, type Shortcut, type ShortcutIcon as IconName } from '$lib/shared/shortcuts';
 	import { SvelteSet } from 'svelte/reactivity';
 	import ShortcutIcon from './ShortcutIcon.svelte';
+	import SolanaPaySheet from './SolanaPaySheet.svelte';
+	let payment = $state<{ href: string; label: string } | null>(null);
+	let paymentOpen = $state(false);
 
 	let {
 		label,
@@ -19,7 +22,7 @@
 	const icon =
 		'grid size-14 place-items-center overflow-hidden rounded-[16px] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.28),inset_0_-1px_0_rgb(0_0_0/0.08),0_1px_2px_rgb(14_26_26/0.12),0_8px_18px_-10px_rgb(14_26_26/0.45)] transition-transform duration-150 ease-out group-active:scale-[0.94]';
 
-	/** Every fill keeps the white glyph at 3:1 or better. Full class strings, so Tailwind sees them. */
+	// Full class names are required for Tailwind extraction.
 	const themes: Record<IconName, string> = {
 		vote: 'bg-linear-to-br from-[#6366F1] to-[#4338CA]',
 		'vote-2': 'bg-linear-to-br from-[#8B5CF6] to-[#6D28D9]',
@@ -60,7 +63,9 @@
 					{/if}
 					<span class="line-clamp-2 text-[12px] leading-tight font-medium">{s.label}</span>
 				{/snippet}
-				{#if launch.kind === 'link'}
+				{#if s.href.startsWith('solana:')}
+					<button type="button" class={tile} {title} onclick={() => { payment = { href: s.href, label: s.label }; paymentOpen = true; }}>{@render body()}</button>
+				{:else if launch.kind === 'link'}
 					<!-- Our own paths are server routes or need their own headers: always a full page load. -->
 					<a href={launch.href} target={launch.newTab ? '_blank' : undefined} rel="noopener noreferrer" data-sveltekit-reload={launch.href.startsWith('/') || undefined} class={tile} {title}>{@render body()}</a>
 				{:else}
@@ -70,3 +75,4 @@
 		{/each}
 	</ul>
 </section>
+{#if payment}<SolanaPaySheet bind:open={paymentOpen} href={payment.href} label={payment.label} />{/if}

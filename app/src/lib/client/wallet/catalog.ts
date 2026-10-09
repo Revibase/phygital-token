@@ -1,21 +1,14 @@
 import type { Platform } from '../capability';
 import type { WalletOption } from './wallet.svelte';
 
-/**
- * Featured wallets. Wallets `@solana/connector` detects (Wallet Standard
- * injection, extension, or MWA) connect directly. On a phone, each of these
- * three that isn't detected is also offered as "Open in …", which reopens the
- * page inside that wallet's in-app browser. A detected wallet is never listed twice.
- *
- * Browse deep links (URL-encoded target + URL-encoded `ref`):
- * - Phantom  https://docs.phantom.com/phantom-deeplinks/other-methods/browse
- * - Backpack https://docs.backpack.app/deeplinks/other-methods/browse
- * - Solflare https://docs.solflare.com/solflare/technical/deeplinks/other-methods/browse
+/** Detected connectors connect here; undetected featured wallets get phone-only browse links.
+ * Phantom: https://docs.phantom.com/phantom-deeplinks/other-methods/browse
+ * Backpack: https://docs.backpack.app/deeplinks/other-methods/browse
+ * Solflare: https://docs.solflare.com/solflare/technical/deeplinks/other-methods/browse
  */
 export type KnownWallet = {
 	id: 'phantom' | 'backpack' | 'solflare';
 	name: string;
-	/** Bundled icon in `static/wallets/`, so the row never depends on detection. */
 	icon: string;
 	match: RegExp;
 	browse: (target: string, ref: string) => string;
@@ -48,7 +41,6 @@ export function walletChoices(
 	const choices: WalletChoice[] = [...detected]
 		.sort((a, b) => rank(a.name) - rank(b.name))
 		.map((w) => ({ kind: 'detected', key: `detected:${w.id}`, connectorId: w.id, name: w.name, icon: w.icon || known(w.name)?.icon || '', ready: w.ready, recent: isRecent(w.name) }));
-	// Recent first, otherwise the order above (sort is stable).
 	const recentFirst = (list: WalletChoice[]) => list.sort((a, b) => Number(b.recent) - Number(a.recent));
 
 	const target = opts.browseTarget;

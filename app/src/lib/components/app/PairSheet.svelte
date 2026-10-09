@@ -16,6 +16,7 @@
 	import { postJson } from '$lib/client/api';
 	import { cancelLink, finishInWallet, pollLink, type FinishPhase } from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
+	import { rememberWallet, rememberAccessoryLink, rememberAccessoryWalletApp, rememberRecentWallet } from '$lib/client/memory';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import type { LinkStatusView } from '$lib/shared/types';
 
@@ -72,6 +73,10 @@
 	function linked() {
 		if (notified) return;
 		notified = true;
+		if (status?.accessory?.pda && status.recipient) rememberWallet(status.accessory.pda, status.recipient);
+		rememberRecentWallet(status?.walletApp ?? walletStore.walletName, 'browser');
+		if (status?.accessory?.pda && status.recipient) rememberAccessoryLink(status.accessory.pda, {wallet: status.recipient, app: status.walletApp ?? walletStore.walletName, source: 'desktop'});
+		if (status?.accessory?.pda && status.recipient) rememberAccessoryWalletApp(status.accessory.pda, status.recipient, status.walletApp ?? walletStore.walletName, 'browser');
 		onlinked?.();
 	}
 

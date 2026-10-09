@@ -2,7 +2,6 @@
 	import AccessoryMark from './AccessoryMark.svelte';
 	import WalletAvatar from './WalletAvatar.svelte';
 
-	/** Success moment: accessory ↔ wallet. The connecting line draws once (420ms) to confirm the link. */
 	let {
 		wallet = null,
 		icon = null,

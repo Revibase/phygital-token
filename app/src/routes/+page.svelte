@@ -48,7 +48,7 @@
 		failure = null;
 		try {
 			await walletStore.connect(id);
-			rememberRecentWallet(walletStore.walletName);
+			rememberRecentWallet(walletStore.walletName, 'browser');
 			// The one signature: it logs this browser in, so opening accessories never asks again.
 			// Declining it cancels the connection and returns to the wallet picker.
 			try {
@@ -76,7 +76,7 @@
 		}
 	}
 
-	// "Linked", not "authenticates as": tradable (Bearer) accessories are collectibles, not keys.
+	// Show wallet linkage separately from physical ownership.
 	const summary = $derived(
 		!walletStore.address
 			? 'Use the Solana wallet you already have to see and manage the accessories linked to it.'
@@ -88,17 +88,25 @@
 	);
 </script>
 
+<svelte:head><title>{walletStore.address ? 'Your accessories' : 'Connect your wallet'} · Revibase</title></svelte:head>
+
 <PageShell size="medium">
 	<section class="flex flex-1 flex-col gap-7 pt-4" aria-live="polite">
 		<PageHeader title={walletStore.address ? 'Your accessories' : 'Connect your wallet'} body={summary} />
 
-		{#if failure ?? listFailure}{@const f = (failure ?? listFailure)!}<Notice title={f.title} body={f.body} detail={f.detail} />{/if}
+		{#if failure ?? listFailure}
+			{@const f = (failure ?? listFailure)!}
+			<Notice title={f.title} body={f.body} detail={f.detail}>
+				{#snippet actions()}
+					{#if listFailure && !failure}<Button variant="secondary" class="h-11 w-full" disabled={listQuery.isFetching} onclick={reload}>{listQuery.isFetching ? 'Trying again…' : 'Try again'}</Button>{/if}
+				{/snippet}
+			</Notice>
+		{/if}
 
 		{#if !walletStore.address}
 			<WalletPicker options={walletStore.options} {connecting} onpick={pick} browseTarget={`${page.url.origin}/`} />
-			<!-- Said before the wallet asks, so the one signature isn't a surprise. -->
 			<p class="-mt-4 px-1 text-[13px] leading-snug text-muted-foreground">
-				You’ll sign one Sign-In With Solana message.
+				Approve a sign-in message to view your linked accessories.
 			</p>
 		{:else}
 			<List>
@@ -106,7 +114,6 @@
 			</List>
 
 			{#if accessories === null && !failure && !listFailure}
-				<!-- Same row height as the loaded list, so nothing jumps. -->
 				<List label="Accessories">
 					{#each [0, 1] as i (i)}
 						<li class="flex min-h-14 items-center gap-3 px-4 py-2.5">
@@ -118,14 +125,14 @@
 			{:else if accessories?.length === 0 && !onDesktop}
 				<div class="rounded-[14px] bg-muted px-4 py-5 text-center">
 					<p class="text-[15px] font-medium">No accessories yet</p>
-					<p class="mt-0.5 text-[14px] text-muted-foreground">Hold an accessory to your phone to make it yours.</p>
+					<p class="mt-0.5 text-[14px] text-muted-foreground">Tap an accessory to view it and link a wallet.</p>
 				</div>
 			{:else if accessories?.length === 0}
 				<List label="Accessories" footer="You’ll scan a code with your phone and tap the accessory to it.">
 					{@render linkRow()}
 				</List>
 			{:else if accessories}
-				<List label="Accessories" footer="Unlinking removes an accessory from this wallet, so whoever holds it next can make it theirs. You don’t need it with you.">
+				<List label="Accessories">
 					{#each accessories as acc (acc.pda)}
 						<AccessoryRow accessory={acc} busy={opening === acc.pda} onclick={() => openAccessory(acc)}>
 							{#snippet trailing()}
@@ -133,7 +140,7 @@
 									<Button
 										variant="secondary"
 										size="sm"
-										class="h-9 px-3.5"
+										class="h-11 px-3.5"
 										onclick={() => {
 											releasing = acc;
 											releaseOpen = true;
@@ -158,7 +165,6 @@
 	{/snippet}
 </PageShell>
 
-<!-- Computers only: the tap happens on a phone, so the phone scans a code shown here. -->
 {#snippet linkRow()}
 	<ListRow label="Link an accessory" onclick={() => (pairOpen = true)} chevron>
 		{#snippet leading()}

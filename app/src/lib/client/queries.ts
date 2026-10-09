@@ -6,22 +6,7 @@ import { fetchAccessoryMedia } from './media';
 import { fetchAccessoryShortcuts } from './shortcuts';
 import { fetchWalletAccessories } from './wallet-accessories';
 
-/**
- * Client cache policy (TanStack Query):
- *
- * - accessory media (name, art, traits): changes almost never, so it is kept
- *   for a day, treated as fresh for an hour once artwork exists (five minutes
- *   while there is none, since a mint can be bound later), and persisted to
- *   localStorage so a returning visitor sees artwork on first paint.
- * - accessory shortcuts (the project's links): the Worker edge-caches the
- *   project's file, and session proofs are minted only when a shortcut is
- *   opened, so this is only kept in memory for ten minutes. Keyed by the
- *   linked wallet too, since `{{ownerAddress}}` is filled from it.
- * - wallet accessories: changes with every link and unlink, so it is never
- *   persisted. It is shown from memory instantly and always revalidated.
- *
- * Only the media queries are persisted; everything else stays in memory.
- */
+// Persist NFT media only; shortcuts and wallet lists must follow current linkage.
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
 const MINUTE = 60 * 1000;

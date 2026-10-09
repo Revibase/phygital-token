@@ -13,6 +13,7 @@
 		options,
 		connecting = null,
 		onpick,
+		onbrowse = () => {},
 		browseTarget = null,
 		label,
 		emptyHint = 'Install a Solana wallet, or open this page in your wallet app.'
@@ -20,6 +21,7 @@
 		options: WalletOption[];
 		connecting?: string | null;
 		onpick: (id: string) => void;
+		onbrowse?: () => void;
 		browseTarget?: string | null;
 		label?: string;
 		emptyHint?: string;
@@ -37,7 +39,6 @@
 </script>
 
 {#if !origin}
-	<!-- Wallets are detected after hydration; hold the space so the page doesn't pop. -->
 	<List {label}>
 		{#each [0, 1] as i (i)}
 			<li class="flex min-h-14 items-center gap-3 px-4 py-2.5" aria-hidden="true">
@@ -67,7 +68,7 @@
 					{/snippet}
 				</ListRow>
 			{:else}
-				<ListRow label={`Open in ${c.name}`} detail={c.recent ? 'Recent' : undefined} href={c.href} rel="noopener" external>
+				<ListRow label={`Open in ${c.name}`} detail={c.recent ? 'Recent' : undefined} href={c.href} onclick={onbrowse} rel="noopener" external>
 					{#snippet leading()}<img src={c.icon} alt="" class="size-9 rounded-[9px]" />{/snippet}
 				</ListRow>
 			{/if}

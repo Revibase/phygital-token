@@ -6,19 +6,19 @@ Codama-generated Rust client for the [phygital-token](https://github.com/Revibas
 
 ```toml
 [dependencies]
-phygital-token-client = "1.3"
+phygital-token-client = "1.9"
 ```
 
 For on-chain CPI helpers (Anchor):
 
 ```toml
-phygital-token-client = { version = "1.3", features = ["anchor"] }
+phygital-token-client = { version = "1.9", features = ["anchor"] }
 ```
 
 For off-chain account fetching:
 
 ```toml
-phygital-token-client = { version = "1.3", features = ["fetch"] }
+phygital-token-client = { version = "1.9", features = ["fetch"] }
 ```
 
 ## Usage

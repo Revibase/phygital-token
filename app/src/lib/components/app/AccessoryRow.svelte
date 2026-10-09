@@ -24,10 +24,10 @@
 
 	const kind = $derived(
 		accessory.kind === 'permanent'
-			? 'Bound to this wallet'
+			? 'Permanently linked to this wallet'
 			: accessory.kind === 'controlled' || accessory.isLocked
-				? 'Locked to this wallet'
-				: 'Tradable'
+				? 'Linked to this wallet'
+				: 'Linked to this wallet'
 	);
 </script>
 

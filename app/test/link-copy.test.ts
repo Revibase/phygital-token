@@ -1,29 +1,21 @@
 import { describe, expect, it } from 'vitest';
-
 import { linkCopy } from '$lib/client/accessory/link-copy';
 
-describe('linkCopy', () => {
-	it('Bearer: claiming a collectible, never framed as a wallet key', () => {
-		const c = linkCopy('bearer');
-		expect(c).toMatchObject({ action: 'Claim it', cancelled: 'Claim cancelled' });
-		expect(c.confirm.title).toBe('Claim it with this wallet?');
-		expect(c.done.title).toBe('It’s in your collection');
-		expect(c.done.body(false, 'ENDm…VBNh')).toBe('It’s now in ENDm…VBNh’s collection.');
-		expect(c.progress('ENDm…VBNh')).toBe('Claiming for ENDm…VBNh…');
-		const all = [c.choose.body, c.confirm.body, c.done.body(true, ''), c.done.body(false, 'w')].join(' ');
-		expect(all).not.toMatch(/prove/i);
+describe('neutral wallet linking copy', () => {
+	it.each(['bearer', 'controlled', 'unknown'] as const)('%s describes linkage without assuming an accessory use', kind => {
+		const c = linkCopy(kind);
+		expect(c).toMatchObject({pageTitle: 'Link a wallet', action: 'Link wallet', cancelled: 'Linking cancelled'});
+		expect(c.confirm.title).toBe('Link this wallet?');
+		expect(c.done.title).toBe('Wallet linked');
+		expect(c.progress('wallet')).toBe('Linking to wallet…');
+		const text = [c.choose.body, c.confirm.body, c.done.body(true, ''), c.done.body(false, 'wallet')].join(' ');
+		expect(text).not.toMatch(/trad(e|ing)|card|collection|claim|prove.*wallet/i);
 	});
-
-	it('Controlled: linking a key, with the lock and authentication spelled out before signing', () => {
-		const c = linkCopy('controlled');
-		expect(c).toMatchObject({ action: 'Link wallet', cancelled: 'Linking cancelled' });
-		expect(c.confirm.body).toMatch(/prove they’re this wallet/);
-		expect(c.confirm.body).toMatch(/locked to it until you unlink it/);
-		expect(c.done.title).toBe('It’s yours');
-		expect(c.done.body(true, '')).toBe('A tap now proves you’re this wallet. It stays locked to it until you unlink it.');
+	it('explains the distinct relinking rules', () => {
+		expect(linkCopy('bearer').confirm.body).toContain('relink it while unlocked');
+		expect(linkCopy('controlled').confirm.body).toContain('Only the linked wallet can unlink it');
 	});
-
-	it('an unknown type gets the key wording, which carries the warning', () => {
+	it('unknown types retain the stricter linkage warning', () => {
 		expect(linkCopy('unknown')).toBe(linkCopy('controlled'));
 		expect(linkCopy(null)).toBe(linkCopy('controlled'));
 		expect(linkCopy(undefined)).toBe(linkCopy('controlled'));

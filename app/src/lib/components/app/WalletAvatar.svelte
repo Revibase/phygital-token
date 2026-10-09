@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
 
-	/** The wallet's own icon when we have it, otherwise a stable two-tone mark derived from the address. */
 	let { address, icon = null, size = 'md' }: { address: string; icon?: string | null; size?: 'sm' | 'md' } = $props();
 	const hue = $derived([...address].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7));
 </script>

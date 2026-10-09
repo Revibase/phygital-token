@@ -2,7 +2,6 @@
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
 	import { explorerUrl } from '$lib/shared/explorer';
 
-	/** Icon button that opens an address or transaction on Solana Explorer, sized to sit beside CopyButton. */
 	let { value, cluster, kind = 'address', label }: { value: string; cluster: string; kind?: 'address' | 'tx'; label: string } = $props();
 </script>
 

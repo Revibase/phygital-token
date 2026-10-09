@@ -2,11 +2,26 @@ import { defineConfig } from 'vitest/config';
 import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-cloudflare';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { fileURLToPath } from 'node:url';
+
+const appRoot = fileURLToPath(new URL('.', import.meta.url)).replaceAll('\\', '/');
 
 export default defineConfig(({ mode }) => ({
 	// Codama-generated SDK modules read process.env.NODE_ENV at import time.
 	define: { 'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development') },
 	plugins: [
+		{
+			name: 'exclude-test-code',
+			apply: 'build',
+			enforce: 'pre',
+			load(id) {
+				const path = id.split('?')[0].replaceAll('\\', '/');
+				if (!path.startsWith(appRoot) || path.includes('/node_modules/')) return;
+				const relative = path.slice(appRoot.length);
+				if (/^(test|scripts)\//.test(relative) || /\.(test|spec)\.[^/]+$/.test(relative) || relative === 'vite.browser-simulation.config.ts')
+					this.error(`Test-only code cannot be bundled for production: ${relative}`);
+			}
+		},
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {

@@ -2,7 +2,6 @@
 	import type { Snippet } from 'svelte';
 	import { cn } from '$lib/utils';
 
-	/** A grouped list: one quiet surface with hairline dividers — never cards inside cards. */
 	let { children, label, footer, class: className = '' }: { children: Snippet; label?: string; footer?: string; class?: string } = $props();
 </script>
 

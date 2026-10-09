@@ -4,18 +4,6 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { accessoryMediaQuery } from '$lib/client/queries';
 
-	/**
-	 * The physical accessory. Shows its collectible artwork when it has a bound
-	 * mint; otherwise the Revibase tile.
-	 * - waiting:  one soft ring — the only looping motion in the app, shown only
-	 *             while we wait for a physical tap.
-	 * - verified: the check badge pops in once (confirmation), then stays.
-	 *
-	 * `hasMint`: true → never flash our logo; hold a neutral tile until the
-	 * artwork loads (200ms fade-in), falling back to the logo if there is none.
-	 * undefined (unknown) → start with the logo and fade to artwork if found.
-	 * Decorative: the surrounding text carries the meaning.
-	 */
 	type MarkState = 'idle' | 'waiting' | 'verified';
 	let {
 		state: mode = 'idle',
@@ -40,7 +28,6 @@
 	const failed = $derived(!!image && failedSrc === image);
 
 	const showArtwork = $derived(!!image && !failed);
-	/** Neutral tile while we know artwork is coming (until it has painted); never our logo. */
 	const showPlaceholder = $derived(hasMint === true && (!resolved || (showArtwork && !loaded)));
 </script>
 
@@ -70,7 +57,6 @@
 				onload={() => (loadedSrc = image)}
 				onerror={() => (failedSrc = image)}
 			/>
-			<!-- Hairline inner edge so light artwork doesn't bleed into the background. -->
 			<span class="pointer-events-none absolute inset-0 rounded-[26%] ring-1 ring-black/5 ring-inset"></span>
 		{/if}
 	</div>

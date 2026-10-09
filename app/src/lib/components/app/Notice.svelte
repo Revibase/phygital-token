@@ -27,7 +27,7 @@
 			{#if detail}
 				<button
 					type="button"
-					class="-ml-1 mt-1 min-h-8 rounded px-1 text-[13px] text-muted-foreground underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+					class="-ml-1 mt-1 min-h-11 rounded px-1 text-[13px] text-muted-foreground underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 					aria-expanded={showDetail}
 					onclick={() => (showDetail = !showDetail)}
 				>

@@ -5,7 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
+		"build": "vite build && node scripts/check-production-bundle.mjs",
+		"deploy": "pnpm build && wrangler deploy",
 		"preview": "wrangler dev .svelte-kit/cloudflare/_worker.js --port 4173",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "wrangler types --check && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -15,7 +16,9 @@
 		"test": "vitest --run",
 		"db:migrate:local": "wrangler d1 migrations apply DB --local",
 		"e2e:local": "tsx scripts/e2e-local.ts",
-		"dev:accessory": "tsx scripts/dev-accessory.ts"
+		"dev:accessory": "tsx scripts/dev-accessory.ts",
+		"dev:simulation": "vite --config vite.browser-simulation.config.ts",
+		"test:browser": "node scripts/browser-simulation.mjs"
 	},
 	"devDependencies": {
 		"@fontsource-variable/inter": "^5.3.0",
@@ -30,6 +33,7 @@
 		"bits-ui": "^2.19.3",
 		"cn": "^0.4.0",
 		"mode-watcher": "^1.1.0",
+		"playwright": "1.62.1",
 		"shadcn-svelte": "^1.7.0",
 		"svelte": "^5.56.1",
 		"svelte-check": "^4.6.0",
