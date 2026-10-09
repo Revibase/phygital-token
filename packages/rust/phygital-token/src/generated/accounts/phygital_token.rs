@@ -13,7 +13,7 @@ use solana_address::Address;
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct PhygitalToken {
     pub discriminator: [u8; 8],
-    pub linked_wallet: Address,
+    pub owner: Address,
     pub mint: Address,
     pub last_sign_count: u32,
     pub token_type: u8,

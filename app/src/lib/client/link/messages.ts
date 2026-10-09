@@ -11,7 +11,7 @@ export type FriendlyError = { title: string; body: string; recovery: Recovery; c
 const LINK_COPY: Record<LinkErrorCode, Omit<FriendlyError, 'code'>> = {
 	accessory_locked: {
 		title: 'This accessory is locked',
-		body: 'It’s already linked and locked to a wallet. The linked wallet has to unlink it first.',
+		body: 'It’s already linked and locked to a wallet. The owner has to unlink it first.',
 		recovery: 'none'
 	},
 	accessory_permanent: {

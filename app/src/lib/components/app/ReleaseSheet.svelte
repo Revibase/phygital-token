@@ -29,13 +29,13 @@
 	let manual = $state(false);
 	let launchOptions = $state<WalletLaunchOptions | null>(null);
 	onMount(() => {
-		reconcileAccessoryWallet(accessory.pda, accessory.linkedWallet);
+		reconcileAccessoryWallet(accessory.pda, accessory.owner);
 		manual = shouldChooseWallet(accessory.pda) && !isLikelyWalletBrowser();
-		const context = accessoryLinkContext(accessory.pda, accessory.linkedWallet);
+		const context = accessoryLinkContext(accessory.pda, accessory.owner);
 		launchOptions = {
 			chooseWallet: shouldChooseWallet(accessory.pda), platform: platform(), inWallet: isLikelyWalletBrowser(), origin: page.url.origin,
-			recent: context?.app ?? accessoryWalletApp(accessory.pda, accessory.linkedWallet) ?? recentWallet(),
-			method: context ? (context.source === 'wallet' ? 'wallet' : 'browser') : accessoryConnectionMethod(accessory.pda, accessory.linkedWallet) ?? recentConnectionMethod()
+			recent: context?.app ?? accessoryWalletApp(accessory.pda, accessory.owner) ?? recentWallet(),
+			method: context ? (context.source === 'wallet' ? 'wallet' : 'browser') : accessoryConnectionMethod(accessory.pda, accessory.owner) ?? recentConnectionMethod()
 		};
 	});
 	const unlinkUrl = $derived(`${page.url.origin}/unlink/${encodeURIComponent(accessory.pda)}`);
@@ -50,9 +50,9 @@
 		if (open) untrack(() => { walletStore.init(cluster); if (shouldChooseWallet(accessory.pda) && !isLikelyWalletBrowser()) { manual = true; if (launchOptions) launchOptions = { ...launchOptions, recent: null, method: null, chooseWallet: true }; } });
 	});
 
-	const linked = $derived(accessory.linkedWallet ? shortAddress(accessory.linkedWallet) : 'its wallet');
+	const linked = $derived(accessory.owner ? shortAddress(accessory.owner) : 'its wallet');
 	const outcome = $derived(`This removes the link to ${linked}. A wallet can be linked again afterward.`);
-	const isLinkedWallet = $derived(!!walletStore.address && walletStore.address === accessory.linkedWallet);
+	const isOwner = $derived(!!walletStore.address && walletStore.address === accessory.owner);
 
 	async function selectManually() {
 		if (launchOptions) launchOptions = { ...launchOptions, recent: null, method: null };
@@ -96,7 +96,7 @@
 >
 	{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
 
-	{#if !isLinkedWallet && handoff}
+	{#if !isOwner && handoff}
 		<Button href={handoff} size="xl" class="w-full" rel="noopener noreferrer">Open in {launchOptions?.recent ?? 'wallet app'} to unlink</Button>
 		<Button variant="ghost" class="w-full" onclick={selectManually}>Use a different wallet</Button>
 	{:else if !walletStore.address || manual}
@@ -105,13 +105,13 @@
 		<List>
 			<WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} {cluster} />
 		</List>
-		{#if isLinkedWallet}
+		{#if isOwner}
 			<Button variant="destructive" size="xl" class="w-full" disabled={busy} onclick={release}>
 				{#if busy}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…{:else}Unlink accessory{/if}
 			</Button>
 			<Button variant="ghost" class="w-full" disabled={busy} onclick={selectManually}>Use a different wallet app</Button>
 		{:else}
-			<Notice tone="info" title="This isn’t the linked wallet" body={`Switch to ${linked} in your wallet app, then try again.`} />
+			<Notice tone="info" title="This isn’t the owner wallet" body={`Switch to ${linked} in your wallet app, then try again.`} />
 			<Button variant="secondary" size="xl" class="w-full" onclick={selectManually}>Use a different wallet</Button>
 		{/if}
 	{/if}

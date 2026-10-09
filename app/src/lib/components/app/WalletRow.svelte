@@ -23,14 +23,14 @@
 	{#snippet labelBadge()}
 		{#if nftOwnership}
 			<span class="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium {nftOwnership === 'same' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}">
-				{#if nftOwnership === 'same'}<CircleCheck class="size-3 shrink-0" />Owns NFT{:else}Different NFT owner{/if}
+				{#if nftOwnership === 'same'}<CircleCheck class="size-3 shrink-0" />Owns NFT{:else}NFT held elsewhere{/if}
 			</span>
 		{/if}
 	{/snippet}
 	{#snippet leading()}<WalletAvatar {address} {icon} />{/snippet}
 	{#snippet trailing()}
 		<DropdownMenu.Root>
-			<DropdownMenu.Trigger aria-label="Linked wallet options" class="grid size-11 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"><EllipsisVertical class="size-4" /></DropdownMenu.Trigger>
+			<DropdownMenu.Trigger aria-label="Owner options" class="grid size-11 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"><EllipsisVertical class="size-4" /></DropdownMenu.Trigger>
 			<DropdownMenu.Portal><DropdownMenu.Content sideOffset={4} align="end" class="z-50 max-w-72 rounded-xl border bg-popover p-1 shadow-md">
 				<DropdownMenu.Item onSelect={copyAddress} class={menuItem}><Copy class="size-4 shrink-0" />Copy wallet address</DropdownMenu.Item>
 				{#if cluster}

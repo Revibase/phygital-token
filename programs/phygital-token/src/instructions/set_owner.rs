@@ -8,15 +8,15 @@ use crate::utils::{build_transfer_challenge, Secp256r1VerifyArgs};
 use crate::{PhygitalTokenType, Secp256r1Pubkey};
 
 #[event]
-pub struct SetLinkedWalletEvent {
+pub struct SetOwnerEvent {
     pub recipient: Pubkey,
-    pub linked_wallet: Pubkey,
+    pub owner: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
 }
 
 #[derive(Accounts)]
-pub struct SetLinkedWallet<'info> {
+pub struct SetOwner<'info> {
     pub recipient: Signer<'info>,
 
     #[account(mut)]
@@ -32,7 +32,7 @@ pub struct SetLinkedWallet<'info> {
 }
 
 pub fn handler(
-    ctx: Context<SetLinkedWallet>,
+    ctx: Context<SetOwner>,
     secp256r1_verify_args: Secp256r1VerifyArgs,
     slot_number: u64,
 ) -> Result<()> {
@@ -64,15 +64,15 @@ pub fn handler(
         PhygitalError::StaleSignCount
     );
 
-    emit!(SetLinkedWalletEvent {
-        linked_wallet: token.linked_wallet,
+    emit!(SetOwnerEvent {
+        owner: token.owner,
         recipient: ctx.accounts.recipient.key(),
         public_key: token.public_key,
         identifier: token.identifier,
     });
 
     token.last_sign_count = sign_count;
-    token.linked_wallet = ctx.accounts.recipient.key();
+    token.owner = ctx.accounts.recipient.key();
 
     Ok(())
 }

@@ -9,7 +9,7 @@ export const accessory: AccessoryView = {
 	publicKey: 'simulation',
 	kind: 'bearer',
 	status: 'linked',
-	linkedWallet: OWNER,
+	owner: OWNER,
 	isLocked: false,
 	mint: MINT,
 	lastSignCount: 1,

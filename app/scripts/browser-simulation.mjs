@@ -150,11 +150,11 @@ try {
 		await visible(p,'Stake NFT');
 		assert.equal(await p.getByText('Couldn’t load project apps',{exact:true}).count(),0);
 	});
-	await test('NFT owner comparison uses the linked wallet, not the connected account', async () => {
+	await test('NFT owner comparison uses the owner, not the connected account', async () => {
 		const {c,p}=await context();
 		await c.addCookies([{name:'simulation_owner',value:'So11111111111111111111111111111111111111112',url:BASE}]);
 		await navigate(p);
-		await p.getByText('Different NFT owner',{exact:true}).waitFor();
+		await p.getByText('NFT held elsewhere',{exact:true}).waitFor();
 		assert.equal(await p.getByText('Owns NFT',{exact:true}).count(),0);
 		assert.equal(await p.getByRole('dialog').count(),0);
 	});
@@ -171,7 +171,7 @@ try {
 		await dialog.waitFor({state:'hidden'});
 		await p.waitForFunction(()=>document.activeElement?.getAttribute('aria-label')==='View NFT details');
 	});
-	await test('linked wallet shows known app and original desktop context', async () => {
+	await test('owner shows known app and original desktop context', async () => {
 		const {c,p}=await context();
 		await c.addCookies([{name:'simulation_kind',value:'controlled',url:BASE}]);
 		await c.addInitScript(({wallet,pda}) => {
@@ -181,9 +181,9 @@ try {
 		await navigate(p);
 		await p.getByText('Phantom · Linked from desktop',{exact:true}).waitFor();
 		assert.equal(await p.locator('img[src="/wallets/phantom.svg"]').count(),1);
-		await p.screenshot({path:'/private/tmp/revibase-saved-linked-wallet-page.png',fullPage:true});
+		await p.screenshot({path:'/private/tmp/revibase-saved-owner-page.png',fullPage:true});
 	});
-	await test('forget linked wallet details preserves other accessories and requires selection for shortcuts and unlink', async () => {
+	await test('forget owner details preserves other accessories and requires selection for shortcuts and unlink', async () => {
 		const {c,p}=await context();
 		const pda='So11111111111111111111111111111111111111112';
 		await c.addCookies([{name:'simulation_kind',value:'controlled',url:BASE}]);
@@ -196,7 +196,7 @@ try {
 		},{wallet:OWNER,pda});
 		await navigate(p);
 		assert.equal(await p.getByRole('button',{name:'Change wallet',exact:true}).count(),0);
-		await p.getByRole('button',{name:'Linked wallet options',exact:true}).click();
+		await p.getByRole('button',{name:'Owner options',exact:true}).click();
 		await p.getByRole('menuitem',{name:'Forget wallet preference',exact:true}).click();
 		await p.getByRole('menuitem',{name:'Forget wallet preference',exact:true}).waitFor({state:'hidden'});
 		assert.notEqual(await p.evaluate(() => localStorage.getItem('revibase:wallet-app:another')),null);
@@ -210,7 +210,7 @@ try {
 		await p.keyboard.press('Escape');
 		await p.reload();
 		await p.getByRole('button',{name:'Stake NFT',exact:true}).waitFor();
-		await p.getByRole('button',{name:'Linked wallet options',exact:true}).click();
+		await p.getByRole('button',{name:'Owner options',exact:true}).click();
 		assert.equal(await p.getByRole('menuitem',{name:'Forget wallet preference',exact:true}).count(),0);
 		await p.getByRole('menuitem',{name:'Copy wallet address',exact:true}).waitFor();
 		await p.keyboard.press('Escape');
@@ -235,7 +235,7 @@ try {
 		await wallet.p.getByRole('button',{name:'Unlink accessory',exact:true}).waitFor();
 		assert.equal(await wallet.p.getByRole('button',{name:'Unlink accessory',exact:true}).isEnabled(),true);
 		await wallet.p.evaluate(() => window.dispatchEvent(new CustomEvent('simulation:account',{detail:'So11111111111111111111111111111111111111112'})));
-		await visible(wallet.p,'This isn’t the linked wallet');
+		await visible(wallet.p,'This isn’t the owner wallet');
 		assert.equal(await wallet.p.getByRole('button',{name:'Unlink accessory',exact:true}).count(),0);
 	});
 	await test('stale wallet information clears when returning to a browser after relinking elsewhere', async () => {
@@ -306,7 +306,7 @@ try {
 			);
 			await navigate(p);
 			await p.getByRole('link', {name:'Stake NFT',exact:true}).waitFor();
-			await p.getByRole('button',{name:'Linked wallet options',exact:true}).click();
+			await p.getByRole('button',{name:'Owner options',exact:true}).click();
 		await p.getByRole('menuitem',{name:'Forget wallet preference',exact:true}).click();
 		await p.getByRole('button',{name:'Stake NFT',exact:true}).click();
 			await p.getByRole('link', { name: 'Open in Backpack' }).click();
@@ -466,7 +466,7 @@ try {
 		await p.getByRole('link', { name: 'Stake NFT', exact: true }).click();
 		await visible(p, 'Connect your wallet');
 		await p.getByRole('button', { name: 'Connect wallet', exact: true }).click();
-		await visible(p, 'Switch to the linked wallet to stake');
+		await visible(p, 'Switch to the owner wallet to stake');
 		assert.equal(await p.getByRole('button', { name: 'Stake NFT', exact: true }).isDisabled(), true);
 		await p.getByRole('button', { name: 'Switch to linked account' }).click();
 		await visible(p, 'Ready to stake');
@@ -518,7 +518,7 @@ try {
 		await visible(p, 'Wallet unavailable');
 		await p.goBack();
 		await p.getByRole('link', {name:'Stake NFT',exact:true}).waitFor();
-		await p.getByRole('button',{name:'Linked wallet options',exact:true}).click();
+		await p.getByRole('button',{name:'Owner options',exact:true}).click();
 		await p.getByRole('menuitem',{name:'Forget wallet preference',exact:true}).click();
 		await p.getByRole('button',{name:'Stake NFT',exact:true}).click();
 		await p.getByRole('button', { name: 'Copy website link' }).click();

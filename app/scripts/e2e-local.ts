@@ -18,7 +18,7 @@ import {
 	findPhygitalTokenPda,
 	getCreateConfigInstructionAsync,
 	getInitializeInstructionAsync,
-	getRemoveLinkedWalletInstruction,
+	getRemoveOwnerInstruction,
 	getSetIssuerInstructionAsync,
 	PhygitalTokenType
 } from 'phygital-token-sdk';
@@ -60,7 +60,7 @@ async function main() {
 			identifier: [acc.identifier],
 			secp256r1Pubkey: [acc.passkey],
 			tokenType: PhygitalTokenType.Bearer,
-			linkedWallet: address('11111111111111111111111111111111')
+			owner: address('11111111111111111111111111111111')
 		})
 	]);
 	console.log(`• token ${pda} initialized (Bearer, unlinked)`);
@@ -112,7 +112,7 @@ async function main() {
 	const owner = await funded();
 	await finish(walletBrowser, linkId, owner);
 	const onchain = await fetchPhygitalToken(rpc, pda, { commitment: 'confirmed' });
-	check('On-chain linked_wallet is the wallet that approved', onchain.data.linkedWallet === owner.address, onchain.data.linkedWallet);
+	check('On-chain owner is the wallet that approved', onchain.data.owner === owner.address, onchain.data.owner);
 	const firstSignCount = onchain.data.lastSignCount;
 	const originView = await safari.get<LinkStatusView>(`/api/link/${linkId}`);
 	check('Tapping browser sees success', originView.body.state === 'linked' && originView.body.recipient === owner.address, originView.body);
@@ -158,7 +158,7 @@ async function main() {
 	const newOwner = await funded();
 	await finish(desktop, desktopId, newOwner);
 	const after = await fetchPhygitalToken(rpc, pda, { commitment: 'confirmed' });
-	check('Bearer accessory moved to the desktop wallet', after.data.linkedWallet === newOwner.address, after.data.linkedWallet);
+	check('Bearer accessory moved to the desktop wallet', after.data.owner === newOwner.address, after.data.owner);
 	check('Sign count advanced on-chain (old taps are dead)', after.data.lastSignCount > firstSignCount, {
 		before: firstSignCount,
 		after: after.data.lastSignCount
@@ -175,13 +175,13 @@ async function main() {
 			identifier: [ctl.identifier],
 			secp256r1Pubkey: [ctl.passkey],
 			tokenType: PhygitalTokenType.Controlled,
-			linkedWallet: address('11111111111111111111111111111111')
+			owner: address('11111111111111111111111111111111')
 		})
 	]);
 	const ctlOwner = await funded();
 	await linkViaHandoff(ctl, ctlOwner, 'controlled');
 	const ctlLinked = await fetchPhygitalToken(rpc, ctlPda, { commitment: 'confirmed' });
-	check('Controlled accessory linked and locked', ctlLinked.data.linkedWallet === ctlOwner.address && ctlLinked.data.isLocked === 1, ctlLinked.data);
+	check('Controlled accessory linked and locked', ctlLinked.data.owner === ctlOwner.address && ctlLinked.data.isLocked === 1, ctlLinked.data);
 
 	const ctlPhone = new Browser('ctl-phone');
 	await ctlPhone.open(ctl.tapUrl());
@@ -190,14 +190,14 @@ async function main() {
 	const ctlRelink = await ctlPhone.post<{ code?: string }>('/api/link');
 	check('Server refuses to start a re-link while Controlled is linked', ctlRelink.status === 409 && ctlRelink.body.code === 'accessory_locked', ctlRelink.body);
 
-	await send(ctlOwner, [getRemoveLinkedWalletInstruction({ linkedWallet: ctlOwner, phygitalToken: ctlPda })]);
+	await send(ctlOwner, [getRemoveOwnerInstruction({ owner: ctlOwner, phygitalToken: ctlPda })]);
 	const ctlReleased = await fetchPhygitalToken(rpc, ctlPda, { commitment: 'confirmed' });
-	check('Linked wallet released it (no accessory needed)', ctlReleased.data.isLocked === 0 && ctlReleased.data.linkedWallet === address('11111111111111111111111111111111'), ctlReleased.data);
+	check('Owner released it (no accessory needed)', ctlReleased.data.isLocked === 0 && ctlReleased.data.owner === address('11111111111111111111111111111111'), ctlReleased.data);
 
 	const ctlNext = await funded();
 	await linkViaHandoff(ctl, ctlNext, 'controlled-2');
 	const ctlRelinked = await fetchPhygitalToken(rpc, ctlPda, { commitment: 'confirmed' });
-	check('After release, it links to a different wallet', ctlRelinked.data.linkedWallet === ctlNext.address, ctlRelinked.data.linkedWallet);
+	check('After release, it links to a different wallet', ctlRelinked.data.owner === ctlNext.address, ctlRelinked.data.owner);
 
 	console.log('\nPermanent: fixed forever');
 	const perm = fakeAccessory();
@@ -211,7 +211,7 @@ async function main() {
 			identifier: [perm.identifier],
 			secp256r1Pubkey: [perm.passkey],
 			tokenType: PhygitalTokenType.Permanent,
-			linkedWallet: permOwner.address
+			owner: permOwner.address
 		})
 	]);
 	const permPhone = new Browser('perm-phone');
@@ -222,11 +222,11 @@ async function main() {
 	check('Server refuses to start a link', permLink.status === 409 && permLink.body.code === 'accessory_permanent', permLink.body);
 	let permRemoveFailed = false;
 	try {
-		await send(permOwner, [getRemoveLinkedWalletInstruction({ linkedWallet: permOwner, phygitalToken: permPda })]);
+		await send(permOwner, [getRemoveOwnerInstruction({ owner: permOwner, phygitalToken: permPda })]);
 	} catch {
 		permRemoveFailed = true;
 	}
-	check('Program rejects release (PermanentLinkedWalletImmutable)', permRemoveFailed);
+	check('Program rejects release (PermanentOwnerImmutable)', permRemoveFailed);
 
 	console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) failed.`);
 	process.exit(failures === 0 ? 0 : 1);

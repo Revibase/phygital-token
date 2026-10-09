@@ -46,16 +46,15 @@ import {
   type Secp256r1VerifyArgsArgs,
 } from "../types/index.js";
 
-export const SET_LINKED_WALLET_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([118, 134, 6, 114, 75, 108, 86, 199]);
+export const SET_OWNER_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  72, 202, 120, 52, 77, 128, 96, 197,
+]);
 
-export function getSetLinkedWalletDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    SET_LINKED_WALLET_DISCRIMINATOR,
-  );
+export function getSetOwnerDiscriminatorBytes(): ReadonlyUint8Array {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(SET_OWNER_DISCRIMINATOR);
 }
 
-export type SetLinkedWalletInstruction<
+export type SetOwnerInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountRecipient extends string | AccountMeta<string> = string,
   TAccountPhygitalToken extends string | AccountMeta<string> = string,
@@ -85,29 +84,29 @@ export type SetLinkedWalletInstruction<
     ]
   >;
 
-export type SetLinkedWalletInstructionData = {
+export type SetOwnerInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
   slotNumber: bigint;
 };
 
-export type SetLinkedWalletInstructionDataArgs = {
+export type SetOwnerInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
   slotNumber: number | bigint;
 };
 
-export function getSetLinkedWalletInstructionDataEncoder(): Encoder<SetLinkedWalletInstructionDataArgs> {
+export function getSetOwnerInstructionDataEncoder(): Encoder<SetOwnerInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
       ["slotNumber", getU64Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: SET_LINKED_WALLET_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: SET_OWNER_DISCRIMINATOR }),
   );
 }
 
-export function getSetLinkedWalletInstructionDataDecoder(): Decoder<SetLinkedWalletInstructionData> {
+export function getSetOwnerInstructionDataDecoder(): Decoder<SetOwnerInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
@@ -115,17 +114,17 @@ export function getSetLinkedWalletInstructionDataDecoder(): Decoder<SetLinkedWal
   ]);
 }
 
-export function getSetLinkedWalletInstructionDataCodec(): Codec<
-  SetLinkedWalletInstructionDataArgs,
-  SetLinkedWalletInstructionData
+export function getSetOwnerInstructionDataCodec(): Codec<
+  SetOwnerInstructionDataArgs,
+  SetOwnerInstructionData
 > {
   return combineCodec(
-    getSetLinkedWalletInstructionDataEncoder(),
-    getSetLinkedWalletInstructionDataDecoder(),
+    getSetOwnerInstructionDataEncoder(),
+    getSetOwnerInstructionDataDecoder(),
   );
 }
 
-export type SetLinkedWalletInput<
+export type SetOwnerInput<
   TAccountRecipient extends string = string,
   TAccountPhygitalToken extends string = string,
   TAccountSlotHashes extends string = string,
@@ -135,25 +134,25 @@ export type SetLinkedWalletInput<
   phygitalToken: Address<TAccountPhygitalToken>;
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-  secp256r1VerifyArgs: SetLinkedWalletInstructionDataArgs["secp256r1VerifyArgs"];
-  slotNumber: SetLinkedWalletInstructionDataArgs["slotNumber"];
+  secp256r1VerifyArgs: SetOwnerInstructionDataArgs["secp256r1VerifyArgs"];
+  slotNumber: SetOwnerInstructionDataArgs["slotNumber"];
 };
 
-export function getSetLinkedWalletInstruction<
+export function getSetOwnerInstruction<
   TAccountRecipient extends string,
   TAccountPhygitalToken extends string,
   TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: SetLinkedWalletInput<
+  input: SetOwnerInput<
     TAccountRecipient,
     TAccountPhygitalToken,
     TAccountSlotHashes,
     TAccountInstructionsSysvar
   >,
   config?: { programAddress?: TProgramAddress },
-): SetLinkedWalletInstruction<
+): SetOwnerInstruction<
   TProgramAddress,
   TAccountRecipient,
   TAccountPhygitalToken,
@@ -200,11 +199,11 @@ export function getSetLinkedWalletInstruction<
       getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
     ],
-    data: getSetLinkedWalletInstructionDataEncoder().encode(
-      args as SetLinkedWalletInstructionDataArgs,
+    data: getSetOwnerInstructionDataEncoder().encode(
+      args as SetOwnerInstructionDataArgs,
     ),
     programAddress,
-  } as SetLinkedWalletInstruction<
+  } as SetOwnerInstruction<
     TProgramAddress,
     TAccountRecipient,
     TAccountPhygitalToken,
@@ -213,7 +212,7 @@ export function getSetLinkedWalletInstruction<
   >);
 }
 
-export type ParsedSetLinkedWalletInstruction<
+export type ParsedSetOwnerInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
@@ -224,17 +223,17 @@ export type ParsedSetLinkedWalletInstruction<
     slotHashes: TAccountMetas[2];
     instructionsSysvar: TAccountMetas[3];
   };
-  data: SetLinkedWalletInstructionData;
+  data: SetOwnerInstructionData;
 };
 
-export function parseSetLinkedWalletInstruction<
+export function parseSetOwnerInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedSetLinkedWalletInstruction<TProgram, TAccountMetas> {
+): ParsedSetOwnerInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -258,6 +257,6 @@ export function parseSetLinkedWalletInstruction<
       slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
     },
-    data: getSetLinkedWalletInstructionDataDecoder().decode(instruction.data),
+    data: getSetOwnerInstructionDataDecoder().decode(instruction.data),
   };
 }

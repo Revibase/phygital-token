@@ -1,14 +1,14 @@
 pub mod admin;
 pub use admin::*;
 
-pub mod set_linked_wallet;
-pub use set_linked_wallet::*;
+pub mod set_owner;
+pub use set_owner::*;
 
 pub mod verify;
 pub use verify::*;
 
-pub mod remove_linked_wallet;
-pub use remove_linked_wallet::*;
+pub mod remove_owner;
+pub use remove_owner::*;
 
 pub mod assign_mint;
 pub use assign_mint::*;

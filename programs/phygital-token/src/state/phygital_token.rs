@@ -5,7 +5,7 @@ use crate::utils::Secp256r1Pubkey;
 #[repr(u8)]
 #[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone, Copy)]
 pub enum PhygitalTokenType {
-    /// Linked wallet must be set at initialize and can never be transferred or removed.
+    /// Owner must be set at initialize and can never be transferred or removed.
     Permanent,
     /// Freely transferable by possession.
     Bearer,
@@ -16,7 +16,7 @@ pub enum PhygitalTokenType {
 #[account(zero_copy(unsafe))]
 #[repr(C)]
 pub struct PhygitalToken {
-    pub linked_wallet: Pubkey,
+    pub owner: Pubkey,
     pub mint: Pubkey,
     pub last_sign_count: u32,
     pub token_type: u8,
@@ -33,18 +33,18 @@ impl PhygitalToken {
         identifier: Secp256r1Pubkey,
         token_type: PhygitalTokenType,
         public_key: Secp256r1Pubkey,
-        linked_wallet: Pubkey,
+        owner: Pubkey,
     ) -> Result<()> {
         require!(
-            (token_type == PhygitalTokenType::Permanent) == (linked_wallet != Pubkey::default()),
-            crate::error::PhygitalError::PermanentLinkedWalletRequired
+            (token_type == PhygitalTokenType::Permanent) == (owner != Pubkey::default()),
+            crate::error::PhygitalError::PermanentOwnerRequired
         );
 
         self.identifier = identifier;
         self.token_type = token_type as u8;
         self.public_key = public_key;
-        self.linked_wallet = linked_wallet;
-        self.is_locked = (linked_wallet != Pubkey::default()) as u8;
+        self.owner = owner;
+        self.is_locked = (owner != Pubkey::default()) as u8;
         Ok(())
     }
 }

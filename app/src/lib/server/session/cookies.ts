@@ -8,7 +8,7 @@ import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
  *
  * Admit (opens `/accessory`):
  * - `bu`  — browse_unlock: physical possession (NFC tap or WebAuthn Hold).
- * - `ob`  — owner_browse: the linked wallet owns this accessory (no tap needed).
+ * - `ob`  — owner_browse: the owner owns this accessory (no tap needed).
  *   Issued from `os` alone, so opening an accessory never asks for a signature.
  *
  * Login:
@@ -42,14 +42,14 @@ export type BrowseUnlockSession = {
 	exp: number;
 };
 
-/** Owner admit: linked wallet opened this accessory from Home. */
+/** Owner admit: owner opened this accessory from Home. */
 export type OwnerBrowseSession = {
 	v: 1;
 	t: 'ob';
 	sid: string;
 	pda: string;
 	identifier: string;
-	/** The linked wallet that signed to open it. */
+	/** The owner that signed to open it. */
 	wallet: string;
 	exp: number;
 };

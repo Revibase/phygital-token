@@ -7,11 +7,11 @@ See [README.md](README.md) for development, testing and deployment. The program 
 | Entry | Grants |
 | --- | --- |
 | Signed NFC URL | Ten-minute `browse_unlock` session: inspect the accessory and start linking. |
-| Wallet sign-in | Twelve-hour `owner_session`; a current linked-wallet check issues a view-only `owner_browse` session. |
+| Wallet sign-in | Twelve-hour `owner_session`; a current owner check issues a view-only `owner_browse` session. |
 | Fresh WebAuthn assertion | Slot-bound approval for linking, completed with the recipient wallet signature. |
-| Linked wallet signature | Unlinking, without a physical tap; rejected for Permanent tokens. |
+| Owner signature | Unlinking, without a physical tap; rejected for Permanent tokens. |
 
-An unused signed NFC URL can remain valid until a newer counter is consumed; it does not prove current physical presence. A tap does not prove wallet-key control or NFT ownership. The accessory’s `linked_wallet`, NFT owner and physical holder can differ. Any mint-backed token type shows metadata and shortcuts. Bearer relinks while unlocked; Controlled must be unlinked first; Permanent cannot change its link. Server and UI use `accessoryRules`.
+An unused signed NFC URL can remain valid until a newer counter is consumed; it does not prove current physical presence. A tap does not prove wallet-key control or NFT ownership. The accessory’s on-chain `owner`, the NFT holder and the physical holder can differ. Any mint-backed token type shows metadata and shortcuts. Bearer relinks while unlocked; Controlled must be unlinked first; Permanent cannot change its link. Server and UI use `accessoryRules`.
 
 The URL’s `pk` is the chip identifier, not its WebAuthn passkey. Resolve it to the token, then derive its PDA from `public_key`; the immutable identifier→PDA mapping is cached in D1.
 
@@ -46,9 +46,9 @@ Each HTTPS shortcut receives a fresh Ed25519 `revibase_session` proof, including
 
 Embedding requires successful framing checks. Keep the host and exit controls outside the sandboxed iframe; allow only its origin in that page’s `frame-src`, with no top navigation or authenticator delegation. Navigation back performs a full load to reset page-specific CSP.
 
-Wallet app preferences and link provenance are browser-local and accessory/address-bound. Changed linkage removes stale hints. “Forget linked wallet details” clears only that accessory’s app/context hints and requires selection until a new choice is saved; it does not unlink or affect other accessories. Recognized wallet browsers stay in place.
+Wallet app preferences and link provenance are browser-local and accessory/address-bound. Changed linkage removes stale hints. “Forget owner details” clears only that accessory’s app/context hints and requires selection until a new choice is saved; it does not unlink or affect other accessories. Recognized wallet browsers stay in place.
 
-Only NFT media queries persist locally. Shortcut caches include the linked address; wallet-accessory lists revalidate and are invalidated after link/unlink. The NFT owner badge compares media ownership with the linked wallet and is informational, not an authorization check.
+Only NFT media queries persist locally. Shortcut caches include the linked address; wallet-accessory lists revalidate and are invalidated after link/unlink. The NFT owner badge compares media ownership with the owner and is informational, not an authorization check.
 
 ## Code map
 

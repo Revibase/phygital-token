@@ -39,10 +39,10 @@ const token = await fetchPhygitalToken(
   rpc,
   await findPhygitalTokenPda(secp256r1PublicKey),
 );
-// token.data.linkedWallet
+// token.data.owner
 ```
 
-Reject expired/reused challenges and unlinked tokens before creating a session. The linked wallet is delegated identity, not proof of wallet-key control or NFT ownership.
+Reject expired/reused challenges and unlinked tokens before creating a session. The owner is delegated identity, not proof of wallet-key control or NFT ownership.
 
 ## On-chain `verify` (CPI)
 

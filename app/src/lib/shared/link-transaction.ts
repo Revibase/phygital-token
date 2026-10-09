@@ -24,9 +24,9 @@ import {
 } from '@solana-program/compute-budget';
 import {
 	completeTransfer,
-	getSetLinkedWalletInstructionDataDecoder,
+	getSetOwnerInstructionDataDecoder,
 	PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-	SET_LINKED_WALLET_DISCRIMINATOR,
+	SET_OWNER_DISCRIMINATOR,
 	type TransferSession
 } from 'phygital-token-sdk';
 
@@ -39,7 +39,7 @@ export const INSTRUCTIONS_SYSVAR = address('Sysvar1nstructions111111111111111111
 /** Wallet guard program (Phantom and others wrap what they sign with its assertions). */
 export const LIGHTHOUSE_PROGRAM_ADDRESS = address('L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95');
 
-/** set_linked_wallet is cheap; the secp256r1 precompile is charged per signature, not per CU. */
+/** set_owner is cheap; the secp256r1 precompile is charged per signature, not per CU. */
 export const LINK_COMPUTE_UNIT_LIMIT = 60_000;
 export const LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS = 50_000n;
 
@@ -145,18 +145,18 @@ export function validateLinkTransaction(
 	});
 	// On the signed copy a wallet may add compute-budget and Lighthouse guard
 	// instructions anywhere (Lighthouse often wraps the whole message); any other
-	// program is tolerated only after set_linked_wallet. Never an additional
+	// program is tolerated only after set_owner. Never an additional
 	// signer (checked below).
 	if (budget > 2 && !options.allowWalletAdditions) reject('too many compute budget instructions');
 	if (linkIndex === -1 || secpIndex !== linkIndex - 1) {
-		reject('secp256r1_verify must immediately precede set_linked_wallet');
+		reject('secp256r1_verify must immediately precede set_owner');
 	}
 
-	// set_linked_wallet: discriminator, accounts, args.
+	// set_owner: discriminator, accounts, args.
 	const link = ixs[linkIndex];
 	const data = new Uint8Array(link.data ?? []);
-	if (!bytesEqual(data.subarray(0, 8), new Uint8Array(SET_LINKED_WALLET_DISCRIMINATOR))) {
-		reject('not a set_linked_wallet instruction');
+	if (!bytesEqual(data.subarray(0, 8), new Uint8Array(SET_OWNER_DISCRIMINATOR))) {
+		reject('not a set_owner instruction');
 	}
 	const accounts = link.accounts ?? [];
 	const expectAccount = (i: number, addr: Address | string, roles: AccountRole[], what: string) => {
@@ -169,7 +169,7 @@ export function validateLinkTransaction(
 	expectAccount(2, SLOT_HASHES_SYSVAR, [AccountRole.READONLY], 'slot hashes');
 	expectAccount(3, INSTRUCTIONS_SYSVAR, [AccountRole.READONLY], 'instructions sysvar');
 
-	const args = getSetLinkedWalletInstructionDataDecoder().decode(data);
+	const args = getSetOwnerInstructionDataDecoder().decode(data);
 	if (args.slotNumber !== expected.slotNumber) reject('slot number mismatch');
 	if (args.secp256r1VerifyArgs.verifyArgsRelativeIndex !== -1n) reject('unexpected verify index');
 	if (!bytesEqual(new Uint8Array(args.secp256r1VerifyArgs.clientDataJson), expected.clientDataJson)) {

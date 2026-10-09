@@ -11,7 +11,7 @@ import {
   planAssignMint,
   planCreateConfig,
   planInitialize,
-  planRemoveLinkedWallet,
+  planRemoveOwner,
   planTransfer,
   planVerify,
 } from "./lib/instructions.js";
@@ -33,14 +33,14 @@ const SERVER_INSTRUCTIONS = [
   "- Which verification method to use → recommend_verification",
   "- On-chain verify (your program CPIs verify) → plan_verify",
   "- Admin bootstrap → plan_create_config",
-  "- Initialize / assign_mint / transfer / forfeiture → plan_initialize, plan_assign_mint, plan_transfer, plan_remove_linked_wallet",
+  "- Initialize / assign_mint / transfer / forfeiture → plan_initialize, plan_assign_mint, plan_transfer, plan_remove_owner",
   "- Token PDA from passkey public key → find_token_pda",
   "- SDK export map → list_sdk_exports",
   "- Anything else → search_docs, then read_doc",
   "",
   "Roles: AdminConfig has one admin, one issuer, one minter (distinct pubkeys).",
   "initialize = issuer only; assign_mint = minter only.",
-  "set_linked_wallet requires is_locked == 0 for all token types.",
+  "set_owner requires is_locked == 0 for all token types.",
   "",
   "Live token fetch and auth: call phygital-token-sdk directly in your app",
   "(startAuthentication, verifyResponse, findPhygitalTokenPda, etc.).",
@@ -105,7 +105,7 @@ function registerTools(server: McpServer) {
         useCase: z
           .enum([
             "login_ui_only",
-            "set_linked_wallet",
+            "set_owner",
             "native_mobile_app",
             "lookup_after_tap",
             "onchain_cpi_verify",
@@ -152,23 +152,23 @@ function registerTools(server: McpServer) {
         tokenType: z
           .enum(["Permanent", "Controlled", "Bearer"])
           .describe(
-            "Token linked-wallet behavior: Permanent (immutable linked wallet), Controlled (lock/forfeit), or Bearer (freely transferable when unlocked)",
+            "Token owner behavior: Permanent (immutable owner), Controlled (lock/forfeit), or Bearer (freely transferable when unlocked)",
           ),
-        linkedWallet: z
+        owner: z
           .string()
           .describe(
-            "Initial phygital_token.linked_wallet (required non-default for Permanent; use the default zero pubkey for unowned Bearer/Controlled tokens). Non-default starts locked.",
+            "Initial phygital_token.owner (required non-default for Permanent; use the default zero pubkey for unowned Bearer/Controlled tokens). Non-default starts locked.",
           ),
       },
       annotations: { title: "Plan initialize", ...READ_ONLY },
     },
-    async ({ identifier, secp256r1PublicKey, tokenType, linkedWallet }) =>
+    async ({ identifier, secp256r1PublicKey, tokenType, owner }) =>
       jsonResult(
         await planInitialize({
           identifier,
           secp256r1PublicKey,
           tokenType: parseTokenType(tokenType),
-          linkedWallet,
+          owner,
         }),
       ),
   );
@@ -212,16 +212,16 @@ function registerTools(server: McpServer) {
     "plan_transfer",
     {
       description:
-        "Plan a passkey-authorized set_linked_wallet (offline): flow steps, derived accounts, challenge formula, lock rules, and required signers.",
+        "Plan a passkey-authorized set_owner (offline): flow steps, derived accounts, challenge formula, lock rules, and required signers.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
           .describe("Base64url passkey public key used as the token PDA seed"),
         recipient: z
           .string()
-          .describe("Recipient wallet address — must sign the set_linked_wallet transaction on-chain"),
+          .describe("Recipient wallet address — must sign the set_owner transaction on-chain"),
       },
-      annotations: { title: "Plan set_linked_wallet", ...READ_ONLY },
+      annotations: { title: "Plan set_owner", ...READ_ONLY },
     },
     async ({ secp256r1PublicKey, recipient }) =>
       jsonResult(await planTransfer({ secp256r1PublicKey, recipient })),
@@ -257,24 +257,24 @@ function registerTools(server: McpServer) {
   );
 
   server.registerTool(
-    "plan_remove_linked_wallet",
+    "plan_remove_owner",
     {
       description:
-        "Plan a wallet-signed forfeiture (offline): reset phygital_token.linked_wallet to the default pubkey and clear is_locked.",
+        "Plan a wallet-signed forfeiture (offline): reset phygital_token.owner to the default pubkey and clear is_locked.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
           .describe("Base64url passkey public key used as the token PDA seed"),
-        linkedWallet: z
+        owner: z
           .string()
           .describe(
-            "Current linked wallet — must match phygital_token.linked_wallet on-chain",
+            "Current owner — must match phygital_token.owner on-chain",
           ),
       },
-      annotations: { title: "Plan remove_linked_wallet", ...READ_ONLY },
+      annotations: { title: "Plan remove_owner", ...READ_ONLY },
     },
-    async ({ secp256r1PublicKey, linkedWallet }) =>
-      jsonResult(await planRemoveLinkedWallet({ secp256r1PublicKey, linkedWallet })),
+    async ({ secp256r1PublicKey, owner }) =>
+      jsonResult(await planRemoveOwner({ secp256r1PublicKey, owner })),
   );
 
   server.registerTool(

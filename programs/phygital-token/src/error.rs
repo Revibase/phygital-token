@@ -17,8 +17,8 @@ pub enum PhygitalError {
     #[msg("secp256r1 pubkey does not match phygital token record")]
     Secp256r1PubkeyMismatch,
 
-    #[msg("Phygital token linked wallet mismatch")]
-    LinkedWalletMismatch,
+    #[msg("Phygital token owner mismatch")]
+    OwnerMismatch,
 
     #[msg("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
     InvalidSlotHash,
@@ -35,7 +35,7 @@ pub enum PhygitalError {
     #[msg("Invalid sysvar data format")]
     InvalidSysvarDataFormat,
 
-    #[msg("The linked wallet needs to unlock the phygital token to enable transfer.")]
+    #[msg("The owner needs to unlock the phygital token to enable transfer.")]
     TokenIsCurrentlyLocked,
 
     #[msg("This phygital token is not lockable.")]
@@ -68,9 +68,9 @@ pub enum PhygitalError {
     #[msg("Key already exists on the admin config.")]
     KeyAlreadyExists,
 
-    #[msg("Permanent phygital tokens require a non-default linked wallet at initialize.")]
-    PermanentLinkedWalletRequired,
+    #[msg("Only Permanent phygital tokens set an owner at initialize, and they must set one.")]
+    PermanentOwnerRequired,
 
-    #[msg("Permanent phygital token linked wallet cannot be transferred or removed.")]
-    PermanentLinkedWalletImmutable,
+    #[msg("Permanent phygital token owner cannot be transferred or removed.")]
+    PermanentOwnerImmutable,
 }

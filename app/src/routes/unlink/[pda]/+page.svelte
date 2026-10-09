@@ -12,10 +12,10 @@
 
 <PageShell>
 	<section class="flex flex-1 flex-col justify-center gap-6 pt-4">
-	<PageHeader title="Unlink from wallet" body={data.accessory.linkedWallet ? 'Approve with the linked wallet.' : 'No wallet is linked.'} />
+	<PageHeader title="Unlink from wallet" body={data.accessory.owner ? 'Approve with the owner wallet.' : 'No wallet is linked.'} />
 	{#if data.accessory.canRelease}
 		<Button size="xl" class="w-full" onclick={() => open = true}>Unlink from wallet</Button>
-	{:else if data.accessory.linkedWallet}
+	{:else if data.accessory.owner}
 		<p class="text-sm text-muted-foreground">This wallet link cannot be changed.</p>
 	{/if}
 	<Button href="/" variant="ghost">Back to Revibase</Button>

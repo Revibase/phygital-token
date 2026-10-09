@@ -32,10 +32,10 @@ pub const TEST_ORIGIN: &str = "http://localhost:3000";
 
 // Domain vocabulary (see GLOSSARY.md at repo root):
 //   Token      = PhygitalToken PDA created by `initialize` (1:1 with a passkey)
-//   LinkedWallet = phygital_token.linked_wallet (current custodian; `Pubkey::default()` when unowned)
+//   Owner = phygital_token.owner (current custodian; `Pubkey::default()` when unowned)
 //   Mint       = optional SPL mint pubkey, set later via `assign_mint` (default until then)
 //
-// Linked wallet lives in the PhygitalToken PDA and is moved by `set_linked_wallet`
+// Owner lives in the PhygitalToken PDA and is moved by `set_owner`
 // after a secp256r1/WebAuthn proof. `assign_mint` binds an SPL mint after init.
 //
 // AdminConfig roles: admin (manages roles), issuer (initialize), minter (assign_mint).
@@ -274,8 +274,8 @@ impl TestContext {
             .expect("deserialize phygital_token")
     }
 
-    pub fn phygital_token_linked_wallet(&self, phygital_token: Pubkey) -> Pubkey {
-        self.load_phygital_token(phygital_token).linked_wallet
+    pub fn phygital_token_owner(&self, phygital_token: Pubkey) -> Pubkey {
+        self.load_phygital_token(phygital_token).owner
     }
 
     pub fn phygital_token_lock_state(&self, phygital_token: Pubkey) -> bool {
@@ -329,8 +329,8 @@ impl TestContext {
 
     /// Create a phygital_token of the given type (`Controlled`, `Bearer`, or `Permanent`).
     ///
-    /// Permanent tokens require a non-default linked wallet — use
-    /// [`Self::init_phygital_token_with_linked_wallet`] instead.
+    /// Permanent tokens require a non-default owner — use
+    /// [`Self::init_phygital_token_with_owner`] instead.
     pub fn init_phygital_token_of_type(
         &mut self,
         passkey: &TestPasskey,
@@ -344,19 +344,14 @@ impl TestContext {
         )
     }
 
-    /// Create a phygital_token with an explicit initial `linked_wallet` (required for `Permanent`).
-    pub fn init_phygital_token_with_linked_wallet(
+    /// Create a phygital_token with an explicit initial `owner` (required for `Permanent`).
+    pub fn init_phygital_token_with_owner(
         &mut self,
         passkey: &TestPasskey,
         token_type: PhygitalTokenType,
-        linked_wallet: Pubkey,
+        owner: Pubkey,
     ) -> MintedPhygitalToken {
-        self.init_phygital_token_with_identifier(
-            unique_identifier(),
-            passkey,
-            token_type,
-            linked_wallet,
-        )
+        self.init_phygital_token_with_identifier(unique_identifier(), passkey, token_type, owner)
     }
 
     /// Create a phygital_token with an explicit chip `identifier` (binding field) and a
@@ -366,7 +361,7 @@ impl TestContext {
         identifier: Secp256r1Pubkey,
         passkey: &TestPasskey,
         token_type: PhygitalTokenType,
-        linked_wallet: Pubkey,
+        owner: Pubkey,
     ) -> MintedPhygitalToken {
         let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
         let phygital_token = self.phygital_token_pda(&secp256r1_pubkey);
@@ -374,7 +369,7 @@ impl TestContext {
             identifier,
             secp256r1_pubkey,
             token_type,
-            linked_wallet,
+            owner,
         };
         let ix = self.initialize_ix(self.issuer.pubkey(), phygital_token, args);
         let issuer = self.issuer.insecure_clone();
@@ -463,9 +458,9 @@ impl TestContext {
         Self::send_instructions(&mut self.svm, &instructions, &[&payer])
     }
 
-    // --- set_linked_wallet ----------------------------------------------------
+    // --- set_owner ----------------------------------------------------
 
-    pub fn set_linked_wallet_ix(
+    pub fn set_owner_ix(
         &self,
         recipient: Pubkey,
         phygital_token: Pubkey,
@@ -474,14 +469,14 @@ impl TestContext {
     ) -> Instruction {
         Instruction {
             program_id: self.program_id,
-            accounts: phygital_token::accounts::SetLinkedWallet {
+            accounts: phygital_token::accounts::SetOwner {
                 recipient,
                 phygital_token,
                 slot_hashes: SLOT_HASHES_SYSVAR_ID,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
             }
             .to_account_metas(None),
-            data: phygital_token::instruction::SetLinkedWallet {
+            data: phygital_token::instruction::SetOwner {
                 secp256r1_verify_args,
                 slot_number,
             }
@@ -489,23 +484,16 @@ impl TestContext {
         }
     }
 
-    pub fn send_set_linked_wallet(
+    pub fn send_set_owner(
         &mut self,
         phygital_token: &MintedPhygitalToken,
         recipient: &Keypair,
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
-        self.send_set_linked_wallet_at_slot(
-            phygital_token,
-            recipient,
-            include_secp_ix,
-            None,
-            None,
-            None,
-        )
+        self.send_set_owner_at_slot(phygital_token, recipient, include_secp_ix, None, None, None)
     }
 
-    pub fn send_set_linked_wallet_at_slot(
+    pub fn send_set_owner_at_slot(
         &mut self,
         phygital_token: &MintedPhygitalToken,
         recipient: &Keypair,
@@ -527,7 +515,7 @@ impl TestContext {
             sign_count,
         );
 
-        let transfer_ix = self.set_linked_wallet_ix(
+        let transfer_ix = self.set_owner_ix(
             recipient.pubkey(),
             phygital_token.phygital_token,
             verify_args,
@@ -549,7 +537,7 @@ impl TestContext {
 
     /// Submit a hand-built instruction list (for negative/edge cases). The first
     /// signer pays fees.
-    pub fn send_set_linked_wallet_with_instructions(
+    pub fn send_set_owner_with_instructions(
         &mut self,
         instructions: Vec<Instruction>,
         signers: &[&Keypair],
@@ -587,32 +575,27 @@ impl TestContext {
         Self::send_instruction(&mut self.svm, ix, &[&minter])
     }
 
-    // --- remove_linked_wallet ----------------------------------------------------
+    // --- remove_owner ----------------------------------------------------
 
-    pub fn remove_linked_wallet_ix(
-        &self,
-        linked_wallet: Pubkey,
-        phygital_token: Pubkey,
-    ) -> Instruction {
+    pub fn remove_owner_ix(&self, owner: Pubkey, phygital_token: Pubkey) -> Instruction {
         Instruction {
             program_id: self.program_id,
-            accounts: phygital_token::accounts::RemoveLinkedWallet {
-                linked_wallet,
+            accounts: phygital_token::accounts::RemoveOwner {
+                owner,
                 phygital_token,
             }
             .to_account_metas(None),
-            data: phygital_token::instruction::RemoveLinkedWallet {}.data(),
+            data: phygital_token::instruction::RemoveOwner {}.data(),
         }
     }
 
-    pub fn send_remove_linked_wallet(
+    pub fn send_remove_owner(
         &mut self,
         phygital_token: &MintedPhygitalToken,
-        linked_wallet: &Keypair,
+        owner: &Keypair,
     ) -> litesvm::types::TransactionResult {
-        let ix =
-            self.remove_linked_wallet_ix(linked_wallet.pubkey(), phygital_token.phygital_token);
-        Self::send_instruction(&mut self.svm, ix, &[linked_wallet])
+        let ix = self.remove_owner_ix(owner.pubkey(), phygital_token.phygital_token);
+        Self::send_instruction(&mut self.svm, ix, &[owner])
     }
 
     // --- slot control --------------------------------------------------------

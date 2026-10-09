@@ -5,7 +5,7 @@ Choose the right possession check for your product surface.
 ```
 Need on-chain state change / CPI?
     │
-    YES → transfer (set_linked_wallet)
+    YES → transfer (set_owner)
     │       → beginTransfer → authenticatePasskeyForTransfer → completeTransfer
     │
     │     OR composable verify CPI

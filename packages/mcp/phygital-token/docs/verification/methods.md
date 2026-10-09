@@ -38,6 +38,6 @@ No `generateAuthenticationOptions`. No rpId/origin binding on verify.
 |------|-----|
 | UI login / vault gate | `startAuthentication` + `verifyResponse` → your session |
 | Load on-chain state after a tap | verify → `findPhygitalTokenPda` + `fetchPhygitalToken` |
-| Set linked wallet | `beginTransfer` → `completeTransfer` |
+| Set owner | `beginTransfer` → `completeTransfer` |
 | On-chain possession proof / CPI | `buildMessageHash` → `authenticatePasskeyForSecp256r1Verify` → `buildSecp256r1VerifyInstruction` |
 | Native / kiosk IsoDep | `startAuthentication(message, { transceive })` |

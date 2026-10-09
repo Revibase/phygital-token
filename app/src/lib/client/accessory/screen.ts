@@ -1,6 +1,6 @@
 import type { AccessoryView } from '$lib/shared/types';
 
-/** Link policy is independent of physical tradability. `owned` means the linked wallet is connected. */
+/** Link policy is independent of physical tradability. `owned` means the owner is connected. */
 export type TapScreen = {
 	title: string;
 	body: string;
@@ -16,11 +16,11 @@ export function tapScreen(a: AccessoryView, owned: boolean): TapScreen {
 		return { ...none, title: 'Unavailable', body: 'This accessory’s record is in an unexpected state. Contact the issuer.' };
 	}
 
-	if (!a.linkedWallet) {
+	if (!a.owner) {
 		return { ...none, claim: a.canLink, title: 'No wallet linked', body: '' };
 	}
 
-	const walletLabel = owned ? 'Your wallet' : 'Linked wallet';
+	const walletLabel = owned ? 'Your wallet' : 'Owner';
 
 	if (a.kind === 'bearer') {
 		if (owned) {
@@ -59,7 +59,7 @@ export function changedElsewhereNotice(a: AccessoryView): { title: string; body:
 		? { title: 'Linked to a different wallet', body: 'Since you last used it here, another wallet was linked. You can relink it while it is unlocked.' }
 		: {
 				title: 'Linked to a different wallet',
-				// Controlled only moves after the linked wallet releases it, so it can't simply be linked back.
+				// Controlled only moves after the owner releases it, so it can't simply be linked back.
 				body: 'Since you last used it here, it was unlinked and linked to another wallet. Only that wallet can unlink it now.'
 			};
 }

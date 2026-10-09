@@ -44,12 +44,12 @@ pub mod phygital_token {
         assign_mint::handler(ctx, mint)
     }
 
-    pub fn set_linked_wallet(
-        ctx: Context<SetLinkedWallet>,
+    pub fn set_owner(
+        ctx: Context<SetOwner>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         slot_number: u64,
     ) -> Result<()> {
-        set_linked_wallet::handler(ctx, secp256r1_verify_args, slot_number)
+        set_owner::handler(ctx, secp256r1_verify_args, slot_number)
     }
 
     /// Prove passkey possession and advance `last_sign_count`.
@@ -73,7 +73,7 @@ pub mod phygital_token {
         )
     }
 
-    pub fn remove_linked_wallet(ctx: Context<RemoveLinkedWallet>) -> Result<()> {
-        remove_linked_wallet::handler(ctx)
+    pub fn remove_owner(ctx: Context<RemoveOwner>) -> Result<()> {
+        remove_owner::handler(ctx)
     }
 }

@@ -6,16 +6,16 @@ import { changedElsewhereNotice, tapScreen } from '$lib/client/accessory/screen'
 
 const W = '7Yu3oPKm7hSbcX3u7ke1HMuiKeuuSJo4iQ8PYP6VGkCN';
 
-function accessory(kind: TokenKind, linkedWallet: string | null, isLocked = linkedWallet !== null && kind !== 'bearer'): AccessoryView {
-	const rules = accessoryRules(kind, linkedWallet, isLocked);
+function accessory(kind: TokenKind, owner: string | null, isLocked = owner !== null && kind !== 'bearer'): AccessoryView {
+	const rules = accessoryRules(kind, owner, isLocked);
 	return {
 		pda: 'pda',
 		identifier: 'id',
 		tag: 'A1B2',
 		publicKey: 'pk',
 		kind,
-		status: !linkedWallet ? (rules.canLink ? 'ready_to_link' : 'unavailable') : rules.canLink ? 'linked' : 'linked_locked',
-		linkedWallet,
+		status: !owner ? (rules.canLink ? 'ready_to_link' : 'unavailable') : rules.canLink ? 'linked' : 'linked_locked',
+		owner,
 		isLocked,
 		mint: null,
 		lastSignCount: 0,
@@ -36,8 +36,8 @@ describe('tapScreen: Bearer wallet linkage', () => {
 
 	it('lets available actions explain linking without repeating instructions', () => {
 		for (const kind of ['bearer', 'controlled'] as const) {
-			for (const linkedWallet of [null, W]) for (const owned of [false, true]) {
-				expect(tapScreen(accessory(kind, linkedWallet), owned).body).toBe('');
+			for (const owner of [null, W]) for (const owned of [false, true]) {
+				expect(tapScreen(accessory(kind, owner), owned).body).toBe('');
 			}
 		}
 		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({ title: 'Permanently linked to a wallet', body: '' });
@@ -46,7 +46,7 @@ describe('tapScreen: Bearer wallet linkage', () => {
 	it('someone else: shows the owner and offers "Make it yours"', () => {
 		expect(tapScreen(accessory('bearer', W), false)).toMatchObject({
 			title: 'Linked to a wallet',
-			walletLabel: 'Linked wallet',
+			walletLabel: 'Owner',
 			claim: true,
 			move: false
 		});
@@ -65,7 +65,7 @@ describe('tapScreen: Controlled and Permanent wallet linkage', () => {
 
 	it('Controlled linked: never claimable, framed around authentication', () => {
 		expect(tapScreen(accessory('controlled', W), true)).toMatchObject({ title: 'Linked to your wallet', walletLabel: 'Your wallet', claim: false, move: false });
-		expect(tapScreen(accessory('controlled', W), false)).toMatchObject({ title: 'Linked to a wallet', walletLabel: 'Linked wallet', claim: false, move: false });
+		expect(tapScreen(accessory('controlled', W), false)).toMatchObject({ title: 'Linked to a wallet', walletLabel: 'Owner', claim: false, move: false });
 	});
 
 	it('Permanent: bound for good, never claimable', () => {
@@ -90,7 +90,7 @@ describe('trading a card does not change its link rules', () => {
 		const a = { ...accessory(kind, W), mint: W };
 		const screen = tapScreen(a, false);
 		expect(screen.claim).toBe(false);
-		expect(screen.walletLabel).toBe('Linked wallet');
+		expect(screen.walletLabel).toBe('Owner');
 		expect(screen.body).not.toMatch(/card|trad(e|ing)|collection/i);
 		expect(screen.body).not.toMatch(/proves.*wallet/);
 	});

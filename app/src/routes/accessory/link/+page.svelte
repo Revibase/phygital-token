@@ -243,7 +243,7 @@
 							body={copy.done.body(ownedResult, status.recipient ? shortAddress(status.recipient) : 'the wallet you chose')}
 						/>
 						{#if status.recipient}
-							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Linked wallet'} icon={ownedResult ? walletStore.walletIcon : null} cluster={data.cluster} /></List>
+							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Owner'} icon={ownedResult ? walletStore.walletIcon : null} cluster={data.cluster} /></List>
 						{/if}
 					</div>
 				{:else if view === 'dead'}

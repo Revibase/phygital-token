@@ -25,9 +25,9 @@ pub enum PhygitalTokenError {
     /// 6004 - secp256r1 pubkey does not match phygital token record
     #[error("secp256r1 pubkey does not match phygital token record")]
     Secp256r1PubkeyMismatch = 0x1774,
-    /// 6005 - Phygital token linked wallet mismatch
-    #[error("Phygital token linked wallet mismatch")]
-    LinkedWalletMismatch = 0x1775,
+    /// 6005 - Phygital token owner mismatch
+    #[error("Phygital token owner mismatch")]
+    OwnerMismatch = 0x1775,
     /// 6006 - Slot not found in SlotHashes sysvar — signature has expired or is being replayed
     #[error("Slot not found in SlotHashes sysvar — signature has expired or is being replayed")]
     InvalidSlotHash = 0x1776,
@@ -43,8 +43,8 @@ pub enum PhygitalTokenError {
     /// 6010 - Invalid sysvar data format
     #[error("Invalid sysvar data format")]
     InvalidSysvarDataFormat = 0x177A,
-    /// 6011 - The linked wallet needs to unlock the phygital token to enable transfer.
-    #[error("The linked wallet needs to unlock the phygital token to enable transfer.")]
+    /// 6011 - The owner needs to unlock the phygital token to enable transfer.
+    #[error("The owner needs to unlock the phygital token to enable transfer.")]
     TokenIsCurrentlyLocked = 0x177B,
     /// 6012 - This phygital token is not lockable.
     #[error("This phygital token is not lockable.")]
@@ -76,12 +76,12 @@ pub enum PhygitalTokenError {
     /// 6021 - Key already exists on the admin config.
     #[error("Key already exists on the admin config.")]
     KeyAlreadyExists = 0x1785,
-    /// 6022 - Permanent phygital tokens require a non-default linked wallet at initialize.
-    #[error("Permanent phygital tokens require a non-default linked wallet at initialize.")]
-    PermanentLinkedWalletRequired = 0x1786,
-    /// 6023 - Permanent phygital token linked wallet cannot be transferred or removed.
-    #[error("Permanent phygital token linked wallet cannot be transferred or removed.")]
-    PermanentLinkedWalletImmutable = 0x1787,
+    /// 6022 - Only Permanent phygital tokens set an owner at initialize, and they must set one.
+    #[error("Only Permanent phygital tokens set an owner at initialize, and they must set one.")]
+    PermanentOwnerRequired = 0x1786,
+    /// 6023 - Permanent phygital token owner cannot be transferred or removed.
+    #[error("Permanent phygital token owner cannot be transferred or removed.")]
+    PermanentOwnerImmutable = 0x1787,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {

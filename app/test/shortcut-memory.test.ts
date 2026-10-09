@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { forgetLinkedWalletDetails, shouldChooseWallet, rememberWallet, rememberedWallet, reconcileAccessoryWallet, rememberAccessoryLink, accessoryLinkContext, accessoryConnectionMethod, recentConnectionMethod, accessoryWalletApp, rememberAccessoryWalletApp, recentWallet, rememberRecentWallet } from '$lib/client/memory';
+import { forgetOwnerDetails, shouldChooseWallet, rememberWallet, rememberedWallet, reconcileAccessoryWallet, rememberAccessoryLink, accessoryLinkContext, accessoryConnectionMethod, recentConnectionMethod, accessoryWalletApp, rememberAccessoryWalletApp, recentWallet, rememberRecentWallet } from '$lib/client/memory';
 
 describe('browser-local wallet preferences', () => {
 	let storage: Map<string, string>;
@@ -22,7 +22,7 @@ describe('browser-local wallet preferences', () => {
 		rememberAccessoryWalletApp('b','owner-b','Backpack');
 		rememberRecentWallet('Phantom');
 		storage.set('unrelated','keep');
-		forgetLinkedWalletDetails('a');
+		forgetOwnerDetails('a');
 		expect(accessoryLinkContext('a','owner-a')).toBeNull();
 		expect(accessoryWalletApp('b','owner-b')).toBe('Backpack');
 		expect(recentWallet()).toBe('Phantom');

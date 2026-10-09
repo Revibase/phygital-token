@@ -19,9 +19,9 @@ import {
 import { getSetComputeUnitPriceInstruction } from '@solana-program/compute-budget';
 import {
 	authenticatePasskeyForTransfer,
-	getRemoveLinkedWalletInstruction,
+	getRemoveOwnerInstruction,
 	PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-	REMOVE_LINKED_WALLET_DISCRIMINATOR
+	REMOVE_OWNER_DISCRIMINATOR
 } from 'phygital-token-sdk';
 
 import { bytesEqual } from '$lib/shared/encoding';
@@ -141,7 +141,7 @@ export async function releaseAccessory(ctx: SigningContext, pda: string): Promis
 			appendTransactionMessageInstructions(
 				[
 					getSetComputeUnitPriceInstruction({ microLamports: LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS }),
-					getRemoveLinkedWalletInstruction({ linkedWallet: signer, phygitalToken: address(pda) })
+					getRemoveOwnerInstruction({ owner: signer, phygitalToken: address(pda) })
 				],
 				m
 			)
@@ -163,7 +163,7 @@ export async function releaseAccessory(ctx: SigningContext, pda: string): Promis
 	return sig;
 }
 
-function assertReleaseIntact(bytes: Uint8Array, pda: string, linkedWallet: string) {
+function assertReleaseIntact(bytes: Uint8Array, pda: string, owner: string) {
 	let message;
 	try {
 		const tx = getTransactionDecoder().decode(bytes);
@@ -171,20 +171,20 @@ function assertReleaseIntact(bytes: Uint8Array, pda: string, linkedWallet: strin
 	} catch {
 		throw new LinkTransactionRejected('undecodable release');
 	}
-	if (message.feePayer.address !== linkedWallet) throw new LinkTransactionRejected('unexpected fee payer');
+	if (message.feePayer.address !== owner) throw new LinkTransactionRejected('unexpected fee payer');
 	const removes = message.instructions.filter(
 		(ix) =>
 			ix.programAddress === PHYGITAL_TOKEN_PROGRAM_ADDRESS &&
-			bytesEqual(new Uint8Array(ix.data ?? []).subarray(0, 8), new Uint8Array(REMOVE_LINKED_WALLET_DISCRIMINATOR))
+			bytesEqual(new Uint8Array(ix.data ?? []).subarray(0, 8), new Uint8Array(REMOVE_OWNER_DISCRIMINATOR))
 	);
 	const accounts = removes[0]?.accounts ?? [];
-	if (removes.length !== 1 || accounts[0]?.address !== linkedWallet || accounts[1]?.address !== pda) {
+	if (removes.length !== 1 || accounts[0]?.address !== owner || accounts[1]?.address !== pda) {
 		throw new LinkTransactionRejected('release instruction altered');
 	}
 	for (const ix of message.instructions) {
 		for (const meta of ix.accounts ?? []) {
 			const signer = meta.role === AccountRole.READONLY_SIGNER || meta.role === AccountRole.WRITABLE_SIGNER;
-			if (signer && meta.address !== linkedWallet) throw new LinkTransactionRejected('unexpected additional signer');
+			if (signer && meta.address !== owner) throw new LinkTransactionRejected('unexpected additional signer');
 		}
 	}
 }

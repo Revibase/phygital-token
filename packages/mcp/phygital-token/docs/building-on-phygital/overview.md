@@ -4,7 +4,7 @@ Third-party developers can:
 
 - **Authenticate off-chain** (Web2 passkey login) → `startAuthentication(message, { rpc, allowList? })` / `verifyResponse` → your session
 - **Prove possession on-chain** (composable) → `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, transceive? })` / `buildSecp256r1VerifyInstruction` (`verify` CPI)
-- **Set linked wallet on-chain** → `beginTransfer({ rpc, secp256r1Pubkey })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_linked_wallet`)
+- **Set owner on-chain** → `beginTransfer({ rpc, secp256r1Pubkey })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_owner`)
 - **Bootstrap roles** → `getCreateConfigInstruction` → `getSetIssuerInstruction` / `getSetMinterInstruction`
 - **Initialize tokens** → `findPhygitalTokenPda` + `getInitializeInstruction` (issuer-only; passkey seeds PDA; chip `identifier` stored for binding)
 - **Bind an SPL mint** → `getAssignMintInstruction` (`assign_mint`; minter-only)
@@ -32,7 +32,7 @@ All tap helpers share `authenticatePasskey`: pass `{ transceive }` for native/ki
 2. **Client:** `startAuthentication(message, { rpc, allowList? })` — NFC tap (prefetch message before the click for iOS). Native: `startAuthentication(message, { transceive })`.
 3. **Client → server:** `POST { challengeId, response }`.
 4. **Server:** `verifyResponse({ expectedMessage: message, response })`.
-5. **Server:** on `isVerified`, map `secp256r1PublicKey` → user (`findPhygitalTokenPda` + `fetchPhygitalToken` → `linkedWallet`) and **create your normal session**.
+5. **Server:** on `isVerified`, map `secp256r1PublicKey` → user (`findPhygitalTokenPda` + `fetchPhygitalToken` → `owner`) and **create your normal session**.
 
 Does **not** write to chain and does **not** set a cookie for you. Does **not** check rpId/origin.
 ## On-chain `verify` (composable)
@@ -49,9 +49,9 @@ buildSecp256r1VerifyInstruction(tap)  // phygitalTokenPda from tap
 
 Hash with `buildMessageHash`, then tap. Pass the same digest to `VerifyCpiBuilder.message_hash`. Token PDA is derived after the NFC tap from `response.id`. Optional `.expected_rp_id(...)` / `.expected_origins(...)` are set on your CPI — omit them to skip; when `expected_origins` is set, the signed origin must match one entry. See `verification:verify-composable` and `building-on-phygital:rust-cpi`.
 
-`verify` advances `last_sign_count` — it does **not** change `phygital_token.linked_wallet`.
+`verify` advances `last_sign_count` — it does **not** change `phygital_token.owner`.
 
-## On-chain linked wallet
+## On-chain owner
 
 ```
 beginTransfer({ rpc, secp256r1Pubkey, rpId? })
@@ -60,17 +60,17 @@ authenticatePasskeyForTransfer(session, { transceive? })
         ↓
 completeTransfer(session, response, recipient)  // passkey from response.id
         ↓
-send [secp256r1_verify, set_linked_wallet]
+send [secp256r1_verify, set_owner]
 ```
 
-`beginTransfer` takes Kit `Rpc` and base64url `secp256r1Pubkey`; it derives the phygital token PDA internally. Optional `rpId` defaults to `window.location.hostname`. The passkey is taken from `response.id` in `completeTransfer`. `set_linked_wallet` updates `phygital_token.linked_wallet` only — there is no SPL token / Token-2022 linkage.
+`beginTransfer` takes Kit `Rpc` and base64url `secp256r1Pubkey`; it derives the phygital token PDA internally. Optional `rpId` defaults to `window.location.hostname`. The passkey is taken from `response.id` in `completeTransfer`. `set_owner` updates `phygital_token.owner` only — there is no SPL token / Token-2022 linkage.
 
 **Lock rules** (`is_locked` must be `0` for every token type):
 
-- Tokens initialized with a non-default `linked_wallet` start locked.
-- **Permanent** — stays locked forever; `set_linked_wallet` always fails with `TokenIsCurrentlyLocked`; `remove_linked_wallet` rejected (`PermanentLinkedWalletImmutable`).
+- Tokens initialized with a non-default `owner` start locked.
+- **Permanent** — stays locked forever; `set_owner` always fails with `TokenIsCurrentlyLocked`; `remove_owner` rejected (`PermanentOwnerImmutable`).
 - **Bearer** — transferable when unlocked.
-- **Controlled** — re-locks after claim; forfeit via `remove_linked_wallet` to unlock.
+- **Controlled** — re-locks after claim; forfeit via `remove_owner` to unlock.
 
 ## Message design checklist
 
@@ -80,11 +80,11 @@ send [secp256r1_verify, set_linked_wallet]
 - [ ] Pass `rpc` to `startAuthentication` / on-chain browser taps for recovery, and `allowList` to gate the tapped id (or as the no-RPC recovery fallback); `transceive` for native
 - [ ] Never reuse challenges across authorization scopes
 - [ ] For transfers, use the slot-bound transfer challenge — not a login message
-- [ ] Ensure `is_locked == 0` before `set_linked_wallet`
+- [ ] Ensure `is_locked == 0` before `set_owner`
 - [ ] For composable on-chain proofs, hash `message` with `buildMessageHash` before the tap. Fold freshness or domain separation into `message` before hashing.
 
 ## Packages
 
 **TypeScript:** `phygital-token-sdk` — `startAuthentication`, `verifyResponse`, `buildMessageHash`, `authenticatePasskeyForSecp256r1Verify`, `buildSecp256r1VerifyInstruction`, `beginTransfer`, `completeTransfer`, `getInitializeInstruction`, `getAssignMintInstruction`, `getCreateConfigInstruction`, `getClosePhygitalTokenInstruction`, `findAdminConfigPda`
 
-**Rust:** `phygital-token-client` at `packages/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify`, `set_linked_wallet`, `remove_linked_wallet`, `assign_mint`, `create_config`, …
+**Rust:** `phygital-token-client` at `packages/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify`, `set_owner`, `remove_owner`, `assign_mint`, `create_config`, …

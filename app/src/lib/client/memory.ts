@@ -44,13 +44,13 @@ export function rememberRecentWallet(name: string | null | undefined, method: Co
 }
 
 /** An accessory preference is bound to its current linked address. */
-export function accessoryWalletApp(pda: string, linkedWallet: string | null): string | null {
-	if (reconcileAccessoryWallet(pda, linkedWallet)) return null;
+export function accessoryWalletApp(pda: string, owner: string | null): string | null {
+	if (reconcileAccessoryWallet(pda, owner)) return null;
 	try {
 		const raw = localStorage.getItem(`revibase:wallet-app:${pda}`);
 		if (!raw) return null;
 		const saved = JSON.parse(raw);
-		if (saved.wallet !== linkedWallet) {
+		if (saved.wallet !== owner) {
 			localStorage.removeItem(`revibase:wallet-app:${pda}`);
 			return null;
 		}
@@ -68,20 +68,20 @@ export function rememberAccessoryWalletApp(pda: string, wallet: string | null, a
 }
 
 /** Legacy app-only records retain their original wallet-browser behavior. */
-export function accessoryConnectionMethod(pda: string, linkedWallet: string | null): ConnectionMethod | null {
-	if (!accessoryWalletApp(pda, linkedWallet)) return null;
+export function accessoryConnectionMethod(pda: string, owner: string | null): ConnectionMethod | null {
+	if (!accessoryWalletApp(pda, owner)) return null;
 	try {
 		const saved = JSON.parse(localStorage.getItem(`revibase:wallet-app:${pda}`)!);
 		return saved.method === 'browser' ? 'browser' : 'wallet';
 	} catch { return null; }
 }
 
-export type LinkedWalletContext = { wallet: string; app: string | null; source: 'desktop' | 'mobile' | 'wallet' };
+export type OwnerContext = { wallet: string; app: string | null; source: 'desktop' | 'mobile' | 'wallet' };
 /** Link provenance is separate from the user's shortcut launch preference. */
-export function rememberAccessoryLink(pda: string, context: LinkedWalletContext) {
+export function rememberAccessoryLink(pda: string, context: OwnerContext) {
 	try { localStorage.setItem(`revibase:link-context:${pda}`, JSON.stringify({ ...context, pda })); } catch {}
 }
-export function accessoryLinkContext(pda: string, wallet: string | null): LinkedWalletContext | null {
+export function accessoryLinkContext(pda: string, wallet: string | null): OwnerContext | null {
 	if (reconcileAccessoryWallet(pda, wallet)) return null;
 	try {
 		const saved = JSON.parse(localStorage.getItem(`revibase:link-context:${pda}`) ?? 'null');
@@ -118,7 +118,7 @@ export function reconcileAccessoryWallet(pda: string, wallet: string | null): bo
 }
 
 /** Forget only this accessory's app hints; keep its linked address and other preferences. */
-export function forgetLinkedWalletDetails(pda: string) {
+export function forgetOwnerDetails(pda: string) {
 	try {
 		localStorage.removeItem(`revibase:wallet-app:${pda}`);
 		localStorage.removeItem(`revibase:link-context:${pda}`);

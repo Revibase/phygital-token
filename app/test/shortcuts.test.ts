@@ -36,7 +36,7 @@ describe('resolveShortcuts (Phantom shortcuts.json)', () => {
 		]);
 	});
 
-	it('fills the three placeholders from the mint, collection and linked wallet', () => {
+	it('fills the three placeholders from the mint, collection and owner', () => {
 		const [s] = one({ label: 'Play', uri: 'https://game.xyz/play/{{tokenId}}?c={{collectionId}}&o={{ ownerAddress }}' });
 		expect(s.href).toBe(`https://game.xyz/play/${MINT}?c=${COLLECTION}&o=${OWNER}`);
 	});
@@ -159,7 +159,7 @@ describe('loading a project file', () => {
 		globalThis.fetch = realFetch;
 	});
 
-	const accessory = { pda: 'pda', mint: MINT, linkedWallet: OWNER } as AccessoryView;
+	const accessory = { pda: 'pda', mint: MINT, owner: OWNER } as AccessoryView;
 
 	function stub(routes: Record<string, () => Response>, seen: string[] = []) {
 		globalThis.fetch = (async (input: unknown, init?: RequestInit) => {

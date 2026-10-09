@@ -46,21 +46,21 @@ import {
   getClosePhygitalTokenInstructionAsync,
   getCreateConfigInstructionAsync,
   getInitializeInstructionAsync,
-  getRemoveLinkedWalletInstruction,
+  getRemoveOwnerInstruction,
   getSetAdminInstructionAsync,
   getSetIssuerInstructionAsync,
-  getSetLinkedWalletInstruction,
   getSetMinterInstructionAsync,
+  getSetOwnerInstruction,
   getVerifyInstruction,
   parseAssignMintInstruction,
   parseClosePhygitalTokenInstruction,
   parseCreateConfigInstruction,
   parseInitializeInstruction,
-  parseRemoveLinkedWalletInstruction,
+  parseRemoveOwnerInstruction,
   parseSetAdminInstruction,
   parseSetIssuerInstruction,
-  parseSetLinkedWalletInstruction,
   parseSetMinterInstruction,
+  parseSetOwnerInstruction,
   parseVerifyInstruction,
   type AssignMintAsyncInput,
   type ClosePhygitalTokenAsyncInput,
@@ -70,17 +70,17 @@ import {
   type ParsedClosePhygitalTokenInstruction,
   type ParsedCreateConfigInstruction,
   type ParsedInitializeInstruction,
-  type ParsedRemoveLinkedWalletInstruction,
+  type ParsedRemoveOwnerInstruction,
   type ParsedSetAdminInstruction,
   type ParsedSetIssuerInstruction,
-  type ParsedSetLinkedWalletInstruction,
   type ParsedSetMinterInstruction,
+  type ParsedSetOwnerInstruction,
   type ParsedVerifyInstruction,
-  type RemoveLinkedWalletInput,
+  type RemoveOwnerInput,
   type SetAdminAsyncInput,
   type SetIssuerAsyncInput,
-  type SetLinkedWalletInput,
   type SetMinterAsyncInput,
+  type SetOwnerInput,
   type VerifyInput,
 } from "../instructions/index.js";
 import { findAdminConfigPda } from "../pdas/index.js";
@@ -130,11 +130,11 @@ export enum PhygitalTokenInstruction {
   ClosePhygitalToken,
   CreateConfig,
   Initialize,
-  RemoveLinkedWallet,
+  RemoveOwner,
   SetAdmin,
   SetIssuer,
-  SetLinkedWallet,
   SetMinter,
+  SetOwner,
   Verify,
 }
 
@@ -190,12 +190,12 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([7, 178, 142, 3, 161, 131, 177, 97]),
+        new Uint8Array([153, 251, 84, 208, 33, 62, 15, 247]),
       ),
       0,
     )
   ) {
-    return PhygitalTokenInstruction.RemoveLinkedWallet;
+    return PhygitalTokenInstruction.RemoveOwner;
   }
   if (
     containsBytes(
@@ -223,23 +223,23 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([118, 134, 6, 114, 75, 108, 86, 199]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.SetLinkedWallet;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([13, 170, 92, 172, 137, 194, 39, 2]),
       ),
       0,
     )
   ) {
     return PhygitalTokenInstruction.SetMinter;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([72, 202, 120, 52, 77, 128, 96, 197]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.SetOwner;
   }
   if (
     containsBytes(
@@ -274,8 +274,8 @@ export type ParsedPhygitalTokenInstruction<
       instructionType: PhygitalTokenInstruction.Initialize;
     } & ParsedInitializeInstruction<TProgram>)
   | ({
-      instructionType: PhygitalTokenInstruction.RemoveLinkedWallet;
-    } & ParsedRemoveLinkedWalletInstruction<TProgram>)
+      instructionType: PhygitalTokenInstruction.RemoveOwner;
+    } & ParsedRemoveOwnerInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.SetAdmin;
     } & ParsedSetAdminInstruction<TProgram>)
@@ -283,11 +283,11 @@ export type ParsedPhygitalTokenInstruction<
       instructionType: PhygitalTokenInstruction.SetIssuer;
     } & ParsedSetIssuerInstruction<TProgram>)
   | ({
-      instructionType: PhygitalTokenInstruction.SetLinkedWallet;
-    } & ParsedSetLinkedWalletInstruction<TProgram>)
-  | ({
       instructionType: PhygitalTokenInstruction.SetMinter;
     } & ParsedSetMinterInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalTokenInstruction.SetOwner;
+    } & ParsedSetOwnerInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.Verify;
     } & ParsedVerifyInstruction<TProgram>);
@@ -325,11 +325,11 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseInitializeInstruction(instruction),
       };
     }
-    case PhygitalTokenInstruction.RemoveLinkedWallet: {
+    case PhygitalTokenInstruction.RemoveOwner: {
       assertIsInstructionWithAccounts(instruction);
       return {
-        instructionType: PhygitalTokenInstruction.RemoveLinkedWallet,
-        ...parseRemoveLinkedWalletInstruction(instruction),
+        instructionType: PhygitalTokenInstruction.RemoveOwner,
+        ...parseRemoveOwnerInstruction(instruction),
       };
     }
     case PhygitalTokenInstruction.SetAdmin: {
@@ -346,18 +346,18 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseSetIssuerInstruction(instruction),
       };
     }
-    case PhygitalTokenInstruction.SetLinkedWallet: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.SetLinkedWallet,
-        ...parseSetLinkedWalletInstruction(instruction),
-      };
-    }
     case PhygitalTokenInstruction.SetMinter: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: PhygitalTokenInstruction.SetMinter,
         ...parseSetMinterInstruction(instruction),
+      };
+    }
+    case PhygitalTokenInstruction.SetOwner: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.SetOwner,
+        ...parseSetOwnerInstruction(instruction),
       };
     }
     case PhygitalTokenInstruction.Verify: {
@@ -411,10 +411,9 @@ export type PhygitalTokenPluginInstructions = {
     input: InitializeAsyncInput,
   ) => ReturnType<typeof getInitializeInstructionAsync> &
     SelfPlanAndSendFunctions;
-  removeLinkedWallet: (
-    input: RemoveLinkedWalletInput,
-  ) => ReturnType<typeof getRemoveLinkedWalletInstruction> &
-    SelfPlanAndSendFunctions;
+  removeOwner: (
+    input: RemoveOwnerInput,
+  ) => ReturnType<typeof getRemoveOwnerInstruction> & SelfPlanAndSendFunctions;
   setAdmin: (
     input: SetAdminAsyncInput,
   ) => ReturnType<typeof getSetAdminInstructionAsync> &
@@ -423,14 +422,13 @@ export type PhygitalTokenPluginInstructions = {
     input: SetIssuerAsyncInput,
   ) => ReturnType<typeof getSetIssuerInstructionAsync> &
     SelfPlanAndSendFunctions;
-  setLinkedWallet: (
-    input: SetLinkedWalletInput,
-  ) => ReturnType<typeof getSetLinkedWalletInstruction> &
-    SelfPlanAndSendFunctions;
   setMinter: (
     input: SetMinterAsyncInput,
   ) => ReturnType<typeof getSetMinterInstructionAsync> &
     SelfPlanAndSendFunctions;
+  setOwner: (
+    input: SetOwnerInput,
+  ) => ReturnType<typeof getSetOwnerInstruction> & SelfPlanAndSendFunctions;
   verify: (
     input: VerifyInput,
   ) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
@@ -477,10 +475,10 @@ export function phygitalTokenProgram() {
               client,
               getInitializeInstructionAsync(input),
             ),
-          removeLinkedWallet: (input) =>
+          removeOwner: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getRemoveLinkedWalletInstruction(input),
+              getRemoveOwnerInstruction(input),
             ),
           setAdmin: (input) =>
             addSelfPlanAndSendFunctions(
@@ -492,16 +490,13 @@ export function phygitalTokenProgram() {
               client,
               getSetIssuerInstructionAsync(input),
             ),
-          setLinkedWallet: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetLinkedWalletInstruction(input),
-            ),
           setMinter: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getSetMinterInstructionAsync(input),
             ),
+          setOwner: (input) =>
+            addSelfPlanAndSendFunctions(client, getSetOwnerInstruction(input)),
           verify: (input) =>
             addSelfPlanAndSendFunctions(client, getVerifyInstruction(input)),
         },

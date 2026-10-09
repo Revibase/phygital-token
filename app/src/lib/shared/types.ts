@@ -6,7 +6,7 @@ export type AccessoryStatus =
 	| 'ready_to_link'
 	/** Linked, and a tap can move the link (Bearer). */
 	| 'linked'
-	/** Linked and locked: Controlled (linked wallet must release first) or Permanent. */
+	/** Linked and locked: Controlled (owner must release first) or Permanent. */
 	| 'linked_locked'
 	/** On-chain state the program should never produce (e.g. locked with no wallet). */
 	| 'unavailable';
@@ -19,7 +19,7 @@ export type AccessoryView = {
 	publicKey: string;
 	kind: TokenKind;
 	status: AccessoryStatus;
-	linkedWallet: string | null;
+	owner: string | null;
 	isLocked: boolean;
 	mint: string | null;
 	lastSignCount: number;

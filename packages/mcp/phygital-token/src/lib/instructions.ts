@@ -10,7 +10,7 @@ export async function planInitialize(input: {
   identifier: string;
   secp256r1PublicKey: string;
   tokenType: "Permanent" | "Controlled" | "Bearer";
-  linkedWallet: string;
+  owner: string;
 }) {
   const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
   const [adminConfig] = await findAdminConfigPda();
@@ -40,14 +40,14 @@ export async function planInitialize(input: {
       identifier: input.identifier,
       secp256r1Pubkey: input.secp256r1PublicKey,
       tokenType,
-      linkedWallet: input.linkedWallet,
+      owner: input.owner,
     },
     notes: [
       "Creates a token PDA seeded by the passkey public key.",
       "identifier is stored on the token for binding and is distinct from the passkey.",
-      "linkedWallet is stored on phygital_token.linked_wallet at init (required non-default for Permanent; use the default zero pubkey for unowned Bearer/Controlled tokens).",
-      "Tokens initialized with a non-default linkedWallet start locked (is_locked = 1).",
-      "Permanent tokens stay locked forever (remove_linked_wallet is rejected); set_linked_wallet fails with TokenIsCurrentlyLocked.",
+      "owner is stored on phygital_token.owner at init (required non-default for Permanent; use the default zero pubkey for unowned Bearer/Controlled tokens).",
+      "Tokens initialized with a non-default owner start locked (is_locked = 1).",
+      "Permanent tokens stay locked forever (remove_owner is rejected); set_owner fails with TokenIsCurrentlyLocked.",
       "mint starts as the default pubkey until assign_mint.",
       "Bootstrap AdminConfig with create_config, then set_issuer before calling initialize.",
       "Derive the token PDA with findPhygitalTokenPda; AdminConfig with findAdminConfigPda.",
@@ -131,7 +131,7 @@ export async function planTransfer(input: {
     flow: [
       "1. beginTransfer({ rpc, secp256r1Pubkey, rpId? }) — derives token PDA from passkey; fetch slot hash, build challenge; rpId defaults to hostname",
       "2. authenticatePasskeyForTransfer(session, { transceive? }) — browser WebAuthn or native APDU when transceive is set",
-      "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + set_linked_wallet",
+      "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + set_owner",
     ],
     sdk: {
       begin: "beginTransfer",
@@ -147,7 +147,7 @@ export async function planTransfer(input: {
       tokenPda,
       secp256r1PublicKey: input.secp256r1PublicKey,
     },
-    setLinkedWalletAccounts: {
+    setOwnerAccounts: {
       recipient: `${input.recipient} (signer — must co-sign the transaction)`,
       phygital_token: tokenPda,
       slotHashes: "SysvarS1otHashes111111111111111111111111111",
@@ -157,19 +157,19 @@ export async function planTransfer(input: {
     requiredSigners: [
       {
         name: "recipient",
-        role: "Recipient wallet accepting the linked-wallet assignment — must sign the transaction",
+        role: "Recipient wallet accepting the owner assignment — must sign the transaction",
       },
     ],
-    setLinkedWalletArgs: {
+    setOwnerArgs: {
       secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
       slotNumber: "u64 — separate instruction arg; used to fetch slot hash for transfer challenge",
     },
-    instructions: ["secp256r1_verify", "set_linked_wallet"],
+    instructions: ["secp256r1_verify", "set_owner"],
     notes: [
-      "No SPL token transfer — set_linked_wallet only updates phygital_token.linked_wallet.",
-      "Requires is_locked == 0 for every token type. Tokens with a linked wallet at init start locked.",
-      "Controlled tokens re-lock after a successful claim; remove_linked_wallet clears the lock.",
-      "Permanent tokens remain locked (cannot forfeit), so set_linked_wallet always fails with TokenIsCurrentlyLocked.",
+      "No SPL token transfer — set_owner only updates phygital_token.owner.",
+      "Requires is_locked == 0 for every token type. Permanent tokens start locked (owner set at init).",
+      "Controlled tokens re-lock after a successful claim; remove_owner clears the lock.",
+      "Permanent tokens remain locked (cannot forfeit), so set_owner always fails with TokenIsCurrentlyLocked.",
       "beginTransfer takes Kit Rpc + base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
       "Browser tap: pass rpc to recover a 16-byte placeholder on-chain; allowList gates the tapped credential id and is the no-RPC recovery fallback. Pass { transceive } for native/kiosk APDU.",
       "completeTransfer takes a Kit TransactionSigner for recipient.",
@@ -247,46 +247,46 @@ export async function planVerify(input: {
       "Browser WebAuthn: rpc recovers a rawId-length-16 placeholder on-chain; allowList gates the tapped id and is the no-RPC recovery fallback.",
       "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
       "Your program CPIs verify. Do not include a client-side verify instruction.",
-      "verify updates phygital_token.last_sign_count; it does not change linked_wallet.",
+      "verify updates phygital_token.last_sign_count; it does not change owner.",
     ],
   };
 }
 
-export async function planRemoveLinkedWallet(input: {
+export async function planRemoveOwner(input: {
   secp256r1PublicKey: string;
-  linkedWallet: string;
+  owner: string;
 }) {
   const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
 
   return {
-    instruction: "remove_linked_wallet",
-    sdk: "getRemoveLinkedWalletInstruction",
+    instruction: "remove_owner",
+    sdk: "getRemoveOwnerInstruction",
     flow: [
-      "1. Confirm the connected wallet is phygital_token.linked_wallet on-chain",
-      "2. Build remove_linked_wallet with getRemoveLinkedWalletInstruction",
-      "3. Linked wallet signs and submits the transaction (no passkey tap required)",
+      "1. Confirm the connected wallet is phygital_token.owner on-chain",
+      "2. Build remove_owner with getRemoveOwnerInstruction",
+      "3. Owner signs and submits the transaction (no passkey tap required)",
     ],
     derivedAccounts: {
       tokenPda,
       secp256r1PublicKey: input.secp256r1PublicKey,
-      linkedWallet: input.linkedWallet,
+      owner: input.owner,
       program: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
     },
     requiredSigners: [
       {
-        name: "linked_wallet",
-        role: "Current linked wallet — must match phygital_token.linked_wallet on-chain",
+        name: "owner",
+        role: "Current owner — must match phygital_token.owner on-chain",
       },
     ],
     onChainEffects: [
-      "Sets phygital_token.linked_wallet to the default (zero) pubkey",
-      "Clears phygital_token.is_locked (required before the next set_linked_wallet when locked)",
+      "Sets phygital_token.owner to the default (zero) pubkey",
+      "Clears phygital_token.is_locked (required before the next set_owner when locked)",
       "Preserves phygital_token.last_sign_count",
     ],
     notes: [
-      "Wallet-signed forfeiture — unlike set_linked_wallet, no secp256r1_verify or passkey tap.",
-      "Fails if signer is not phygital_token.linked_wallet.",
-      "Rejected for Permanent tokens (PermanentLinkedWalletImmutable).",
+      "Wallet-signed forfeiture — unlike set_owner, no secp256r1_verify or passkey tap.",
+      "Fails if signer is not phygital_token.owner.",
+      "Rejected for Permanent tokens (PermanentOwnerImmutable).",
     ],
   };
 }

@@ -1,6 +1,6 @@
 export type VerificationUseCase =
   | "login_ui_only"
-  | "set_linked_wallet"
+  | "set_owner"
   | "native_mobile_app"
   | "lookup_after_tap"
   | "onchain_cpi_verify";
@@ -30,17 +30,17 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
       "SDK does not set cookies — create the session after isVerified: true.",
     ],
   },
-  set_linked_wallet: {
+  set_owner: {
     method: "transfer — beginTransfer / completeTransfer",
     sdkExports: ["beginTransfer", "authenticatePasskeyForTransfer", "completeTransfer"],
     requiresTap: true,
     onChain: true,
     rationale:
-      "Linked-wallet claim uses set_linked_wallet (updates phygital_token.linked_wallet; no SPL token). Requires is_locked == 0. beginTransfer takes secp256r1Pubkey and derives the token PDA. Pass { transceive } for native APDU.",
+      "Owner claim uses set_owner (updates phygital_token.owner; no SPL token). Requires is_locked == 0. beginTransfer takes secp256r1Pubkey and derives the token PDA. Pass { transceive } for native APDU.",
     docIds: ["verification:overview", "sdk:surface-area"],
     cautions: [
-      "Do not use off-chain login verify alone for transfers — it does not change phygital_token.linked_wallet.",
-      "Do not use verify for transfers — it proves possession without changing linked_wallet.",
+      "Do not use off-chain login verify alone for transfers — it does not change phygital_token.owner.",
+      "Do not use verify for transfers — it proves possession without changing owner.",
       "Recipient must sign the transaction — pass completeTransfer a Kit TransactionSigner.",
       "Token must be unlocked (is_locked == 0). Permanent tokens stay locked and always fail with TokenIsCurrentlyLocked.",
     ],
@@ -97,7 +97,7 @@ export function listVerificationUseCases(): Array<{
 }> {
   return [
     { id: "login_ui_only", summary: "Off-chain tap-to-login (no chain tx)" },
-    { id: "set_linked_wallet", summary: "Claim/set linked wallet to a new address" },
+    { id: "set_owner", summary: "Claim/set owner to a new address" },
     { id: "native_mobile_app", summary: "Native app off-chain authentication" },
     { id: "lookup_after_tap", summary: "Verify tap then load on-chain token state" },
     {
@@ -109,10 +109,10 @@ export function listVerificationUseCases(): Array<{
 
 export const VERIFICATION_DECISION_TREE = `
 Authentication (live NFC tap required)
-├── Need on-chain linked-wallet change?
+├── Need on-chain owner change?
 │   YES → beginTransfer({ rpc, secp256r1Pubkey })
 │         → authenticatePasskeyForTransfer(session, { transceive? })
-│         → completeTransfer (set_linked_wallet; requires is_locked == 0)
+│         → completeTransfer (set_owner; requires is_locked == 0)
 │   NO  → Need on-chain possession proof for your program?
 │         YES → buildMessageHash(message)
 │               → authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, transceive? })
@@ -136,5 +136,5 @@ verifyResponse never submits on-chain verify. Run it on your server.
 Token PDA is seeded by the passkey public key; chip identifier is a separate binding field.
 Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder (omit to skip).
 PDA is derived after the NFC tap. Your program always CPIs verify — do not post a client-side verify instruction.
-set_linked_wallet requires is_locked == 0 (Permanent stays locked → TokenIsCurrentlyLocked).
+set_owner requires is_locked == 0 (Permanent stays locked → TokenIsCurrentlyLocked).
 `.trim();

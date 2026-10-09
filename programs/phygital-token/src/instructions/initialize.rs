@@ -11,7 +11,7 @@ pub struct InitializeEvent {
     pub authority: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
-    pub linked_wallet: Pubkey,
+    pub owner: Pubkey,
     pub token_type: PhygitalTokenType,
 }
 
@@ -20,7 +20,7 @@ pub struct InitializeArgs {
     pub identifier: Secp256r1Pubkey,
     pub secp256r1_pubkey: Secp256r1Pubkey,
     pub token_type: PhygitalTokenType,
-    pub linked_wallet: Pubkey,
+    pub owner: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -55,14 +55,14 @@ pub fn handler(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
         args.identifier,
         args.token_type,
         args.secp256r1_pubkey,
-        args.linked_wallet,
+        args.owner,
     )?;
 
     emit!(InitializeEvent {
         identifier: args.identifier,
         authority: ctx.accounts.authority.key(),
         public_key: args.secp256r1_pubkey,
-        linked_wallet: args.linked_wallet,
+        owner: args.owner,
         token_type: args.token_type
     });
 

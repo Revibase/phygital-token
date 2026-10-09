@@ -26,14 +26,14 @@ export async function checkSubmittedLink(
 
 	if (status && (status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized')) {
 		const accessory = await fetchAccessory(rpc, input.pda);
-		if (accessory && String(accessory.account.linkedWallet) === input.recipient) return { status: 'linked' };
+		if (accessory && String(accessory.account.owner) === input.recipient) return { status: 'linked' };
 		return { status: 'failed', code: 'unknown' };
 	}
 
 	if (!status && input.tapWindowOver) {
 		// Never landed and the tap can no longer be valid: it will not land now.
 		const accessory = await fetchAccessory(rpc, input.pda);
-		if (accessory && String(accessory.account.linkedWallet) === input.recipient) return { status: 'linked' };
+		if (accessory && String(accessory.account.owner) === input.recipient) return { status: 'linked' };
 		return { status: 'failed', code: 'too_slow' };
 	}
 	return { status: 'pending' };

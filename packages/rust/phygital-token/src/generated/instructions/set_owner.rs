@@ -9,11 +9,11 @@ use crate::generated::types::Secp256r1VerifyArgs;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
-pub const SET_LINKED_WALLET_DISCRIMINATOR: [u8; 8] = [118, 134, 6, 114, 75, 108, 86, 199];
+pub const SET_OWNER_DISCRIMINATOR: [u8; 8] = [72, 202, 120, 52, 77, 128, 96, 197];
 
 /// Accounts.
 #[derive(Debug)]
-pub struct SetLinkedWallet {
+pub struct SetOwner {
     pub recipient: solana_address::Address,
 
     pub phygital_token: solana_address::Address,
@@ -23,18 +23,15 @@ pub struct SetLinkedWallet {
     pub instructions_sysvar: solana_address::Address,
 }
 
-impl SetLinkedWallet {
-    pub fn instruction(
-        &self,
-        args: SetLinkedWalletInstructionArgs,
-    ) -> solana_instruction::Instruction {
+impl SetOwner {
+    pub fn instruction(&self, args: SetOwnerInstructionArgs) -> solana_instruction::Instruction {
         self.instruction_with_remaining_accounts(args, &[])
     }
     #[allow(clippy::arithmetic_side_effects)]
     #[allow(clippy::vec_init_then_push)]
     pub fn instruction_with_remaining_accounts(
         &self,
-        args: SetLinkedWalletInstructionArgs,
+        args: SetOwnerInstructionArgs,
         remaining_accounts: &[solana_instruction::AccountMeta],
     ) -> solana_instruction::Instruction {
         let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
@@ -55,7 +52,7 @@ impl SetLinkedWallet {
             false,
         ));
         accounts.extend_from_slice(remaining_accounts);
-        let mut data = SetLinkedWalletInstructionData::new().try_to_vec().unwrap();
+        let mut data = SetOwnerInstructionData::new().try_to_vec().unwrap();
         let mut args = args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -68,14 +65,14 @@ impl SetLinkedWallet {
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
-pub struct SetLinkedWalletInstructionData {
+pub struct SetOwnerInstructionData {
     discriminator: [u8; 8],
 }
 
-impl SetLinkedWalletInstructionData {
+impl SetOwnerInstructionData {
     pub fn new() -> Self {
         Self {
-            discriminator: [118, 134, 6, 114, 75, 108, 86, 199],
+            discriminator: [72, 202, 120, 52, 77, 128, 96, 197],
         }
     }
 
@@ -84,25 +81,25 @@ impl SetLinkedWalletInstructionData {
     }
 }
 
-impl Default for SetLinkedWalletInstructionData {
+impl Default for SetOwnerInstructionData {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
-pub struct SetLinkedWalletInstructionArgs {
+pub struct SetOwnerInstructionArgs {
     pub secp256r1_verify_args: Secp256r1VerifyArgs,
     pub slot_number: u64,
 }
 
-impl SetLinkedWalletInstructionArgs {
+impl SetOwnerInstructionArgs {
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
         borsh::to_vec(self)
     }
 }
 
-/// Instruction builder for `SetLinkedWallet`.
+/// Instruction builder for `SetOwner`.
 ///
 /// ### Accounts:
 ///
@@ -111,7 +108,7 @@ impl SetLinkedWalletInstructionArgs {
 ///   2. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
 ///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
-pub struct SetLinkedWalletBuilder {
+pub struct SetOwnerBuilder {
     recipient: Option<solana_address::Address>,
     phygital_token: Option<solana_address::Address>,
     slot_hashes: Option<solana_address::Address>,
@@ -121,7 +118,7 @@ pub struct SetLinkedWalletBuilder {
     __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
-impl SetLinkedWalletBuilder {
+impl SetOwnerBuilder {
     pub fn new() -> Self {
         Self::default()
     }
@@ -180,7 +177,7 @@ impl SetLinkedWalletBuilder {
     }
     #[allow(clippy::clone_on_copy)]
     pub fn instruction(&self) -> solana_instruction::Instruction {
-        let accounts = SetLinkedWallet {
+        let accounts = SetOwner {
             recipient: self.recipient.expect("recipient is not set"),
             phygital_token: self.phygital_token.expect("phygital_token is not set"),
             slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!(
@@ -190,7 +187,7 @@ impl SetLinkedWalletBuilder {
                 "Sysvar1nstructions1111111111111111111111111"
             )),
         };
-        let args = SetLinkedWalletInstructionArgs {
+        let args = SetOwnerInstructionArgs {
             secp256r1_verify_args: self
                 .secp256r1_verify_args
                 .clone()
@@ -202,8 +199,8 @@ impl SetLinkedWalletBuilder {
     }
 }
 
-/// `set_linked_wallet` CPI accounts.
-pub struct SetLinkedWalletCpiAccounts<'a, 'b> {
+/// `set_owner` CPI accounts.
+pub struct SetOwnerCpiAccounts<'a, 'b> {
     pub recipient: &'b solana_account_info::AccountInfo<'a>,
 
     pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
@@ -213,8 +210,8 @@ pub struct SetLinkedWalletCpiAccounts<'a, 'b> {
     pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
 }
 
-/// `set_linked_wallet` CPI instruction.
-pub struct SetLinkedWalletCpi<'a, 'b> {
+/// `set_owner` CPI instruction.
+pub struct SetOwnerCpi<'a, 'b> {
     /// The program to invoke.
     pub __program: &'b solana_account_info::AccountInfo<'a>,
 
@@ -226,14 +223,14 @@ pub struct SetLinkedWalletCpi<'a, 'b> {
 
     pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
-    pub __args: SetLinkedWalletInstructionArgs,
+    pub __args: SetOwnerInstructionArgs,
 }
 
-impl<'a, 'b> SetLinkedWalletCpi<'a, 'b> {
+impl<'a, 'b> SetOwnerCpi<'a, 'b> {
     pub fn new(
         program: &'b solana_account_info::AccountInfo<'a>,
-        accounts: SetLinkedWalletCpiAccounts<'a, 'b>,
-        args: SetLinkedWalletInstructionArgs,
+        accounts: SetOwnerCpiAccounts<'a, 'b>,
+        args: SetOwnerInstructionArgs,
     ) -> Self {
         Self {
             __program: program,
@@ -291,7 +288,7 @@ impl<'a, 'b> SetLinkedWalletCpi<'a, 'b> {
                 is_writable: remaining_account.2,
             })
         });
-        let mut data = SetLinkedWalletInstructionData::new().try_to_vec().unwrap();
+        let mut data = SetOwnerInstructionData::new().try_to_vec().unwrap();
         let mut args = self.__args.try_to_vec().unwrap();
         data.append(&mut args);
 
@@ -318,7 +315,7 @@ impl<'a, 'b> SetLinkedWalletCpi<'a, 'b> {
     }
 }
 
-/// Instruction builder for `SetLinkedWallet` via CPI.
+/// Instruction builder for `SetOwner` via CPI.
 ///
 /// ### Accounts:
 ///
@@ -327,13 +324,13 @@ impl<'a, 'b> SetLinkedWalletCpi<'a, 'b> {
 ///   2. `[]` slot_hashes
 ///   3. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
-pub struct SetLinkedWalletCpiBuilder<'a, 'b> {
-    instruction: Box<SetLinkedWalletCpiBuilderInstruction<'a, 'b>>,
+pub struct SetOwnerCpiBuilder<'a, 'b> {
+    instruction: Box<SetOwnerCpiBuilderInstruction<'a, 'b>>,
 }
 
-impl<'a, 'b> SetLinkedWalletCpiBuilder<'a, 'b> {
+impl<'a, 'b> SetOwnerCpiBuilder<'a, 'b> {
     pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(SetLinkedWalletCpiBuilderInstruction {
+        let instruction = Box::new(SetOwnerCpiBuilderInstruction {
             __program: program,
             recipient: None,
             phygital_token: None,
@@ -421,7 +418,7 @@ impl<'a, 'b> SetLinkedWalletCpiBuilder<'a, 'b> {
     #[allow(clippy::clone_on_copy)]
     #[allow(clippy::vec_init_then_push)]
     pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-        let args = SetLinkedWalletInstructionArgs {
+        let args = SetOwnerInstructionArgs {
             secp256r1_verify_args: self
                 .instruction
                 .secp256r1_verify_args
@@ -433,7 +430,7 @@ impl<'a, 'b> SetLinkedWalletCpiBuilder<'a, 'b> {
                 .clone()
                 .expect("slot_number is not set"),
         };
-        let instruction = SetLinkedWalletCpi {
+        let instruction = SetOwnerCpi {
             __program: self.instruction.__program,
 
             recipient: self.instruction.recipient.expect("recipient is not set"),
@@ -462,7 +459,7 @@ impl<'a, 'b> SetLinkedWalletCpiBuilder<'a, 'b> {
 }
 
 #[derive(Clone, Debug)]
-struct SetLinkedWalletCpiBuilderInstruction<'a, 'b> {
+struct SetOwnerCpiBuilderInstruction<'a, 'b> {
     __program: &'b solana_account_info::AccountInfo<'a>,
     recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
     phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,

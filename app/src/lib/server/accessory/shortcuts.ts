@@ -53,7 +53,7 @@ export async function loadShortcuts(rpcUrl: string, accessory: AccessoryView): P
 			externalUrl,
 			tokenId: accessory.mint,
 			collectionId: collectionOf(asset),
-			ownerAddress: accessory.linkedWallet
+			ownerAddress: accessory.owner
 		})
 	};
 }
@@ -69,7 +69,7 @@ type ProofOptions = { key: ProofKey | null; issuer: string; session: AdmitSessio
 function proofWindow(project: ProjectShortcuts, opts: ProofOptions): { now: number; exp: number } | null {
 	const { key, session, accessory } = opts;
 	if (!key || !project.externalUrl || !accessory.mint) return null;
-	if (session.t === 'ob' && session.wallet !== accessory.linkedWallet) return null;
+	if (session.t === 'ob' && session.wallet !== accessory.owner) return null;
 	const now = Math.floor((opts.now ?? Date.now()) / 1000);
 	const exp = Math.min(now + PROOF_TTL_S, Math.floor(session.exp / 1000));
 	return exp > now ? { now, exp } : null;
@@ -107,7 +107,7 @@ export function withSessionProofs(project: ProjectShortcuts, opts: ProofOptions)
 			sub: accessory.pda,
 			mint: accessory.mint!,
 			kind: accessory.kind,
-			wallet: accessory.linkedWallet,
+			wallet: accessory.owner,
 			authentication: opts.session.t === 'ob' ? 'wallet' : 'accessory'
 		});
 		url.searchParams.set(PROOF_PARAM, proof);

@@ -87,7 +87,7 @@ describe('owner_browse', () => {
 	async function linkedTo(wallet: string) {
 		const acc = fakeAccessory();
 		const data = new Uint8Array(
-			getPhygitalTokenEncoder().encode(acc.account({ linkedWallet: address(wallet), tokenType: 2, isLocked: 1 }))
+			getPhygitalTokenEncoder().encode(acc.account({ owner: address(wallet), tokenType: 2, isLocked: 1 }))
 		);
 		return { pda: await acc.pda(), rpc: rpcWith(data) };
 	}

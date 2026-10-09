@@ -71,7 +71,7 @@ describe('checkTransferAssertion', () => {
 });
 
 describe('link transaction (SDK completeTransfer) + validator', () => {
-	it('builds [budget, budget, secp256r1_verify, set_linked_wallet] that validates', async () => {
+	it('builds [budget, budget, secp256r1_verify, set_owner] that validates', async () => {
 		const { payload, recipient } = await fakePayload();
 		const { wireBytes } = await buildLinkTransaction({ payload, rpc, recipient, blockhash: BLOCKHASH });
 		expect(() => validateLinkTransaction(wireBytes, expectationFromPayload(payload, recipient.address))).not.toThrow();

@@ -17,7 +17,7 @@
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { accessoryMediaQuery, accessoryShortcutsQuery } from '$lib/client/queries';
-	import { forgetLinkedWalletDetails, shouldChooseWallet, reconcileAccessoryWallet, accessoryLinkContext, type LinkedWalletContext, recentConnectionMethod, accessoryConnectionMethod, type ConnectionMethod, recentWallet, rememberedWallet, accessoryWalletApp, rememberAccessoryWalletApp, rememberRecentWallet } from '$lib/client/memory';
+	import { forgetOwnerDetails, shouldChooseWallet, reconcileAccessoryWallet, accessoryLinkContext, type OwnerContext, recentConnectionMethod, accessoryConnectionMethod, type ConnectionMethod, recentWallet, rememberedWallet, accessoryWalletApp, rememberAccessoryWalletApp, rememberRecentWallet } from '$lib/client/memory';
 	import { isLikelyWalletBrowser, platform, type Platform } from '$lib/client/capability';
 	import { shortcutLaunch, walletLaunchHref, type ShortcutLaunch } from '$lib/client/shortcuts';
 	import { KNOWN_WALLETS, type KnownWallet } from '$lib/client/wallet/catalog';
@@ -29,7 +29,7 @@
 	const a = $derived(data.accessory);
 
 	let nftOpen = $state(false);
-	let linkedContext = $state<LinkedWalletContext | null>(null);
+	let linkedContext = $state<OwnerContext | null>(null);
 	let detailsOpen = $state(false);
 	let releaseOpen = $state(false);
 	let refreshing = $state(false);
@@ -53,14 +53,14 @@
 		};
 	});
 
-	const owned = $derived(!!a?.linkedWallet && walletStore.address === a.linkedWallet);
+	const owned = $derived(!!a?.owner && walletStore.address === a.owner);
 
-	// "Linked wallet changed" is only knowable against what this device linked before.
+	// "Owner changed" is only knowable against what this device linked before.
 	let remembered = $state<string | null>(null);
 	$effect(() => {
 		if (a) remembered = rememberedWallet(a.pda);
 	});
-	const changedElsewhere = $derived(!!a?.linkedWallet && !!remembered && remembered !== a.linkedWallet);
+	const changedElsewhere = $derived(!!a?.owner && !!remembered && remembered !== a.owner);
 
 	const screen = $derived(a ? tapScreen(a, owned) : null);
 
@@ -74,26 +74,26 @@
 	const linkedIcon = $derived(KNOWN_WALLETS.find(w => linkedApp && w.match.test(linkedApp))?.icon ?? (owned && walletStore.walletName === linkedApp ? walletStore.walletIcon : null));
 	const linkedDetail = $derived([linkedApp, linkedContext ? ({desktop:'Linked from desktop', mobile:'Linked from mobile browser', wallet:'Linked in wallet app'}[linkedContext.source]) : null].filter(Boolean).join(' · ') || null);
 
-	const shortcutsQuery = createQuery(() => ({ ...accessoryShortcutsQuery(a?.pda ?? '', a?.linkedWallet ?? null), enabled: !!a?.mint }));
+	const shortcutsQuery = createQuery(() => ({ ...accessoryShortcutsQuery(a?.pda ?? '', a?.owner ?? null), enabled: !!a?.mint }));
 	let device = $state<{ platform: Platform; inWallet: boolean; recent: string | null; method: ConnectionMethod | null; chooseWallet?: boolean; origin: string } | null>(null);
 	onMount(() => {
-		linkedContext = a ? accessoryLinkContext(a.pda, a.linkedWallet) : null;
-		device = { chooseWallet: shouldChooseWallet(a?.pda ?? ''), method: (a ? accessoryConnectionMethod(a.pda, a.linkedWallet) : null) ?? recentConnectionMethod(), platform: platform(), inWallet: isLikelyWalletBrowser(), recent: (a ? accessoryWalletApp(a.pda, a.linkedWallet) : null) ?? recentWallet(), origin: window.location.origin };
+		linkedContext = a ? accessoryLinkContext(a.pda, a.owner) : null;
+		device = { chooseWallet: shouldChooseWallet(a?.pda ?? ''), method: (a ? accessoryConnectionMethod(a.pda, a.owner) : null) ?? recentConnectionMethod(), platform: platform(), inWallet: isLikelyWalletBrowser(), recent: (a ? accessoryWalletApp(a.pda, a.owner) : null) ?? recentWallet(), origin: window.location.origin };
 	});
 	$effect(() => {
 		const current = a;
 		untrack(() => {
 			if (!device || !current) return;
-			const stale = reconcileAccessoryWallet(current.pda, current.linkedWallet);
-			linkedContext = accessoryLinkContext(current.pda, current.linkedWallet);
+			const stale = reconcileAccessoryWallet(current.pda, current.owner);
+			linkedContext = accessoryLinkContext(current.pda, current.owner);
 			device = { ...device, chooseWallet: shouldChooseWallet(a?.pda ?? ''),
-				recent: accessoryWalletApp(current.pda, current.linkedWallet) ?? (stale ? null : recentWallet()),
-				method: accessoryConnectionMethod(current.pda, current.linkedWallet) ?? (stale ? null : recentConnectionMethod())
+				recent: accessoryWalletApp(current.pda, current.owner) ?? (stale ? null : recentWallet()),
+				method: accessoryConnectionMethod(current.pda, current.owner) ?? (stale ? null : recentConnectionMethod())
 			};
 		});
 	});
 	function forgetApps() {
-		if (a) forgetLinkedWalletDetails(a.pda);
+		if (a) forgetOwnerDetails(a.pda);
 		linkedContext = null;
 		if (device) device = { ...device, recent: null, method: null, chooseWallet: true };
 	}
@@ -165,9 +165,9 @@
 					<Notice tone="info" {...changedElsewhereNotice(a)} />
 				{/if}
 
-				{#if a.linkedWallet && screen.walletLabel}
+				{#if a.owner && screen.walletLabel}
 					<List footer={screen.footnote}>
-						<WalletRow address={a.linkedWallet} label={screen.walletLabel} icon={linkedIcon} context={linkedDetail} nftOwnership={media?.owner ? (media.owner === a.linkedWallet ? 'same' : 'different') : null} onforget={linkedContext?.app || (a && accessoryWalletApp(a.pda, a.linkedWallet)) ? forgetApps : undefined} cluster={data.cluster} />
+						<WalletRow address={a.owner} label={screen.walletLabel} icon={linkedIcon} context={linkedDetail} nftOwnership={media?.owner ? (media.owner === a.owner ? 'same' : 'different') : null} onforget={linkedContext?.app || (a && accessoryWalletApp(a.pda, a.owner)) ? forgetApps : undefined} cluster={data.cluster} />
 					</List>
 				{/if}
 
@@ -212,11 +212,11 @@
 
 <OpenInWalletSheet browserHref={picking ? (picking.s.proof ? `/shortcut/${picking.index}` : picking.s.href) : null} onbrowser={() => {
 	rememberRecentWallet(device?.recent ?? 'Browser', 'browser');
-	if (a) rememberAccessoryWalletApp(a.pda, a.linkedWallet, device?.recent ?? 'Browser', 'browser');
+	if (a) rememberAccessoryWalletApp(a.pda, a.owner, device?.recent ?? 'Browser', 'browser');
 	if (device) device = { ...device, method: 'browser', chooseWallet: false };
 }} destination={picking?.s.href ?? null} hrefFor={pickHref} label={picking?.s.label ?? ''} onchoose={(w) => {
 	rememberRecentWallet(w.name);
-	if (a) rememberAccessoryWalletApp(a.pda, a.linkedWallet, w.name);
+	if (a) rememberAccessoryWalletApp(a.pda, a.owner, w.name);
 	if (device) device = { ...device, recent: w.name, method: 'wallet', chooseWallet: false };
 }} bind:open={pickOpen} />
 

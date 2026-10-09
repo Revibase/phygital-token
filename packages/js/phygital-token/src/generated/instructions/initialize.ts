@@ -93,14 +93,14 @@ export type InitializeInstructionData = {
   identifier: Secp256r1Pubkey;
   secp256r1Pubkey: Secp256r1Pubkey;
   tokenType: PhygitalTokenType;
-  linkedWallet: Address;
+  owner: Address;
 };
 
 export type InitializeInstructionDataArgs = {
   identifier: Secp256r1PubkeyArgs;
   secp256r1Pubkey: Secp256r1PubkeyArgs;
   tokenType: PhygitalTokenTypeArgs;
-  linkedWallet: Address;
+  owner: Address;
 };
 
 export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<InitializeInstructionDataArgs> {
@@ -110,7 +110,7 @@ export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<Initiali
       ["identifier", getSecp256r1PubkeyEncoder()],
       ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
       ["tokenType", getPhygitalTokenTypeEncoder()],
-      ["linkedWallet", getAddressEncoder()],
+      ["owner", getAddressEncoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_DISCRIMINATOR }),
   );
@@ -122,7 +122,7 @@ export function getInitializeInstructionDataDecoder(): FixedSizeDecoder<Initiali
     ["identifier", getSecp256r1PubkeyDecoder()],
     ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
     ["tokenType", getPhygitalTokenTypeDecoder()],
-    ["linkedWallet", getAddressDecoder()],
+    ["owner", getAddressDecoder()],
   ]);
 }
 
@@ -150,7 +150,7 @@ export type InitializeAsyncInput<
   identifier: InitializeInstructionDataArgs["identifier"];
   secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
   tokenType: InitializeInstructionDataArgs["tokenType"];
-  linkedWallet: InitializeInstructionDataArgs["linkedWallet"];
+  owner: InitializeInstructionDataArgs["owner"];
 };
 
 export async function getInitializeInstructionAsync<
@@ -239,7 +239,7 @@ export type InitializeInput<
   identifier: InitializeInstructionDataArgs["identifier"];
   secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
   tokenType: InitializeInstructionDataArgs["tokenType"];
-  linkedWallet: InitializeInstructionDataArgs["linkedWallet"];
+  owner: InitializeInstructionDataArgs["owner"];
 };
 
 export function getInitializeInstruction<

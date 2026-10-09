@@ -15,7 +15,7 @@ export { parseSecp256r1Pubkey } from "./utils/parseSecp256r1Pubkey.js";
 
 export {
   fetchPhygitalTokenByIdentifier,
-  fetchPhygitalTokensByLinkedWallet,
+  fetchPhygitalTokensByOwner,
   fetchPhygitalTokenByMint,
 } from "./utils/metadata.js";
 

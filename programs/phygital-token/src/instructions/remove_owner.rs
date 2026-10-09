@@ -2,33 +2,33 @@ use crate::{error::PhygitalError, PhygitalToken, PhygitalTokenType, Secp256r1Pub
 use anchor_lang::prelude::*;
 
 #[event]
-pub struct RemoveLinkedWalletEvent {
-    pub linked_wallet: Pubkey,
+pub struct RemoveOwnerEvent {
+    pub owner: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
 }
 
 #[derive(Accounts)]
-pub struct RemoveLinkedWallet<'info> {
-    pub linked_wallet: Signer<'info>,
+pub struct RemoveOwner<'info> {
+    pub owner: Signer<'info>,
     #[account(
         mut,
-        constraint = phygital_token.load()?.linked_wallet == linked_wallet.key() @ PhygitalError::LinkedWalletMismatch
+        constraint = phygital_token.load()?.owner == owner.key() @ PhygitalError::OwnerMismatch
     )]
     pub phygital_token: AccountLoader<'info, PhygitalToken>,
 }
 
-pub fn handler(ctx: Context<RemoveLinkedWallet>) -> Result<()> {
+pub fn handler(ctx: Context<RemoveOwner>) -> Result<()> {
     let mut token = ctx.accounts.phygital_token.load_mut()?;
     require!(
         token.token_type != PhygitalTokenType::Permanent as u8,
-        PhygitalError::PermanentLinkedWalletImmutable
+        PhygitalError::PermanentOwnerImmutable
     );
-    token.linked_wallet = Pubkey::default();
+    token.owner = Pubkey::default();
     token.is_locked = 0;
 
-    emit!(RemoveLinkedWalletEvent {
-        linked_wallet: ctx.accounts.linked_wallet.key(),
+    emit!(RemoveOwnerEvent {
+        owner: ctx.accounts.owner.key(),
         identifier: token.identifier,
         public_key: token.public_key,
     });

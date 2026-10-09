@@ -40,12 +40,12 @@ Roles must be distinct pubkeys. `initialize` requires issuer; `assign_mint` requ
 
 | Export | Purpose |
 |--------|---------|
-| `getInitializeInstruction` | Create token PDA (seeded by passkey; requires `linkedWallet` + `AdminConfig`) |
+| `getInitializeInstruction` | Create token PDA (seeded by passkey; requires `owner` + `AdminConfig`) |
 | `parseSecp256r1Pubkey` | Parse a base64url 33-byte compressed secp256r1 public key |
 | `findPhygitalTokenPda` | Derive the phygital token PDA from a passkey public key |
 | `findAdminConfigPda` | Derive AdminConfig for the initialize accounts |
 
-Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_issuer`. Tokens with a non-default `linkedWallet` at init start locked (`is_locked = 1`).
+Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_issuer`. Only Permanent tokens may set a non-default `owner` at init, and they start locked (`is_locked = 1`).
 
 ## Assign mint
 
@@ -63,9 +63,9 @@ Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_
 |--------|---------|
 | `beginTransfer({ rpc, secp256r1Pubkey, rpId? })` | Derives token PDA from passkey; slot-bound challenge; `rpId` defaults to hostname |
 | `authenticatePasskeyForTransfer(session, { transceive? })` | NFC tap; optional `transceive` for native APDU |
-| `completeTransfer` | Kit `TransactionSigner` recipient; `response.id` as passkey; builds secp + set_linked_wallet |
+| `completeTransfer` | Kit `TransactionSigner` recipient; `response.id` as passkey; builds secp + set_owner |
 
-`set_linked_wallet` requires `is_locked == 0` for **every** token type. Permanent tokens stay locked and always fail with `TokenIsCurrentlyLocked`. Controlled tokens re-lock after claim.
+`set_owner` requires `is_locked == 0` for **every** token type. Permanent tokens stay locked and always fail with `TokenIsCurrentlyLocked`. Controlled tokens re-lock after claim.
 
 ## Verify (on-chain composable)
 
@@ -78,11 +78,11 @@ Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_
 
 See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `expectedOrigins` is set, `clientDataJSON.origin` must match one listed origin.
 
-## Remove linked wallet
+## Remove owner
 
 | Export | Purpose |
 |--------|---------|
-| `getRemoveLinkedWalletInstruction` | Wallet-signed forfeiture — reset `phygital_token.linked_wallet` to default and clear `is_locked` |
+| `getRemoveOwnerInstruction` | Wallet-signed forfeiture — reset `phygital_token.owner` to default and clear `is_locked` |
 
 ## Verification (off-chain only)
 
@@ -100,7 +100,7 @@ Issue any short-lived message string — no `generateAuthenticationOptions`. The
 | `findPhygitalTokenPda` | Derive token PDA from passkey public key (base64url string or parsed `Secp256r1Pubkey`) |
 | `findAdminConfigPda` | Derive AdminConfig PDA |
 | `fetchPhygitalTokenByIdentifier` | Kit `Rpc`; `getProgramAccounts` memcmp on chip `identifier` |
-| `fetchPhygitalTokensByLinkedWallet` | Kit `Rpc` + `Address` linkedWallet |
+| `fetchPhygitalTokensByOwner` | Kit `Rpc` + `Address` owner |
 | `fetchPhygitalTokenByMint` | Kit `Address` mint + Kit `Rpc` |
 | `fetchPhygitalToken` | Generated helper — Kit `Rpc` + token PDA |
 | `fetchAdminConfig` | Generated helper — Kit `Rpc` + AdminConfig PDA |
@@ -109,7 +109,7 @@ Issue any short-lived message string — no `generateAuthenticationOptions`. The
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getInitializeInstruction`, `getAssignMintInstruction`, `getSetLinkedWalletInstruction`, `getVerifyInstruction`, `getRemoveLinkedWalletInstruction`, `getCreateConfigInstruction`, `getSetAdminInstruction`, `getSetIssuerInstruction`, `getSetMinterInstruction`, `getClosePhygitalTokenInstruction`, …
+- Instructions: `getInitializeInstruction`, `getAssignMintInstruction`, `getSetOwnerInstruction`, `getVerifyInstruction`, `getRemoveOwnerInstruction`, `getCreateConfigInstruction`, `getSetAdminInstruction`, `getSetIssuerInstruction`, `getSetMinterInstruction`, `getClosePhygitalTokenInstruction`, …
 - Accounts: `fetchPhygitalToken`, `fetchAdminConfig`, `findAdminConfigPda`, `PhygitalToken`, `AdminConfig`, …
 - Types: `PhygitalTokenType` (`Permanent` | `Bearer` | `Controlled`), `Secp256r1Pubkey`, …
 
@@ -117,8 +117,8 @@ Re-exported from `./generated/index.js`:
 
 Crate: `phygital-token-client` at `packages/rust/phygital-token`.
 
-On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `AssignMintCpiBuilder`, `SetLinkedWalletCpiBuilder`, `CreateConfigCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
+On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `AssignMintCpiBuilder`, `SetOwnerCpiBuilder`, `CreateConfigCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
 
-`PhygitalTokenType`: `Permanent` (0, immutable linked wallet, stays locked), `Bearer` (1), `Controlled` (2, lock/forfeit).
+`PhygitalTokenType`: `Permanent` (0, immutable owner, stays locked), `Bearer` (1), `Controlled` (2, lock/forfeit).
 
 Off-chain (`fetch` feature): RPC account fetching helpers.

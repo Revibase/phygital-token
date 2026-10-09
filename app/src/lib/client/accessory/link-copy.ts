@@ -39,7 +39,7 @@ const BEARER: LinkCopy = {
 };
 const CONTROLLED: LinkCopy = {
 	...COMMON,
-	confirm: { title: 'Link this wallet?', body: 'Anyone holding the accessory can use its tap access. Only the linked wallet can unlink it before another wallet links it.' },
+	confirm: { title: 'Link this wallet?', body: 'Anyone holding the accessory can use its tap access. Only the owner can unlink it before another wallet links it.' },
 	done: {
 		title: 'Wallet linked',
 		body: (yours, wallet) => yours ? 'Linked to your wallet until you unlink it.' : `Linked to ${wallet} until that wallet unlinks it.`

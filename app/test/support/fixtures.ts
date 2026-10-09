@@ -23,7 +23,7 @@ export function fakeAccessory() {
 		account(overrides: Partial<PhygitalToken> = {}): PhygitalToken {
 			return {
 				discriminator: new Uint8Array(8),
-				linkedWallet: address('11111111111111111111111111111111'),
+				owner: address('11111111111111111111111111111111'),
 				mint: address('11111111111111111111111111111111'),
 				lastSignCount: 3,
 				tokenType: 1,

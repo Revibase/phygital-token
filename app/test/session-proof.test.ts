@@ -15,7 +15,7 @@ const NOW = 1_800_000_000_000;
 const MINT = 'So11111111111111111111111111111111111111112';
 const OWNER = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 const OTHER = 'J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w';
-const accessory = { pda: 'PdaPdaPda', mint: MINT, linkedWallet: OWNER, kind: 'controlled' } as AccessoryView;
+const accessory = { pda: 'PdaPdaPda', mint: MINT, owner: OWNER, kind: 'controlled' } as AccessoryView;
 const tap: AdmitSession = { v: 1, t: 'bu', sid: 's', pda: 'PdaPdaPda', identifier: 'id', exp: NOW + 10 * 60_000 };
 const owner: AdmitSession = { v: 1, t: 'ob', sid: 's', pda: 'PdaPdaPda', identifier: 'id', wallet: OWNER, exp: NOW + 12 * 3600_000 };
 
@@ -87,7 +87,7 @@ describe('markProofs (the list the page holds)', () => {
 	it('marks nothing when no proof would be issued', () => {
 		const none = (m: ReturnType<typeof markProofs>) => m.every((s) => !s.proof);
 		expect(none(markProofs(project, { key: null, issuer: ISSUER, session: tap, accessory, now: NOW }))).toBe(true);
-		expect(none(markProofs(project, { key, issuer: ISSUER, session: owner, accessory: { ...accessory, linkedWallet: OTHER }, now: NOW }))).toBe(true);
+		expect(none(markProofs(project, { key, issuer: ISSUER, session: owner, accessory: { ...accessory, owner: OTHER }, now: NOW }))).toBe(true);
 		expect(none(markProofs(project, { key, issuer: ISSUER, session: { ...tap, exp: NOW }, accessory, now: NOW }))).toBe(true);
 	});
 });
@@ -152,7 +152,7 @@ describe('withSessionProofs', () => {
 	it('proves an owner session the same way, only while that wallet is still linked', () => {
 		const [play] = withSessionProofs(project, { key, issuer: ISSUER, session: owner, accessory, now: NOW });
 		expect(verify(play.href)).toMatchObject({ wallet: OWNER, authentication: 'wallet' });
-		const moved = { ...accessory, linkedWallet: OTHER };
+		const moved = { ...accessory, owner: OTHER };
 		expect(withSessionProofs(project, { key, issuer: ISSUER, session: owner, accessory: moved, now: NOW })).toBe(project.shortcuts);
 	});
 

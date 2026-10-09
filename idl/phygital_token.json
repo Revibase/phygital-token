@@ -59,11 +59,6 @@
     },
     {
       "name": "close_phygital_token",
-      "docs": [
-        "Close a phygital token PDA and send its rent to `rent_recipient`.",
-        "Admin-only. Irreversible — the chip can be re-initialized later with a",
-        "fresh `initialize` if the same passkey is reused."
-      ],
       "discriminator": [
         254,
         245,
@@ -212,20 +207,20 @@
       ]
     },
     {
-      "name": "remove_linked_wallet",
+      "name": "remove_owner",
       "discriminator": [
-        7,
-        178,
-        142,
-        3,
-        161,
-        131,
-        177,
-        97
+        153,
+        251,
+        84,
+        208,
+        33,
+        62,
+        15,
+        247
       ],
       "accounts": [
         {
-          "name": "linked_wallet",
+          "name": "owner",
           "signer": true
         },
         {
@@ -322,51 +317,6 @@
       ]
     },
     {
-      "name": "set_linked_wallet",
-      "discriminator": [
-        118,
-        134,
-        6,
-        114,
-        75,
-        108,
-        86,
-        199
-      ],
-      "accounts": [
-        {
-          "name": "recipient",
-          "signer": true
-        },
-        {
-          "name": "phygital_token",
-          "writable": true
-        },
-        {
-          "name": "slot_hashes",
-          "address": "SysvarS1otHashes111111111111111111111111111"
-        },
-        {
-          "name": "instructions_sysvar",
-          "address": "Sysvar1nstructions1111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "secp256r1_verify_args",
-          "type": {
-            "defined": {
-              "name": "Secp256r1VerifyArgs"
-            }
-          }
-        },
-        {
-          "name": "slot_number",
-          "type": "u64"
-        }
-      ]
-    },
-    {
       "name": "set_minter",
       "discriminator": [
         13,
@@ -406,6 +356,51 @@
         {
           "name": "minter",
           "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_owner",
+      "discriminator": [
+        72,
+        202,
+        120,
+        52,
+        77,
+        128,
+        96,
+        197
+      ],
+      "accounts": [
+        {
+          "name": "recipient",
+          "signer": true
+        },
+        {
+          "name": "phygital_token",
+          "writable": true
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "secp256r1_verify_args",
+          "type": {
+            "defined": {
+              "name": "Secp256r1VerifyArgs"
+            }
+          }
+        },
+        {
+          "name": "slot_number",
+          "type": "u64"
         }
       ]
     },
@@ -555,16 +550,16 @@
       ]
     },
     {
-      "name": "RemoveLinkedWalletEvent",
+      "name": "RemoveOwnerEvent",
       "discriminator": [
-        95,
-        70,
-        121,
-        173,
-        81,
-        218,
-        242,
-        83
+        246,
+        26,
+        190,
+        2,
+        53,
+        42,
+        12,
+        235
       ]
     },
     {
@@ -594,19 +589,6 @@
       ]
     },
     {
-      "name": "SetLinkedWalletEvent",
-      "discriminator": [
-        155,
-        114,
-        79,
-        24,
-        64,
-        122,
-        22,
-        188
-      ]
-    },
-    {
       "name": "SetMinterEvent",
       "discriminator": [
         8,
@@ -617,6 +599,19 @@
         98,
         240,
         242
+      ]
+    },
+    {
+      "name": "SetOwnerEvent",
+      "discriminator": [
+        229,
+        51,
+        193,
+        27,
+        198,
+        107,
+        153,
+        2
       ]
     }
   ],
@@ -648,8 +643,8 @@
     },
     {
       "code": 6005,
-      "name": "LinkedWalletMismatch",
-      "msg": "Phygital token linked wallet mismatch"
+      "name": "OwnerMismatch",
+      "msg": "Phygital token owner mismatch"
     },
     {
       "code": 6006,
@@ -679,7 +674,7 @@
     {
       "code": 6011,
       "name": "TokenIsCurrentlyLocked",
-      "msg": "The linked wallet needs to unlock the phygital token to enable transfer."
+      "msg": "The owner needs to unlock the phygital token to enable transfer."
     },
     {
       "code": 6012,
@@ -733,13 +728,13 @@
     },
     {
       "code": 6022,
-      "name": "PermanentLinkedWalletRequired",
-      "msg": "Permanent phygital tokens require a non-default linked wallet at initialize."
+      "name": "PermanentOwnerRequired",
+      "msg": "Only Permanent phygital tokens set an owner at initialize, and they must set one."
     },
     {
       "code": 6023,
-      "name": "PermanentLinkedWalletImmutable",
-      "msg": "Permanent phygital token linked wallet cannot be transferred or removed."
+      "name": "PermanentOwnerImmutable",
+      "msg": "Permanent phygital token owner cannot be transferred or removed."
     }
   ],
   "types": [
@@ -833,7 +828,7 @@
             }
           },
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -885,7 +880,7 @@
             }
           },
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           }
         ]
@@ -917,7 +912,7 @@
             }
           },
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -941,7 +936,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -1000,12 +995,12 @@
       }
     },
     {
-      "name": "RemoveLinkedWalletEvent",
+      "name": "RemoveOwnerEvent",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -1097,7 +1092,23 @@
       }
     },
     {
-      "name": "SetLinkedWalletEvent",
+      "name": "SetMinterEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "minter",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetOwnerEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1106,7 +1117,7 @@
             "type": "pubkey"
           },
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -1124,22 +1135,6 @@
                 "name": "Secp256r1Pubkey"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "SetMinterEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "admin",
-            "type": "pubkey"
-          },
-          {
-            "name": "minter",
-            "type": "pubkey"
           }
         ]
       }

@@ -8,7 +8,7 @@ const W = '7Yu3oPKm7hSbcX3u7ke1HMuiKeuuSJo4iQ8PYP6VGkCN';
 const UNSET = null;
 
 describe('accessoryRules', () => {
-	it('Bearer: moves to a new wallet with a tap while unlocked; linked wallet can release', () => {
+	it('Bearer: moves to a new wallet with a tap while unlocked; owner can release', () => {
 		expect(accessoryRules('bearer', UNSET, false)).toEqual({ canLink: true, canRelease: false });
 		expect(accessoryRules('bearer', W, false)).toEqual({ canLink: true, canRelease: true });
 	});
@@ -32,7 +32,7 @@ describe('toAccessoryView', () => {
 	const view = (o: Parameters<typeof acc.account>[0]) => toAccessoryView('pda', acc.account(o));
 
 	it('Controlled + linked is shown locked, with release only', () => {
-		expect(view({ tokenType: 2, linkedWallet: address(W), isLocked: 1 })).toMatchObject({
+		expect(view({ tokenType: 2, owner: address(W), isLocked: 1 })).toMatchObject({
 			kind: 'controlled',
 			status: 'linked_locked',
 			canLink: false,
@@ -41,7 +41,7 @@ describe('toAccessoryView', () => {
 	});
 
 	it('Permanent is shown linked-and-fixed with no actions; an unlinked Permanent is unavailable', () => {
-		expect(view({ tokenType: 0, linkedWallet: address(W), isLocked: 1 })).toMatchObject({
+		expect(view({ tokenType: 0, owner: address(W), isLocked: 1 })).toMatchObject({
 			status: 'linked_locked',
 			canLink: false,
 			canRelease: false
@@ -50,6 +50,6 @@ describe('toAccessoryView', () => {
 	});
 
 	it('Bearer + linked stays re-linkable', () => {
-		expect(view({ tokenType: 1, linkedWallet: address(W) })).toMatchObject({ status: 'linked', canLink: true, canRelease: true });
+		expect(view({ tokenType: 1, owner: address(W) })).toMatchObject({ status: 'linked', canLink: true, canRelease: true });
 	});
 });

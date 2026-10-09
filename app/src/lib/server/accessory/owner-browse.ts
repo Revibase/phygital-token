@@ -102,7 +102,7 @@ export async function verifyOwnerBrowse(
 	}
 	if (!resolved) return { ok: false, status: 404, code: 'unknown_accessory', error: 'This accessory isn’t registered.' };
 
-	const linked = String(resolved.account.linkedWallet);
+	const linked = String(resolved.account.owner);
 	if (linked === DEFAULT_PUBKEY || linked !== wallet) {
 		return { ok: false, status: 403, code: 'not_owner', error: 'This wallet isn’t linked to that accessory.' };
 	}

@@ -27,7 +27,7 @@ The crate re-exports generated instruction builders, account layouts, types, and
 
 ```rust
 use phygital_token_client::{
-    instructions::{SetLinkedWalletCpiBuilder, VerifyCpiBuilder, AssignMintCpiBuilder},
+    instructions::{SetOwnerCpiBuilder, VerifyCpiBuilder, AssignMintCpiBuilder},
     types::PhygitalTokenType,
     PHYGITAL_TOKEN_ID,
 };

@@ -18,7 +18,7 @@
 
 	let { accessory, cluster, open = $bindable(false) }: { accessory: AccessoryView; cluster: string; open?: boolean } = $props();
 
-	const explorable = new Set(['Linked wallet', 'Collectible']);
+	const explorable = new Set(['Owner', 'Collectible']);
 	const mediaQuery = createQuery(() => ({ ...accessoryMediaQuery(accessory.pda), enabled: !!accessory.mint }));
 	const media = $derived(mediaQuery.data ?? null);
 	const collectibleName = $derived(media?.name ?? null);
@@ -56,7 +56,7 @@
 	const copyable = $derived(
 		[
 			['Public Key', accessory.publicKey],
-			['Linked wallet', accessory.linkedWallet],
+			['Owner', accessory.owner],
 			['Collectible', accessory.mint]
 		] as const
 	);

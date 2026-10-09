@@ -12,7 +12,7 @@ pub struct ClosePhygitalTokenEvent {
     pub rent_recipient: Pubkey,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
-    pub linked_wallet: Pubkey,
+    pub owner: Pubkey,
     pub mint: Pubkey,
 }
 
@@ -52,7 +52,7 @@ pub fn handler(ctx: Context<ClosePhygitalToken>) -> Result<()> {
         rent_recipient: ctx.accounts.rent_recipient.key(),
         public_key: token.public_key,
         identifier: token.identifier,
-        linked_wallet: token.linked_wallet,
+        owner: token.owner,
         mint: token.mint,
     });
 

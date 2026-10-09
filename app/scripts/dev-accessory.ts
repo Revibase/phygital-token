@@ -63,7 +63,7 @@ async function add(name: string, kind = 'bearer') {
 	const tokenType = { bearer: PhygitalTokenType.Bearer, controlled: PhygitalTokenType.Controlled, permanent: PhygitalTokenType.Permanent }[kind];
 	if (tokenType === undefined) throw new Error(`unknown type ${kind}`);
 	// Permanent must name its wallet at initialize.
-	const linkedWallet = tokenType === PhygitalTokenType.Permanent ? (await funded()).address : UNSET;
+	const owner = tokenType === PhygitalTokenType.Permanent ? (await funded()).address : UNSET;
 	await send(issuer, [
 		await getInitializeInstructionAsync({
 			authority: issuer,
@@ -72,7 +72,7 @@ async function add(name: string, kind = 'bearer') {
 			identifier: [acc.identifier],
 			secp256r1Pubkey: [acc.passkey],
 			tokenType,
-			linkedWallet
+			owner
 		})
 	]);
 	s.accessories[name] = { keys: acc.keys(), pda: String(pda), kind };

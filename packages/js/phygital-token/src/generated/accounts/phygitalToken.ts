@@ -57,7 +57,7 @@ export function getPhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array {
 
 export type PhygitalToken = {
   discriminator: ReadonlyUint8Array;
-  linkedWallet: Address;
+  owner: Address;
   mint: Address;
   lastSignCount: number;
   tokenType: number;
@@ -67,7 +67,7 @@ export type PhygitalToken = {
 };
 
 export type PhygitalTokenArgs = {
-  linkedWallet: Address;
+  owner: Address;
   mint: Address;
   lastSignCount: number;
   tokenType: number;
@@ -81,7 +81,7 @@ export function getPhygitalTokenEncoder(): FixedSizeEncoder<PhygitalTokenArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["linkedWallet", getAddressEncoder()],
+      ["owner", getAddressEncoder()],
       ["mint", getAddressEncoder()],
       ["lastSignCount", getU32Encoder()],
       ["tokenType", getU8Encoder()],
@@ -97,7 +97,7 @@ export function getPhygitalTokenEncoder(): FixedSizeEncoder<PhygitalTokenArgs> {
 export function getPhygitalTokenDecoder(): FixedSizeDecoder<PhygitalToken> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["linkedWallet", getAddressDecoder()],
+    ["owner", getAddressDecoder()],
     ["mint", getAddressDecoder()],
     ["lastSignCount", getU32Decoder()],
     ["tokenType", getU8Decoder()],

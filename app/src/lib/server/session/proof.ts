@@ -24,7 +24,7 @@ export type SessionProofClaims = {
 	sub: string;
 	mint: string;
 	kind: TokenKind;
-	/** Linked-wallet context, never evidence that a tapper controls its keys. */
+	/** Owner context, never evidence that a tapper controls its keys. */
 	wallet: string | null;
 	/** Accessory possession or a wallet-authenticated owner session. */
 	authentication: 'accessory' | 'wallet';

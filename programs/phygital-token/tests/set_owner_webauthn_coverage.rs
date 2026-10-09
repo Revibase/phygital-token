@@ -11,7 +11,7 @@ use solana_signer::Signer;
 /// `signed_message_index` past the number of signatures in the secp256r1
 /// instruction must be rejected (covers `SignatureIndexOutOfBounds`).
 #[test]
-fn set_linked_wallet_rejects_signature_index_out_of_bounds() {
+fn set_owner_rejects_signature_index_out_of_bounds() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -22,7 +22,7 @@ fn set_linked_wallet_rejects_signature_index_out_of_bounds() {
         passkey.secp256r1_verify_instruction(phygital_token.phygital_token, slot_hash, 1);
     verify_args.signed_message_index = 1;
 
-    let transfer_ix = ctx.set_linked_wallet_ix(
+    let transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),
         phygital_token.phygital_token,
         verify_args,
@@ -31,14 +31,13 @@ fn set_linked_wallet_rejects_signature_index_out_of_bounds() {
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    let err =
-        ctx.send_set_linked_wallet_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
+    let err = ctx.send_set_owner_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
     assert_phygital_token_program_error(err, "SignatureIndexOutOfBounds");
 }
 
 /// Malformed `client_data_json` must be rejected before hash comparison.
 #[test]
-fn set_linked_wallet_rejects_unparseable_client_data() {
+fn set_owner_rejects_unparseable_client_data() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -49,7 +48,7 @@ fn set_linked_wallet_rejects_unparseable_client_data() {
         passkey.secp256r1_verify_instruction(phygital_token.phygital_token, slot_hash, 1);
     verify_args.client_data_json = b"not-json".to_vec();
 
-    let transfer_ix = ctx.set_linked_wallet_ix(
+    let transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),
         phygital_token.phygital_token,
         verify_args,
@@ -58,14 +57,13 @@ fn set_linked_wallet_rejects_unparseable_client_data() {
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    let err =
-        ctx.send_set_linked_wallet_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
+    let err = ctx.send_set_owner_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
     assert_phygital_token_program_error(err, "UnableToParseClientData");
 }
 
 /// `client_data_json` must hash to the value embedded in the secp256r1 instruction.
 #[test]
-fn set_linked_wallet_rejects_client_data_hash_mismatch() {
+fn set_owner_rejects_client_data_hash_mismatch() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -76,7 +74,7 @@ fn set_linked_wallet_rejects_client_data_hash_mismatch() {
         passkey.secp256r1_verify_instruction(phygital_token.phygital_token, slot_hash, 1);
     verify_args.client_data_json.push(b' ');
 
-    let transfer_ix = ctx.set_linked_wallet_ix(
+    let transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),
         phygital_token.phygital_token,
         verify_args,
@@ -85,14 +83,13 @@ fn set_linked_wallet_rejects_client_data_hash_mismatch() {
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    let err =
-        ctx.send_set_linked_wallet_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
+    let err = ctx.send_set_owner_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
     assert_phygital_token_program_error(err, "ClientDataHashMismatch");
 }
 
 /// Authenticator data without the WebAuthn UP flag must be rejected.
 #[test]
-fn set_linked_wallet_rejects_missing_user_presence() {
+fn set_owner_rejects_missing_user_presence() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -106,7 +103,7 @@ fn set_linked_wallet_rejects_missing_user_presence() {
         0x00,
     );
 
-    let transfer_ix = ctx.set_linked_wallet_ix(
+    let transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),
         phygital_token.phygital_token,
         verify_args,
@@ -115,15 +112,14 @@ fn set_linked_wallet_rejects_missing_user_presence() {
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    let err =
-        ctx.send_set_linked_wallet_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
+    let err = ctx.send_set_owner_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
     assert_phygital_token_program_error(err, "UserPresenceNotVerified");
 }
 
 /// The passkey signs over the phygital_token PDA only — recipient is not in the challenge —
-/// but the recipient wallet must co-sign to accept linked wallet.
+/// but the recipient wallet must co-sign to accept owner.
 #[test]
-fn set_linked_wallet_rejects_recipient_not_signing() {
+fn set_owner_rejects_recipient_not_signing() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -133,7 +129,7 @@ fn set_linked_wallet_rejects_recipient_not_signing() {
     let (secp_ix, verify_args) =
         passkey.secp256r1_verify_instruction(phygital_token.phygital_token, slot_hash, 1);
 
-    let mut transfer_ix = ctx.set_linked_wallet_ix(
+    let mut transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),
         phygital_token.phygital_token,
         verify_args,
@@ -146,10 +142,10 @@ fn set_linked_wallet_rejects_recipient_not_signing() {
     }
 
     let payer = ctx.payer.insecure_clone();
-    let err = ctx.send_set_linked_wallet_with_instructions(vec![secp_ix, transfer_ix], &[&payer]);
+    let err = ctx.send_set_owner_with_instructions(vec![secp_ix, transfer_ix], &[&payer]);
     assert_transaction_failed(err);
     assert_eq!(
-        ctx.phygital_token_linked_wallet(phygital_token.phygital_token),
+        ctx.phygital_token_owner(phygital_token.phygital_token),
         Pubkey::default()
     );
 }
