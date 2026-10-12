@@ -17,6 +17,7 @@ import {
   SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
   SolanaError,
   type Address,
+  type ClientWithPayer,
   type ClientWithRpc,
   type ClientWithTransactionPlanning,
   type ClientWithTransactionSending,
@@ -34,8 +35,11 @@ import {
   type SelfPlanAndSendFunctions,
 } from "@solana/kit/program-client-core";
 import {
+  getAccessoryPolicyCodec,
   getAdminConfigCodec,
   getPhygitalTokenCodec,
+  type AccessoryPolicy,
+  type AccessoryPolicyArgs,
   type AdminConfig,
   type AdminConfigArgs,
   type PhygitalToken,
@@ -44,51 +48,72 @@ import {
 import {
   getAssignMintInstructionAsync,
   getClosePhygitalTokenInstructionAsync,
+  getClosePolicyInstruction,
   getCreateConfigInstructionAsync,
+  getExecuteWithAccessoryInstruction,
+  getExecuteWithOwnerInstructionAsync,
   getInitializeInstructionAsync,
-  getRemoveOwnerInstruction,
+  getPreviewExecuteInstruction,
+  getRemoveOwnerInstructionAsync,
   getSetAdminInstructionAsync,
   getSetIssuerInstructionAsync,
   getSetMinterInstructionAsync,
-  getSetOwnerInstruction,
+  getSetOwnerInstructionAsync,
+  getUpdatePolicyInstructionAsync,
   getVerifyInstruction,
   parseAssignMintInstruction,
   parseClosePhygitalTokenInstruction,
+  parseClosePolicyInstruction,
   parseCreateConfigInstruction,
+  parseExecuteWithAccessoryInstruction,
+  parseExecuteWithOwnerInstruction,
   parseInitializeInstruction,
+  parsePreviewExecuteInstruction,
   parseRemoveOwnerInstruction,
   parseSetAdminInstruction,
   parseSetIssuerInstruction,
   parseSetMinterInstruction,
   parseSetOwnerInstruction,
+  parseUpdatePolicyInstruction,
   parseVerifyInstruction,
   type AssignMintAsyncInput,
   type ClosePhygitalTokenAsyncInput,
+  type ClosePolicyInput,
   type CreateConfigAsyncInput,
+  type ExecuteWithAccessoryInput,
+  type ExecuteWithOwnerAsyncInput,
   type InitializeAsyncInput,
   type ParsedAssignMintInstruction,
   type ParsedClosePhygitalTokenInstruction,
+  type ParsedClosePolicyInstruction,
   type ParsedCreateConfigInstruction,
+  type ParsedExecuteWithAccessoryInstruction,
+  type ParsedExecuteWithOwnerInstruction,
   type ParsedInitializeInstruction,
+  type ParsedPreviewExecuteInstruction,
   type ParsedRemoveOwnerInstruction,
   type ParsedSetAdminInstruction,
   type ParsedSetIssuerInstruction,
   type ParsedSetMinterInstruction,
   type ParsedSetOwnerInstruction,
+  type ParsedUpdatePolicyInstruction,
   type ParsedVerifyInstruction,
-  type RemoveOwnerInput,
+  type PreviewExecuteInput,
+  type RemoveOwnerAsyncInput,
   type SetAdminAsyncInput,
   type SetIssuerAsyncInput,
   type SetMinterAsyncInput,
-  type SetOwnerInput,
+  type SetOwnerAsyncInput,
+  type UpdatePolicyAsyncInput,
   type VerifyInput,
 } from "../instructions/index.js";
-import { findAdminConfigPda } from "../pdas/index.js";
+import { findAdminConfigPda, findPolicyPda, findWalletPda } from "../pdas/index.js";
 
 export const PHYGITAL_TOKEN_PROGRAM_ADDRESS =
-  "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ" as Address<"DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ">;
+  "phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz" as Address<"phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz">;
 
 export enum PhygitalTokenAccount {
+  AccessoryPolicy,
   AdminConfig,
   PhygitalToken,
 }
@@ -97,6 +122,17 @@ export function identifyPhygitalTokenAccount(
   account: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): PhygitalTokenAccount {
   const data = "data" in account ? account.data : account;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([217, 246, 249, 78, 235, 174, 26, 135]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenAccount.AccessoryPolicy;
+  }
   if (
     containsBytes(
       data,
@@ -128,13 +164,18 @@ export function identifyPhygitalTokenAccount(
 export enum PhygitalTokenInstruction {
   AssignMint,
   ClosePhygitalToken,
+  ClosePolicy,
   CreateConfig,
+  ExecuteWithAccessory,
+  ExecuteWithOwner,
   Initialize,
+  PreviewExecute,
   RemoveOwner,
   SetAdmin,
   SetIssuer,
   SetMinter,
   SetOwner,
+  UpdatePolicy,
   Verify,
 }
 
@@ -168,6 +209,17 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([55, 42, 248, 229, 222, 138, 26, 252]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.ClosePolicy;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([201, 207, 243, 114, 75, 111, 47, 189]),
       ),
       0,
@@ -179,12 +231,45 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([159, 174, 167, 140, 51, 210, 101, 10]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.ExecuteWithAccessory;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([9, 237, 247, 163, 250, 164, 231, 173]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.ExecuteWithOwner;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([175, 175, 109, 31, 13, 152, 155, 237]),
       ),
       0,
     )
   ) {
     return PhygitalTokenInstruction.Initialize;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([245, 77, 199, 240, 123, 2, 3, 18]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.PreviewExecute;
   }
   if (
     containsBytes(
@@ -245,6 +330,17 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([212, 245, 246, 7, 163, 151, 18, 57]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.UpdatePolicy;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([133, 161, 141, 48, 120, 198, 88, 150]),
       ),
       0,
@@ -259,7 +355,7 @@ export function identifyPhygitalTokenInstruction(
 }
 
 export type ParsedPhygitalTokenInstruction<
-  TProgram extends string = "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
+  TProgram extends string = "phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz",
 > =
   | ({
       instructionType: PhygitalTokenInstruction.AssignMint;
@@ -268,11 +364,23 @@ export type ParsedPhygitalTokenInstruction<
       instructionType: PhygitalTokenInstruction.ClosePhygitalToken;
     } & ParsedClosePhygitalTokenInstruction<TProgram>)
   | ({
+      instructionType: PhygitalTokenInstruction.ClosePolicy;
+    } & ParsedClosePolicyInstruction<TProgram>)
+  | ({
       instructionType: PhygitalTokenInstruction.CreateConfig;
     } & ParsedCreateConfigInstruction<TProgram>)
   | ({
+      instructionType: PhygitalTokenInstruction.ExecuteWithAccessory;
+    } & ParsedExecuteWithAccessoryInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalTokenInstruction.ExecuteWithOwner;
+    } & ParsedExecuteWithOwnerInstruction<TProgram>)
+  | ({
       instructionType: PhygitalTokenInstruction.Initialize;
     } & ParsedInitializeInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalTokenInstruction.PreviewExecute;
+    } & ParsedPreviewExecuteInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.RemoveOwner;
     } & ParsedRemoveOwnerInstruction<TProgram>)
@@ -288,6 +396,9 @@ export type ParsedPhygitalTokenInstruction<
   | ({
       instructionType: PhygitalTokenInstruction.SetOwner;
     } & ParsedSetOwnerInstruction<TProgram>)
+  | ({
+      instructionType: PhygitalTokenInstruction.UpdatePolicy;
+    } & ParsedUpdatePolicyInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.Verify;
     } & ParsedVerifyInstruction<TProgram>);
@@ -311,6 +422,13 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseClosePhygitalTokenInstruction(instruction),
       };
     }
+    case PhygitalTokenInstruction.ClosePolicy: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.ClosePolicy,
+        ...parseClosePolicyInstruction(instruction),
+      };
+    }
     case PhygitalTokenInstruction.CreateConfig: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -318,11 +436,32 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseCreateConfigInstruction(instruction),
       };
     }
+    case PhygitalTokenInstruction.ExecuteWithAccessory: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.ExecuteWithAccessory,
+        ...parseExecuteWithAccessoryInstruction(instruction),
+      };
+    }
+    case PhygitalTokenInstruction.ExecuteWithOwner: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.ExecuteWithOwner,
+        ...parseExecuteWithOwnerInstruction(instruction),
+      };
+    }
     case PhygitalTokenInstruction.Initialize: {
       assertIsInstructionWithAccounts(instruction);
       return {
         instructionType: PhygitalTokenInstruction.Initialize,
         ...parseInitializeInstruction(instruction),
+      };
+    }
+    case PhygitalTokenInstruction.PreviewExecute: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.PreviewExecute,
+        ...parsePreviewExecuteInstruction(instruction),
       };
     }
     case PhygitalTokenInstruction.RemoveOwner: {
@@ -360,6 +499,13 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseSetOwnerInstruction(instruction),
       };
     }
+    case PhygitalTokenInstruction.UpdatePolicy: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.UpdatePolicy,
+        ...parseUpdatePolicyInstruction(instruction),
+      };
+    }
     case PhygitalTokenInstruction.Verify: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -388,6 +534,8 @@ export type PhygitalTokenPlugin = {
 };
 
 export type PhygitalTokenPluginAccounts = {
+  accessoryPolicy: ReturnType<typeof getAccessoryPolicyCodec> &
+    SelfFetchFunctions<AccessoryPolicyArgs, AccessoryPolicy>;
   adminConfig: ReturnType<typeof getAdminConfigCodec> &
     SelfFetchFunctions<AdminConfigArgs, AdminConfig>;
   phygitalToken: ReturnType<typeof getPhygitalTokenCodec> &
@@ -403,17 +551,33 @@ export type PhygitalTokenPluginInstructions = {
     input: ClosePhygitalTokenAsyncInput,
   ) => ReturnType<typeof getClosePhygitalTokenInstructionAsync> &
     SelfPlanAndSendFunctions;
+  closePolicy: (
+    input: ClosePolicyInput,
+  ) => ReturnType<typeof getClosePolicyInstruction> & SelfPlanAndSendFunctions;
   createConfig: (
     input: CreateConfigAsyncInput,
   ) => ReturnType<typeof getCreateConfigInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  executeWithAccessory: (
+    input: ExecuteWithAccessoryInput,
+  ) => ReturnType<typeof getExecuteWithAccessoryInstruction> &
+    SelfPlanAndSendFunctions;
+  executeWithOwner: (
+    input: ExecuteWithOwnerAsyncInput,
+  ) => ReturnType<typeof getExecuteWithOwnerInstructionAsync> &
     SelfPlanAndSendFunctions;
   initialize: (
     input: InitializeAsyncInput,
   ) => ReturnType<typeof getInitializeInstructionAsync> &
     SelfPlanAndSendFunctions;
+  previewExecute: (
+    input: PreviewExecuteInput,
+  ) => ReturnType<typeof getPreviewExecuteInstruction> &
+    SelfPlanAndSendFunctions;
   removeOwner: (
-    input: RemoveOwnerInput,
-  ) => ReturnType<typeof getRemoveOwnerInstruction> & SelfPlanAndSendFunctions;
+    input: RemoveOwnerAsyncInput,
+  ) => ReturnType<typeof getRemoveOwnerInstructionAsync> &
+    SelfPlanAndSendFunctions;
   setAdmin: (
     input: SetAdminAsyncInput,
   ) => ReturnType<typeof getSetAdminInstructionAsync> &
@@ -427,8 +591,13 @@ export type PhygitalTokenPluginInstructions = {
   ) => ReturnType<typeof getSetMinterInstructionAsync> &
     SelfPlanAndSendFunctions;
   setOwner: (
-    input: SetOwnerInput,
-  ) => ReturnType<typeof getSetOwnerInstruction> & SelfPlanAndSendFunctions;
+    input: SetOwnerAsyncInput,
+  ) => ReturnType<typeof getSetOwnerInstructionAsync> &
+    SelfPlanAndSendFunctions;
+  updatePolicy: (
+    input: MakeOptional<UpdatePolicyAsyncInput, "payer">,
+  ) => ReturnType<typeof getUpdatePolicyInstructionAsync> &
+    SelfPlanAndSendFunctions;
   verify: (
     input: VerifyInput,
   ) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
@@ -436,11 +605,14 @@ export type PhygitalTokenPluginInstructions = {
 
 export type PhygitalTokenPluginPdas = {
   adminConfig: typeof findAdminConfigPda;
+  policy: typeof findPolicyPda;
+  wallet: typeof findWalletPda;
 };
 
 export type PhygitalTokenPluginRequirements = ClientWithRpc<
   GetAccountInfoApi & GetMultipleAccountsApi
 > &
+  ClientWithPayer &
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
@@ -451,6 +623,10 @@ export function phygitalTokenProgram() {
     return extendClient(client, {
       phygitalToken: <PhygitalTokenPlugin>{
         accounts: {
+          accessoryPolicy: addSelfFetchFunctions(
+            client,
+            getAccessoryPolicyCodec(),
+          ),
           adminConfig: addSelfFetchFunctions(client, getAdminConfigCodec()),
           phygitalToken: addSelfFetchFunctions(client, getPhygitalTokenCodec()),
         },
@@ -465,20 +641,40 @@ export function phygitalTokenProgram() {
               client,
               getClosePhygitalTokenInstructionAsync(input),
             ),
+          closePolicy: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getClosePolicyInstruction(input),
+            ),
           createConfig: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getCreateConfigInstructionAsync(input),
+            ),
+          executeWithAccessory: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteWithAccessoryInstruction(input),
+            ),
+          executeWithOwner: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getExecuteWithOwnerInstructionAsync(input),
             ),
           initialize: (input) =>
             addSelfPlanAndSendFunctions(
               client,
               getInitializeInstructionAsync(input),
             ),
+          previewExecute: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getPreviewExecuteInstruction(input),
+            ),
           removeOwner: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getRemoveOwnerInstruction(input),
+              getRemoveOwnerInstructionAsync(input),
             ),
           setAdmin: (input) =>
             addSelfPlanAndSendFunctions(
@@ -496,11 +692,26 @@ export function phygitalTokenProgram() {
               getSetMinterInstructionAsync(input),
             ),
           setOwner: (input) =>
-            addSelfPlanAndSendFunctions(client, getSetOwnerInstruction(input)),
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetOwnerInstructionAsync(input),
+            ),
+          updatePolicy: (input) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getUpdatePolicyInstructionAsync({
+                ...input,
+                payer: input.payer ?? client.payer,
+              }),
+            ),
           verify: (input) =>
             addSelfPlanAndSendFunctions(client, getVerifyInstruction(input)),
         },
-        pdas: { adminConfig: findAdminConfigPda },
+        pdas: {
+          adminConfig: findAdminConfigPda,
+          policy: findPolicyPda,
+          wallet: findWalletPda,
+        },
         identifyAccount: identifyPhygitalTokenAccount,
         identifyInstruction: identifyPhygitalTokenInstruction,
         parseInstruction: parsePhygitalTokenInstruction,
@@ -508,3 +719,5 @@ export function phygitalTokenProgram() {
     });
   };
 }
+
+type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

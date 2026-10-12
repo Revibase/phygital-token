@@ -1,10 +1,10 @@
 import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { address, generateKeyPairSigner } from '@solana/kit';
-import { findPhygitalTokenPda, type PhygitalToken } from 'phygital-token-sdk';
+import { address, generateKeyPairSigner, type Rpc, type SolanaRpcApi } from '@solana/kit';
+import { findPhygitalTokenPda, type AuthenticationResponseJSON, type PhygitalToken } from 'phygital-token-sdk';
 
-import { bytesToBase64, bytesToBase64Url } from '$lib/shared/encoding';
-import type { TransferPayload } from '$lib/shared/types';
+import { bytesToBase64Url } from '$lib/shared/encoding';
+import type { LinkTap } from '$lib/shared/link-transaction';
 
 export const RP_ID = 'accessory.test';
 export const ORIGIN = 'https://accessory.test';
@@ -27,7 +27,7 @@ export function fakeAccessory() {
 				mint: address('11111111111111111111111111111111'),
 				lastSignCount: 3,
 				tokenType: 1,
-				isLocked: 0,
+				walletBump: 255,
 				publicKey: [publicKey],
 				identifier: [identifier],
 				...overrides
@@ -36,7 +36,7 @@ export function fakeAccessory() {
 		assert(
 			challenge: Uint8Array,
 			opts: { highS?: boolean } = {}
-		): TransferPayload['response'] {
+		): AuthenticationResponseJSON {
 			const clientData = new TextEncoder().encode(
 				JSON.stringify({
 					type: 'webauthn.get',
@@ -70,18 +70,20 @@ export function fakeAccessory() {
 	};
 }
 
-export async function fakePayload(acc = fakeAccessory()) {
-	const slotHash = crypto.getRandomValues(new Uint8Array(32));
+/** A tap over a random slot-bound challenge, as the link page holds it before finishing. */
+export async function fakeTap(rpc: Rpc<SolanaRpcApi>, acc = fakeAccessory()) {
 	const challenge = crypto.getRandomValues(new Uint8Array(32));
-	const payload: TransferPayload = {
-		linkId: 'link-test-000000',
-		phygitalToken: await acc.pda(),
-		secp256r1Pubkey: acc.publicKeyB64,
-		slotNumber: '123456',
-		slotHash: bytesToBase64(slotHash),
-		challenge: bytesToBase64Url(challenge),
-		rpId: RP_ID,
+	const tap: LinkTap = {
+		session: {
+			rpc,
+			phygitalToken: address(await acc.pda()),
+			secp256r1Pubkey: acc.publicKeyB64,
+			slotHash: crypto.getRandomValues(new Uint8Array(32)),
+			slotNumber: 123456n,
+			challenge,
+			rpId: RP_ID
+		},
 		response: acc.assert(challenge)
 	};
-	return { acc, payload, recipient: await generateKeyPairSigner() };
+	return { acc, tap, recipient: await generateKeyPairSigner() };
 }

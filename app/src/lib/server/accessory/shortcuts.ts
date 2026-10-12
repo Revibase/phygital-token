@@ -1,9 +1,6 @@
 import { fetchAsset, type GetAssetResult } from '$lib/shared/mint-media';
 import { resolveShortcuts, shortcutsFileUrl, type Shortcut } from '$lib/shared/shortcuts';
 import type { AccessoryView } from '$lib/shared/types';
-import type { AdmitSession } from '../session/cookies';
-import { PROOF_TTL_S, signSessionProof, type ProofKey } from '../session/proof';
-import { KNOWN_WALLETS } from '$lib/client/wallet/catalog';
 
 const TIMEOUT_MS = 3_000;
 const MAX_BYTES = 64 * 1024;
@@ -56,73 +53,4 @@ export async function loadShortcuts(rpcUrl: string, accessory: AccessoryView): P
 			ownerAddress: accessory.owner
 		})
 	};
-}
-
-export const PROOF_PARAM = 'revibase_session';
-
-type ProofOptions = { key: ProofKey | null; issuer: string; session: AdmitSession; accessory: AccessoryView; now?: number };
-
-/**
- * Null when this viewer gets no proofs, including an owner_browse whose wallet is no longer the linked one:
- * that viewer no longer owns what they're looking at.
- */
-function proofWindow(project: ProjectShortcuts, opts: ProofOptions): { now: number; exp: number } | null {
-	const { key, session, accessory } = opts;
-	if (!key || !project.externalUrl || !accessory.mint) return null;
-	if (session.t === 'ob' && session.wallet !== accessory.owner) return null;
-	const now = Math.floor((opts.now ?? Date.now()) / 1000);
-	const exp = Math.min(now + PROOF_TTL_S, Math.floor(session.exp / 1000));
-	return exp > now ? { now, exp } : null;
-}
-
-/** Every HTTPS destination listed by the project may receive an origin-bound proof. */
-function provable(s: Shortcut): boolean {
-	const url = new URL(s.href);
-	return url.protocol === 'https:';
-}
-
-/** Flags the shortcuts that will get a proof when opened, without signing any. */
-export function markProofs(project: ProjectShortcuts, opts: ProofOptions): Shortcut[] {
-	const span = proofWindow(project, opts);
-	return project.shortcuts.map((s) => ({ ...s, proof: !!span && provable(s) }));
-}
-
-/** Signs a fresh proof into each listed HTTPS destination. Only called when a shortcut is actually opened. */
-export function withSessionProofs(project: ProjectShortcuts, opts: ProofOptions): Shortcut[] {
-	const { key, accessory } = opts;
-	const { externalUrl, shortcuts } = project;
-	const span = proofWindow(project, opts);
-	if (!span || !key || !externalUrl) return shortcuts;
-	const { now, exp } = span;
-
-	return shortcuts.map((s) => {
-		if (!provable(s)) return s;
-		const url = new URL(s.href);
-		const proof = signSessionProof(key, {
-			iss: opts.issuer,
-			aud: url.origin,
-			iat: now,
-			exp,
-			jti: crypto.randomUUID(),
-			sub: accessory.pda,
-			mint: accessory.mint!,
-			kind: accessory.kind,
-			wallet: accessory.owner,
-			authentication: opts.session.t === 'ob' ? 'wallet' : 'accessory'
-		});
-		url.searchParams.set(PROOF_PARAM, proof);
-		return { ...s, href: url.href, proof: true };
-	});
-}
-
-/** Null for a shortcut that got no proof, so `/shortcut/[n]` is never a general-purpose redirect. */
-export function openedLocation(opened: Shortcut, wallet: string | null, origin: string): string | null {
-	if (!opened.proof) return null;
-	const via = KNOWN_WALLETS.find((w) => w.id === wallet);
-	return via && !opened.external ? via.browse(opened.href, origin) : opened.href;
-}
-
-export function fromOtherSite(headers: Headers): boolean {
-	const site = headers.get('sec-fetch-site');
-	return !!site && site !== 'same-origin';
 }

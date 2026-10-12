@@ -143,7 +143,6 @@ export type InitializeAsyncInput<
   TAccountSystemProgram extends string = string,
 > = {
   authority: TransactionSigner<TAccountAuthority>;
-  /** Authority must be the admin or an issuer on this config. */
   adminConfig?: Address<TAccountAdminConfig>;
   phygitalToken: Address<TAccountPhygitalToken>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -232,7 +231,6 @@ export type InitializeInput<
   TAccountSystemProgram extends string = string,
 > = {
   authority: TransactionSigner<TAccountAuthority>;
-  /** Authority must be the admin or an issuer on this config. */
   adminConfig: Address<TAccountAdminConfig>;
   phygitalToken: Address<TAccountPhygitalToken>;
   systemProgram?: Address<TAccountSystemProgram>;
@@ -316,7 +314,6 @@ export type ParsedInitializeInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     authority: TAccountMetas[0];
-    /** Authority must be the admin or an issuer on this config. */
     adminConfig: TAccountMetas[1];
     phygitalToken: TAccountMetas[2];
     systemProgram: TAccountMetas[3];

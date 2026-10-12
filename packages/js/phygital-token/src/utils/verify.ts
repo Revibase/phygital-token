@@ -4,13 +4,17 @@
  * ```ts
  * const message = crypto.randomUUID();
  * const response = await startAuthentication(message, { rpc });
- * // native: startAuthentication(message, { transceive })
- * const { isVerified, secp256r1PublicKey } = verifyResponse({
+ * const { isVerified, secp256r1PublicKey } = await verifyResponse({
  *   expectedMessage: message,
+ *   expectedOrigin: "https://app.example.com",
  *   response,
  * });
  * ```
  */
+import { type Address } from "@solana/kit";
+import { findWalletPda } from "../generated/pdas/wallet.js";
+import { findPhygitalTokenPda } from "./pdas/token.js";
+
 import { p256 } from "@noble/curves/nist.js";
 
 import { PhygitalTokenError } from "./errors.js";
@@ -36,7 +40,6 @@ export type { AuthenticationResponseJSON } from "./passkey/webauthn.js";
  * Browser: opens the system WebAuthn/NFC modal. Pass `rpc` to recover a
  * placeholder credential id on-chain, or `allowList` to recover it locally;
  * when `allowList` is passed, a tag outside it throws `PASSKEY_NOT_RECOGNIZED`.
- * Native / kiosk: pass `transceive` (`rpId`/`origin` optional).
  */
 export async function startAuthentication(
   message: string,
@@ -51,17 +54,28 @@ export async function startAuthentication(
  * Pass the same `expectedMessage` you issued as the challenge, or — when the
  * challenge is raw bytes rather than text (e.g. a hash) — the base64url
  * `expectedChallenge` exactly as it was given to the authenticator. Treats
- * `response.id` as the compressed secp256r1 public key. Does not check
- * rpId/origin. Throws `MESSAGE_MISMATCH` when the signed challenge differs from
- * `expectedMessage` and `INVALID_ASSERTION` for a malformed response; a bad
- * signature returns `isVerified: false`.
+ * `response.id` as the compressed secp256r1 public key.
+ *
+ * `expectedOrigin` is the origin (or origins) of the page that prompted the
+ * tap, e.g. `https://app.example.com`. The browser writes it into the signed
+ * `clientDataJSON`, so checking it stops another site from relaying your
+ * challenge to a user and logging in with their tap.
+ *
+ * Throws `MESSAGE_MISMATCH` when the signed challenge differs from
+ * `expectedMessage`, `ORIGIN_MISMATCH` when the tap came from another origin,
+ * and `INVALID_ASSERTION` for a malformed response; a bad signature returns
+ * `isVerified: false`. The accessory wallet address is derived
+ * locally for a verified response; no RPC or permissions lookup is performed.
  */
-export function verifyResponse(
-  input: { response: AuthenticationResponseJSON } & (
+export async function verifyResponse(
+  input: {
+    response: AuthenticationResponseJSON;
+    expectedOrigin: string | readonly string[];
+  } & (
     | { expectedMessage: string; expectedChallenge?: never }
     | { expectedChallenge: string; expectedMessage?: never }
   )
-): { isVerified: boolean; secp256r1PublicKey: string } {
+): Promise<{ isVerified: boolean; secp256r1PublicKey: string; accessoryWallet: Address | null }> {
   const expectedChallenge =
     input.expectedChallenge ?? utf8ToBase64URLString(input.expectedMessage);
 
@@ -76,6 +90,17 @@ export function verifyResponse(
     );
   }
 
+  const expectedOrigins: readonly string[] =
+    typeof input.expectedOrigin === "string"
+      ? [input.expectedOrigin]
+      : input.expectedOrigin;
+  if (!expectedOrigins.includes(clientData.origin)) {
+    throw new PhygitalTokenError(
+      "ORIGIN_MISMATCH",
+      "This tap was made on another site."
+    );
+  }
+
   const { signature, message } = parseWebAuthnAssertion(input.response);
 
   const isVerified = p256.verify(
@@ -87,5 +112,6 @@ export function verifyResponse(
   return {
     isVerified,
     secp256r1PublicKey: input.response.id,
+    accessoryWallet: isVerified ? (await findWalletPda({ phygitalToken: await findPhygitalTokenPda(input.response.id) }))[0] : null,
   };
 }

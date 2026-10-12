@@ -1,0 +1,33 @@
+{
+  "name": "secure-signer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Revibase passkey wallet: a non-custodial Solana signing iframe on its own origin. Assumes the parent is XSS-compromised.",
+  "exports": {
+    "./shared": "./src/shared/index.ts",
+    "./testing/kit": "./src/testing/kit/index.ts"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && node scripts/assert-no-inline.mjs dist/index.html",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "deploy": "pnpm build && cp deploy/_headers dist/_headers && wrangler deploy -c wrangler.jsonc"
+  },
+  "dependencies": {
+    "@solana/kit": "^8.3.0",
+    "phygital-token-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@noble/curves": "^2.3.0",
+    "@noble/hashes": "^2.4.0",
+    "@types/node": "^22",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.8",
+    "wrangler": "^4.97.0"
+  }
+}

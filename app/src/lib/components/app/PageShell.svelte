@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { networkLabel } from '$lib/shared/explorer';
 	import { page } from '$app/state';
 	import RevibaseMark from '$lib/brand/RevibaseMark.svelte';
 
@@ -11,7 +12,7 @@
 
 	// Wallet users check the network before they sign; only a non-mainnet one needs saying.
 	const cluster = $derived((page.data as { cluster?: string }).cluster);
-	const network = $derived(cluster && cluster !== 'mainnet' ? cluster.charAt(0).toUpperCase() + cluster.slice(1) : null);
+	const network = $derived(networkLabel(cluster));
 
 	const max = { narrow: 'lg:max-w-[440px]', medium: 'lg:max-w-[560px]', wide: 'lg:max-w-[920px]' };
 </script>

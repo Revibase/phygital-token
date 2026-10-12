@@ -1,7 +1,6 @@
 export type VerificationUseCase =
   | "login_ui_only"
   | "set_owner"
-  | "native_mobile_app"
   | "lookup_after_tap"
   | "onchain_cpi_verify";
 
@@ -22,11 +21,11 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: false,
     rationale:
-      "Issue any short-lived message string as the challenge. Client taps with startAuthentication; server verifies with verifyResponse (secp256r1 only — no rpId/origin binding). Then create your session. Browser taps recover a placeholder id via Kit Rpc, falling back to allowList; allowList also gates the tapped id.",
+      "Issue any short-lived message string as the challenge. Client taps with startAuthentication; server verifies with verifyResponse, passing expectedOrigin (your site's origin) so taps made on other sites are rejected. Then create your session. Browser taps recover a placeholder id via Kit Rpc, falling back to allowList; allowList also gates the tapped id.",
     docIds: ["verification:methods", "verification:overview"],
     cautions: [
       "Run verifyResponse on your server, not in the browser.",
-      "Native APDU: startAuthentication(message, { transceive }) — rpId/origin optional (set origin if your program checks expected_origins).",
+      "Pass expectedOrigin as a fixed value for your site, not the request's Origin header.",
       "SDK does not set cookies — create the session after isVerified: true.",
     ],
   },
@@ -36,26 +35,13 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: true,
     rationale:
-      "Owner claim uses set_owner (updates phygital_token.owner; no SPL token). Requires is_locked == 0. beginTransfer takes secp256r1Pubkey and derives the token PDA. Pass { transceive } for native APDU.",
+      "Owner claim uses set_owner (updates phygital_token.owner; no SPL token). Requires an unlocked token. beginTransfer takes secp256r1Pubkey and derives the token PDA.",
     docIds: ["verification:overview", "sdk:surface-area"],
     cautions: [
       "Do not use off-chain login verify alone for transfers — it does not change phygital_token.owner.",
       "Do not use verify for transfers — it proves possession without changing owner.",
       "Recipient must sign the transaction — pass completeTransfer a Kit TransactionSigner.",
-      "Token must be unlocked (is_locked == 0). Permanent tokens stay locked and always fail with TokenIsCurrentlyLocked.",
-    ],
-  },
-  native_mobile_app: {
-    method: "startAuthentication(message, { transceive }) + verifyResponse",
-    sdkExports: ["startAuthentication", "verifyResponse"],
-    requiresTap: true,
-    onChain: false,
-    rationale:
-      "Pass { transceive } for native NFC readers (rpId/origin optional). Verify on server with verifyResponse. rpc/allowList are optional when transceive is set.",
-    docIds: ["verification:methods", "verification:verify-composable"],
-    cautions: [
-      "Run verifyResponse on your server, not in the native client.",
-      "Create your normal session after isVerified: true.",
+      "Token must be unlocked (Bearer, or a Controlled token with no owner). Permanent tokens are always locked and fail with TokenIsCurrentlyLocked.",
     ],
   },
   lookup_after_tap: {
@@ -98,7 +84,6 @@ export function listVerificationUseCases(): Array<{
   return [
     { id: "login_ui_only", summary: "Off-chain tap-to-login (no chain tx)" },
     { id: "set_owner", summary: "Claim/set owner to a new address" },
-    { id: "native_mobile_app", summary: "Native app off-chain authentication" },
     { id: "lookup_after_tap", summary: "Verify tap then load on-chain token state" },
     {
       id: "onchain_cpi_verify",
@@ -111,14 +96,14 @@ export const VERIFICATION_DECISION_TREE = `
 Authentication (live NFC tap required)
 ├── Need on-chain owner change?
 │   YES → beginTransfer({ rpc, secp256r1Pubkey })
-│         → authenticatePasskeyForTransfer(session, { transceive? })
-│         → completeTransfer (set_owner; requires is_locked == 0)
+│         → authenticatePasskeyForTransfer(session)
+│         → completeTransfer (set_owner; requires an unlocked token)
 │   NO  → Need on-chain possession proof for your program?
 │         YES → buildMessageHash(message)
-│               → authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, transceive? })
+│               → authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash })
 │               → buildSecp256r1VerifyInstruction(tap)
 │               [secp256r1_verify, your_program_instruction] — program CPIs verify
-│         NO  → startAuthentication(message, { rpc, allowList? }) → verifyResponse
+│         NO  → startAuthentication(message, { rpc, allowList? }) → verifyResponse({ expectedMessage, expectedOrigin, response })
 │               → create your session
 │               optional: findPhygitalTokenPda / fetchPhygitalToken
 └── Know the passkey already?
@@ -129,12 +114,12 @@ WebAuthn credential id:
 - rawId 16 bytes → platform echoed random placeholder; startAuthentication recovers via rpc, falling back to allowList
 - ambiguous recovery → pick candidate with initialized PhygitalToken PDA on-chain
 
-On-chain tap helpers share authenticatePasskey: { transceive } → APDU; else browser WebAuthn.
-Off-chain login: issue any message string → startAuthentication → verifyResponse (no rpId/origin checks).
-Browser placeholder recovery uses Kit Rpc, falling back to allowList (both optional when transceive is set).
+Taps always use browser WebAuthn (shared authenticatePasskey helper).
+Off-chain login: issue any message string → startAuthentication → verifyResponse with expectedOrigin (taps from other origins throw ORIGIN_MISMATCH).
+Browser placeholder recovery uses Kit Rpc, falling back to allowList.
 verifyResponse never submits on-chain verify. Run it on your server.
 Token PDA is seeded by the passkey public key; chip identifier is a separate binding field.
 Optional expected_rp_id / expected_origins are set on VerifyCpiBuilder (omit to skip).
 PDA is derived after the NFC tap. Your program always CPIs verify — do not post a client-side verify instruction.
-set_owner requires is_locked == 0 (Permanent stays locked → TokenIsCurrentlyLocked).
+set_owner requires an unlocked token (Permanent and owned Controlled are locked → TokenIsCurrentlyLocked).
 `.trim();

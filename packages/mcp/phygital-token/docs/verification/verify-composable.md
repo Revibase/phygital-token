@@ -24,9 +24,9 @@ buildSecp256r1VerifyInstruction(tap)
 
 SHA-256s `message` to a 32-byte digest. Use this digest as the WebAuthn challenge and as `VerifyCpiBuilder.message_hash`.
 
-### `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId?, transceive? })`
+### `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId? })`
 
-Uses `messageHash` (32 bytes) as the WebAuthn challenge — the same digest for `VerifyCpiBuilder.message_hash`. Hash with `buildMessageHash` first. Placeholder recovery uses `rpc` (on-chain), falling back to `allowList` (local) when no `rpc` is given; when `allowList` is passed the tapped credential id must be in it; `rpId` defaults to hostname. Pass `transceive` for native / kiosk APDU instead of browser WebAuthn.
+Uses `messageHash` (32 bytes) as the WebAuthn challenge — the same digest for `VerifyCpiBuilder.message_hash`. Hash with `buildMessageHash` first. Placeholder recovery uses `rpc` (on-chain), falling back to `allowList` (local) when no `rpc` is given; when `allowList` is passed the tapped credential id must be in it; `rpId` defaults to hostname.
 ### `buildSecp256r1VerifyInstruction(tap)`
 
 Returns `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }`. Prepend `secp256r1VerifyInstruction`. Pass `phygitalTokenPda` and `secp256r1VerifyArgs` into your instruction. `message_hash`, the instructions sysvar, and optional origin bindings come from your program.

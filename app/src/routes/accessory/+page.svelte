@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import CollectibleDialog from '$lib/components/app/CollectibleDialog.svelte';
@@ -7,31 +7,31 @@
 	import List from '$lib/components/app/List.svelte';
 	import ListRow from '$lib/components/app/ListRow.svelte';
 	import Notice from '$lib/components/app/Notice.svelte';
+	import WalletConnect from '$lib/components/app/WalletConnect.svelte';
+	import { shortAddress } from '$lib/shared/encoding';
 	import PageHeader from '$lib/components/app/PageHeader.svelte';
 	import PageShell from '$lib/components/app/PageShell.svelte';
-	import OpenInWalletSheet from '$lib/components/app/OpenInWalletSheet.svelte';
 	import ReleaseSheet from '$lib/components/app/ReleaseSheet.svelte';
+	import ResponsiveSheet from '$lib/components/app/ResponsiveSheet.svelte';
+	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import ShortcutGrid from '$lib/components/app/ShortcutGrid.svelte';
 	import TechnicalDetails from '$lib/components/app/TechnicalDetails.svelte';
-	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { accessoryMediaQuery, accessoryShortcutsQuery } from '$lib/client/queries';
-	import { forgetOwnerDetails, shouldChooseWallet, reconcileAccessoryWallet, accessoryLinkContext, type OwnerContext, recentConnectionMethod, accessoryConnectionMethod, type ConnectionMethod, recentWallet, rememberedWallet, accessoryWalletApp, rememberAccessoryWalletApp, rememberRecentWallet } from '$lib/client/memory';
-	import { isLikelyWalletBrowser, platform, type Platform } from '$lib/client/capability';
-	import { shortcutLaunch, walletLaunchHref, type ShortcutLaunch } from '$lib/client/shortcuts';
-	import { KNOWN_WALLETS, type KnownWallet } from '$lib/client/wallet/catalog';
-	import { shortcutsFor, type Shortcut } from '$lib/shared/shortcuts';
+	import { rememberedWallet } from '$lib/client/memory';
+	import { shortcutsFor } from '$lib/shared/shortcuts';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
-	import { changedElsewhereNotice, tapScreen } from '$lib/client/accessory/screen';
+	import { changedElsewhereNotice, tapScreen, managementActions } from '$lib/client/accessory/screen';
 
 	let { data } = $props();
 	const a = $derived(data.accessory);
 
 	let nftOpen = $state(false);
-	let linkedContext = $state<OwnerContext | null>(null);
 	let detailsOpen = $state(false);
 	let releaseOpen = $state(false);
+	let manageOpen = $state(false);
+	let ownerConnectOpen = $state(false);
 	let refreshing = $state(false);
 
 	// Reconnect silently; never prompt on an accessory visit.
@@ -63,6 +63,8 @@
 	const changedElsewhere = $derived(!!a?.owner && !!remembered && remembered !== a.owner);
 
 	const screen = $derived(a ? tapScreen(a, owned) : null);
+	const management = $derived(a ? managementActions(a, owned) : null);
+	function openManagement() { if (management?.hasActions) manageOpen = true; else detailsOpen = true; }
 
 	const mediaQuery = createQuery(() => ({ ...accessoryMediaQuery(a?.pda ?? ''), enabled: !!a?.mint }));
 	const media = $derived(mediaQuery.data ?? null);
@@ -70,55 +72,11 @@
 	const collectibleLoading = $derived(namedCollectible && mediaQuery.isPending);
 	const collectibleName = $derived(namedCollectible ? media?.name : null);
 
-	const linkedApp = $derived(linkedContext?.app ?? (owned ? walletStore.walletName : null));
-	const linkedIcon = $derived(KNOWN_WALLETS.find(w => linkedApp && w.match.test(linkedApp))?.icon ?? (owned && walletStore.walletName === linkedApp ? walletStore.walletIcon : null));
-	const linkedDetail = $derived([linkedApp, linkedContext ? ({desktop:'Linked from desktop', mobile:'Linked from mobile browser', wallet:'Linked in wallet app'}[linkedContext.source]) : null].filter(Boolean).join(' · ') || null);
+	const linkedIcon = $derived(owned ? walletStore.walletIcon : null);
+	const linkedDetail = $derived(owned ? walletStore.walletName : null);
 
 	const shortcutsQuery = createQuery(() => ({ ...accessoryShortcutsQuery(a?.pda ?? '', a?.owner ?? null), enabled: !!a?.mint }));
-	let device = $state<{ platform: Platform; inWallet: boolean; recent: string | null; method: ConnectionMethod | null; chooseWallet?: boolean; origin: string } | null>(null);
-	onMount(() => {
-		linkedContext = a ? accessoryLinkContext(a.pda, a.owner) : null;
-		device = { chooseWallet: shouldChooseWallet(a?.pda ?? ''), method: (a ? accessoryConnectionMethod(a.pda, a.owner) : null) ?? recentConnectionMethod(), platform: platform(), inWallet: isLikelyWalletBrowser(), recent: (a ? accessoryWalletApp(a.pda, a.owner) : null) ?? recentWallet(), origin: window.location.origin };
-	});
-	$effect(() => {
-		const current = a;
-		untrack(() => {
-			if (!device || !current) return;
-			const stale = reconcileAccessoryWallet(current.pda, current.owner);
-			linkedContext = accessoryLinkContext(current.pda, current.owner);
-			device = { ...device, chooseWallet: shouldChooseWallet(a?.pda ?? ''),
-				recent: accessoryWalletApp(current.pda, current.owner) ?? (stale ? null : recentWallet()),
-				method: accessoryConnectionMethod(current.pda, current.owner) ?? (stale ? null : recentConnectionMethod())
-			};
-		});
-	});
-	function forgetApps() {
-		if (a) forgetOwnerDetails(a.pda);
-		linkedContext = null;
-		if (device) device = { ...device, recent: null, method: null, chooseWallet: true };
-	}
-	type Launchable = { s: Shortcut; index: number; launch: ShortcutLaunch };
-	const shortcuts = $derived.by((): Launchable[] => {
-		const d = device;
-		const all = shortcutsQuery.data;
-		if (!d || !all) return [];
-		return shortcutsFor(all, d.platform === 'desktop' ? 'desktop' : 'mobile').map((s) => {
-			const index = all.indexOf(s);
-			return { s, index, launch: shortcutLaunch(s, d, index) };
-		});
-	});
-
-	let picking = $state<Launchable | null>(null);
-	let pickOpen = $state(false);
-	function pickWallet(item: Launchable) {
-		picking = item;
-		pickOpen = true;
-	}
-	const pickHref = $derived.by(() => {
-		const p = picking;
-		const origin = device?.origin;
-		return p && origin ? (w: KnownWallet) => walletLaunchHref(p.s, p.index, w, origin) : null;
-	});
+	const shortcuts = $derived(shortcutsQuery.data ? shortcutsFor(shortcutsQuery.data, 'mobile') : []);
 
 	async function retry() {
 		refreshing = true;
@@ -131,11 +89,7 @@
 <PageShell size="wide">
 	{#if !a || !screen}
 		<section class="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center">
-			<Notice title="Couldn’t load this accessory" body="It’s genuine, but we couldn’t reach the network to load it. Check your connection and try again.">
-				{#snippet actions()}
-					<Button size="xl" disabled={refreshing} onclick={retry}>{refreshing ? 'Trying again…' : 'Try again'}</Button>
-				{/snippet}
-			</Notice>
+			<Notice title="Couldn’t load this accessory" body="It’s genuine, but we couldn’t reach the network to load it. Check your connection and try again." onretry={retry} retrying={refreshing} />
 		</section>
 	{:else}
 		<section class="flex flex-1 flex-col justify-center gap-6 pt-4 pb-10 [@media(max-height:640px)]:gap-4 [@media(max-height:640px)]:pb-2 lg:grid lg:flex-none lg:grid-cols-[5fr_6fr] lg:items-center lg:gap-16 lg:py-0">
@@ -158,25 +112,20 @@
 						{#if screen.body}<p class="text-[15px] leading-relaxed text-muted-foreground">{screen.body}</p>{/if}
 					</PageHeader>
 				{:else}
-					<PageHeader align="center-mobile" eyebrow={`Genuine · ${a.tag}`} eyebrowTone="success" title={screen.title} body={screen.body} />
+					<PageHeader align="center-mobile" eyebrow={`Genuine · ${a.tag}`} eyebrowTone="success" title={a.status === 'unavailable' ? screen.title : 'Your accessory'} body={screen.body || screen.title} />
 				{/if}
 
 				{#if changedElsewhere}
 					<Notice tone="info" {...changedElsewhereNotice(a)} />
 				{/if}
 
-				{#if a.owner && screen.walletLabel}
-					<List footer={screen.footnote}>
-						<WalletRow address={a.owner} label={screen.walletLabel} icon={linkedIcon} context={linkedDetail} nftOwnership={media?.owner ? (media.owner === a.owner ? 'same' : 'different') : null} onforget={linkedContext?.app || (a && accessoryWalletApp(a.pda, a.owner)) ? forgetApps : undefined} cluster={data.cluster} />
-					</List>
-				{/if}
+				{#if a.owner}<List label="Owner"><WalletRow address={a.owner} label={linkedDetail ?? 'Owner'} icon={linkedIcon} context="Manages this accessory" nftOwnership={media?.owner ? (media.owner === a.owner ? 'same' : 'different') : null} cluster={data.cluster} /></List>{/if}
+
 
 				{#if shortcuts.length}
-					<ShortcutGrid label={`From ${media?.collection ?? 'the project'}`} items={shortcuts} onpick={pickWallet} />
+					<ShortcutGrid label={`From ${media?.collection ?? 'the project'}`} items={shortcuts} />
 				{:else if a.mint && shortcutsQuery.isError}
-					<Notice title="Couldn’t load project apps">
-						{#snippet actions()}<Button variant="secondary" class="h-11 w-full" disabled={shortcutsQuery.isFetching} onclick={() => void shortcutsQuery.refetch()}>{shortcutsQuery.isFetching ? 'Trying again…' : 'Try again'}</Button>{/snippet}
-					</Notice>
+					<Notice title="Couldn’t load project apps" onretry={() => void shortcutsQuery.refetch()} retrying={shortcutsQuery.isFetching} />
 				{/if}
 
 				<div class="hidden lg:block">{@render actions()}</div>
@@ -192,35 +141,30 @@
 {#snippet actions()}
 	{#if a && screen}
 		{#if screen.claim}
-			<div class="grid gap-1">
-				<Button href="/accessory/link" size="xl" class="w-full">Link a wallet</Button>
-				<Button variant="ghost" class="h-11 text-muted-foreground" onclick={() => (detailsOpen = true)}>Details</Button>
+			<div class="grid gap-2">
+				{#if !a.owner}<p class="px-3 text-center text-[13px] text-muted-foreground">Claim it to manage its settings with your wallet.</p>{/if}
+				<Button href="/accessory/link" size="xl">{a.owner ? 'Claim this accessory' : 'Claim accessory'}</Button>
+				<Button variant="quiet" class="w-full" onclick={openManagement}>{management?.hasActions ? 'Manage accessory' : 'Details'}</Button>
 			</div>
 		{:else}
-			<List>
-				{#if screen.move}
-					<ListRow label="Move to another wallet" href="/accessory/link" chevron />
-				{/if}
-				{#if a.canRelease}
-					<ListRow label="Unlink from wallet" onclick={() => (releaseOpen = true)} chevron />
-				{/if}
-				<ListRow label="Details" onclick={() => (detailsOpen = true)} chevron />
-			</List>
+			<Button variant="quiet" class="w-full" onclick={openManagement}>{management?.hasActions ? 'Manage accessory' : 'Details'}</Button>
 		{/if}
 	{/if}
 {/snippet}
 
-<OpenInWalletSheet browserHref={picking ? (picking.s.proof ? `/shortcut/${picking.index}` : picking.s.href) : null} onbrowser={() => {
-	rememberRecentWallet(device?.recent ?? 'Browser', 'browser');
-	if (a) rememberAccessoryWalletApp(a.pda, a.owner, device?.recent ?? 'Browser', 'browser');
-	if (device) device = { ...device, method: 'browser', chooseWallet: false };
-}} destination={picking?.s.href ?? null} hrefFor={pickHref} label={picking?.s.label ?? ''} onchoose={(w) => {
-	rememberRecentWallet(w.name);
-	if (a) rememberAccessoryWalletApp(a.pda, a.owner, w.name);
-	if (device) device = { ...device, recent: w.name, method: 'wallet', chooseWallet: false };
-}} bind:open={pickOpen} />
-
 {#if a && screen}
+	<ResponsiveSheet bind:open={manageOpen} title="Manage accessory">
+		<List>
+			{#if management?.wallet}<ListRow label="Accessory wallet" href={`/wallet/${encodeURIComponent(a.pda)}`} chevron />{/if}
+			{#if management?.connectOwner}<ListRow label="Connect as owner" detail="Change settings or release this accessory" onclick={() => { manageOpen = false; ownerConnectOpen = true; }} chevron />{/if}
+			{#if management?.changeOwner}<ListRow label="Change owner" detail="Choose a new owner" href="/accessory/link" chevron />{/if}
+			{#if management?.release}<ListRow label="Release accessory" detail="Let someone else claim it" tone="destructive" onclick={() => { manageOpen = false; releaseOpen = true; }} chevron />{/if}
+			<ListRow label="Accessory details" onclick={() => { manageOpen = false; detailsOpen = true; }} chevron />
+		</List>
+	</ResponsiveSheet>
+	{#if a.owner && a.canRelease}
+  <WalletConnect bind:open={ownerConnectOpen} showButton={false} description={`Connect the owner’s wallet (${shortAddress(a.owner)}) to manage this accessory.`} requireAddress={a.owner} onconnected={() => (manageOpen = true)} />
+	{/if}
 	<TechnicalDetails accessory={a} cluster={data.cluster} bind:open={detailsOpen} />
 	{#if a.canRelease}<ReleaseSheet accessory={a} cluster={data.cluster} bind:open={releaseOpen} />{/if}
 {/if}

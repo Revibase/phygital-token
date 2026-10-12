@@ -134,5 +134,5 @@ fn remove_owner_emits_expected_token_state() {
         instance.public_key,
         Secp256r1Pubkey(passkey.compressed_pubkey)
     );
-    assert_eq!(instance.is_locked, 0);
+    assert!(!instance.is_locked());
 }

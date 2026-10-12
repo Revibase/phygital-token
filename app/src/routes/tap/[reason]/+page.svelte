@@ -48,8 +48,8 @@
 		webauthnOk = canTapHere();
 		const hint = tapHint();
 		body = webauthnOk
-			? `This page closes after a few minutes. Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`
-			: 'This page closes after a few minutes. Hold your accessory to your phone again.';
+			? `Your tap session has expired. Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`
+			: 'Your tap session has expired. Hold your accessory to your phone again.';
 		if (webauthnOk) void prepare();
 	});
 
@@ -78,16 +78,16 @@
 	<section class="flex flex-1 flex-col items-center justify-center gap-8 pb-8" role={data.reason === 'expired' ? undefined : 'alert'} aria-live="polite">
 		<AccessoryMark state={retryable && (!resumable || tapping) ? 'waiting' : 'idle'} />
 		<PageHeader align="center" title={copy.title} body={body ?? copy.body} />
-		{#if failure}<div class="w-full"><Notice title={failure.title} body={failure.body} detail={failure.detail} /></div>{/if}
+		{#if failure}<div class="w-full"><Notice error={failure} /></div>{/if}
 	</section>
 	{#snippet footer()}
 		<div class="grid gap-1">
 			{#if resumable && webauthnOk}
-				<Button size="xl" class="w-full" disabled={tapping || !challenge} onclick={resume}>
+				<Button size="xl" disabled={tapping || !challenge} onclick={resume}>
 					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !challenge}<Spinner /> Preparing…{:else}Continue{/if}
 				</Button>
 			{/if}
-			<Button href="/" variant="ghost" class="h-11 w-full text-muted-foreground">Use your wallet instead</Button>
+			<Button href="/" variant="quiet" class="w-full">Use your wallet instead</Button>
 		</div>
 	{/snippet}
 </PageShell>

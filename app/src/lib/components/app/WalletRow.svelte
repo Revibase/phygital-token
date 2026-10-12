@@ -1,22 +1,20 @@
 <script lang="ts">
-	import { DropdownMenu } from 'bits-ui';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { buttonVariants } from '$lib/components/ui/button';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import EllipsisVertical from '@lucide/svelte/icons/ellipsis-vertical';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Copy from '@lucide/svelte/icons/copy';
+	import KeyRound from '@lucide/svelte/icons/key-round';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import { explorerUrl } from '$lib/shared/explorer';
-	import { toast } from 'svelte-sonner';
+	import { copyText } from '$lib/client/clipboard';
 	import ListRow from './ListRow.svelte';
 	import WalletAvatar from './WalletAvatar.svelte';
 	import { shortAddress } from '$lib/shared/encoding';
 
-	let { address, label, icon = null, context = null, cluster = null, onforget = undefined, nftOwnership = null }: { address: string; label: string; icon?: string | null; context?: string | null; cluster?: string | null; onforget?: () => void; nftOwnership?: 'same' | 'different' | null } = $props();
-	async function copyAddress() {
-		try { await navigator.clipboard.writeText(address); toast.success('Wallet address copied'); }
-		catch { toast.error('Couldn’t copy. Select the text instead.'); }
-	}
-	const menuItem = 'flex cursor-pointer items-center min-h-11 gap-3 rounded-lg px-3 py-2 text-sm outline-none data-highlighted:bg-muted';
+	let { address, label, icon = null, context = null, cluster = null, nftOwnership = null, onexport }: { address: string; label: string; icon?: string | null; context?: string | null; cluster?: string | null; onexport?: () => void; nftOwnership?: 'same' | 'different' | null } = $props();
+	function copyAddress() { return copyText(address, 'Wallet address copied'); }
+
 </script>
 
 <ListRow {label} detail={shortAddress(address)} subdetail={context ?? undefined}>
@@ -30,18 +28,18 @@
 	{#snippet leading()}<WalletAvatar {address} {icon} />{/snippet}
 	{#snippet trailing()}
 		<DropdownMenu.Root>
-			<DropdownMenu.Trigger aria-label="Owner options" class="grid size-11 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"><EllipsisVertical class="size-4" /></DropdownMenu.Trigger>
-			<DropdownMenu.Portal><DropdownMenu.Content sideOffset={4} align="end" class="z-50 max-w-72 rounded-xl border bg-popover p-1 shadow-md">
-				<DropdownMenu.Item onSelect={copyAddress} class={menuItem}><Copy class="size-4 shrink-0" />Copy wallet address</DropdownMenu.Item>
+			<DropdownMenu.Trigger aria-label="Owner options" class={buttonVariants({ variant: 'ghost', size: 'icon' })}><EllipsisVertical class="size-4" /></DropdownMenu.Trigger>
+			<DropdownMenu.Content align="end" class="max-w-72">
+				<DropdownMenu.Item onSelect={copyAddress}><Copy class="size-4 shrink-0" />Copy wallet address</DropdownMenu.Item>
 				{#if cluster}
 					<DropdownMenu.Item>
-						{#snippet child({ props })}<a {...props} href={explorerUrl('address', address, cluster)} target="_blank" rel="noopener noreferrer" class={menuItem}><ArrowUpRight class="size-4 shrink-0" />Open in explorer</a>{/snippet}
+						{#snippet child({ props })}<a {...props} href={explorerUrl('address', address, cluster)} target="_blank" rel="noopener noreferrer"><ArrowUpRight class="size-4 shrink-0" />Open in explorer</a>{/snippet}
 					</DropdownMenu.Item>
 				{/if}
-				{#if onforget}
-					<DropdownMenu.Item onSelect={onforget} class={menuItem}><RotateCcw class="size-4 shrink-0" />Forget wallet preference</DropdownMenu.Item>
+				{#if onexport}
+					<DropdownMenu.Item onSelect={onexport}><KeyRound class="size-4 shrink-0" />Export key</DropdownMenu.Item>
 				{/if}
-			</DropdownMenu.Content></DropdownMenu.Portal>
+			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	{/snippet}
 </ListRow>

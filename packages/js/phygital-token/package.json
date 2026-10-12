@@ -56,6 +56,11 @@
   },
   "dependencies": {
     "@noble/curves": "^2.3.0",
-    "@noble/hashes": "^2.4.0"
+    "@noble/hashes": "^2.4.0",
+    "@solana/wallet-standard-chains": "^1.1.2",
+    "@solana/wallet-standard-features": "^1.5.0",
+    "@wallet-standard/base": "^1.1.1",
+    "@wallet-standard/features": "^1.1.1",
+    "@wallet-standard/wallet": "^1.1.1"
   }
 }

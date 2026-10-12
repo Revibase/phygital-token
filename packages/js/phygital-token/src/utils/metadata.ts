@@ -18,7 +18,7 @@ import { parseSecp256r1Pubkey } from "./parseSecp256r1Pubkey.js";
 
 /**
  * Zero-copy `PhygitalToken` layout after the 8-byte discriminator:
- * `owner` 32 | `mint` 32 | `last_sign_count` 4 | `token_type` 1 | `is_locked` 1
+ * `owner` 32 | `mint` 32 | `last_sign_count` 4 | `token_type` 1 | `wallet_bump` 1
  * | `public_key` 33 | `identifier` 33. Total account size is
  * {@link getPhygitalTokenSize} (144).
  */

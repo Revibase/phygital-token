@@ -113,7 +113,6 @@ export type AssignMintAsyncInput<
   TAccountPhygitalToken extends string = string,
 > = {
   authority: TransactionSigner<TAccountAuthority>;
-  /** Authority must be the admin or an issuer on this config. */
   adminConfig?: Address<TAccountAdminConfig>;
   phygitalToken: Address<TAccountPhygitalToken>;
   mint: AssignMintInstructionDataArgs["mint"];
@@ -187,7 +186,6 @@ export type AssignMintInput<
   TAccountPhygitalToken extends string = string,
 > = {
   authority: TransactionSigner<TAccountAuthority>;
-  /** Authority must be the admin or an issuer on this config. */
   adminConfig: Address<TAccountAdminConfig>;
   phygitalToken: Address<TAccountPhygitalToken>;
   mint: AssignMintInstructionDataArgs["mint"];
@@ -255,7 +253,6 @@ export type ParsedAssignMintInstruction<
   programAddress: Address<TProgram>;
   accounts: {
     authority: TAccountMetas[0];
-    /** Authority must be the admin or an issuer on this config. */
     adminConfig: TAccountMetas[1];
     phygitalToken: TAccountMetas[2];
   };

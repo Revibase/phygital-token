@@ -5,10 +5,39 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-pub(crate) mod r#phygital_token_type;
-pub(crate) mod r#secp256r1_pubkey;
-pub(crate) mod r#secp256r1_verify_args;
+  pub(crate) mod r#account_constraint;
+  pub(crate) mod r#account_key_constraint;
+  pub(crate) mod r#cap_arg;
+  pub(crate) mod r#compact_instruction;
+  pub(crate) mod r#comparison;
+  pub(crate) mod r#data_constraint;
+  pub(crate) mod r#data_predicate;
+  pub(crate) mod r#instruction_rule;
+  pub(crate) mod r#mint_cap;
+  pub(crate) mod r#numeric_width;
+  pub(crate) mod r#phygital_token_type;
+  pub(crate) mod r#policy_action;
+  pub(crate) mod r#program_access;
+  pub(crate) mod r#program_permission;
+  pub(crate) mod r#secp256r1_pubkey;
+  pub(crate) mod r#secp256r1_verify_args;
+  pub(crate) mod r#spend_cap;
 
-pub use self::r#phygital_token_type::*;
-pub use self::r#secp256r1_pubkey::*;
-pub use self::r#secp256r1_verify_args::*;
+  pub use self::r#account_constraint::*;
+  pub use self::r#account_key_constraint::*;
+  pub use self::r#cap_arg::*;
+  pub use self::r#compact_instruction::*;
+  pub use self::r#comparison::*;
+  pub use self::r#data_constraint::*;
+  pub use self::r#data_predicate::*;
+  pub use self::r#instruction_rule::*;
+  pub use self::r#mint_cap::*;
+  pub use self::r#numeric_width::*;
+  pub use self::r#phygital_token_type::*;
+  pub use self::r#policy_action::*;
+  pub use self::r#program_access::*;
+  pub use self::r#program_permission::*;
+  pub use self::r#secp256r1_pubkey::*;
+  pub use self::r#secp256r1_verify_args::*;
+  pub use self::r#spend_cap::*;
+

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { AccessoryView, TokenKind } from '$lib/shared/types';
 import { accessoryRules } from '$lib/shared/accessory-view';
-import { changedElsewhereNotice, tapScreen } from '$lib/client/accessory/screen';
+import { changedElsewhereNotice, tapScreen, managementActions } from '$lib/client/accessory/screen';
 
 const W = '7Yu3oPKm7hSbcX3u7ke1HMuiKeuuSJo4iQ8PYP6VGkCN';
 
@@ -25,12 +25,12 @@ function accessory(kind: TokenKind, owner: string | null, isLocked = owner !== n
 
 describe('tapScreen: Bearer wallet linkage', () => {
 	it('unclaimed: anyone can make it theirs', () => {
-		expect(tapScreen(accessory('bearer', null), false)).toMatchObject({ title: 'No wallet linked', claim: true, walletLabel: null });
+		expect(tapScreen(accessory('bearer', null), false)).toMatchObject({ title: 'Ready to claim', claim: true, walletLabel: null });
 	});
 
 	it('owner: in their collection, can move it, not pitched as a wallet key', () => {
 		const s = tapScreen(accessory('bearer', W), true);
-		expect(s).toMatchObject({ title: 'Linked to your wallet', walletLabel: 'Your wallet', claim: false, move: true });
+		expect(s).toMatchObject({ title: 'Claimed', walletLabel: 'Owner', claim: false, move: true });
 		expect(s.body).not.toMatch(/prove/i);
 	});
 
@@ -40,12 +40,12 @@ describe('tapScreen: Bearer wallet linkage', () => {
 				expect(tapScreen(accessory(kind, owner), owned).body).toBe('');
 			}
 		}
-		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({ title: 'Permanently linked to a wallet', body: '' });
+		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({ title: 'Permanently assigned', body: '' });
 	});
 
 	it('someone else: shows the owner and offers "Make it yours"', () => {
 		expect(tapScreen(accessory('bearer', W), false)).toMatchObject({
-			title: 'Linked to a wallet',
+			title: 'Claimed',
 			walletLabel: 'Owner',
 			claim: true,
 			move: false
@@ -60,17 +60,17 @@ describe('tapScreen: Bearer wallet linkage', () => {
 
 describe('tapScreen: Controlled and Permanent wallet linkage', () => {
 	it('Controlled unclaimed: anyone holding it can make it theirs', () => {
-		expect(tapScreen(accessory('controlled', null), false)).toMatchObject({ title: 'No wallet linked', claim: true });
+		expect(tapScreen(accessory('controlled', null), false)).toMatchObject({ title: 'Ready to claim', claim: true });
 	});
 
 	it('Controlled linked: never claimable, framed around authentication', () => {
-		expect(tapScreen(accessory('controlled', W), true)).toMatchObject({ title: 'Linked to your wallet', walletLabel: 'Your wallet', claim: false, move: false });
-		expect(tapScreen(accessory('controlled', W), false)).toMatchObject({ title: 'Linked to a wallet', walletLabel: 'Owner', claim: false, move: false });
+		expect(tapScreen(accessory('controlled', W), true)).toMatchObject({ title: 'Claimed', walletLabel: 'Owner', claim: false, move: false });
+		expect(tapScreen(accessory('controlled', W), false)).toMatchObject({ title: 'Claimed', walletLabel: 'Owner', claim: false, move: false });
 	});
 
 	it('Permanent: bound for good, never claimable', () => {
-		expect(tapScreen(accessory('permanent', W), true)).toMatchObject({ title: 'Permanently linked to your wallet', claim: false });
-		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({ title: 'Permanently linked to a wallet', claim: false });
+		expect(tapScreen(accessory('permanent', W), true)).toMatchObject({ title: 'Permanently assigned', claim: false });
+		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({ title: 'Permanently assigned', claim: false });
 	});
 
 	it('Permanent without a wallet is unavailable, not claimable', () => {
@@ -80,8 +80,8 @@ describe('tapScreen: Controlled and Permanent wallet linkage', () => {
 
 describe('changedElsewhereNotice', () => {
 	it('describes linkage changes by the applicable relinking rule', () => {
-		expect(changedElsewhereNotice(accessory('bearer', W)).title).toBe('Linked to a different wallet');
-		expect(changedElsewhereNotice(accessory('controlled', W)).title).toBe('Linked to a different wallet');
+		expect(changedElsewhereNotice(accessory('bearer', W)).title).toBe('Owner changed');
+		expect(changedElsewhereNotice(accessory('controlled', W)).title).toBe('Owner changed');
 	});
 });
 
@@ -94,4 +94,31 @@ describe('trading a card does not change its link rules', () => {
 		expect(screen.body).not.toMatch(/card|trad(e|ing)|collection/i);
 		expect(screen.body).not.toMatch(/proves.*wallet/);
 	});
+});
+
+
+describe('accessory management actions', () => {
+ it.each(['bearer', 'controlled'] as const)('%s unclaimed keeps wallet discovery without ownership controls', kind => {
+  expect(managementActions(accessory(kind, null), false)).toEqual({ release: false, changeOwner: false, connectOwner: false, wallet: true, hasActions: true });
+ });
+ it('bearer owner can change or release; a locked bearer owner can only release', () => {
+  expect(managementActions(accessory('bearer', W), true)).toMatchObject({ release: true, changeOwner: true, wallet: true, connectOwner: false });
+  expect(managementActions(accessory('bearer', W, true), true)).toMatchObject({ release: true, changeOwner: false });
+ });
+ it.each(['bearer', 'controlled'] as const)('%s visitors must connect the owner before seeing owner actions', kind => {
+  expect(managementActions(accessory(kind, W), false)).toMatchObject({ release: false, changeOwner: false, connectOwner: true, wallet: true });
+ });
+ it('controlled owner releases before changing owner', () => {
+  expect(managementActions(accessory('controlled', W), true)).toMatchObject({ release: true, changeOwner: false, connectOwner: false });
+ });
+ it.each([false, true])('permanent owner connection=%s keeps wallet access without ownership changes', owned => {
+  expect(managementActions(accessory('permanent', W), owned)).toEqual({ release: false, changeOwner: false, connectOwner: false, wallet: true, hasActions: true });
+ });
+ it('keeps the wallet entry available for owners and visitors', () => {
+  for (const owned of [false, true]) expect(managementActions(accessory('permanent', W), owned)).toMatchObject({ wallet: true, hasActions: true });
+ });
+ it('does not offer actions for unavailable or unknown records', () => {
+  expect(managementActions({ ...accessory('bearer', W), status: 'unavailable' }, true).hasActions).toBe(false);
+  expect(managementActions({ ...accessory('bearer', W), kind: 'unknown' }, false).hasActions).toBe(false);
+ });
 });

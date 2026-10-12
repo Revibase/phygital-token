@@ -12,6 +12,7 @@ import { buildSecp256r1Message } from "../utils/passkey/internal.js";
 import { startAuthentication, verifyResponse } from "../utils/verify.js";
 
 const rpc = {} as Rpc<SolanaRpcApi>;
+const expectedOrigin = "https://app.example.com";
 
 function buildAssertion(args: {
   privateKey: Uint8Array;
@@ -65,42 +66,45 @@ function buildAssertion(args: {
   };
 }
 
-describe("startAuthentication / verifyResponse", () => {
-  it("verifies a tap for the issued message", () => {
+describe("startAuthentication / verifyResponse", async () => {
+  it("verifies a tap for the issued message", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const message = "revibase-signin:abc";
     const { response } = buildAssertion({ privateKey, message });
 
-    const result = verifyResponse({ expectedMessage: message, response });
+    const result = await verifyResponse({ expectedMessage: message, expectedOrigin, response });
     expect(result.isVerified).toBe(true);
     expect(result.secp256r1PublicKey).toBe(response.id);
+    const { findWalletPda, findPhygitalTokenPda } = await import("../index.js");
+    expect(result.accessoryWallet).toBe((await findWalletPda({ phygitalToken: await findPhygitalTokenPda(response.id) }))[0]);
+    expect(Object.keys(result).sort()).toEqual(["accessoryWallet", "isVerified", "secp256r1PublicKey"]);
   });
 
-  it("verifies against a raw base64url expectedChallenge", () => {
+  it("verifies against a raw base64url expectedChallenge", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const message = "revibase-signin:abc";
     const { response } = buildAssertion({ privateKey, message });
     const expectedChallenge = utf8ToBase64URLString(message);
 
-    expect(verifyResponse({ expectedChallenge, response }).isVerified).toBe(true);
-    expect(() =>
-      verifyResponse({ expectedChallenge: utf8ToBase64URLString("other"), response }),
-    ).toThrow(/Message mismatch/);
+    expect((await verifyResponse({ expectedChallenge, expectedOrigin, response })).isVerified).toBe(true);
+    await expect(
+      verifyResponse({ expectedChallenge: utf8ToBase64URLString("other"), expectedOrigin, response }),
+    ).rejects.toThrow(/Message mismatch/);
   });
 
-  it("throws on message mismatch", () => {
+  it("throws on message mismatch", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const { response } = buildAssertion({
       privateKey,
       message: "revibase-signin:abc",
     });
 
-    expect(() =>
-      verifyResponse({ expectedMessage: "revibase-signin:other", response }),
-    ).toThrow(/Message mismatch/);
+    await expect(
+      verifyResponse({ expectedMessage: "revibase-signin:other", expectedOrigin, response }),
+    ).rejects.toThrow(/Message mismatch/);
   });
 
-  it("returns isVerified false on bad signature", () => {
+  it("returns isVerified false on bad signature", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const otherKey = p256.utils.randomSecretKey();
     const message = "revibase-signin:abc";
@@ -109,11 +113,12 @@ describe("startAuthentication / verifyResponse", () => {
     response.id = bufferToBase64URLString(p256.getPublicKey(otherKey, true));
     response.rawId = response.id;
 
-    const result = verifyResponse({ expectedMessage: message, response });
+    const result = await verifyResponse({ expectedMessage: message, expectedOrigin, response });
     expect(result.isVerified).toBe(false);
+    expect(result.accessoryWallet).toBeNull();
   });
 
-  it("ignores origin / rpId (no binding checks)", () => {
+  it("rejects a tap made on another origin", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const message = "revibase-signin:abc";
     const { response } = buildAssertion({
@@ -123,29 +128,42 @@ describe("startAuthentication / verifyResponse", () => {
       rpId: "evil.example",
     });
 
-    expect(verifyResponse({ expectedMessage: message, response }).isVerified).toBe(
-      true,
-    );
+    await expect(
+      verifyResponse({ expectedMessage: message, expectedOrigin, response }),
+    ).rejects.toMatchObject({ code: "ORIGIN_MISMATCH" });
   });
 
-  it("allows empty origin in clientData", () => {
+  it("accepts any of several expected origins", async () => {
     const privateKey = p256.utils.randomSecretKey();
-    const message = "kiosk";
+    const message = "revibase-signin:abc";
     const { response } = buildAssertion({
       privateKey,
       message,
-      origin: "",
+      origin: "https://www.example.com",
     });
 
-    expect(verifyResponse({ expectedMessage: message, response }).isVerified).toBe(
-      true,
-    );
+    const result = await verifyResponse({
+      expectedMessage: message,
+      expectedOrigin: [expectedOrigin, "https://www.example.com"],
+      response,
+    });
+    expect(result.isVerified).toBe(true);
+  });
+
+  it("rejects an empty origin in clientData", async () => {
+    const privateKey = p256.utils.randomSecretKey();
+    const message = "revibase-signin:abc";
+    const { response } = buildAssertion({ privateKey, message, origin: "" });
+
+    await expect(
+      verifyResponse({ expectedMessage: message, expectedOrigin: "", response }),
+    ).rejects.toMatchObject({ code: "INVALID_ASSERTION" });
   });
 });
 
 describe("startAuthentication signature", () => {
   it("is exported and callable shape (message, rpc)", async () => {
-    // Without WebAuthn / transceive this throws in authenticatePasskey — just
+    // Without WebAuthn this throws in authenticatePasskey — just
     // assert the function exists with the restored arity.
     expect(typeof startAuthentication).toBe("function");
     expect(startAuthentication.length).toBeGreaterThanOrEqual(1);

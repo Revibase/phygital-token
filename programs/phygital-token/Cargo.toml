@@ -26,11 +26,11 @@ custom-panic = []
 [dependencies]
 anchor-lang = { version = "1.0.2", features = ["init-if-needed"] }
 bytemuck = { version = "1.17", features = ["derive", "min_const_generics"] }
-solana-instructions-sysvar = "3.0"
 solana-sdk-ids = "3"
 solana-sha256-hasher = { version = "3.1", features = ["sha2"] }
 
 [dev-dependencies]
+anchor-spl = "1.0.2"
 litesvm = { version = "0.10.0", features = ["precompiles"] }
 solana-message = "3.0.1"
 solana-transaction = "3.0.2"

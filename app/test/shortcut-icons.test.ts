@@ -44,7 +44,7 @@ describe('signed proxy links', () => {
 	});
 
 	it('rewrites only shortcuts that have an image', async () => {
-		const base = { label: 'Play', href: 'https://game.xyz', icon: 'generic-link', immerse: false, proof: false, external: false, platform: 'all' } as const;
+		const base = { label: 'Play', href: 'https://game.xyz', icon: 'generic-link', external: false, platform: 'all' } as const;
 		const [withImage, glyph] = await withIconProxy([{ ...base, image: URL_ }, { ...base, image: null }] satisfies Shortcut[], SECRET);
 		expect(withImage.image).toBe(await iconProxyPath(SECRET, URL_));
 		expect(glyph.image).toBeNull();

@@ -5,7 +5,7 @@
 ```
 Server: const message = crypto.randomUUID()   // store single-use
 Client: startAuthentication(message, { rpc, allowList? })
-Server: verifyResponse({ expectedMessage: message, response })
+Server: await verifyResponse({ expectedMessage: message, expectedOrigin: "https://app.example.com", response })
       → findPhygitalTokenPda(secp256r1PublicKey) → your session
 ```
 
@@ -29,8 +29,7 @@ No `generateAuthenticationOptions`. No rpId/origin binding on verify.
 | | |
 |--|--|
 | `startAuthentication(message, { rpc, allowList? })` | browser tap + placeholder recovery |
-| `startAuthentication(message, { transceive })` | native APDU |
-| `verifyResponse({ expectedMessage, response })` | secp256r1 check; returns `secp256r1PublicKey` |
+| `verifyResponse({ expectedMessage, expectedOrigin, response })` | asynchronous secp256r1 and origin check; returns `{ isVerified, secp256r1PublicKey, accessoryWallet }` |
 
 ## When to use what
 
@@ -40,4 +39,5 @@ No `generateAuthenticationOptions`. No rpId/origin binding on verify.
 | Load on-chain state after a tap | verify → `findPhygitalTokenPda` + `fetchPhygitalToken` |
 | Set owner | `beginTransfer` → `completeTransfer` |
 | On-chain possession proof / CPI | `buildMessageHash` → `authenticatePasskeyForSecp256r1Verify` → `buildSecp256r1VerifyInstruction` |
-| Native / kiosk IsoDep | `startAuthentication(message, { transceive })` |
+
+`verifyResponse` derives the accessory-wallet PDA locally without RPC. Invalid signatures return `accessoryWallet: null`. Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.

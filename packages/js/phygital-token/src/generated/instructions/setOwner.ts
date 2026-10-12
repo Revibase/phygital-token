@@ -36,8 +36,10 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/kit/program-client-core";
+import { findPolicyPda, findWalletPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
   getSecp256r1VerifyArgsDecoder,
@@ -62,6 +64,8 @@ export type SetOwnerInstruction<
     "SysvarS1otHashes111111111111111111111111111",
   TAccountInstructionsSysvar extends string | AccountMeta<string> =
     "Sysvar1nstructions1111111111111111111111111",
+  TAccountPolicy extends string | AccountMeta<string> = string,
+  TAccountWallet extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -80,6 +84,12 @@ export type SetOwnerInstruction<
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
+      TAccountPolicy extends string
+        ? WritableAccount<TAccountPolicy>
+        : TAccountPolicy,
+      TAccountWallet extends string
+        ? WritableAccount<TAccountWallet>
+        : TAccountWallet,
       ...TRemainingAccounts,
     ]
   >;
@@ -124,40 +134,52 @@ export function getSetOwnerInstructionDataCodec(): Codec<
   );
 }
 
-export type SetOwnerInput<
+export type SetOwnerAsyncInput<
   TAccountRecipient extends string = string,
   TAccountPhygitalToken extends string = string,
   TAccountSlotHashes extends string = string,
   TAccountInstructionsSysvar extends string = string,
+  TAccountPolicy extends string = string,
+  TAccountWallet extends string = string,
 > = {
   recipient: TransactionSigner<TAccountRecipient>;
   phygitalToken: Address<TAccountPhygitalToken>;
   slotHashes?: Address<TAccountSlotHashes>;
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
+  policy?: Address<TAccountPolicy>;
+  wallet?: Address<TAccountWallet>;
   secp256r1VerifyArgs: SetOwnerInstructionDataArgs["secp256r1VerifyArgs"];
   slotNumber: SetOwnerInstructionDataArgs["slotNumber"];
 };
 
-export function getSetOwnerInstruction<
+export async function getSetOwnerInstructionAsync<
   TAccountRecipient extends string,
   TAccountPhygitalToken extends string,
   TAccountSlotHashes extends string,
   TAccountInstructionsSysvar extends string,
+  TAccountPolicy extends string,
+  TAccountWallet extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: SetOwnerInput<
+  input: SetOwnerAsyncInput<
     TAccountRecipient,
     TAccountPhygitalToken,
     TAccountSlotHashes,
-    TAccountInstructionsSysvar
+    TAccountInstructionsSysvar,
+    TAccountPolicy,
+    TAccountWallet
   >,
   config?: { programAddress?: TProgramAddress },
-): SetOwnerInstruction<
-  TProgramAddress,
-  TAccountRecipient,
-  TAccountPhygitalToken,
-  TAccountSlotHashes,
-  TAccountInstructionsSysvar
+): Promise<
+  SetOwnerInstruction<
+    TProgramAddress,
+    TAccountRecipient,
+    TAccountPhygitalToken,
+    TAccountSlotHashes,
+    TAccountInstructionsSysvar,
+    TAccountPolicy,
+    TAccountWallet
+  >
 > {
   // Program address.
   const programAddress =
@@ -172,6 +194,128 @@ export function getSetOwnerInstruction<
       value: input.instructionsSysvar ?? null,
       isWritable: false,
     },
+    policy: { value: input.policy ?? null, isWritable: true },
+    wallet: { value: input.wallet ?? null, isWritable: true },
+  };
+  const accounts = originalAccounts as Record<
+    keyof typeof originalAccounts,
+    ResolvedInstructionAccount
+  >;
+
+  // Original args.
+  const args = { ...input };
+
+  // Resolve default values.
+  if (!accounts.slotHashes.value) {
+    accounts.slotHashes.value =
+      "SysvarS1otHashes111111111111111111111111111" as Address<"SysvarS1otHashes111111111111111111111111111">;
+  }
+  if (!accounts.instructionsSysvar.value) {
+    accounts.instructionsSysvar.value =
+      "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
+  }
+  if (!accounts.policy.value) {
+    accounts.policy.value = await findPolicyPda({
+      phygitalToken: getAddressFromResolvedInstructionAccount(
+        "phygitalToken",
+        accounts.phygitalToken.value,
+      ),
+    });
+  }
+  if (!accounts.wallet.value) {
+    accounts.wallet.value = await findWalletPda({
+      phygitalToken: getAddressFromResolvedInstructionAccount(
+        "phygitalToken",
+        accounts.phygitalToken.value,
+      ),
+    });
+  }
+
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
+  return Object.freeze({
+    accounts: [
+      getAccountMeta("recipient", accounts.recipient),
+      getAccountMeta("phygitalToken", accounts.phygitalToken),
+      getAccountMeta("slotHashes", accounts.slotHashes),
+      getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
+      getAccountMeta("policy", accounts.policy),
+      getAccountMeta("wallet", accounts.wallet),
+    ],
+    data: getSetOwnerInstructionDataEncoder().encode(
+      args as SetOwnerInstructionDataArgs,
+    ),
+    programAddress,
+  } as SetOwnerInstruction<
+    TProgramAddress,
+    TAccountRecipient,
+    TAccountPhygitalToken,
+    TAccountSlotHashes,
+    TAccountInstructionsSysvar,
+    TAccountPolicy,
+    TAccountWallet
+  >);
+}
+
+export type SetOwnerInput<
+  TAccountRecipient extends string = string,
+  TAccountPhygitalToken extends string = string,
+  TAccountSlotHashes extends string = string,
+  TAccountInstructionsSysvar extends string = string,
+  TAccountPolicy extends string = string,
+  TAccountWallet extends string = string,
+> = {
+  recipient: TransactionSigner<TAccountRecipient>;
+  phygitalToken: Address<TAccountPhygitalToken>;
+  slotHashes?: Address<TAccountSlotHashes>;
+  instructionsSysvar?: Address<TAccountInstructionsSysvar>;
+  policy: Address<TAccountPolicy>;
+  wallet: Address<TAccountWallet>;
+  secp256r1VerifyArgs: SetOwnerInstructionDataArgs["secp256r1VerifyArgs"];
+  slotNumber: SetOwnerInstructionDataArgs["slotNumber"];
+};
+
+export function getSetOwnerInstruction<
+  TAccountRecipient extends string,
+  TAccountPhygitalToken extends string,
+  TAccountSlotHashes extends string,
+  TAccountInstructionsSysvar extends string,
+  TAccountPolicy extends string,
+  TAccountWallet extends string,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+>(
+  input: SetOwnerInput<
+    TAccountRecipient,
+    TAccountPhygitalToken,
+    TAccountSlotHashes,
+    TAccountInstructionsSysvar,
+    TAccountPolicy,
+    TAccountWallet
+  >,
+  config?: { programAddress?: TProgramAddress },
+): SetOwnerInstruction<
+  TProgramAddress,
+  TAccountRecipient,
+  TAccountPhygitalToken,
+  TAccountSlotHashes,
+  TAccountInstructionsSysvar,
+  TAccountPolicy,
+  TAccountWallet
+> {
+  // Program address.
+  const programAddress =
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+
+  // Original accounts.
+  const originalAccounts = {
+    recipient: { value: input.recipient ?? null, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    slotHashes: { value: input.slotHashes ?? null, isWritable: false },
+    instructionsSysvar: {
+      value: input.instructionsSysvar ?? null,
+      isWritable: false,
+    },
+    policy: { value: input.policy ?? null, isWritable: true },
+    wallet: { value: input.wallet ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -198,6 +342,8 @@ export function getSetOwnerInstruction<
       getAccountMeta("phygitalToken", accounts.phygitalToken),
       getAccountMeta("slotHashes", accounts.slotHashes),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
+      getAccountMeta("policy", accounts.policy),
+      getAccountMeta("wallet", accounts.wallet),
     ],
     data: getSetOwnerInstructionDataEncoder().encode(
       args as SetOwnerInstructionDataArgs,
@@ -208,7 +354,9 @@ export function getSetOwnerInstruction<
     TAccountRecipient,
     TAccountPhygitalToken,
     TAccountSlotHashes,
-    TAccountInstructionsSysvar
+    TAccountInstructionsSysvar,
+    TAccountPolicy,
+    TAccountWallet
   >);
 }
 
@@ -222,6 +370,8 @@ export type ParsedSetOwnerInstruction<
     phygitalToken: TAccountMetas[1];
     slotHashes: TAccountMetas[2];
     instructionsSysvar: TAccountMetas[3];
+    policy: TAccountMetas[4];
+    wallet: TAccountMetas[5];
   };
   data: SetOwnerInstructionData;
 };
@@ -234,12 +384,12 @@ export function parseSetOwnerInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedSetOwnerInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 4) {
+  if (instruction.accounts.length < 6) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
+        expectedAccountMetas: 6,
       },
     );
   }
@@ -256,6 +406,8 @@ export function parseSetOwnerInstruction<
       phygitalToken: getNextAccount(),
       slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
+      policy: getNextAccount(),
+      wallet: getNextAccount(),
     },
     data: getSetOwnerInstructionDataDecoder().decode(instruction.data),
   };

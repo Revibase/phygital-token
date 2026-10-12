@@ -16,18 +16,28 @@ import {
 	partiallySignTransaction,
 	pipe,
 	sendAndConfirmTransactionFactory,
+	setTransactionMessageConfig,
 	setTransactionMessageFeePayerSigner,
 	setTransactionMessageLifetimeUsingBlockhash,
 	signTransactionMessageWithSigners,
-	getBase64EncodedWireTransaction,
 	createNoopSigner,
+	compileTransaction,
 	type Instruction,
-	type KeyPairSigner
+	type KeyPairSigner,
+	type TransactionSigner
 } from '@solana/kit';
 
 import { base64UrlToBytes, bytesToBase64Url } from '../src/lib/shared/encoding';
-import { buildLinkTransaction, expectationFromPayload, validateLinkTransaction } from '../src/lib/shared/link-transaction';
-import type { LinkStatusView, TransferPayload } from '../src/lib/shared/types';
+import {
+	buildLinkInstructions,
+	buildLinkTransaction,
+	LINK_COMPUTE_UNIT_LIMIT,
+	linkExpectation,
+	v1MessageConfig,
+	validateLinkTransaction,
+	type LinkTap
+} from '../src/lib/shared/link-transaction';
+import { beginTransfer, createSponsorFeePayer, fetchSponsor, pickFeePayer, type AuthenticationResponseJSON } from 'phygital-token-sdk';
 
 export const APP = process.env.APP_URL ?? 'http://localhost:5173';
 export const RP_ID = new URL(APP).hostname;
@@ -46,9 +56,10 @@ export async function send(payer: KeyPairSigner, ixs: Instruction[]) {
 	const { value: blockhash } = await rpc.getLatestBlockhash().send();
 	const tx = await signTransactionMessageWithSigners(
 		pipe(
-			createTransactionMessage({ version: 0 }),
+			createTransactionMessage({ version: 1 }),
 			(m) => setTransactionMessageFeePayerSigner(payer, m),
 			(m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
+			(m) => setTransactionMessageConfig({ computeUnitLimit: 1_400_000, loadedAccountsDataSizeLimit: 64 * 1024 * 1024 }, m),
 			(m) => appendTransactionMessageInstructions(ixs, m)
 		)
 	);
@@ -86,7 +97,7 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 			});
 			return `${APP}/accessory?${q}`;
 		},
-		webauthn(challengeB64: string) {
+		webauthn(challengeB64: string): AuthenticationResponseJSON {
 			signCount += 1;
 			const clientData = new TextEncoder().encode(
 				JSON.stringify({ type: 'webauthn.get', challenge: challengeB64, origin: APP, crossOrigin: false })
@@ -102,7 +113,7 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 			return {
 				id,
 				rawId: id,
-				type: 'public-key',
+				type: 'public-key' as const,
 				clientExtensionResults: {},
 				response: {
 					clientDataJSON: bytesToBase64Url(clientData),
@@ -148,30 +159,59 @@ export class Browser {
 	}
 }
 
-export async function finish(browser: Browser, linkId: string, wallet: KeyPairSigner) {
-	const rec = await browser.post<{ payload: TransferPayload; error?: string }>(`/api/link/${linkId}/recipient`, {
-		address: wallet.address
-	});
-	check(`${browser.name}: server simulated and released the tap to the finisher`, rec.status === 200, rec.body);
-	if (rec.status !== 200) return;
+/** Taps `acc` over a fresh slot-bound transfer challenge, as the link page does. */
+export async function tapForLink(acc: ReturnType<typeof fakeAccessory>): Promise<LinkTap> {
+	const session = await beginTransfer({ rpc, secp256r1Pubkey: bytesToBase64Url(acc.passkey), rpId: RP_ID });
+	return { session, response: acc.webauthn(bytesToBase64Url(session.challenge)) };
+}
+
+/** Links `acc` to `wallet`, which pays the fee: tap, build, check the bytes, sign and send. */
+export async function link(acc: ReturnType<typeof fakeAccessory>, wallet: KeyPairSigner) {
+	const tap = await tapForLink(acc);
 	const { value: blockhash } = await rpc.getLatestBlockhash().send();
-	const { transaction, wireBytes } = await buildLinkTransaction({
-		payload: rec.body.payload,
-		rpc,
-		recipient: createNoopSigner(wallet.address),
-		blockhash
-	});
-	validateLinkTransaction(wireBytes, expectationFromPayload(rec.body.payload, wallet.address));
+	const { transaction, wireBytes } = await buildLinkTransaction({ tap, recipient: createNoopSigner(wallet.address), blockhash });
+	validateLinkTransaction(wireBytes, linkExpectation(tap, wallet.address));
 	const signed = await partiallySignTransaction([wallet.keyPair], transaction);
-	const sig = await rpc.sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: 'base64' }).send();
-	await browser.post(`/api/link/${linkId}/submitted`, { signature: sig });
-	let status: LinkStatusView | null = null;
-	for (let i = 0; i < 30; i++) {
-		status = (await browser.get<LinkStatusView>(`/api/link/${linkId}`)).body;
-		if (status.state === 'linked' || status.state === 'failed') break;
-		await new Promise((r) => setTimeout(r, 500));
-	}
-	check(`${browser.name}: ceremony reached "linked"`, status?.state === 'linked', status);
+	await sendAndConfirm(signed as never, { commitment: 'confirmed' });
 	return getSignatureFromTransaction(signed);
 }
 
+export const SPONSOR = `${APP}/api/sponsor`;
+
+/** The accessory's prepaid network fees, as the fee service reports them. */
+export async function prepaid(pda: string) {
+	const info = await fetchSponsor({ endpoint: SPONSOR, phygitalToken: pda as never });
+	return { feePayers: info.feePayers, balance: info.prepaid!.balanceLamports };
+}
+
+/**
+ * Sends `build`'s instructions with a Revibase fee payer, as the app does for
+ * an owner without SOL: the owner signs, then the fee service.
+ */
+export async function sendSponsored(pda: string, owner: KeyPairSigner, build: (feePayer: TransactionSigner) => Promise<Instruction[]>, units = 200_000) {
+	const { feePayers } = await prepaid(pda);
+	const sponsor = createSponsorFeePayer(pickFeePayer(feePayers), { endpoint: SPONSOR });
+	const feePayer = createNoopSigner(sponsor.address);
+	const instructions = await build(feePayer);
+	const { value: blockhash } = await rpc.getLatestBlockhash().send();
+	const unsigned = compileTransaction(
+		pipe(
+			createTransactionMessage({ version: 1 }),
+			(m) => setTransactionMessageFeePayerSigner(feePayer, m),
+			(m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
+			(m) => setTransactionMessageConfig(v1MessageConfig(units), m),
+			(m) => appendTransactionMessageInstructions(instructions, m)
+		)
+	);
+	const ownerSigned = await partiallySignTransaction([owner.keyPair], unsigned);
+	const [sponsorSignature] = await sponsor.signTransactions([ownerSigned]);
+	const tx = { ...ownerSigned, signatures: { ...ownerSigned.signatures, ...sponsorSignature } };
+	await sendAndConfirm(tx as Parameters<typeof sendAndConfirm>[0], { commitment: 'confirmed' });
+	return { feePayer: sponsor.address, signature: getSignatureFromTransaction(tx as never) };
+}
+
+/** `link`, for a recipient with no SOL: a Revibase fee payer pays for it. */
+export async function linkSponsored(acc: ReturnType<typeof fakeAccessory>, wallet: KeyPairSigner) {
+	const tap = await tapForLink(acc);
+	return sendSponsored(tap.session.phygitalToken, wallet, () => buildLinkInstructions(tap, createNoopSigner(wallet.address)), LINK_COMPUTE_UNIT_LIMIT);
+}

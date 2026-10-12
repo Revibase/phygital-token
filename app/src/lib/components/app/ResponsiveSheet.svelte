@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { getContext, setContext, type Snippet } from 'svelte';
+	import { Button } from '$lib/components/ui/button';
 	import X from '@lucide/svelte/icons/x';
 	import { MediaQuery } from 'svelte/reactivity';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -12,6 +13,8 @@
 		description,
 		hideTitle = false,
 		wide = false,
+		tall = false,
+		headerActions,
 		children
 	}: {
 		open?: boolean;
@@ -19,10 +22,16 @@
 		description?: string;
 		hideTitle?: boolean;
 		wide?: boolean;
+		tall?: boolean;
+		headerActions?: Snippet;
 		children: Snippet;
 	} = $props();
 
 	const desktop = new MediaQuery('min-width: 768px', false);
+	// A sheet opened from inside another one (e.g. connecting a wallet mid-flow) must nest its drawer.
+	const nested = getContext<boolean>('responsive-sheet') ?? false;
+	setContext('responsive-sheet', true);
+	const DrawerRoot = nested ? Drawer.NestedRoot : Drawer.Root;
 	let dialogEl = $state<HTMLElement | null>(null);
 
 	function focusDialog(e: Event) {
@@ -37,9 +46,8 @@
 			<Title class="text-[20px] leading-tight font-semibold tracking-[-0.02em]">{title}</Title>
 			{#if description}<Description class="text-[14px] leading-snug text-muted-foreground">{description}</Description>{/if}
 		</div>
-		{#if desktop.current}
-			<button type="button" aria-label="Close" onclick={() => open = false} class="-mt-2 -mr-2 grid size-11 shrink-0 place-items-center rounded-full bg-muted/70 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"><X class="size-5" /></button>
-		{/if}
+		{#if headerActions}{@render headerActions()}{/if}
+			<Button variant="ghost" size="icon" aria-label="Close" onclick={() => open = false} class="-mt-2 -mr-2 bg-muted/70 hover:bg-muted"><X class="size-5" /></Button>
 	</div>
 {/snippet}
 
@@ -59,9 +67,9 @@
 		</Dialog.Content>
 	</Dialog.Root>
 {:else}
-	<Drawer.Root bind:open>
-		<Drawer.Content bind:ref={dialogEl} tabindex={-1} onOpenAutoFocus={focusDialog} class="bg-background outline-none">
-			<div class="mx-auto flex min-h-0 w-full max-w-md flex-col px-5 pt-5">
+	<DrawerRoot bind:open>
+		<Drawer.Content bind:ref={dialogEl} tabindex={-1} onOpenAutoFocus={focusDialog} class={cn("bg-background outline-none", tall && "h-[90dvh]")}>
+			<div class={cn("mx-auto flex min-h-0 w-full max-w-md flex-col px-5 pt-5", tall && "flex-1")}>
 				{@render header(Drawer.Title, Drawer.Description)}
 				<!-- Only the body scrolls; no-drag keeps vaul from turning a scroll into a swipe-to-close. -->
 				<div data-vaul-no-drag class="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -69,5 +77,5 @@
 				</div>
 			</div>
 		</Drawer.Content>
-	</Drawer.Root>
+	</DrawerRoot>
 {/if}

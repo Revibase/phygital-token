@@ -1,4 +1,4 @@
-import type { PhygitalToken } from 'phygital-token-sdk';
+import { isPhygitalTokenLocked, type PhygitalToken } from 'phygital-token-sdk';
 
 import { accessoryTag, bytesToBase64Url } from '$lib/shared/encoding';
 import type { AccessoryStatus, AccessoryView, TokenKind } from '$lib/shared/types';
@@ -36,7 +36,7 @@ export function accessoryRules(kind: TokenKind, owner: string | null, isLocked: 
 export function toAccessoryView(pda: string, account: PhygitalToken): AccessoryView {
 	const kind = TOKEN_KINDS[account.tokenType] ?? 'unknown';
 	const owner = account.owner === DEFAULT_PUBKEY ? null : String(account.owner);
-	const isLocked = account.isLocked !== 0;
+	const isLocked = isPhygitalTokenLocked(account);
 	const identifier = bytesToBase64Url(new Uint8Array(account.identifier[0]));
 	const publicKey = bytesToBase64Url(new Uint8Array(account.publicKey[0]));
 	const rules = accessoryRules(kind, owner, isLocked);

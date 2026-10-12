@@ -18,13 +18,13 @@
 		"e2e:local": "tsx scripts/e2e-local.ts",
 		"dev:accessory": "tsx scripts/dev-accessory.ts",
 		"dev:simulation": "vite --config vite.browser-simulation.config.ts",
-		"test:browser": "node scripts/browser-simulation.mjs"
+		"test:browser": "node scripts/browser-simulation.mjs",
+		"e2e:nfts": "node --import tsx scripts/e2e-nfts.ts"
 	},
 	"devDependencies": {
 		"@fontsource-variable/inter": "^5.3.0",
 		"@internationalized/date": "^3.12.4",
 		"@lucide/svelte": "^1.48.0",
-		"@solana-program/system": "^0.15.0",
 		"@sveltejs/adapter-cloudflare": "^7.2.8",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
@@ -32,6 +32,7 @@
 		"@types/qrcode": "^1.5.6",
 		"bits-ui": "^2.19.3",
 		"cn": "^0.4.0",
+		"litesvm": "1.4.1",
 		"mode-watcher": "^1.1.0",
 		"playwright": "1.62.1",
 		"shadcn-svelte": "^1.7.0",
@@ -49,10 +50,16 @@
 		"wrangler": "^4.97.0"
 	},
 	"dependencies": {
+		"@macalinao/clients-mpl-bubblegum": "0.4.0",
+		"@macalinao/clients-mpl-core": "0.4.0",
+		"@metaplex-foundation/mpl-token-metadata-kit": "0.0.3",
 		"@noble/curves": "^2.3.0",
 		"@noble/hashes": "^2.4.0",
+		"@simplewebauthn/server": "^13.3.3",
 		"@solana-mobile/wallet-standard-mobile": "^0.5.3",
 		"@solana-program/compute-budget": "^0.19.0",
+		"@solana-program/system": "^0.15.0",
+		"@solana-program/token": "^0.17.0",
 		"@solana/connector": "^0.2.6",
 		"@solana/kit": "^8.3.0",
 		"@solana/wallet-standard-features": "^1.5.0",
@@ -61,7 +68,9 @@
 		"@tanstack/svelte-query-persist-client": "^6.3.0",
 		"@wallet-standard/base": "^1.1.1",
 		"@wallet-standard/features": "^1.1.0",
+		"@wallet-standard/wallet": "^1.1.1",
 		"phygital-token-sdk": "workspace:*",
-		"qrcode": "^1.5.4"
+		"qrcode": "^1.5.4",
+		"secure-signer": "workspace:*"
 	}
 }

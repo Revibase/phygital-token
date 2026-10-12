@@ -8,8 +8,8 @@ Off-chain accessory login:
 
 ```ts
 const message = crypto.randomUUID();          // server — store single-use
-await startAuthentication(message, { rpc });      // client (or { transceive })
-verifyResponse({ expectedMessage: message, response }); // server
+await startAuthentication(message, { rpc });      // client
+verifyResponse({ expectedMessage: message, expectedOrigin, response }); // server
 ```
 
 ## Install

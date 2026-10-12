@@ -40,11 +40,11 @@ const SERVER_INSTRUCTIONS = [
   "",
   "Roles: AdminConfig has one admin, one issuer, one minter (distinct pubkeys).",
   "initialize = issuer only; assign_mint = minter only.",
-  "set_owner requires is_locked == 0 for all token types.",
+  "set_owner requires an unlocked token: Controlled and Permanent are locked whenever they have an owner (isPhygitalTokenLocked).",
   "",
   "Live token fetch and auth: call phygital-token-sdk directly in your app",
   "(startAuthentication, verifyResponse, findPhygitalTokenPda, etc.).",
-  "All tap helpers share authenticatePasskey: pass { transceive } for native APDU; omit for browser WebAuthn.",
+  "All tap helpers share authenticatePasskey, which prompts browser WebAuthn.",
   "Browser WebAuthn taps require Kit Rpc for placeholder credential-id recovery (rawId length 16).",
 ].join("\n");
 
@@ -106,7 +106,6 @@ function registerTools(server: McpServer) {
           .enum([
             "login_ui_only",
             "set_owner",
-            "native_mobile_app",
             "lookup_after_tap",
             "onchain_cpi_verify",
           ] as [VerificationUseCase, ...VerificationUseCase[]])
@@ -260,7 +259,7 @@ function registerTools(server: McpServer) {
     "plan_remove_owner",
     {
       description:
-        "Plan a wallet-signed forfeiture (offline): reset phygital_token.owner to the default pubkey and clear is_locked.",
+        "Plan a wallet-signed forfeiture (offline): reset phygital_token.owner to the default pubkey, which unlocks a Controlled token and closes its accessory policy.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()

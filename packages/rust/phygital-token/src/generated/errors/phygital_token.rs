@@ -37,51 +37,96 @@ pub enum PhygitalTokenError {
     /// 6008 - Client data hash mismatch
     #[error("Client data hash mismatch")]
     ClientDataHashMismatch = 0x1778,
-    /// 6009 - Missing instructions sysvar account
-    #[error("Missing instructions sysvar account")]
-    MissingInstructionsSysvar = 0x1779,
-    /// 6010 - Invalid sysvar data format
+    /// 6009 - Invalid sysvar data format
     #[error("Invalid sysvar data format")]
-    InvalidSysvarDataFormat = 0x177A,
-    /// 6011 - The owner needs to unlock the phygital token to enable transfer.
+    InvalidSysvarDataFormat = 0x1779,
+    /// 6010 - The owner needs to unlock the phygital token to enable transfer.
     #[error("The owner needs to unlock the phygital token to enable transfer.")]
-    TokenIsCurrentlyLocked = 0x177B,
-    /// 6012 - This phygital token is not lockable.
-    #[error("This phygital token is not lockable.")]
-    TokenIsNotLockable = 0x177C,
-    /// 6013 - Unable to parse client data JSON.
+    TokenIsCurrentlyLocked = 0x177A,
+    /// 6011 - Unable to parse client data JSON.
     #[error("Unable to parse client data JSON.")]
-    UnableToParseClientData = 0x177D,
-    /// 6014 - Challenge hash mismatch.
+    UnableToParseClientData = 0x177B,
+    /// 6012 - Challenge hash mismatch.
     #[error("Challenge hash mismatch.")]
-    ChallengeHashMismatch = 0x177E,
-    /// 6015 - Authenticator data is too short to contain WebAuthn flags.
+    ChallengeHashMismatch = 0x177C,
+    /// 6013 - Authenticator data is too short to contain WebAuthn flags.
     #[error("Authenticator data is too short to contain WebAuthn flags.")]
-    InvalidAuthenticatorData = 0x177F,
-    /// 6016 - WebAuthn user presence flag (UP) was not set by the authenticator.
+    InvalidAuthenticatorData = 0x177D,
+    /// 6014 - WebAuthn user presence flag (UP) was not set by the authenticator.
     #[error("WebAuthn user presence flag (UP) was not set by the authenticator.")]
-    UserPresenceNotVerified = 0x1780,
-    /// 6017 - WebAuthn rpId hash does not match the expected relying party id.
+    UserPresenceNotVerified = 0x177E,
+    /// 6015 - WebAuthn rpId hash does not match the expected relying party id.
     #[error("WebAuthn rpId hash does not match the expected relying party id.")]
-    RpIdMismatch = 0x1781,
-    /// 6018 - WebAuthn origin does not match any expected origin.
+    RpIdMismatch = 0x177F,
+    /// 6016 - WebAuthn origin does not match any expected origin.
     #[error("WebAuthn origin does not match any expected origin.")]
-    OriginMismatch = 0x1782,
-    /// 6019 - Only the designated authority can perform this action.
+    OriginMismatch = 0x1780,
+    /// 6017 - Only the designated authority can perform this action.
     #[error("Only the designated authority can perform this action.")]
-    UnauthorizedAuthority = 0x1783,
-    /// 6020 - Only the admin can perform this action.
+    UnauthorizedAuthority = 0x1781,
+    /// 6018 - Only the admin can perform this action.
     #[error("Only the admin can perform this action.")]
-    UnauthorizedAdmin = 0x1784,
-    /// 6021 - Key already exists on the admin config.
+    UnauthorizedAdmin = 0x1782,
+    /// 6019 - Key already exists on the admin config.
     #[error("Key already exists on the admin config.")]
-    KeyAlreadyExists = 0x1785,
-    /// 6022 - Only Permanent phygital tokens set an owner at initialize, and they must set one.
+    KeyAlreadyExists = 0x1783,
+    /// 6020 - Only Permanent phygital tokens set an owner at initialize, and they must set one.
     #[error("Only Permanent phygital tokens set an owner at initialize, and they must set one.")]
-    PermanentOwnerRequired = 0x1786,
-    /// 6023 - Permanent phygital token owner cannot be transferred or removed.
+    PermanentOwnerRequired = 0x1784,
+    /// 6021 - Permanent phygital token owner cannot be transferred or removed.
     #[error("Permanent phygital token owner cannot be transferred or removed.")]
-    PermanentOwnerImmutable = 0x1787,
+    PermanentOwnerImmutable = 0x1785,
+    /// 6022 - The token has no owner.
+    #[error("The token has no owner.")]
+    OwnerRequired = 0x1786,
+    /// 6023 - Compact instruction account index out of bounds.
+    #[error("Compact instruction account index out of bounds.")]
+    InvalidAccountIndex = 0x1787,
+    /// 6024 - Compact instructions may not call the phygital-token program.
+    #[error("Compact instructions may not call the phygital-token program.")]
+    SelfReentrancyNotAllowed = 0x1788,
+    /// 6025 - Execute must be a top-level instruction.
+    #[error("Execute must be a top-level instruction.")]
+    ExecuteViaCpiNotAllowed = 0x1789,
+    /// 6026 - Durable-nonce transactions are not allowed.
+    #[error("Durable-nonce transactions are not allowed.")]
+    DurableNonceNotAllowed = 0x178A,
+    /// 6027 - Wallet PDA owner or data length changed during inner CPI.
+    #[error("Wallet PDA owner or data length changed during inner CPI.")]
+    WalletInvariantViolated = 0x178B,
+    /// 6028 - Protected account may not be a signer or writable in inner instructions.
+    #[error("Protected account may not be a signer or writable in inner instructions.")]
+    ProtectedAccountPrivilege = 0x178C,
+    /// 6029 - Policy arguments are invalid.
+    #[error("Policy arguments are invalid.")]
+    InvalidPolicyArgs = 0x178D,
+    /// 6030 - Program is not allowed: the policy lists every program the accessory may call.
+    #[error("Program is not allowed: the policy lists every program the accessory may call.")]
+    ProgramNotAllowed = 0x178E,
+    /// 6031 - Instruction does not satisfy the configured program rules.
+    #[error("Instruction does not satisfy the configured program rules.")]
+    InstructionNotAllowed = 0x178F,
+    /// 6032 - No spend cap covers this SOL or token transfer.
+    #[error("No spend cap covers this SOL or token transfer.")]
+    SpendNotAllowed = 0x1790,
+    /// 6033 - Transfer exceeds the configured spending limit.
+    #[error("Transfer exceeds the configured spending limit.")]
+    SpendLimitExceeded = 0x1791,
+    /// 6034 - Transfer exceeds the configured max per transaction.
+    #[error("Transfer exceeds the configured max per transaction.")]
+    MaxPerTxExceeded = 0x1792,
+    /// 6035 - Execute may not leave a standing delegate on a wallet-owned token account.
+    #[error("Execute may not leave a standing delegate on a wallet-owned token account.")]
+    DelegationNotAllowed = 0x1793,
+    /// 6036 - Wallet-owned token account control changed during execute.
+    #[error("Wallet-owned token account control changed during execute.")]
+    TokenAuthorityChanged = 0x1794,
+    /// 6037 - Preview passed: an accessory tap would be allowed (preview_execute never lands).
+    #[error("Preview passed: an accessory tap would be allowed (preview_execute never lands).")]
+    PreviewPassed = 0x1795,
+    /// 6038 - clientDataJSON type must be webauthn.get.
+    #[error("clientDataJSON type must be webauthn.get.")]
+    ClientDataTypeMismatch = 0x1796,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {
@@ -89,3 +134,4 @@ impl From<PhygitalTokenError> for solana_program_error::ProgramError {
         solana_program_error::ProgramError::Custom(e as u32)
     }
 }
+

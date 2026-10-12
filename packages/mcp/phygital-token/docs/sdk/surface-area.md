@@ -19,9 +19,8 @@ All three on-chain tap entry points (`authenticatePasskey`, `authenticatePasskey
 |--------|----------|
 | `{ rpc }` | Browser WebAuthn; recovers a placeholder id via on-chain PhygitalToken lookup. |
 | `{ allowList }` | Set of base64url compressed public keys. Always gates: the tapped credential id must be in it, else `PASSKEY_NOT_RECOGNIZED`. Fallback for recovering a placeholder id locally when no `rpc` is given. |
-| `{ transceive }` | Native/kiosk APDU via `authenticateWithApdu` |
 
-Off-chain login uses `startAuthentication(message, { rpc, allowList? })` + `verifyResponse({ expectedMessage, response })`.
+Off-chain login uses `startAuthentication(message, { rpc, allowList? })` + `verifyResponse({ expectedMessage, expectedOrigin, response })`.
 
 ## Admin / roles
 
@@ -45,7 +44,7 @@ Roles must be distinct pubkeys. `initialize` requires issuer; `assign_mint` requ
 | `findPhygitalTokenPda` | Derive the phygital token PDA from a passkey public key |
 | `findAdminConfigPda` | Derive AdminConfig for the initialize accounts |
 
-Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_issuer`. Only Permanent tokens may set a non-default `owner` at init, and they start locked (`is_locked = 1`).
+Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_issuer`. Only Permanent tokens may set a non-default `owner` at init, and they are always locked.
 
 ## Assign mint
 
@@ -62,17 +61,17 @@ Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_
 | Export | Purpose |
 |--------|---------|
 | `beginTransfer({ rpc, secp256r1Pubkey, rpId? })` | Derives token PDA from passkey; slot-bound challenge; `rpId` defaults to hostname |
-| `authenticatePasskeyForTransfer(session, { transceive? })` | NFC tap; optional `transceive` for native APDU |
+| `authenticatePasskeyForTransfer(session)` | NFC tap |
 | `completeTransfer` | Kit `TransactionSigner` recipient; `response.id` as passkey; builds secp + set_owner |
 
-`set_owner` requires `is_locked == 0` for **every** token type. Permanent tokens stay locked and always fail with `TokenIsCurrentlyLocked`. Controlled tokens re-lock after claim.
+`set_owner` requires an unlocked token (`isPhygitalTokenLocked`): Controlled and Permanent tokens are locked whenever they have an owner, so Permanent always fails with `TokenIsCurrentlyLocked` and a claimed Controlled token must `remove_owner` first. Linking a new owner closes the previous owner's accessory policy (`completeTransfer` passes the accounts).
 
 ## Verify (on-chain composable)
 
 | Export | Purpose |
 |--------|---------|
 | `buildMessageHash(message)` | SHA-256 `message` to a 32-byte `messageHash` |
-| `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId?, transceive? })` | Uses `messageHash` as WebAuthn challenge; `rpc` recovers a placeholder id, `allowList` gates the tapped id (and is the no-RPC recovery fallback); optional `transceive` for native APDU |
+| `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId? })` | Uses `messageHash` as WebAuthn challenge; `rpc` recovers a placeholder id, `allowList` gates the tapped id (and is the no-RPC recovery fallback) |
 | `buildSecp256r1VerifyInstruction` | After tap: `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }` |
 | `getVerifyInstruction` | Generated `verify` ix — `expectedRpId` / `expectedOrigins` are `Option` (`null` skips). CPI callers set these on `VerifyCpiBuilder`, not the tap helper. |
 
@@ -82,14 +81,14 @@ See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `
 
 | Export | Purpose |
 |--------|---------|
-| `getRemoveOwnerInstruction` | Wallet-signed forfeiture — reset `phygital_token.owner` to default and clear `is_locked` |
+| `getRemoveOwnerInstruction` | Wallet-signed forfeiture — reset `phygital_token.owner` to default; pass `getPolicyCloseAccounts(token)` |
 
 ## Verification (off-chain only)
 
 | Export | Purpose |
 |--------|---------|
-| `startAuthentication(message, { rpc, allowList? })` | NFC tap; `rpc` recovers a placeholder id, `allowList` gates the tapped id (and is the no-RPC fallback), or `{ transceive }` for APDU |
-| `verifyResponse({ expectedMessage, response })` | secp256r1 check (no rpId/origin); returns `secp256r1PublicKey` |
+| `startAuthentication(message, { rpc, allowList? })` | NFC tap; `rpc` recovers a placeholder id, `allowList` gates the tapped id (and is the no-RPC fallback) |
+| `verifyResponse({ expectedMessage, expectedOrigin, response })` | asynchronous secp256r1 check; rejects taps from other origins (`ORIGIN_MISMATCH`); returns `{ isVerified, secp256r1PublicKey, accessoryWallet }` |
 
 Issue any short-lived message string — no `generateAuthenticationOptions`. Then create your normal session.
 
@@ -122,3 +121,5 @@ On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `AssignMintCpiB
 `PhygitalTokenType`: `Permanent` (0, immutable owner, stays locked), `Bearer` (1), `Controlled` (2, lock/forfeit).
 
 Off-chain (`fetch` feature): RPC account fetching helpers.
+
+`verifyResponse` derives the accessory-wallet PDA locally without RPC. Invalid signatures return `accessoryWallet: null`. Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.

@@ -1,5 +1,5 @@
 {
-  "address": "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
+  "address": "phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz",
   "metadata": {
     "name": "phygital_token",
     "version": "0.8.0",
@@ -27,9 +27,6 @@
         },
         {
           "name": "admin_config",
-          "docs": [
-            "Authority must be the admin or an issuer on this config."
-          ],
           "pda": {
             "seeds": [
               {
@@ -98,6 +95,76 @@
         {
           "name": "phygital_token",
           "writable": true
+        },
+        {
+          "name": "policy",
+          "docs": [
+            "the wallet PDA is unreachable once its token is gone."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "phygital_token"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_policy",
+      "discriminator": [
+        55,
+        42,
+        248,
+        229,
+        222,
+        138,
+        26,
+        252
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "phygital_token"
+          ]
+        },
+        {
+          "name": "phygital_token",
+          "relations": [
+            "policy"
+          ]
+        },
+        {
+          "name": "policy",
+          "docs": [
+            "The one instruction taking the typed account, which keeps",
+            "`AccessoryPolicy` in the IDL."
+          ],
+          "writable": true
+        },
+        {
+          "name": "wallet",
+          "writable": true,
+          "relations": [
+            "policy"
+          ]
         }
       ],
       "args": []
@@ -149,6 +216,136 @@
       "args": []
     },
     {
+      "name": "execute_with_accessory",
+      "discriminator": [
+        159,
+        174,
+        167,
+        140,
+        51,
+        210,
+        101,
+        10
+      ],
+      "accounts": [
+        {
+          "name": "phygital_token",
+          "writable": true
+        },
+        {
+          "name": "policy",
+          "docs": [
+            "Missing = accessory blocked."
+          ],
+          "writable": true
+        },
+        {
+          "name": "wallet",
+          "docs": [
+            "Mark writable in remaining accounts if needed."
+          ]
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "compact_instructions",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "CompactInstruction"
+              }
+            }
+          }
+        },
+        {
+          "name": "secp256r1_verify_args",
+          "type": {
+            "defined": {
+              "name": "Secp256r1VerifyArgs"
+            }
+          }
+        },
+        {
+          "name": "slot_number",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "execute_with_owner",
+      "discriminator": [
+        9,
+        237,
+        247,
+        163,
+        250,
+        164,
+        231,
+        173
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "phygital_token"
+          ]
+        },
+        {
+          "name": "phygital_token"
+        },
+        {
+          "name": "wallet",
+          "docs": [
+            "Mark writable in remaining accounts if needed."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "phygital_token"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "compact_instructions",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "CompactInstruction"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "initialize",
       "discriminator": [
         175,
@@ -168,9 +365,6 @@
         },
         {
           "name": "admin_config",
-          "docs": [
-            "Authority must be the admin or an issuer on this config."
-          ],
           "pda": {
             "seeds": [
               {
@@ -207,6 +401,55 @@
       ]
     },
     {
+      "name": "preview_execute",
+      "docs": [
+        "Simulation only: always fails, with `PreviewPassed` when a tap would pass."
+      ],
+      "discriminator": [
+        245,
+        77,
+        199,
+        240,
+        123,
+        2,
+        3,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "phygital_token"
+        },
+        {
+          "name": "policy"
+        },
+        {
+          "name": "wallet"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "compact_instructions",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "CompactInstruction"
+              }
+            }
+          }
+        },
+        {
+          "name": "origin",
+          "type": {
+            "option": "string"
+          }
+        }
+      ]
+    },
+    {
       "name": "remove_owner",
       "discriminator": [
         153,
@@ -221,11 +464,60 @@
       "accounts": [
         {
           "name": "owner",
-          "signer": true
+          "signer": true,
+          "relations": [
+            "phygital_token"
+          ]
         },
         {
           "name": "phygital_token",
           "writable": true
+        },
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "phygital_token"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "phygital_token"
+              }
+            ]
+          }
         }
       ],
       "args": []
@@ -387,6 +679,52 @@
         {
           "name": "instructions_sysvar",
           "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "policy",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "phygital_token"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  97,
+                  108,
+                  108,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "phygital_token"
+              }
+            ]
+          }
         }
       ],
       "args": [
@@ -405,10 +743,80 @@
       ]
     },
     {
+      "name": "update_policy",
+      "discriminator": [
+        212,
+        245,
+        246,
+        7,
+        163,
+        151,
+        18,
+        57
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "phygital_token"
+          ]
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "phygital_token"
+        },
+        {
+          "name": "policy",
+          "docs": [
+            "Created if missing."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  108,
+                  105,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "phygital_token"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "actions",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "PolicyAction"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "verify",
       "docs": [
-        "Prove passkey possession and advance `last_sign_count`.",
-        "",
         "`expected_rp_id` / `expected_origins` are optional WebAuthn bindings.",
         "`None` skips the check. When `expected_origins` is `Some`, the signed",
         "origin must match one listed origin."
@@ -469,6 +877,19 @@
     }
   ],
   "accounts": [
+    {
+      "name": "AccessoryPolicy",
+      "discriminator": [
+        217,
+        246,
+        249,
+        78,
+        235,
+        174,
+        26,
+        135
+      ]
+    },
     {
       "name": "AdminConfig",
       "discriminator": [
@@ -663,81 +1084,288 @@
     },
     {
       "code": 6009,
-      "name": "MissingInstructionsSysvar",
-      "msg": "Missing instructions sysvar account"
-    },
-    {
-      "code": 6010,
       "name": "InvalidSysvarDataFormat",
       "msg": "Invalid sysvar data format"
     },
     {
-      "code": 6011,
+      "code": 6010,
       "name": "TokenIsCurrentlyLocked",
       "msg": "The owner needs to unlock the phygital token to enable transfer."
     },
     {
-      "code": 6012,
-      "name": "TokenIsNotLockable",
-      "msg": "This phygital token is not lockable."
-    },
-    {
-      "code": 6013,
+      "code": 6011,
       "name": "UnableToParseClientData",
       "msg": "Unable to parse client data JSON."
     },
     {
-      "code": 6014,
+      "code": 6012,
       "name": "ChallengeHashMismatch",
       "msg": "Challenge hash mismatch."
     },
     {
-      "code": 6015,
+      "code": 6013,
       "name": "InvalidAuthenticatorData",
       "msg": "Authenticator data is too short to contain WebAuthn flags."
     },
     {
-      "code": 6016,
+      "code": 6014,
       "name": "UserPresenceNotVerified",
       "msg": "WebAuthn user presence flag (UP) was not set by the authenticator."
     },
     {
-      "code": 6017,
+      "code": 6015,
       "name": "RpIdMismatch",
       "msg": "WebAuthn rpId hash does not match the expected relying party id."
     },
     {
-      "code": 6018,
+      "code": 6016,
       "name": "OriginMismatch",
       "msg": "WebAuthn origin does not match any expected origin."
     },
     {
-      "code": 6019,
+      "code": 6017,
       "name": "UnauthorizedAuthority",
       "msg": "Only the designated authority can perform this action."
     },
     {
-      "code": 6020,
+      "code": 6018,
       "name": "UnauthorizedAdmin",
       "msg": "Only the admin can perform this action."
     },
     {
-      "code": 6021,
+      "code": 6019,
       "name": "KeyAlreadyExists",
       "msg": "Key already exists on the admin config."
     },
     {
-      "code": 6022,
+      "code": 6020,
       "name": "PermanentOwnerRequired",
       "msg": "Only Permanent phygital tokens set an owner at initialize, and they must set one."
     },
     {
-      "code": 6023,
+      "code": 6021,
       "name": "PermanentOwnerImmutable",
       "msg": "Permanent phygital token owner cannot be transferred or removed."
+    },
+    {
+      "code": 6022,
+      "name": "OwnerRequired",
+      "msg": "The token has no owner."
+    },
+    {
+      "code": 6023,
+      "name": "InvalidAccountIndex",
+      "msg": "Compact instruction account index out of bounds."
+    },
+    {
+      "code": 6024,
+      "name": "SelfReentrancyNotAllowed",
+      "msg": "Compact instructions may not call the phygital-token program."
+    },
+    {
+      "code": 6025,
+      "name": "ExecuteViaCpiNotAllowed",
+      "msg": "Execute must be a top-level instruction."
+    },
+    {
+      "code": 6026,
+      "name": "DurableNonceNotAllowed",
+      "msg": "Durable-nonce transactions are not allowed."
+    },
+    {
+      "code": 6027,
+      "name": "WalletInvariantViolated",
+      "msg": "Wallet PDA owner or data length changed during inner CPI."
+    },
+    {
+      "code": 6028,
+      "name": "ProtectedAccountPrivilege",
+      "msg": "Protected account may not be a signer or writable in inner instructions."
+    },
+    {
+      "code": 6029,
+      "name": "InvalidPolicyArgs",
+      "msg": "Policy arguments are invalid."
+    },
+    {
+      "code": 6030,
+      "name": "ProgramNotAllowed",
+      "msg": "Program is not allowed: the policy lists every program the accessory may call."
+    },
+    {
+      "code": 6031,
+      "name": "InstructionNotAllowed",
+      "msg": "Instruction does not satisfy the configured program rules."
+    },
+    {
+      "code": 6032,
+      "name": "SpendNotAllowed",
+      "msg": "No spend cap covers this SOL or token transfer."
+    },
+    {
+      "code": 6033,
+      "name": "SpendLimitExceeded",
+      "msg": "Transfer exceeds the configured spending limit."
+    },
+    {
+      "code": 6034,
+      "name": "MaxPerTxExceeded",
+      "msg": "Transfer exceeds the configured max per transaction."
+    },
+    {
+      "code": 6035,
+      "name": "DelegationNotAllowed",
+      "msg": "Execute may not leave a standing delegate on a wallet-owned token account."
+    },
+    {
+      "code": 6036,
+      "name": "TokenAuthorityChanged",
+      "msg": "Wallet-owned token account control changed during execute."
+    },
+    {
+      "code": 6037,
+      "name": "PreviewPassed",
+      "msg": "Preview passed: an accessory tap would be allowed (preview_execute never lands)."
+    },
+    {
+      "code": 6038,
+      "name": "ClientDataTypeMismatch",
+      "msg": "clientDataJSON type must be webauthn.get."
     }
   ],
   "types": [
+    {
+      "name": "AccessoryPolicy",
+      "docs": [
+        "Any instruction that changes `phygital_token.owner` must call",
+        "`close_policy_if_exists`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "phygital_token",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "sol_cap",
+            "type": {
+              "option": {
+                "defined": {
+                  "name": "SpendCap"
+                }
+              }
+            }
+          },
+          {
+            "name": "mint_caps",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "MintCap"
+                }
+              }
+            }
+          },
+          {
+            "name": "allowed_origins",
+            "docs": [
+              "Empty = any. Only binds browser taps: a client talking CTAP2 to the",
+              "accessory directly writes its own `clientDataJSON.origin`."
+            ],
+            "type": {
+              "vec": "string"
+            }
+          },
+          {
+            "name": "program_permissions",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ProgramPermission"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AccountConstraint",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "key",
+            "type": {
+              "defined": {
+                "name": "AccountKeyConstraint"
+              }
+            }
+          },
+          {
+            "name": "owner",
+            "docs": [
+              "The program owning the account. A token account's owner field is data:",
+              "match it with `data` (offset 32)."
+            ],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "is_signer",
+            "type": {
+              "option": "bool"
+            }
+          },
+          {
+            "name": "is_writable",
+            "type": {
+              "option": "bool"
+            }
+          },
+          {
+            "name": "data",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "DataConstraint"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AccountKeyConstraint",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Any"
+          },
+          {
+            "name": "Address",
+            "fields": [
+              "pubkey"
+            ]
+          },
+          {
+            "name": "Wallet"
+          }
+        ]
+      }
+    },
     {
       "name": "AdminConfig",
       "serialization": "bytemuckunsafe",
@@ -799,6 +1427,26 @@
       }
     },
     {
+      "name": "CapArg",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cap",
+            "type": "u64"
+          },
+          {
+            "name": "window_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "max_per_tx",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "ClosePhygitalTokenEvent",
       "type": {
         "kind": "struct",
@@ -839,6 +1487,55 @@
       }
     },
     {
+      "name": "CompactInstruction",
+      "docs": [
+        "Indexes are into the execute instruction's remaining accounts."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "program_id_index",
+            "type": "u8"
+          },
+          {
+            "name": "account_indexes",
+            "type": "bytes"
+          },
+          {
+            "name": "data",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Comparison",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Equal"
+          },
+          {
+            "name": "NotEqual"
+          },
+          {
+            "name": "LessThan"
+          },
+          {
+            "name": "LessThanOrEqual"
+          },
+          {
+            "name": "GreaterThan"
+          },
+          {
+            "name": "GreaterThanOrEqual"
+          }
+        ]
+      }
+    },
+    {
       "name": "CreateConfigEvent",
       "type": {
         "kind": "struct",
@@ -846,6 +1543,65 @@
           {
             "name": "authority",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DataConstraint",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offset",
+            "type": "u16"
+          },
+          {
+            "name": "predicate",
+            "type": {
+              "defined": {
+                "name": "DataPredicate"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "DataPredicate",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "BytesEqual",
+            "fields": [
+              "bytes"
+            ]
+          },
+          {
+            "name": "Unsigned",
+            "fields": [
+              {
+                "name": "width",
+                "type": {
+                  "defined": {
+                    "name": "NumericWidth"
+                  }
+                }
+              },
+              {
+                "name": "comparison",
+                "type": {
+                  "defined": {
+                    "name": "Comparison"
+                  }
+                }
+              },
+              {
+                "name": "value",
+                "type": "u64"
+              }
+            ]
           }
         ]
       }
@@ -927,6 +1683,93 @@
       }
     },
     {
+      "name": "InstructionRule",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "selector",
+            "type": "bytes"
+          },
+          {
+            "name": "data_length",
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "account_count",
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "accounts",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "AccountConstraint"
+                }
+              }
+            }
+          },
+          {
+            "name": "arguments",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "DataConstraint"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "MintCap",
+      "repr": {
+        "kind": "c"
+      },
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "cap",
+            "type": {
+              "defined": {
+                "name": "SpendCap"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "NumericWidth",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "U8"
+          },
+          {
+            "name": "U16"
+          },
+          {
+            "name": "U32"
+          },
+          {
+            "name": "U64"
+          }
+        ]
+      }
+    },
+    {
       "name": "PhygitalToken",
       "serialization": "bytemuckunsafe",
       "repr": {
@@ -952,7 +1795,7 @@
             "type": "u8"
           },
           {
-            "name": "is_locked",
+            "name": "wallet_bump",
             "type": "u8"
           },
           {
@@ -990,6 +1833,110 @@
           },
           {
             "name": "Controlled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PolicyAction",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "SetSolCap",
+            "fields": [
+              {
+                "option": {
+                  "defined": {
+                    "name": "CapArg"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "SetMintCap",
+            "fields": [
+              "pubkey",
+              {
+                "defined": {
+                  "name": "CapArg"
+                }
+              }
+            ]
+          },
+          {
+            "name": "RemoveMintCap",
+            "fields": [
+              "pubkey"
+            ]
+          },
+          {
+            "name": "SetAllowedOrigins",
+            "fields": [
+              {
+                "vec": "string"
+              }
+            ]
+          },
+          {
+            "name": "SetProgramPermission",
+            "fields": [
+              {
+                "defined": {
+                  "name": "ProgramPermission"
+                }
+              }
+            ]
+          },
+          {
+            "name": "RemoveProgramPermission",
+            "fields": [
+              "pubkey"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProgramAccess",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "AllInstructions"
+          },
+          {
+            "name": "Restricted",
+            "fields": [
+              {
+                "vec": {
+                  "defined": {
+                    "name": "InstructionRule"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProgramPermission",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "program_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "access",
+            "type": {
+              "defined": {
+                "name": "ProgramAccess"
+              }
+            }
           }
         ]
       }
@@ -1138,6 +2085,55 @@
           }
         ]
       }
+    },
+    {
+      "name": "SpendCap",
+      "repr": {
+        "kind": "c"
+      },
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "cap",
+            "type": "u64"
+          },
+          {
+            "name": "remaining",
+            "type": "u64"
+          },
+          {
+            "name": "last_reset",
+            "type": "i64"
+          },
+          {
+            "name": "window_seconds",
+            "docs": [
+              "`0` = a lifetime cap."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "max_per_tx",
+            "docs": [
+              "`0` = no per-execute limit."
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "POLICY_SEED",
+      "type": "bytes",
+      "value": "[112, 111, 108, 105, 99, 121]"
+    },
+    {
+      "name": "WALLET_SEED",
+      "type": "bytes",
+      "value": "[119, 97, 108, 108, 101, 116]"
     }
   ]
 }

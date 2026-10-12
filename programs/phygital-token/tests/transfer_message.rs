@@ -1,7 +1,7 @@
 mod common;
 
 use anchor_lang::prelude::Pubkey;
-use phygital_token::utils::build_transfer_challenge;
+use phygital_token::build_transfer_challenge;
 use sha2::{Digest, Sha256};
 use solana_keypair::Keypair;
 use solana_signer::Signer;

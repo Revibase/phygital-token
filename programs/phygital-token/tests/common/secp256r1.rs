@@ -4,7 +4,7 @@ use anchor_lang::solana_program::instruction::Instruction;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
-use phygital_token::utils::{
+use phygital_token::{
     build_transfer_challenge, Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE,
     SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
 };
@@ -99,9 +99,44 @@ impl TestPasskey {
         signature_override: Option<[u8; 64]>,
         auth_flags: Option<u8>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
+        self.build_secp256r1_verify_instruction_typed(
+            "webauthn.get",
+            expected_challenge,
+            sign_count,
+            signature_override,
+            auth_flags,
+        )
+    }
+
+    /// An assertion whose `clientDataJSON.type` is `client_type`.
+    pub fn verify_secp256r1_instruction_with_type(
+        &self,
+        client_type: &str,
+        message_hash: [u8; 32],
+        sign_count: u32,
+    ) -> (Instruction, Secp256r1VerifyArgs) {
+        self.build_secp256r1_verify_instruction_typed(
+            client_type,
+            message_hash,
+            sign_count,
+            None,
+            None,
+        )
+    }
+
+    fn build_secp256r1_verify_instruction_typed(
+        &self,
+        client_type: &str,
+        expected_challenge: [u8; 32],
+        sign_count: u32,
+        signature_override: Option<[u8; 64]>,
+        auth_flags: Option<u8>,
+    ) -> (Instruction, Secp256r1VerifyArgs) {
         let origin = TEST_ORIGIN;
         let mut client_data_json = Vec::new();
-        client_data_json.extend_from_slice(br#"{"type":"webauthn.get","challenge":"#);
+        client_data_json.extend_from_slice(br#"{"type":"#);
+        Self::ccd_to_string(client_type, &mut client_data_json);
+        client_data_json.extend_from_slice(br#","challenge":"#);
         Self::ccd_to_string(
             &URL_SAFE_NO_PAD.encode(expected_challenge),
             &mut client_data_json,

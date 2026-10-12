@@ -9,10 +9,7 @@ import {
   bufferToBase64URLString,
   type AuthenticationResponseJSON,
 } from "../utils/passkey/webauthn.js";
-import {
-  authenticatePasskey,
-  type NfcTransceive,
-} from "../utils/passkey/authenticate.js";
+import { authenticatePasskey } from "../utils/passkey/authenticate.js";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
@@ -20,6 +17,7 @@ import {
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
 import { getSetOwnerInstruction } from "../generated/index.js";
+import { getPolicyCloseAccounts } from "../utils/policy.js";
 import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 import { PhygitalTokenError } from "../utils/errors.js";
 import { findPhygitalTokenPda } from "../utils/pdas/token.js";
@@ -91,29 +89,22 @@ function resolveTransferRpId(rpId: string | undefined): string {
  * which candidate matches {@link TransferSession.secp256r1Pubkey}.
  *
  * Throws `PASSKEY_NOT_RECOGNIZED` if a different tag is tapped.
- *
- * Native / kiosk: pass `transceive` to use IsoDep APDUs instead of browser WebAuthn.
  */
 export async function authenticatePasskeyForTransfer(
-  session: TransferSession,
-  options?: {
-    transceive?: NfcTransceive;
-    /** `clientDataJSON` origin for `transceive`. Set it if your program checks `expected_origins`. */
-    origin?: string;
-  }
+  session: TransferSession
 ): Promise<AuthenticationResponseJSON> {
   return authenticatePasskey(bufferToBase64URLString(session.challenge), {
     allowList: new Set([session.secp256r1Pubkey]),
     rpId: session.rpId,
     credentialId: session.secp256r1Pubkey,
-    transceive: options?.transceive,
-    origin: options?.origin,
   });
 }
 
 /**
  * Builds the two on-chain instructions after passkey authentication.
  * Owner is updated on the phygital token PDA only — no SPL token transfer.
+ * Linking a new owner closes the previous owner's accessory policy, refunding
+ * its payer.
  *
  * @param recipient - Kit `TransactionSigner` for the wallet that will be linked.
  */
@@ -133,6 +124,7 @@ export async function completeTransfer(
   const setOwner = getSetOwnerInstruction({
     recipient,
     phygitalToken: session.phygitalToken,
+    ...(await getPolicyCloseAccounts(session.phygitalToken)),
     slotNumber: session.slotNumber,
     secp256r1VerifyArgs: {
       verifyArgsRelativeIndex: -1,

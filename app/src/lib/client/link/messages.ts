@@ -1,5 +1,14 @@
-import { PhygitalTokenError, type PhygitalTokenErrorCode } from 'phygital-token-sdk';
+import {
+	AccessoryWalletTopUpRequired,
+	PhygitalTokenError,
+	PolicyDeniedError,
+	RefillBlockedByTapLimit,
+	type PhygitalTokenErrorCode
+} from 'phygital-token-sdk';
+import { formatTokenAmount, SOL_DECIMALS } from '$lib/shared/amount';
+import { OwnerWalletNeedsSol } from '$lib/shared/fee-payer';
 import { ApiClientError } from '../api';
+import { SecureSignerError } from '../wallet/secure-signer/client';
 import { LinkTransactionRejected } from '$lib/shared/link-transaction';
 import { fromSendError } from '$lib/shared/link-errors';
 import type { LinkErrorCode, TapFailureReason } from '$lib/shared/types';
@@ -95,10 +104,45 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 			return { title: 'We couldn’t verify that signature', body: 'Approve the message in your wallet, then try again.', recovery: 'retry', code: err.code };
 		}
 		if (err.code === 'expired') return { title: 'This session expired', body: err.message, recovery: 'start_over', code: err.code };
-		if (err.code === 'forbidden' || err.code === 'not_found' || err.code === 'conflict') {
-			return { title: 'This link isn’t active anymore', body: err.message, recovery: 'start_over', code: err.code };
-		}
 		return { title: 'Something went wrong', body: err.message, recovery: 'retry', code: String(err.code) };
+	}
+	if (err instanceof SecureSignerError) {
+		if (err.code === 'USER_CANCELLED') return linkErrorCopy('wallet_rejected');
+		if (err.code === 'PRF_UNSUPPORTED') {
+			return { title: 'This browser can’t use passkey wallets', body: 'Open this page in Safari (iPhone) or Chrome (Android).', recovery: 'none', code: err.code };
+		}
+		if (err.code === 'POLICY_REJECTED' || err.code === 'WALLET_MISMATCH') {
+			return { title: 'Your passkey wallet refused this', body: 'It only signs Revibase owner actions for its own address.', recovery: 'none', code: err.code };
+		}
+		if (err.code === 'TIMEOUT' || err.code === 'SIGNER_UNAVAILABLE' || err.code === 'BLOB_UNAVAILABLE') {
+			return { title: 'Couldn’t reach your passkey wallet', body: 'Check your connection and try again.', recovery: 'retry', code: err.code };
+		}
+		return { title: 'Your passkey wallet couldn’t sign', body: 'Nothing was changed. Please try again.', recovery: 'retry', code: err.code };
+	}
+	if (err instanceof AccessoryWalletTopUpRequired) {
+		return {
+			title: 'Add SOL to the accessory wallet',
+			body: `Free network fees for this accessory are used up. Send at least ${formatTokenAmount(err.neededLamports, SOL_DECIMALS)} SOL to the accessory wallet, then try again.`,
+			recovery: 'add_sol',
+			code: 'accessory_top_up'
+		};
+	}
+	if (err instanceof OwnerWalletNeedsSol) {
+		return {
+			title: 'Add SOL to your wallet',
+			body: `Send at least ${formatTokenAmount(err.neededLamports, SOL_DECIMALS)} SOL to your wallet to pay the network fee, then try again.`,
+			recovery: 'add_sol',
+			code: 'owner_top_up'
+		};
+	}
+	if (err instanceof RefillBlockedByTapLimit) {
+		return { title: 'Taps are paused', body: 'Network fees need a refill. Refill them on the accessory’s wallet page, or raise its SOL limit in tap permissions.', recovery: 'none', code: 'refill_blocked' };
+	}
+	if (err instanceof PolicyDeniedError && !err.soft) {
+		return { title: 'Couldn’t cover the network fee', body: 'Nothing was sent. Please try again.', recovery: 'retry', code: err.code, detail: err.message };
+	}
+	if (err instanceof PolicyDeniedError && err.code === 'refill_required') {
+		return { title: 'Couldn’t cover the network fee', body: 'This accessory’s free network fees just ran out. Try again to refill them from its wallet.', recovery: 'retry', code: err.code };
 	}
 	const onChain = fromSendError(err);
 	if (onChain && onChain !== 'unknown') return { ...linkErrorCopy(onChain), detail: err instanceof Error ? err.message : undefined };

@@ -2,6 +2,7 @@ packages:
   - "packages/js/*"
   - "packages/mcp/*"
   - "app"
+  - "secure-signer"
 
 # Build-script approval (pnpm asks for an explicit decision per dependency).
 # esbuild ships a required platform binary via its install script.

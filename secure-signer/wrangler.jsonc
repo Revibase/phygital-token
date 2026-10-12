@@ -1,0 +1,14 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "revibase-secure-signer",
+	"main": "src/worker.ts",
+	"compatibility_date": "2025-07-01",
+	"workers_dev": false,
+	"routes": [{ "pattern": "signer.revibase.com", "custom_domain": true }],
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS",
+		"not_found_handling": "404-page",
+		"run_worker_first": ["/vault"]
+	}
+}

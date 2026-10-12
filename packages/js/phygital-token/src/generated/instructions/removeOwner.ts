@@ -33,8 +33,10 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/kit/program-client-core";
+import { findPolicyPda, findWalletPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const REMOVE_OWNER_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -51,6 +53,8 @@ export type RemoveOwnerInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
   TAccountPhygitalToken extends string | AccountMeta<string> = string,
+  TAccountPolicy extends string | AccountMeta<string> = string,
+  TAccountWallet extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -63,6 +67,12 @@ export type RemoveOwnerInstruction<
       TAccountPhygitalToken extends string
         ? WritableAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
+      TAccountPolicy extends string
+        ? WritableAccount<TAccountPolicy>
+        : TAccountPolicy,
+      TAccountWallet extends string
+        ? WritableAccount<TAccountWallet>
+        : TAccountWallet,
       ...TRemainingAccounts,
     ]
   >;
@@ -94,25 +104,40 @@ export function getRemoveOwnerInstructionDataCodec(): FixedSizeCodec<
   );
 }
 
-export type RemoveOwnerInput<
+export type RemoveOwnerAsyncInput<
   TAccountOwner extends string = string,
   TAccountPhygitalToken extends string = string,
+  TAccountPolicy extends string = string,
+  TAccountWallet extends string = string,
 > = {
   owner: TransactionSigner<TAccountOwner>;
   phygitalToken: Address<TAccountPhygitalToken>;
+  policy?: Address<TAccountPolicy>;
+  wallet?: Address<TAccountWallet>;
 };
 
-export function getRemoveOwnerInstruction<
+export async function getRemoveOwnerInstructionAsync<
   TAccountOwner extends string,
   TAccountPhygitalToken extends string,
+  TAccountPolicy extends string,
+  TAccountWallet extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: RemoveOwnerInput<TAccountOwner, TAccountPhygitalToken>,
+  input: RemoveOwnerAsyncInput<
+    TAccountOwner,
+    TAccountPhygitalToken,
+    TAccountPolicy,
+    TAccountWallet
+  >,
   config?: { programAddress?: TProgramAddress },
-): RemoveOwnerInstruction<
-  TProgramAddress,
-  TAccountOwner,
-  TAccountPhygitalToken
+): Promise<
+  RemoveOwnerInstruction<
+    TProgramAddress,
+    TAccountOwner,
+    TAccountPhygitalToken,
+    TAccountPolicy,
+    TAccountWallet
+  >
 > {
   // Program address.
   const programAddress =
@@ -122,6 +147,94 @@ export function getRemoveOwnerInstruction<
   const originalAccounts = {
     owner: { value: input.owner ?? null, isWritable: false },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    policy: { value: input.policy ?? null, isWritable: true },
+    wallet: { value: input.wallet ?? null, isWritable: true },
+  };
+  const accounts = originalAccounts as Record<
+    keyof typeof originalAccounts,
+    ResolvedInstructionAccount
+  >;
+
+  // Resolve default values.
+  if (!accounts.policy.value) {
+    accounts.policy.value = await findPolicyPda({
+      phygitalToken: getAddressFromResolvedInstructionAccount(
+        "phygitalToken",
+        accounts.phygitalToken.value,
+      ),
+    });
+  }
+  if (!accounts.wallet.value) {
+    accounts.wallet.value = await findWalletPda({
+      phygitalToken: getAddressFromResolvedInstructionAccount(
+        "phygitalToken",
+        accounts.phygitalToken.value,
+      ),
+    });
+  }
+
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
+  return Object.freeze({
+    accounts: [
+      getAccountMeta("owner", accounts.owner),
+      getAccountMeta("phygitalToken", accounts.phygitalToken),
+      getAccountMeta("policy", accounts.policy),
+      getAccountMeta("wallet", accounts.wallet),
+    ],
+    data: getRemoveOwnerInstructionDataEncoder().encode({}),
+    programAddress,
+  } as RemoveOwnerInstruction<
+    TProgramAddress,
+    TAccountOwner,
+    TAccountPhygitalToken,
+    TAccountPolicy,
+    TAccountWallet
+  >);
+}
+
+export type RemoveOwnerInput<
+  TAccountOwner extends string = string,
+  TAccountPhygitalToken extends string = string,
+  TAccountPolicy extends string = string,
+  TAccountWallet extends string = string,
+> = {
+  owner: TransactionSigner<TAccountOwner>;
+  phygitalToken: Address<TAccountPhygitalToken>;
+  policy: Address<TAccountPolicy>;
+  wallet: Address<TAccountWallet>;
+};
+
+export function getRemoveOwnerInstruction<
+  TAccountOwner extends string,
+  TAccountPhygitalToken extends string,
+  TAccountPolicy extends string,
+  TAccountWallet extends string,
+  TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+>(
+  input: RemoveOwnerInput<
+    TAccountOwner,
+    TAccountPhygitalToken,
+    TAccountPolicy,
+    TAccountWallet
+  >,
+  config?: { programAddress?: TProgramAddress },
+): RemoveOwnerInstruction<
+  TProgramAddress,
+  TAccountOwner,
+  TAccountPhygitalToken,
+  TAccountPolicy,
+  TAccountWallet
+> {
+  // Program address.
+  const programAddress =
+    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+
+  // Original accounts.
+  const originalAccounts = {
+    owner: { value: input.owner ?? null, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    policy: { value: input.policy ?? null, isWritable: true },
+    wallet: { value: input.wallet ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -133,13 +246,17 @@ export function getRemoveOwnerInstruction<
     accounts: [
       getAccountMeta("owner", accounts.owner),
       getAccountMeta("phygitalToken", accounts.phygitalToken),
+      getAccountMeta("policy", accounts.policy),
+      getAccountMeta("wallet", accounts.wallet),
     ],
     data: getRemoveOwnerInstructionDataEncoder().encode({}),
     programAddress,
   } as RemoveOwnerInstruction<
     TProgramAddress,
     TAccountOwner,
-    TAccountPhygitalToken
+    TAccountPhygitalToken,
+    TAccountPolicy,
+    TAccountWallet
   >);
 }
 
@@ -151,6 +268,8 @@ export type ParsedRemoveOwnerInstruction<
   accounts: {
     owner: TAccountMetas[0];
     phygitalToken: TAccountMetas[1];
+    policy: TAccountMetas[2];
+    wallet: TAccountMetas[3];
   };
   data: RemoveOwnerInstructionData;
 };
@@ -163,12 +282,12 @@ export function parseRemoveOwnerInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedRemoveOwnerInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 2) {
+  if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 2,
+        expectedAccountMetas: 4,
       },
     );
   }
@@ -180,7 +299,12 @@ export function parseRemoveOwnerInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: { owner: getNextAccount(), phygitalToken: getNextAccount() },
+    accounts: {
+      owner: getNextAccount(),
+      phygitalToken: getNextAccount(),
+      policy: getNextAccount(),
+      wallet: getNextAccount(),
+    },
     data: getRemoveOwnerInstructionDataDecoder().decode(instruction.data),
   };
 }

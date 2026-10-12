@@ -2,10 +2,7 @@ import {
   type AuthenticationResponseJSON,
   bufferToBase64URLString,
 } from "../utils/passkey/webauthn.js";
-import {
-  authenticatePasskey,
-  type NfcTransceive,
-} from "../utils/passkey/authenticate.js";
+import { authenticatePasskey } from "../utils/passkey/authenticate.js";
 import type { Address, Instruction, Rpc, SolanaRpcApi } from "@solana/kit";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
@@ -31,24 +28,18 @@ export function buildMessageHash(message: Uint8Array): Uint8Array {
  * @param input.allowList - Base64url compressed secp256r1 public keys. The tapped credential id must be in it; recovers a placeholder id locally when `rpc` is omitted.
  * @param input.rpc - Kit `Rpc` to recover a placeholder id on-chain (preferred over `allowList` for recovery).
  * @param input.messageHash - SHA-256 of the message you bind on-chain (32 bytes).
- * @param input.rpId - Relying party ID. Browser defaults to the page hostname; optional for `transceive`.
- * @param input.origin - `clientDataJSON` origin for `transceive`, e.g. `https://app.example.com`. Set it if your program checks `expected_origins`.
- * @param input.transceive - Native / kiosk IsoDep reader; when set, skips browser WebAuthn.
+ * @param input.rpId - Relying party ID. Defaults to the page hostname.
  */
 export async function authenticatePasskeyForSecp256r1Verify(input: {
   allowList?: ReadonlySet<string>;
   rpc?: Rpc<SolanaRpcApi>;
   messageHash: Uint8Array;
   rpId?: string;
-  origin?: string;
-  transceive?: NfcTransceive;
 }): Promise<AuthenticationResponseJSON> {
   return authenticatePasskey(bufferToBase64URLString(input.messageHash), {
     allowList: input.allowList,
     rpc: input.rpc,
     rpId: input.rpId,
-    origin: input.origin,
-    transceive: input.transceive,
   });
 }
 

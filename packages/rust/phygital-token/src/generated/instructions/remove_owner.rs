@@ -5,304 +5,358 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
+use borsh::BorshDeserialize;
 
 pub const REMOVE_OWNER_DISCRIMINATOR: [u8; 8] = [153, 251, 84, 208, 33, 62, 15, 247];
 
 /// Accounts.
 #[derive(Debug)]
 pub struct RemoveOwner {
-    pub owner: solana_address::Address,
-
-    pub phygital_token: solana_address::Address,
-}
+      
+              
+          pub owner: solana_address::Address,
+          
+              
+          pub phygital_token: solana_address::Address,
+          
+              
+          pub policy: solana_address::Address,
+          
+              
+          pub wallet: solana_address::Address,
+      }
 
 impl RemoveOwner {
-    pub fn instruction(&self) -> solana_instruction::Instruction {
-        self.instruction_with_remaining_accounts(&[])
-    }
-    #[allow(clippy::arithmetic_side_effects)]
-    #[allow(clippy::vec_init_then_push)]
-    pub fn instruction_with_remaining_accounts(
-        &self,
-        remaining_accounts: &[solana_instruction::AccountMeta],
-    ) -> solana_instruction::Instruction {
-        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
-        accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.owner, true,
-        ));
-        accounts.push(solana_instruction::AccountMeta::new(
+  pub fn instruction(&self) -> solana_instruction::Instruction {
+    self.instruction_with_remaining_accounts(&[])
+  }
+  #[allow(clippy::arithmetic_side_effects)]
+  #[allow(clippy::vec_init_then_push)]
+  pub fn instruction_with_remaining_accounts(&self, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
+                            accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.owner,
+            true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new(
             self.phygital_token,
-            false,
-        ));
-        accounts.extend_from_slice(remaining_accounts);
-        let data = RemoveOwnerInstructionData::new().try_to_vec().unwrap();
-
-        solana_instruction::Instruction {
-            program_id: crate::PHYGITAL_TOKEN_ID,
-            accounts,
-            data,
-        }
+            false
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new(
+            self.policy,
+            false
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new(
+            self.wallet,
+            false
+          ));
+                      accounts.extend_from_slice(remaining_accounts);
+    let data = RemoveOwnerInstructionData::new().try_to_vec().unwrap();
+    
+    solana_instruction::Instruction {
+      program_id: crate::PHYGITAL_TOKEN_ID,
+      accounts,
+      data,
     }
+  }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
-pub struct RemoveOwnerInstructionData {
-    discriminator: [u8; 8],
-}
+ pub struct RemoveOwnerInstructionData {
+            discriminator: [u8; 8],
+      }
 
 impl RemoveOwnerInstructionData {
-    pub fn new() -> Self {
-        Self {
-            discriminator: [153, 251, 84, 208, 33, 62, 15, 247],
-        }
-    }
+  pub fn new() -> Self {
+    Self {
+                        discriminator: [153, 251, 84, 208, 33, 62, 15, 247],
+                  }
+  }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-        borsh::to_vec(self)
-    }
-}
+    borsh::to_vec(self)
+  }
+  }
 
 impl Default for RemoveOwnerInstructionData {
-    fn default() -> Self {
-        Self::new()
-    }
+  fn default() -> Self {
+    Self::new()
+  }
 }
+
+
 
 /// Instruction builder for `RemoveOwner`.
 ///
 /// ### Accounts:
 ///
-///   0. `[signer]` owner
-///   1. `[writable]` phygital_token
+                ///   0. `[signer]` owner
+                ///   1. `[writable]` phygital_token
+                ///   2. `[writable]` policy
+                ///   3. `[writable]` wallet
 #[derive(Clone, Debug, Default)]
 pub struct RemoveOwnerBuilder {
-    owner: Option<solana_address::Address>,
-    phygital_token: Option<solana_address::Address>,
-    __remaining_accounts: Vec<solana_instruction::AccountMeta>,
+            owner: Option<solana_address::Address>,
+                phygital_token: Option<solana_address::Address>,
+                policy: Option<solana_address::Address>,
+                wallet: Option<solana_address::Address>,
+                __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl RemoveOwnerBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    #[inline(always)]
+  pub fn new() -> Self {
+    Self::default()
+  }
+            #[inline(always)]
     pub fn owner(&mut self, owner: solana_address::Address) -> &mut Self {
-        self.owner = Some(owner);
-        self
+                        self.owner = Some(owner);
+                    self
     }
-    #[inline(always)]
+            #[inline(always)]
     pub fn phygital_token(&mut self, phygital_token: solana_address::Address) -> &mut Self {
-        self.phygital_token = Some(phygital_token);
-        self
+                        self.phygital_token = Some(phygital_token);
+                    self
     }
-    /// Add an additional account to the instruction.
-    #[inline(always)]
-    pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
-        self.__remaining_accounts.push(account);
-        self
+            #[inline(always)]
+    pub fn policy(&mut self, policy: solana_address::Address) -> &mut Self {
+                        self.policy = Some(policy);
+                    self
     }
-    /// Add additional accounts to the instruction.
-    #[inline(always)]
-    pub fn add_remaining_accounts(
-        &mut self,
-        accounts: &[solana_instruction::AccountMeta],
-    ) -> &mut Self {
-        self.__remaining_accounts.extend_from_slice(accounts);
-        self
+            #[inline(always)]
+    pub fn wallet(&mut self, wallet: solana_address::Address) -> &mut Self {
+                        self.wallet = Some(wallet);
+                    self
     }
-    #[allow(clippy::clone_on_copy)]
-    pub fn instruction(&self) -> solana_instruction::Instruction {
-        let accounts = RemoveOwner {
-            owner: self.owner.expect("owner is not set"),
-            phygital_token: self.phygital_token.expect("phygital_token is not set"),
-        };
-
-        accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
-    }
+            /// Add an additional account to the instruction.
+  #[inline(always)]
+  pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
+    self.__remaining_accounts.push(account);
+    self
+  }
+  /// Add additional accounts to the instruction.
+  #[inline(always)]
+  pub fn add_remaining_accounts(&mut self, accounts: &[solana_instruction::AccountMeta]) -> &mut Self {
+    self.__remaining_accounts.extend_from_slice(accounts);
+    self
+  }
+  #[allow(clippy::clone_on_copy)]
+  pub fn instruction(&self) -> solana_instruction::Instruction {
+    let accounts = RemoveOwner {
+                              owner: self.owner.expect("owner is not set"),
+                                        phygital_token: self.phygital_token.expect("phygital_token is not set"),
+                                        policy: self.policy.expect("policy is not set"),
+                                        wallet: self.wallet.expect("wallet is not set"),
+                      };
+    
+    accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
+  }
 }
 
-/// `remove_owner` CPI accounts.
-pub struct RemoveOwnerCpiAccounts<'a, 'b> {
-    pub owner: &'b solana_account_info::AccountInfo<'a>,
-
-    pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
-}
+  /// `remove_owner` CPI accounts.
+  pub struct RemoveOwnerCpiAccounts<'a, 'b> {
+          
+                    
+              pub owner: &'b solana_account_info::AccountInfo<'a>,
+                
+                    
+              pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
+                
+                    
+              pub policy: &'b solana_account_info::AccountInfo<'a>,
+                
+                    
+              pub wallet: &'b solana_account_info::AccountInfo<'a>,
+            }
 
 /// `remove_owner` CPI instruction.
 pub struct RemoveOwnerCpi<'a, 'b> {
-    /// The program to invoke.
-    pub __program: &'b solana_account_info::AccountInfo<'a>,
-
-    pub owner: &'b solana_account_info::AccountInfo<'a>,
-
-    pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
-}
+  /// The program to invoke.
+  pub __program: &'b solana_account_info::AccountInfo<'a>,
+      
+              
+          pub owner: &'b solana_account_info::AccountInfo<'a>,
+          
+              
+          pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
+          
+              
+          pub policy: &'b solana_account_info::AccountInfo<'a>,
+          
+              
+          pub wallet: &'b solana_account_info::AccountInfo<'a>,
+        }
 
 impl<'a, 'b> RemoveOwnerCpi<'a, 'b> {
-    pub fn new(
-        program: &'b solana_account_info::AccountInfo<'a>,
-        accounts: RemoveOwnerCpiAccounts<'a, 'b>,
-    ) -> Self {
-        Self {
-            __program: program,
-            owner: accounts.owner,
-            phygital_token: accounts.phygital_token,
-        }
-    }
-    #[inline(always)]
-    pub fn invoke(&self) -> solana_program_error::ProgramResult {
-        self.invoke_signed_with_remaining_accounts(&[], &[])
-    }
-    #[inline(always)]
-    pub fn invoke_with_remaining_accounts(
-        &self,
-        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
-    ) -> solana_program_error::ProgramResult {
-        self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
-    }
-    #[inline(always)]
-    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-        self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
-    }
-    #[allow(clippy::arithmetic_side_effects)]
-    #[allow(clippy::clone_on_copy)]
-    #[allow(clippy::vec_init_then_push)]
-    pub fn invoke_signed_with_remaining_accounts(
-        &self,
-        signers_seeds: &[&[&[u8]]],
-        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
-    ) -> solana_program_error::ProgramResult {
-        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
-        accounts.push(solana_instruction::AccountMeta::new_readonly(
+  pub fn new(
+    program: &'b solana_account_info::AccountInfo<'a>,
+          accounts: RemoveOwnerCpiAccounts<'a, 'b>,
+          ) -> Self {
+    Self {
+      __program: program,
+              owner: accounts.owner,
+              phygital_token: accounts.phygital_token,
+              policy: accounts.policy,
+              wallet: accounts.wallet,
+                }
+  }
+  #[inline(always)]
+  pub fn invoke(&self) -> solana_program_error::ProgramResult {
+    self.invoke_signed_with_remaining_accounts(&[], &[])
+  }
+  #[inline(always)]
+  pub fn invoke_with_remaining_accounts(&self, remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> solana_program_error::ProgramResult {
+    self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
+  }
+  #[inline(always)]
+  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+    self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
+  }
+  #[allow(clippy::arithmetic_side_effects)]
+  #[allow(clippy::clone_on_copy)]
+  #[allow(clippy::vec_init_then_push)]
+  pub fn invoke_signed_with_remaining_accounts(
+    &self,
+    signers_seeds: &[&[&[u8]]],
+    remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
+  ) -> solana_program_error::ProgramResult {
+    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
+                            accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.owner.key,
-            true,
-        ));
-        accounts.push(solana_instruction::AccountMeta::new(
+            true
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new(
             *self.phygital_token.key,
-            false,
-        ));
-        remaining_accounts.iter().for_each(|remaining_account| {
-            accounts.push(solana_instruction::AccountMeta {
-                pubkey: *remaining_account.0.key,
-                is_signer: remaining_account.1,
-                is_writable: remaining_account.2,
-            })
-        });
-        let data = RemoveOwnerInstructionData::new().try_to_vec().unwrap();
+            false
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new(
+            *self.policy.key,
+            false
+          ));
+                                          accounts.push(solana_instruction::AccountMeta::new(
+            *self.wallet.key,
+            false
+          ));
+                      remaining_accounts.iter().for_each(|remaining_account| {
+      accounts.push(solana_instruction::AccountMeta {
+          pubkey: *remaining_account.0.key,
+          is_signer: remaining_account.1,
+          is_writable: remaining_account.2,
+      })
+    });
+    let data = RemoveOwnerInstructionData::new().try_to_vec().unwrap();
+    
+    let instruction = solana_instruction::Instruction {
+      program_id: crate::PHYGITAL_TOKEN_ID,
+      accounts,
+      data,
+    };
+    let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
+    account_infos.push(self.__program.clone());
+                  account_infos.push(self.owner.clone());
+                        account_infos.push(self.phygital_token.clone());
+                        account_infos.push(self.policy.clone());
+                        account_infos.push(self.wallet.clone());
+              remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
 
-        let instruction = solana_instruction::Instruction {
-            program_id: crate::PHYGITAL_TOKEN_ID,
-            accounts,
-            data,
-        };
-        let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
-        account_infos.push(self.__program.clone());
-        account_infos.push(self.owner.clone());
-        account_infos.push(self.phygital_token.clone());
-        remaining_accounts
-            .iter()
-            .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
-
-        if signers_seeds.is_empty() {
-            solana_cpi::invoke(&instruction, &account_infos)
-        } else {
-            solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
-        }
+    if signers_seeds.is_empty() {
+      solana_cpi::invoke(&instruction, &account_infos)
+    } else {
+      solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
     }
+  }
 }
 
 /// Instruction builder for `RemoveOwner` via CPI.
 ///
 /// ### Accounts:
 ///
-///   0. `[signer]` owner
-///   1. `[writable]` phygital_token
+                ///   0. `[signer]` owner
+                ///   1. `[writable]` phygital_token
+                ///   2. `[writable]` policy
+                ///   3. `[writable]` wallet
 #[derive(Clone, Debug)]
 pub struct RemoveOwnerCpiBuilder<'a, 'b> {
-    instruction: Box<RemoveOwnerCpiBuilderInstruction<'a, 'b>>,
+  instruction: Box<RemoveOwnerCpiBuilderInstruction<'a, 'b>>,
 }
 
 impl<'a, 'b> RemoveOwnerCpiBuilder<'a, 'b> {
-    pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-        let instruction = Box::new(RemoveOwnerCpiBuilderInstruction {
-            __program: program,
-            owner: None,
-            phygital_token: None,
-            __remaining_accounts: Vec::new(),
-        });
-        Self { instruction }
-    }
-    #[inline(always)]
+  pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
+    let instruction = Box::new(RemoveOwnerCpiBuilderInstruction {
+      __program: program,
+              owner: None,
+              phygital_token: None,
+              policy: None,
+              wallet: None,
+                                __remaining_accounts: Vec::new(),
+    });
+    Self { instruction }
+  }
+      #[inline(always)]
     pub fn owner(&mut self, owner: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-        self.instruction.owner = Some(owner);
-        self
+                        self.instruction.owner = Some(owner);
+                    self
     }
-    #[inline(always)]
-    pub fn phygital_token(
-        &mut self,
-        phygital_token: &'b solana_account_info::AccountInfo<'a>,
-    ) -> &mut Self {
-        self.instruction.phygital_token = Some(phygital_token);
-        self
+      #[inline(always)]
+    pub fn phygital_token(&mut self, phygital_token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.phygital_token = Some(phygital_token);
+                    self
     }
-    /// Add an additional account to the instruction.
-    #[inline(always)]
-    pub fn add_remaining_account(
-        &mut self,
-        account: &'b solana_account_info::AccountInfo<'a>,
-        is_writable: bool,
-        is_signer: bool,
-    ) -> &mut Self {
-        self.instruction
-            .__remaining_accounts
-            .push((account, is_writable, is_signer));
-        self
+      #[inline(always)]
+    pub fn policy(&mut self, policy: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.policy = Some(policy);
+                    self
     }
-    /// Add additional accounts to the instruction.
-    ///
-    /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
-    /// and a `bool` indicating whether the account is a signer or not.
-    #[inline(always)]
-    pub fn add_remaining_accounts(
-        &mut self,
-        accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
-    ) -> &mut Self {
-        self.instruction
-            .__remaining_accounts
-            .extend_from_slice(accounts);
-        self
+      #[inline(always)]
+    pub fn wallet(&mut self, wallet: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
+                        self.instruction.wallet = Some(wallet);
+                    self
     }
-    #[inline(always)]
-    pub fn invoke(&self) -> solana_program_error::ProgramResult {
-        self.invoke_signed(&[])
-    }
-    #[allow(clippy::clone_on_copy)]
-    #[allow(clippy::vec_init_then_push)]
-    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+            /// Add an additional account to the instruction.
+  #[inline(always)]
+  pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
+    self.instruction.__remaining_accounts.push((account, is_writable, is_signer));
+    self
+  }
+  /// Add additional accounts to the instruction.
+  ///
+  /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
+  /// and a `bool` indicating whether the account is a signer or not.
+  #[inline(always)]
+  pub fn add_remaining_accounts(&mut self, accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> &mut Self {
+    self.instruction.__remaining_accounts.extend_from_slice(accounts);
+    self
+  }
+  #[inline(always)]
+  pub fn invoke(&self) -> solana_program_error::ProgramResult {
+    self.invoke_signed(&[])
+  }
+  #[allow(clippy::clone_on_copy)]
+  #[allow(clippy::vec_init_then_push)]
+  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
         let instruction = RemoveOwnerCpi {
-            __program: self.instruction.__program,
-
-            owner: self.instruction.owner.expect("owner is not set"),
-
-            phygital_token: self
-                .instruction
-                .phygital_token
-                .expect("phygital_token is not set"),
-        };
-        instruction.invoke_signed_with_remaining_accounts(
-            signers_seeds,
-            &self.instruction.__remaining_accounts,
-        )
-    }
+        __program: self.instruction.__program,
+                  
+          owner: self.instruction.owner.expect("owner is not set"),
+                  
+          phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
+                  
+          policy: self.instruction.policy.expect("policy is not set"),
+                  
+          wallet: self.instruction.wallet.expect("wallet is not set"),
+                    };
+    instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
+  }
 }
 
 #[derive(Clone, Debug)]
 struct RemoveOwnerCpiBuilderInstruction<'a, 'b> {
-    __program: &'b solana_account_info::AccountInfo<'a>,
-    owner: Option<&'b solana_account_info::AccountInfo<'a>>,
-    phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
-    /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
-    __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
+  __program: &'b solana_account_info::AccountInfo<'a>,
+            owner: Option<&'b solana_account_info::AccountInfo<'a>>,
+                phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
+                policy: Option<&'b solana_account_info::AccountInfo<'a>>,
+                wallet: Option<&'b solana_account_info::AccountInfo<'a>>,
+                /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
+  __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }
+

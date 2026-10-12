@@ -1,5 +1,8 @@
+import type { ProgramIdl } from '$lib/shared/program-idl';
+
 const key = (pda: string) => `revibase:linked:${pda}`;
 
+/** The owner this browser last linked an accessory to, to notice when it changes elsewhere. */
 export function rememberedWallet(pda: string): string | null {
 	try {
 		return localStorage.getItem(key(pda));
@@ -9,7 +12,6 @@ export function rememberedWallet(pda: string): string | null {
 }
 
 export function rememberWallet(pda: string, wallet: string | null) {
-	reconcileAccessoryWallet(pda, wallet);
 	try {
 		if (wallet) localStorage.setItem(key(pda), wallet);
 		else localStorage.removeItem(key(pda));
@@ -17,8 +19,17 @@ export function rememberWallet(pda: string, wallet: string | null) {
 }
 
 const RECENT_WALLET = 'revibase:recent-wallet';
+const WALLET_INTRO = 'revibase:accessory-wallet-intro:v1';
 
-/** The wallet app last connected or linked in this browser (shown first, marked "Recent"). */
+export function hasSeenWalletIntro(): boolean {
+	try { return localStorage.getItem(WALLET_INTRO) === 'seen'; } catch { return false; }
+}
+
+export function rememberWalletIntro() {
+	try { localStorage.setItem(WALLET_INTRO, 'seen'); } catch {}
+}
+
+/** The wallet app last connected in this browser (shown first, marked "Recent"). */
 export function recentWallet(): string | null {
 	try {
 		return localStorage.getItem(RECENT_WALLET);
@@ -27,104 +38,26 @@ export function recentWallet(): string | null {
 	}
 }
 
-export type ConnectionMethod = 'browser' | 'wallet';
-
-export function recentConnectionMethod(): ConnectionMethod | null {
-	try {
-		const method = localStorage.getItem('revibase:connection-method');
-		return method === 'browser' || method === 'wallet' ? method : recentWallet() ? 'wallet' : null;
-	} catch { return null; }
-}
-
-export function rememberRecentWallet(name: string | null | undefined, method: ConnectionMethod = 'wallet') {
+export function rememberRecentWallet(name: string | null | undefined) {
 	try {
 		if (name) localStorage.setItem(RECENT_WALLET, name);
-		localStorage.setItem('revibase:connection-method', method);
 	} catch {}
 }
 
-/** An accessory preference is bound to its current linked address. */
-export function accessoryWalletApp(pda: string, owner: string | null): string | null {
-	if (reconcileAccessoryWallet(pda, owner)) return null;
+const SAVED_IDLS = 'revibase:program-idls';
+
+/** Program descriptions uploaded this session, already parsed, by program address. */
+export function savedIdls(): Record<string, ProgramIdl> {
 	try {
-		const raw = localStorage.getItem(`revibase:wallet-app:${pda}`);
-		if (!raw) return null;
-		const saved = JSON.parse(raw);
-		if (saved.wallet !== owner) {
-			localStorage.removeItem(`revibase:wallet-app:${pda}`);
-			return null;
-		}
-		return typeof saved.app === 'string' ? saved.app : null;
+		const value = JSON.parse(sessionStorage.getItem(SAVED_IDLS) ?? '{}');
+		return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 	} catch {
-		return null;
+		return {};
 	}
 }
 
-export function rememberAccessoryWalletApp(pda: string, wallet: string | null, app: string | null | undefined, method: ConnectionMethod = 'wallet') {
+export function rememberIdl(idl: ProgramIdl) {
 	try {
-		localStorage.removeItem(`revibase:choose-wallet:${pda}`);
-		if (app || method === 'browser') localStorage.setItem(`revibase:wallet-app:${pda}`, JSON.stringify({ pda, wallet, app: app ?? 'Browser', method }));
+		sessionStorage.setItem(SAVED_IDLS, JSON.stringify({ ...savedIdls(), [idl.address]: idl }));
 	} catch {}
-}
-
-/** Legacy app-only records retain their original wallet-browser behavior. */
-export function accessoryConnectionMethod(pda: string, owner: string | null): ConnectionMethod | null {
-	if (!accessoryWalletApp(pda, owner)) return null;
-	try {
-		const saved = JSON.parse(localStorage.getItem(`revibase:wallet-app:${pda}`)!);
-		return saved.method === 'browser' ? 'browser' : 'wallet';
-	} catch { return null; }
-}
-
-export type OwnerContext = { wallet: string; app: string | null; source: 'desktop' | 'mobile' | 'wallet' };
-/** Link provenance is separate from the user's shortcut launch preference. */
-export function rememberAccessoryLink(pda: string, context: OwnerContext) {
-	try { localStorage.setItem(`revibase:link-context:${pda}`, JSON.stringify({ ...context, pda })); } catch {}
-}
-export function accessoryLinkContext(pda: string, wallet: string | null): OwnerContext | null {
-	if (reconcileAccessoryWallet(pda, wallet)) return null;
-	try {
-		const saved = JSON.parse(localStorage.getItem(`revibase:link-context:${pda}`) ?? 'null');
-		if (!saved || saved.wallet !== wallet) return null;
-		if (!['desktop', 'mobile', 'wallet'].includes(saved.source)) return null;
-		return { wallet: saved.wallet, app: typeof saved.app === 'string' ? saved.app : null, source: saved.source };
-	} catch { return null; }
-}
-
-/** Remove all accessory-scoped wallet hints when authoritative linkage disagrees. */
-export function reconcileAccessoryWallet(pda: string, wallet: string | null): boolean {
-	try {
-		const keys = [key(pda), `revibase:wallet-app:${pda}`, `revibase:link-context:${pda}`];
-		let stale = false;
-		const apps: string[] = [];
-		for (const [i, name] of keys.entries()) {
-			const raw = localStorage.getItem(name);
-			if (!raw) continue;
-			try {
-				const saved = i === 0 ? { wallet: raw } : JSON.parse(raw);
-				if (typeof saved?.app === 'string') apps.push(saved.app);
-				if (!wallet || saved?.wallet !== wallet || (saved.pda && saved.pda !== pda)) stale = true;
-			} catch { stale = true; }
-		}
-		if (stale) {
-			for (const name of keys) localStorage.removeItem(name);
-			if (apps.includes(recentWallet() ?? '')) {
-				localStorage.removeItem(RECENT_WALLET);
-				localStorage.removeItem('revibase:connection-method');
-			}
-		}
-		return stale;
-	} catch { return false; }
-}
-
-/** Forget only this accessory's app hints; keep its linked address and other preferences. */
-export function forgetOwnerDetails(pda: string) {
-	try {
-		localStorage.removeItem(`revibase:wallet-app:${pda}`);
-		localStorage.removeItem(`revibase:link-context:${pda}`);
-		localStorage.setItem(`revibase:choose-wallet:${pda}`, 'true');
-	} catch {}
-}
-export function shouldChooseWallet(pda: string): boolean {
-	try { return localStorage.getItem(`revibase:choose-wallet:${pda}`) === 'true'; } catch { return false; }
 }

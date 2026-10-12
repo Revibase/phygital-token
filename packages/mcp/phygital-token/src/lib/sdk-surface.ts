@@ -6,7 +6,7 @@ export const SDK_SURFACE = {
     recovery:
       "When multiple keys verify, picks the initialized PhygitalToken PDA on-chain (rpc), or the one in allowList when no rpc is given",
     authenticatePasskey:
-      "Shared helper for on-chain flows: options.transceive → authenticateWithApdu; else authenticateWithWebauthn. Used by authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify.",
+      "Shared browser WebAuthn helper. Used by authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify.",
   },
   admin: [
     "getCreateConfigInstruction",
@@ -29,23 +29,23 @@ export const SDK_SURFACE = {
   ],
   transfer: [
     "beginTransfer({ rpc, secp256r1Pubkey, rpId? })",
-    "authenticatePasskeyForTransfer(session, { transceive?, origin? })",
+    "authenticatePasskeyForTransfer(session)",
     "completeTransfer",
   ],
   removeOwner: ["getRemoveOwnerInstruction"],
   verifyComposable: [
     "buildMessageHash",
-    "authenticatePasskeyForSecp256r1Verify({ rpc?, allowList?, messageHash, rpId?, origin?, transceive? })",
+    "authenticatePasskeyForSecp256r1Verify({ rpc?, allowList?, messageHash, rpId? })",
     "buildSecp256r1VerifyInstruction",
   ],
   verification: [
-    "startAuthentication(message, { rpc?, allowList?, transceive? })",
-    "verifyResponse({ expectedMessage, response })",
+    "startAuthentication(message, { rpc?, allowList?, rpId? })",
+    "verifyResponse({ expectedMessage, expectedOrigin, response })",
   ],
   onChainComposition: {
     client: [
       "buildMessageHash",
-      "authenticatePasskeyForSecp256r1Verify({ rpc?, allowList?, messageHash, transceive?, rpId?, origin? })",
+      "authenticatePasskeyForSecp256r1Verify({ rpc?, allowList?, messageHash, rpId? })",
       "buildSecp256r1VerifyInstruction",
     ],
     transaction: ["secp256r1_verify", "your_program_instruction"],

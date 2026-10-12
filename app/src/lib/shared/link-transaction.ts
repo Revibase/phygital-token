@@ -9,29 +9,27 @@ import {
 	getTransactionDecoder,
 	getTransactionEncoder,
 	pipe,
+	setTransactionMessageConfig,
 	setTransactionMessageFeePayer,
 	setTransactionMessageLifetimeUsingBlockhash,
 	type Address,
 	type Blockhash,
-	type Rpc,
-	type SolanaRpcApi,
+	type Instruction,
 	type TransactionSigner
 } from '@solana/kit';
 import {
-	COMPUTE_BUDGET_PROGRAM_ADDRESS,
-	getSetComputeUnitLimitInstruction,
-	getSetComputeUnitPriceInstruction
+	COMPUTE_BUDGET_PROGRAM_ADDRESS
 } from '@solana-program/compute-budget';
 import {
 	completeTransfer,
 	getSetOwnerInstructionDataDecoder,
 	PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 	SET_OWNER_DISCRIMINATOR,
+	type AuthenticationResponseJSON,
 	type TransferSession
 } from 'phygital-token-sdk';
 
-import { base64ToBytes, base64UrlToBytes, bytesEqual } from './encoding';
-import type { TransferChallenge, TransferPayload } from './types';
+import { base64UrlToBytes, bytesEqual } from './encoding';
 
 export const SECP256R1_PROGRAM_ADDRESS = address('Secp256r1SigVerify1111111111111111111111111');
 export const SLOT_HASHES_SYSVAR = address('SysvarS1otHashes111111111111111111111111111');
@@ -43,42 +41,47 @@ export const LIGHTHOUSE_PROGRAM_ADDRESS = address('L2TExMFKdjpN9kozasaurPirfHy9P
 export const LINK_COMPUTE_UNIT_LIMIT = 60_000;
 export const LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS = 50_000n;
 
-export function toTransferSession(fields: TransferChallenge, rpc: Rpc<SolanaRpcApi>): TransferSession {
-	return {
-		rpc,
-		phygitalToken: address(fields.phygitalToken),
-		secp256r1Pubkey: fields.secp256r1Pubkey,
-		slotHash: base64ToBytes(fields.slotHash),
-		slotNumber: BigInt(fields.slotNumber),
-		challenge: base64UrlToBytes(fields.challenge),
-		rpId: fields.rpId
-	};
+/** A compute-unit price over `units`, in lamports, rounded up (as the fee service checks it). */
+export function priorityFeeLamports(microLamportsPerUnit: bigint, units: number): bigint {
+	return (microLamportsPerUnit * BigInt(units) + 999_999n) / 1_000_000n;
+}
+
+/** The v1 message config every app transaction uses, at the app's compute-unit price. */
+export function v1MessageConfig(units: number) {
+	return { computeUnitLimit: units, loadedAccountsDataSizeLimit: 64 * 1024 * 1024, priorityFeeLamports: priorityFeeLamports(LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS, units) };
+}
+
+/**
+ * How long a tap over a freshly fetched slot hash stays usable.
+ *
+ * `set_owner` looks the slot up in SlotHashes (512 entries) at execution, so
+ * the hash survives 511 more blocks; we stop 20 blocks early so a signature made at
+ * the last second can still land. Real slots run slower than the 200 ms assumed here
+ * and skipped slots don't use up entries, so this is conservative. It only drives the
+ * countdown — the program is the final authority.
+ */
+export const TAP_WINDOW_MS = (511 - 20) * 200;
+
+/** An accessory tap over a slot-bound transfer challenge: everything `set_owner` needs but the recipient. */
+export type LinkTap = { session: TransferSession; response: AuthenticationResponseJSON };
+
+/** The secp256r1 verify and `set_owner` that link this tap's accessory to `recipient`. */
+export function buildLinkInstructions(tap: LinkTap, recipient: TransactionSigner) {
+	return completeTransfer(tap.session, tap.response, recipient);
 }
 
 export async function buildLinkTransaction(input: {
-	payload: TransferPayload;
-	rpc: Rpc<SolanaRpcApi>;
+	tap: LinkTap;
 	recipient: TransactionSigner;
 	blockhash: { blockhash: Blockhash; lastValidBlockHeight: bigint };
 }) {
-	const session = toTransferSession(input.payload, input.rpc);
-	// TransferPayload['response'] is structurally the SDK's AuthenticationResponseJSON.
-	const response = input.payload.response as Parameters<typeof completeTransfer>[1];
-	const instructions = await completeTransfer(session, response, input.recipient);
-
+	const instructions = await buildLinkInstructions(input.tap, input.recipient);
 	const message = pipe(
-		createTransactionMessage({ version: 0 }),
+		createTransactionMessage({ version: 1 }),
 		(m) => setTransactionMessageFeePayer(input.recipient.address, m),
 		(m) => setTransactionMessageLifetimeUsingBlockhash(input.blockhash, m),
-		(m) =>
-			appendTransactionMessageInstructions(
-				[
-					getSetComputeUnitLimitInstruction({ units: LINK_COMPUTE_UNIT_LIMIT }),
-					getSetComputeUnitPriceInstruction({ microLamports: LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS }),
-					...instructions
-				],
-				m
-			)
+		(m) => setTransactionMessageConfig(v1MessageConfig(LINK_COMPUTE_UNIT_LIMIT), m),
+		(m) => appendTransactionMessageInstructions(instructions, m)
 	);
 	const transaction = compileTransaction(message);
 	return { transaction, wireBytes: new Uint8Array(getTransactionEncoder().encode(transaction)) };
@@ -90,6 +93,10 @@ export type LinkExpectation = {
 	secp256r1Pubkey: Uint8Array;
 	slotNumber: bigint;
 	clientDataJson: Uint8Array;
+	/** Defaults to the recipient; a Revibase fee payer when the recipient can't pay. */
+	feePayer?: string;
+	/** The prepaid-fee refill, which must come right after `set_owner`, exactly as built. */
+	refill?: Instruction;
 };
 
 export class LinkTransactionRejected extends Error {
@@ -130,15 +137,18 @@ export function validateLinkTransaction(
 		return reject('undecodable transaction');
 	}
 
-	if (message.feePayer.address !== expected.recipient) reject('fee payer is not the linking wallet');
+	const feePayer = expected.feePayer ?? expected.recipient;
+	if (message.feePayer.address !== feePayer) reject('fee payer is not the linking wallet');
 
 	const ixs = message.instructions;
 	let budget = 0;
 	let secpIndex = -1;
 	let linkIndex = -1;
+	let refillIndex = -1;
 	ixs.forEach((ix, i) => {
 		if (ix.programAddress === COMPUTE_BUDGET_PROGRAM_ADDRESS) budget++;
 		else if (ix.programAddress === SECP256R1_PROGRAM_ADDRESS) secpIndex = secpIndex === -1 ? i : reject('multiple secp256r1 instructions');
+		else if (ix.programAddress === PHYGITAL_TOKEN_PROGRAM_ADDRESS && linkIndex !== -1 && refillIndex === -1 && expected.refill && sameInstruction(ix, expected.refill)) refillIndex = i;
 		else if (ix.programAddress === PHYGITAL_TOKEN_PROGRAM_ADDRESS) linkIndex = linkIndex === -1 ? i : reject('multiple phygital instructions');
 		else if (options.allowWalletAdditions && ix.programAddress === LIGHTHOUSE_PROGRAM_ADDRESS) return;
 		else if (!(options.allowWalletAdditions && linkIndex !== -1)) reject(`unexpected program ${ix.programAddress}`);
@@ -151,6 +161,7 @@ export function validateLinkTransaction(
 	if (linkIndex === -1 || secpIndex !== linkIndex - 1) {
 		reject('secp256r1_verify must immediately precede set_owner');
 	}
+	if (expected.refill && refillIndex === -1) reject('missing the network-fee refill');
 
 	// set_owner: discriminator, accounts, args.
 	const link = ixs[linkIndex];
@@ -163,11 +174,16 @@ export function validateLinkTransaction(
 		const meta = accounts[i];
 		if (!meta || meta.address !== addr || !roles.includes(meta.role)) reject(`unexpected ${what} account`);
 	};
-	if (accounts.length !== 4) reject('unexpected account list');
+	if (accounts.length !== 6) reject('unexpected account list');
 	expectAccount(0, expected.recipient, [AccountRole.READONLY_SIGNER, AccountRole.WRITABLE_SIGNER], 'recipient');
 	expectAccount(1, expected.phygitalToken, [AccountRole.WRITABLE], 'phygital token');
 	expectAccount(2, SLOT_HASHES_SYSVAR, [AccountRole.READONLY], 'slot hashes');
 	expectAccount(3, INSTRUCTIONS_SYSVAR, [AccountRole.READONLY], 'instructions sysvar');
+	// The program checks the policy's seeds and that the rent receiver is its payer.
+	if (accounts[4].role !== AccountRole.WRITABLE) reject('unexpected policy account');
+	if (accounts[5].role !== AccountRole.READONLY && accounts[5].role !== AccountRole.WRITABLE) {
+		reject('unexpected policy rent receiver account');
+	}
 
 	const args = getSetOwnerInstructionDataDecoder().decode(data);
 	if (args.slotNumber !== expected.slotNumber) reject('slot number mismatch');
@@ -187,22 +203,31 @@ export function validateLinkTransaction(
 		reject('tap is from a different accessory');
 	}
 
-	// Only the recipient signs.
-	const signers = new Set<string>([message.feePayer.address]);
+	// Only the recipient (and its fee payer) sign.
 	for (const ix of ixs) {
 		for (const meta of ix.accounts ?? []) {
-			if (meta.role === AccountRole.READONLY_SIGNER || meta.role === AccountRole.WRITABLE_SIGNER) signers.add(meta.address);
+			const signs = meta.role === AccountRole.READONLY_SIGNER || meta.role === AccountRole.WRITABLE_SIGNER;
+			if (signs && meta.address !== expected.recipient && meta.address !== feePayer) reject('unexpected additional signer');
 		}
 	}
-	if (signers.size !== 1) reject('unexpected additional signer');
 }
 
-export function expectationFromPayload(payload: TransferPayload, recipient: string): LinkExpectation {
+/** Same program, data and accounts (roles may differ only by what a wallet's copy elevates). */
+export function sameInstruction(a: Instruction, b: Instruction): boolean {
+	return (
+		a.programAddress === b.programAddress &&
+		bytesEqual(new Uint8Array(a.data ?? []), new Uint8Array(b.data ?? [])) &&
+		(a.accounts ?? []).length === (b.accounts ?? []).length &&
+		(a.accounts ?? []).every((meta, i) => meta.address === b.accounts![i]!.address)
+	);
+}
+
+export function linkExpectation(tap: LinkTap, recipient: string): LinkExpectation {
 	return {
-		phygitalToken: payload.phygitalToken,
+		phygitalToken: tap.session.phygitalToken,
 		recipient,
-		secp256r1Pubkey: base64UrlToBytes(payload.secp256r1Pubkey),
-		slotNumber: BigInt(payload.slotNumber),
-		clientDataJson: base64UrlToBytes(payload.response.response.clientDataJSON)
+		secp256r1Pubkey: base64UrlToBytes(tap.session.secp256r1Pubkey),
+		slotNumber: tap.session.slotNumber,
+		clientDataJson: base64UrlToBytes(tap.response.response.clientDataJSON)
 	};
 }

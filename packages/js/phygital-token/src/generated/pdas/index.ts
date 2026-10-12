@@ -7,3 +7,5 @@
  */
 
 export * from "./adminConfig.js";
+export * from "./policy.js";
+export * from "./wallet.js";

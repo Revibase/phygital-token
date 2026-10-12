@@ -32,7 +32,7 @@ describe('toAccessoryView', () => {
 	const view = (o: Parameters<typeof acc.account>[0]) => toAccessoryView('pda', acc.account(o));
 
 	it('Controlled + linked is shown locked, with release only', () => {
-		expect(view({ tokenType: 2, owner: address(W), isLocked: 1 })).toMatchObject({
+		expect(view({ tokenType: 2, owner: address(W) })).toMatchObject({
 			kind: 'controlled',
 			status: 'linked_locked',
 			canLink: false,
@@ -41,7 +41,7 @@ describe('toAccessoryView', () => {
 	});
 
 	it('Permanent is shown linked-and-fixed with no actions; an unlinked Permanent is unavailable', () => {
-		expect(view({ tokenType: 0, owner: address(W), isLocked: 1 })).toMatchObject({
+		expect(view({ tokenType: 0, owner: address(W) })).toMatchObject({
 			status: 'linked_locked',
 			canLink: false,
 			canRelease: false

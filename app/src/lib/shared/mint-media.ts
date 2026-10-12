@@ -27,11 +27,11 @@ export type GetAssetResult = {
 	royalty?: { basis_points?: number };
 	content?: {
 		json_uri?: string;
-		metadata?: { name?: string; description?: string; token_standard?: string; attributes?: Array<{ trait_type?: unknown; value?: unknown }> };
+		metadata?: { symbol?: string; name?: string; description?: string; token_standard?: string; attributes?: Array<{ trait_type?: unknown; value?: unknown }> };
 		links?: { image?: string; external_url?: string };
 		files?: Array<{ uri?: string; cdn_uri?: string; mime?: string }>;
 	};
-	grouping?: Array<{ group_key?: string; group_value?: string; collection_metadata?: { name?: string; image?: string; description?: string } }>;
+	grouping?: Array<{ group_key?: string; group_value?: string; collection_metadata?: { symbol?: string; name?: string; image?: string; description?: string } }>;
 };
 
 const clip = (v: unknown, max: number): string | null => {
@@ -46,7 +46,7 @@ export function mediaFromAsset(asset: GetAssetResult | undefined): MintMedia {
 	if (!content) return EMPTY_MEDIA;
 	const images = (content.files ?? []).filter((f) => !f.mime || f.mime.startsWith('image/'));
 	const image =
-		normalizeMediaUrl(images[0]?.cdn_uri) ?? normalizeMediaUrl(content.links?.image) ?? normalizeMediaUrl(images[0]?.uri);
+		images.map(f => normalizeMediaUrl(f.cdn_uri)).find(Boolean) ?? normalizeMediaUrl(content.links?.image) ?? images.map(f => normalizeMediaUrl(f.uri)).find(Boolean) ?? null;
 	const name = clip(content.metadata?.name, 120);
 	const collection = clip(asset?.grouping?.find((g) => g.group_key === 'collection')?.collection_metadata?.name, 120);
 	const attributes: MintTrait[] = [];

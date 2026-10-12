@@ -29,6 +29,12 @@ export function createTestD1(migrationDirs: string[]): D1Database {
 				}
 			};
 			return stmt;
+		},
+		// Like D1: the statements run in order, each result as from `all()`.
+		async batch(statements: { all: () => Promise<unknown> }[]) {
+			const results = [];
+			for (const statement of statements) results.push(await statement.all());
+			return results;
 		}
 	} as unknown as D1Database;
 }

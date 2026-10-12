@@ -46,7 +46,7 @@ export async function planInitialize(input: {
       "Creates a token PDA seeded by the passkey public key.",
       "identifier is stored on the token for binding and is distinct from the passkey.",
       "owner is stored on phygital_token.owner at init (required non-default for Permanent; use the default zero pubkey for unowned Bearer/Controlled tokens).",
-      "Tokens initialized with a non-default owner start locked (is_locked = 1).",
+      "Locked is derived, not stored: Controlled and Permanent tokens are locked whenever they have an owner (isPhygitalTokenLocked).",
       "Permanent tokens stay locked forever (remove_owner is rejected); set_owner fails with TokenIsCurrentlyLocked.",
       "mint starts as the default pubkey until assign_mint.",
       "Bootstrap AdminConfig with create_config, then set_issuer before calling initialize.",
@@ -130,7 +130,7 @@ export async function planTransfer(input: {
   return {
     flow: [
       "1. beginTransfer({ rpc, secp256r1Pubkey, rpId? }) — derives token PDA from passkey; fetch slot hash, build challenge; rpId defaults to hostname",
-      "2. authenticatePasskeyForTransfer(session, { transceive? }) — browser WebAuthn or native APDU when transceive is set",
+      "2. authenticatePasskeyForTransfer(session) — browser WebAuthn tap",
       "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + set_owner",
     ],
     sdk: {
@@ -167,11 +167,12 @@ export async function planTransfer(input: {
     instructions: ["secp256r1_verify", "set_owner"],
     notes: [
       "No SPL token transfer — set_owner only updates phygital_token.owner.",
-      "Requires is_locked == 0 for every token type. Permanent tokens start locked (owner set at init).",
-      "Controlled tokens re-lock after a successful claim; remove_owner clears the lock.",
+      "Requires an unlocked token: Bearer always; Controlled only with no owner. Permanent tokens are always locked (owner set at init).",
+      "A claimed Controlled token is locked until remove_owner.",
+      "Linking a new owner closes the previous owner's accessory policy and returns its rent to the accessory wallet; completeTransfer passes the policy and wallet accounts (getPolicyCloseAccounts).",
       "Permanent tokens remain locked (cannot forfeit), so set_owner always fails with TokenIsCurrentlyLocked.",
       "beginTransfer takes Kit Rpc + base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
-      "Browser tap: pass rpc to recover a 16-byte placeholder on-chain; allowList gates the tapped credential id and is the no-RPC recovery fallback. Pass { transceive } for native/kiosk APDU.",
+      "Browser tap: pass rpc to recover a 16-byte placeholder on-chain; allowList gates the tapped credential id and is the no-RPC recovery fallback.",
       "completeTransfer takes a Kit TransactionSigner for recipient.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
     ],
@@ -198,7 +199,7 @@ export async function planVerify(input: {
   return {
     flow: [
       "buildMessageHash(message) — 32-byte digest",
-      "authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId?, transceive? }) — browser or native APDU",
+      "authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId? }) — browser WebAuthn tap",
       "buildSecp256r1VerifyInstruction(tap) — { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }",
       "sendTransaction([secp256r1VerifyInstruction, yourProgramInstruction]) — your instruction carries phygitalTokenPda + secp256r1VerifyArgs; message_hash and instructions sysvar are yours",
     ],
@@ -243,7 +244,7 @@ export async function planVerify(input: {
     },
     notes: [
       "Off-chain login (startAuthentication + verifyResponse) does not submit verify.",
-      "On-chain tap helpers (authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify) share authenticatePasskey: transceive → APDU, else browser WebAuthn.",
+      "On-chain tap helpers (authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify) share authenticatePasskey (browser WebAuthn).",
       "Browser WebAuthn: rpc recovers a rawId-length-16 placeholder on-chain; allowList gates the tapped id and is the no-RPC recovery fallback.",
       "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
       "Your program CPIs verify. Do not include a client-side verify instruction.",
@@ -263,7 +264,7 @@ export async function planRemoveOwner(input: {
     sdk: "getRemoveOwnerInstruction",
     flow: [
       "1. Confirm the connected wallet is phygital_token.owner on-chain",
-      "2. Build remove_owner with getRemoveOwnerInstruction",
+      "2. Build remove_owner with getRemoveOwnerInstruction, passing getPolicyCloseAccounts(tokenPda)",
       "3. Owner signs and submits the transaction (no passkey tap required)",
     ],
     derivedAccounts: {
@@ -280,7 +281,8 @@ export async function planRemoveOwner(input: {
     ],
     onChainEffects: [
       "Sets phygital_token.owner to the default (zero) pubkey",
-      "Clears phygital_token.is_locked (required before the next set_owner when locked)",
+      "Unlocks a Controlled token (locked is derived from having an owner)",
+      "Closes the token's accessory policy, if any, sending its rent to rent_recipient",
       "Preserves phygital_token.last_sign_count",
     ],
     notes: [

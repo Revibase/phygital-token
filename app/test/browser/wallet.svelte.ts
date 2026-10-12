@@ -1,4 +1,4 @@
-import { rememberWallet, rememberAccessoryLink, rememberAccessoryWalletApp, rememberRecentWallet } from '$lib/client/memory';
+import { rememberWallet, rememberRecentWallet } from '$lib/client/memory';
 // Test-only wallet boundary. Production pages and their controls remain unchanged.
 let account = $state<string | null>(null);
 let available = $state(false);
@@ -10,9 +10,7 @@ export const walletStore = {
 			const pda = 'So11111111111111111111111111111111111111112';
 			const wallet = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 			rememberWallet(pda, wallet);
-			rememberRecentWallet('Phantom', 'wallet');
-			rememberAccessoryWalletApp(pda, wallet, 'Phantom', 'wallet');
-			rememberAccessoryLink(pda, { wallet, app: 'Phantom', source: 'desktop' });
+			rememberRecentWallet('Phantom');
 			url.searchParams.delete('savedWallet');
 			window.history.replaceState(window.history.state, '', url);
 		}
@@ -22,7 +20,7 @@ export const walletStore = {
 		}) as EventListener);
 	},
 	get options() {
-		return available ? [{ id: 'phantom', name: 'Phantom', icon: '/wallets/phantom.svg', ready: true }] : [];
+		return available ? [{ id: 'phantom', name: 'Phantom', icon: '/icon-192.png', ready: true }] : [];
 	},
 	get address() {
 		return account;
@@ -34,7 +32,7 @@ export const walletStore = {
 		return account ? 'Phantom' : null;
 	},
 	get walletIcon() {
-		return account ? '/wallets/phantom.svg' : null;
+		return account ? '/icon-192.png' : null;
 	},
 	get error() {
 		return null;

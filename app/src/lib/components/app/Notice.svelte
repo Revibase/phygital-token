@@ -3,17 +3,37 @@
 	import { cn } from '$lib/utils';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import InfoIcon from '@lucide/svelte/icons/info';
+	import { Button } from '$lib/components/ui/button';
+	import type { FriendlyError } from '$lib/client/link/messages';
 
+	/** Pass `error` to show a FriendlyError (nothing renders while it's null), or `title`/`body` directly. */
 	let {
-		title,
-		body,
-		detail,
+		title: titleProp,
+		body: bodyProp,
+		detail: detailProp,
+		error,
 		tone = 'error',
-		actions
-	}: { title: string; body?: string; detail?: string; tone?: 'error' | 'info'; actions?: Snippet } = $props();
+		actions,
+		onretry,
+		retrying = false
+	}: {
+		title?: string;
+		body?: string;
+		detail?: string;
+		error?: FriendlyError | null;
+		tone?: 'error' | 'info';
+		actions?: Snippet;
+		/** Adds the standard "Try again" action. */
+		onretry?: () => void;
+		retrying?: boolean;
+	} = $props();
+	const title = $derived(error ? error.title : titleProp);
+	const body = $derived(error ? error.body : bodyProp);
+	const detail = $derived(error ? error.detail : detailProp);
 	let showDetail = $state(false);
 </script>
 
+{#if title}
 <div class="animate-rise space-y-3" role={tone === 'error' ? 'alert' : 'status'}>
 	<div class={cn('flex gap-3 rounded-[14px] px-4 py-3.5', tone === 'error' ? 'bg-destructive/[0.07]' : 'bg-muted')}>
 		{#if tone === 'error'}
@@ -37,5 +57,11 @@
 			{/if}
 		</div>
 	</div>
-	{#if actions}<div class="grid gap-2">{@render actions()}</div>{/if}
+	{#if actions || onretry}
+		<div class="grid gap-2">
+			{@render actions?.()}
+			{#if onretry}<Button variant="secondary" class="w-full" disabled={retrying} onclick={onretry}>{retrying ? 'Trying again…' : 'Try again'}</Button>{/if}
+		</div>
+	{/if}
 </div>
+{/if}

@@ -32,90 +32,150 @@ export const PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH = 0x1776; // 6006
 export const PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT = 0x1777; // 6007
 /** ClientDataHashMismatch: Client data hash mismatch */
 export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x1778; // 6008
-/** MissingInstructionsSysvar: Missing instructions sysvar account */
-export const PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x1779; // 6009
 /** InvalidSysvarDataFormat: Invalid sysvar data format */
-export const PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x177a; // 6010
+export const PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x1779; // 6009
 /** TokenIsCurrentlyLocked: The owner needs to unlock the phygital token to enable transfer. */
-export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED = 0x177b; // 6011
-/** TokenIsNotLockable: This phygital token is not lockable. */
-export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE = 0x177c; // 6012
+export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED = 0x177a; // 6010
 /** UnableToParseClientData: Unable to parse client data JSON. */
-export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x177d; // 6013
+export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x177b; // 6011
 /** ChallengeHashMismatch: Challenge hash mismatch. */
-export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x177e; // 6014
+export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x177c; // 6012
 /** InvalidAuthenticatorData: Authenticator data is too short to contain WebAuthn flags. */
-export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x177f; // 6015
+export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x177d; // 6013
 /** UserPresenceNotVerified: WebAuthn user presence flag (UP) was not set by the authenticator. */
-export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x1780; // 6016
+export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x177e; // 6014
 /** RpIdMismatch: WebAuthn rpId hash does not match the expected relying party id. */
-export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1781; // 6017
+export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x177f; // 6015
 /** OriginMismatch: WebAuthn origin does not match any expected origin. */
-export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1782; // 6018
+export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1780; // 6016
 /** UnauthorizedAuthority: Only the designated authority can perform this action. */
-export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1783; // 6019
+export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1781; // 6017
 /** UnauthorizedAdmin: Only the admin can perform this action. */
-export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN = 0x1784; // 6020
+export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN = 0x1782; // 6018
 /** KeyAlreadyExists: Key already exists on the admin config. */
-export const PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS = 0x1785; // 6021
+export const PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS = 0x1783; // 6019
 /** PermanentOwnerRequired: Only Permanent phygital tokens set an owner at initialize, and they must set one. */
-export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED = 0x1786; // 6022
+export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED = 0x1784; // 6020
 /** PermanentOwnerImmutable: Permanent phygital token owner cannot be transferred or removed. */
-export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE = 0x1787; // 6023
+export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE = 0x1785; // 6021
+/** OwnerRequired: The token has no owner. */
+export const PHYGITAL_TOKEN_ERROR__OWNER_REQUIRED = 0x1786; // 6022
+/** InvalidAccountIndex: Compact instruction account index out of bounds. */
+export const PHYGITAL_TOKEN_ERROR__INVALID_ACCOUNT_INDEX = 0x1787; // 6023
+/** SelfReentrancyNotAllowed: Compact instructions may not call the phygital-token program. */
+export const PHYGITAL_TOKEN_ERROR__SELF_REENTRANCY_NOT_ALLOWED = 0x1788; // 6024
+/** ExecuteViaCpiNotAllowed: Execute must be a top-level instruction. */
+export const PHYGITAL_TOKEN_ERROR__EXECUTE_VIA_CPI_NOT_ALLOWED = 0x1789; // 6025
+/** DurableNonceNotAllowed: Durable-nonce transactions are not allowed. */
+export const PHYGITAL_TOKEN_ERROR__DURABLE_NONCE_NOT_ALLOWED = 0x178a; // 6026
+/** WalletInvariantViolated: Wallet PDA owner or data length changed during inner CPI. */
+export const PHYGITAL_TOKEN_ERROR__WALLET_INVARIANT_VIOLATED = 0x178b; // 6027
+/** ProtectedAccountPrivilege: Protected account may not be a signer or writable in inner instructions. */
+export const PHYGITAL_TOKEN_ERROR__PROTECTED_ACCOUNT_PRIVILEGE = 0x178c; // 6028
+/** InvalidPolicyArgs: Policy arguments are invalid. */
+export const PHYGITAL_TOKEN_ERROR__INVALID_POLICY_ARGS = 0x178d; // 6029
+/** ProgramNotAllowed: Program is not allowed: the policy lists every program the accessory may call. */
+export const PHYGITAL_TOKEN_ERROR__PROGRAM_NOT_ALLOWED = 0x178e; // 6030
+/** InstructionNotAllowed: Instruction does not satisfy the configured program rules. */
+export const PHYGITAL_TOKEN_ERROR__INSTRUCTION_NOT_ALLOWED = 0x178f; // 6031
+/** SpendNotAllowed: No spend cap covers this SOL or token transfer. */
+export const PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED = 0x1790; // 6032
+/** SpendLimitExceeded: Transfer exceeds the configured spending limit. */
+export const PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED = 0x1791; // 6033
+/** MaxPerTxExceeded: Transfer exceeds the configured max per transaction. */
+export const PHYGITAL_TOKEN_ERROR__MAX_PER_TX_EXCEEDED = 0x1792; // 6034
+/** DelegationNotAllowed: Execute may not leave a standing delegate on a wallet-owned token account. */
+export const PHYGITAL_TOKEN_ERROR__DELEGATION_NOT_ALLOWED = 0x1793; // 6035
+/** TokenAuthorityChanged: Wallet-owned token account control changed during execute. */
+export const PHYGITAL_TOKEN_ERROR__TOKEN_AUTHORITY_CHANGED = 0x1794; // 6036
+/** PreviewPassed: Preview passed: an accessory tap would be allowed (preview_execute never lands). */
+export const PHYGITAL_TOKEN_ERROR__PREVIEW_PASSED = 0x1795; // 6037
+/** ClientDataTypeMismatch: clientDataJSON type must be webauthn.get. */
+export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH = 0x1796; // 6038
 
 export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH
+  | typeof PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH
+  | typeof PHYGITAL_TOKEN_ERROR__DELEGATION_NOT_ALLOWED
+  | typeof PHYGITAL_TOKEN_ERROR__DURABLE_NONCE_NOT_ALLOWED
+  | typeof PHYGITAL_TOKEN_ERROR__EXECUTE_VIA_CPI_NOT_ALLOWED
+  | typeof PHYGITAL_TOKEN_ERROR__INSTRUCTION_NOT_ALLOWED
+  | typeof PHYGITAL_TOKEN_ERROR__INVALID_ACCOUNT_INDEX
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA
+  | typeof PHYGITAL_TOKEN_ERROR__INVALID_POLICY_ARGS
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT
   | typeof PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS
-  | typeof PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR
+  | typeof PHYGITAL_TOKEN_ERROR__MAX_PER_TX_EXCEEDED
   | typeof PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH
+  | typeof PHYGITAL_TOKEN_ERROR__OWNER_REQUIRED
   | typeof PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE
   | typeof PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED
+  | typeof PHYGITAL_TOKEN_ERROR__PREVIEW_PASSED
+  | typeof PHYGITAL_TOKEN_ERROR__PROGRAM_NOT_ALLOWED
+  | typeof PHYGITAL_TOKEN_ERROR__PROTECTED_ACCOUNT_PRIVILEGE
   | typeof PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH
+  | typeof PHYGITAL_TOKEN_ERROR__SELF_REENTRANCY_NOT_ALLOWED
   | typeof PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
+  | typeof PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED
+  | typeof PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED
   | typeof PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT
+  | typeof PHYGITAL_TOKEN_ERROR__TOKEN_AUTHORITY_CHANGED
   | typeof PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED
-  | typeof PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE
   | typeof PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA
   | typeof PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN
   | typeof PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY
-  | typeof PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED;
+  | typeof PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED
+  | typeof PHYGITAL_TOKEN_ERROR__WALLET_INVARIANT_VIOLATED;
 
 let phygitalTokenErrorMessages: Record<PhygitalTokenError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
   phygitalTokenErrorMessages = {
     [PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH]: `Challenge hash mismatch.`,
     [PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
+    [PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH]: `clientDataJSON type must be webauthn.get.`,
+    [PHYGITAL_TOKEN_ERROR__DELEGATION_NOT_ALLOWED]: `Execute may not leave a standing delegate on a wallet-owned token account.`,
+    [PHYGITAL_TOKEN_ERROR__DURABLE_NONCE_NOT_ALLOWED]: `Durable-nonce transactions are not allowed.`,
+    [PHYGITAL_TOKEN_ERROR__EXECUTE_VIA_CPI_NOT_ALLOWED]: `Execute must be a top-level instruction.`,
+    [PHYGITAL_TOKEN_ERROR__INSTRUCTION_NOT_ALLOWED]: `Instruction does not satisfy the configured program rules.`,
+    [PHYGITAL_TOKEN_ERROR__INVALID_ACCOUNT_INDEX]: `Compact instruction account index out of bounds.`,
     [PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA]: `Authenticator data is too short to contain WebAuthn flags.`,
+    [PHYGITAL_TOKEN_ERROR__INVALID_POLICY_ARGS]: `Policy arguments are invalid.`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION]: `No prior secp256r1 verification instruction in this transaction matches the provided client data`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS]: `Failed to deserialize secp256r1 signature offsets from the instruction data`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH]: `Slot not found in SlotHashes sysvar — signature has expired or is being replayed`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT]: `Invalid sysvar data format`,
     [PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS]: `Key already exists on the admin config.`,
-    [PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
+    [PHYGITAL_TOKEN_ERROR__MAX_PER_TX_EXCEEDED]: `Transfer exceeds the configured max per transaction.`,
     [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH]: `WebAuthn origin does not match any expected origin.`,
     [PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH]: `Phygital token owner mismatch`,
+    [PHYGITAL_TOKEN_ERROR__OWNER_REQUIRED]: `The token has no owner.`,
     [PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE]: `Permanent phygital token owner cannot be transferred or removed.`,
     [PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED]: `Only Permanent phygital tokens set an owner at initialize, and they must set one.`,
+    [PHYGITAL_TOKEN_ERROR__PREVIEW_PASSED]: `Preview passed: an accessory tap would be allowed (preview_execute never lands).`,
+    [PHYGITAL_TOKEN_ERROR__PROGRAM_NOT_ALLOWED]: `Program is not allowed: the policy lists every program the accessory may call.`,
+    [PHYGITAL_TOKEN_ERROR__PROTECTED_ACCOUNT_PRIVILEGE]: `Protected account may not be a signer or writable in inner instructions.`,
     [PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH]: `WebAuthn rpId hash does not match the expected relying party id.`,
     [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match phygital token record`,
+    [PHYGITAL_TOKEN_ERROR__SELF_REENTRANCY_NOT_ALLOWED]: `Compact instructions may not call the phygital-token program.`,
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
+    [PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED]: `Transfer exceeds the configured spending limit.`,
+    [PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED]: `No spend cap covers this SOL or token transfer.`,
     [PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT]: `WebAuthn signCount must be greater than the last accepted signCount`,
+    [PHYGITAL_TOKEN_ERROR__TOKEN_AUTHORITY_CHANGED]: `Wallet-owned token account control changed during execute.`,
     [PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED]: `The owner needs to unlock the phygital token to enable transfer.`,
-    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE]: `This phygital token is not lockable.`,
     [PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA]: `Unable to parse client data JSON.`,
     [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN]: `Only the admin can perform this action.`,
     [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY]: `Only the designated authority can perform this action.`,
     [PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED]: `WebAuthn user presence flag (UP) was not set by the authenticator.`,
+    [PHYGITAL_TOKEN_ERROR__WALLET_INVARIANT_VIOLATED]: `Wallet PDA owner or data length changed during inner CPI.`,
   };
 }
 

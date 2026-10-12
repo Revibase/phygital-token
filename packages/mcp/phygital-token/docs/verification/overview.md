@@ -14,16 +14,16 @@ Need on-chain state change / CPI?
     │
     NO  → Web2 passkey login (no chain tx)
           → startAuthentication(message, { rpc, allowList? })
-          → verifyResponse({ expectedMessage, response })
+          → await verifyResponse({ expectedMessage, expectedOrigin, response })
           → create your normal session (cookie / JWT / …)
 ```
 
-**Browser taps recover a 16-byte placeholder id via Kit `Rpc`** (on-chain PhygitalToken lookup). `allowList` (Set of base64url compressed public keys) is the fallback that recovers locally when no `rpc` is given, and it always gates: the tapped credential id must be in it. Native readers use `startAuthentication(message, { transceive })` — `rpId`/`origin` are optional (set `origin` if your program checks `expected_origins`).
+**Browser taps recover a 16-byte placeholder id via Kit `Rpc`** (on-chain PhygitalToken lookup). `allowList` (Set of base64url compressed public keys) is the fallback that recovers locally when no `rpc` is given, and it always gates: the tapped credential id must be in it.
 
 ## Off-chain login
 
-- **`startAuthentication(message, { rpc, allowList? })`** — NFC tap; optional `transceive` for APDU
-- **`verifyResponse({ expectedMessage, response })`** — secp256r1 only (no rpId/origin)
+- **`startAuthentication(message, { rpc, allowList? })`** — NFC tap
+- **`verifyResponse({ expectedMessage, expectedOrigin, response })`** — asynchronous secp256r1 verification; rejects taps made on other origins; await the result
 
 See [Verification methods](./methods.md) for the full contract.
 
@@ -31,3 +31,5 @@ See [Verification methods](./methods.md) for the full contract.
 
 - [Verification methods](./methods.md)
 - [Composable verify](./verify-composable.md)
+
+`verifyResponse` derives the accessory-wallet PDA locally without RPC. Invalid signatures return `accessoryWallet: null`. Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.

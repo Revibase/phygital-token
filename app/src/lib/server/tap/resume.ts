@@ -8,7 +8,31 @@ import {
 import { bytesToBase64Url } from '$lib/shared/encoding';
 import { fetchAccessory } from '../accessory/resolve';
 import { consumeChallenge, isChallengeId, issueChallenge } from '../challenges';
-import { parseAssertion } from '../link/assertion';
+
+function isString(v: unknown): v is string {
+	return typeof v === 'string' && v.length > 0 && v.length < 4096;
+}
+
+/** The tap response the browser posted, or null if it isn't one. */
+function parseAssertion(input: unknown): AuthenticationResponseJSON | null {
+	if (!input || typeof input !== 'object') return null;
+	const r = input as Record<string, unknown>;
+	const inner = r.response as Record<string, unknown> | undefined;
+	if (!isString(r.id) || !isString(r.rawId) || r.type !== 'public-key' || !inner) return null;
+	if (!isString(inner.clientDataJSON) || !isString(inner.authenticatorData) || !isString(inner.signature)) return null;
+	return {
+		id: r.id,
+		rawId: r.rawId,
+		type: 'public-key',
+		clientExtensionResults: {},
+		response: {
+			clientDataJSON: inner.clientDataJSON,
+			authenticatorData: inner.authenticatorData,
+			signature: inner.signature,
+			userHandle: isString(inner.userHandle) ? inner.userHandle : undefined
+		}
+	};
+}
 
 export const RESUME_NAMESPACE = 'revibase-resume';
 
@@ -20,7 +44,7 @@ export type ResumeResult =
 	| { ok: false; status: number; code: 'bad_request' | 'too_slow' | 'tap_rejected' | 'unknown_accessory'; error: string };
 
 export async function verifyResume(
-	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi> },
+	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi>; origin: string },
 	input: { challengeId: unknown; response: unknown },
 	now = Date.now()
 ): Promise<ResumeResult> {
@@ -34,9 +58,10 @@ export async function verifyResume(
 
 	let secp256r1PublicKey: string;
 	try {
-		const result = verifyResponse({
+		const result = await verifyResponse({
 			expectedMessage,
-			response: assertion as AuthenticationResponseJSON
+			expectedOrigin: deps.origin,
+			response: assertion
 		});
 		if (!result.isVerified) return rejected;
 		secp256r1PublicKey = result.secp256r1PublicKey;

@@ -43,7 +43,7 @@
 		try {
 			const message = crypto.randomUUID();
 			const response = await startAuthentication(message, { rpc: browserRpc() });
-			const result = verifyResponse({ expectedMessage: message, response });
+			const result = await verifyResponse({ expectedMessage: message, expectedOrigin: location.origin, response });
 			if (!result.isVerified) throw new Error('Signature did not verify');
 			check = String(await findPhygitalTokenPda(result.secp256r1PublicKey)) === accessory.pda ? 'genuine' : 'mismatch';
 		} catch (err) {
@@ -68,7 +68,7 @@
 			{#snippet trailing()}{#if check === 'genuine'}<CheckIcon class="animate-rise size-5 text-success" />{:else if canCheck}<ChevronRightIcon class="size-4 text-muted-foreground/70" />{/if}{/snippet}
 		</ListRow>
 	</List>
-	{#if checkFailure}<Notice title={checkFailure.title} body={checkFailure.body} detail={checkFailure.detail} />{/if}
+	<Notice error={checkFailure} />
 
 	<List>
 		<ListRow label="Type" detail={kindLabel[accessory.kind]} />

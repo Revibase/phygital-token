@@ -10,6 +10,7 @@ export type PhygitalTokenErrorCode =
   | "PASSKEY_AMBIGUOUS"
   | "INVALID_ASSERTION"
   | "MESSAGE_MISMATCH"
+  | "ORIGIN_MISMATCH"
   | "SLOT_HASH_UNAVAILABLE";
 
 /**

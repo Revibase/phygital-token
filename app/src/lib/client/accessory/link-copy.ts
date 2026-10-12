@@ -9,40 +9,27 @@ export type LinkCopy = {
 	choose: { title: string; body: string };
 	confirm: { title: string; body: string };
 	action: string;
-	checkAccessory: string;
-	finishInWallet: string;
-	finishOnComputer: string;
-	progress: (wallet: string) => string;
-	cancelled: string;
-	stopped: string;
 	done: { title: string; body: (yours: boolean, wallet: string) => string };
 };
 
-
 const COMMON: LinkCopy = {
-	pageTitle: 'Link a wallet',
-	choose: { title: 'Choose a wallet', body: 'Link the accessory to the wallet you pick.' },
-	confirm: { title: 'Link this wallet?', body: '' },
-	action: 'Link wallet',
-	checkAccessory: 'Is this the right accessory?',
-	finishInWallet: 'Approve the link there, then come back.',
-	finishOnComputer: 'Approve the link in your wallet there.',
-	progress: (wallet) => `Linking to ${wallet}…`,
-	cancelled: 'Linking cancelled',
-	stopped: 'Linking stopped',
-	done: { title: 'Wallet linked', body: (yours, wallet) => yours ? 'Linked to your wallet.' : `Linked to ${wallet}.` }
+	pageTitle: 'Claim accessory',
+	choose: { title: 'Choose a wallet', body: 'Choose a wallet to become the owner. You’ll use it to approve changes and sends.' },
+	confirm: { title: 'Claim with this wallet?', body: '' },
+	action: 'Claim accessory',
+	done: { title: 'Accessory claimed', body: (yours, wallet) => yours ? 'You’re now the owner of this accessory.' : `Managed by ${wallet}.` }
 };
 
 const BEARER: LinkCopy = {
 	...COMMON,
-	confirm: { title: 'Link this wallet?', body: 'Anyone holding the accessory can use its tap access and relink it while unlocked.' }
+	confirm: { title: 'Claim with this wallet?', body: 'Anyone holding the accessory can sign in with a tap and claim it while unlocked. Assets stay in the accessory wallet; the new owner gains control of them. Claiming does not transfer its bound NFT.' }
 };
 const CONTROLLED: LinkCopy = {
 	...COMMON,
-	confirm: { title: 'Link this wallet?', body: 'Anyone holding the accessory can use its tap access. Only the owner can unlink it before another wallet links it.' },
+	confirm: { title: 'Claim with this wallet?', body: 'Anyone holding the accessory can use its tap access. Only the owner can release it before another wallet claims it. Claiming does not transfer its bound NFT.' },
 	done: {
-		title: 'Wallet linked',
-		body: (yours, wallet) => yours ? 'Linked to your wallet until you unlink it.' : `Linked to ${wallet} until that wallet unlinks it.`
+		title: 'Accessory claimed',
+		body: (yours, wallet) => yours ? 'You’re the owner until you release this accessory.' : `Managed by ${wallet} until the owner releases it.`
 	}
 };
 

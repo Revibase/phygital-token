@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-phygital_token = "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ"
+phygital_token = "phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz"
 
 [provider]
 cluster = "localnet"
