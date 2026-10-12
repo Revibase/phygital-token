@@ -2,7 +2,9 @@
 
 Solana program, TypeScript SDK, Rust CPI client, and MCP server for phygital tokens authenticated with a live NFC / WebAuthn tap.
 
-Each token also has a wallet PDA. Its owner can run any instructions as the wallet; the accessory can too, but only within a policy the owner whitelists (blocked by default). See [GLOSSARY.md](./GLOSSARY.md).
+A tap proves the accessory is genuine and present. That is the core: authentication needs no wallet, policy or SOL.
+
+Optionally, each token also has a wallet PDA that can hold assets. Its owner can run any instructions as the wallet; the accessory can too, but only once the owner creates a policy allowing it (blocked by default). See [GLOSSARY.md](./GLOSSARY.md).
 
 ## Packages
 
@@ -13,11 +15,11 @@ Each token also has a wallet PDA. Its owner can run any instructions as the wall
 | **phygital-token-mcp** | [`packages/mcp/phygital-token`](./packages/mcp/phygital-token) | `npx -y phygital-token-mcp` |
 | **revibase** | [`app`](./app) | tap-to-link web app (SvelteKit on Cloudflare) |
 | **secure-signer** | [`secure-signer`](./secure-signer) | passkey wallet iframe (`signer.revibase.com`) the app registers as “Revibase Passkey” |
-| **phygital-token** (on-chain) | [`programs/phygital-token`](./programs/phygital-token) | program id `DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ` |
+| **phygital-token** (on-chain) | [`programs/phygital-token`](./programs/phygital-token) | program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz` |
 
 ## Documentation
 
-Integrator guides (sign in, gate on assets, transact, request permissions) live on the developer site, in the separate `developer` repository.
+Integrator guides (authenticate, check access, and the optional accessory wallet: request permissions, transact) live on the developer site, in the separate `developer` repository.
 
 - [App setup and testing](app/README.md), [architecture and security boundaries](app/ARCHITECTURE.md).
 - [Accessory, wallet and custom-action UX](docs/wallet-ux.md).

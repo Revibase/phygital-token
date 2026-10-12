@@ -18,7 +18,7 @@
 	import TechnicalDetails from '$lib/components/app/TechnicalDetails.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { accessoryMediaQuery, accessoryShortcutsQuery } from '$lib/client/queries';
+	import { accessoryMediaQuery, accessoryPolicyQuery, accessoryShortcutsQuery } from '$lib/client/queries';
 	import { rememberedWallet } from '$lib/client/memory';
 	import { shortcutsFor } from '$lib/shared/shortcuts';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
@@ -65,6 +65,9 @@
 	const screen = $derived(a ? tapScreen(a, owned) : null);
 	const management = $derived(a ? managementActions(a, owned) : null);
 	function openManagement() { if (management?.hasActions) manageOpen = true; else detailsOpen = true; }
+
+	const policyQuery = createQuery(() => ({ ...accessoryPolicyQuery(a?.pda ?? ''), enabled: manageOpen && !!a?.owner }));
+	const walletDetail = $derived(!a?.owner ? 'Optional · View only until claimed' : policyQuery.data === undefined ? 'Optional' : `Optional · Tap to sign ${policyQuery.data ? 'on' : 'off'}`);
 
 	const mediaQuery = createQuery(() => ({ ...accessoryMediaQuery(a?.pda ?? ''), enabled: !!a?.mint }));
 	const media = $derived(mediaQuery.data ?? null);
@@ -155,11 +158,12 @@
 {#if a && screen}
 	<ResponsiveSheet bind:open={manageOpen} title="Manage accessory">
 		<List>
-			{#if management?.wallet}<ListRow label="Accessory wallet" href={`/wallet/${encodeURIComponent(a.pda)}`} chevron />{/if}
 			{#if management?.connectOwner}<ListRow label="Connect as owner" detail="Change settings or release this accessory" onclick={() => { manageOpen = false; ownerConnectOpen = true; }} chevron />{/if}
 			{#if management?.changeOwner}<ListRow label="Change owner" detail="Choose a new owner" href="/accessory/link" chevron />{/if}
 			{#if management?.release}<ListRow label="Release accessory" detail="Let someone else claim it" tone="destructive" onclick={() => { manageOpen = false; releaseOpen = true; }} chevron />{/if}
 			<ListRow label="Accessory details" onclick={() => { manageOpen = false; detailsOpen = true; }} chevron />
+			<!-- Last: authenticating never needs the wallet. -->
+			{#if management?.wallet}<ListRow label="Accessory wallet" detail={walletDetail} href={`/wallet/${encodeURIComponent(a.pda)}`} chevron />{/if}
 		</List>
 	</ResponsiveSheet>
 	{#if a.owner && a.canRelease}

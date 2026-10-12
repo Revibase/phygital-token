@@ -286,7 +286,7 @@ try {
 		await p.getByRole('link',{name:/^Accessory wallet/}).click();
 		await p.waitForURL('**/wallet/'+PDA);
 		await p.getByRole('heading',{name:'About this wallet',exact:true}).waitFor();
-		await visible(p,'Assets stay with this accessory.');
+		await visible(p,'This wallet is optional.');
 		await p.getByRole('button',{name:'Got it',exact:true}).click();
 		await p.getByRole('dialog').waitFor({state:'hidden'});
 		await visible(p,'USDC');
@@ -298,6 +298,18 @@ try {
 		await p.reload();
 		await visible(p,'USDC');
 		assert.equal(await p.getByRole('dialog').count(),0,'the intro shows once');
+	});
+	await test('accessory wallet: view only until claimed', async () => {
+		const {c,p}=await context();
+		await c.addCookies([{name:'simulation_holdings',value:'funded',url:BASE},{name:'simulation_owner',value:'none',url:BASE}]);
+		await p.goto(BASE+'/wallet/'+PDA);
+		await p.getByRole('button',{name:'Got it',exact:true}).click();
+		await visible(p,'View only');
+		await visible(p,'USDC');
+		for (const name of ['Receive','Send all']) assert.equal(await p.getByRole('button',{name,exact:true}).count(),0,name+' is hidden');
+		assert.equal(await p.getByRole('button',{name:/^Tap to sign transactions/}).count(),0,'tap settings are hidden');
+		assert.equal(await p.getByRole('button',{name:/^Solana SOL/}).count(),0,'assets are not selectable');
+		await p.getByRole('button',{name:'Copy wallet address',exact:true}).waitFor();
 	});
 	await test('accessory wallet: send connects the owner in place', async () => {
 		const {c,p}=await context(IOS+' Phantom');

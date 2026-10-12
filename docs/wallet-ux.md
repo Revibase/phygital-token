@@ -1,6 +1,12 @@
 # Accessory and wallet journey
 
-The accessory is the entry point. Its wallet stores funds; the linked wallet approves sends and controls transaction permissions. Physical possession, linked-wallet control, and NFT ownership remain distinct.
+The accessory is the entry point. A tap proves it is genuine and present; that is all most people need. Its wallet is optional: it can hold funds, the owner approves sends and controls transaction permissions. Physical possession, owner control, and NFT ownership remain distinct.
+
+## Principles
+
+1. Core flows (tap landing, claim, release, authenticate) never prompt for or depend on the accessory wallet.
+2. The wallet is reached only from Manage accessory, as its last row. It is view-only until the accessory is claimed: balances show, but Receive, Send, Send all and tap settings are hidden, because whoever claims it controls what is there.
+3. Tap to sign is off until the owner turns it on. Turning it off never affects authentication.
 
 ## Product and hierarchy
 
@@ -8,7 +14,7 @@ The accessory is the product. Its on-chain owner wallet manages it; its stable a
 
 The landing shows accessory identity and artwork, authenticity/claim status, an Owner row when claimed, and project experiences. It does not show an accessory-wallet balance card or require wallet connection on arrival. Keep collection identity separate from claim status. Do not infer the wallet app or current ownership from an address or local storage.
 
-Manage accessory contains Accessory wallet as its first row for valid records, including unclaimed and Permanent accessories. It opens the separate wallet route without a balance/count in the management row. Invalid records open Details directly and expose no mutation actions. Wallet balances and Receive are readable without owner connection; sending requires a claimed accessory and owner approval.
+Manage accessory lists owner actions, then Accessory details, then Accessory wallet as its last row for valid records, including unclaimed and Permanent accessories. The wallet row has no balance or count; its detail reads “Optional · View only until claimed” or “Optional · Tap to sign on/off”. Invalid records open Details directly and expose no mutation actions. Wallet balances are readable without owner connection, and Receive once claimed; sending requires a claimed accessory and owner approval.
 
 ## Claim and management states
 
@@ -30,18 +36,19 @@ Owner management requests a connection only when needed. Connect wallet opens th
 
 | Starting point | Journey | What stays visible |
 | --- | --- | --- |
-| Fresh tap | Accessory → Manage accessory → Accessory wallet | Authenticity, accessory identity, project apps |
-| Unlinked or relinkable accessory | Link a wallet → accessory approval → choose wallet → wallet approval → open wallet | Who will control the funds and relinking consequences |
+| Fresh tap | Accessory → Manage accessory → Accessory wallet (optional) | Authenticity, accessory identity, project apps |
+| Unclaimed or reclaimable accessory | Claim accessory → accessory approval → choose wallet → wallet approval → back to the accessory | Who becomes owner and the relinking consequences |
 | Receive | Wallet → Receive → QR or copy address | Solana network and full wallet address |
 | Send | Enter recipient and amount → connect owner wallet if needed → approve in wallet | Recipient, amount and relevant account setup or fee top-up costs |
 | Tap permissions | Wallet → Tap to sign transactions → edit → connect owner wallet if needed → approve | Tap sign-in is independent of transaction permissions |
-| Ownership changes | Manage accessory → move or unlink | Linked-wallet identity, NFT ownership, funds warning and sweep option |
+| Ownership changes | Manage accessory → move or unlink | Owner identity, NFT ownership, funds warning and sweep option |
 | Expired tap | Tap again or sign in with wallet | A clear recovery action |
-| Direct public wallet link | View balances → connect linked wallet for writes | Return to accessories when there is no matching active tap context |
+| Direct public wallet link | View balances → connect owner wallet for writes | Return to accessories when there is no matching active tap context |
 
 ## Visual decisions
 
-- Accessory wallet is the first row in Manage accessory; the landing focuses on identity, claim status and project experiences.
+- Accessory wallet is the last row in Manage accessory; the landing focuses on identity, claim status and project experiences.
+- An empty claimed wallet with tap to sign off shows “Nothing here yet” with Receive and the Tap to sign row, instead of a zero balance.
 - The wallet uses a single SOL balance, Send and Receive, and token holdings. SOL is not repeated in the token list.
 - Receive exposes the full wallet address; the direct Tap to sign transactions row opens permission settings. About this wallet explains ownership.
 - Moving, unlinking, and technical details live in Manage accessory. The owner’s accessory list no longer offers unlink as a competing row action.
@@ -61,28 +68,13 @@ The main pane contains Allow transactions, Spending limits, Sites that can ask f
 
 ### Asset-first sends and sending all
 
-Receive stays in the primary action row. Send all reviews the linked-wallet address, SOL, tokens and transferable NFTs before owner approval. Transfers execute in separate batches; the review explains that completed batches persist after cancellation. A retry re-reads current holdings. Frozen and non-transferable NFTs stay in the accessory and are disclosed before approval. Programmable NFTs use their dedicated Token Metadata transfer path.
+Receive stays in the primary action row. Send all reviews the owner address, SOL, tokens and transferable NFTs before owner approval. Transfers execute in separate batches; the review explains that completed batches persist after cancellation. A retry re-reads current holdings. Frozen and non-transferable NFTs stay in the accessory and are disclosed before approval. Programmable NFTs use their dedicated Token Metadata transfer path.
 
 Tap the SOL balance or a token row to send that asset directly. NFTs appear separately as artwork cards. Standard token-account-backed NFTs transfer exactly one token, without an amount input; the send form identifies the collectible and recipient. DAS metadata identifies NFT standards rather than assuming all zero-decimal tokens are NFTs. Programmable NFTs use Token Metadata TransferV1 with metadata-derived rule sets and recipient token-record rent. Core NFTs use TransferV1 with ownership and collection membership read from chain. Core and compressed NFTs are discovered with paginated DAS owner queries. Compressed NFTs use fresh DAS leaf/proof data, validate the asset-id/tree relationship, distinguish nonce from leaf position, trim proofs using the on-chain canopy, and route to Bubblegum V1 or V2 according to the tree program. The final NFT transaction, including any sponsor refill, is simulated again before requesting a signature. References: https://www.metaplex.com/docs/smart-contracts/token-metadata/pnfts and https://developers.metaplex.com/core/transfer.
 
 The isolated preview includes a sample NFT and permits transfer-form inspection without contacting live RPC. Actual individual and bulk asset transfers remain disabled in the preview. Verification: holdings metadata/classification, one-token NFT transfer encoding, unsupported transfer rejection and sweep exclusion tests; manual browser review of individual token/NFT and bulk send flows.
 
-
-### NFT transfer verification
-
-Adapted the Kit clients and standard-specific builders from `phygital-wallet/apps/web/src/features/send/lib/transfers`. Standard SPL NFTs, programmable NFTs, Core and compressed NFTs share the same recipient-only send form and Send all flow. Programmable source token accounts are normally frozen; this does not block Token Metadata transfers. Rule sets, Core plugins and compressed-NFT freeze/non-transferable flags remain enforced; failures stop before signing. Missing/incomplete DAS indexing is disclosed rather than silently reporting a complete portfolio. Discovery currently bounds pagination to 4,000 indexed assets and reports incomplete results.
-
-`pnpm -C app test`, `pnpm -C app check`, and `pnpm -C app build` cover application tests, type checks and the production fixture exclusion check. For local chain verification, build the SDK and program, then run from the repository root:
-
-```sh
-NFT_PROGRAM_FIXTURES=/path/to/pinned/metaplex/programs pnpm -C app e2e:nfts
-```
-
-The directory needs `manifest.json` and the Metaplex binaries listed in it; the existing reference repo supplies them at `phygital-wallet/packages/testing/fixtures/programs`. The harness checks SHA-256 pins and runs entirely in LiteSVM against this repository's `target/deploy/phygital_token.so`. It mints disposable assets to an accessory wallet and checks actual owner-authorized CPI transfers: an allowing pNFT rule set and recipient token record; a denying rule set leaving ownership intact; a Core collection transfer and stale-owner rejection; an invalid compressed proof leaving the root intact; and a successful Bubblegum V1 transfer matching the independently computed recipient leaf/root. Bubblegum V2 routing, hash/flag/collection encoding and separate nonce/index handling are unit tested. No live wallet or blockchain transactions are used. Final simulation tests ensure a changed rule set prevents a wallet signature and the simulated transaction matches the transaction handed to the wallet.
-
-Wallet transactions use v1 with inline accounts and a 4,096-byte size limit; address lookup tables are unnecessary. Compressed-NFT proofs still need to fit the 64-account and transaction-size limits. Creator rules/plugins requiring extra authorization data or additional signers may reject the transfer during simulation. The app does not bypass these restrictions.
-
-Send all always receives into the current linked owner wallet. Its review shows that fixed destination and has no wallet-change action. If another wallet is connected, the user is prompted to connect the linked wallet for approval. The on-chain owner check prevents an outdated linked wallet from executing the transfer.
+Send all always receives into the current owner wallet. Its review shows that fixed destination and has no wallet-change action. If another wallet is connected, the user is prompted to connect the owner wallet for approval. The on-chain owner check prevents an outdated owner from executing the transfer.
 
 SOL sends reserve the exact required prepaid-fee refill from the same transaction. Max sends the remaining SOL; fixed amounts remain fixed and are rejected before approval when the amount plus refill cannot be funded. Send all moves SOL last, reading its balance again after tokens/NFTs and account-rent refunds.
 

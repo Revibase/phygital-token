@@ -81,6 +81,9 @@ pub mod phygital_token {
         RemoveOwner::handler(ctx)
     }
 
+    // Optional accessory wallet. Nothing above needs it: authentication is
+    // `verify`. The owner can always execute; a tap needs the owner's policy.
+
     pub fn update_policy(ctx: Context<UpdatePolicy>, actions: Vec<PolicyAction>) -> Result<()> {
         UpdatePolicy::handler(ctx, actions)
     }

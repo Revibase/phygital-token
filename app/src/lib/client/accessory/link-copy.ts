@@ -14,7 +14,7 @@ export type LinkCopy = {
 
 const COMMON: LinkCopy = {
 	pageTitle: 'Claim accessory',
-	choose: { title: 'Choose a wallet', body: 'Choose a wallet to become the owner. You’ll use it to approve changes and sends.' },
+	choose: { title: 'Choose a wallet', body: 'Choose a wallet to become the owner. You’ll use it to manage this accessory.' },
 	confirm: { title: 'Claim with this wallet?', body: '' },
 	action: 'Claim accessory',
 	done: { title: 'Accessory claimed', body: (yours, wallet) => yours ? 'You’re now the owner of this accessory.' : `Managed by ${wallet}.` }
@@ -22,7 +22,7 @@ const COMMON: LinkCopy = {
 
 const BEARER: LinkCopy = {
 	...COMMON,
-	confirm: { title: 'Claim with this wallet?', body: 'Anyone holding the accessory can sign in with a tap and claim it while unlocked. Assets stay in the accessory wallet; the new owner gains control of them. Claiming does not transfer its bound NFT.' }
+	confirm: { title: 'Claim with this wallet?', body: 'Anyone holding the accessory can authenticate with a tap and claim it while unlocked. Assets stay in the accessory wallet; the new owner gains control of them. Claiming does not transfer its bound NFT.' }
 };
 const CONTROLLED: LinkCopy = {
 	...COMMON,

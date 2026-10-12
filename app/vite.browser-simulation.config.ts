@@ -46,7 +46,7 @@ export default async function (env: any) {
 				export { submitAsOwner, submitAsOwner as confirmAsOwner } from ${JSON.stringify(root + 'test/browser/policy-state.ts')}
 				export async function refillNetworkFees(){throw new Error('Signing must be simulated explicitly')}`;
 			if (path.endsWith('/routes/wallet/[pda]/+page.server.ts'))
-				return `import { accessory, WALLET } from ${fixtures}; export const load=({cookies})=>{const kind=cookies.get('simulation_kind') ?? accessory.kind;return {accessory:{...accessory,kind,owner:cookies.get('simulation_owner') ?? accessory.owner},wallet:WALLET,accessoryHref:'/accessory'}};`;
+				return `import { accessory, WALLET } from ${fixtures}; export const load=({cookies})=>{const kind=cookies.get('simulation_kind') ?? accessory.kind;const owner=cookies.get('simulation_owner') ?? accessory.owner;return {accessory:{...accessory,kind,owner:owner==='none'?null:owner},wallet:WALLET,accessoryHref:'/accessory'}};`;
 			if (path === root + 'src/hooks.server.ts')
 				return readFileSync(path, 'utf8').replace(
 					'const signerOrigin = event.platform?.env?.SECURE_SIGNER_ORIGIN ?? null;',

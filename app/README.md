@@ -20,7 +20,7 @@ pnpm --filter revibase dev
 ### Without hardware: local validator + software accessory
 
 ```bash
-solana-test-validator --reset --bpf-program DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ target/deploy/phygital_token.so
+solana-test-validator --reset --bpf-program phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz target/deploy/phygital_token.so
 # app/.dev.vars: SOLANA_RPC_URL=http://127.0.0.1:8899  SOLANA_CLUSTER=localnet
 
 pnpm --filter revibase dev:accessory init
@@ -38,6 +38,20 @@ pnpm --filter revibase e2e:local  # taps, links and fees against a fresh local v
 pnpm --filter revibase dev:simulation  # UI preview without hardware, localhost:4187
 pnpm --filter revibase test:browser    # run with the simulation server active
 ```
+
+### NFT transfers
+
+Adapted the Kit clients and standard-specific builders from `phygital-wallet/apps/web/src/features/send/lib/transfers`. Standard SPL NFTs, programmable NFTs, Core and compressed NFTs share the same recipient-only send form and Send all flow. Programmable source token accounts are normally frozen; this does not block Token Metadata transfers. Rule sets, Core plugins and compressed-NFT freeze/non-transferable flags remain enforced; failures stop before signing. Missing/incomplete DAS indexing is disclosed rather than silently reporting a complete portfolio. Discovery currently bounds pagination to 4,000 indexed assets and reports incomplete results.
+
+For local chain verification of NFT transfers, build the SDK and program, then run from the repository root:
+
+```sh
+NFT_PROGRAM_FIXTURES=/path/to/pinned/metaplex/programs pnpm -C app e2e:nfts
+```
+
+The directory needs `manifest.json` and the Metaplex binaries listed in it; the existing reference repo supplies them at `phygital-wallet/packages/testing/fixtures/programs`. The harness checks SHA-256 pins and runs entirely in LiteSVM against this repository's `target/deploy/phygital_token.so`. It mints disposable assets to an accessory wallet and checks actual owner-authorized CPI transfers: an allowing pNFT rule set and recipient token record; a denying rule set leaving ownership intact; a Core collection transfer and stale-owner rejection; an invalid compressed proof leaving the root intact; and a successful Bubblegum V1 transfer matching the independently computed recipient leaf/root. Bubblegum V2 routing, hash/flag/collection encoding and separate nonce/index handling are unit tested. No live wallet or blockchain transactions are used. Final simulation tests ensure a changed rule set prevents a wallet signature and the simulated transaction matches the transaction handed to the wallet.
+
+Wallet transactions use v1 with inline accounts and a 4,096-byte size limit; address lookup tables are unnecessary. Compressed-NFT proofs still need to fit the 64-account and transaction-size limits. Creator rules/plugins requiring extra authorization data or additional signers may reject the transfer during simulation. The app does not bypass these restrictions.
 
 ## Deploy
 

@@ -8,7 +8,11 @@ TypeScript client for the Phygital Token Solana program.
 pnpm add phygital-token-sdk @solana/kit
 ```
 
-## Sign in with an accessory
+## Choosing an integration
+
+Most integrations only need tap authentication: it covers login, access gates and on-chain `verify`, and needs no wallet, policy or SOL. The accessory wallet below is optional; use it only when the accessory itself should hold assets or approve transactions. The developer site (in the separate `developer` repository) explains which account each flow uses.
+
+## Authenticate with an accessory
 
 ```ts
 import { createSolanaRpc } from "@solana/kit";
@@ -42,7 +46,7 @@ const token = await fetchPhygitalToken(
 // token.data.owner
 ```
 
-`expectedOrigin` is your site's origin as a fixed value, not the request's `Origin` header. A tap made on another site throws `ORIGIN_MISMATCH`, so that site can't pass your challenge to a user and sign in with their tap. It also returns `accessoryWallet`, derived locally without RPC (`null` when the signature is invalid).
+`expectedOrigin` is your site's origin as a fixed value, not the request's `Origin` header. A tap made on another site throws `ORIGIN_MISMATCH`, so that site can't pass your challenge to a user and authenticate with their tap. It also returns `accessoryWallet`, derived locally without RPC (`null` when the signature is invalid); you only need it if you use the optional accessory wallet.
 
 Reject expired/reused challenges and unlinked tokens before creating a session. The owner is delegated identity, not proof of wallet-key control or NFT ownership.
 
@@ -61,10 +65,13 @@ const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
   await buildSecp256r1VerifyInstruction(tap);
 ```
 
-## Wallet: run instructions with an accessory tap
+## Optional: accessory wallet
 
-Each token has a wallet PDA. `getPhygitalWalletSigner` is a Kit modifying
-signer for it: build a normal transaction with the wallet as signer, and it
+Each token has a wallet PDA. It is never created and pays no rent. The owner can always run instructions as it; a tap can only once the owner has created an accessory policy allowing them. Changing the owner closes that policy; assets stay in the wallet.
+
+### Run instructions with an accessory tap
+
+`getPhygitalWalletSigner` is a Kit modifying signer for the wallet PDA: build a normal transaction with the wallet as signer, and it
 previews the owner's policy (`preview_execute`), asks for the tap, then wraps
 the instructions in `execute_with_accessory`.
 
@@ -95,7 +102,7 @@ Pass `feePayer` to pay fees yourself; prepaid fees are then not used. Helpers:
 The owner runs anything as the wallet with
 `buildExecuteWithOwnerInstruction({ owner, phygitalToken, instructions })`.
 
-### Wallet Standard
+#### Wallet Standard
 
 Register once at app startup so Standard-aware connectors (e.g.
 `@solana/connectors`) list "Revibase":
@@ -111,7 +118,7 @@ needs an owner and an accessory policy). The session is kept in
 `localStorage`, so a reload reconnects without another tap. Transactions are
 signed through `getPhygitalWalletSigner`. The adapter does not advertise
 `solana:signMessage`, since a PDA has no ed25519 key; use accessory authentication
-separately for possession-based sign-in.
+separately for possession-based login.
 
 The `revibase:accessory` feature exposes the connected accessory's owner:
 
@@ -123,11 +130,7 @@ const session = await getRevibaseAccessorySession(wallet); // null for other wal
 await getRevibaseAccessorySession(wallet, { refresh: true }); // re-read the chain
 ```
 
-## Choosing an integration
-
-Use tap authentication for login/access gates and Wallet Standard for accessory-wallet transactions. The developer site's "Choose your integration" guide (in the separate `developer` repository) explains which account each flow uses.
-
-## Request accessory permissions
+### Request accessory permissions
 
 Projects can ask owners to configure an accessory through a reusable link or QR code:
 

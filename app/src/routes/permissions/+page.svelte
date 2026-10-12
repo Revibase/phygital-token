@@ -117,6 +117,7 @@
 <PageShell size="medium">
 	<section class="flex flex-1 flex-col gap-5 pt-4 pb-10">
 		<PageHeader title="Allow tap transactions?" body="Choose an accessory and review the access this project is requesting." />
+		<p class="-mt-2 px-1 text-[13px] leading-snug text-muted-foreground">Authenticating with your accessory doesn’t need this. It only lets the accessory approve transactions from its accessory wallet, within these limits.</p>
 		{#if requestQuery.isPending}
 			<Loading text="Reading request…" />
 		{:else if requestQuery.isError}
@@ -159,6 +160,9 @@
 								<Notice tone="info" title="Tap permissions saved">
 									{#snippet actions()}<Button href={`/wallet/${encodeURIComponent(accessory.pda)}`} variant="secondary" class="w-full">Open accessory wallet</Button>{/snippet}
 								</Notice>
+							{/if}
+							{#if balances.data && !balances.data.lamports && !balances.data.tokens.length && !balances.data.nfts?.length}
+								<Notice tone="info" title="This accessory wallet is empty" body="Taps can only spend what the wallet holds. Send it funds before using this project." />
 							{/if}
 							<Section label="Changes">
 								{#each merged.changes as change, i (i)}
