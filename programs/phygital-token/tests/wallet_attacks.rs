@@ -28,6 +28,7 @@ fn funded(ctx: &mut TestContext) -> Keypair {
 }
 
 /// Tap-signed execute with extra transaction signers.
+#[allow(clippy::result_large_err)]
 fn tap(
     ctx: &mut TestContext,
     token: &MintedPhygitalToken,

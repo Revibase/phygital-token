@@ -94,6 +94,9 @@ impl Secp256r1VerifyArgs {
             PhygitalError::InvalidSignatureOffsets
         );
 
+        // SAFETY: `start_usize + SIGNATURE_OFFSETS_SERIALIZED_SIZE <= data.len()` was
+        // checked above, the struct is `repr(C)` with only `u16` fields (any bit
+        // pattern is valid) and its size is asserted at compile time.
         let offsets = unsafe {
             core::ptr::read_unaligned(
                 data.as_ptr().add(start_usize) as *const Secp256r1SignatureOffsets

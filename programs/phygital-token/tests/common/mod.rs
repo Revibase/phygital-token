@@ -1,7 +1,8 @@
 // Shared test harness: each integration-test binary pulls in this module via
 // `mod common;` and uses only a subset of the helpers, so per-binary dead-code
-// warnings are expected and not meaningful here.
-#![allow(dead_code, unused_imports)]
+// warnings are expected and not meaningful here. Helpers return LiteSVM's large
+// failure metadata as-is.
+#![allow(dead_code, unused_imports, clippy::result_large_err)]
 
 mod assertions;
 mod secp256r1;

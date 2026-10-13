@@ -27,10 +27,7 @@ fn remove_owner_resets_owner_to_default() {
         ctx.phygital_token_owner(phygital_token.phygital_token),
         Pubkey::default()
     );
-    assert_eq!(
-        ctx.phygital_token_lock_state(phygital_token.phygital_token),
-        false
-    );
+    assert!(!ctx.phygital_token_lock_state(phygital_token.phygital_token));
 }
 
 #[test]

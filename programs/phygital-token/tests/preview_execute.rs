@@ -14,12 +14,12 @@ fn preview_reports_whether_a_tap_would_pass() {
     let destination = Pubkey::new_unique();
     let ix = system_instruction::transfer(&wallet, &destination, LAMPORTS_PER_SOL);
 
-    let result = ctx.send_preview_execute(token.phygital_token, &[ix.clone()], None);
+    let result = ctx.send_preview_execute(token.phygital_token, std::slice::from_ref(&ix), None);
     assert_phygital_token_program_error(result, "AccountNotInitialized");
 
     ctx.send_update_policy(token.phygital_token, &owner, vec![])
         .unwrap();
-    let result = ctx.send_preview_execute(token.phygital_token, &[ix.clone()], None);
+    let result = ctx.send_preview_execute(token.phygital_token, std::slice::from_ref(&ix), None);
     assert_phygital_token_program_error(result, "ProgramNotAllowed");
 
     ctx.send_update_policy(
@@ -31,7 +31,7 @@ fn preview_reports_whether_a_tap_would_pass() {
         ],
     )
     .unwrap();
-    let result = ctx.send_preview_execute(token.phygital_token, &[ix.clone()], None);
+    let result = ctx.send_preview_execute(token.phygital_token, std::slice::from_ref(&ix), None);
     assert_phygital_token_program_error(result, "PreviewPassed");
     assert_eq!(ctx.lamports(&destination), 0);
 }
@@ -56,13 +56,13 @@ fn preview_checks_the_requesting_origin_against_allowed_origins() {
 
     let result = ctx.send_preview_execute(
         token.phygital_token,
-        &[ix.clone()],
+        std::slice::from_ref(&ix),
         Some("https://evil.example"),
     );
     assert_phygital_token_program_error(result, "OriginMismatch");
     let result = ctx.send_preview_execute(
         token.phygital_token,
-        &[ix.clone()],
+        std::slice::from_ref(&ix),
         Some("https://app.example"),
     );
     assert_phygital_token_program_error(result, "PreviewPassed");

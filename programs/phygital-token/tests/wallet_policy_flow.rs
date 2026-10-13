@@ -17,6 +17,7 @@ fn setup(ctx: &mut TestContext, actions: Vec<PolicyAction>) -> (MintedPhygitalTo
     (token, wallet)
 }
 
+#[allow(clippy::result_large_err)]
 fn send_sol(
     ctx: &mut TestContext,
     token: &MintedPhygitalToken,

@@ -1,0 +1,6 @@
+# Host toolchain for tests, clippy and rustfmt. On-chain builds use the
+# platform-tools toolchain bundled with the Solana CLI pinned in Anchor.toml.
+[toolchain]
+channel = "1.98.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

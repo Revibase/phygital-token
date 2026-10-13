@@ -1,0 +1,49 @@
+# cargo-deny: dependency licenses, security advisories and sources.
+# Run with `cargo deny check`.
+
+[graph]
+all-features = true
+
+[advisories]
+# RustSec advisories. Every ignore must name the advisory and say why it does
+# not affect this workspace.
+ignore = [
+    # Unmaintained, not vulnerable. Pulled in by anchor-lang and litesvm; no
+    # maintained drop-in exists upstream.
+    { id = "RUSTSEC-2025-0141", reason = "bincode: unmaintained notice only; transitive via anchor-lang/litesvm" },
+    # The advisories below reach the workspace only through litesvm, the
+    # dev-dependency that runs the integration tests. None of them is compiled
+    # into the on-chain program or the published client crate.
+    { id = "RUSTSEC-2021-0139", reason = "ansi_term: unmaintained; litesvm dev-dependency only" },
+    { id = "RUSTSEC-2022-0093", reason = "ed25519-dalek 1.x: litesvm dev-dependency only, never signs with attacker-chosen public keys" },
+    { id = "RUSTSEC-2024-0344", reason = "curve25519-dalek 3.x: litesvm dev-dependency only, timing side channels irrelevant in local tests" },
+    { id = "RUSTSEC-2024-0388", reason = "derivative: unmaintained; litesvm dev-dependency only" },
+    { id = "RUSTSEC-2024-0436", reason = "paste: unmaintained; litesvm dev-dependency only" },
+    { id = "RUSTSEC-2025-0161", reason = "libsecp256k1: unmaintained; litesvm dev-dependency only" },
+]
+
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "CC0-1.0",
+    "MPL-2.0",
+    "CDLA-Permissive-2.0",
+]
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

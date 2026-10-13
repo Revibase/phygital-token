@@ -1,4 +1,6 @@
 [toolchain]
+anchor_version = "1.0.2"
+solana_version = "3.1.10"
 package_manager = "pnpm"
 
 [features]
@@ -14,5 +16,3 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "cargo test"
-
-[hooks]

@@ -132,8 +132,10 @@ pub(crate) fn validate_permissions(permissions: &[ProgramPermission]) -> Result<
             require!(!rule.selector.is_empty(), PhygitalError::InvalidPolicyArgs);
             // One rule per instruction: rules match by selector prefix, so no selector may prefix another.
             require!(
-                !rules[..j].iter().any(|other| other.selector.starts_with(&rule.selector)
-                    || rule.selector.starts_with(&other.selector)),
+                !rules[..j]
+                    .iter()
+                    .any(|other| other.selector.starts_with(&rule.selector)
+                        || rule.selector.starts_with(&other.selector)),
                 PhygitalError::InvalidPolicyArgs
             );
             if let Some(length) = rule.data_length {
@@ -190,7 +192,7 @@ impl<'a> Reader<'a> {
     }
 
     fn array<const N: usize>(&mut self) -> Result<[u8; N]> {
-        Ok(self.take(N)?.try_into().unwrap())
+        <[u8; N]>::try_from(self.take(N)?).map_err(|_| error!(ErrorCode::AccountDidNotDeserialize))
     }
 
     pub(crate) fn u8(&mut self) -> Result<u8> {
@@ -503,6 +505,8 @@ mod tests {
         assert!(validate_permissions(&[entry(id), entry(Pubkey::new_unique())]).is_ok());
         assert!(validate_permissions(&[entry(id), entry(id)]).is_err());
         // The system program's all-zero id is an ordinary entry.
-        assert!(validate_permissions(&[entry(Pubkey::default()), entry(Pubkey::default())]).is_err());
+        assert!(
+            validate_permissions(&[entry(Pubkey::default()), entry(Pubkey::default())]).is_err()
+        );
     }
 }

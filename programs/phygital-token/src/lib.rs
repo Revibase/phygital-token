@@ -1,3 +1,17 @@
+// On-chain code must not panic: every failure is a typed `PhygitalError`.
+// Unit tests are exempted in clippy.toml; integration tests are separate crates.
+#![deny(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::todo,
+    clippy::unimplemented,
+    clippy::dbg_macro,
+    clippy::undocumented_unsafe_blocks
+)]
+// Anchor's `#[program]` expansion contains diverging sub-expressions.
+#![allow(clippy::diverging_sub_expression)]
+
 pub mod constants;
 pub mod error;
 pub mod instructions;

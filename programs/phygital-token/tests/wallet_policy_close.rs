@@ -154,7 +154,7 @@ fn bearer_relink_returns_the_previous_policy_rent_to_the_wallet() {
 
     // The new holder starts blocked, but owns the wallet.
     let ix = system_instruction::transfer(&wallet, &new_holder.pubkey(), LAMPORTS_PER_SOL);
-    let result = ctx.send_execute_with_accessory(&token, &[ix.clone()]);
+    let result = ctx.send_execute_with_accessory(&token, std::slice::from_ref(&ix));
     assert_phygital_token_program_error(result, "AccountNotInitialized");
     ctx.send_execute_with_owner(token.phygital_token, &new_holder, &[ix])
         .expect("new owner executes");

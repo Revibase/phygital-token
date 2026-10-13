@@ -9,6 +9,9 @@
 //! Omit them to skip those checks. When `expected_origins` is set, the signed
 //! origin must match one listed origin.
 
+// Generated code is not held to the workspace lints: Codama's instruction builders
+// `expect()` required fields by design, and the renderer emits a few unused items.
+#[allow(clippy::all, clippy::unwrap_used, clippy::expect_used, unused)]
 pub mod generated;
 
 pub use generated::accounts::*;

@@ -29,13 +29,11 @@ pub enum PhygitalError {
     #[msg("Client data hash mismatch")]
     ClientDataHashMismatch,
 
-
     #[msg("Invalid sysvar data format")]
     InvalidSysvarDataFormat,
 
     #[msg("The owner needs to unlock the phygital token to enable transfer.")]
     TokenIsCurrentlyLocked,
-
 
     #[msg("Unable to parse client data JSON.")]
     UnableToParseClientData,

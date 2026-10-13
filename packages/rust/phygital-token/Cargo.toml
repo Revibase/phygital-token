@@ -36,5 +36,5 @@ solana-cpi = "3.1.0"
 solana-account = { version = "3", optional = true }
 solana-rpc-client = { version = "3", optional = true }
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+[lints]
+workspace = true
