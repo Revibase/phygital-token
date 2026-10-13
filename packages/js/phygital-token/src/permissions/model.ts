@@ -154,9 +154,17 @@ export function isValidOrigin(origin: string): boolean {
   );
 }
 
-/** Hex string to bytes. Assumes well-formed input (validate first; see `parsePermissionSet`). */
-export const hexToBytes = (hex: string) =>
-  Uint8Array.from(hex.match(/../g) ?? [], (b) => parseInt(b, 16));
+/**
+ * Hex string to bytes. Throws `PermissionFormatError` on odd length or any
+ * non-hex character, rather than silently producing different bytes (which
+ * `ruleToArgs` would otherwise write into an on-chain rule).
+ */
+export const hexToBytes = (hex: string): Uint8Array<ArrayBuffer> => {
+  if (hex.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(hex)) {
+    throw new PermissionFormatError("hex", "expected an even number of hex digits");
+  }
+  return Uint8Array.from(hex.match(/../g) ?? [], (b) => parseInt(b, 16));
+};
 
 /** Bytes to lowercase hex. */
 export const bytesToHex = (bytes: ArrayLike<number>) =>

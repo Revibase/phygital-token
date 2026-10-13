@@ -4,6 +4,7 @@ import {
   isValidOrigin,
   parsePermissionSet,
   parseRule,
+  hexToBytes,
   PermissionFormatError,
   ruleFromProgram,
   ruleToArgs,
@@ -325,5 +326,16 @@ describe("permission request links", () => {
     await expect(
       decodePermissionRequest("#r=" + "A".repeat(MAX_REQUEST_BYTES * 2)),
     ).rejects.toThrow(/too large/);
+  });
+});
+
+describe("hexToBytes", () => {
+  it("decodes even-length hex", () => {
+    expect(hexToBytes("00ff10")).toEqual(Uint8Array.from([0, 255, 16]));
+    expect(hexToBytes("")).toEqual(new Uint8Array());
+  });
+
+  it.each(["abc", "zz", "0x00", "12 34"])("rejects %j instead of producing other bytes", (hex) => {
+    expect(() => hexToBytes(hex)).toThrow(PermissionFormatError);
   });
 });
