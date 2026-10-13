@@ -1,0 +1,25 @@
+name: Verifiable build
+
+# Reproducible program build in solana-verify's pinned Docker image. Compare the
+# printed hash with `solana-verify get-program-hash <PROGRAM_ID>` for a deployed
+# program. See docs/audit/BUILD.md.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["program-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: solana-developers/github-actions/setup-all@e6ed2eb93c55eca911dbc711fb08683b42926a28 # v0.2.15
+        with:
+          solana_version: "3.1.10"
+          verify_version: "0.5.2"
+      - run: solana-verify build --library-name phygital_token
+      - name: Program hash
+        run: solana-verify get-executable-hash target/deploy/phygital_token.so | tee -a "$GITHUB_STEP_SUMMARY"
