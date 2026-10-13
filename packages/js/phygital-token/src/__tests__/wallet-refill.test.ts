@@ -86,7 +86,7 @@ function mockRpc(s: Scenario) {
     {
       get:
         (_, method: string) =>
-        (...args: unknown[]) => ({ send: async () => methods[method](...args) }),
+        (...args: unknown[]) => ({ send: async () => methods[method]!(...args) }),
     },
   ) as Rpc<SolanaRpcApi>;
   return { rpc, simulated };
@@ -127,8 +127,8 @@ function transferFromWallet() {
             {
               ...transfer,
               accounts: [
-                { ...transfer.accounts![0], signer: createNoopSigner(WALLET) },
-                transfer.accounts![1],
+                { ...transfer.accounts![0]!, signer: createNoopSigner(WALLET) },
+                transfer.accounts![1]!,
               ],
             },
           ],

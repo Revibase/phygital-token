@@ -62,7 +62,7 @@ function pickPriorityFeeMicroLamports(
   }
 
   const index = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.5));
-  return sorted[index];
+  return sorted[index]!;
 }
 
 export function withMargin(unitsConsumed: number): number {

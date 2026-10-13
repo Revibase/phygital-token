@@ -154,7 +154,7 @@ function getSecp256r1VerifyInstructionDataDecoder(): Decoder<Secp256r1VerifyInst
         );
         offset += SIGNATURE_SERIALIZED_SIZE;
 
-        const messageSize = offsets[i].messageDataSize;
+        const messageSize = offsets[i]!.messageDataSize;
         const message = fixDecoderSize(getBytesDecoder(), messageSize).decode(bytes, offset);
         offset += messageSize;
 
@@ -195,7 +195,7 @@ export function getSecp256r1VerifyInstruction<
   const offsets: Secp256r1SignatureOffsetsDataArgs[] = [];
 
   for (let i = 0; i < numSignatures; i += 1) {
-    const { message } = entries[i];
+    const { message } = entries[i]!;
     const publicKeyOffset = currentOffset;
     const signatureOffset = publicKeyOffset + COMPRESSED_PUBKEY_SERIALIZED_SIZE;
     const messageDataOffset = signatureOffset + SIGNATURE_SERIALIZED_SIZE;

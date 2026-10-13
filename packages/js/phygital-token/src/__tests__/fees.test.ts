@@ -106,7 +106,7 @@ describe("fee service client", () => {
       );
     const [signer] = await createSponsorFeePayers({ fetch: fetchMock });
     await expect(
-      signer.signTransactions([
+      signer!.signTransactions([
         { messageBytes: new Uint8Array(1), signatures: { [POOL_A]: null } } as never,
       ]),
     ).rejects.toBeInstanceOf(PolicyDeniedError);

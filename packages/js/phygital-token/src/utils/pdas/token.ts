@@ -53,7 +53,7 @@ export async function recoverSecp256r1PublicKeyWithPhygitalToken(
   }
 
   if (candidates.length === 1) {
-    return candidates[0];
+    return candidates[0]!;
   }
 
   const tokenAccounts = await fetchAllMaybePhygitalToken(
@@ -63,7 +63,7 @@ export async function recoverSecp256r1PublicKeyWithPhygitalToken(
   const matches = tokenAccounts.filter((account) => account.exists);
 
   if (matches.length === 1) {
-    return new Uint8Array(matches[0].data.publicKey[0]);
+    return new Uint8Array(matches[0]!.data.publicKey[0]);
   }
 
   if (matches.length === 0) {
@@ -101,7 +101,7 @@ export function recoverSecp256r1PublicKeyWithAllowList(
   );
 
   if (matches.length === 1) {
-    return matches[0];
+    return matches[0]!;
   }
 
   if (matches.length === 0) {

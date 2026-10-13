@@ -58,7 +58,7 @@ export function compileWalletInstructions(
     if (existing !== undefined) {
       remainingAccounts[existing] = {
         address: meta.address,
-        role: mergeRoles(remainingAccounts[existing].role, role),
+        role: mergeRoles(remainingAccounts[existing]!.role, role),
       };
       return existing;
     }

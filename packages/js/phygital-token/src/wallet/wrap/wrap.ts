@@ -101,8 +101,7 @@ async function prepareWrappedWalletTransaction(input: {
   const bodyInstructions: Instruction[] = [];
   const memoInstructions: Instruction[] = [];
 
-  for (let i = 0; i < instructions.length; i++) {
-    const instruction = instructions[i];
+  for (const instruction of instructions) {
     if (instruction.programAddress === COMPUTE_BUDGET_PROGRAM_ADDRESS) continue;
     if (instruction.programAddress === MEMO_PROGRAM_ADDRESS) {
       memoInstructions.push(instruction);

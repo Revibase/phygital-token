@@ -68,7 +68,7 @@ export async function fetchPhygitalTokenByIdentifier(
     return null;
   }
 
-  return getPhygitalTokenDecoder().decode(getBase64Encoder().encode(data[0].account.data[0]));
+  return getPhygitalTokenDecoder().decode(getBase64Encoder().encode(data[0]!.account.data[0]));
 }
 
 /**
@@ -136,5 +136,5 @@ export async function fetchPhygitalTokenByMint(
     return null;
   }
 
-  return getPhygitalTokenDecoder().decode(getBase64Encoder().encode(data[0].account.data[0]));
+  return getPhygitalTokenDecoder().decode(getBase64Encoder().encode(data[0]!.account.data[0]));
 }

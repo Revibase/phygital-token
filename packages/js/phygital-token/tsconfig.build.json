@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "jsx": "preserve",
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "removeComments": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -12,10 +12,8 @@
     "noImplicitReturns": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "experimentalDecorators": true,
     "declaration": true,
     "sourceMap": true,
-    "allowJs": true,
     "verbatimModuleSyntax": true,
     "target": "ES2022",
     "module": "NodeNext",

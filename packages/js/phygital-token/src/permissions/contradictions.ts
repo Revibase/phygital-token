@@ -9,7 +9,7 @@ type Located = { check: DataCheckJson; path: string };
 /** Whether some value passes every check on one number field. */
 function canAllHold(checks: NonNullable<DataCheckJson["unsigned"]>[]): boolean {
   let lo = 0n;
-  let hi = (1n << BigInt(WIDTH_BYTES[checks[0].width] * 8)) - 1n;
+  let hi = (1n << BigInt(WIDTH_BYTES[checks[0]!.width] * 8)) - 1n;
   const excluded = new Set<bigint>();
   for (const { is, value } of checks) {
     const v = BigInt(value);

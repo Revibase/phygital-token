@@ -87,8 +87,8 @@ export function parseSolTransfer(
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
   if (view.getUint32(0, true) !== TRANSFER_SOL_DISCRIMINATOR) return null;
   return {
-    from: accounts[0].address,
-    to: accounts[1].address,
+    from: accounts[0]!.address,
+    to: accounts[1]!.address,
     lamports: view.getBigUint64(4, true),
   };
 }
