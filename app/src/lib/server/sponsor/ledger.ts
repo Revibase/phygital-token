@@ -125,3 +125,27 @@ export async function reserve(
 	const [, existing] = await db.batch<{ phygital_token: string }>([insert, read]);
 	return existing?.results[0]?.phygital_token === charge.accessory;
 }
+
+/** Whether a charge for this transaction signature is already recorded. */
+export async function isRecorded(db: D1Database, signature: string): Promise<boolean> {
+	const row = await db
+		.prepare('SELECT 1 AS found FROM revibase_sponsor_txs WHERE signature = ?')
+		.bind(signature)
+		.first<{ found: number }>();
+	return row !== null;
+}
+
+/**
+ * Drops pending charges this request recorded but never returned a signature
+ * for: without the fee payer's signature those transactions cannot land.
+ */
+export async function releasePending(db: D1Database, signatures: readonly string[]): Promise<void> {
+	if (signatures.length === 0) return;
+	await db.batch(
+		signatures.map((signature) =>
+			db
+				.prepare("DELETE FROM revibase_sponsor_txs WHERE signature = ? AND status = 'pending'")
+				.bind(signature)
+		)
+	);
+}

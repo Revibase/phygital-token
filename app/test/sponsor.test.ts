@@ -354,6 +354,56 @@ describe('signSponsored', () => {
 		);
 	});
 
+	it('charges nothing for a batch that is refused part-way', async () => {
+		const db = createTestD1([MIGRATIONS]);
+		// Room for one 20_000 transaction, not two.
+		await reserve(db, 5_000_000n, {
+			signature: sig(),
+			accessory: TOKEN,
+			feePayer: 'x',
+			fee: 4_970_000n,
+			cost: 4_970_000n,
+			refill: 0n,
+			blockhash: BLOCKHASH
+		});
+		const before = await prepaidBalance(db, TOKEN, 5_000_000n);
+		const first = Buffer.from(await build([await removeOwner()], { limit: 200_000 })).toString(
+			'base64'
+		);
+		const second = Buffer.from(await build([await removeOwner()], { limit: 200_001 })).toString(
+			'base64'
+		);
+		const err = await signSponsored(env(db), rpc(), [first, second]).catch((e: unknown) => e);
+		expect((err as SponsorError).status).toBe(402);
+		expect(await prepaidBalance(db, TOKEN, 5_000_000n)).toBe(before);
+	});
+
+	it('keeps an earlier charge when a re-sent transaction is part of a refused batch', async () => {
+		const db = createTestD1([MIGRATIONS]);
+		const earlier = Buffer.from(await build([await removeOwner()], { limit: 200_000 })).toString(
+			'base64'
+		);
+		await signSponsored(env(db), rpc(), [earlier]);
+		const charged = await prepaidBalance(db, TOKEN, 5_000_000n);
+		await reserve(db, 5_000_000n, {
+			signature: sig(),
+			accessory: TOKEN,
+			feePayer: 'x',
+			fee: charged - 10_000n,
+			cost: charged - 10_000n,
+			refill: 0n,
+			blockhash: BLOCKHASH
+		});
+		const after = await prepaidBalance(db, TOKEN, 5_000_000n);
+		const fresh = Buffer.from(await build([await removeOwner()], { limit: 200_001 })).toString(
+			'base64'
+		);
+		const err = await signSponsored(env(db), rpc(), [earlier, fresh]).catch((e: unknown) => e);
+		expect((err as SponsorError).status).toBe(402);
+		// The earlier signature was already handed out, so its charge stays.
+		expect(await prepaidBalance(db, TOKEN, 5_000_000n)).toBe(after);
+	});
+
 	it('refuses a transaction that would cost the pool more than its fee', async () => {
 		const db = createTestD1([MIGRATIONS]);
 		const encoded = Buffer.from(await build([await removeOwner()])).toString('base64');

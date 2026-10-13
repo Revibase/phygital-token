@@ -19,7 +19,7 @@ import { PHYGITAL_TOKEN_DISCRIMINATOR, PHYGITAL_TOKEN_PROGRAM_ADDRESS } from 'ph
 import { bytesEqual, bytesToBase64 } from '$lib/shared/encoding';
 import { getEnv, getRpc, type ServerEnv } from '../env';
 import { inspectSponsored, SponsorError, type Inspected } from './inspect';
-import { prepaidBalance, reserve, settlePending } from './ledger';
+import { isRecorded, prepaidBalance, releasePending, reserve, settlePending } from './ledger';
 import { offeredFeePayers, signWithPoolKey, sponsorKeys } from './pool';
 
 const MAX_TRANSACTIONS = 4;
@@ -149,38 +149,49 @@ export async function signSponsored(
 		)
 	);
 	const signatures: string[] = [];
-	for (const { wire, tx } of inspected) {
-		const [, rent] = await Promise.all([
-			assertRealAccessory(rpc, tx.accessory),
-			simulate(rpc, wire, tx)
-		]);
-		const cost = tx.fee + rent;
-		const signature = await signWithPoolKey(keys.get(tx.feePayer)!, tx.messageBytes);
-		const id = getBase58Decoder().decode(signature);
+	// Charges recorded by this request. If a later transaction in the batch is
+	// refused, these are released: their signatures are never returned, so the
+	// transactions cannot land and must not hold the accessory's prepaid fees.
+	const recordedHere: string[] = [];
+	try {
+		for (const { wire, tx } of inspected) {
+			const [, rent] = await Promise.all([
+				assertRealAccessory(rpc, tx.accessory),
+				simulate(rpc, wire, tx)
+			]);
+			const cost = tx.fee + rent;
+			const signature = await signWithPoolKey(keys.get(tx.feePayer)!, tx.messageBytes);
+			const id = getBase58Decoder().decode(signature);
 
-		const charged = await reserve(env.db, env.sponsor.prepaidLamports, {
-			signature: id,
-			accessory: tx.accessory,
-			feePayer: tx.feePayer,
-			fee: tx.fee,
-			cost,
-			refill: tx.refill,
-			blockhash: tx.blockhash
-		});
-		if (!charged) {
-			const balance = await prepaidBalance(env.db, tx.accessory, env.sponsor.prepaidLamports);
-			const needed = env.sponsor.prepaidLamports - balance + cost;
-			throw new SponsorError(
-				402,
-				'refill_required',
-				"This accessory's prepaid network fees need a refill from its wallet",
-				{
-					balanceLamports: String(balance),
-					neededLamports: String(needed > cost - balance ? needed : cost - balance)
-				}
-			);
+			const alreadyRecorded = await isRecorded(env.db, id);
+			const charged = await reserve(env.db, env.sponsor.prepaidLamports, {
+				signature: id,
+				accessory: tx.accessory,
+				feePayer: tx.feePayer,
+				fee: tx.fee,
+				cost,
+				refill: tx.refill,
+				blockhash: tx.blockhash
+			});
+			if (!charged) {
+				const balance = await prepaidBalance(env.db, tx.accessory, env.sponsor.prepaidLamports);
+				const needed = env.sponsor.prepaidLamports - balance + cost;
+				throw new SponsorError(
+					402,
+					'refill_required',
+					"This accessory's prepaid network fees need a refill from its wallet",
+					{
+						balanceLamports: String(balance),
+						neededLamports: String(needed > cost - balance ? needed : cost - balance)
+					}
+				);
+			}
+			if (!alreadyRecorded) recordedHere.push(id);
+			signatures.push(bytesToBase64(new Uint8Array(signature)));
 		}
-		signatures.push(bytesToBase64(new Uint8Array(signature)));
+	} catch (err) {
+		await releasePending(env.db, recordedHere);
+		throw err;
 	}
 	return { signatures };
 }
