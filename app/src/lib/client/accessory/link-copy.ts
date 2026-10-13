@@ -9,6 +9,12 @@ export type LinkCopy = {
 	choose: { title: string; body: string };
 	confirm: { title: string; body: string };
 	action: string;
+	checkAccessory: string;
+	finishInWallet: string;
+	finishOnComputer: string;
+	progress: (wallet: string) => string;
+	cancelled: string;
+	stopped: string;
 	done: { title: string; body: (yours: boolean, wallet: string) => string };
 };
 
@@ -20,6 +26,12 @@ const COMMON: LinkCopy = {
 	},
 	confirm: { title: 'Claim with this wallet?', body: '' },
 	action: 'Claim accessory',
+	checkAccessory: 'Is this the right accessory?',
+	finishInWallet: 'Approve the claim there, then come back.',
+	finishOnComputer: 'Approve the claim in your wallet there.',
+	progress: (wallet) => `Claiming with ${wallet}…`,
+	cancelled: 'Claim cancelled',
+	stopped: 'Claim stopped',
 	done: {
 		title: 'Accessory claimed',
 		body: (yours, wallet) =>
@@ -31,7 +43,7 @@ const BEARER: LinkCopy = {
 	...COMMON,
 	confirm: {
 		title: 'Claim with this wallet?',
-		body: 'Anyone holding the accessory can authenticate with a tap and claim it while unlocked. Assets stay in the accessory wallet; the new owner gains control of them. Claiming does not transfer its bound NFT.'
+		body: 'Anyone holding the accessory can authenticate with a tap and claim it while unlocked. Claiming does not transfer its bound NFT.'
 	}
 };
 const CONTROLLED: LinkCopy = {

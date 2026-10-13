@@ -3,6 +3,7 @@
 	import { describeError, type FriendlyError } from '$lib/client/link/messages';
 	import { ApiClientError } from '$lib/client/api';
 	import { rememberRecentWallet } from '$lib/client/memory';
+	import { isLikelyWalletBrowser } from '$lib/client/capability';
 	import { shortAddress } from '$lib/shared/encoding';
 	import { Button } from '$lib/components/ui/button';
 	import ResponsiveSheet from './ResponsiveSheet.svelte';
@@ -20,6 +21,7 @@
 		disabled = false,
 		description = 'Choose a wallet to continue.',
 		requireAddress = null,
+		browseTarget = null,
 		afterConnect,
 		onconnected
 	}: {
@@ -28,6 +30,8 @@
 		disabled?: boolean;
 		description?: string;
 		requireAddress?: string | null;
+		/** On phones without a detected wallet, offer to open this page of ours in a wallet app. */
+		browseTarget?: string | null;
 		afterConnect?: () => Promise<void>;
 		onconnected?: () => void;
 	} = $props();
@@ -60,7 +64,7 @@
 				if (!dropped) await walletStore.disconnect().catch(() => {});
 				throw err;
 			}
-			rememberRecentWallet(walletStore.walletName);
+			rememberRecentWallet(walletStore.walletName, isLikelyWalletBrowser() ? 'wallet' : 'browser');
 			open = false;
 			onconnected?.();
 		} catch (err) {
@@ -81,6 +85,7 @@
 			options={walletStore.options}
 			{connecting}
 			onpick={pick}
+			{browseTarget}
 		/>
 	</div>
 </ResponsiveSheet>

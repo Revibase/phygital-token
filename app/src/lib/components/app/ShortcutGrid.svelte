@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Section from './Section.svelte';
+	import type { ShortcutLaunch } from '$lib/client/shortcuts';
 	import {
 		shortcutDestination,
 		type Shortcut,
@@ -11,8 +12,15 @@
 	let payment = $state<{ href: string; label: string } | null>(null);
 	let paymentOpen = $state(false);
 
-	/** Project shortcuts: `solana:` requests open the Solana Pay sheet; everything else opens in a browser tab. */
-	let { label, items }: { label: string; items: Shortcut[] } = $props();
+	type Item = { s: Shortcut; launch: ShortcutLaunch };
+
+	/**
+	 * Project shortcuts: `solana:` requests open the Solana Pay sheet; the rest
+	 * open as `launch` says (a plain link, a wallet app's browser), or ask which
+	 * wallet app to use (`onpick`).
+	 */
+	let { label, items, onpick }: { label: string; items: Item[]; onpick: (item: Item) => void } =
+		$props();
 
 	const tile =
 		'group flex w-full flex-col items-center gap-1.5 rounded-[14px] px-1 pt-1 pb-0.5 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring/60';
@@ -47,7 +55,8 @@
 
 <Section {label}>
 	<ul class="grid grid-cols-4 gap-x-2 gap-y-4">
-		{#each items as s (s.label + s.href)}
+		{#each items as item (item.s.label + item.s.href)}
+			{@const { s, launch } = item}
 			{@const title = `${s.label} · ${shortcutDestination(s)}`}
 			<li>
 				{#snippet body()}
@@ -81,9 +90,17 @@
 							paymentOpen = true;
 						}}>{@render body()}</button
 					>
+				{:else if launch.kind === 'link'}
+					<a
+						href={launch.href}
+						target={launch.newTab ? '_blank' : undefined}
+						rel="noopener noreferrer"
+						class={tile}
+						{title}>{@render body()}</a
+					>
 				{:else}
-					<a href={s.href} target="_blank" rel="noopener noreferrer" class={tile} {title}
-						>{@render body()}</a
+					<button type="button" class={tile} {title} onclick={() => onpick(item)}
+						>{@render body()}</button
 					>
 				{/if}
 			</li>

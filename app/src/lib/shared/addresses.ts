@@ -1,4 +1,4 @@
-/** Program and sysvar addresses the app's transaction builders and the fee service share. */
+/** Program and sysvar addresses the link transaction builder and validator use. */
 import { address } from '@solana/kit';
 
 export const SECP256R1_PROGRAM_ADDRESS = address('Secp256r1SigVerify1111111111111111111111111');

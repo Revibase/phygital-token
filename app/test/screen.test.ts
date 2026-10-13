@@ -144,23 +144,19 @@ describe('trading a card does not change its link rules', () => {
 
 describe('accessory management actions', () => {
 	it.each(['bearer', 'controlled'] as const)(
-		'%s unclaimed keeps wallet discovery without ownership controls',
+		'%s unclaimed offers no ownership controls',
 		(kind) => {
 			expect(managementActions(accessory(kind, null), false)).toEqual({
 				release: false,
 				changeOwner: false,
-				connectOwner: false,
-				wallet: true,
-				hasActions: true
+				hasActions: false
 			});
 		}
 	);
 	it('bearer owner can change or release; a locked bearer owner can only release', () => {
 		expect(managementActions(accessory('bearer', W), true)).toMatchObject({
 			release: true,
-			changeOwner: true,
-			wallet: true,
-			connectOwner: false
+			changeOwner: true
 		});
 		expect(managementActions(accessory('bearer', W, true), true)).toMatchObject({
 			release: true,
@@ -168,41 +164,26 @@ describe('accessory management actions', () => {
 		});
 	});
 	it.each(['bearer', 'controlled'] as const)(
-		'%s visitors must connect the owner before seeing owner actions',
+		'%s visitors can start a release (it needs the owner wallet) but not change owner',
 		(kind) => {
 			expect(managementActions(accessory(kind, W), false)).toMatchObject({
-				release: false,
-				changeOwner: false,
-				connectOwner: true,
-				wallet: true
+				release: true,
+				changeOwner: false
 			});
 		}
 	);
 	it('controlled owner releases before changing owner', () => {
 		expect(managementActions(accessory('controlled', W), true)).toMatchObject({
 			release: true,
-			changeOwner: false,
-			connectOwner: false
+			changeOwner: false
 		});
 	});
-	it.each([false, true])(
-		'permanent owner connection=%s keeps wallet access without ownership changes',
-		(owned) => {
-			expect(managementActions(accessory('permanent', W), owned)).toEqual({
-				release: false,
-				changeOwner: false,
-				connectOwner: false,
-				wallet: true,
-				hasActions: true
-			});
-		}
-	);
-	it('keeps the wallet entry available for owners and visitors', () => {
-		for (const owned of [false, true])
-			expect(managementActions(accessory('permanent', W), owned)).toMatchObject({
-				wallet: true,
-				hasActions: true
-			});
+	it.each([false, true])('permanent owner connection=%s offers no ownership changes', (owned) => {
+		expect(managementActions(accessory('permanent', W), owned)).toEqual({
+			release: false,
+			changeOwner: false,
+			hasActions: false
+		});
 	});
 	it('does not offer actions for unavailable or unknown records', () => {
 		expect(

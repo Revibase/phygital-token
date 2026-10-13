@@ -26,6 +26,10 @@ export function base64UrlToBytes(base64url: string): Uint8Array<ArrayBuffer> {
 	return base64ToBytes(padded + '='.repeat(padLen));
 }
 
+export function bytesToHex(bytes: Uint8Array): string {
+	return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
 	if (a.length !== b.length) return false;
 	let diff = 0;

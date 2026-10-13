@@ -1,77 +1,50 @@
 /**
  * Local end-to-end check of the whole linking ceremony against a real program.
  *
- *   solana-test-validator --reset --bpf-program DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ target/deploy/phygital_token.so
+ *   solana-test-validator --reset --bpf-program phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz target/deploy/phygital_token.so
  *   (app/.dev.vars: SOLANA_RPC_URL=http://127.0.0.1:8899, SOLANA_CLUSTER=localnet)
  *   pnpm --filter revibase dev
  *   pnpm --filter revibase e2e:local
  *
  * A software "accessory" plays both chip roles: the NDEF key that signs
  * dynamic tap URLs and the FIDO key that answers WebAuthn. Browsers are
- * simulated with separate cookie jars, talking to the real SvelteKit routes;
- * links run the way the link page does: tap over a fresh challenge, then the
- * wallet signs and sends.
+ * simulated with separate cookie jars (phone Safari, wallet in-app browser,
+ * desktop), talking to the real SvelteKit routes.
  */
-import {
-	address,
-	airdropFactory,
-	createNoopSigner,
-	createSolanaRpcSubscriptions,
-	generateKeyPairSigner,
-	lamports,
-	type Address,
-	type KeyPairSigner
-} from '@solana/kit';
-import { getTransferSolInstruction } from '@solana-program/system';
+import { address, generateKeyPairSigner } from '@solana/kit';
 import {
 	fetchPhygitalToken,
 	findAdminConfigPda,
 	findPhygitalTokenPda,
-	buildExecuteWithOwnerInstruction,
-	findPolicyPda,
-	findWalletPda,
 	getCreateConfigInstructionAsync,
 	getInitializeInstructionAsync,
-	getPolicyCloseAccounts,
 	getRemoveOwnerInstruction,
 	getSetIssuerInstructionAsync,
 	isPhygitalTokenLocked,
 	PhygitalTokenType
 } from 'phygital-token-sdk';
 
-import {
-	DAY_SECONDS,
-	emptyDraft,
-	policyDiff,
-	SOL,
-	tapPaymentsPreset
-} from '../src/lib/shared/policy-draft';
-import {
-	buildPolicyInstruction,
-	buildRefillInstruction
-} from '../src/lib/shared/wallet-instructions';
-import {
-	APP,
-	Browser,
-	check,
-	failures,
-	fakeAccessory,
-	funded,
-	link,
-	linkSponsored,
-	prepaid,
-	rpc,
-	send,
-	sendSponsored,
-	SPONSOR
-} from './lib';
+import type { LinkStatusView, TransferChallenge } from '../src/lib/shared/types';
+import { APP, Browser, check, failures, fakeAccessory, finish, funded, rpc, send } from './lib';
 
-/** Whether the app opens its link page for the accessory this browser just tapped. */
-async function linkPageOpens(acc: ReturnType<typeof fakeAccessory>, label: string) {
+async function linkViaHandoff(
+	acc: ReturnType<typeof fakeAccessory>,
+	wallet: Awaited<ReturnType<typeof funded>>,
+	label: string
+) {
 	const phone = new Browser(`${label}-phone`);
+	const walletBrowser = new Browser(`${label}-wallet`);
 	await phone.open(acc.tapUrl());
-	const page = await phone.open(`${APP}/accessory/link`);
-	return page.status === 200;
+	const start = await phone.post<LinkStatusView>('/api/link');
+	check(`${label}: ceremony started`, start.status === 200, start.body);
+	const ch = await phone.post<TransferChallenge>(`/api/link/${start.body.id}/challenge`);
+	const res = await phone.post<{ handoffUrl: string }>(`/api/link/${start.body.id}/assertion`, {
+		response: acc.webauthn(ch.body.challenge)
+	});
+	await walletBrowser.post('/api/handoff/claim', {
+		h: new URL(res.body.handoffUrl).hash.replace('#h=', '')
+	});
+	await finish(walletBrowser, start.body.id, wallet);
 }
 
 async function main() {
@@ -103,8 +76,9 @@ async function main() {
 	]);
 	console.log(`• token ${pda} initialized (Bearer, unlinked)`);
 
-	console.log('\nPhone tap → approve with the accessory → approve in a wallet');
+	console.log('\nPhone tap → handoff to wallet app');
 	const safari = new Browser('safari');
+	const walletBrowser = new Browser('wallet');
 	const intruder = new Browser('intruder');
 
 	const url = acc.tapUrl();
@@ -135,17 +109,63 @@ async function main() {
 		forged
 	);
 
-	const linkPage = await safari.open(`${APP}/accessory/link`);
-	check('The tapping browser can open the link page', linkPage.status === 200, linkPage);
-	const noTap = await intruder.open(`${APP}/accessory/link`);
+	const start = await safari.post<LinkStatusView>('/api/link');
 	check(
-		'A browser without a fresh tap is sent to tap again',
-		noTap.location === '/tap/expired',
-		noTap
+		'Link ceremony created',
+		start.status === 200 && start.body.state === 'created',
+		start.body
+	);
+	const linkId = start.body.id;
+
+	const stolen = await intruder.post(`/api/link/${linkId}/challenge`);
+	check('Another browser cannot drive this ceremony', stolen.status === 403, stolen);
+
+	const ch = await safari.post<TransferChallenge>(`/api/link/${linkId}/challenge`);
+	check(
+		'Slot-bound challenge issued via SDK beginTransfer',
+		ch.status === 200 && ch.body.challenge.length === 43,
+		ch.body
+	);
+
+	const accepted = await safari.post<{ status: LinkStatusView; handoffUrl: string }>(
+		`/api/link/${linkId}/assertion`,
+		{
+			response: acc.webauthn(ch.body.challenge)
+		}
+	);
+	check(
+		'Tap accepted into custody; handoff link minted',
+		accepted.status === 200 && !!accepted.body.handoffUrl,
+		accepted.body
+	);
+	const h = new URL(accepted.body.handoffUrl).hash.replace('#h=', '');
+	check(
+		'Handoff capability travels only in the URL fragment',
+		!accepted.body.handoffUrl.includes('?')
+	);
+
+	const early = await walletBrowser.post(`/api/link/${linkId}/recipient`, {
+		address: (await generateKeyPairSigner()).address
+	});
+	check('Tap is not released before the handoff link is claimed', early.status === 403, early);
+
+	const claim = await walletBrowser.post<LinkStatusView>('/api/handoff/claim', { h });
+	check(
+		'Wallet browser claims the handoff link',
+		claim.status === 200 && claim.body.state === 'claimed',
+		claim.body
+	);
+	const second = await intruder.post('/api/handoff/claim', { h });
+	check('A second claim of the same link fails', second.status === 409, second.body);
+	const safariView = await safari.get<LinkStatusView>(`/api/link/${linkId}`);
+	check(
+		'Tapping browser sees the second-claim alarm',
+		safariView.body.claimConflict === true,
+		safariView.body
 	);
 
 	const owner = await funded();
-	await link(acc, owner);
+	await finish(walletBrowser, linkId, owner);
 	const onchain = await fetchPhygitalToken(rpc, pda, { commitment: 'confirmed' });
 	check(
 		'On-chain owner is the wallet that approved',
@@ -153,13 +173,81 @@ async function main() {
 		onchain.data.owner
 	);
 	const firstSignCount = onchain.data.lastSignCount;
+	const originView = await safari.get<LinkStatusView>(`/api/link/${linkId}`);
+	check(
+		'Tapping browser sees success',
+		originView.body.state === 'linked' && originView.body.recipient === owner.address,
+		originView.body
+	);
 
-	console.log('\nBearer: a second tap moves it to another wallet');
+	console.log('\nDesktop shows QR → phone scans → taps → desktop signs');
+	const desktop = new Browser('desktop');
+	const phone = new Browser('phone');
+	const pair = await desktop.post<{ status: LinkStatusView; pairUrl: string }>('/api/pair');
+	check(
+		'Desktop pairing created with QR capability',
+		pair.status === 200 && pair.body.pairUrl.includes('/pair#p='),
+		pair.body
+	);
+	const desktopId = pair.body.status.id;
+	const p = pair.body.pairUrl.split('#p=')[1];
+
+	const scan = await phone.post<LinkStatusView>('/api/pair/claim', { p });
+	check('Phone scanned the QR', scan.status === 200 && scan.body.state === 'paired', scan.body);
+	const rescan = await intruder.post('/api/pair/claim', { p });
+	check('A second phone cannot use the same QR', rescan.status === 409, rescan.body);
+
+	const phoneTap = await phone.open(acc.tapUrl());
+	check(
+		'Accessory tap attaches to the desktop pairing',
+		phoneTap.location === `/accessory/link?link=${desktopId}`,
+		phoneTap
+	);
+
+	const attached = await desktop.get<LinkStatusView>(`/api/link/${desktopId}`);
+	const phoneSees = await phone.get<LinkStatusView>(`/api/link/${desktopId}`);
+	check(
+		'Both screens show the same pairing code',
+		!!attached.body.pairingCode && attached.body.pairingCode === phoneSees.body.pairingCode,
+		{ desktop: attached.body.pairingCode, phone: phoneSees.body.pairingCode }
+	);
+
+	const tooEarly = await phone.post(`/api/link/${desktopId}/challenge`);
+	check(
+		'Phone cannot approve before the desktop confirms the accessory',
+		tooEarly.status === 409,
+		tooEarly.body
+	);
+	const confirmed = await desktop.post<LinkStatusView>(`/api/link/${desktopId}/confirm-accessory`);
+	check(
+		'Desktop confirms the accessory',
+		confirmed.body.state === 'accessory_confirmed',
+		confirmed.body
+	);
+
+	const ch2 = await phone.post<TransferChallenge>(`/api/link/${desktopId}/challenge`);
+	const acc2 = await phone.post<{ handoffUrl: string | null; status: LinkStatusView }>(
+		`/api/link/${desktopId}/assertion`,
+		{
+			response: acc.webauthn(ch2.body.challenge)
+		}
+	);
+	check(
+		'Phone tap accepted; no handoff link (desktop is the pre-bound finisher)',
+		acc2.status === 200 && acc2.body.handoffUrl === null,
+		acc2.body
+	);
+
+	const phoneSteal = await phone.post(`/api/link/${desktopId}/recipient`, {
+		address: owner.address
+	});
+	check('Phone cannot take the finisher role', phoneSteal.status === 403, phoneSteal.body);
+
 	const newOwner = await funded();
-	await link(acc, newOwner);
+	await finish(desktop, desktopId, newOwner);
 	const after = await fetchPhygitalToken(rpc, pda, { commitment: 'confirmed' });
 	check(
-		'Bearer accessory moved to the new wallet',
+		'Bearer accessory moved to the desktop wallet',
 		after.data.owner === newOwner.address,
 		after.data.owner
 	);
@@ -187,7 +275,7 @@ async function main() {
 		})
 	]);
 	const ctlOwner = await funded();
-	await link(ctl, ctlOwner);
+	await linkViaHandoff(ctl, ctlOwner, 'controlled');
 	const ctlLinked = await fetchPhygitalToken(rpc, ctlPda, { commitment: 'confirmed' });
 	check(
 		'Controlled accessory linked and locked',
@@ -205,28 +293,14 @@ async function main() {
 		ctlView.body.accessory.canLink === false && ctlView.body.accessory.canRelease === true,
 		ctlView.body
 	);
+	const ctlRelink = await ctlPhone.post<{ code?: string }>('/api/link');
 	check(
-		'The link page sends a linked Controlled accessory back',
-		!(await linkPageOpens(ctl, 'ctl-relink'))
-	);
-	let ctlRelinkFailed = false;
-	try {
-		await link(ctl, await funded());
-	} catch {
-		ctlRelinkFailed = true;
-	}
-	check(
-		'Program rejects re-linking while Controlled is linked (TokenIsCurrentlyLocked)',
-		ctlRelinkFailed
+		'Server refuses to start a re-link while Controlled is linked',
+		ctlRelink.status === 409 && ctlRelink.body.code === 'accessory_locked',
+		ctlRelink.body
 	);
 
-	await send(ctlOwner, [
-		getRemoveOwnerInstruction({
-			owner: ctlOwner,
-			phygitalToken: ctlPda,
-			...(await getPolicyCloseAccounts(ctlPda))
-		})
-	]);
+	await send(ctlOwner, [getRemoveOwnerInstruction({ owner: ctlOwner, phygitalToken: ctlPda })]);
 	const ctlReleased = await fetchPhygitalToken(rpc, ctlPda, { commitment: 'confirmed' });
 	check(
 		'Owner released it (no accessory needed)',
@@ -236,7 +310,7 @@ async function main() {
 	);
 
 	const ctlNext = await funded();
-	await link(ctl, ctlNext);
+	await linkViaHandoff(ctl, ctlNext, 'controlled-2');
 	const ctlRelinked = await fetchPhygitalToken(rpc, ctlPda, { commitment: 'confirmed' });
 	check(
 		'After release, it links to a different wallet',
@@ -269,156 +343,24 @@ async function main() {
 		!permView.body.accessory.canLink && !permView.body.accessory.canRelease,
 		permView.body
 	);
+	const permLink = await permPhone.post<{ code?: string }>('/api/link');
 	check(
-		'The link page sends a Permanent accessory back',
-		!(await linkPageOpens(perm, 'perm-link'))
+		'Server refuses to start a link',
+		permLink.status === 409 && permLink.body.code === 'accessory_permanent',
+		permLink.body
 	);
 	let permRemoveFailed = false;
 	try {
 		await send(permOwner, [
-			getRemoveOwnerInstruction({
-				owner: permOwner,
-				phygitalToken: permPda,
-				...(await getPolicyCloseAccounts(permPda))
-			})
+			getRemoveOwnerInstruction({ owner: permOwner, phygitalToken: permPda })
 		]);
 	} catch {
 		permRemoveFailed = true;
 	}
 	check('Program rejects release (PermanentOwnerImmutable)', permRemoveFailed);
 
-	await prepaidFees(issuer, adminConfig);
-
 	console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) failed.`);
 	process.exit(failures === 0 ? 0 : 1);
-}
-
-/**
- * Needs the dev server's fee service: SPONSOR_KEYS in app/.dev.vars (funded on
- * the validator: this airdrops to them). Skipped when the service has no keys.
- */
-async function prepaidFees(issuer: KeyPairSigner, adminConfig: Address) {
-	console.log('\nPrepaid network fees: an owner with no SOL');
-	const probe = await fetch(SPONSOR);
-	const pool = probe.ok ? (await probe.json<{ feePayers: Address[] }>()).feePayers : [];
-	if (pool.length === 0) {
-		console.log(
-			'  – skipped: the fee service has no funded keys (set SPONSOR_KEYS in app/.dev.vars)'
-		);
-		return;
-	}
-	const airdrop = airdropFactory({
-		rpc,
-		rpcSubscriptions: createSolanaRpcSubscriptions('ws://127.0.0.1:8900')
-	});
-	const balanceOf = async (a: Address) =>
-		BigInt((await rpc.getBalance(a, { commitment: 'confirmed' }).send()).value);
-
-	const acc = fakeAccessory();
-	const pda = await findPhygitalTokenPda([acc.passkey]);
-	await send(issuer, [
-		await getInitializeInstructionAsync({
-			authority: issuer,
-			adminConfig,
-			phygitalToken: pda,
-			identifier: [acc.identifier],
-			secp256r1Pubkey: [acc.passkey],
-			tokenType: PhygitalTokenType.Bearer,
-			owner: address('11111111111111111111111111111111')
-		})
-	]);
-	const [wallet] = await findWalletPda({ phygitalToken: pda });
-	const [policy] = await findPolicyPda({ phygitalToken: pda });
-	const start = (await prepaid(pda)).balance;
-	check(
-		'A new accessory starts with 0.005 SOL of prepaid fees',
-		start === 5_000_000n,
-		String(start)
-	);
-
-	const owner = await generateKeyPairSigner();
-	await linkSponsored(acc, owner);
-	const linked = await fetchPhygitalToken(rpc, pda, { commitment: 'confirmed' });
-	check(
-		'Linked with the fee paid by Revibase',
-		linked.data.owner === owner.address,
-		linked.data.owner
-	);
-	check('The owner wallet still has no SOL', (await balanceOf(owner.address)) === 0n);
-	const afterLink = (await prepaid(pda)).balance;
-	check(
-		'The link was charged to the prepaid fees',
-		afterLink < start && start - afterLink < 50_000n,
-		{ start: String(start), afterLink: String(afterLink) }
-	);
-
-	await sendSponsored(pda, owner, async (feePayer) => [
-		await buildPolicyInstruction(
-			createNoopSigner(owner.address),
-			pda,
-			policyDiff(emptyDraft(), {
-				...tapPaymentsPreset(),
-				limits: new Map([[SOL, { cap: 1_000_000n, windowSeconds: DAY_SECONDS, maxPerTx: 0n }]])
-			}),
-			feePayer
-		)
-	]);
-	const rent = await balanceOf(policy);
-	const afterPolicy = (await prepaid(pda)).balance;
-	check(
-		'Tap payments on: the fee payer funded the deposit, charged to the prepaid fees',
-		rent > 0n && afterLink - afterPolicy >= rent,
-		{
-			rent: String(rent),
-			charged: String(afterLink - afterPolicy)
-		}
-	);
-
-	const walletBefore = await balanceOf(wallet);
-	await sendSponsored(pda, owner, async () => [
-		await buildPolicyInstruction(createNoopSigner(owner.address), pda, 'close')
-	]);
-	check(
-		'Tap payments off: the deposit went to the accessory wallet',
-		(await balanceOf(wallet)) === walletBefore + rent,
-		String(await balanceOf(wallet))
-	);
-
-	const drain = await buildExecuteWithOwnerInstruction({
-		owner: createNoopSigner(owner.address),
-		phygitalToken: pda,
-		instructions: [
-			getTransferSolInstruction({
-				source: createNoopSigner(pool[0]),
-				destination: owner.address,
-				amount: 1_000_000n
-			})
-		]
-	});
-	let refused = false;
-	try {
-		await sendSponsored(pda, owner, async () => [drain]);
-	} catch {
-		refused = true;
-	}
-	check('The fee service refuses to sign a transaction that spends its SOL', refused);
-
-	await airdrop({
-		recipientAddress: wallet,
-		lamports: lamports(20_000_000n),
-		commitment: 'confirmed'
-	});
-	const beforeRefill = (await prepaid(pda)).balance;
-	const refill = 5_000_000n - beforeRefill + 50_000n;
-	await sendSponsored(pda, owner, async (feePayer) => [
-		await buildRefillInstruction(createNoopSigner(owner.address), pda, feePayer.address, refill)
-	]);
-	const afterRefill = (await prepaid(pda)).balance;
-	check(
-		'A refill from the accessory wallet brings the prepaid fees back to about 0.005 SOL',
-		afterRefill > 4_990_000n && afterRefill <= 5_050_000n,
-		String(afterRefill)
-	);
 }
 
 main().catch((err) => {

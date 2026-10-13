@@ -36,7 +36,6 @@ jobs:
       - name: Build packages
         run: |
           pnpm --filter phygital-token-mcp build
-          pnpm --filter secure-signer build
           pnpm --filter revibase build
       - name: SDK public API report is up to date
         run: pnpm --filter phygital-token-sdk exec api-extractor run

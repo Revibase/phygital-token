@@ -1,9 +1,12 @@
-import { rememberWallet, rememberRecentWallet } from '$lib/client/memory';
+import {
+	rememberWallet,
+	rememberAccessoryLink,
+	rememberAccessoryWalletApp,
+	rememberRecentWallet
+} from '$lib/client/memory';
 // Test-only wallet boundary. Production pages and their controls remain unchanged.
 let account = $state<string | null>(null);
 let available = $state(false);
-// `localStorage['simulation:wallet'] = 'passkey'` previews the Revibase Passkey wallet instead of Phantom.
-let passkey = $state(false);
 export const walletStore = {
 	init() {
 		if (typeof window === 'undefined') return;
@@ -12,21 +15,22 @@ export const walletStore = {
 			const pda = 'So11111111111111111111111111111111111111112';
 			const wallet = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 			rememberWallet(pda, wallet);
-			rememberRecentWallet('Phantom');
+			rememberRecentWallet('Phantom', 'wallet');
+			rememberAccessoryWalletApp(pda, wallet, 'Phantom', 'wallet');
+			rememberAccessoryLink(pda, { wallet, app: 'Phantom', source: 'desktop' });
 			url.searchParams.delete('savedWallet');
 			window.history.replaceState(window.history.state, '', url);
 		}
 		available =
 			/Phantom/i.test(navigator.userAgent) ||
 			localStorage.getItem('simulation:browser-wallet') === 'true';
-		passkey = localStorage.getItem('simulation:wallet') === 'passkey';
 		window.addEventListener('simulation:account', ((e: CustomEvent) => {
 			account = e.detail;
 		}) as EventListener);
 	},
 	get options() {
 		return available
-			? [{ id: 'phantom', name: 'Phantom', icon: '/icon-192.png', ready: true }]
+			? [{ id: 'phantom', name: 'Phantom', icon: '/wallets/phantom.svg', ready: true }]
 			: [];
 	},
 	get address() {
@@ -36,10 +40,10 @@ export const walletStore = {
 		return account ? 'connected' : 'disconnected';
 	},
 	get walletName() {
-		return account ? (passkey ? 'Revibase Passkey' : 'Phantom') : null;
+		return account ? 'Phantom' : null;
 	},
 	get walletIcon() {
-		return account ? '/icon-192.png' : null;
+		return account ? '/wallets/phantom.svg' : null;
 	},
 	get error() {
 		return null;
@@ -51,10 +55,10 @@ export const walletStore = {
 		account = null;
 	},
 	get approvePrompt() {
-		return `Approve in ${passkey ? 'Revibase Passkey' : 'Phantom'}…`;
+		return 'Approve in Phantom…';
 	},
 	signingContext() {
-		return { address: account, wallet: { name: passkey ? 'Revibase Passkey' : 'Phantom' } };
+		return { address: account, wallet: { name: 'Phantom' } };
 	}
 };
 export async function signWithWallet() {

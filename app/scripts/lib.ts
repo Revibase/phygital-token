@@ -1,7 +1,6 @@
 import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import {
-	address,
 	airdropFactory,
 	appendTransactionMessageInstructions,
 	createSolanaRpc,
@@ -13,45 +12,25 @@ import {
 	getSignatureFromTransaction,
 	getU32Encoder,
 	lamports,
-	assertIsTransactionWithinSizeLimit,
 	partiallySignTransaction,
 	pipe,
 	sendAndConfirmTransactionFactory,
-	setTransactionMessageConfig,
 	setTransactionMessageFeePayerSigner,
 	setTransactionMessageLifetimeUsingBlockhash,
 	signTransactionMessageWithSigners,
+	getBase64EncodedWireTransaction,
 	createNoopSigner,
-	compileTransaction,
 	type Instruction,
-	type Address,
-	type KeyPairSigner,
-	type TransactionSigner
+	type KeyPairSigner
 } from '@solana/kit';
 
 import { base64UrlToBytes, bytesToBase64Url } from '../src/lib/shared/encoding';
 import {
-	buildLinkInstructions,
 	buildLinkTransaction,
-	linkExpectation,
-	validateLinkTransaction,
-	type LinkTap
+	expectationFromPayload,
+	validateLinkTransaction
 } from '../src/lib/shared/link-transaction';
-import { LINK_COMPUTE_UNIT_LIMIT, v1MessageConfig } from '../src/lib/shared/fee-policy';
-import {
-	beginTransfer,
-	createSponsorFeePayer,
-	fetchSponsor,
-	findAdminConfigPda,
-	findPhygitalTokenPda,
-	getCreateConfigInstructionAsync,
-	getInitializeInstructionAsync,
-	getSetIssuerInstructionAsync,
-	getSetMinterInstructionAsync,
-	pickFeePayer,
-	PhygitalTokenType,
-	type AuthenticationResponseJSON
-} from 'phygital-token-sdk';
+import type { LinkStatusView, TransferPayload } from '../src/lib/shared/types';
 
 export const APP = process.env.APP_URL ?? 'http://localhost:5173';
 export const RP_ID = new URL(APP).hostname;
@@ -72,20 +51,13 @@ export async function send(payer: KeyPairSigner, ixs: Instruction[]) {
 	const { value: blockhash } = await rpc.getLatestBlockhash().send();
 	const tx = await signTransactionMessageWithSigners(
 		pipe(
-			createTransactionMessage({ version: 1 }),
+			createTransactionMessage({ version: 0 }),
 			(m) => setTransactionMessageFeePayerSigner(payer, m),
 			(m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-			(m) =>
-				setTransactionMessageConfig(
-					{ computeUnitLimit: 1_400_000, loadedAccountsDataSizeLimit: 64 * 1024 * 1024 },
-					m
-				),
 			(m) => appendTransactionMessageInstructions(ixs, m)
 		)
 	);
-	await sendAndConfirm(tx as unknown as Parameters<typeof sendAndConfirm>[0], {
-		commitment: 'confirmed'
-	});
+	await sendAndConfirm(tx as Parameters<typeof sendAndConfirm>[0], { commitment: 'confirmed' });
 }
 
 export async function funded(privateKey?: Uint8Array) {
@@ -119,8 +91,6 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 			counter,
 			signCount
 		}),
-		/** The FIDO key, for a browser test's virtual authenticator to tap with. */
-		fidoKey,
 		identifier: p256.getPublicKey(ndefKey),
 		passkey: p256.getPublicKey(fidoKey),
 		tapUrl() {
@@ -137,7 +107,7 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 			});
 			return `${APP}/accessory?${q}`;
 		},
-		webauthn(challengeB64: string): AuthenticationResponseJSON {
+		webauthn(challengeB64: string) {
 			signCount += 1;
 			const clientData = new TextEncoder().encode(
 				JSON.stringify({
@@ -158,7 +128,7 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 			return {
 				id,
 				rawId: id,
-				type: 'public-key' as const,
+				type: 'public-key',
 				clientExtensionResults: {},
 				response: {
 					clientDataJSON: bytesToBase64Url(clientData),
@@ -168,55 +138,6 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 			};
 		}
 	};
-}
-
-const UNSET = address('11111111111111111111111111111111');
-
-/** AdminConfig with a fresh admin, issuer and minter on a reset validator. */
-export async function createAdmin() {
-	const [adminConfig] = await findAdminConfigPda();
-	if ((await rpc.getAccountInfo(adminConfig, { encoding: 'base64' }).send()).value) {
-		throw new Error('AdminConfig already exists; restart the validator with --reset first.');
-	}
-	const admin = await funded();
-	const issuerKey = crypto.getRandomValues(new Uint8Array(32));
-	const issuer = await funded(issuerKey);
-	await send(admin, [await getCreateConfigInstructionAsync({ authority: admin })]);
-	await send(admin, [await getSetIssuerInstructionAsync({ admin, issuer: issuer.address })]);
-	const minterKey = crypto.getRandomValues(new Uint8Array(32));
-	const minter = await funded(minterKey);
-	await send(admin, [await getSetMinterInstructionAsync({ admin, minter: minter.address })]);
-	return { issuerKey, minterKey, issuer: issuer.address };
-}
-
-export type AccessoryKind = 'bearer' | 'controlled' | 'permanent';
-
-/** Issues a new software accessory; a Permanent one is owned by a fresh wallet. */
-export async function issueAccessory(issuerKey: Uint8Array, kind: AccessoryKind) {
-	const issuer = await funded(issuerKey);
-	const [adminConfig] = await findAdminConfigPda();
-	const acc = fakeAccessory();
-	const pda = await findPhygitalTokenPda([acc.passkey]);
-	const tokenType = {
-		bearer: PhygitalTokenType.Bearer,
-		controlled: PhygitalTokenType.Controlled,
-		permanent: PhygitalTokenType.Permanent
-	}[kind];
-	if (tokenType === undefined) throw new Error(`unknown type ${kind}`);
-	// Permanent must name its wallet at initialize.
-	const owner = tokenType === PhygitalTokenType.Permanent ? (await funded()).address : UNSET;
-	await send(issuer, [
-		await getInitializeInstructionAsync({
-			authority: issuer,
-			adminConfig,
-			phygitalToken: pda,
-			identifier: [acc.identifier],
-			secp256r1Pubkey: [acc.passkey],
-			tokenType,
-			owner
-		})
-	]);
-	return { acc, pda };
 }
 
 export class Browser {
@@ -257,84 +178,38 @@ export class Browser {
 	}
 }
 
-/** Taps `acc` over a fresh slot-bound transfer challenge for `recipient`, as the link page does. */
-export async function tapForLink(
-	acc: ReturnType<typeof fakeAccessory>,
-	recipient: Address
-): Promise<LinkTap> {
-	const session = await beginTransfer({
-		rpc,
-		secp256r1Pubkey: bytesToBase64Url(acc.passkey),
-		recipient,
-		rpId: RP_ID
-	});
-	return { session, response: acc.webauthn(bytesToBase64Url(session.challenge)) };
-}
-
-/** Links `acc` to `wallet`, which pays the fee: tap, build, check the bytes, sign and send. */
-export async function link(acc: ReturnType<typeof fakeAccessory>, wallet: KeyPairSigner) {
-	const tap = await tapForLink(acc, wallet.address);
+export async function finish(browser: Browser, linkId: string, wallet: KeyPairSigner) {
+	const rec = await browser.post<{ payload: TransferPayload; error?: string }>(
+		`/api/link/${linkId}/recipient`,
+		{
+			address: wallet.address
+		}
+	);
+	check(
+		`${browser.name}: server simulated and released the tap to the finisher`,
+		rec.status === 200,
+		rec.body
+	);
+	if (rec.status !== 200) return;
 	const { value: blockhash } = await rpc.getLatestBlockhash().send();
 	const { transaction, wireBytes } = await buildLinkTransaction({
-		tap,
+		payload: rec.body.payload,
+		rpc,
 		recipient: createNoopSigner(wallet.address),
 		blockhash
 	});
-	validateLinkTransaction(wireBytes, linkExpectation(tap, wallet.address));
+	validateLinkTransaction(wireBytes, expectationFromPayload(rec.body.payload, wallet.address));
 	const signed = await partiallySignTransaction([wallet.keyPair], transaction);
-	await sendAndConfirm(signed as never, { commitment: 'confirmed' });
+	const sig = await rpc
+		.sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: 'base64' })
+		.send();
+	await browser.post(`/api/link/${linkId}/submitted`, { signature: sig });
+	let status: LinkStatusView | null = null;
+	for (let i = 0; i < 30; i++) {
+		status = (await browser.get<LinkStatusView>(`/api/link/${linkId}`)).body;
+		if (status.state === 'linked' || status.state === 'failed') break;
+		await new Promise((r) => setTimeout(r, 500));
+	}
+	check(`${browser.name}: ceremony reached "linked"`, status?.state === 'linked', status);
 	return getSignatureFromTransaction(signed);
-}
-
-export const SPONSOR = `${APP}/api/sponsor`;
-
-/** The accessory's prepaid network fees, as the fee service reports them. */
-export async function prepaid(pda: string) {
-	const info = await fetchSponsor({ endpoint: SPONSOR, phygitalToken: pda as never });
-	return { feePayers: info.feePayers, balance: info.prepaid!.balanceLamports };
-}
-
-/**
- * Sends `build`'s instructions with a Revibase fee payer, as the app does for
- * an owner without SOL: the owner signs, then the fee service.
- */
-export async function sendSponsored(
-	pda: string,
-	owner: KeyPairSigner,
-	build: (feePayer: TransactionSigner) => Promise<Instruction[]>,
-	units = 200_000
-) {
-	const { feePayers } = await prepaid(pda);
-	const sponsor = createSponsorFeePayer(pickFeePayer(feePayers), { endpoint: SPONSOR });
-	const feePayer = createNoopSigner(sponsor.address);
-	const instructions = await build(feePayer);
-	const { value: blockhash } = await rpc.getLatestBlockhash().send();
-	const unsigned = compileTransaction(
-		pipe(
-			createTransactionMessage({ version: 1 }),
-			(m) => setTransactionMessageFeePayerSigner(feePayer, m),
-			(m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-			(m) => setTransactionMessageConfig(v1MessageConfig(units), m),
-			(m) => appendTransactionMessageInstructions(instructions, m)
-		)
-	);
-	const ownerSigned = await partiallySignTransaction([owner.keyPair], unsigned);
-	assertIsTransactionWithinSizeLimit(ownerSigned);
-	const [sponsorSignature] = await sponsor.signTransactions([ownerSigned]);
-	const tx = { ...ownerSigned, signatures: { ...ownerSigned.signatures, ...sponsorSignature } };
-	await sendAndConfirm(tx as unknown as Parameters<typeof sendAndConfirm>[0], {
-		commitment: 'confirmed'
-	});
-	return { feePayer: sponsor.address, signature: getSignatureFromTransaction(tx) };
-}
-
-/** `link`, for a recipient with no SOL: a Revibase fee payer pays for it. */
-export async function linkSponsored(acc: ReturnType<typeof fakeAccessory>, wallet: KeyPairSigner) {
-	const tap = await tapForLink(acc, wallet.address);
-	return sendSponsored(
-		tap.session.phygitalToken,
-		wallet,
-		() => buildLinkInstructions(tap, createNoopSigner(wallet.address)),
-		LINK_COMPUTE_UNIT_LIMIT
-	);
 }

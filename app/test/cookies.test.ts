@@ -12,6 +12,7 @@ const SECRET = 'x'.repeat(48);
 const browse: BrowseUnlockSession = {
 	v: 1,
 	t: 'bu',
+	sid: 'sid',
 	pda: 'pda',
 	identifier: 'id',
 	exp: Date.now() + 60_000
@@ -19,6 +20,7 @@ const browse: BrowseUnlockSession = {
 const owner: OwnerBrowseSession = {
 	v: 1,
 	t: 'ob',
+	sid: 'sid2',
 	pda: 'pda',
 	identifier: 'id',
 	wallet: '7Yu3oPKm7hSbcX3u7ke1HMuiKeuuSJo4iQ8PYP6VGkCN',
@@ -37,7 +39,13 @@ describe('session tokens', () => {
 	});
 
 	it('round-trips an owner_session and never verifies it as owner_browse', async () => {
-		const login: OwnerSession = { v: 1, t: 'os', wallet: owner.wallet, exp: Date.now() + 60_000 };
+		const login: OwnerSession = {
+			v: 1,
+			t: 'os',
+			sid: 'sid3',
+			wallet: owner.wallet,
+			exp: Date.now() + 60_000
+		};
 		const token = await signToken(SECRET, login);
 		expect(await verifyToken<OwnerSession>(SECRET, token, 'os')).toEqual(login);
 		expect(await verifyToken<OwnerBrowseSession>(SECRET, token, 'ob')).toBeNull();
@@ -58,7 +66,7 @@ describe('session tokens', () => {
 		);
 		expect(await verifyToken(SECRET, `${forged}.${mac}`, 'bu')).toBeNull();
 		expect(await verifyToken('y'.repeat(48), token, 'bu')).toBeNull();
-		expect(await verifyToken(SECRET, token, 'ob')).toBeNull();
+		expect(await verifyToken(SECRET, token, 'hof')).toBeNull();
 		expect(await verifyToken(SECRET, token, 'bu', browse.exp + 1)).toBeNull();
 		expect(await verifyToken(SECRET, `${body}.${mac}.x`, 'bu')).toBeNull();
 		expect(await verifyToken(SECRET, undefined, 'bu')).toBeNull();

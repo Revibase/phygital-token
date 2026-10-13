@@ -260,10 +260,15 @@ describe('loading a project file', () => {
 });
 
 describe('Revibase launch modes', () => {
-	it('drops the retired wallet launch mode', () => {
+	it('opens the wallet launch mode inside a wallet, even when the file prefers external', () => {
 		expect(
-			one({ label: 'Stake', uri: 'https://staking.test/app', revibase: { launch: 'wallet' } })
-		).toEqual([]);
+			one({
+				label: 'Stake',
+				uri: 'https://staking.test/app',
+				prefersExternalTarget: true,
+				revibase: { launch: 'wallet' }
+			})[0]
+		).toMatchObject({ external: false });
 	});
 
 	it('opens legacy embed and browser preferences on any HTTPS domain', () => {

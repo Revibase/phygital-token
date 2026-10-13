@@ -24,8 +24,10 @@ clash with another service's.
 
 | Migration | Notes |
 |-----------|-------|
-| `0001`, `0004`, `0006`, `0007` | Link intents for the old server-side linking flow; dropped in `0010`. |
+| `0001`, `0004`, `0006`, `0007` | Link intents for the handoff flows; dropped in `0010`. |
 | `0002` | Chip identifier cache. |
 | `0003` | Deleted from the repository (`revibase_0003_mint_media`). `0005` drops its table on any database that applied it and is a no-op elsewhere. |
-| `0008`, `0011` | Passkey wallet backups; `0011` re-keys them by passkey public key so a credential id cannot be claimed by another key. |
-| `0009` | Fee-sponsor ledger. |
+| `0008`, `0011` | Passkey wallet backups (removed); dropped in `0013`. |
+| `0009` | Fee-sponsor ledger (removed); dropped in `0013`. |
+| `0012` | Link intents again, for the restored in-app wallet and desktop handoffs (the columns of `0001`, `0004`, `0006` and `0007`). |
+| `0013` | Drops the passkey wallet and fee-sponsor tables. |

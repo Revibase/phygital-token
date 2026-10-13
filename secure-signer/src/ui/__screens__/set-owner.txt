@@ -1,8 +1,0 @@
-# Link accessory
-This wallet becomes the accessory’s owner
-  Accessory: CktRuQ2mttgRGkXJtyksdKHjUdc2C4TgDzyB98oEzy8
-  New owner: 4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi
-  Network fee: 0.000005 SOL
-Details
-  Your wallet: 4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi
-[Authorize]

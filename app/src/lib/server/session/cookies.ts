@@ -14,6 +14,11 @@ import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
  * Login:
  * - `os`  — owner_session: this browser proved control of a wallet (one signMessage).
  *
+ * Ceremony:
+ * - `hof`  — handoff finisher: the one wallet context that claimed `h`.
+ * - `dsk`  — desktop finisher bound when the desktop starts a pairing.
+ * - `pair` — phone that scanned the desktop QR (claimed `p`).
+ *
  * Purpose is bound into the token (`t`), so a browse_unlock cookie never
  * verifies as owner_browse (and vice versa).
  *
@@ -22,13 +27,15 @@ import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
  */
 
 export const BROWSE_SESSION_TTL_MS = 10 * 60 * 1000;
+export const FINISHER_SESSION_TTL_MS = 10 * 60 * 1000;
 /** Wallet login lifetime. */
 export const OWNER_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** Physical-possession admit: also opens the link page. */
+/** Physical-possession admit. Seed of the link ceremony. */
 export type BrowseUnlockSession = {
 	v: 1;
 	t: 'bu';
+	sid: string;
 	pda: string;
 	identifier: string;
 	exp: number;
@@ -38,6 +45,7 @@ export type BrowseUnlockSession = {
 export type OwnerBrowseSession = {
 	v: 1;
 	t: 'ob';
+	sid: string;
 	pda: string;
 	identifier: string;
 	/** The owner that signed to open it. */
@@ -46,17 +54,23 @@ export type OwnerBrowseSession = {
 };
 
 /** Wallet login: proof this browser controls `wallet`. Not an admit on its own. */
-export type OwnerSession = { v: 1; t: 'os'; wallet: string; exp: number };
+export type OwnerSession = { v: 1; t: 'os'; sid: string; wallet: string; exp: number };
 
 /** Either admit cookie — enough to view `/accessory`. */
 export type AdmitSession = BrowseUnlockSession | OwnerBrowseSession;
 
-type AnySession = BrowseUnlockSession | OwnerBrowseSession | OwnerSession;
+export type FinisherSession = { v: 1; t: 'hof' | 'dsk'; sid: string; linkId: string; exp: number };
+export type PairSession = { v: 1; t: 'pair'; sid: string; linkId: string; exp: number };
+type AnySession =
+	BrowseUnlockSession | OwnerBrowseSession | OwnerSession | FinisherSession | PairSession;
 
 const NAMES = {
 	bu: dev ? 'bu' : '__Host-bu',
 	ob: dev ? 'ob' : '__Host-ob',
-	os: dev ? 'os' : '__Host-os'
+	os: dev ? 'os' : '__Host-os',
+	hof: dev ? 'hof' : '__Host-hof',
+	dsk: dev ? 'dsk' : '__Host-dsk',
+	pair: dev ? 'pair' : '__Host-pair'
 } as const;
 
 const encoder = new TextEncoder();
@@ -77,7 +91,7 @@ function hmacKey(secret: string): Promise<CryptoKey> {
 	return key;
 }
 
-async function hmac(secret: string, data: string): Promise<Uint8Array> {
+export async function hmac(secret: string, data: string): Promise<Uint8Array> {
 	const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), encoder.encode(data));
 	return new Uint8Array(sig);
 }
@@ -125,6 +139,10 @@ export async function verifyToken<T extends AnySession>(
 	}
 }
 
+export function newSessionId(): string {
+	return bytesToBase64Url(crypto.getRandomValues(new Uint8Array(18)));
+}
+
 async function writeCookie(cookies: Cookies, secret: string, payload: AnySession) {
 	cookies.set(NAMES[payload.t], await signToken(secret, payload), {
 		path: '/',
@@ -150,6 +168,7 @@ export async function setBrowseUnlock(
 	const session: BrowseUnlockSession = {
 		v: 1,
 		t: 'bu',
+		sid: newSessionId(),
 		...data,
 		exp: now + BROWSE_SESSION_TTL_MS
 	};
@@ -168,6 +187,7 @@ export async function setOwnerBrowse(
 	const session: OwnerBrowseSession = {
 		v: 1,
 		t: 'ob',
+		sid: newSessionId(),
 		...data,
 		exp: now + BROWSE_SESSION_TTL_MS
 	};
@@ -181,7 +201,48 @@ export async function setOwnerSession(
 	wallet: string,
 	now = Date.now()
 ): Promise<OwnerSession> {
-	const session: OwnerSession = { v: 1, t: 'os', wallet, exp: now + OWNER_SESSION_TTL_MS };
+	const session: OwnerSession = {
+		v: 1,
+		t: 'os',
+		sid: newSessionId(),
+		wallet,
+		exp: now + OWNER_SESSION_TTL_MS
+	};
+	await writeCookie(cookies, secret, session);
+	return session;
+}
+
+export async function setFinisherSession(
+	cookies: Cookies,
+	secret: string,
+	t: FinisherSession['t'],
+	linkId: string,
+	now = Date.now()
+): Promise<FinisherSession> {
+	const session: FinisherSession = {
+		v: 1,
+		t,
+		sid: newSessionId(),
+		linkId,
+		exp: now + FINISHER_SESSION_TTL_MS
+	};
+	await writeCookie(cookies, secret, session);
+	return session;
+}
+
+export async function setPairSession(
+	cookies: Cookies,
+	secret: string,
+	linkId: string,
+	now = Date.now()
+): Promise<PairSession> {
+	const session: PairSession = {
+		v: 1,
+		t: 'pair',
+		sid: newSessionId(),
+		linkId,
+		exp: now + FINISHER_SESSION_TTL_MS
+	};
 	await writeCookie(cookies, secret, session);
 	return session;
 }
@@ -209,4 +270,12 @@ export async function readAdmitSession(
 	const browse = await readBrowseUnlock(cookies, secret);
 	if (browse) return browse;
 	return readOwnerBrowse(cookies, secret);
+}
+
+export function readFinisherSession(cookies: Cookies, secret: string, t: FinisherSession['t']) {
+	return verifyToken<FinisherSession>(secret, cookies.get(NAMES[t]), t);
+}
+
+export function readPairSession(cookies: Cookies, secret: string) {
+	return verifyToken<PairSession>(secret, cookies.get(NAMES.pair), 'pair');
 }

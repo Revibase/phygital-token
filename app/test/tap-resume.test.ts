@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { p256 } from '@noble/curves/nist.js';
 import type { Rpc, SolanaRpcApi } from '@solana/kit';
-import { VirtualAuthenticator, type Tamper } from 'secure-signer/testing/kit';
+import { VirtualAuthenticator, type Tamper } from './support/authenticator';
 
 import { issueResumeChallenge, verifyResume } from '$lib/server/tap/resume';
 import { bytesToBase64Url } from '$lib/shared/encoding';

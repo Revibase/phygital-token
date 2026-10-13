@@ -5,31 +5,11 @@
 	import { configureRpc } from '$lib/client/rpc';
 	import { PersistQueryClientProvider } from '@tanstack/svelte-query-persist-client';
 	import { queryClient, persistOptions } from '$lib/client/cache';
-	import { onMount } from 'svelte';
-	import { page } from '$app/state';
-	import OpenOnPhone from '$lib/components/app/OpenOnPhone.svelte';
-	import { phoneUrl } from '$lib/shared/device';
-	import SecureSignerHost from '$lib/components/app/SecureSignerHost.svelte';
-	import { configureSecureSigner } from '$lib/client/wallet/secure-signer';
 
 	let { data, children } = $props();
 	$effect.pre(() => {
 		if (data.rpcUrl) configureRpc(data.rpcUrl);
-		if (data.signerOrigin) configureSecureSigner(data.signerOrigin);
 	});
-
-	// Mobile only. A Mac user agent may be an iPad, which only touch support reveals.
-	let touch = $state<boolean | null>(null);
-	onMount(() => (touch = navigator.maxTouchPoints > 1));
-	const gate = $derived(
-		data.device === 'mobile'
-			? 'open'
-			: data.device === 'mac' && touch === null
-				? 'unknown'
-				: data.device === 'mac' && touch
-					? 'open'
-					: 'phone'
-	);
 </script>
 
 <svelte:head>
@@ -46,10 +26,5 @@
 <!-- Explicit light theme prevents restoring a saved system/dark preference. -->
 <Toaster position="top-center" theme="light" />
 <PersistQueryClientProvider client={queryClient} {persistOptions}>
-	{#if gate === 'open'}
-		{@render children()}
-		<SecureSignerHost />
-	{:else if gate === 'phone'}
-		<OpenOnPhone href={phoneUrl(page.url)} />
-	{/if}
+	{@render children()}
 </PersistQueryClientProvider>

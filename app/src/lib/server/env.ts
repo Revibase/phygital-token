@@ -6,25 +6,10 @@ export type ServerEnv = {
 	rpcUrl: string;
 	sessionSecret: string;
 	rpId: string;
-	/** The passkey-wallet iframe's origin (frame-src, backup CORS, WebAuthn origin). */
-	signerOrigin: string;
+	/** Base URL for handoff (`/continue`) and pairing (`/pair`) links. */
+	origin: string;
 	cluster: string;
-	sponsor: SponsorEnv;
 };
-
-/** The fee service (`/api/sponsor`): a pool of fee-payer keys and each accessory's prepaid network fees. */
-export type SponsorEnv = {
-	/** Comma-separated base58 64-byte secret keys; empty turns the service off. */
-	keys: string;
-	prepaidLamports: bigint;
-	maxComputeUnitLimit: number;
-	maxComputeUnitPrice: bigint;
-	/** Keys below this balance are no longer offered. */
-	minKeyLamports: bigint;
-};
-
-const bigintVar = (value: string | undefined, fallback: bigint) =>
-	value && /^\d+$/.test(value) ? BigInt(value) : fallback;
 
 export function getEnv(platform: App.Platform | undefined): ServerEnv {
 	const env = platform?.env;
@@ -37,15 +22,8 @@ export function getEnv(platform: App.Platform | undefined): ServerEnv {
 		rpcUrl: env.SOLANA_RPC_URL,
 		sessionSecret: secret,
 		rpId: env.RP_ID,
-		signerOrigin: env.SECURE_SIGNER_ORIGIN,
-		cluster: env.SOLANA_CLUSTER,
-		sponsor: {
-			keys: env.SPONSOR_KEYS ?? '',
-			prepaidLamports: bigintVar(env.SPONSOR_PREPAID_LAMPORTS, 5_000_000n),
-			maxComputeUnitLimit: Number(bigintVar(env.SPONSOR_MAX_CU_LIMIT, 400_000n)),
-			maxComputeUnitPrice: bigintVar(env.SPONSOR_MAX_CU_PRICE, 100_000n),
-			minKeyLamports: bigintVar(env.SPONSOR_MIN_KEY_LAMPORTS, 50_000_000n)
-		}
+		origin: env.ORIGIN,
+		cluster: env.SOLANA_CLUSTER
 	};
 }
 

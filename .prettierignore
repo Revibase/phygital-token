@@ -18,7 +18,6 @@ packages/js/phygital-token/src/generated
 packages/rust/phygital-token/src/generated
 app/worker-configuration.d.ts
 app/src/lib/shared/program-idls/*.json
-secure-signer/src/ui/__screens__
 # Test output and recorded fixtures.
 **/results
 app/test/browser/madlads.json

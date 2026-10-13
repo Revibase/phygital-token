@@ -34,6 +34,31 @@ export function fromProgramError(code: number): LinkErrorCode {
 }
 
 /**
+ * Classify a `TransactionError` from simulate / getSignatureStatuses.
+ * Shapes: `"InsufficientFundsForFee"`, `"AccountNotFound"`,
+ * `{ InstructionError: [index, { Custom: n }] }`.
+ */
+export function fromTransactionError(err: unknown): LinkErrorCode {
+	if (
+		err === 'InsufficientFundsForFee' ||
+		err === 'AccountNotFound' ||
+		err === 'InsufficientFundsForRent'
+	) {
+		return 'insufficient_sol';
+	}
+	if (err && typeof err === 'object' && 'InstructionError' in err) {
+		const [, inner] = (err as { InstructionError: [number, unknown] }).InstructionError;
+		if (inner && typeof inner === 'object' && 'Custom' in inner) {
+			return fromProgramError(Number((inner as { Custom: number | bigint }).Custom));
+		}
+		// The secp256r1 precompile fails with a plain instruction error.
+		return 'tap_rejected';
+	}
+	if (err === 'BlockhashNotFound') return 'too_slow';
+	return 'unknown';
+}
+
+/**
  * Classify a send or confirmation failure: the program's custom error
  * sits somewhere down the `cause` chain. `null` when it isn't a program error.
  */

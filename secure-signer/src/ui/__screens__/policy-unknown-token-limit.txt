@@ -1,9 +1,0 @@
-# Change tap permissions
-Changes what a tap of the accessory can do
-[warn] Anyone holding the accessory can use these programs and spending limits with a tap.
-  Token taps can spend: 20000000 raw units every day
-  Mint: YMN9Qj5jPNp7j14VPcML1B6xGgcPWVZUGLFU3Mnyfaf
-  Network fee: 0.000005 SOL
-Details
-  Your wallet: 4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi
-[Authorize]

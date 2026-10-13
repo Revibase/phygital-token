@@ -10,20 +10,16 @@ export type TapScreen = {
 	move: boolean;
 };
 
-/** Display choices only; every ownership change still requires on-chain authorization. */
+/**
+ * Display choices only; every ownership change still requires on-chain
+ * authorization. Release is offered to anyone holding the accessory: the
+ * release sheet asks for (or hands off to) the owner's wallet.
+ */
 export function managementActions(a: AccessoryView, owned: boolean) {
 	const valid = a.status !== 'unavailable' && a.kind !== 'unknown';
-	const release = valid && owned && !!a.owner && a.canRelease;
-	const changeOwner = release && a.kind === 'bearer' && a.canLink;
-	const connectOwner = valid && !!a.owner && !owned && a.canRelease;
-	const wallet = valid;
-	return {
-		release,
-		changeOwner,
-		connectOwner,
-		wallet,
-		hasActions: release || changeOwner || connectOwner || wallet
-	};
+	const release = valid && !!a.owner && a.canRelease;
+	const changeOwner = release && owned && a.kind === 'bearer' && a.canLink;
+	return { release, changeOwner, hasActions: release || changeOwner };
 }
 
 export function tapScreen(a: AccessoryView, owned: boolean): TapScreen {

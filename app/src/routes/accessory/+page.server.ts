@@ -3,7 +3,13 @@ import { error, redirect } from '@sveltejs/kit';
 import { fetchAccessory } from '$lib/server/accessory/resolve';
 import { toAccessoryView } from '$lib/shared/accessory-view';
 import { getEnv, getRpc } from '$lib/server/env';
-import { readAdmitSession, readBrowseUnlock, setBrowseUnlock } from '$lib/server/session/cookies';
+import {
+	readAdmitSession,
+	readBrowseUnlock,
+	readPairSession,
+	setBrowseUnlock
+} from '$lib/server/session/cookies';
+import { attachAccessoryToPairing } from '$lib/server/link/service';
 import { handleTap, hasTapParams } from '$lib/server/tap/handle-tap';
 import type { PageServerLoad } from './$types';
 
@@ -35,10 +41,17 @@ async function processTap(
 		redirect(303, `/tap/${outcome.reason}`);
 	}
 
-	await setBrowseUnlock(cookies, env.sessionSecret, {
+	const session = await setBrowseUnlock(cookies, env.sessionSecret, {
 		pda: outcome.pda,
 		identifier: outcome.identifier
 	});
+
+	// Phone that scanned a desktop pairing QR first: attach this accessory to it.
+	const pair = await readPairSession(cookies, env.sessionSecret);
+	if (pair && (await attachAccessoryToPairing(env, pair.linkId, session))) {
+		redirect(303, `/accessory/link?link=${encodeURIComponent(pair.linkId)}`);
+	}
+
 	redirect(303, '/accessory');
 }
 

@@ -2,22 +2,14 @@ import { QueryClient } from '@tanstack/svelte-query';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { browser } from '$app/environment';
 
-/** The app's query cache: its keys, the client, what persists, and what an owner action makes stale. */
+/** The app's query cache: its keys, the client, what persists, and what a link or release makes stale. */
 const DAY = 24 * 60 * 60 * 1000;
 
 export const queryKeys = {
 	media: (pda: string) => ['accessory-media', pda] as const,
 	shortcuts: (pda: string, owner: string | null) =>
 		['accessory-shortcuts', pda, owner ?? ''] as const,
-	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const,
-	accessoryWallet: (pda: string) => ['accessory-wallet', pda] as const,
-	passkeyWallet: (wallet: string) => ['passkey-wallet', wallet] as const,
-	accessoryPolicy: (pda: string) => ['accessory-policy', pda] as const,
-	/** Everything about an accessory's network fees starts with this, so one invalidation covers it. */
-	fees: (pda: string) => ['fees', pda] as const,
-	feePreview: (pda: string, owner: string | null, drainsWallet: boolean) =>
-		['fees', pda, 'preview', owner ?? '', drainsWallet] as const,
-	sponsor: (pda: string) => ['fees', pda, 'sponsor'] as const
+	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const
 };
 
 export function createQueryClient() {
@@ -34,17 +26,6 @@ export const queryClient = createQueryClient();
 /** After a link or release: which accessories each wallet owns has changed. Dropped, not refetched, so no stale list flashes. */
 export function forgetWalletAccessories() {
 	queryClient.removeQueries({ queryKey: ['wallet-accessories'] });
-}
-
-/** After an owner action on `pda` lands: its balances, policy and fees are stale. */
-export function refreshAccessory(pda: string) {
-	for (const queryKey of [
-		queryKeys.accessoryWallet(pda),
-		queryKeys.accessoryPolicy(pda),
-		queryKeys.fees(pda)
-	]) {
-		void queryClient.invalidateQueries({ queryKey });
-	}
 }
 
 /** Bump when a cached shape changes, so old persisted entries are discarded. */

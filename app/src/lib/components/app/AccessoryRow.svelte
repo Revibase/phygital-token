@@ -2,8 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import AccessoryMark from './AccessoryMark.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { accessoryMediaQuery, accessoryWalletQuery } from '$lib/client/queries';
-	import { describeHoldings } from '$lib/shared/wallet-holdings';
+	import { accessoryMediaQuery } from '$lib/client/queries';
 	import type { AccessoryView } from '$lib/shared/types';
 	import { cn } from '$lib/utils';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
@@ -25,8 +24,6 @@
 		enabled: !!accessory.mint
 	}));
 	const name = $derived(media.data?.name ?? null);
-	const wallet = createQuery(() => accessoryWalletQuery(accessory.pda));
-	const held = $derived(wallet.data ? describeHoldings(wallet.data) : null);
 
 	const kind = $derived(
 		accessory.kind === 'permanent'
@@ -57,7 +54,7 @@
 				>{name ?? `Accessory · ${accessory.tag}`}</span
 			>
 			<span class="block truncate text-[13px] text-muted-foreground"
-				>{[kind, name ? accessory.tag : null, held].filter(Boolean).join(' · ')}</span
+				>{name ? `${kind} · ${accessory.tag}` : kind}</span
 			>
 		</span>
 		{#if onclick && !trailing}

@@ -4,7 +4,7 @@
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import EllipsisVertical from '@lucide/svelte/icons/ellipsis-vertical';
 	import Copy from '@lucide/svelte/icons/copy';
-	import KeyRound from '@lucide/svelte/icons/key-round';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import { explorerUrl } from '$lib/shared/explorer';
 	import { copyText } from '$lib/client/clipboard';
@@ -19,7 +19,7 @@
 		context = null,
 		cluster = null,
 		nftOwnership = null,
-		onexport,
+		onforget,
 		href
 	}: {
 		address: string;
@@ -27,7 +27,8 @@
 		icon?: string | null;
 		context?: string | null;
 		cluster?: string | null;
-		onexport?: () => void;
+		/** Forget which wallet app this accessory opens in (shortcuts, release handoff). */
+		onforget?: () => void;
 		nftOwnership?: 'same' | 'different' | null;
 		/** Opens this wallet's own page instead of the options menu. */
 		href?: string;
@@ -58,9 +59,9 @@
 						>{/snippet}
 				</DropdownMenu.Item>
 			{/if}
-			{#if onexport}
-				<DropdownMenu.Item onSelect={onexport}
-					><KeyRound class="size-4 shrink-0" />Export key</DropdownMenu.Item
+			{#if onforget}
+				<DropdownMenu.Item onSelect={onforget}
+					><RotateCcw class="size-4 shrink-0" />Forget wallet preference</DropdownMenu.Item
 				>
 			{/if}
 		</DropdownMenu.Content>

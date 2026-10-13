@@ -3,8 +3,7 @@
 # so it must be a proxy Worker with no secret in the URL.
 SOLANA_RPC_URL=https://your-rpc-proxy.example.com
 SESSION_SECRET=replace-me
-# The passkey-wallet iframe (`pnpm --filter secure-signer dev`).
-SECURE_SIGNER_ORIGIN=http://localhost:5174
-# Fee-payer pool for /api/sponsor: comma-separated base58 64-byte secret keys.
-# Fund each on the cluster you use (devnet: `solana airdrop 1 <address> -u devnet`).
-SPONSOR_KEYS=
+# Handoff and pairing links point here; use the dev server's URL locally.
+ORIGIN=http://localhost:5173
+# The WebAuthn relying party: the host that serves the tap page.
+RP_ID=localhost
