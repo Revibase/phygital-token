@@ -1,10 +1,10 @@
 /**
  * Centralized, security-critical constants for the signer.
  *
- * WHY a single obvious file (§41): every value that defines the trust boundary
+ * WHY a single obvious file: every value that defines the trust boundary
  * — the parent origin we accept, the fixed crypto parameters a swapped wallet
- * blob must NOT be able to steer (§35), the allowed programs, and the hard size
- * caps applied BEFORE any expensive parsing (§32) — lives here so it can be
+ * blob must NOT be able to steer, the allowed programs, and the hard size
+ * caps applied BEFORE any expensive parsing — lives here so it can be
  * audited at a glance. Nothing here is attacker-controllable.
  */
 
@@ -23,9 +23,9 @@ export { PROTOCOL_VERSION };
 
 /**
  * The ONLY origin we accept postMessage requests from, and the only origin we
- * post results to. Never `"*"` (§9). Set at build time via VITE_PARENT_ORIGIN.
+ * post results to. Never `"*"`. Set at build time via VITE_PARENT_ORIGIN.
  *
- * NOTE (§2): matching this origin does NOT prove a request is benign — an XSS
+ * NOTE: matching this origin does NOT prove a request is benign — an XSS
  * attacker running on the legitimate parent has the legitimate origin. It is a
  * necessary filter, not the authorization mechanism.
  */
@@ -46,7 +46,7 @@ export const RP_ID: string = resolveRpId(
 // Fixed cryptographic parameters (IMPLEMENTATION-FIXED, never from the blob).
 // A portable wallet blob authenticates these via AAD but does NOT carry them,
 // so a malicious parent cannot swap in a different PRF salt / KDF / algorithm
-// to coax unexpected decryption behavior (§7, §35).
+// to coax unexpected decryption behavior.
 // ---------------------------------------------------------------------------
 
 /**
@@ -86,11 +86,11 @@ export { PUT_CHALLENGE_PREFIX };
 // Portable wallet blob format.
 // ---------------------------------------------------------------------------
 
-/** RSS1 magic and the only supported version (unknown versions fail closed, §6). */
+/** RSS1 magic and the only supported version (unknown versions fail closed). */
 export { BLOB_MAGIC, BLOB_VERSION };
 
 // ---------------------------------------------------------------------------
-// Hard size caps — applied BEFORE parsing (§32). Values are deliberately tight.
+// Hard size caps — applied BEFORE parsing. Values are deliberately tight.
 // ---------------------------------------------------------------------------
 
 /** Max total size of an inbound postMessage payload (JSON string bytes). */
@@ -104,7 +104,7 @@ export { MAX_TX_BYTES };
 // Freshness / replay.
 // ---------------------------------------------------------------------------
 
-/** Requests older than this (by client `timestamp`) are rejected as stale (§9). */
+/** Requests older than this (by client `timestamp`) are rejected as stale. */
 export const REQUEST_FRESHNESS_WINDOW_MS = 60_000;
 /**
  * Most request ids held for duplicate detection. Ids are kept while their

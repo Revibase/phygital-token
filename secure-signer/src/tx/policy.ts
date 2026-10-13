@@ -1,12 +1,12 @@
 /**
- * Transaction policy (§16-§19). Everything security-sensitive is derived from
- * the SIGNER's own kit decode — never from parent-supplied descriptions (§17).
+ * Transaction policy. Everything security-sensitive is derived from
+ * the SIGNER's own kit decode — never from parent-supplied descriptions.
  *
  * Guarantees enforced here:
  *  - every top-level program is on the allowlist: phygital-token (link, unlink,
  *    execute_with_owner, update_policy, close_policy), ATA createIdempotent,
  *    ComputeBudget, and the secp256r1 precompile only beside a link;
- *  - the authenticated wallet is a REQUIRED SIGNER of the transaction (§34/§15);
+ *  - the authenticated wallet is a REQUIRED SIGNER of the transaction;
  *  - every signing role of every instruction (owner, recipient) is the
  *    authenticated wallet, so it never co-signs someone else's operation.
  *    Who pays the fee, and who funds tap-payments rent, may be anyone (a

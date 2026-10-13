@@ -1,10 +1,10 @@
 /**
- * Signer state machine + replay/freshness + digest-bound authorization (§15, §22).
+ * Signer state machine + replay/freshness + digest-bound authorization.
  *
  * Invariants:
- *  - One sensitive flow active at a time (§33). A second request while one is
+ *  - One sensitive flow active at a time. A second request while one is
  *    pending is rejected without disturbing the active operation.
- *  - Duplicate request ids and stale requests are rejected (§9). An id is
+ *  - Duplicate request ids and stale requests are rejected. An id is
  *    remembered for as long as its timestamp is fresh, so it can never be
  *    replayed; if that many fresh ids are held, new requests are refused
  *    rather than forgetting one.

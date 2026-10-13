@@ -1,10 +1,10 @@
 /**
  * Decode a legacy, v0 or v1 Solana transaction for signing via @solana/kit codecs.
  *
- * Kit owns the wire format. We add a pre-parse size cap (§32), reject trailing
+ * Kit owns the wire format. We add a pre-parse size cap, reject trailing
  * bytes and address lookup tables (every account must be visible to the
  * policy), and sign the EXACT `messageBytes` returned by the decoder — never a
- * re-encode (§22, §39).
+ * re-encode.
  */
 
 import {

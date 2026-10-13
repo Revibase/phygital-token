@@ -15,7 +15,7 @@ parent app (portal.*) ── postMessage ──►  signer origin (signer.*)
                                            - trusted confirm UI + per-op WebAuthn PRF
 ```
 
-Everything crossing into the signer is attacker-controlled (§44). The signer
+Everything crossing into the signer is attacker-controlled. The signer
 independently derives or cryptographically verifies anything security-sensitive.
 The parent only ever legitimately receives: public keys, signatures,
 and generic results/errors. Encrypted wallet blobs stay on the signer origin
@@ -38,7 +38,7 @@ and generic results/errors. Encrypted wallet blobs stay on the signer origin
 | Decryption oracle                          | All decrypt/auth failures collapse to one generic code.                                                                                                                         |
 | DoS by parent                              | Accepted for availability; confidentiality/integrity preserved. Operations are serialized.                                                                                      |
 
-## What it explicitly does NOT defend against (§42 — no false claims)
+## What it explicitly does NOT defend against (no false claims)
 
 - **Holding up an accessory's prepaid fees.** The fee service reserves the fee for an owner transaction before the owner has signed it, until its blockhash expires, so anyone can briefly tie up that balance. No funds move; accepted for availability.
 
@@ -76,7 +76,7 @@ passkey on another device. This is authenticator/browser-dependent.
 | Cross-ecosystem (Apple ↔ Google)           | n/a            | Not portable today               |
 
 If PRF is unavailable, the signer **throws** rather than weakening encryption
-(§11). Document to users: use a synced, PRF-capable passkey and keep it; there is
+. Document to users: use a synced, PRF-capable passkey and keep it; there is
 no seed/multi-credential backup (accepted decision).
 
 ## Key residual risks to revisit

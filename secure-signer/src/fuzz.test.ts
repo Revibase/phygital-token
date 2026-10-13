@@ -1,5 +1,5 @@
 /**
- * Fuzz the attacker-facing decoders (§38). We assert they always terminate and
+ * Fuzz the attacker-facing decoders. We assert they always terminate and
  * only ever fail with their declared error type — never hang, never OOB, never
  * throw a non-Error, never return a "valid" parse from trailing garbage.
  */

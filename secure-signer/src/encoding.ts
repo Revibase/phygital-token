@@ -1,10 +1,10 @@
 /**
  * Small, dependency-free byte<->string codecs used on the trust boundary.
  *
- * WHY hand-rolled + strict: these decode ATTACKER-CONTROLLED strings (§38 fuzz
+ * WHY hand-rolled + strict: these decode ATTACKER-CONTROLLED strings (fuzz
  * targets). They must never throw on odd input in a way that leaks state, never
  * over-allocate, and reject non-canonical encodings rather than silently
- * "fixing" them (a lenient decoder is a source of parser differentials, §39).
+ * "fixing" them (a lenient decoder is a source of parser differentials).
  */
 
 const B64_STD = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -43,7 +43,7 @@ export function base64ToBytes(
     if (pad > 2) throw new DecodeError("excess padding");
   }
   const len = end;
-  // Cheap length pre-check before allocating (§32): 4 chars -> 3 bytes.
+  // Cheap length pre-check before allocating: 4 chars -> 3 bytes.
   const approxOut = Math.floor((len * 3) / 4);
   if (approxOut > maxBytes) throw new DecodeError("too large");
   if (len % 4 === 1) throw new DecodeError("invalid length");

@@ -1,13 +1,13 @@
 /**
  * Portable encrypted wallet blob: a small, versioned, self-describing DETERMINISTIC
- * BINARY format (§6). Deliberately not free-form JSON so the AES-GCM AAD (§7) is
+ * BINARY format. Deliberately not free-form JSON so the AES-GCM AAD is
  * an unambiguous byte string, and so a malicious parent cannot smuggle extra
  * fields or reorder them.
  *
- * The blob is treated as PUBLIC CIPHERTEXT (§4): holding it must not by itself
+ * The blob is treated as PUBLIC CIPHERTEXT: holding it must not by itself
  * reveal the key. Every cleartext field is bound as AAD, so tampering fails
  * decryption; after decryption we additionally re-derive the public key and
- * require it to match the stored one (§7, §34).
+ * require it to match the stored one.
  *
  * Layout (big-endian lengths):
  *   magic[4] "RSS1" | version[1] | publicKey[32] |
@@ -44,7 +44,7 @@ export interface ParsedWalletBlob extends WalletBlobFields {
   version: number;
 }
 
-// --- bounds-checked reader (no OOB reads on attacker bytes, §38) ---
+// --- bounds-checked reader (no OOB reads on attacker bytes) ---
 class Reader {
   private o = 0;
   constructor(private readonly b: Uint8Array) {}
@@ -110,7 +110,7 @@ export function encodeWalletBlob(f: WalletBlobFields): Uint8Array {
 
 /** Strict decode. `bytes` is attacker-controlled; every field is bounded. */
 export function decodeWalletBlob(bytes: Uint8Array): ParsedWalletBlob {
-  // Hard size cap BEFORE structural parsing (§32).
+  // Hard size cap BEFORE structural parsing.
   if (bytes.length < 4 + 1 + 32 + 2 + 1 + 32 + 12 + 2 + EXPECTED_CIPHERTEXT_BYTES)
     throw new BlobError("too short");
   if (bytes.length > MAX_BLOB_BYTES) throw new BlobError("too large");
@@ -131,14 +131,14 @@ export function decodeWalletBlob(bytes: Uint8Array): ParsedWalletBlob {
   if (ctLen !== EXPECTED_CIPHERTEXT_BYTES) throw new BlobError("ciphertext length");
   const ciphertext = r.bytes(ctLen).slice();
 
-  // Reject trailing bytes — no ambiguity / hidden data (§35, §38).
+  // Reject trailing bytes — no ambiguity / hidden data.
   if (!r.atEnd()) throw new BlobError("trailing bytes");
 
   return { version, publicKey, credentialId, kdfSalt, iv, ciphertext };
 }
 
 /**
- * Deterministic AAD binding the security-sensitive metadata (§7). Built from the
+ * Deterministic AAD binding the security-sensitive metadata. Built from the
  * PARSED header fields plus the implementation-fixed rpId and HKDF label, so any
  * tamper of publicKey / credentialId / salt flips the AAD and fails GCM auth.
  * The `iv` is the GCM nonce and is intentionally not duplicated here.
