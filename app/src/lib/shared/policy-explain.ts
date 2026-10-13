@@ -4,11 +4,9 @@ import type { RuleJson } from 'phygital-token-sdk';
 
 import { formatTokenAmount } from './amount';
 import { shortAddress } from './encoding';
-import type { Change } from './policy-merge';
 import { periodLabel, sameOrigins, SOL, type CapDraft, type PolicyDraft } from './policy-draft';
 
 export type AssetInfo = { symbol: string; decimals: number; icon?: string | null; name?: string };
-export type Explained = { title: string; details: string[]; reason?: string };
 
 export const programName = (id: string) =>
 	knownProgram(id)?.name ?? `Unknown program ${shortAddress(id)}`;
@@ -66,48 +64,6 @@ export function ruleDetails(rule: RuleJson): string[] {
 export function limitPhrase(asset: string, cap: CapDraft, info: AssetInfo): string {
 	const fmt = (v: bigint) => `${formatTokenAmount(v, info.decimals)} ${info.symbol}`;
 	return `${fmt(cap.cap)} ${periodLabel(cap.windowSeconds)}${cap.maxPerTx > 0n ? `, at most ${fmt(cap.maxPerTx)} per tap` : ''}`;
-}
-
-export function explainChange(change: Change, assets: (asset: string) => AssetInfo): Explained {
-	const reason = 'reason' in change ? change.reason : undefined;
-	switch (change.kind) {
-		case 'addProgram':
-			return change.access === 'all'
-				? {
-						title: `Allow ${programName(change.program)} to do everything`,
-						details: [change.program],
-						reason
-					}
-				: {
-						title: `Allow ${programName(change.program)} to: ${change.access.map((r) => ruleLabel(change.program, r)).join(', ')}`,
-						details: change.access.flatMap(ruleDetails),
-						reason
-					};
-		case 'widenProgram':
-			return {
-				title: `Let ${programName(change.program)} do everything, not just what it's allowed today`,
-				details: [change.program],
-				reason
-			};
-		case 'addRules':
-			return {
-				title: `Also allow ${programName(change.program)} to: ${change.rules.map((r) => ruleLabel(change.program, r)).join(', ')}`,
-				details: change.rules.flatMap(ruleDetails),
-				reason
-			};
-		case 'addLimit':
-			return {
-				title: `Let taps spend up to ${limitPhrase(change.asset, change.cap, assets(change.asset))}`,
-				details: []
-			};
-		case 'raiseLimit':
-			return {
-				title: `Raise the ${assets(change.asset).symbol} limit from ${limitPhrase(change.asset, change.from, assets(change.asset))} to ${limitPhrase(change.asset, change.to, assets(change.asset))}`,
-				details: []
-			};
-		case 'addOrigins':
-			return { title: `Also accept taps from ${change.origins.join(', ')}`, details: [] };
-	}
 }
 
 export const SOL_INFO: AssetInfo = { symbol: 'SOL', decimals: 9, icon: '/solana.svg' };

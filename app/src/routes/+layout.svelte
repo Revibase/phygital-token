@@ -19,13 +19,6 @@
 	});
 
 	// Mobile only. A Mac user agent may be an iPad, which only touch support reveals.
-	let currentHref = $state<string | null>(null);
-	onMount(() => {
-		const update = () => (currentHref = location.href);
-		update();
-		window.addEventListener('hashchange', update);
-		return () => window.removeEventListener('hashchange', update);
-	});
 	let touch = $state<boolean | null>(null);
 	onMount(() => (touch = navigator.maxTouchPoints > 1));
 	const gate = $derived(
@@ -57,8 +50,6 @@
 		{@render children()}
 		<SecureSignerHost />
 	{:else if gate === 'phone'}
-		<OpenOnPhone
-			href={page.url.pathname === '/permissions' && currentHref ? currentHref : phoneUrl(page.url)}
-		/>
+		<OpenOnPhone href={phoneUrl(page.url)} />
 	{/if}
 </PersistQueryClientProvider>

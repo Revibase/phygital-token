@@ -23,7 +23,6 @@ import {
 	TOKEN_PROGRAM_ADDRESS
 } from '@solana-program/token';
 import {
-	encodePermissionRequest,
 	fetchMaybeAccessoryPolicy,
 	fetchMaybePhygitalToken,
 	findPolicyPda,
@@ -379,24 +378,23 @@ async function claimed(s: Session, kind: AccessoryKind = 'controlled') {
 }
 
 /** The owner allows System transfers by tap: 0.1 SOL a day, at most 0.01 SOL per tap. */
-async function allowTapPayments(s: Session, origins: string[] = [DAPP]) {
-	const link = await encodePermissionRequest(
-		{
-			v: 1,
-			name: 'E2E payments',
-			reason: 'Send small SOL payments with a tap.',
-			programs: [
-				{ id: '11111111111111111111111111111111', access: { only: [{ selector: '02000000' }] } }
-			],
-			limits: [{ asset: 'SOL', amount: '100000000', period: 'day', maxPerTap: '10000000' }],
-			origins
-		},
-		APP + '/permissions'
-	);
-	await s.page.goto(link);
-	await s.page.waitForLoadState('networkidle');
-	await s.page.getByRole('button', { name: 'Allow these permissions' }).click();
-	await authorize(s, 'update-policy-request');
+async function allowTapPayments(s: Session, accessory: Accessory, origins: string[] = [DAPP]) {
+	const permissions = {
+		v: 1,
+		programs: [
+			{ id: '11111111111111111111111111111111', access: { only: [{ selector: '02000000' }] } }
+		],
+		limits: [{ asset: 'SOL', amount: '100000000', period: 'day', maxPerTap: '10000000' }],
+		origins
+	};
+	await openWallet(s.page, accessory.pda);
+	await s.page.getByRole('button', { name: /^Tap to sign transactions/ }).click();
+	await s.page.getByRole('button', { name: 'Permissions options' }).click();
+	await s.page.getByRole('menuitem', { name: 'Import permissions' }).click();
+	await s.page.getByLabel('Permissions JSON').fill(JSON.stringify(permissions));
+	await s.page.getByRole('button', { name: 'Use these permissions' }).click();
+	await s.page.getByRole('button', { name: 'Save changes' }).click();
+	await authorize(s, 'update-policy');
 	await text(s.page, 'Tap permissions saved').waitFor({ timeout: 60_000 });
 }
 
@@ -574,32 +572,14 @@ try {
 		assert.equal(await passkeyAddress(s.page), null, 'nothing is connected');
 	});
 
-	await test('permission request: update_policy through the signer, read back on chain', async (s) => {
+	await test('owner imports permissions: update_policy through the signer, read back on chain', async (s) => {
 		const accessory = await claimed(s);
-		const link = await encodePermissionRequest(
-			{
-				v: 1,
-				name: 'E2E payments',
-				reason: 'Send small SOL payments with a tap.',
-				programs: [
-					{ id: '11111111111111111111111111111111', access: { only: [{ selector: '02000000' }] } }
-				],
-				limits: [{ asset: 'SOL', amount: '100000000', period: 'day', maxPerTap: '10000000' }],
-				origins: [DAPP]
-			},
-			APP + '/permissions'
-		);
-		await s.page.goto(link);
-		await s.page.waitForLoadState('networkidle');
-		await s.page.getByRole('button', { name: 'Allow these permissions' }).click();
-		await authorize(s, 'update-policy-request');
-		await text(s.page, 'Tap permissions saved').waitFor({ timeout: 60_000 });
+		await allowTapPayments(s, accessory, []);
 		const [policyPda] = await findPolicyPda({ phygitalToken: address(accessory.pda) });
 		const policy = await fetchMaybeAccessoryPolicy(rpc, policyPda, { commitment: 'confirmed' });
 		assert.ok(policy.exists, 'the policy exists on chain');
 		assert.equal(policy.data.solCap.__option, 'Some');
-		// No site list yet means any site; a request's origins only add to an existing list.
-		assert.deepEqual(policy.data.allowedOrigins, []);
+		assert.deepEqual(policy.data.allowedOrigins, [], 'no site list means any site');
 		assert.equal(policy.data.programPermissions.length, 1);
 	});
 
@@ -717,7 +697,7 @@ try {
 	await test('tap to sign: an integrator site pays within the limits, and only within them', async (s) => {
 		const accessory = await claimed(s);
 		await fund(accessory.wallet, 0.5);
-		await allowTapPayments(s);
+		await allowTapPayments(s, accessory);
 		const recipient = (await generateKeyPairSigner()).address;
 
 		const paid = await payOnDapp(s, accessory, recipient, 5_000_000n);
@@ -743,7 +723,7 @@ try {
 	await test('allowed sites: the owner restricts which sites can ask for a tap', async (s) => {
 		const accessory = await claimed(s);
 		await fund(accessory.wallet, 0.5);
-		await allowTapPayments(s);
+		await allowTapPayments(s, accessory);
 		const recipient = (await generateKeyPairSigner()).address;
 
 		const setSites = async (sites: string[]) => {

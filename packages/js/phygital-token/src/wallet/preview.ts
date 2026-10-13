@@ -1,4 +1,4 @@
-import { isSolanaError, SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM } from "@solana/kit";
+import { isSolanaError, SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM, type Address } from "@solana/kit";
 import {
   PHYGITAL_TOKEN_ERROR__DELEGATION_NOT_ALLOWED,
   PHYGITAL_TOKEN_ERROR__INSTRUCTION_NOT_ALLOWED,
@@ -11,6 +11,7 @@ import {
   PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED,
   PHYGITAL_TOKEN_ERROR__TOKEN_AUTHORITY_CHANGED,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+  type ProgramPermission,
 } from "../generated/index.js";
 
 /** Anchor's `AccountNotInitialized`: the token has no accessory policy. */
@@ -21,24 +22,53 @@ const ANCHOR_ACCOUNT_NOT_INITIALIZED = 3012;
  * reason (e.g. `program_not_allowed`, `spend_limit`); `soft` marks states the
  * owner can fix by setting up a policy or an owner rather than by changing the
  * request.
+ *
+ * Only the owner can change the policy: show `programs` (for
+ * `program_not_allowed` and `instruction_not_allowed`) and link to `manageUrl`.
  */
 export class PolicyDeniedError extends Error {
   readonly code: string;
   readonly soft: boolean;
   readonly details?: Record<string, unknown>;
+  /** The programs the policy blocks in this transaction, when known. */
+  readonly programs?: readonly Address[];
+  /** Where the owner can change the policy. */
+  readonly manageUrl?: string;
 
   constructor(args: {
     code: string;
     error: string;
     soft?: boolean;
     details?: Record<string, unknown>;
+    programs?: readonly Address[];
+    manageUrl?: string;
   }) {
     super(args.error);
     this.name = "PolicyDeniedError";
     this.code = args.code;
     this.soft = args.soft ?? false;
     this.details = args.details;
+    this.programs = args.programs;
+    this.manageUrl = args.manageUrl;
   }
+}
+
+/**
+ * Which of the `called` programs a denial with `code` is about: unlisted ones
+ * for `program_not_allowed`; listed ones limited to some instructions for
+ * `instruction_not_allowed`. The program decides; this only names them.
+ */
+export function blockedPrograms(
+  code: string,
+  called: readonly Address[],
+  permissions: readonly ProgramPermission[],
+): Address[] {
+  const access = new Map(permissions.map((p) => [p.programId, p.access.__kind]));
+  const blocked = (program: Address) =>
+    code === "program_not_allowed"
+      ? !access.has(program)
+      : code === "instruction_not_allowed" && access.get(program) === "Restricted";
+  return [...new Set(called)].filter(blocked);
 }
 
 const POLICY_SOFT_DENY_BY_CODE: ReadonlyMap<number, { code: string; message: string }> = new Map([

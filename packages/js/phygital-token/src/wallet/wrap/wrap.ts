@@ -22,7 +22,7 @@ import {
   authenticatePasskeyForChallenge,
   buildSecp256r1VerifyFromTap,
 } from "../../instructions/internal/tap.js";
-import type { CompactInstructionArgs } from "../../generated/index.js";
+import { fetchMaybeAccessoryPolicy, type CompactInstructionArgs } from "../../generated/index.js";
 import { PhygitalTokenError } from "../../utils/errors.js";
 import { getLatestSlotHash } from "../../utils/slotHash.js";
 import {
@@ -30,7 +30,8 @@ import {
   compileWalletInstructions,
   elevateRemainingForExecuteChallenge,
 } from "../compile.js";
-import { PolicyDeniedError } from "../preview.js";
+import { accessoryManageUrl } from "../manage.js";
+import { blockedPrograms, PolicyDeniedError } from "../preview.js";
 import {
   AccessoryWalletTopUpRequired,
   canSpendLamports,
@@ -72,6 +73,31 @@ const REFILL_COMPUTE_UNIT_ESTIMATE = 400_000n;
 const SOL_SPEND_DENIALS = new Set(["spend_not_allowed", "spend_limit", "max_per_tx"]);
 
 const MEMO_PROGRAM_ADDRESS = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr" as Address;
+
+/** Adds the blocked programs and the owner's manage page to a policy denial. */
+async function withDenialDetails(
+  error: unknown,
+  rpc: Rpc<SolanaRpcApi>,
+  executeAccounts: WalletExecuteAccounts,
+  calledPrograms: readonly Address[],
+): Promise<never> {
+  if (!(error instanceof PolicyDeniedError)) throw error;
+  let programs: Address[] | undefined;
+  if (error.code === "program_not_allowed" || error.code === "instruction_not_allowed") {
+    const policy = await fetchMaybeAccessoryPolicy(rpc, executeAccounts.policy).catch(() => null);
+    if (policy?.exists) {
+      programs = blockedPrograms(error.code, calledPrograms, policy.data.programPermissions);
+    }
+  }
+  throw new PolicyDeniedError({
+    code: error.code,
+    error: programs?.length ? `${error.message}: ${programs.join(", ")}` : error.message,
+    soft: error.soft,
+    details: error.details,
+    programs,
+    manageUrl: accessoryManageUrl(executeAccounts.phygitalToken),
+  });
+}
 
 async function prepareWrappedWalletTransaction(input: {
   rpc: Rpc<SolanaRpcApi>;
@@ -306,16 +332,17 @@ export async function modifyAndWrapWalletTransaction(input: {
       })
     : 0n;
 
-  const compiled =
+  const refillInstruction =
     refill > 0n
-      ? compileWalletInstructions(
-          [
-            ...prepared.bodyInstructions,
-            getRefillInstruction(input.walletPda, input.executeAccounts.feePayer.address, refill),
-          ],
-          input.walletPda,
-        )
-      : earlyCompiled;
+      ? getRefillInstruction(input.walletPda, input.executeAccounts.feePayer.address, refill)
+      : null;
+  const compiled = refillInstruction
+    ? compileWalletInstructions([...prepared.bodyInstructions, refillInstruction], input.walletPda)
+    : earlyCompiled;
+  const calledPrograms = [
+    ...prepared.bodyInstructions,
+    ...(refillInstruction ? [refillInstruction] : []),
+  ].map((ix) => ix.programAddress);
   const compiledRemaining =
     refill > 0n
       ? elevateForExecuteAccounts(compiled.remainingAccounts, input.executeAccounts)
@@ -331,25 +358,33 @@ export async function modifyAndWrapWalletTransaction(input: {
       executeAccounts: input.executeAccounts,
     }),
     input.abortSignal,
-  ).catch(async (error: unknown) => {
-    if (!(refill > 0n && error instanceof PolicyDeniedError && SOL_SPEND_DENIALS.has(error.code))) {
-      throw error;
-    }
-    // Would it pass without the refill? Then the refill is what the limits block.
-    await assertPolicyPreviewSucceeds(
-      input.rpc,
-      buildPolicyPreviewMessage({
-        prepared,
-        compactInstructions: earlyCompiled.compactInstructions,
-        remainingAccounts,
-        executeAccounts: input.executeAccounts,
-      }),
-      input.abortSignal,
-    ).catch(() => {
-      throw error;
-    });
-    throw new RefillBlockedByTapLimit(refill, input.prepaidFees!.manageUrl);
-  });
+  )
+    .catch(async (error: unknown) => {
+      if (!(
+        refill > 0n &&
+        error instanceof PolicyDeniedError &&
+        SOL_SPEND_DENIALS.has(error.code)
+      )) {
+        throw error;
+      }
+      // Would it pass without the refill? Then the refill is what the limits block.
+      await assertPolicyPreviewSucceeds(
+        input.rpc,
+        buildPolicyPreviewMessage({
+          prepared,
+          compactInstructions: earlyCompiled.compactInstructions,
+          remainingAccounts,
+          executeAccounts: input.executeAccounts,
+        }),
+        input.abortSignal,
+      ).catch(() => {
+        throw error;
+      });
+      throw new RefillBlockedByTapLimit(refill, input.prepaidFees!.manageUrl);
+    })
+    .catch((error: unknown) =>
+      withDenialDetails(error, input.rpc, input.executeAccounts, calledPrograms),
+    );
   const pending = buildPendingWalletWrap(prepared, input.executeAccounts.phygitalToken, slot, {
     compactInstructions: compiled.compactInstructions,
     remainingAccounts: compiledRemaining,

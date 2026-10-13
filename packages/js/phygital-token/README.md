@@ -70,7 +70,7 @@ const wallet = await getPhygitalWalletSigner(rpc, phygitalTokenPda, {
   onFeePlan: ({ source, refillLamports }) => console.log(source, refillLamports),
 });
 // Use `wallet` as the signer of instructions that spend from it, then sign as usual.
-// A policy refusal throws PolicyDeniedError (e.g. code "spend_not_allowed") before the tap.
+// A policy refusal throws PolicyDeniedError before the tap (see below).
 ```
 
 The wallet PDA has no key, so someone else pays the network fee. By default
@@ -116,32 +116,24 @@ const session = await getRevibaseAccessorySession(wallet); // null for other wal
 await getRevibaseAccessorySession(wallet, { refresh: true }); // re-read the chain
 ```
 
-### Request accessory permissions
+### When the policy refuses
 
-Projects can ask owners to configure an accessory through a reusable link or QR code:
+Only the owner sets the accessory's policy, in Revibase. Apps can't propose permissions. A transaction the policy refuses throws `PolicyDeniedError` before the tap:
 
 ```ts
-import { encodePermissionRequest, type PermissionSet } from 'phygital-token-sdk';
-
-const permissions: PermissionSet = {
-  v: 1,
-  name: 'My project',
-  reason: 'Transfer SOL when you tap to pay',
-  programs: [{
-    id: '11111111111111111111111111111111',
-    access: { only: [{ selector: '02000000' }] }
-  }],
-  limits: [{ asset: 'SOL', amount: '100000000', period: 'day', maxPerTap: '10000000' }],
-  origins: ['https://app.example.com'] // your site
-};
-const url = await encodePermissionRequest(permissions);
-// Render `url` as a link or QR code.
+try {
+  await sendTransaction(tx, connection);
+} catch (e) {
+  const error = e instanceof PolicyDeniedError ? e : e?.error; // wallet-adapter wraps it
+  if (error instanceof PolicyDeniedError) {
+    // error.code: "program_not_allowed", "spend_limit", "origin_not_allowed", …
+    // error.programs: the blocked programs, for program_not_allowed / instruction_not_allowed
+    // error.manageUrl: where the owner can change the policy
+  }
+}
 ```
 
-Amounts are raw-unit decimal strings; selectors and byte checks are lowercase hex. Periods support `day`, `week`, `month`, `lifetime`, or a number of seconds. Rules can constrain data length, account count, account keys (`wallet` means the accessory wallet), owners, signer/writable flags, account data and instruction arguments. Each instruction gets at most one rule per program: a rule matches instructions whose data starts with its selector, so the program rejects a selector that repeats or prefixes another in the same program (`selectorsOverlap` checks this). `parseRule` also rejects checks within a rule that can never all hold, such as an amount above 10,000 and below 5,000, bytes that disagree with the selector, or one account required to have two different addresses; the program would save such a rule, but it would never match. `parsePermissionSet`, `parseRule`, `ruleToArgs` and `ruleFromProgram` provide validation and lossless conversion.
+`POLICY_DENIAL_CODES` lists every code. The program decides what is allowed; `programs` only names what it refused.
 
-`origins` lists the sites that may ask for a tap, exactly as browsers write them (`https://host[:port]`, or `http://localhost[:port]`; check with `isValidOrigin`). Owners can limit their accessory to some sites; a request's origins are added to that list, and change nothing when the owner allows any site. A tap from an unlisted site is refused before the tap with `PolicyDeniedError` code `origin_not_allowed`. The check binds browser taps only: a native app talking to the accessory directly can claim any origin.
+The permission JSON (`PermissionSet`) is the format the Revibase editor imports and exports. `parsePermissionSet`, `parseRule`, `ruleToArgs` and `ruleFromProgram` validate it and convert it losslessly to and from the program's rules. Amounts are raw-unit decimal strings; selectors and byte checks are lowercase hex. A rule matches instructions whose data starts with its selector, so the program rejects a selector that repeats or prefixes another in the same program (`selectorsOverlap` checks this). `origins` uses the exact form browsers write (`https://host[:port]`, or `http://localhost[:port]`; check with `isValidOrigin`).
 
-Links contain a deflate-raw/base64url fragment (`#r=`), capped at 4 KB compressed and 64 KB decoded; the fragment never reaches the server. The schema allows at most 64 programs, 32 rules per program, 16 asset limits and 16 origins, rejects duplicate entries and unknown fields, and enforces the program's rule checks. `decodePermissionRequest` reads links or payloads. Alternatively, host the JSON with CORS enabled and link to `https://portal.revibase.com/permissions?src=<encoded HTTPS URL>`; `fetchPermissionRequest` fetches it without cookies or redirects and caps the response size.
-
-The link does not choose an accessory: owners connect and select one. Revibase reviews only missing permissions and increases to existing limits, preserves existing access and shorter recurring reset windows, and warns about unknown/upgradeable programs and dangerous actions. Owners must acknowledge danger and can edit before approving. A source hostname identifies the origin of a request, not its trustworthiness.

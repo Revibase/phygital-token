@@ -56,7 +56,7 @@ E2E_ENGINE=webkit pnpm --filter revibase test:e2e                     # WebKit
 
 `E2E_FILTER=regex` runs matching scenarios; `E2E_HEADED=1` shows the browser. The e2e stack has its own bindings (`test/e2e/wrangler.jsonc`), secrets (`test/e2e/.dev.vars`) and D1 store (`.wrangler/e2e`), so it never touches your `.dev.vars`. The app also serves the validator at `/__e2e/rpc` in this mode.
 
-Scenarios cover the passkey wallet (create, reload, restore on a new phone, unknown passkey, export), claiming, owner sign-in, permission requests, SOL, token and send-all transfers, release with sweep, tap-to-sign from another site within limits and allowed sites, recovery from cancels and dismissed prompts, a hostile parent posting crafted messages to the signer, and a foreign site framing it. After each scenario a leak scan checks that no PRF output reached the app, the network or app storage. Every signer confirm screen is saved to `test/e2e/results/signer/` for review.
+Scenarios cover the passkey wallet (create, reload, restore on a new phone, unknown passkey, export), claiming, owner sign-in, editing tap permissions, SOL, token and send-all transfers, release with sweep, tap-to-sign from another site within limits and allowed sites, recovery from cancels and dismissed prompts, a hostile parent posting crafted messages to the signer, and a foreign site framing it. After each scenario a leak scan checks that no PRF output reached the app, the network or app storage. Every signer confirm screen is saved to `test/e2e/results/signer/` for review.
 
 ### NFT transfers
 

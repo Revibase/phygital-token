@@ -55,7 +55,6 @@
 		cluster,
 		policy,
 		holdings,
-		seed = null,
 		onsaved
 	}: {
 		open?: boolean;
@@ -63,8 +62,6 @@
 		cluster: Cluster;
 		policy: AccessoryPolicy | null;
 		holdings: WalletHoldings | undefined;
-		/** Start from this draft instead of the current permissions (a merged permission request). */
-		seed?: PolicyDraft | null;
 		onsaved?: () => void;
 	} = $props();
 
@@ -105,13 +102,13 @@
 		selectedProgram = null;
 		version++;
 	}
-	// When the sheet opens: the seed, the current permissions, or the tap-payments baseline when there are none.
+	// When the sheet opens: the current permissions, or the tap-payments baseline when there are none.
 	$effect(() => {
 		if (!open) return;
 		untrack(() => {
-			enabled = !!policy || !!seed;
+			enabled = !!policy;
 			activeDraft = cloneDraft(current);
-			load(seed ?? (policy ? current : tapPaymentsPreset()));
+			load(policy ? current : tapPaymentsPreset());
 			failure = null;
 			pasting = false;
 			extraAssets = [];

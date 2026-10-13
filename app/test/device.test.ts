@@ -26,18 +26,6 @@ describe('desktop gate', () => {
 		expect(deviceClass(null)).toBe('desktop');
 	});
 
-	it('preserves reusable permission requests in phone links', () => {
-		expect(
-			phoneUrl(
-				new URL(
-					'https://portal.revibase.com/permissions?src=https%3A%2F%2Fexample.com%2Frequest.json#r=payload'
-				)
-			)
-		).toBe(
-			'https://portal.revibase.com/permissions?src=https%3A%2F%2Fexample.com%2Frequest.json#r=payload'
-		);
-	});
-
 	it('never puts single-use tap parameters in the phone link', () => {
 		expect(phoneUrl(new URL('https://portal.revibase.com/accessory?pk=a&c=b&n=1&s=2'))).toBe(
 			'https://portal.revibase.com/accessory'

@@ -71,7 +71,9 @@ export {
   WALLET_RENT_EXEMPT_LAMPORTS,
 } from "./wallet/fees.js";
 export type { FeePlan } from "./wallet/wrap/types.js";
+export { accessoryManageUrl } from "./wallet/manage.js";
 export {
+  blockedPrograms,
   failingProgramFromLogs,
   isPreviewPassed,
   POLICY_DENIAL_CODES,
@@ -117,10 +119,3 @@ export {
   type ProgramJson,
   type RuleJson,
 } from "./permissions/format.js";
-export {
-  decodePermissionRequest,
-  encodePermissionRequest,
-  fetchPermissionRequest,
-  MAX_REQUEST_BYTES,
-  PERMISSIONS_URL,
-} from "./permissions/request.js";

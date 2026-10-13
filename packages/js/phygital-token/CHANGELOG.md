@@ -8,6 +8,10 @@ All notable changes to this artifact are documented here. The format follows
 
 ### Breaking
 
+- Removed permission request links (`encodePermissionRequest`,
+  `decodePermissionRequest`, `fetchPermissionRequest`, `PERMISSIONS_URL`,
+  `MAX_REQUEST_BYTES`). Only the owner sets the accessory's policy, in Revibase.
+
 - Removed `buildMessageHash`, `authenticatePasskeyForSecp256r1Verify`,
   `buildSecp256r1VerifyInstruction` and the generated `getVerifyInstruction`
   family: the program no longer has a `verify` instruction. Authenticate taps
@@ -20,6 +24,13 @@ All notable changes to this artifact are documented here. The format follows
   `set_owner` challenge now names the new owner (matches the program). Choose
   the wallet before the tap. `completeTransfer` throws `RECIPIENT_MISMATCH`
   for any other signer.
+
+### Added
+
+- `PolicyDeniedError.programs` names the programs the policy blocks
+  (`program_not_allowed`, `instruction_not_allowed`), and
+  `PolicyDeniedError.manageUrl` links to where the owner can allow them.
+  `blockedPrograms` and `accessoryManageUrl` are exported.
 
 ## [1.10.0]
 

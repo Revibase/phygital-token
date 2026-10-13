@@ -16,6 +16,7 @@ import {
   pickFeePayer,
 } from "./fee-payer.js";
 import type { FeePlan } from "./wrap/types.js";
+import { accessoryManageUrl } from "./manage.js";
 import { modifyAndWrapWalletTransaction } from "./wrap/wrap.js";
 
 /** Progress of a wallet signing request, for UI. */
@@ -41,9 +42,6 @@ export type PhygitalWalletSignerConfig = PhygitalWalletSignerCallbacks & {
   /** The Revibase fee service. */
   feeEndpoint?: string;
 };
-
-/** Where the owner manages an accessory (refills its network fees, edits tap payments). */
-const manageUrl = (phygitalToken: Address) => `https://portal.revibase.com/wallet/${phygitalToken}`;
 
 export function assertSupportedTransactionLifetime(transaction: Transaction): void {
   if (isTransactionWithDurableNonceLifetime(transaction)) {
@@ -118,7 +116,7 @@ export async function getPhygitalWalletSigner(
           ? {
               ...sponsor.prepaid,
               maxComputeUnitPriceMicroLamports: sponsor.limits?.maxComputeUnitPriceMicroLamports,
-              manageUrl: manageUrl(phygitalTokenPda),
+              manageUrl: accessoryManageUrl(phygitalTokenPda),
               onPlan: config?.onFeePlan,
             }
           : undefined,

@@ -14,6 +14,7 @@ import {
   PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED,
   PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+  type ProgramPermission,
 } from "../generated/index.js";
 import {
   buildExecuteChallenge,
@@ -23,6 +24,7 @@ import {
 import {
   isPreviewPassed,
   PolicyDeniedError,
+  blockedPrograms,
   policyDeniedErrorFromSolanaError,
 } from "../wallet/preview.js";
 
@@ -115,6 +117,31 @@ describe("buildExecuteChallenge", () => {
       { writableAddresses: [RECIPIENT], signerAddresses: [RECIPIENT] },
     );
     expect(meta?.role).toBe(AccountRole.WRITABLE_SIGNER);
+  });
+});
+
+describe("blockedPrograms", () => {
+  const STAKE = address("Stake11111111111111111111111111111111111111");
+  const permissions: ProgramPermission[] = [
+    { programId: SYSTEM_PROGRAM, access: { __kind: "AllInstructions" } },
+    { programId: STAKE, access: { __kind: "Restricted", fields: [[]] } },
+  ];
+  const MEMO = address("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+
+  it("names unlisted programs for program_not_allowed, once each", () => {
+    expect(
+      blockedPrograms("program_not_allowed", [SYSTEM_PROGRAM, MEMO, MEMO, STAKE], permissions),
+    ).toEqual([MEMO]);
+  });
+
+  it("names restricted programs for instruction_not_allowed", () => {
+    expect(
+      blockedPrograms("instruction_not_allowed", [SYSTEM_PROGRAM, STAKE], permissions),
+    ).toEqual([STAKE]);
+  });
+
+  it("names nothing for other denials", () => {
+    expect(blockedPrograms("spend_limit", [MEMO], permissions)).toEqual([]);
   });
 });
 

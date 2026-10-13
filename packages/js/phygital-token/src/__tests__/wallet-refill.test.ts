@@ -16,6 +16,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getAccessoryPolicyEncoder,
   PHYGITAL_TOKEN_ERROR__PREVIEW_PASSED,
+  PHYGITAL_TOKEN_ERROR__PROGRAM_NOT_ALLOWED,
   PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED,
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 } from "../generated/index.js";
@@ -211,5 +212,21 @@ describe("getPhygitalWalletSigner prepaid network fees", () => {
       ],
     });
     expect(error).toMatchObject({ name: "PolicyDeniedError", code: "spend_limit" });
+  });
+
+  it("names the blocked program and where the owner can allow it, before the tap", async () => {
+    const { error } = await sign({
+      walletLamports: 0n,
+      balanceLamports: 4_000_000n,
+      previews: [PHYGITAL_TOKEN_ERROR__PROGRAM_NOT_ALLOWED],
+    });
+    expect(error).toMatchObject({
+      name: "PolicyDeniedError",
+      code: "program_not_allowed",
+      programs: ["11111111111111111111111111111111"],
+      manageUrl: `https://portal.revibase.com/wallet/${TOKEN}`,
+    });
+    expect((error as Error).message).toContain("11111111111111111111111111111111");
+    expect(authenticate).not.toHaveBeenCalled();
   });
 });

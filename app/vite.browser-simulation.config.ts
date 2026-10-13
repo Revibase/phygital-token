@@ -1,6 +1,5 @@
 /** Test-only server. Never use this configuration for a build or deployment. */
 import base from './vite.config.ts';
-import { deflateRawSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
 import madlads from './test/browser/madlads.json' with { type: 'json' };
 import { fileURLToPath } from 'node:url';
@@ -94,36 +93,7 @@ export default async function (env: any) {
 							`simulation_prepaid=${scenario === 'paused' ? '0' : '5000000'}`
 						].map((c) => `${c}; Path=/; SameSite=Lax`)
 					);
-					let target = scenario === 'journey' ? '/accessory' : `/wallet/${accessory.pda}`;
-					if (scenario === 'safe' || scenario === 'risky') {
-						const request =
-							scenario === 'safe'
-								? {
-										v: 1,
-										name: 'Example payments project',
-										reason: 'Let a tap send small SOL payments.',
-										programs: [
-											{
-												id: '11111111111111111111111111111111',
-												access: { only: [{ selector: '02000000' }] }
-											}
-										],
-										limits: [
-											{ asset: 'SOL', amount: '100000000', period: 'day', maxPerTap: '10000000' }
-										]
-									}
-								: {
-										v: 1,
-										name: 'Example staking project',
-										reason: 'Review broad program access before allowing it.',
-										programs: [
-											{ id: 'Stake11111111111111111111111111111111111111', access: 'all' }
-										],
-										limits: []
-									};
-						target =
-							'/permissions#r=' + deflateRawSync(JSON.stringify(request)).toString('base64url');
-					}
+					const target = scenario === 'journey' ? '/accessory' : `/wallet/${accessory.pda}`;
 					res.end(
 						`<script>localStorage.setItem('simulation:browser-wallet','true');localStorage.setItem('simulation:clickthrough','true');localStorage.removeItem('simulation:policy');location.replace(${JSON.stringify(target)})</script>`
 					);

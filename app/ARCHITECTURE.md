@@ -80,7 +80,7 @@ Only NFT media queries persist locally. Shortcut caches include the linked addre
 
 Wallet Standard signs kit-8 transaction bytes directly because the connector uses kit 7. Discovery and MWA still use the connector. Never expose an RPC URL containing private credentials to the browser.
 
-## Tap permissions and permission requests
+## Tap permissions
 
 `PolicySheet` owns the active policy and editable draft. The main pane edits the transaction toggle and spending caps. `ProgramsEditor` presents every program in one list, including the default payment programs, with distinct program, action-selection, restriction and change-review panes. There is one primary action per pane and one contextual Back/Keep editing control. See [wallet UX](../docs/wallet-ux.md) for the complete flow.
 
@@ -92,13 +92,11 @@ Reset to default actions restores the transfer-only preset while preserving spen
 
 Native program IDLs are pinned official Codama snapshots, imported on demand and parsed once across editor mounts. Saved custom IDLs restore in one batch and remain display metadata, separate from authority. The guided editor sets restrictions by name; JSON import is the escape hatch for unsupported constraints.
 
-Projects generate `/permissions#r=…` links using the SDK's `encodePermissionRequest`, or host JSON at an HTTPS URL referenced by `?src=…` (with CORS enabled). The payload contains no accessory identifier. The owner connects their wallet and chooses a linked accessory. Parsing rejects unknown fields, oversized input and invalid on-chain rules. Fragment payloads stay out of HTTP requests and are preserved in the desktop phone QR.
-
-`mergeRequest` adds missing rules and raises caps without removing existing permissions. When reset periods differ it preserves the shorter recurring window; a recurring allowance also remains recurring when the request asks for a lifetime cap. These changes are explained explicitly. `policyDiff` builds only changed on-chain actions. Review waits for policy, asset metadata and balances; program upgradeability lookup failures appear as cautions. Unknown programs, upgradeable programs, destructive token operations, broad access and excessive long-term limits receive warnings. Danger needs a fresh acknowledgement before approval or entering the editor. The source hostname identifies where JSON was fetched, without endorsing the project.
+Only the owner edits the policy, here. Apps can't propose permissions: when a transaction calls a program the policy doesn't allow, the SDK refuses it before the tap with `PolicyDeniedError` (`program_not_allowed` or `instruction_not_allowed`). The error names the blocked programs and links to this page (`manageUrl`), and the owner decides whether to allow them.
 
 The passkey signer independently derives program names, custom-rule details and risk warnings from decoded instructions using `secure-signer/shared`; it never trusts descriptions supplied by the app. Token burn, approval, authority and close-account permissions are detected even when the rule has additional constraints.
 
-Owners can limit which sites may ask for a tap (`allowed_origins`, empty = any site). The program checks the tap's signed `clientDataJSON.origin`, which browsers set, so other websites can't use a tap; a native app talking to the accessory directly can still claim any origin, so spending limits remain the backstop. A permission request's `origins` are added only when the owner already limits sites. The field sits before the program permissions, so close devnet policies saved with an older layout before upgrading the program.
+Owners can limit which sites may ask for a tap (`allowed_origins`, empty = any site). The program checks the tap's signed `clientDataJSON.origin`, which browsers set, so other websites can't use a tap; a native app talking to the accessory directly can still claim any origin, so spending limits remain the backstop. The field sits before the program permissions, so close devnet policies saved with an older layout before upgrading the program.
 
 ## Touch controls and action hierarchy
 

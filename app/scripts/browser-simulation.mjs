@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { deflateRawSync } from 'node:zlib';
-const requestLink = (set) =>
-	BASE + '/permissions#r=' + deflateRawSync(JSON.stringify(set)).toString('base64url');
 const { chromium, webkit } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const BASE = 'http://localhost:4187',
 	OWNER = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
@@ -611,41 +608,6 @@ try {
 		await dialog.getByRole('button', { name: /^Stake Program/ }).click();
 		await dialog.getByText('Allowed actions', { exact: true }).waitFor();
 		await p.screenshot({ path: '/private/tmp/revibase-permissions-editor.png' });
-	});
-	await test('permission request: danger acknowledgement, accessory choice and edit', async () => {
-		const { c, p } = await context(IOS + ' Phantom');
-		await c.addCookies([{ name: 'simulation_holdings', value: 'funded', url: BASE }]);
-		await p.goto(
-			requestLink({
-				v: 1,
-				name: 'Example project',
-				programs: [{ id: 'Stake11111111111111111111111111111111111111', access: 'all' }],
-				limits: []
-			})
-		);
-		await p.getByRole('button', { name: 'Connect wallet', exact: true }).click();
-		await p.getByRole('button', { name: 'Phantom', exact: true }).click();
-		await visible(p, 'Allow Stake Program to do everything');
-		const allow = p.getByRole('button', { name: 'Allow these permissions', exact: true });
-		assert.equal(await allow.isEnabled(), false);
-		await p.getByRole('checkbox', { name: 'I understand the risk', exact: true }).check();
-		assert.equal(await allow.isEnabled(), true);
-		await p.screenshot({ path: '/private/tmp/revibase-permissions-request.png' });
-		await p.getByRole('button', { name: 'Edit before allowing', exact: true }).click();
-		await p.getByRole('heading', { name: 'Tap to sign transactions', exact: true }).waitFor();
-		await p
-			.getByRole('dialog')
-			.getByRole('button', { name: /^Custom actions/ })
-			.click();
-		await p.getByRole('dialog').getByText('Stake Program', { exact: true }).waitFor();
-	});
-	await test('permission request: desktop QR preserves payload', async () => {
-		const { p } = await context('Mozilla/5.0 Windows');
-		const link = requestLink({ v: 1, programs: [], limits: [] });
-		await p.goto(link);
-		await visible(p, 'Open on your phone');
-		await p.getByText(link, { exact: true }).waitFor();
-		await p.screenshot({ path: '/private/tmp/revibase-permissions-desktop.png' });
 	});
 	await test('expired session goes to recovery screen', async () => {
 		const { c, p } = await context();

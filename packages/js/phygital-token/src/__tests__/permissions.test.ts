@@ -12,11 +12,6 @@ import {
   type PermissionSet,
   type RuleJson,
 } from "../permissions/format.js";
-import {
-  decodePermissionRequest,
-  encodePermissionRequest,
-  MAX_REQUEST_BYTES,
-} from "../permissions/request.js";
 
 const STAKE = "Stake11111111111111111111111111111111111111";
 const USDC = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
@@ -306,26 +301,6 @@ describe("permission format", () => {
   ])("rejects %s in one program, as the program would", (_, selectors) => {
     const programs = [{ id: STAKE, access: { only: selectors.map((selector) => ({ selector })) } }];
     expect(() => parsePermissionSet({ ...set, programs })).toThrow(/same instruction as rule 0/);
-  });
-});
-
-describe("permission request links", () => {
-  it("round-trips through a compact fragment link", async () => {
-    const link = await encodePermissionRequest(set);
-    expect(link.startsWith("https://portal.revibase.com/permissions#r=")).toBe(true);
-    expect(link.length).toBeLessThan(1000);
-    expect(await decodePermissionRequest(link)).toEqual(set);
-  });
-
-  it("rejects tampered, oversized or malformed payloads", async () => {
-    const link = await encodePermissionRequest(set);
-    await expect(decodePermissionRequest(link.slice(0, -6) + "AAAAAA")).rejects.toBeInstanceOf(
-      PermissionFormatError,
-    );
-    await expect(decodePermissionRequest("#r=not*base64")).rejects.toThrow(/base64url/);
-    await expect(
-      decodePermissionRequest("#r=" + "A".repeat(MAX_REQUEST_BYTES * 2)),
-    ).rejects.toThrow(/too large/);
   });
 });
 

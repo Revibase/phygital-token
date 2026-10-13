@@ -17,7 +17,12 @@ import {
   type FixedSizeDecoder,
   type FixedSizeEncoder,
 } from "@solana/kit";
-import { getSpendCapDecoder, getSpendCapEncoder, type SpendCap, type SpendCapArgs } from "./index.js";
+import {
+  getSpendCapDecoder,
+  getSpendCapEncoder,
+  type SpendCap,
+  type SpendCapArgs,
+} from "./index.js";
 
 export type MintCap = { mint: Address; cap: SpendCap };
 

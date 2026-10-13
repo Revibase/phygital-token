@@ -1,7 +1,7 @@
 /**
  * A readable JSON form of accessory permissions (the policy's spending limits,
- * allowed sites and program rules): what the Revibase editor copies and pastes, and what a
- * project puts in a permission request link. Addresses are base58, bytes hex,
+ * allowed sites and program rules): what the Revibase editor imports and
+ * exports. Addresses are base58, bytes hex,
  * amounts raw-unit strings. `parsePermissionSet` is strict: anything it
  * doesn't know is rejected, and every rule is checked the way the program
  * checks it, so a set that parses can always be saved. It also rejects a rule

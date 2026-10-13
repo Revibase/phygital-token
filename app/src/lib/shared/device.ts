@@ -12,7 +12,6 @@ export function deviceClass(userAgent: string | null): DeviceClass {
 
 /** What a desktop visitor should open on their phone: never single-use tap parameters. */
 export function phoneUrl(url: URL): string {
-	if (url.pathname === '/permissions') return url.href;
 	const out = new URL(url.pathname, url.origin);
 	const link = url.searchParams.get('link');
 	if (link) out.searchParams.set('link', link);

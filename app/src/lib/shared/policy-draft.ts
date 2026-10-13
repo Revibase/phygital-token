@@ -4,7 +4,7 @@
  * programs, each for everything or only some instructions. `policyDiff` turns a draft into the fewest
  * `update_policy` actions. Rules are kept in the SDK's JSON form
  * (`RuleJson`), which round-trips the program's rules losslessly and is also
- * what the editor copies and pastes, and what permission requests carry.
+ * what the editor imports and exports.
  */
 import { address, isSome, type Address } from '@solana/kit';
 import {

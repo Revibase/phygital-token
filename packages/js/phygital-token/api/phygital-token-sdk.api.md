@@ -56,6 +56,9 @@ import { WritableSignerAccount } from '@solana/kit';
 // @public (undocumented)
 export const ACCESSORY_POLICY_DISCRIMINATOR: ReadonlyUint8Array;
 
+// @public
+export function accessoryManageUrl(phygitalToken: Address): string;
+
 // @public (undocumented)
 export type AccessoryPolicy = {
     discriminator: ReadonlyUint8Array;
@@ -232,6 +235,9 @@ export function beginTransfer(input: {
     recipient: Address;
     rpId?: string;
 }): Promise<TransferSession>;
+
+// @public
+export function blockedPrograms(code: string, called: readonly Address[], permissions: readonly ProgramPermission[]): Address[];
 
 // @public
 export function buildExecuteChallenge(input: {
@@ -478,9 +484,6 @@ export function decodeAdminConfig<TAddress extends string = string>(encodedAccou
 // @public (undocumented)
 export function decodeAdminConfig<TAddress extends string = string>(encodedAccount: MaybeEncodedAccount<TAddress>): MaybeAccount<AdminConfig, TAddress>;
 
-// @public
-export function decodePermissionRequest(linkOrPayload: string): Promise<PermissionSet>;
-
 // @public (undocumented)
 export function decodePhygitalToken<TAddress extends string = string>(encodedAccount: EncodedAccount<TAddress>): Account<PhygitalToken, TAddress>;
 
@@ -498,9 +501,6 @@ export function elevateRemainingForExecuteChallenge(remainingAccounts: readonly 
     writableAddresses?: readonly Address[];
     signerAddresses?: readonly Address[];
 }): AccountMeta[];
-
-// @public
-export function encodePermissionRequest(set: PermissionSet, base?: string): Promise<string>;
 
 // @public (undocumented)
 export const EXECUTE_WITH_ACCESSORY_DISCRIMINATOR: ReadonlyUint8Array;
@@ -630,12 +630,6 @@ export function fetchMaybeAdminConfig<TAddress extends string = string>(rpc: Par
 
 // @public (undocumented)
 export function fetchMaybePhygitalToken<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<MaybeAccount<PhygitalToken, TAddress>>;
-
-// @public
-export function fetchPermissionRequest(src: string, fetchImpl?: typeof fetch): Promise<{
-    set: PermissionSet;
-    site: string;
-}>;
 
 // @public (undocumented)
 export function fetchPhygitalToken<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<Account<PhygitalToken, TAddress>>;
@@ -1320,9 +1314,6 @@ export type LimitJson = {
     maxPerTap?: string;
 };
 
-// @public
-export const MAX_REQUEST_BYTES = 4096;
-
 // @public (undocumented)
 export type MintCap = {
     mint: Address;
@@ -1638,9 +1629,6 @@ export class PermissionFormatError extends Error {
     // (undocumented)
     readonly path: string;
 }
-
-// @public
-export const PERMISSIONS_URL = "https://portal.revibase.com/permissions";
 
 // @public
 export type PermissionSet = {
@@ -2034,11 +2022,15 @@ export class PolicyDeniedError extends Error {
         error: string;
         soft?: boolean;
         details?: Record<string, unknown>;
+        programs?: readonly Address[];
+        manageUrl?: string;
     });
     // (undocumented)
     readonly code: string;
     // (undocumented)
     readonly details?: Record<string, unknown>;
+    readonly manageUrl?: string;
+    readonly programs?: readonly Address[];
     // (undocumented)
     readonly soft: boolean;
 }
