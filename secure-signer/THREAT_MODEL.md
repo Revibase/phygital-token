@@ -75,8 +75,8 @@ passkey on another device. This is authenticator/browser-dependent.
 | Firefox                                    | **No PRF**     | Not supported — fails closed     |
 | Cross-ecosystem (Apple ↔ Google)           | n/a            | Not portable today               |
 
-If PRF is unavailable, the signer **throws** rather than weakening encryption
-. Document to users: use a synced, PRF-capable passkey and keep it; there is
+If PRF is unavailable, the signer **throws** rather than weakening encryption.
+Document to users: use a synced, PRF-capable passkey and keep it; there is
 no seed/multi-credential backup (accepted decision).
 
 ## Key residual risks to revisit
