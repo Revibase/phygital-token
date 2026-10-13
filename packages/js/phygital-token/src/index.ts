@@ -76,7 +76,7 @@ export {
   topUpNeeded,
   WALLET_RENT_EXEMPT_LAMPORTS,
 } from "./wallet/fees.js";
-export type { FeePlan } from "./wallet/wrap-transaction.js";
+export type { FeePlan } from "./wallet/wrap/types.js";
 export {
   failingProgramFromLogs,
   isPreviewPassed,

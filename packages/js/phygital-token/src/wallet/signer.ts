@@ -15,7 +15,8 @@ import {
   fetchSponsor,
   pickFeePayer,
 } from "./fee-payer.js";
-import { modifyAndWrapWalletTransaction, type FeePlan } from "./wrap-transaction.js";
+import type { FeePlan } from "./wrap/types.js";
+import { modifyAndWrapWalletTransaction } from "./wrap/wrap.js";
 
 export type PhygitalWalletSignPhase =
   "preparing" | "previewing" | "awaitingPasskey" | "building" | "feePaying" | "complete";
