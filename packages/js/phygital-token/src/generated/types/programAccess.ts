@@ -45,10 +45,7 @@ export function getProgramAccessEncoder(): Encoder<ProgramAccessArgs> {
     [
       "Restricted",
       getStructEncoder([
-        [
-          "fields",
-          getTupleEncoder([getArrayEncoder(getInstructionRuleEncoder())]),
-        ],
+        ["fields", getTupleEncoder([getArrayEncoder(getInstructionRuleEncoder())])],
       ]),
     ],
   ]);
@@ -60,19 +57,13 @@ export function getProgramAccessDecoder(): Decoder<ProgramAccess> {
     [
       "Restricted",
       getStructDecoder([
-        [
-          "fields",
-          getTupleDecoder([getArrayDecoder(getInstructionRuleDecoder())]),
-        ],
+        ["fields", getTupleDecoder([getArrayDecoder(getInstructionRuleDecoder())])],
       ]),
     ],
   ]);
 }
 
-export function getProgramAccessCodec(): Codec<
-  ProgramAccessArgs,
-  ProgramAccess
-> {
+export function getProgramAccessCodec(): Codec<ProgramAccessArgs, ProgramAccess> {
   return combineCodec(getProgramAccessEncoder(), getProgramAccessDecoder());
 }
 
@@ -82,19 +73,10 @@ export function programAccess(
 ): GetDiscriminatedUnionVariant<ProgramAccessArgs, "__kind", "AllInstructions">;
 export function programAccess(
   kind: "Restricted",
-  data: GetDiscriminatedUnionVariantContent<
-    ProgramAccessArgs,
-    "__kind",
-    "Restricted"
-  >["fields"],
+  data: GetDiscriminatedUnionVariantContent<ProgramAccessArgs, "__kind", "Restricted">["fields"],
 ): GetDiscriminatedUnionVariant<ProgramAccessArgs, "__kind", "Restricted">;
-export function programAccess<K extends ProgramAccessArgs["__kind"], Data>(
-  kind: K,
-  data?: Data,
-) {
-  return Array.isArray(data)
-    ? { __kind: kind, fields: data }
-    : { __kind: kind, ...(data ?? {}) };
+export function programAccess<K extends ProgramAccessArgs["__kind"], Data>(kind: K, data?: Data) {
+  return Array.isArray(data) ? { __kind: kind, fields: data } : { __kind: kind, ...(data ?? {}) };
 }
 
 export function isProgramAccess<K extends ProgramAccess["__kind"]>(

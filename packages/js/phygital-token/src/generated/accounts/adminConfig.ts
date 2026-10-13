@@ -42,9 +42,7 @@ export const ADMIN_CONFIG_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
 ]);
 
 export function getAdminConfigDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    ADMIN_CONFIG_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(ADMIN_CONFIG_DISCRIMINATOR);
 }
 
 export type AdminConfig = {
@@ -55,12 +53,7 @@ export type AdminConfig = {
   minter: Address;
 };
 
-export type AdminConfigArgs = {
-  bump: number;
-  admin: Address;
-  issuer: Address;
-  minter: Address;
-};
+export type AdminConfigArgs = { bump: number; admin: Address; issuer: Address; minter: Address };
 
 /** Gets the encoder for {@link AdminConfigArgs} account data. */
 export function getAdminConfigEncoder(): FixedSizeEncoder<AdminConfigArgs> {
@@ -88,10 +81,7 @@ export function getAdminConfigDecoder(): FixedSizeDecoder<AdminConfig> {
 }
 
 /** Gets the codec for {@link AdminConfig} account data. */
-export function getAdminConfigCodec(): FixedSizeCodec<
-  AdminConfigArgs,
-  AdminConfig
-> {
+export function getAdminConfigCodec(): FixedSizeCodec<AdminConfigArgs, AdminConfig> {
   return combineCodec(getAdminConfigEncoder(), getAdminConfigDecoder());
 }
 
@@ -104,10 +94,7 @@ export function decodeAdminConfig<TAddress extends string = string>(
 export function decodeAdminConfig<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>,
 ): Account<AdminConfig, TAddress> | MaybeAccount<AdminConfig, TAddress> {
-  return decodeAccount(
-    encodedAccount as MaybeEncodedAccount<TAddress>,
-    getAdminConfigDecoder(),
-  );
+  return decodeAccount(encodedAccount as MaybeEncodedAccount<TAddress>, getAdminConfigDecoder());
 }
 
 export async function fetchAdminConfig<TAddress extends string = string>(

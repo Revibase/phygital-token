@@ -50,9 +50,7 @@ export const PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
 ]);
 
 export function getPhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    PHYGITAL_TOKEN_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(PHYGITAL_TOKEN_DISCRIMINATOR);
 }
 
 export type PhygitalToken = {
@@ -108,10 +106,7 @@ export function getPhygitalTokenDecoder(): FixedSizeDecoder<PhygitalToken> {
 }
 
 /** Gets the codec for {@link PhygitalToken} account data. */
-export function getPhygitalTokenCodec(): FixedSizeCodec<
-  PhygitalTokenArgs,
-  PhygitalToken
-> {
+export function getPhygitalTokenCodec(): FixedSizeCodec<PhygitalTokenArgs, PhygitalToken> {
   return combineCodec(getPhygitalTokenEncoder(), getPhygitalTokenDecoder());
 }
 
@@ -124,10 +119,7 @@ export function decodePhygitalToken<TAddress extends string = string>(
 export function decodePhygitalToken<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>,
 ): Account<PhygitalToken, TAddress> | MaybeAccount<PhygitalToken, TAddress> {
-  return decodeAccount(
-    encodedAccount as MaybeEncodedAccount<TAddress>,
-    getPhygitalTokenDecoder(),
-  );
+  return decodeAccount(encodedAccount as MaybeEncodedAccount<TAddress>, getPhygitalTokenDecoder());
 }
 
 export async function fetchPhygitalToken<TAddress extends string = string>(
@@ -154,11 +146,7 @@ export async function fetchAllPhygitalToken(
   addresses: Array<Address>,
   config?: FetchAccountsConfig,
 ): Promise<Account<PhygitalToken>[]> {
-  const maybeAccounts = await fetchAllMaybePhygitalToken(
-    rpc,
-    addresses,
-    config,
-  );
+  const maybeAccounts = await fetchAllMaybePhygitalToken(rpc, addresses, config);
   assertAccountsExist(maybeAccounts);
   return maybeAccounts;
 }

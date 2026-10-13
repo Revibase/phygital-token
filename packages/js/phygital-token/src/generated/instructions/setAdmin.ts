@@ -58,8 +58,7 @@ export type SetAdminInstruction<
   InstructionWithAccounts<
     [
       TAccountAdmin extends string
-        ? ReadonlySignerAccount<TAccountAdmin> &
-            AccountSignerMeta<TAccountAdmin>
+        ? ReadonlySignerAccount<TAccountAdmin> & AccountSignerMeta<TAccountAdmin>
         : TAccountAdmin,
       TAccountAdminConfig extends string
         ? WritableAccount<TAccountAdminConfig>
@@ -68,10 +67,7 @@ export type SetAdminInstruction<
     ]
   >;
 
-export type SetAdminInstructionData = {
-  discriminator: ReadonlyUint8Array;
-  newAdmin: Address;
-};
+export type SetAdminInstructionData = { discriminator: ReadonlyUint8Array; newAdmin: Address };
 
 export type SetAdminInstructionDataArgs = { newAdmin: Address };
 
@@ -96,10 +92,7 @@ export function getSetAdminInstructionDataCodec(): FixedSizeCodec<
   SetAdminInstructionDataArgs,
   SetAdminInstructionData
 > {
-  return combineCodec(
-    getSetAdminInstructionDataEncoder(),
-    getSetAdminInstructionDataDecoder(),
-  );
+  return combineCodec(getSetAdminInstructionDataEncoder(), getSetAdminInstructionDataDecoder());
 }
 
 export type SetAdminAsyncInput<
@@ -118,12 +111,9 @@ export async function getSetAdminInstructionAsync<
 >(
   input: SetAdminAsyncInput<TAccountAdmin, TAccountAdminConfig>,
   config?: { programAddress?: TProgramAddress },
-): Promise<
-  SetAdminInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>
-> {
+): Promise<SetAdminInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>> {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -149,15 +139,9 @@ export async function getSetAdminInstructionAsync<
       getAccountMeta("admin", accounts.admin),
       getAccountMeta("adminConfig", accounts.adminConfig),
     ],
-    data: getSetAdminInstructionDataEncoder().encode(
-      args as SetAdminInstructionDataArgs,
-    ),
+    data: getSetAdminInstructionDataEncoder().encode(args as SetAdminInstructionDataArgs),
     programAddress,
-  } as SetAdminInstruction<
-    TProgramAddress,
-    TAccountAdmin,
-    TAccountAdminConfig
-  >);
+  } as SetAdminInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>);
 }
 
 export type SetAdminInput<
@@ -178,8 +162,7 @@ export function getSetAdminInstruction<
   config?: { programAddress?: TProgramAddress },
 ): SetAdminInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig> {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -200,15 +183,9 @@ export function getSetAdminInstruction<
       getAccountMeta("admin", accounts.admin),
       getAccountMeta("adminConfig", accounts.adminConfig),
     ],
-    data: getSetAdminInstructionDataEncoder().encode(
-      args as SetAdminInstructionDataArgs,
-    ),
+    data: getSetAdminInstructionDataEncoder().encode(args as SetAdminInstructionDataArgs),
     programAddress,
-  } as SetAdminInstruction<
-    TProgramAddress,
-    TAccountAdmin,
-    TAccountAdminConfig
-  >);
+  } as SetAdminInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>);
 }
 
 export type ParsedSetAdminInstruction<
@@ -232,13 +209,10 @@ export function parseSetAdminInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedSetAdminInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 2) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 2,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 2,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

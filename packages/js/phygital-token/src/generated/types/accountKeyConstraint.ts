@@ -27,19 +27,14 @@ import {
 } from "@solana/kit";
 
 export type AccountKeyConstraint =
-  | { __kind: "Any" }
-  | { __kind: "Address"; fields: readonly [Address] }
-  | { __kind: "Wallet" };
+  { __kind: "Any" } | { __kind: "Address"; fields: readonly [Address] } | { __kind: "Wallet" };
 
 export type AccountKeyConstraintArgs = AccountKeyConstraint;
 
 export function getAccountKeyConstraintEncoder(): Encoder<AccountKeyConstraintArgs> {
   return getDiscriminatedUnionEncoder([
     ["Any", getUnitEncoder()],
-    [
-      "Address",
-      getStructEncoder([["fields", getTupleEncoder([getAddressEncoder()])]]),
-    ],
+    ["Address", getStructEncoder([["fields", getTupleEncoder([getAddressEncoder()])]])],
     ["Wallet", getUnitEncoder()],
   ]);
 }
@@ -47,10 +42,7 @@ export function getAccountKeyConstraintEncoder(): Encoder<AccountKeyConstraintAr
 export function getAccountKeyConstraintDecoder(): Decoder<AccountKeyConstraint> {
   return getDiscriminatedUnionDecoder([
     ["Any", getUnitDecoder()],
-    [
-      "Address",
-      getStructDecoder([["fields", getTupleDecoder([getAddressDecoder()])]]),
-    ],
+    ["Address", getStructDecoder([["fields", getTupleDecoder([getAddressDecoder()])]])],
     ["Wallet", getUnitDecoder()],
   ]);
 }
@@ -59,10 +51,7 @@ export function getAccountKeyConstraintCodec(): Codec<
   AccountKeyConstraintArgs,
   AccountKeyConstraint
 > {
-  return combineCodec(
-    getAccountKeyConstraintEncoder(),
-    getAccountKeyConstraintDecoder(),
-  );
+  return combineCodec(getAccountKeyConstraintEncoder(), getAccountKeyConstraintDecoder());
 }
 
 // Data Enum Helpers.
@@ -80,18 +69,14 @@ export function accountKeyConstraint(
 export function accountKeyConstraint(
   kind: "Wallet",
 ): GetDiscriminatedUnionVariant<AccountKeyConstraintArgs, "__kind", "Wallet">;
-export function accountKeyConstraint<
-  K extends AccountKeyConstraintArgs["__kind"],
-  Data,
->(kind: K, data?: Data) {
-  return Array.isArray(data)
-    ? { __kind: kind, fields: data }
-    : { __kind: kind, ...(data ?? {}) };
+export function accountKeyConstraint<K extends AccountKeyConstraintArgs["__kind"], Data>(
+  kind: K,
+  data?: Data,
+) {
+  return Array.isArray(data) ? { __kind: kind, fields: data } : { __kind: kind, ...(data ?? {}) };
 }
 
-export function isAccountKeyConstraint<
-  K extends AccountKeyConstraint["__kind"],
->(
+export function isAccountKeyConstraint<K extends AccountKeyConstraint["__kind"]>(
   kind: K,
   value: AccountKeyConstraint,
 ): value is AccountKeyConstraint & { __kind: K } {

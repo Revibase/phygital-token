@@ -44,9 +44,7 @@ export const REMOVE_OWNER_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
 ]);
 
 export function getRemoveOwnerDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    REMOVE_OWNER_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(REMOVE_OWNER_DISCRIMINATOR);
 }
 
 export type RemoveOwnerInstruction<
@@ -61,18 +59,13 @@ export type RemoveOwnerInstruction<
   InstructionWithAccounts<
     [
       TAccountOwner extends string
-        ? ReadonlySignerAccount<TAccountOwner> &
-            AccountSignerMeta<TAccountOwner>
+        ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
       TAccountPhygitalToken extends string
         ? WritableAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
-      TAccountPolicy extends string
-        ? WritableAccount<TAccountPolicy>
-        : TAccountPolicy,
-      TAccountWallet extends string
-        ? WritableAccount<TAccountWallet>
-        : TAccountWallet,
+      TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
+      TAccountWallet extends string ? WritableAccount<TAccountWallet> : TAccountWallet,
       ...TRemainingAccounts,
     ]
   >;
@@ -89,9 +82,7 @@ export function getRemoveOwnerInstructionDataEncoder(): FixedSizeEncoder<RemoveO
 }
 
 export function getRemoveOwnerInstructionDataDecoder(): FixedSizeDecoder<RemoveOwnerInstructionData> {
-  return getStructDecoder([
-    ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-  ]);
+  return getStructDecoder([["discriminator", fixDecoderSize(getBytesDecoder(), 8)]]);
 }
 
 export function getRemoveOwnerInstructionDataCodec(): FixedSizeCodec<
@@ -140,8 +131,7 @@ export async function getRemoveOwnerInstructionAsync<
   >
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -211,12 +201,7 @@ export function getRemoveOwnerInstruction<
   TAccountWallet extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: RemoveOwnerInput<
-    TAccountOwner,
-    TAccountPhygitalToken,
-    TAccountPolicy,
-    TAccountWallet
-  >,
+  input: RemoveOwnerInput<TAccountOwner, TAccountPhygitalToken, TAccountPolicy, TAccountWallet>,
   config?: { programAddress?: TProgramAddress },
 ): RemoveOwnerInstruction<
   TProgramAddress,
@@ -226,8 +211,7 @@ export function getRemoveOwnerInstruction<
   TAccountWallet
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -283,13 +267,10 @@ export function parseRemoveOwnerInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedRemoveOwnerInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 4,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

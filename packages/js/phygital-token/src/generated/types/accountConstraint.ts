@@ -86,12 +86,6 @@ export function getAccountConstraintDecoder(): Decoder<AccountConstraint> {
   ]);
 }
 
-export function getAccountConstraintCodec(): Codec<
-  AccountConstraintArgs,
-  AccountConstraint
-> {
-  return combineCodec(
-    getAccountConstraintEncoder(),
-    getAccountConstraintDecoder(),
-  );
+export function getAccountConstraintCodec(): Codec<AccountConstraintArgs, AccountConstraint> {
+  return combineCodec(getAccountConstraintEncoder(), getAccountConstraintDecoder());
 }

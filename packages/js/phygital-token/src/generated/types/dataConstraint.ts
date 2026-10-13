@@ -25,10 +25,7 @@ import {
 
 export type DataConstraint = { offset: number; predicate: DataPredicate };
 
-export type DataConstraintArgs = {
-  offset: number;
-  predicate: DataPredicateArgs;
-};
+export type DataConstraintArgs = { offset: number; predicate: DataPredicateArgs };
 
 export function getDataConstraintEncoder(): Encoder<DataConstraintArgs> {
   return getStructEncoder([
@@ -44,9 +41,6 @@ export function getDataConstraintDecoder(): Decoder<DataConstraint> {
   ]);
 }
 
-export function getDataConstraintCodec(): Codec<
-  DataConstraintArgs,
-  DataConstraint
-> {
+export function getDataConstraintCodec(): Codec<DataConstraintArgs, DataConstraint> {
   return combineCodec(getDataConstraintEncoder(), getDataConstraintDecoder());
 }

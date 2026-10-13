@@ -43,9 +43,7 @@ export const CLOSE_POLICY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
 ]);
 
 export function getClosePolicyDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CLOSE_POLICY_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(CLOSE_POLICY_DISCRIMINATOR);
 }
 
 export type ClosePolicyInstruction<
@@ -60,18 +58,13 @@ export type ClosePolicyInstruction<
   InstructionWithAccounts<
     [
       TAccountOwner extends string
-        ? ReadonlySignerAccount<TAccountOwner> &
-            AccountSignerMeta<TAccountOwner>
+        ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
       TAccountPhygitalToken extends string
         ? ReadonlyAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
-      TAccountPolicy extends string
-        ? WritableAccount<TAccountPolicy>
-        : TAccountPolicy,
-      TAccountWallet extends string
-        ? WritableAccount<TAccountWallet>
-        : TAccountWallet,
+      TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
+      TAccountWallet extends string ? WritableAccount<TAccountWallet> : TAccountWallet,
       ...TRemainingAccounts,
     ]
   >;
@@ -88,9 +81,7 @@ export function getClosePolicyInstructionDataEncoder(): FixedSizeEncoder<ClosePo
 }
 
 export function getClosePolicyInstructionDataDecoder(): FixedSizeDecoder<ClosePolicyInstructionData> {
-  return getStructDecoder([
-    ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-  ]);
+  return getStructDecoder([["discriminator", fixDecoderSize(getBytesDecoder(), 8)]]);
 }
 
 export function getClosePolicyInstructionDataCodec(): FixedSizeCodec<
@@ -126,12 +117,7 @@ export function getClosePolicyInstruction<
   TAccountWallet extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: ClosePolicyInput<
-    TAccountOwner,
-    TAccountPhygitalToken,
-    TAccountPolicy,
-    TAccountWallet
-  >,
+  input: ClosePolicyInput<TAccountOwner, TAccountPhygitalToken, TAccountPolicy, TAccountWallet>,
   config?: { programAddress?: TProgramAddress },
 ): ClosePolicyInstruction<
   TProgramAddress,
@@ -141,8 +127,7 @@ export function getClosePolicyInstruction<
   TAccountWallet
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -202,13 +187,10 @@ export function parseClosePolicyInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClosePolicyInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 4,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

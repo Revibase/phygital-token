@@ -42,12 +42,7 @@ import {
 
 export type DataPredicate =
   | { __kind: "BytesEqual"; fields: readonly [ReadonlyUint8Array] }
-  | {
-      __kind: "Unsigned";
-      width: NumericWidth;
-      comparison: Comparison;
-      value: bigint;
-    };
+  | { __kind: "Unsigned"; width: NumericWidth; comparison: Comparison; value: bigint };
 
 export type DataPredicateArgs =
   | { __kind: "BytesEqual"; fields: readonly [ReadonlyUint8Array] }
@@ -63,12 +58,7 @@ export function getDataPredicateEncoder(): Encoder<DataPredicateArgs> {
     [
       "BytesEqual",
       getStructEncoder([
-        [
-          "fields",
-          getTupleEncoder([
-            addEncoderSizePrefix(getBytesEncoder(), getU32Encoder()),
-          ]),
-        ],
+        ["fields", getTupleEncoder([addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())])],
       ]),
     ],
     [
@@ -87,12 +77,7 @@ export function getDataPredicateDecoder(): Decoder<DataPredicate> {
     [
       "BytesEqual",
       getStructDecoder([
-        [
-          "fields",
-          getTupleDecoder([
-            addDecoderSizePrefix(getBytesDecoder(), getU32Decoder()),
-          ]),
-        ],
+        ["fields", getTupleDecoder([addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())])],
       ]),
     ],
     [
@@ -106,37 +91,21 @@ export function getDataPredicateDecoder(): Decoder<DataPredicate> {
   ]);
 }
 
-export function getDataPredicateCodec(): Codec<
-  DataPredicateArgs,
-  DataPredicate
-> {
+export function getDataPredicateCodec(): Codec<DataPredicateArgs, DataPredicate> {
   return combineCodec(getDataPredicateEncoder(), getDataPredicateDecoder());
 }
 
 // Data Enum Helpers.
 export function dataPredicate(
   kind: "BytesEqual",
-  data: GetDiscriminatedUnionVariantContent<
-    DataPredicateArgs,
-    "__kind",
-    "BytesEqual"
-  >["fields"],
+  data: GetDiscriminatedUnionVariantContent<DataPredicateArgs, "__kind", "BytesEqual">["fields"],
 ): GetDiscriminatedUnionVariant<DataPredicateArgs, "__kind", "BytesEqual">;
 export function dataPredicate(
   kind: "Unsigned",
-  data: GetDiscriminatedUnionVariantContent<
-    DataPredicateArgs,
-    "__kind",
-    "Unsigned"
-  >,
+  data: GetDiscriminatedUnionVariantContent<DataPredicateArgs, "__kind", "Unsigned">,
 ): GetDiscriminatedUnionVariant<DataPredicateArgs, "__kind", "Unsigned">;
-export function dataPredicate<K extends DataPredicateArgs["__kind"], Data>(
-  kind: K,
-  data?: Data,
-) {
-  return Array.isArray(data)
-    ? { __kind: kind, fields: data }
-    : { __kind: kind, ...(data ?? {}) };
+export function dataPredicate<K extends DataPredicateArgs["__kind"], Data>(kind: K, data?: Data) {
+  return Array.isArray(data) ? { __kind: kind, fields: data } : { __kind: kind, ...(data ?? {}) };
 }
 
 export function isDataPredicate<K extends DataPredicate["__kind"]>(

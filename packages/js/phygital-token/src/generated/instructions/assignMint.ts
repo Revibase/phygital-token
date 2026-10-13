@@ -60,8 +60,7 @@ export type AssignMintInstruction<
   InstructionWithAccounts<
     [
       TAccountAuthority extends string
-        ? ReadonlySignerAccount<TAccountAuthority> &
-            AccountSignerMeta<TAccountAuthority>
+        ? ReadonlySignerAccount<TAccountAuthority> & AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
       TAccountAdminConfig extends string
         ? ReadonlyAccount<TAccountAdminConfig>
@@ -73,10 +72,7 @@ export type AssignMintInstruction<
     ]
   >;
 
-export type AssignMintInstructionData = {
-  discriminator: ReadonlyUint8Array;
-  mint: Address;
-};
+export type AssignMintInstructionData = { discriminator: ReadonlyUint8Array; mint: Address };
 
 export type AssignMintInstructionDataArgs = { mint: Address };
 
@@ -101,10 +97,7 @@ export function getAssignMintInstructionDataCodec(): FixedSizeCodec<
   AssignMintInstructionDataArgs,
   AssignMintInstructionData
 > {
-  return combineCodec(
-    getAssignMintInstructionDataEncoder(),
-    getAssignMintInstructionDataDecoder(),
-  );
+  return combineCodec(getAssignMintInstructionDataEncoder(), getAssignMintInstructionDataDecoder());
 }
 
 export type AssignMintAsyncInput<
@@ -124,11 +117,7 @@ export async function getAssignMintInstructionAsync<
   TAccountPhygitalToken extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: AssignMintAsyncInput<
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountPhygitalToken
-  >,
+  input: AssignMintAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
   AssignMintInstruction<
@@ -139,8 +128,7 @@ export async function getAssignMintInstructionAsync<
   >
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -168,9 +156,7 @@ export async function getAssignMintInstructionAsync<
       getAccountMeta("adminConfig", accounts.adminConfig),
       getAccountMeta("phygitalToken", accounts.phygitalToken),
     ],
-    data: getAssignMintInstructionDataEncoder().encode(
-      args as AssignMintInstructionDataArgs,
-    ),
+    data: getAssignMintInstructionDataEncoder().encode(args as AssignMintInstructionDataArgs),
     programAddress,
   } as AssignMintInstruction<
     TProgramAddress,
@@ -197,11 +183,7 @@ export function getAssignMintInstruction<
   TAccountPhygitalToken extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: AssignMintInput<
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountPhygitalToken
-  >,
+  input: AssignMintInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>,
   config?: { programAddress?: TProgramAddress },
 ): AssignMintInstruction<
   TProgramAddress,
@@ -210,8 +192,7 @@ export function getAssignMintInstruction<
   TAccountPhygitalToken
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -234,9 +215,7 @@ export function getAssignMintInstruction<
       getAccountMeta("adminConfig", accounts.adminConfig),
       getAccountMeta("phygitalToken", accounts.phygitalToken),
     ],
-    data: getAssignMintInstructionDataEncoder().encode(
-      args as AssignMintInstructionDataArgs,
-    ),
+    data: getAssignMintInstructionDataEncoder().encode(args as AssignMintInstructionDataArgs),
     programAddress,
   } as AssignMintInstruction<
     TProgramAddress,
@@ -268,13 +247,10 @@ export function parseAssignMintInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedAssignMintInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 3) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 3,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 3,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

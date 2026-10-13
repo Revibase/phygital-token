@@ -155,10 +155,10 @@ export function identifyPhygitalTokenAccount(
   ) {
     return PhygitalTokenAccount.PhygitalToken;
   }
-  throw new SolanaError(
-    SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT,
-    { accountData: data, programName: "phygitalToken" },
-  );
+  throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_ACCOUNT, {
+    accountData: data,
+    programName: "phygitalToken",
+  });
 }
 
 export enum PhygitalTokenInstruction {
@@ -348,10 +348,10 @@ export function identifyPhygitalTokenInstruction(
   ) {
     return PhygitalTokenInstruction.Verify;
   }
-  throw new SolanaError(
-    SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION,
-    { instructionData: data, programName: "phygitalToken" },
-  );
+  throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION, {
+    instructionData: data,
+    programName: "phygitalToken",
+  });
 }
 
 export type ParsedPhygitalTokenInstruction<
@@ -384,24 +384,14 @@ export type ParsedPhygitalTokenInstruction<
   | ({
       instructionType: PhygitalTokenInstruction.RemoveOwner;
     } & ParsedRemoveOwnerInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalTokenInstruction.SetAdmin;
-    } & ParsedSetAdminInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalTokenInstruction.SetIssuer;
-    } & ParsedSetIssuerInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalTokenInstruction.SetMinter;
-    } & ParsedSetMinterInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalTokenInstruction.SetOwner;
-    } & ParsedSetOwnerInstruction<TProgram>)
+  | ({ instructionType: PhygitalTokenInstruction.SetAdmin } & ParsedSetAdminInstruction<TProgram>)
+  | ({ instructionType: PhygitalTokenInstruction.SetIssuer } & ParsedSetIssuerInstruction<TProgram>)
+  | ({ instructionType: PhygitalTokenInstruction.SetMinter } & ParsedSetMinterInstruction<TProgram>)
+  | ({ instructionType: PhygitalTokenInstruction.SetOwner } & ParsedSetOwnerInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.UpdatePolicy;
     } & ParsedUpdatePolicyInstruction<TProgram>)
-  | ({
-      instructionType: PhygitalTokenInstruction.Verify;
-    } & ParsedVerifyInstruction<TProgram>);
+  | ({ instructionType: PhygitalTokenInstruction.Verify } & ParsedVerifyInstruction<TProgram>);
 
 export function parsePhygitalTokenInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -514,13 +504,10 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
       };
     }
     default:
-      throw new SolanaError(
-        SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE,
-        {
-          instructionType: instructionType as string,
-          programName: "phygitalToken",
-        },
-      );
+      throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE, {
+        instructionType: instructionType as string,
+        programName: "phygitalToken",
+      });
   }
 }
 
@@ -545,59 +532,46 @@ export type PhygitalTokenPluginAccounts = {
 export type PhygitalTokenPluginInstructions = {
   assignMint: (
     input: AssignMintAsyncInput,
-  ) => ReturnType<typeof getAssignMintInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getAssignMintInstructionAsync> & SelfPlanAndSendFunctions;
   closePhygitalToken: (
     input: ClosePhygitalTokenAsyncInput,
-  ) => ReturnType<typeof getClosePhygitalTokenInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getClosePhygitalTokenInstructionAsync> & SelfPlanAndSendFunctions;
   closePolicy: (
     input: ClosePolicyInput,
   ) => ReturnType<typeof getClosePolicyInstruction> & SelfPlanAndSendFunctions;
   createConfig: (
     input: CreateConfigAsyncInput,
-  ) => ReturnType<typeof getCreateConfigInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getCreateConfigInstructionAsync> & SelfPlanAndSendFunctions;
   executeWithAccessory: (
     input: ExecuteWithAccessoryInput,
-  ) => ReturnType<typeof getExecuteWithAccessoryInstruction> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getExecuteWithAccessoryInstruction> & SelfPlanAndSendFunctions;
   executeWithOwner: (
     input: ExecuteWithOwnerAsyncInput,
-  ) => ReturnType<typeof getExecuteWithOwnerInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getExecuteWithOwnerInstructionAsync> & SelfPlanAndSendFunctions;
   initialize: (
     input: InitializeAsyncInput,
-  ) => ReturnType<typeof getInitializeInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getInitializeInstructionAsync> & SelfPlanAndSendFunctions;
   previewExecute: (
     input: PreviewExecuteInput,
-  ) => ReturnType<typeof getPreviewExecuteInstruction> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getPreviewExecuteInstruction> & SelfPlanAndSendFunctions;
   removeOwner: (
     input: RemoveOwnerAsyncInput,
-  ) => ReturnType<typeof getRemoveOwnerInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getRemoveOwnerInstructionAsync> & SelfPlanAndSendFunctions;
   setAdmin: (
     input: SetAdminAsyncInput,
-  ) => ReturnType<typeof getSetAdminInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getSetAdminInstructionAsync> & SelfPlanAndSendFunctions;
   setIssuer: (
     input: SetIssuerAsyncInput,
-  ) => ReturnType<typeof getSetIssuerInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getSetIssuerInstructionAsync> & SelfPlanAndSendFunctions;
   setMinter: (
     input: SetMinterAsyncInput,
-  ) => ReturnType<typeof getSetMinterInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getSetMinterInstructionAsync> & SelfPlanAndSendFunctions;
   setOwner: (
     input: SetOwnerAsyncInput,
-  ) => ReturnType<typeof getSetOwnerInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getSetOwnerInstructionAsync> & SelfPlanAndSendFunctions;
   updatePolicy: (
     input: MakeOptional<UpdatePolicyAsyncInput, "payer">,
-  ) => ReturnType<typeof getUpdatePolicyInstructionAsync> &
-    SelfPlanAndSendFunctions;
+  ) => ReturnType<typeof getUpdatePolicyInstructionAsync> & SelfPlanAndSendFunctions;
   verify: (
     input: VerifyInput,
   ) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
@@ -623,95 +597,45 @@ export function phygitalTokenProgram() {
     return extendClient(client, {
       phygitalToken: <PhygitalTokenPlugin>{
         accounts: {
-          accessoryPolicy: addSelfFetchFunctions(
-            client,
-            getAccessoryPolicyCodec(),
-          ),
+          accessoryPolicy: addSelfFetchFunctions(client, getAccessoryPolicyCodec()),
           adminConfig: addSelfFetchFunctions(client, getAdminConfigCodec()),
           phygitalToken: addSelfFetchFunctions(client, getPhygitalTokenCodec()),
         },
         instructions: {
           assignMint: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getAssignMintInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getAssignMintInstructionAsync(input)),
           closePhygitalToken: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getClosePhygitalTokenInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getClosePhygitalTokenInstructionAsync(input)),
           closePolicy: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getClosePolicyInstruction(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getClosePolicyInstruction(input)),
           createConfig: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getCreateConfigInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getCreateConfigInstructionAsync(input)),
           executeWithAccessory: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteWithAccessoryInstruction(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getExecuteWithAccessoryInstruction(input)),
           executeWithOwner: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getExecuteWithOwnerInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getExecuteWithOwnerInstructionAsync(input)),
           initialize: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getInitializeInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getInitializeInstructionAsync(input)),
           previewExecute: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getPreviewExecuteInstruction(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getPreviewExecuteInstruction(input)),
           removeOwner: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getRemoveOwnerInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getRemoveOwnerInstructionAsync(input)),
           setAdmin: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetAdminInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getSetAdminInstructionAsync(input)),
           setIssuer: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetIssuerInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getSetIssuerInstructionAsync(input)),
           setMinter: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetMinterInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getSetMinterInstructionAsync(input)),
           setOwner: (input) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetOwnerInstructionAsync(input),
-            ),
+            addSelfPlanAndSendFunctions(client, getSetOwnerInstructionAsync(input)),
           updatePolicy: (input) =>
             addSelfPlanAndSendFunctions(
               client,
-              getUpdatePolicyInstructionAsync({
-                ...input,
-                payer: input.payer ?? client.payer,
-              }),
+              getUpdatePolicyInstructionAsync({ ...input, payer: input.payer ?? client.payer }),
             ),
-          verify: (input) =>
-            addSelfPlanAndSendFunctions(client, getVerifyInstruction(input)),
+          verify: (input) => addSelfPlanAndSendFunctions(client, getVerifyInstruction(input)),
         },
-        pdas: {
-          adminConfig: findAdminConfigPda,
-          policy: findPolicyPda,
-          wallet: findWalletPda,
-        },
+        pdas: { adminConfig: findAdminConfigPda, policy: findPolicyPda, wallet: findWalletPda },
         identifyAccount: identifyPhygitalTokenAccount,
         identifyInstruction: identifyPhygitalTokenInstruction,
         parseInstruction: parsePhygitalTokenInstruction,

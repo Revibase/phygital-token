@@ -64,16 +64,14 @@ export type InitializeInstruction<
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountAdminConfig extends string | AccountMeta<string> = string,
   TAccountPhygitalToken extends string | AccountMeta<string> = string,
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
+  TAccountSystemProgram extends string | AccountMeta<string> = "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
       TAccountAuthority extends string
-        ? WritableSignerAccount<TAccountAuthority> &
-            AccountSignerMeta<TAccountAuthority>
+        ? WritableSignerAccount<TAccountAuthority> & AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
       TAccountAdminConfig extends string
         ? ReadonlyAccount<TAccountAdminConfig>
@@ -130,10 +128,7 @@ export function getInitializeInstructionDataCodec(): FixedSizeCodec<
   InitializeInstructionDataArgs,
   InitializeInstructionData
 > {
-  return combineCodec(
-    getInitializeInstructionDataEncoder(),
-    getInitializeInstructionDataDecoder(),
-  );
+  return combineCodec(getInitializeInstructionDataEncoder(), getInitializeInstructionDataDecoder());
 }
 
 export type InitializeAsyncInput<
@@ -176,8 +171,7 @@ export async function getInitializeInstructionAsync<
   >
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -211,9 +205,7 @@ export async function getInitializeInstructionAsync<
       getAccountMeta("phygitalToken", accounts.phygitalToken),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getInitializeInstructionDataEncoder().encode(
-      args as InitializeInstructionDataArgs,
-    ),
+    data: getInitializeInstructionDataEncoder().encode(args as InitializeInstructionDataArgs),
     programAddress,
   } as InitializeInstruction<
     TProgramAddress,
@@ -262,8 +254,7 @@ export function getInitializeInstruction<
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -294,9 +285,7 @@ export function getInitializeInstruction<
       getAccountMeta("phygitalToken", accounts.phygitalToken),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getInitializeInstructionDataEncoder().encode(
-      args as InitializeInstructionDataArgs,
-    ),
+    data: getInitializeInstructionDataEncoder().encode(args as InitializeInstructionDataArgs),
     programAddress,
   } as InitializeInstruction<
     TProgramAddress,
@@ -330,13 +319,10 @@ export function parseInitializeInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedInitializeInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 4,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

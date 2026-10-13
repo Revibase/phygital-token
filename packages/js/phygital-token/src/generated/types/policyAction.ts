@@ -66,38 +66,27 @@ export function getPolicyActionEncoder(): Encoder<PolicyActionArgs> {
   return getDiscriminatedUnionEncoder([
     [
       "SetSolCap",
-      getStructEncoder([
-        ["fields", getTupleEncoder([getOptionEncoder(getCapArgEncoder())])],
-      ]),
+      getStructEncoder([["fields", getTupleEncoder([getOptionEncoder(getCapArgEncoder())])]]),
     ],
     [
       "SetMintCap",
-      getStructEncoder([
-        ["fields", getTupleEncoder([getAddressEncoder(), getCapArgEncoder()])],
-      ]),
+      getStructEncoder([["fields", getTupleEncoder([getAddressEncoder(), getCapArgEncoder()])]]),
     ],
-    [
-      "RemoveMintCap",
-      getStructEncoder([["fields", getTupleEncoder([getAddressEncoder()])]]),
-    ],
+    ["RemoveMintCap", getStructEncoder([["fields", getTupleEncoder([getAddressEncoder()])]])],
     [
       "SetAllowedOrigins",
       getStructEncoder([
         [
           "fields",
           getTupleEncoder([
-            getArrayEncoder(
-              addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
-            ),
+            getArrayEncoder(addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())),
           ]),
         ],
       ]),
     ],
     [
       "SetProgramPermission",
-      getStructEncoder([
-        ["fields", getTupleEncoder([getProgramPermissionEncoder()])],
-      ]),
+      getStructEncoder([["fields", getTupleEncoder([getProgramPermissionEncoder()])]]),
     ],
     [
       "RemoveProgramPermission",
@@ -110,38 +99,27 @@ export function getPolicyActionDecoder(): Decoder<PolicyAction> {
   return getDiscriminatedUnionDecoder([
     [
       "SetSolCap",
-      getStructDecoder([
-        ["fields", getTupleDecoder([getOptionDecoder(getCapArgDecoder())])],
-      ]),
+      getStructDecoder([["fields", getTupleDecoder([getOptionDecoder(getCapArgDecoder())])]]),
     ],
     [
       "SetMintCap",
-      getStructDecoder([
-        ["fields", getTupleDecoder([getAddressDecoder(), getCapArgDecoder()])],
-      ]),
+      getStructDecoder([["fields", getTupleDecoder([getAddressDecoder(), getCapArgDecoder()])]]),
     ],
-    [
-      "RemoveMintCap",
-      getStructDecoder([["fields", getTupleDecoder([getAddressDecoder()])]]),
-    ],
+    ["RemoveMintCap", getStructDecoder([["fields", getTupleDecoder([getAddressDecoder()])]])],
     [
       "SetAllowedOrigins",
       getStructDecoder([
         [
           "fields",
           getTupleDecoder([
-            getArrayDecoder(
-              addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder()),
-            ),
+            getArrayDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())),
           ]),
         ],
       ]),
     ],
     [
       "SetProgramPermission",
-      getStructDecoder([
-        ["fields", getTupleDecoder([getProgramPermissionDecoder()])],
-      ]),
+      getStructDecoder([["fields", getTupleDecoder([getProgramPermissionDecoder()])]]),
     ],
     [
       "RemoveProgramPermission",
@@ -157,27 +135,15 @@ export function getPolicyActionCodec(): Codec<PolicyActionArgs, PolicyAction> {
 // Data Enum Helpers.
 export function policyAction(
   kind: "SetSolCap",
-  data: GetDiscriminatedUnionVariantContent<
-    PolicyActionArgs,
-    "__kind",
-    "SetSolCap"
-  >["fields"],
+  data: GetDiscriminatedUnionVariantContent<PolicyActionArgs, "__kind", "SetSolCap">["fields"],
 ): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "SetSolCap">;
 export function policyAction(
   kind: "SetMintCap",
-  data: GetDiscriminatedUnionVariantContent<
-    PolicyActionArgs,
-    "__kind",
-    "SetMintCap"
-  >["fields"],
+  data: GetDiscriminatedUnionVariantContent<PolicyActionArgs, "__kind", "SetMintCap">["fields"],
 ): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "SetMintCap">;
 export function policyAction(
   kind: "RemoveMintCap",
-  data: GetDiscriminatedUnionVariantContent<
-    PolicyActionArgs,
-    "__kind",
-    "RemoveMintCap"
-  >["fields"],
+  data: GetDiscriminatedUnionVariantContent<PolicyActionArgs, "__kind", "RemoveMintCap">["fields"],
 ): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "RemoveMintCap">;
 export function policyAction(
   kind: "SetAllowedOrigins",
@@ -186,11 +152,7 @@ export function policyAction(
     "__kind",
     "SetAllowedOrigins"
   >["fields"],
-): GetDiscriminatedUnionVariant<
-  PolicyActionArgs,
-  "__kind",
-  "SetAllowedOrigins"
->;
+): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "SetAllowedOrigins">;
 export function policyAction(
   kind: "SetProgramPermission",
   data: GetDiscriminatedUnionVariantContent<
@@ -198,11 +160,7 @@ export function policyAction(
     "__kind",
     "SetProgramPermission"
   >["fields"],
-): GetDiscriminatedUnionVariant<
-  PolicyActionArgs,
-  "__kind",
-  "SetProgramPermission"
->;
+): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "SetProgramPermission">;
 export function policyAction(
   kind: "RemoveProgramPermission",
   data: GetDiscriminatedUnionVariantContent<
@@ -210,18 +168,9 @@ export function policyAction(
     "__kind",
     "RemoveProgramPermission"
   >["fields"],
-): GetDiscriminatedUnionVariant<
-  PolicyActionArgs,
-  "__kind",
-  "RemoveProgramPermission"
->;
-export function policyAction<K extends PolicyActionArgs["__kind"], Data>(
-  kind: K,
-  data?: Data,
-) {
-  return Array.isArray(data)
-    ? { __kind: kind, fields: data }
-    : { __kind: kind, ...(data ?? {}) };
+): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "RemoveProgramPermission">;
+export function policyAction<K extends PolicyActionArgs["__kind"], Data>(kind: K, data?: Data) {
+  return Array.isArray(data) ? { __kind: kind, fields: data } : { __kind: kind, ...(data ?? {}) };
 }
 
 export function isPolicyAction<K extends PolicyAction["__kind"]>(

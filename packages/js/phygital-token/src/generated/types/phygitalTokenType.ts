@@ -35,8 +35,5 @@ export function getPhygitalTokenTypeCodec(): FixedSizeCodec<
   PhygitalTokenTypeArgs,
   PhygitalTokenType
 > {
-  return combineCodec(
-    getPhygitalTokenTypeEncoder(),
-    getPhygitalTokenTypeDecoder(),
-  );
+  return combineCodec(getPhygitalTokenTypeEncoder(), getPhygitalTokenTypeDecoder());
 }

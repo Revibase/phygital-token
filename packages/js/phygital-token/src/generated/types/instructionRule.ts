@@ -78,9 +78,6 @@ export function getInstructionRuleDecoder(): Decoder<InstructionRule> {
   ]);
 }
 
-export function getInstructionRuleCodec(): Codec<
-  InstructionRuleArgs,
-  InstructionRule
-> {
+export function getInstructionRuleCodec(): Codec<InstructionRuleArgs, InstructionRule> {
   return combineCodec(getInstructionRuleEncoder(), getInstructionRuleDecoder());
 }

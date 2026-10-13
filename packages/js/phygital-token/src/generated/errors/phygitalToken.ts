@@ -181,21 +181,15 @@ if (process.env["NODE_ENV"] !== "production") {
 
 export function getPhygitalTokenErrorMessage(code: PhygitalTokenError): string {
   if (process.env["NODE_ENV"] !== "production") {
-    return (phygitalTokenErrorMessages as Record<PhygitalTokenError, string>)[
-      code
-    ];
+    return (phygitalTokenErrorMessages as Record<PhygitalTokenError, string>)[code];
   }
 
   return "Error message not available in production bundles.";
 }
 
-export function isPhygitalTokenError<
-  TProgramErrorCode extends PhygitalTokenError,
->(
+export function isPhygitalTokenError<TProgramErrorCode extends PhygitalTokenError>(
   error: unknown,
-  transactionMessage: {
-    instructions: Record<number, { programAddress: Address }>;
-  },
+  transactionMessage: { instructions: Record<number, { programAddress: Address }> },
   code?: TProgramErrorCode,
 ): error is SolanaError<typeof SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM> &
   Readonly<{ context: Readonly<{ code: TProgramErrorCode }> }> {

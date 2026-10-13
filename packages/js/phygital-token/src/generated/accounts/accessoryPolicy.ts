@@ -61,13 +61,12 @@ import {
   type SpendCapArgs,
 } from "../types/index.js";
 
-export const ACCESSORY_POLICY_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([217, 246, 249, 78, 235, 174, 26, 135]);
+export const ACCESSORY_POLICY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  217, 246, 249, 78, 235, 174, 26, 135,
+]);
 
 export function getAccessoryPolicyDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    ACCESSORY_POLICY_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(ACCESSORY_POLICY_DISCRIMINATOR);
 }
 
 export type AccessoryPolicy = {
@@ -106,12 +105,7 @@ export function getAccessoryPolicyEncoder(): Encoder<AccessoryPolicyArgs> {
       ["wallet", getAddressEncoder()],
       ["solCap", getOptionEncoder(getSpendCapEncoder())],
       ["mintCaps", getArrayEncoder(getMintCapEncoder())],
-      [
-        "allowedOrigins",
-        getArrayEncoder(
-          addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
-        ),
-      ],
+      ["allowedOrigins", getArrayEncoder(addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()))],
       ["programPermissions", getArrayEncoder(getProgramPermissionEncoder())],
     ]),
     (value) => ({ ...value, discriminator: ACCESSORY_POLICY_DISCRIMINATOR }),
@@ -126,19 +120,13 @@ export function getAccessoryPolicyDecoder(): Decoder<AccessoryPolicy> {
     ["wallet", getAddressDecoder()],
     ["solCap", getOptionDecoder(getSpendCapDecoder())],
     ["mintCaps", getArrayDecoder(getMintCapDecoder())],
-    [
-      "allowedOrigins",
-      getArrayDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())),
-    ],
+    ["allowedOrigins", getArrayDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder()))],
     ["programPermissions", getArrayDecoder(getProgramPermissionDecoder())],
   ]);
 }
 
 /** Gets the codec for {@link AccessoryPolicy} account data. */
-export function getAccessoryPolicyCodec(): Codec<
-  AccessoryPolicyArgs,
-  AccessoryPolicy
-> {
+export function getAccessoryPolicyCodec(): Codec<AccessoryPolicyArgs, AccessoryPolicy> {
   return combineCodec(getAccessoryPolicyEncoder(), getAccessoryPolicyDecoder());
 }
 
@@ -150,9 +138,7 @@ export function decodeAccessoryPolicy<TAddress extends string = string>(
 ): MaybeAccount<AccessoryPolicy, TAddress>;
 export function decodeAccessoryPolicy<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>,
-):
-  | Account<AccessoryPolicy, TAddress>
-  | MaybeAccount<AccessoryPolicy, TAddress> {
+): Account<AccessoryPolicy, TAddress> | MaybeAccount<AccessoryPolicy, TAddress> {
   return decodeAccount(
     encodedAccount as MaybeEncodedAccount<TAddress>,
     getAccessoryPolicyDecoder(),
@@ -169,9 +155,7 @@ export async function fetchAccessoryPolicy<TAddress extends string = string>(
   return maybeAccount;
 }
 
-export async function fetchMaybeAccessoryPolicy<
-  TAddress extends string = string,
->(
+export async function fetchMaybeAccessoryPolicy<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
   address: Address<TAddress>,
   config?: FetchAccountConfig,
@@ -185,11 +169,7 @@ export async function fetchAllAccessoryPolicy(
   addresses: Array<Address>,
   config?: FetchAccountsConfig,
 ): Promise<Account<AccessoryPolicy>[]> {
-  const maybeAccounts = await fetchAllMaybeAccessoryPolicy(
-    rpc,
-    addresses,
-    config,
-  );
+  const maybeAccounts = await fetchAllMaybeAccessoryPolicy(rpc, addresses, config);
   assertAccountsExist(maybeAccounts);
   return maybeAccounts;
 }
@@ -200,7 +180,5 @@ export async function fetchAllMaybeAccessoryPolicy(
   config?: FetchAccountsConfig,
 ): Promise<MaybeAccount<AccessoryPolicy>[]> {
   const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
-  return maybeAccounts.map((maybeAccount) =>
-    decodeAccessoryPolicy(maybeAccount),
-  );
+  return maybeAccounts.map((maybeAccount) => decodeAccessoryPolicy(maybeAccount));
 }

@@ -26,10 +26,7 @@ import {
 
 export type ProgramPermission = { programId: Address; access: ProgramAccess };
 
-export type ProgramPermissionArgs = {
-  programId: Address;
-  access: ProgramAccessArgs;
-};
+export type ProgramPermissionArgs = { programId: Address; access: ProgramAccessArgs };
 
 export function getProgramPermissionEncoder(): Encoder<ProgramPermissionArgs> {
   return getStructEncoder([
@@ -45,12 +42,6 @@ export function getProgramPermissionDecoder(): Decoder<ProgramPermission> {
   ]);
 }
 
-export function getProgramPermissionCodec(): Codec<
-  ProgramPermissionArgs,
-  ProgramPermission
-> {
-  return combineCodec(
-    getProgramPermissionEncoder(),
-    getProgramPermissionDecoder(),
-  );
+export function getProgramPermissionCodec(): Codec<ProgramPermissionArgs, ProgramPermission> {
+  return combineCodec(getProgramPermissionEncoder(), getProgramPermissionDecoder());
 }

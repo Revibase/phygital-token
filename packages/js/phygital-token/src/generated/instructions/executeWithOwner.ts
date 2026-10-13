@@ -47,13 +47,12 @@ import {
   type CompactInstructionArgs,
 } from "../types/index.js";
 
-export const EXECUTE_WITH_OWNER_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([9, 237, 247, 163, 250, 164, 231, 173]);
+export const EXECUTE_WITH_OWNER_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  9, 237, 247, 163, 250, 164, 231, 173,
+]);
 
 export function getExecuteWithOwnerDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    EXECUTE_WITH_OWNER_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(EXECUTE_WITH_OWNER_DISCRIMINATOR);
 }
 
 export type ExecuteWithOwnerInstruction<
@@ -69,15 +68,12 @@ export type ExecuteWithOwnerInstruction<
   InstructionWithAccounts<
     [
       TAccountOwner extends string
-        ? ReadonlySignerAccount<TAccountOwner> &
-            AccountSignerMeta<TAccountOwner>
+        ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
       TAccountPhygitalToken extends string
         ? ReadonlyAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
-      TAccountWallet extends string
-        ? ReadonlyAccount<TAccountWallet>
-        : TAccountWallet,
+      TAccountWallet extends string ? ReadonlyAccount<TAccountWallet> : TAccountWallet,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
@@ -159,18 +155,14 @@ export async function getExecuteWithOwnerInstructionAsync<
   >
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
     owner: { value: input.owner ?? null, isWritable: false },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: false },
     wallet: { value: input.wallet ?? null, isWritable: false },
-    instructionsSysvar: {
-      value: input.instructionsSysvar ?? null,
-      isWritable: false,
-    },
+    instructionsSysvar: { value: input.instructionsSysvar ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -251,18 +243,14 @@ export function getExecuteWithOwnerInstruction<
   TAccountInstructionsSysvar
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
     owner: { value: input.owner ?? null, isWritable: false },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: false },
     wallet: { value: input.wallet ?? null, isWritable: false },
-    instructionsSysvar: {
-      value: input.instructionsSysvar ?? null,
-      isWritable: false,
-    },
+    instructionsSysvar: { value: input.instructionsSysvar ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -323,13 +311,10 @@ export function parseExecuteWithOwnerInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedExecuteWithOwnerInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 4,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

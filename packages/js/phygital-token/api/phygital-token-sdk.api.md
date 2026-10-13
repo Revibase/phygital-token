@@ -258,8 +258,6 @@ export function buildExecuteWithOwnerInstruction(input: {
 // @public
 export function buildMessageHash(message: Uint8Array): Uint8Array;
 
-// Warning: (ae-forgotten-export) The symbol "Secp256r1VerifyEntry" needs to be exported by the entry point index.d.ts
-//
 // @public
 export function buildSecp256r1VerifyInstruction(response: AuthenticationResponseJSON, existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[], verifyArgsRelativeIndex?: number): Promise<{
     secp256r1VerifyInstruction: Instruction;
@@ -971,8 +969,6 @@ export function getPhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array;
 // @public
 export function getPhygitalTokenEncoder(): FixedSizeEncoder<PhygitalTokenArgs>;
 
-// Warning: (ae-forgotten-export) The symbol "PhygitalTokenError_2" needs to be exported by the entry point index.d.ts
-//
 // @public (undocumented)
 export function getPhygitalTokenErrorMessage(code: PhygitalTokenError_2): string;
 
@@ -2617,11 +2613,6 @@ export type WalletSeeds = {
 
 // @public (undocumented)
 export function withRemainingAccounts(instruction: Instruction, remainingAccounts: readonly AccountMeta[]): Instruction;
-
-// Warnings were encountered during analysis:
-//
-// src/generated/programs/phygitalToken.ts:597:3 - (ae-forgotten-export) The symbol "MakeOptional" needs to be exported by the entry point index.d.ts
-// src/utils/passkey/webauthn.ts:23:3 - (ae-forgotten-export) The symbol "Base64URLString_2" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

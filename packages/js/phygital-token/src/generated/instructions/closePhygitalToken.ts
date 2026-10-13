@@ -40,13 +40,12 @@ import {
 import { findAdminConfigPda, findPolicyPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
-export const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([254, 245, 167, 180, 210, 121, 241, 102]);
+export const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  254, 245, 167, 180, 210, 121, 241, 102,
+]);
 
 export function getClosePhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR);
 }
 
 export type ClosePhygitalTokenInstruction<
@@ -62,8 +61,7 @@ export type ClosePhygitalTokenInstruction<
   InstructionWithAccounts<
     [
       TAccountAdmin extends string
-        ? ReadonlySignerAccount<TAccountAdmin> &
-            AccountSignerMeta<TAccountAdmin>
+        ? ReadonlySignerAccount<TAccountAdmin> & AccountSignerMeta<TAccountAdmin>
         : TAccountAdmin,
       TAccountRentRecipient extends string
         ? WritableAccount<TAccountRentRecipient>
@@ -74,33 +72,24 @@ export type ClosePhygitalTokenInstruction<
       TAccountPhygitalToken extends string
         ? WritableAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
-      TAccountPolicy extends string
-        ? WritableAccount<TAccountPolicy>
-        : TAccountPolicy,
+      TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
       ...TRemainingAccounts,
     ]
   >;
 
-export type ClosePhygitalTokenInstructionData = {
-  discriminator: ReadonlyUint8Array;
-};
+export type ClosePhygitalTokenInstructionData = { discriminator: ReadonlyUint8Array };
 
 export type ClosePhygitalTokenInstructionDataArgs = {};
 
 export function getClosePhygitalTokenInstructionDataEncoder(): FixedSizeEncoder<ClosePhygitalTokenInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({
-      ...value,
-      discriminator: CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR,
-    }),
+    (value) => ({ ...value, discriminator: CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR }),
   );
 }
 
 export function getClosePhygitalTokenInstructionDataDecoder(): FixedSizeDecoder<ClosePhygitalTokenInstructionData> {
-  return getStructDecoder([
-    ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-  ]);
+  return getStructDecoder([["discriminator", fixDecoderSize(getBytesDecoder(), 8)]]);
 }
 
 export function getClosePhygitalTokenInstructionDataCodec(): FixedSizeCodec<
@@ -155,8 +144,7 @@ export async function getClosePhygitalTokenInstructionAsync<
   >
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -245,8 +233,7 @@ export function getClosePhygitalTokenInstruction<
   TAccountPolicy
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -307,13 +294,10 @@ export function parseClosePhygitalTokenInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClosePhygitalTokenInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 5) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 5,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {
@@ -330,8 +314,6 @@ export function parseClosePhygitalTokenInstruction<
       phygitalToken: getNextAccount(),
       policy: getNextAccount(),
     },
-    data: getClosePhygitalTokenInstructionDataDecoder().decode(
-      instruction.data,
-    ),
+    data: getClosePhygitalTokenInstructionDataDecoder().decode(instruction.data),
   };
 }

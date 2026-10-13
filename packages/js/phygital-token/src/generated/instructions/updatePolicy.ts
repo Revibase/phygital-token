@@ -54,9 +54,7 @@ export const UPDATE_POLICY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
 ]);
 
 export function getUpdatePolicyDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    UPDATE_POLICY_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(UPDATE_POLICY_DISCRIMINATOR);
 }
 
 export type UpdatePolicyInstruction<
@@ -65,27 +63,22 @@ export type UpdatePolicyInstruction<
   TAccountPayer extends string | AccountMeta<string> = string,
   TAccountPhygitalToken extends string | AccountMeta<string> = string,
   TAccountPolicy extends string | AccountMeta<string> = string,
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
+  TAccountSystemProgram extends string | AccountMeta<string> = "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
       TAccountOwner extends string
-        ? ReadonlySignerAccount<TAccountOwner> &
-            AccountSignerMeta<TAccountOwner>
+        ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
       TAccountPayer extends string
-        ? WritableSignerAccount<TAccountPayer> &
-            AccountSignerMeta<TAccountPayer>
+        ? WritableSignerAccount<TAccountPayer> & AccountSignerMeta<TAccountPayer>
         : TAccountPayer,
       TAccountPhygitalToken extends string
         ? ReadonlyAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
-      TAccountPolicy extends string
-        ? WritableAccount<TAccountPolicy>
-        : TAccountPolicy,
+      TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -98,9 +91,7 @@ export type UpdatePolicyInstructionData = {
   actions: Array<PolicyAction>;
 };
 
-export type UpdatePolicyInstructionDataArgs = {
-  actions: Array<PolicyActionArgs>;
-};
+export type UpdatePolicyInstructionDataArgs = { actions: Array<PolicyActionArgs> };
 
 export function getUpdatePolicyInstructionDataEncoder(): Encoder<UpdatePolicyInstructionDataArgs> {
   return transformEncoder(
@@ -172,8 +163,7 @@ export async function getUpdatePolicyInstructionAsync<
   >
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -214,9 +204,7 @@ export async function getUpdatePolicyInstructionAsync<
       getAccountMeta("policy", accounts.policy),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getUpdatePolicyInstructionDataEncoder().encode(
-      args as UpdatePolicyInstructionDataArgs,
-    ),
+    data: getUpdatePolicyInstructionDataEncoder().encode(args as UpdatePolicyInstructionDataArgs),
     programAddress,
   } as UpdatePolicyInstruction<
     TProgramAddress,
@@ -269,8 +257,7 @@ export function getUpdatePolicyInstruction<
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -303,9 +290,7 @@ export function getUpdatePolicyInstruction<
       getAccountMeta("policy", accounts.policy),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getUpdatePolicyInstructionDataEncoder().encode(
-      args as UpdatePolicyInstructionDataArgs,
-    ),
+    data: getUpdatePolicyInstructionDataEncoder().encode(args as UpdatePolicyInstructionDataArgs),
     programAddress,
   } as UpdatePolicyInstruction<
     TProgramAddress,
@@ -342,13 +327,10 @@ export function parseUpdatePolicyInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedUpdatePolicyInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 5) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 5,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

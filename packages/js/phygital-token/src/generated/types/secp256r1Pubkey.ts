@@ -32,9 +32,6 @@ export function getSecp256r1PubkeyDecoder(): FixedSizeDecoder<Secp256r1Pubkey> {
   return getTupleDecoder([fixDecoderSize(getBytesDecoder(), 33)]);
 }
 
-export function getSecp256r1PubkeyCodec(): FixedSizeCodec<
-  Secp256r1PubkeyArgs,
-  Secp256r1Pubkey
-> {
+export function getSecp256r1PubkeyCodec(): FixedSizeCodec<Secp256r1PubkeyArgs, Secp256r1Pubkey> {
   return combineCodec(getSecp256r1PubkeyEncoder(), getSecp256r1PubkeyDecoder());
 }

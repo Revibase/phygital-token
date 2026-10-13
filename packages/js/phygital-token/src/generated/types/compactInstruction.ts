@@ -36,10 +36,7 @@ export type CompactInstructionArgs = CompactInstruction;
 export function getCompactInstructionEncoder(): Encoder<CompactInstructionArgs> {
   return getStructEncoder([
     ["programIdIndex", getU8Encoder()],
-    [
-      "accountIndexes",
-      addEncoderSizePrefix(getBytesEncoder(), getU32Encoder()),
-    ],
+    ["accountIndexes", addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
     ["data", addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
   ]);
 }
@@ -47,20 +44,11 @@ export function getCompactInstructionEncoder(): Encoder<CompactInstructionArgs> 
 export function getCompactInstructionDecoder(): Decoder<CompactInstruction> {
   return getStructDecoder([
     ["programIdIndex", getU8Decoder()],
-    [
-      "accountIndexes",
-      addDecoderSizePrefix(getBytesDecoder(), getU32Decoder()),
-    ],
+    ["accountIndexes", addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
     ["data", addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
   ]);
 }
 
-export function getCompactInstructionCodec(): Codec<
-  CompactInstructionArgs,
-  CompactInstruction
-> {
-  return combineCodec(
-    getCompactInstructionEncoder(),
-    getCompactInstructionDecoder(),
-  );
+export function getCompactInstructionCodec(): Codec<CompactInstructionArgs, CompactInstruction> {
+  return combineCodec(getCompactInstructionEncoder(), getCompactInstructionDecoder());
 }

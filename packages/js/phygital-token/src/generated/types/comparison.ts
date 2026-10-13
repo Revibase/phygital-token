@@ -34,9 +34,6 @@ export function getComparisonDecoder(): FixedSizeDecoder<Comparison> {
   return getEnumDecoder(Comparison);
 }
 
-export function getComparisonCodec(): FixedSizeCodec<
-  ComparisonArgs,
-  Comparison
-> {
+export function getComparisonCodec(): FixedSizeCodec<ComparisonArgs, Comparison> {
   return combineCodec(getComparisonEncoder(), getComparisonDecoder());
 }

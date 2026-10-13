@@ -32,9 +32,6 @@ export function getNumericWidthDecoder(): FixedSizeDecoder<NumericWidth> {
   return getEnumDecoder(NumericWidth);
 }
 
-export function getNumericWidthCodec(): FixedSizeCodec<
-  NumericWidthArgs,
-  NumericWidth
-> {
+export function getNumericWidthCodec(): FixedSizeCodec<NumericWidthArgs, NumericWidth> {
   return combineCodec(getNumericWidthEncoder(), getNumericWidthDecoder());
 }

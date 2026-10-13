@@ -49,13 +49,12 @@ import {
   type Secp256r1VerifyArgsArgs,
 } from "../types/index.js";
 
-export const EXECUTE_WITH_ACCESSORY_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([159, 174, 167, 140, 51, 210, 101, 10]);
+export const EXECUTE_WITH_ACCESSORY_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  159, 174, 167, 140, 51, 210, 101, 10,
+]);
 
 export function getExecuteWithAccessoryDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    EXECUTE_WITH_ACCESSORY_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(EXECUTE_WITH_ACCESSORY_DISCRIMINATOR);
 }
 
 export type ExecuteWithAccessoryInstruction<
@@ -75,15 +74,9 @@ export type ExecuteWithAccessoryInstruction<
       TAccountPhygitalToken extends string
         ? WritableAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
-      TAccountPolicy extends string
-        ? WritableAccount<TAccountPolicy>
-        : TAccountPolicy,
-      TAccountWallet extends string
-        ? ReadonlyAccount<TAccountWallet>
-        : TAccountWallet,
-      TAccountSlotHashes extends string
-        ? ReadonlyAccount<TAccountSlotHashes>
-        : TAccountSlotHashes,
+      TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
+      TAccountWallet extends string ? ReadonlyAccount<TAccountWallet> : TAccountWallet,
+      TAccountSlotHashes extends string ? ReadonlyAccount<TAccountSlotHashes> : TAccountSlotHashes,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
@@ -112,10 +105,7 @@ export function getExecuteWithAccessoryInstructionDataEncoder(): Encoder<Execute
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
       ["slotNumber", getU64Encoder()],
     ]),
-    (value) => ({
-      ...value,
-      discriminator: EXECUTE_WITH_ACCESSORY_DISCRIMINATOR,
-    }),
+    (value) => ({ ...value, discriminator: EXECUTE_WITH_ACCESSORY_DISCRIMINATOR }),
   );
 }
 
@@ -182,8 +172,7 @@ export function getExecuteWithAccessoryInstruction<
   TAccountInstructionsSysvar
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -191,10 +180,7 @@ export function getExecuteWithAccessoryInstruction<
     policy: { value: input.policy ?? null, isWritable: true },
     wallet: { value: input.wallet ?? null, isWritable: false },
     slotHashes: { value: input.slotHashes ?? null, isWritable: false },
-    instructionsSysvar: {
-      value: input.instructionsSysvar ?? null,
-      isWritable: false,
-    },
+    instructionsSysvar: { value: input.instructionsSysvar ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -263,13 +249,10 @@ export function parseExecuteWithAccessoryInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedExecuteWithAccessoryInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 5) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 5,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {
@@ -286,8 +269,6 @@ export function parseExecuteWithAccessoryInstruction<
       slotHashes: getNextAccount(),
       instructionsSysvar: getNextAccount(),
     },
-    data: getExecuteWithAccessoryInstructionDataDecoder().decode(
-      instruction.data,
-    ),
+    data: getExecuteWithAccessoryInstructionDataDecoder().decode(instruction.data),
   };
 }

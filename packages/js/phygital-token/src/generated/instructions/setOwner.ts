@@ -72,24 +72,17 @@ export type SetOwnerInstruction<
   InstructionWithAccounts<
     [
       TAccountRecipient extends string
-        ? ReadonlySignerAccount<TAccountRecipient> &
-            AccountSignerMeta<TAccountRecipient>
+        ? ReadonlySignerAccount<TAccountRecipient> & AccountSignerMeta<TAccountRecipient>
         : TAccountRecipient,
       TAccountPhygitalToken extends string
         ? WritableAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
-      TAccountSlotHashes extends string
-        ? ReadonlyAccount<TAccountSlotHashes>
-        : TAccountSlotHashes,
+      TAccountSlotHashes extends string ? ReadonlyAccount<TAccountSlotHashes> : TAccountSlotHashes,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
-      TAccountPolicy extends string
-        ? WritableAccount<TAccountPolicy>
-        : TAccountPolicy,
-      TAccountWallet extends string
-        ? WritableAccount<TAccountWallet>
-        : TAccountWallet,
+      TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
+      TAccountWallet extends string ? WritableAccount<TAccountWallet> : TAccountWallet,
       ...TRemainingAccounts,
     ]
   >;
@@ -128,10 +121,7 @@ export function getSetOwnerInstructionDataCodec(): Codec<
   SetOwnerInstructionDataArgs,
   SetOwnerInstructionData
 > {
-  return combineCodec(
-    getSetOwnerInstructionDataEncoder(),
-    getSetOwnerInstructionDataDecoder(),
-  );
+  return combineCodec(getSetOwnerInstructionDataEncoder(), getSetOwnerInstructionDataDecoder());
 }
 
 export type SetOwnerAsyncInput<
@@ -182,18 +172,14 @@ export async function getSetOwnerInstructionAsync<
   >
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
     recipient: { value: input.recipient ?? null, isWritable: false },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
     slotHashes: { value: input.slotHashes ?? null, isWritable: false },
-    instructionsSysvar: {
-      value: input.instructionsSysvar ?? null,
-      isWritable: false,
-    },
+    instructionsSysvar: { value: input.instructionsSysvar ?? null, isWritable: false },
     policy: { value: input.policy ?? null, isWritable: true },
     wallet: { value: input.wallet ?? null, isWritable: true },
   };
@@ -241,9 +227,7 @@ export async function getSetOwnerInstructionAsync<
       getAccountMeta("policy", accounts.policy),
       getAccountMeta("wallet", accounts.wallet),
     ],
-    data: getSetOwnerInstructionDataEncoder().encode(
-      args as SetOwnerInstructionDataArgs,
-    ),
+    data: getSetOwnerInstructionDataEncoder().encode(args as SetOwnerInstructionDataArgs),
     programAddress,
   } as SetOwnerInstruction<
     TProgramAddress,
@@ -302,18 +286,14 @@ export function getSetOwnerInstruction<
   TAccountWallet
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
     recipient: { value: input.recipient ?? null, isWritable: false },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
     slotHashes: { value: input.slotHashes ?? null, isWritable: false },
-    instructionsSysvar: {
-      value: input.instructionsSysvar ?? null,
-      isWritable: false,
-    },
+    instructionsSysvar: { value: input.instructionsSysvar ?? null, isWritable: false },
     policy: { value: input.policy ?? null, isWritable: true },
     wallet: { value: input.wallet ?? null, isWritable: true },
   };
@@ -345,9 +325,7 @@ export function getSetOwnerInstruction<
       getAccountMeta("policy", accounts.policy),
       getAccountMeta("wallet", accounts.wallet),
     ],
-    data: getSetOwnerInstructionDataEncoder().encode(
-      args as SetOwnerInstructionDataArgs,
-    ),
+    data: getSetOwnerInstructionDataEncoder().encode(args as SetOwnerInstructionDataArgs),
     programAddress,
   } as SetOwnerInstruction<
     TProgramAddress,
@@ -385,13 +363,10 @@ export function parseSetOwnerInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedSetOwnerInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 6) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 6,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 6,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

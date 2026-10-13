@@ -58,8 +58,7 @@ export type SetMinterInstruction<
   InstructionWithAccounts<
     [
       TAccountAdmin extends string
-        ? ReadonlySignerAccount<TAccountAdmin> &
-            AccountSignerMeta<TAccountAdmin>
+        ? ReadonlySignerAccount<TAccountAdmin> & AccountSignerMeta<TAccountAdmin>
         : TAccountAdmin,
       TAccountAdminConfig extends string
         ? WritableAccount<TAccountAdminConfig>
@@ -68,10 +67,7 @@ export type SetMinterInstruction<
     ]
   >;
 
-export type SetMinterInstructionData = {
-  discriminator: ReadonlyUint8Array;
-  minter: Address;
-};
+export type SetMinterInstructionData = { discriminator: ReadonlyUint8Array; minter: Address };
 
 export type SetMinterInstructionDataArgs = { minter: Address };
 
@@ -96,10 +92,7 @@ export function getSetMinterInstructionDataCodec(): FixedSizeCodec<
   SetMinterInstructionDataArgs,
   SetMinterInstructionData
 > {
-  return combineCodec(
-    getSetMinterInstructionDataEncoder(),
-    getSetMinterInstructionDataDecoder(),
-  );
+  return combineCodec(getSetMinterInstructionDataEncoder(), getSetMinterInstructionDataDecoder());
 }
 
 export type SetMinterAsyncInput<
@@ -118,12 +111,9 @@ export async function getSetMinterInstructionAsync<
 >(
   input: SetMinterAsyncInput<TAccountAdmin, TAccountAdminConfig>,
   config?: { programAddress?: TProgramAddress },
-): Promise<
-  SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>
-> {
+): Promise<SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>> {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -149,15 +139,9 @@ export async function getSetMinterInstructionAsync<
       getAccountMeta("admin", accounts.admin),
       getAccountMeta("adminConfig", accounts.adminConfig),
     ],
-    data: getSetMinterInstructionDataEncoder().encode(
-      args as SetMinterInstructionDataArgs,
-    ),
+    data: getSetMinterInstructionDataEncoder().encode(args as SetMinterInstructionDataArgs),
     programAddress,
-  } as SetMinterInstruction<
-    TProgramAddress,
-    TAccountAdmin,
-    TAccountAdminConfig
-  >);
+  } as SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>);
 }
 
 export type SetMinterInput<
@@ -178,8 +162,7 @@ export function getSetMinterInstruction<
   config?: { programAddress?: TProgramAddress },
 ): SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig> {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -200,15 +183,9 @@ export function getSetMinterInstruction<
       getAccountMeta("admin", accounts.admin),
       getAccountMeta("adminConfig", accounts.adminConfig),
     ],
-    data: getSetMinterInstructionDataEncoder().encode(
-      args as SetMinterInstructionDataArgs,
-    ),
+    data: getSetMinterInstructionDataEncoder().encode(args as SetMinterInstructionDataArgs),
     programAddress,
-  } as SetMinterInstruction<
-    TProgramAddress,
-    TAccountAdmin,
-    TAccountAdminConfig
-  >);
+  } as SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>);
 }
 
 export type ParsedSetMinterInstruction<
@@ -232,13 +209,10 @@ export function parseSetMinterInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedSetMinterInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 2) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 2,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 2,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

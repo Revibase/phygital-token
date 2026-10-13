@@ -44,25 +44,21 @@ export const CREATE_CONFIG_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
 ]);
 
 export function getCreateConfigDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CREATE_CONFIG_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(CREATE_CONFIG_DISCRIMINATOR);
 }
 
 export type CreateConfigInstruction<
   TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   TAccountAuthority extends string | AccountMeta<string> = string,
   TAccountAdminConfig extends string | AccountMeta<string> = string,
-  TAccountSystemProgram extends string | AccountMeta<string> =
-    "11111111111111111111111111111111",
+  TAccountSystemProgram extends string | AccountMeta<string> = "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
   InstructionWithAccounts<
     [
       TAccountAuthority extends string
-        ? WritableSignerAccount<TAccountAuthority> &
-            AccountSignerMeta<TAccountAuthority>
+        ? WritableSignerAccount<TAccountAuthority> & AccountSignerMeta<TAccountAuthority>
         : TAccountAuthority,
       TAccountAdminConfig extends string
         ? WritableAccount<TAccountAdminConfig>
@@ -86,9 +82,7 @@ export function getCreateConfigInstructionDataEncoder(): FixedSizeEncoder<Create
 }
 
 export function getCreateConfigInstructionDataDecoder(): FixedSizeDecoder<CreateConfigInstructionData> {
-  return getStructDecoder([
-    ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-  ]);
+  return getStructDecoder([["discriminator", fixDecoderSize(getBytesDecoder(), 8)]]);
 }
 
 export function getCreateConfigInstructionDataCodec(): FixedSizeCodec<
@@ -118,11 +112,7 @@ export async function getCreateConfigInstructionAsync<
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: CreateConfigAsyncInput<
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountSystemProgram
-  >,
+  input: CreateConfigAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
   CreateConfigInstruction<
@@ -133,8 +123,7 @@ export async function getCreateConfigInstructionAsync<
   >
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -190,11 +179,7 @@ export function getCreateConfigInstruction<
   TAccountSystemProgram extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
-  input: CreateConfigInput<
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountSystemProgram
-  >,
+  input: CreateConfigInput<TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>,
   config?: { programAddress?: TProgramAddress },
 ): CreateConfigInstruction<
   TProgramAddress,
@@ -203,8 +188,7 @@ export function getCreateConfigInstruction<
   TAccountSystemProgram
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
@@ -263,13 +247,10 @@ export function parseCreateConfigInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedCreateConfigInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 3) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 3,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 3,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {

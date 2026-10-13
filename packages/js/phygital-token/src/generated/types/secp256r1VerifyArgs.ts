@@ -42,10 +42,7 @@ export function getSecp256r1VerifyArgsEncoder(): Encoder<Secp256r1VerifyArgsArgs
   return getStructEncoder([
     ["verifyArgsRelativeIndex", getI64Encoder()],
     ["signedMessageIndex", getU8Encoder()],
-    [
-      "clientDataJson",
-      addEncoderSizePrefix(getBytesEncoder(), getU32Encoder()),
-    ],
+    ["clientDataJson", addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
   ]);
 }
 
@@ -53,19 +50,10 @@ export function getSecp256r1VerifyArgsDecoder(): Decoder<Secp256r1VerifyArgs> {
   return getStructDecoder([
     ["verifyArgsRelativeIndex", getI64Decoder()],
     ["signedMessageIndex", getU8Decoder()],
-    [
-      "clientDataJson",
-      addDecoderSizePrefix(getBytesDecoder(), getU32Decoder()),
-    ],
+    ["clientDataJson", addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
   ]);
 }
 
-export function getSecp256r1VerifyArgsCodec(): Codec<
-  Secp256r1VerifyArgsArgs,
-  Secp256r1VerifyArgs
-> {
-  return combineCodec(
-    getSecp256r1VerifyArgsEncoder(),
-    getSecp256r1VerifyArgsDecoder(),
-  );
+export function getSecp256r1VerifyArgsCodec(): Codec<Secp256r1VerifyArgsArgs, Secp256r1VerifyArgs> {
+  return combineCodec(getSecp256r1VerifyArgsEncoder(), getSecp256r1VerifyArgsDecoder());
 }

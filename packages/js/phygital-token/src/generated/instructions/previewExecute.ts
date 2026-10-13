@@ -52,14 +52,12 @@ import {
   type CompactInstructionArgs,
 } from "../types/index.js";
 
-export const PREVIEW_EXECUTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [245, 77, 199, 240, 123, 2, 3, 18],
-);
+export const PREVIEW_EXECUTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  245, 77, 199, 240, 123, 2, 3, 18,
+]);
 
 export function getPreviewExecuteDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    PREVIEW_EXECUTE_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(PREVIEW_EXECUTE_DISCRIMINATOR);
 }
 
 export type PreviewExecuteInstruction<
@@ -77,12 +75,8 @@ export type PreviewExecuteInstruction<
       TAccountPhygitalToken extends string
         ? ReadonlyAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
-      TAccountPolicy extends string
-        ? ReadonlyAccount<TAccountPolicy>
-        : TAccountPolicy,
-      TAccountWallet extends string
-        ? ReadonlyAccount<TAccountWallet>
-        : TAccountWallet,
+      TAccountPolicy extends string ? ReadonlyAccount<TAccountPolicy> : TAccountPolicy,
+      TAccountWallet extends string ? ReadonlyAccount<TAccountWallet> : TAccountWallet,
       TAccountInstructionsSysvar extends string
         ? ReadonlyAccount<TAccountInstructionsSysvar>
         : TAccountInstructionsSysvar,
@@ -106,12 +100,7 @@ export function getPreviewExecuteInstructionDataEncoder(): Encoder<PreviewExecut
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["compactInstructions", getArrayEncoder(getCompactInstructionEncoder())],
-      [
-        "origin",
-        getOptionEncoder(
-          addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
-        ),
-      ],
+      ["origin", getOptionEncoder(addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()))],
     ]),
     (value) => ({ ...value, discriminator: PREVIEW_EXECUTE_DISCRIMINATOR }),
   );
@@ -121,10 +110,7 @@ export function getPreviewExecuteInstructionDataDecoder(): Decoder<PreviewExecut
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["compactInstructions", getArrayDecoder(getCompactInstructionDecoder())],
-    [
-      "origin",
-      getOptionDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())),
-    ],
+    ["origin", getOptionDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder()))],
   ]);
 }
 
@@ -174,18 +160,14 @@ export function getPreviewExecuteInstruction<
   TAccountInstructionsSysvar
 > {
   // Program address.
-  const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 
   // Original accounts.
   const originalAccounts = {
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: false },
     policy: { value: input.policy ?? null, isWritable: false },
     wallet: { value: input.wallet ?? null, isWritable: false },
-    instructionsSysvar: {
-      value: input.instructionsSysvar ?? null,
-      isWritable: false,
-    },
+    instructionsSysvar: { value: input.instructionsSysvar ?? null, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -245,13 +227,10 @@ export function parsePreviewExecuteInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedPreviewExecuteInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 4,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {
