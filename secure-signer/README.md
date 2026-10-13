@@ -44,7 +44,11 @@ secure-signer/
       parser.ts           #   phygital-token instruction decode
       clear-sign.ts       #   human-readable summaries
     ui/ui.ts              # trusted confirm/create/unlock/export screens
-    dispatcher.ts         # every flow: create, unlock, restore, sign, sign-in, export
+    dispatcher.ts         # message gate (origin, source, schema, replay) and routing
+    deps.ts               # injected side effects (UI, PRF, backup API, storage, clock)
+    flows/                # one module per request: auth (create/unlock/restore),
+                          #   sign-transaction, sign-message, export-key; shared
+                          #   context and restore helpers
     worker.ts             # signer Worker: /vault, then static assets
     main.ts               # wiring
   testing/                # test-only harness and fixtures (never bundled)
