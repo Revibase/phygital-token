@@ -155,7 +155,8 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
       },
     ],
     setOwnerArgs: {
-      verifyArgsRelativeIndex: "i64 — position of the secp256r1 precompile instruction (usually -1)",
+      verifyArgsRelativeIndex:
+        "i64 — position of the secp256r1 precompile instruction (usually -1)",
       signedMessageIndex: "u8 — which signature inside the precompile instruction",
       clientDataJson: "bytes — the exact clientDataJSON the authenticator signed",
       slotNumber: "u64 — separate instruction arg; used to fetch slot hash for transfer challenge",
