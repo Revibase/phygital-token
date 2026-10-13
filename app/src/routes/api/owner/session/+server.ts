@@ -8,9 +8,14 @@ import type { RequestHandler } from './$types';
 /** Log in: one signed message proves this browser controls the wallet. */
 export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 	const env = getEnv(platform);
-	const body = (await request.json().catch(() => ({}))) as { challengeId?: unknown; address?: unknown; signature?: unknown };
+	const body = (await request.json().catch(() => ({}))) as {
+		challengeId?: unknown;
+		address?: unknown;
+		signature?: unknown;
+	};
 	const result = await verifyOwnerLogin(env.db, body);
-	if (!result.ok) return json({ error: result.error, code: result.code }, { status: result.status });
+	if (!result.ok)
+		return json({ error: result.error, code: result.code }, { status: result.status });
 	const session = await setOwnerSession(cookies, env.sessionSecret, result.wallet);
 	return json({ ok: true, wallet: session.wallet, expiresAt: session.exp });
 };

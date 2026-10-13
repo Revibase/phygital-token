@@ -19,12 +19,7 @@ import {
 import { modifyAndWrapWalletTransaction, type FeePlan } from "./wrap-transaction.js";
 
 export type PhygitalWalletSignPhase =
-  | "preparing"
-  | "previewing"
-  | "awaitingPasskey"
-  | "building"
-  | "feePaying"
-  | "complete";
+  "preparing" | "previewing" | "awaitingPasskey" | "building" | "feePaying" | "complete";
 
 export type PhygitalWalletSignerCallbacks = {
   onPhaseChange?: (phase: PhygitalWalletSignPhase) => void;
@@ -45,13 +40,12 @@ export type PhygitalWalletSignerConfig = PhygitalWalletSignerCallbacks & {
 };
 
 /** Where the owner manages an accessory (refills its network fees, edits tap payments). */
-const manageUrl = (phygitalToken: Address) =>
-  `https://portal.revibase.com/wallet/${phygitalToken}`;
+const manageUrl = (phygitalToken: Address) => `https://portal.revibase.com/wallet/${phygitalToken}`;
 
 export function assertSupportedTransactionLifetime(transaction: Transaction): void {
   if (isTransactionWithDurableNonceLifetime(transaction)) {
     throw new Error(
-      "getPhygitalWalletSigner does not support durable nonce transactions; use a recent blockhash lifetime"
+      "getPhygitalWalletSigner does not support durable nonce transactions; use a recent blockhash lifetime",
     );
   }
 }
@@ -64,7 +58,7 @@ export function assertSupportedTransactionLifetime(transaction: Transaction): vo
 export async function getPhygitalWalletSigner(
   rpc: Rpc<SolanaRpcApi>,
   phygitalTokenPda: Address,
-  config?: PhygitalWalletSignerConfig
+  config?: PhygitalWalletSignerConfig,
 ): Promise<TransactionModifyingSigner> {
   // The wallet is a PDA of the token, so no account needs to be read; a missing policy surfaces as a `no_policy` denial before the tap.
   const [[wallet], [policyPda]] = await Promise.all([
@@ -137,7 +131,7 @@ export async function getPhygitalWalletSigner(
           config?.onPhaseChange?.("feePaying");
           const [feePayerSignature] = await executeAccounts.feePayer.signTransactions(
             [tx],
-            signConfig
+            signConfig,
           );
           if (!feePayerSignature) {
             throw new Error("Fee payer returned no signature");

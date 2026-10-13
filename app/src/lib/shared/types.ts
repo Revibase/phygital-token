@@ -1,4 +1,3 @@
-
 export type TokenKind = 'permanent' | 'bearer' | 'controlled' | 'unknown';
 
 export type AccessoryStatus =
@@ -27,7 +26,8 @@ export type AccessoryView = {
 	canRelease: boolean;
 };
 
-export type TapFailureReason = 'malformed' | 'invalid' | 'replayed' | 'unknown' | 'network' | 'expired';
+export type TapFailureReason =
+	'malformed' | 'invalid' | 'replayed' | 'unknown' | 'network' | 'expired';
 
 export type LinkErrorCode =
 	| 'accessory_locked'

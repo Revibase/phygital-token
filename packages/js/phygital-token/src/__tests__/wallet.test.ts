@@ -48,7 +48,7 @@ describe("compileWalletInstructions", () => {
           { address: RECIPIENT, role: AccountRole.WRITABLE },
         ]),
       ],
-      WALLET_PDA
+      WALLET_PDA,
     );
     expect(compiled.compactInstructions[0]?.programIdIndex).toBe(0);
     expect(compiled.compactInstructions[0]?.accountIndexes).toEqual(Uint8Array.from([1, 2]));
@@ -61,7 +61,7 @@ describe("compileWalletInstructions", () => {
   it("leaves a read-only wallet read-only", () => {
     const compiled = compileWalletInstructions(
       [ix(SYSTEM_PROGRAM, [{ address: WALLET_PDA, role: AccountRole.READONLY }])],
-      WALLET_PDA
+      WALLET_PDA,
     );
     expect(compiled.remainingAccounts[1]?.role).toBe(AccountRole.READONLY);
   });
@@ -72,7 +72,7 @@ describe("compileWalletInstructions", () => {
         ix(SYSTEM_PROGRAM, [{ address: MINT, role: AccountRole.READONLY_SIGNER }]),
         ix(SYSTEM_PROGRAM, [{ address: MINT, role: AccountRole.WRITABLE }]),
       ],
-      WALLET_PDA
+      WALLET_PDA,
     );
     expect(compiled.remainingAccounts).toHaveLength(2);
     expect(compiled.remainingAccounts[1]?.role).toBe(AccountRole.WRITABLE_SIGNER);
@@ -80,7 +80,7 @@ describe("compileWalletInstructions", () => {
 
   it("rejects calls into phygital-token", () => {
     expect(() =>
-      compileWalletInstructions([ix(PHYGITAL_TOKEN_PROGRAM_ADDRESS, [])], WALLET_PDA)
+      compileWalletInstructions([ix(PHYGITAL_TOKEN_PROGRAM_ADDRESS, [])], WALLET_PDA),
     ).toThrow(/not allowed/);
   });
 });
@@ -104,14 +104,14 @@ describe("buildExecuteChallenge", () => {
       ],
     });
     expect(Buffer.from(challenge).toString("hex")).toBe(
-      "1f3caba256268aa7782228a5e86e9bb0292e17fa8b1578ab93308cadb02aad77"
+      "1f3caba256268aa7782228a5e86e9bb0292e17fa8b1578ab93308cadb02aad77",
     );
   });
 
   it("elevates remaining accounts the outer instruction makes writable or signing", () => {
     const [meta] = elevateRemainingForExecuteChallenge(
       [{ address: RECIPIENT, role: AccountRole.READONLY }],
-      { writableAddresses: [RECIPIENT], signerAddresses: [RECIPIENT] }
+      { writableAddresses: [RECIPIENT], signerAddresses: [RECIPIENT] },
     );
     expect(meta?.role).toBe(AccountRole.WRITABLE_SIGNER);
   });
@@ -121,7 +121,7 @@ describe("policy preview", () => {
   it("recognizes PreviewPassed and maps policy denials to soft errors", () => {
     expect(isPreviewPassed(customError(PHYGITAL_TOKEN_ERROR__PREVIEW_PASSED))).toBe(true);
     const denial = policyDeniedErrorFromSolanaError(
-      customError(PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED)
+      customError(PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED),
     );
     expect(denial).toBeInstanceOf(PolicyDeniedError);
     expect(denial?.code).toBe("spend_not_allowed");
@@ -131,14 +131,14 @@ describe("policy preview", () => {
 
   it("ignores non-policy errors and other programs' errors", () => {
     expect(
-      policyDeniedErrorFromSolanaError(customError(PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT))
+      policyDeniedErrorFromSolanaError(customError(PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT)),
     ).toBeNull();
     const otherProgram = [`Program ${SYSTEM_PROGRAM} failed: custom program error`];
     expect(
       policyDeniedErrorFromSolanaError(
         customError(PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED),
-        otherProgram
-      )
+        otherProgram,
+      ),
     ).toBeNull();
   });
 });

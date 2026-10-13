@@ -107,13 +107,22 @@ describe("wallet blob: field bounds (mutation-hardening)", () => {
   it.each([
     ["zero", 0],
     ["above the cap", MAX_CREDENTIAL_ID_BYTES + 1],
-  ])("the decoder refuses a credential-id length of %s even when the bytes are present", (_, credLen) => {
-    const good = encodeWalletBlob(sample());
-    const head = good.slice(0, 37);
-    const tail = good.slice(37 + 2 + sample().credentialId.length);
-    const forged = new Uint8Array([...head, credLen >> 8, credLen & 0xff, ...new Uint8Array(credLen).fill(1), ...tail]);
-    expect(() => decodeWalletBlob(forged)).toThrow(BlobError);
-  });
+  ])(
+    "the decoder refuses a credential-id length of %s even when the bytes are present",
+    (_, credLen) => {
+      const good = encodeWalletBlob(sample());
+      const head = good.slice(0, 37);
+      const tail = good.slice(37 + 2 + sample().credentialId.length);
+      const forged = new Uint8Array([
+        ...head,
+        credLen >> 8,
+        credLen & 0xff,
+        ...new Uint8Array(credLen).fill(1),
+        ...tail,
+      ]);
+      expect(() => decodeWalletBlob(forged)).toThrow(BlobError);
+    },
+  );
 
   it("the size cap is inclusive: a blob of exactly MAX_BLOB_BYTES is not rejected for size", () => {
     const f = { ...sample(), credentialId: new Uint8Array(MAX_CREDENTIAL_ID_BYTES).fill(3) };

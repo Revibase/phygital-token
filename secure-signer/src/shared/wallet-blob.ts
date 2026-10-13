@@ -59,7 +59,16 @@ export function decodeBase64UrlCapped(input: string, maxBytes: number): Uint8Arr
 
 /** Parse and validate the header of a raw RSS1 blob (no decryption). */
 export function parseWalletBlobHeader(raw: Uint8Array): WalletBlobHeader {
-  const min = 4 + 1 + BLOB_PUBLIC_KEY_BYTES + 2 + 1 + BLOB_KDF_SALT_BYTES + BLOB_IV_BYTES + 2 + BLOB_CIPHERTEXT_BYTES;
+  const min =
+    4 +
+    1 +
+    BLOB_PUBLIC_KEY_BYTES +
+    2 +
+    1 +
+    BLOB_KDF_SALT_BYTES +
+    BLOB_IV_BYTES +
+    2 +
+    BLOB_CIPHERTEXT_BYTES;
   if (raw.length < min || raw.length > MAX_BLOB_BYTES) {
     throw new WalletBlobParseError("size");
   }

@@ -28,7 +28,15 @@
 	});
 	let touch = $state<boolean | null>(null);
 	onMount(() => (touch = navigator.maxTouchPoints > 1));
-	const gate = $derived(data.device === 'mobile' ? 'open' : data.device === 'mac' && touch === null ? 'unknown' : data.device === 'mac' && touch ? 'open' : 'phone');
+	const gate = $derived(
+		data.device === 'mobile'
+			? 'open'
+			: data.device === 'mac' && touch === null
+				? 'unknown'
+				: data.device === 'mac' && touch
+					? 'open'
+					: 'phone'
+	);
 </script>
 
 <svelte:head>
@@ -49,6 +57,8 @@
 		{@render children()}
 		<SecureSignerHost />
 	{:else if gate === 'phone'}
-		<OpenOnPhone href={page.url.pathname === '/permissions' && currentHref ? currentHref : phoneUrl(page.url)} />
+		<OpenOnPhone
+			href={page.url.pathname === '/permissions' && currentHref ? currentHref : phoneUrl(page.url)}
+		/>
 	{/if}
 </PersistQueryClientProvider>

@@ -1,10 +1,4 @@
-import {
-  address,
-  getBase64Decoder,
-  type Address,
-  type Rpc,
-  type SolanaRpcApi,
-} from "@solana/kit";
+import { address, getBase64Decoder, type Address, type Rpc, type SolanaRpcApi } from "@solana/kit";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -50,7 +44,7 @@ function token(owner: Address): Uint8Array {
       walletBump: 255,
       publicKey: [new Uint8Array(33)],
       identifier: [new Uint8Array(33)],
-    })
+    }),
   );
 }
 
@@ -69,7 +63,7 @@ async function withPolicy(owner: Address): Promise<Map<Address, Uint8Array>> {
           mintCaps: [],
           allowedOrigins: [],
           programPermissions: [],
-        })
+        }),
       ),
     ],
   ]);
@@ -83,13 +77,13 @@ describe("resolveWalletSession", () => {
 
   it("refuses a token without an accessory policy", async () => {
     await expect(
-      resolveWalletSession(rpcWith(new Map([[TOKEN, token(OWNER)]])), TOKEN)
+      resolveWalletSession(rpcWith(new Map([[TOKEN, token(OWNER)]])), TOKEN),
     ).rejects.toThrow(/has not set an accessory policy/);
   });
 
   it("refuses a token without an owner", async () => {
-    await expect(
-      resolveWalletSession(rpcWith(await withPolicy(DEFAULT)), TOKEN)
-    ).rejects.toThrow(/has no owner/);
+    await expect(resolveWalletSession(rpcWith(await withPolicy(DEFAULT)), TOKEN)).rejects.toThrow(
+      /has no owner/,
+    );
   });
 });

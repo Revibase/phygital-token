@@ -21,9 +21,22 @@
 	} = $props();
 </script>
 
-<div class={cn('space-y-2', align === 'center' && 'text-center', align === 'center-mobile' && 'text-center lg:text-left')}>
+<div
+	class={cn(
+		'space-y-2',
+		align === 'center' && 'text-center',
+		align === 'center-mobile' && 'text-center lg:text-left'
+	)}
+>
 	{#if step}
-		<div class="mb-4 flex gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={step.total} aria-valuenow={step.current} aria-label={`Step ${step.current} of ${step.total}`}>
+		<div
+			class="mb-4 flex gap-1.5"
+			role="progressbar"
+			aria-valuemin={1}
+			aria-valuemax={step.total}
+			aria-valuenow={step.current}
+			aria-label={`Step ${step.current} of ${step.total}`}
+		>
 			{#each Array.from({ length: step.total }, (_, i) => i) as i (i)}
 				<span
 					class={cn(

@@ -12,23 +12,38 @@
  */
 import { fileURLToPath } from 'node:url';
 import type { BrowserContext, Frame } from 'playwright';
-import { VirtualAuthenticator, type VirtualCredential, type WebAuthnFault } from 'secure-signer/testing/kit';
+import {
+	VirtualAuthenticator,
+	type VirtualCredential,
+	type WebAuthnFault
+} from 'secure-signer/testing/kit';
 
 type Encoded = unknown;
-type Ceremony = { op: 'create' | 'get'; origin: string; topOrigin?: string; rpId?: string; ok: boolean; error?: string; nfc: boolean };
+type Ceremony = {
+	op: 'create' | 'get';
+	origin: string;
+	topOrigin?: string;
+	rpId?: string;
+	ok: boolean;
+	error?: string;
+	nfc: boolean;
+};
 
 const SHIM = fileURLToPath(new URL('./webauthn-shim.js', import.meta.url));
 
 const toB64 = (bytes: Uint8Array) => ({ __b64: Buffer.from(bytes).toString('base64') });
 const bytesOf = (value: ArrayBuffer | ArrayBufferView) =>
-	value instanceof ArrayBuffer ? new Uint8Array(value) : new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+	value instanceof ArrayBuffer
+		? new Uint8Array(value)
+		: new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
 
 function encode(value: unknown): Encoded {
 	if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return toB64(bytesOf(value));
 	if (Array.isArray(value)) return value.map(encode);
 	if (value && typeof value === 'object') {
 		const out: Record<string, unknown> = {};
-		for (const [k, v] of Object.entries(value)) if (typeof v !== 'function' && v !== undefined) out[k] = encode(v);
+		for (const [k, v] of Object.entries(value))
+			if (typeof v !== 'function' && v !== undefined) out[k] = encode(v);
 		return out;
 	}
 	return value;
@@ -62,13 +77,19 @@ export class WebAuthnBridge {
 	}
 
 	async install(context: BrowserContext) {
-		await context.exposeBinding('__webauthn', ({ frame }, op: 'create' | 'get', options: unknown) => this.handle(frame, op, options));
+		await context.exposeBinding('__webauthn', ({ frame }, op: 'create' | 'get', options: unknown) =>
+			this.handle(frame, op, options)
+		);
 		await context.addInitScript({ path: SHIM });
 	}
 
 	/** Hold an accessory to the reader; `signCount` must exceed what the chain last saw. */
 	holdAccessory(privateKey: Uint8Array, signCount = 0): VirtualCredential {
-		const cred = this.va.list().find((c) => c.nfcAccessory && Buffer.from(c.privateKey).equals(Buffer.from(privateKey))) ?? this.va.importAccessory(privateKey);
+		const cred =
+			this.va
+				.list()
+				.find((c) => c.nfcAccessory && Buffer.from(c.privateKey).equals(Buffer.from(privateKey))) ??
+			this.va.importAccessory(privateKey);
 		if (signCount > cred.signCount) this.va.setSignCount(cred.id, signCount);
 		this.held = cred.id;
 		return cred;
@@ -92,16 +113,37 @@ export class WebAuthnBridge {
 		const origin = originOf(frame);
 		const top = frame.page().mainFrame();
 		const topOrigin = frame === top ? undefined : originOf(top);
-		const decoded = decode(options) as { publicKey?: { rpId?: string; rp?: { id?: string }; allowCredentials?: { transports?: string[] }[] } };
-		const nfc = op === 'get' && !!decoded.publicKey?.allowCredentials?.some((c) => c.transports?.includes('nfc'));
+		const decoded = decode(options) as {
+			publicKey?: {
+				rpId?: string;
+				rp?: { id?: string };
+				allowCredentials?: { transports?: string[] }[];
+			};
+		};
+		const nfc =
+			op === 'get' &&
+			!!decoded.publicKey?.allowCredentials?.some((c) => c.transports?.includes('nfc'));
 		this.va.presentAccessory(nfc ? this.held : null);
-		const record: Ceremony = { op, origin, topOrigin, rpId: decoded.publicKey?.rpId ?? decoded.publicKey?.rp?.id, ok: false, nfc };
+		const record: Ceremony = {
+			op,
+			origin,
+			topOrigin,
+			rpId: decoded.publicKey?.rpId ?? decoded.publicKey?.rp?.id,
+			ok: false,
+			nfc
+		};
 		this.ceremonies.push(record);
 		try {
 			const ctx = { origin, topOrigin };
-			const cred = op === 'create' ? await this.va.create(decoded as never, ctx) : await this.va.get(decoded as never, ctx);
-			const extensions = cred.getClientExtensionResults() as { prf?: { results?: { first?: ArrayBuffer; second?: ArrayBuffer } } };
-			for (const out of [extensions.prf?.results?.first, extensions.prf?.results?.second]) if (out) this.prfOutputs.push(new Uint8Array(out));
+			const cred =
+				op === 'create'
+					? await this.va.create(decoded as never, ctx)
+					: await this.va.get(decoded as never, ctx);
+			const extensions = cred.getClientExtensionResults() as {
+				prf?: { results?: { first?: ArrayBuffer; second?: ArrayBuffer } };
+			};
+			for (const out of [extensions.prf?.results?.first, extensions.prf?.results?.second])
+				if (out) this.prfOutputs.push(new Uint8Array(out));
 			const r = cred.response as unknown as Record<string, unknown> & {
 				getTransports?: () => string[];
 				getAuthenticatorData?: () => ArrayBuffer;
@@ -131,7 +173,12 @@ export class WebAuthnBridge {
 		} catch (e) {
 			const err = e as { name?: string; message?: string };
 			record.error = err.name ?? 'Error';
-			return { error: { name: err.name && err.name !== 'Error' ? err.name : 'NotAllowedError', message: err.message ?? 'WebAuthn failed' } };
+			return {
+				error: {
+					name: err.name && err.name !== 'Error' ? err.name : 'NotAllowedError',
+					message: err.message ?? 'WebAuthn failed'
+				}
+			};
 		}
 	}
 }

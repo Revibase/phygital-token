@@ -23,9 +23,7 @@ function buildAssertion(args: {
   type?: string;
   flags?: number;
 }): { response: AuthenticationResponseJSON; publicKey: string } {
-  const publicKey = bufferToBase64URLString(
-    p256.getPublicKey(args.privateKey, true),
-  );
+  const publicKey = bufferToBase64URLString(p256.getPublicKey(args.privateKey, true));
   const challengeB64 = utf8ToBase64URLString(args.message);
 
   const clientData = {
@@ -48,9 +46,7 @@ function buildAssertion(args: {
     authData,
     new TextEncoder().encode(JSON.stringify(clientData)),
   );
-  const signature = bufferToBase64URLString(
-    p256.sign(signed, args.privateKey, { format: "der" }),
-  );
+  const signature = bufferToBase64URLString(p256.sign(signed, args.privateKey, { format: "der" }));
 
   return {
     publicKey,
@@ -73,23 +69,43 @@ describe("startAuthentication / verifyResponse", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const message = "revibase-signin:create";
     const { response } = buildAssertion({ privateKey, message, type: "webauthn.create" });
-    await expect(verifyResponse({ expectedMessage: message, expectedOrigin, response })).rejects.toMatchObject({ code: "INVALID_ASSERTION" });
+    await expect(
+      verifyResponse({ expectedMessage: message, expectedOrigin, response }),
+    ).rejects.toMatchObject({ code: "INVALID_ASSERTION" });
   });
 
   it("rejects an assertion without user presence", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const message = "revibase-signin:no-presence";
     const { response } = buildAssertion({ privateKey, message, flags: 0x00 });
-    await expect(verifyResponse({ expectedMessage: message, expectedOrigin, response })).rejects.toMatchObject({ code: "INVALID_ASSERTION" });
+    await expect(
+      verifyResponse({ expectedMessage: message, expectedOrigin, response }),
+    ).rejects.toMatchObject({ code: "INVALID_ASSERTION" });
   });
 
   it("checks the relying party when expectedRpId is given", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const message = "revibase-signin:rp";
     const { response } = buildAssertion({ privateKey, message, rpId: "evil.example" });
-    await expect(verifyResponse({ expectedMessage: message, expectedOrigin, expectedRpId: "app.example.com", response })).rejects.toMatchObject({ code: "RP_ID_MISMATCH" });
+    await expect(
+      verifyResponse({
+        expectedMessage: message,
+        expectedOrigin,
+        expectedRpId: "app.example.com",
+        response,
+      }),
+    ).rejects.toMatchObject({ code: "RP_ID_MISMATCH" });
     const ok = buildAssertion({ privateKey, message, rpId: "app.example.com" });
-    expect((await verifyResponse({ expectedMessage: message, expectedOrigin, expectedRpId: "app.example.com", response: ok.response })).isVerified).toBe(true);
+    expect(
+      (
+        await verifyResponse({
+          expectedMessage: message,
+          expectedOrigin,
+          expectedRpId: "app.example.com",
+          response: ok.response,
+        })
+      ).isVerified,
+    ).toBe(true);
   });
 
   it("verifies a tap for the issued message", async () => {
@@ -101,8 +117,14 @@ describe("startAuthentication / verifyResponse", async () => {
     expect(result.isVerified).toBe(true);
     expect(result.secp256r1PublicKey).toBe(response.id);
     const { findWalletPda, findPhygitalTokenPda } = await import("../index.js");
-    expect(result.accessoryWallet).toBe((await findWalletPda({ phygitalToken: await findPhygitalTokenPda(response.id) }))[0]);
-    expect(Object.keys(result).sort()).toEqual(["accessoryWallet", "isVerified", "secp256r1PublicKey"]);
+    expect(result.accessoryWallet).toBe(
+      (await findWalletPda({ phygitalToken: await findPhygitalTokenPda(response.id) }))[0],
+    );
+    expect(Object.keys(result).sort()).toEqual([
+      "accessoryWallet",
+      "isVerified",
+      "secp256r1PublicKey",
+    ]);
   });
 
   it("verifies against a raw base64url expectedChallenge", async () => {
@@ -111,9 +133,15 @@ describe("startAuthentication / verifyResponse", async () => {
     const { response } = buildAssertion({ privateKey, message });
     const expectedChallenge = utf8ToBase64URLString(message);
 
-    expect((await verifyResponse({ expectedChallenge, expectedOrigin, response })).isVerified).toBe(true);
+    expect((await verifyResponse({ expectedChallenge, expectedOrigin, response })).isVerified).toBe(
+      true,
+    );
     await expect(
-      verifyResponse({ expectedChallenge: utf8ToBase64URLString("other"), expectedOrigin, response }),
+      verifyResponse({
+        expectedChallenge: utf8ToBase64URLString("other"),
+        expectedOrigin,
+        response,
+      }),
     ).rejects.toThrow(/Message mismatch/);
   });
 

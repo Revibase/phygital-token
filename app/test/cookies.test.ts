@@ -53,7 +53,9 @@ describe('session tokens', () => {
 	it('rejects tampering, the wrong secret, the wrong type, and expiry', async () => {
 		const token = await signToken(SECRET, browse);
 		const [body, mac] = token.split('.');
-		const forged = Buffer.from(JSON.stringify({ ...browse, pda: 'someone-else' })).toString('base64url');
+		const forged = Buffer.from(JSON.stringify({ ...browse, pda: 'someone-else' })).toString(
+			'base64url'
+		);
 		expect(await verifyToken(SECRET, `${forged}.${mac}`, 'bu')).toBeNull();
 		expect(await verifyToken('y'.repeat(48), token, 'bu')).toBeNull();
 		expect(await verifyToken(SECRET, token, 'ob')).toBeNull();

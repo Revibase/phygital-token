@@ -11,13 +11,23 @@ const appRoot = fileURLToPath(new URL('.', import.meta.url)).replaceAll('\\', '/
 // (test/e2e/wrangler.jsonc) instead of .dev.vars, over HTTPS with the
 // certificate scripts/e2e-setup.ts generates; dev only, ignored by builds.
 const e2e = process.env.REVIBASE_PLATFORM === 'e2e';
-const platformProxy = e2e ? { configPath: appRoot + 'test/e2e/wrangler.jsonc', persist: { path: appRoot + '.wrangler/e2e/v3' } } : undefined;
+const platformProxy = e2e
+	? {
+			configPath: appRoot + 'test/e2e/wrangler.jsonc',
+			persist: { path: appRoot + '.wrangler/e2e/v3' }
+		}
+	: undefined;
 // The local validator is plain HTTP, which an HTTPS page may not call (WebKit blocks it as
 // mixed content), so the e2e server also serves it at /__e2e/rpc.
 const e2eServer = e2e
 	? {
-			https: { cert: readFileSync(appRoot + '.wrangler/e2e/tls/cert.pem'), key: readFileSync(appRoot + '.wrangler/e2e/tls/key.pem') },
-			proxy: { '/__e2e/rpc': { target: 'http://127.0.0.1:8899', changeOrigin: true, rewrite: () => '/' } },
+			https: {
+				cert: readFileSync(appRoot + '.wrangler/e2e/tls/cert.pem'),
+				key: readFileSync(appRoot + '.wrangler/e2e/tls/key.pem')
+			},
+			proxy: {
+				'/__e2e/rpc': { target: 'http://127.0.0.1:8899', changeOrigin: true, rewrite: () => '/' }
+			},
 			// The run writes screenshots and D1 state here; a reload mid-flow would abort it.
 			watch: { ignored: ['**/test/e2e/results/**', '**/.wrangler/**', '**/scripts/**'] }
 		}
@@ -25,7 +35,9 @@ const e2eServer = e2e
 
 export default defineConfig(({ mode }) => ({
 	// Codama-generated SDK modules read process.env.NODE_ENV at import time.
-	define: { 'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development') },
+	define: {
+		'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development')
+	},
 	server: e2eServer,
 	plugins: [
 		{
@@ -36,7 +48,11 @@ export default defineConfig(({ mode }) => ({
 				const path = id.split('?')[0].replaceAll('\\', '/');
 				if (!path.startsWith(appRoot) || path.includes('/node_modules/')) return;
 				const relative = path.slice(appRoot.length);
-				if (/^(test|scripts)\//.test(relative) || /\.(test|spec)\.[^/]+$/.test(relative) || relative === 'vite.browser-simulation.config.ts')
+				if (
+					/^(test|scripts)\//.test(relative) ||
+					/\.(test|spec)\.[^/]+$/.test(relative) ||
+					relative === 'vite.browser-simulation.config.ts'
+				)
 					this.error(`Test-only code cannot be bundled for production: ${relative}`);
 			}
 		},
@@ -44,7 +60,8 @@ export default defineConfig(({ mode }) => ({
 		sveltekit({
 			compilerOptions: {
 				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
-				runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
+				runes: ({ filename }) =>
+					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			adapter: adapter({ platformProxy }),
 			csp: {
@@ -58,7 +75,15 @@ export default defineConfig(({ mode }) => ({
 					'font-src': ['self', 'data:'],
 					// Mobile Wallet Adapter talks to the wallet over a local websocket.
 					// The RPC proxy (SOLANA_RPC_URL) is called from the browser; a local validator is plain http.
-					'connect-src': ['self', 'https:', 'http://localhost:*', 'http://127.0.0.1:*', 'ws://localhost:*', 'ws://127.0.0.1:*', 'wss:'],
+					'connect-src': [
+						'self',
+						'https:',
+						'http://localhost:*',
+						'http://127.0.0.1:*',
+						'ws://localhost:*',
+						'ws://127.0.0.1:*',
+						'wss:'
+					],
 					'frame-ancestors': ['none'],
 					'base-uri': ['self'],
 					'form-action': ['self'],
@@ -75,7 +100,7 @@ export default defineConfig(({ mode }) => ({
 				test: {
 					name: 'server',
 					environment: 'node',
-					include: ['test/**/*.test.ts'],
+					include: ['test/**/*.test.ts']
 				}
 			}
 		]

@@ -7,8 +7,10 @@ import type { ProgramIdl } from '../program-idl';
  */
 let cached: Promise<Record<string, ProgramIdl>> | undefined;
 export function nativeProgramIdls(): Promise<Record<string, ProgramIdl>> {
-	return (cached ??= import('./native.json').then((module) => module.default as Record<string, ProgramIdl>).catch((error) => {
-		cached = undefined;
-		throw error;
-	}));
+	return (cached ??= import('./native.json')
+		.then((module) => module.default as Record<string, ProgramIdl>)
+		.catch((error) => {
+			cached = undefined;
+			throw error;
+		}));
 }

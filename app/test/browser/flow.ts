@@ -7,7 +7,8 @@ export async function tapAccessory(prepared: { expiresAt: number }) {
 }
 export async function finishLink(_tap: unknown, _ctx: unknown, phase: (p: string) => void) {
 	phase('approve');
-	if (sessionStorage.getItem('simulation:reject') === 'true') throw new Error('User rejected the request.');
+	if (sessionStorage.getItem('simulation:reject') === 'true')
+		throw new Error('User rejected the request.');
 	phase('confirming');
 	return 'simulated-signature';
 }

@@ -20,7 +20,10 @@
 		busy?: boolean;
 	} = $props();
 
-	const media = createQuery(() => ({ ...accessoryMediaQuery(accessory.pda), enabled: !!accessory.mint }));
+	const media = createQuery(() => ({
+		...accessoryMediaQuery(accessory.pda),
+		enabled: !!accessory.mint
+	}));
 	const name = $derived(media.data?.name ?? null);
 	const wallet = createQuery(() => accessoryWalletQuery(accessory.pda));
 	const held = $derived(wallet.data ? describeHoldings(wallet.data) : null);
@@ -46,10 +49,16 @@
 		aria-busy={busy || undefined}
 		{onclick}
 	>
-		<span class="grid shrink-0 place-items-center"><AccessoryMark size="sm" pda={accessory.pda} hasMint={!!accessory.mint} /></span>
+		<span class="grid shrink-0 place-items-center"
+			><AccessoryMark size="sm" pda={accessory.pda} hasMint={!!accessory.mint} /></span
+		>
 		<span class="min-w-0 flex-1">
-			<span class="block truncate text-[15px] font-medium">{name ?? `Accessory · ${accessory.tag}`}</span>
-			<span class="block truncate text-[13px] text-muted-foreground">{[kind, name ? accessory.tag : null, held].filter(Boolean).join(' · ')}</span>
+			<span class="block truncate text-[15px] font-medium"
+				>{name ?? `Accessory · ${accessory.tag}`}</span
+			>
+			<span class="block truncate text-[13px] text-muted-foreground"
+				>{[kind, name ? accessory.tag : null, held].filter(Boolean).join(' · ')}</span
+			>
 		</span>
 		{#if onclick && !trailing}
 			<ChevronRightIcon class="size-4 shrink-0 text-muted-foreground/70" />

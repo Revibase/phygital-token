@@ -120,9 +120,7 @@ async function wrapNewSeed(
     return {
       publicKey,
       blob,
-      ...(opts.messageToSign
-        ? { signature: await ed25519Sign(opts.messageToSign, seed) }
-        : {}),
+      ...(opts.messageToSign ? { signature: await ed25519Sign(opts.messageToSign, seed) } : {}),
     };
   } finally {
     scrub(seed);

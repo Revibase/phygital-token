@@ -268,8 +268,7 @@ body {
   color: inherit;
   font: inherit;
   cursor: pointer;
-  text-decoration: underline dotted
-    color-mix(in srgb, currentColor 40%, transparent);
+  text-decoration: underline dotted color-mix(in srgb, currentColor 40%, transparent);
   text-underline-offset: 3px;
 }
 
@@ -344,7 +343,8 @@ body {
   background: transparent;
   color: var(--fg);
   width: 100%;
-  transition: background-color var(--duration-fast) var(--ease-out-expo),
+  transition:
+    background-color var(--duration-fast) var(--ease-out-expo),
     border-color var(--duration-fast) var(--ease-out-expo),
     opacity var(--duration-fast) var(--ease-out-expo),
     transform var(--duration-fast) var(--ease-out-expo);

@@ -1,10 +1,7 @@
 import { PhygitalTokenError } from "../errors.js";
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import {
-  base64URLStringToBuffer,
-  type AuthenticationResponseJSON,
-} from "./webauthn.js";
+import { base64URLStringToBuffer, type AuthenticationResponseJSON } from "./webauthn.js";
 
 const CURVE_ORDER = p256.Point.CURVE().n;
 
@@ -17,9 +14,7 @@ function isDerEcdsaSignature(signature: Uint8Array): boolean {
   return signature.length >= 2 && signature[0] === 0x30;
 }
 
-function parseWebAuthnSignature(
-  signature: Uint8Array
-): ParsedWebAuthnSignature {
+function parseWebAuthnSignature(signature: Uint8Array): ParsedWebAuthnSignature {
   if (signature.length === 64) {
     return {
       noble: p256.Signature.fromBytes(signature, "compact"),
@@ -32,7 +27,7 @@ function parseWebAuthnSignature(
   }
   throw new PhygitalTokenError(
     "INVALID_ASSERTION",
-    "The passkey signature is malformed (expected 64-byte compact or DER)."
+    "The passkey signature is malformed (expected 64-byte compact or DER).",
   );
 }
 
@@ -40,7 +35,7 @@ function normalizeSignatureToLowS(signature: Uint8Array): Uint8Array {
   if (signature.length !== 64) {
     throw new PhygitalTokenError(
       "INVALID_ASSERTION",
-      `The passkey signature is malformed (expected 64 bytes, got ${signature.length}).`
+      `The passkey signature is malformed (expected 64 bytes, got ${signature.length}).`,
     );
   }
 
@@ -59,12 +54,10 @@ export function convertSignatureDERtoRS(signature: Uint8Array): Uint8Array {
 /** WebAuthn signed payload: `authenticatorData || SHA-256(clientDataJSON)`. */
 export function buildSecp256r1Message(
   authenticatorData: Uint8Array,
-  clientDataJSON: Uint8Array
+  clientDataJSON: Uint8Array,
 ): Uint8Array {
   const clientDataHash = sha256(clientDataJSON);
-  const message = new Uint8Array(
-    authenticatorData.length + clientDataHash.length
-  );
+  const message = new Uint8Array(authenticatorData.length + clientDataHash.length);
   message.set(authenticatorData, 0);
   message.set(clientDataHash, authenticatorData.length);
   return message;
@@ -76,18 +69,16 @@ export function parseWebAuthnAssertion(response: AuthenticationResponseJSON): {
   message: Uint8Array;
 } {
   return {
-    signature: convertSignatureDERtoRS(
-      base64URLStringToBuffer(response.response.signature)
-    ),
+    signature: convertSignatureDERtoRS(base64URLStringToBuffer(response.response.signature)),
     message: buildSecp256r1Message(
       base64URLStringToBuffer(response.response.authenticatorData),
-      base64URLStringToBuffer(response.response.clientDataJSON)
+      base64URLStringToBuffer(response.response.clientDataJSON),
     ),
   };
 }
 export function recoverSecp256r1PublicKeyCandidates(
   signature: Uint8Array,
-  message: Uint8Array
+  message: Uint8Array,
 ): Uint8Array[] {
   const parsed = parseWebAuthnSignature(signature);
   const digest = sha256(message);
@@ -121,7 +112,7 @@ function readRequiredClientDataString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new PhygitalTokenError(
       "INVALID_ASSERTION",
-      `The passkey response is malformed: clientDataJSON.${field} is missing.`
+      `The passkey response is malformed: clientDataJSON.${field} is missing.`,
     );
   }
   return value;
@@ -136,12 +127,12 @@ export function parseWebAuthnClientData(clientDataJSON: string): {
   let parsed: WebAuthnClientDataJson;
   try {
     parsed = JSON.parse(
-      new TextDecoder().decode(base64URLStringToBuffer(clientDataJSON))
+      new TextDecoder().decode(base64URLStringToBuffer(clientDataJSON)),
     ) as WebAuthnClientDataJson;
   } catch {
     throw new PhygitalTokenError(
       "INVALID_ASSERTION",
-      "The passkey response is malformed: clientDataJSON is not valid JSON."
+      "The passkey response is malformed: clientDataJSON is not valid JSON.",
     );
   }
 

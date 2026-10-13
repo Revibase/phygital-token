@@ -17,7 +17,7 @@ allowBuilds:
   workerd: true
 
 minimumReleaseAgeExclude:
-  - '@noble/hashes@2.4.0'
+  - "@noble/hashes@2.4.0"
 
 # One version of each shared tool across the workspace. TypeScript stays on 6.x:
 # 7.x ships no JavaScript compiler API, which svelte-check, typescript-eslint

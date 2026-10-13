@@ -7,13 +7,15 @@ const DAY = 24 * 60 * 60 * 1000;
 
 export const queryKeys = {
 	media: (pda: string) => ['accessory-media', pda] as const,
-	shortcuts: (pda: string, owner: string | null) => ['accessory-shortcuts', pda, owner ?? ''] as const,
+	shortcuts: (pda: string, owner: string | null) =>
+		['accessory-shortcuts', pda, owner ?? ''] as const,
 	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const,
 	accessoryWallet: (pda: string) => ['accessory-wallet', pda] as const,
 	accessoryPolicy: (pda: string) => ['accessory-policy', pda] as const,
 	/** Everything about an accessory's network fees starts with this, so one invalidation covers it. */
 	fees: (pda: string) => ['fees', pda] as const,
-	feePreview: (pda: string, owner: string | null, drainsWallet: boolean) => ['fees', pda, 'preview', owner ?? '', drainsWallet] as const,
+	feePreview: (pda: string, owner: string | null, drainsWallet: boolean) =>
+		['fees', pda, 'preview', owner ?? '', drainsWallet] as const,
 	sponsor: (pda: string) => ['fees', pda, 'sponsor'] as const
 };
 
@@ -35,7 +37,11 @@ export function forgetWalletAccessories() {
 
 /** After an owner action on `pda` lands: its balances, policy and fees are stale. */
 export function refreshAccessory(pda: string) {
-	for (const queryKey of [queryKeys.accessoryWallet(pda), queryKeys.accessoryPolicy(pda), queryKeys.fees(pda)]) {
+	for (const queryKey of [
+		queryKeys.accessoryWallet(pda),
+		queryKeys.accessoryPolicy(pda),
+		queryKeys.fees(pda)
+	]) {
 		void queryClient.invalidateQueries({ queryKey });
 	}
 }

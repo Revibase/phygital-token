@@ -8,7 +8,8 @@ import { dirname, join } from 'node:path';
 import { project, accessory, OWNER } from './test/browser/fixtures.ts';
 
 export default async function (env: any) {
-	if (env.command !== 'serve') throw new Error('Browser simulation is restricted to the local dev server');
+	if (env.command !== 'serve')
+		throw new Error('Browser simulation is restricted to the local dev server');
 	const config = typeof base === 'function' ? await base(env) : base;
 	const root = fileURLToPath(new URL('.', import.meta.url));
 	const fixtures = JSON.stringify(root + 'test/browser/fixtures.ts');
@@ -17,9 +18,14 @@ export default async function (env: any) {
 		enforce: 'pre' as const,
 		resolveId(source: string, importer?: string) {
 			// Relative imports too, so no module reaches the real wallet or link flow.
-			const target = source.startsWith('$lib/') ? root + 'src/lib/' + source.slice(5) : source.startsWith('.') && importer ? join(dirname(importer.split('?')[0]), source) : source;
+			const target = source.startsWith('$lib/')
+				? root + 'src/lib/' + source.slice(5)
+				: source.startsWith('.') && importer
+					? join(dirname(importer.split('?')[0]), source)
+					: source;
 			const module = target.replace(/\.ts$/, '');
-			if (module === root + 'src/lib/client/wallet/wallet.svelte') return root + 'test/browser/wallet.svelte.ts';
+			if (module === root + 'src/lib/client/wallet/wallet.svelte')
+				return root + 'test/browser/wallet.svelte.ts';
 			if (module === root + 'src/lib/client/link/flow') return root + 'test/browser/flow.ts';
 		},
 		load(id: string) {
@@ -52,7 +58,8 @@ export default async function (env: any) {
 					'const signerOrigin = event.platform?.env?.SECURE_SIGNER_ORIGIN ?? null;',
 					"const signerOrigin = 'http://localhost:5174';"
 				);
-			if (path.endsWith('/routes/+layout.server.ts')) return `import { deviceClass } from '$lib/shared/device'; export const load=({request,cookies})=>({cluster:'localnet',rpcUrl:'http://127.0.0.1:8899',signerOrigin:cookies.get('simulation_signer')==='on'?'http://localhost:5174':'',device:cookies.get('simulation_device')==='mobile'?'mobile':deviceClass(request.headers.get('user-agent'))});`;
+			if (path.endsWith('/routes/+layout.server.ts'))
+				return `import { deviceClass } from '$lib/shared/device'; export const load=({request,cookies})=>({cluster:'localnet',rpcUrl:'http://127.0.0.1:8899',signerOrigin:cookies.get('simulation_signer')==='on'?'http://localhost:5174':'',device:cookies.get('simulation_device')==='mobile'?'mobile':deviceClass(request.headers.get('user-agent'))});`;
 			if (path.endsWith('/routes/accessory/+page.server.ts'))
 				return `import { redirect } from '@sveltejs/kit'; import { accessory } from ${fixtures}; export const load=({cookies,url})=>{if(cookies.get('simulation_session')==='expired')redirect(303,'/tap/expired');if(url.searchParams.get('mockup')==='madlads')cookies.set('simulation_mockup','madlads',{path:'/',httpOnly:false});const requested=url.searchParams.get('kind');const kind=['bearer','controlled','permanent'].includes(requested)?requested:cookies.get('simulation_kind') ?? accessory.kind;const mint=cookies.get('simulation_mint') === 'none' ? null : url.searchParams.get('mockup')==='madlads'?'FVzM6rUA1SigPxh6e3iQ8dAPjQNf2guap3Xcdj8Q6R2H':accessory.mint;return {accessory:{...accessory,owner:cookies.get('simulation_owner') ?? accessory.owner,kind,mint,canLink:kind==='bearer',canRelease:kind!=='permanent',isLocked:kind!=='bearer',status:kind==='bearer'?'linked':'linked_locked'},sessionExpiresAt:Date.now()+600000,admit:'browse_unlock',loadError:false}};`;
 			if (path.endsWith('/routes/accessory/link/+page.server.ts'))
@@ -64,18 +71,62 @@ export default async function (env: any) {
 				if (path === '/__simulation' || path === '/__simulation/start') {
 					res.setHeader('content-type', 'text/html; charset=utf-8');
 					res.setHeader('cache-control', 'no-store');
-					if (path === '/__simulation') { res.end(readFileSync(root + 'test/browser/preview.html', 'utf8')); return; }
-					const scenario = new URL(req.url, 'http://localhost').searchParams.get('scenario') ?? 'preset';
-					const policy = scenario === 'existing' || scenario === 'journey' ? 'on' : scenario === 'paused' ? 'small' : 'off';
-					res.setHeader('set-cookie', ['simulation_session=tap', 'simulation_holdings=funded', `simulation_policy=${policy}`, 'simulation_device=mobile', 'simulation_fee=owner', `simulation_prepaid=${scenario === 'paused' ? '0' : '5000000'}`].map(c => `${c}; Path=/; SameSite=Lax`));
+					if (path === '/__simulation') {
+						res.end(readFileSync(root + 'test/browser/preview.html', 'utf8'));
+						return;
+					}
+					const scenario =
+						new URL(req.url, 'http://localhost').searchParams.get('scenario') ?? 'preset';
+					const policy =
+						scenario === 'existing' || scenario === 'journey'
+							? 'on'
+							: scenario === 'paused'
+								? 'small'
+								: 'off';
+					res.setHeader(
+						'set-cookie',
+						[
+							'simulation_session=tap',
+							'simulation_holdings=funded',
+							`simulation_policy=${policy}`,
+							'simulation_device=mobile',
+							'simulation_fee=owner',
+							`simulation_prepaid=${scenario === 'paused' ? '0' : '5000000'}`
+						].map((c) => `${c}; Path=/; SameSite=Lax`)
+					);
 					let target = scenario === 'journey' ? '/accessory' : `/wallet/${accessory.pda}`;
 					if (scenario === 'safe' || scenario === 'risky') {
-						const request = scenario === 'safe'
-							? { v: 1, name: 'Example payments project', reason: 'Let a tap send small SOL payments.', programs: [{ id: '11111111111111111111111111111111', access: { only: [{ selector: '02000000' }] } }], limits: [{ asset: 'SOL', amount: '100000000', period: 'day', maxPerTap: '10000000' }] }
-							: { v: 1, name: 'Example staking project', reason: 'Review broad program access before allowing it.', programs: [{ id: 'Stake11111111111111111111111111111111111111', access: 'all' }], limits: [] };
-						target = '/permissions#r=' + deflateRawSync(JSON.stringify(request)).toString('base64url');
+						const request =
+							scenario === 'safe'
+								? {
+										v: 1,
+										name: 'Example payments project',
+										reason: 'Let a tap send small SOL payments.',
+										programs: [
+											{
+												id: '11111111111111111111111111111111',
+												access: { only: [{ selector: '02000000' }] }
+											}
+										],
+										limits: [
+											{ asset: 'SOL', amount: '100000000', period: 'day', maxPerTap: '10000000' }
+										]
+									}
+								: {
+										v: 1,
+										name: 'Example staking project',
+										reason: 'Review broad program access before allowing it.',
+										programs: [
+											{ id: 'Stake11111111111111111111111111111111111111', access: 'all' }
+										],
+										limits: []
+									};
+						target =
+							'/permissions#r=' + deflateRawSync(JSON.stringify(request)).toString('base64url');
 					}
-					res.end(`<script>localStorage.setItem('simulation:browser-wallet','true');localStorage.setItem('simulation:clickthrough','true');localStorage.removeItem('simulation:policy');location.replace(${JSON.stringify(target)})</script>`);
+					res.end(
+						`<script>localStorage.setItem('simulation:browser-wallet','true');localStorage.setItem('simulation:clickthrough','true');localStorage.removeItem('simulation:policy');location.replace(${JSON.stringify(target)})</script>`
+					);
 					return;
 				}
 				if (
@@ -100,18 +151,42 @@ export default async function (env: any) {
 					res.setHeader('access-control-allow-methods', 'POST, PUT');
 					res.setHeader('access-control-allow-headers', 'content-type');
 					if (req.method === 'OPTIONS') return send({});
-					if (path.endsWith('-challenge')) return send({ challengeId: 'simulation-challenge-0001', challenge: Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url') });
-					if (path === '/api/signer/restore') return send({ error: 'No wallet backup for this passkey', code: 'not_found' }, 404);
+					if (path.endsWith('-challenge'))
+						return send({
+							challengeId: 'simulation-challenge-0001',
+							challenge: Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString(
+								'base64url'
+							)
+						});
+					if (path === '/api/signer/restore')
+						return send({ error: 'No wallet backup for this passkey', code: 'not_found' }, 404);
 					return send({ ok: true, created: true });
 				}
 				if (path === '/api/sponsor') {
-					const prepaid = /simulation_prepaid=(\d+)/.exec(req.headers.cookie ?? '')?.[1] ?? '5000000';
-					return send({ feePayers: ['FeePay1111111111111111111111111111111111111'], maxComputeUnitLimit: 400000, maxComputeUnitPrice: '100000', prepaidLamports: '5000000', balanceLamports: prepaid });
+					const prepaid =
+						/simulation_prepaid=(\d+)/.exec(req.headers.cookie ?? '')?.[1] ?? '5000000';
+					return send({
+						feePayers: ['FeePay1111111111111111111111111111111111111'],
+						maxComputeUnitLimit: 400000,
+						maxComputeUnitPrice: '100000',
+						prepaidLamports: '5000000',
+						balanceLamports: prepaid
+					});
 				}
 				if (path === '/api/accessory/shortcuts') return send({ shortcuts: project.shortcuts });
 				return next();
 			});
 		}
 	};
-	return { ...config, plugins: [plugin, ...(config as any).plugins], server: { host: 'localhost', port: 4187, strictPort: true, hmr: false, watch: { ignored: ['**/test/browser/results/**'] } } };
+	return {
+		...config,
+		plugins: [plugin, ...(config as any).plugins],
+		server: {
+			host: 'localhost',
+			port: 4187,
+			strictPort: true,
+			hmr: false,
+			watch: { ignored: ['**/test/browser/results/**'] }
+		}
+	};
 }

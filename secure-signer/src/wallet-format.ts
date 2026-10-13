@@ -123,8 +123,7 @@ export function decodeWalletBlob(bytes: Uint8Array): ParsedWalletBlob {
 
   const publicKey = r.bytes(ED25519_PUBKEY_BYTES).slice();
   const credLen = r.u16();
-  if (credLen < 1 || credLen > MAX_CREDENTIAL_ID_BYTES)
-    throw new BlobError("credentialId length");
+  if (credLen < 1 || credLen > MAX_CREDENTIAL_ID_BYTES) throw new BlobError("credentialId length");
   const credentialId = r.bytes(credLen).slice();
   const kdfSalt = r.bytes(KDF_SALT_BYTES).slice();
   const iv = r.bytes(AES_GCM_IV_BYTES).slice();
@@ -146,7 +145,7 @@ export function decodeWalletBlob(bytes: Uint8Array): ParsedWalletBlob {
  */
 export function buildAad(
   header: Pick<ParsedWalletBlob, "publicKey" | "credentialId" | "kdfSalt">,
-  rpId: string
+  rpId: string,
 ): Uint8Array {
   const rp = utf8ToBytes(rpId);
   return concat([

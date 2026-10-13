@@ -3,7 +3,13 @@
  * it next to detected wallets. Keys live in the secure-signer iframe; this
  * page only forwards requests and merges the returned signature.
  */
-import { getAddressEncoder, getTransactionDecoder, getTransactionEncoder, type Address, type SignatureBytes } from '@solana/kit';
+import {
+	getAddressEncoder,
+	getTransactionDecoder,
+	getTransactionEncoder,
+	type Address,
+	type SignatureBytes
+} from '@solana/kit';
 import {
 	SolanaSignMessage,
 	SolanaSignTransaction,
@@ -53,7 +59,10 @@ function remember(address: string | null) {
 	} catch {}
 }
 
-type Prompts = { setup: () => Promise<SetupChoice>; lost: (reason: 'not_found' | 'failed') => Promise<LostChoice> };
+type Prompts = {
+	setup: () => Promise<SetupChoice>;
+	lost: (reason: 'not_found' | 'failed') => Promise<LostChoice>;
+};
 
 export class PasskeyWallet implements Wallet {
 	readonly version = '1.0.0' as const;
@@ -76,12 +85,20 @@ export class PasskeyWallet implements Wallet {
 		return this.#account ? [this.#account] : [];
 	}
 
-	get features(): StandardConnectFeature & StandardDisconnectFeature & StandardEventsFeature & SolanaSignTransactionFeature & SolanaSignMessageFeature {
+	get features(): StandardConnectFeature &
+		StandardDisconnectFeature &
+		StandardEventsFeature &
+		SolanaSignTransactionFeature &
+		SolanaSignMessageFeature {
 		return {
 			[StandardConnect]: { version: '1.0.0', connect: this.#connect },
 			[StandardDisconnect]: { version: '1.0.0', disconnect: this.#disconnect },
 			[StandardEvents]: { version: '1.0.0', on: this.#on },
-			[SolanaSignTransaction]: { version: '1.0.0', supportedTransactionVersions: ['legacy', 0, 1], signTransaction: this.#signTransaction },
+			[SolanaSignTransaction]: {
+				version: '1.0.0',
+				supportedTransactionVersions: ['legacy', 0, 1],
+				signTransaction: this.#signTransaction
+			},
 			[SolanaSignMessage]: { version: '1.1.0', signMessage: this.#signMessage }
 		};
 	}
@@ -111,7 +128,12 @@ export class PasskeyWallet implements Wallet {
 	#connect: StandardConnectMethod = async (input) => {
 		const saved = remembered();
 		if (input?.silent && !saved) return { accounts: [] };
-		const address = await runPasskeyConnect({ remembered: saved, signer: this.#signer, promptSetup: this.#prompts.setup, promptLost: this.#prompts.lost });
+		const address = await runPasskeyConnect({
+			remembered: saved,
+			signer: this.#signer,
+			promptSetup: this.#prompts.setup,
+			promptLost: this.#prompts.lost
+		});
 		if (!address) throw new DOMException('Connection cancelled', 'NotAllowedError');
 		if (address !== this.#account?.address) this.#setAccount(address);
 		return { accounts: this.accounts };
@@ -122,7 +144,8 @@ export class PasskeyWallet implements Wallet {
 	};
 
 	#requireAccount(account: WalletAccount) {
-		if (!this.#account || account.address !== this.#account.address) throw new Error('Account not connected to Revibase Passkey');
+		if (!this.#account || account.address !== this.#account.address)
+			throw new Error('Account not connected to Revibase Passkey');
 	}
 
 	#signTransaction: SolanaSignTransactionMethod = async (...inputs) => {
@@ -131,10 +154,15 @@ export class PasskeyWallet implements Wallet {
 			this.#requireAccount(input.account);
 			const { signature, publicKey } = await this.#signer.signTransaction(input.transaction);
 			const bytes = base64ToBytes(signature);
-			if (publicKey !== input.account.address || bytes.length !== 64) throw new Error('Revibase Passkey returned an unexpected signature');
+			if (publicKey !== input.account.address || bytes.length !== 64)
+				throw new Error('Revibase Passkey returned an unexpected signature');
 			const tx = getTransactionDecoder().decode(input.transaction);
-			if (!(publicKey in tx.signatures)) throw new Error('This wallet is not a signer of the transaction');
-			const signed = { ...tx, signatures: { ...tx.signatures, [publicKey]: bytes as unknown as SignatureBytes } };
+			if (!(publicKey in tx.signatures))
+				throw new Error('This wallet is not a signer of the transaction');
+			const signed = {
+				...tx,
+				signatures: { ...tx.signatures, [publicKey]: bytes as unknown as SignatureBytes }
+			};
 			out.push({ signedTransaction: new Uint8Array(getTransactionEncoder().encode(signed)) });
 		}
 		return out;
@@ -146,7 +174,8 @@ export class PasskeyWallet implements Wallet {
 			this.#requireAccount(input.account);
 			const { signature, publicKey } = await this.#signer.signMessage(input.message);
 			const bytes = base64ToBytes(signature);
-			if (publicKey !== input.account.address || bytes.length !== 64) throw new Error('Revibase Passkey returned an unexpected signature');
+			if (publicKey !== input.account.address || bytes.length !== 64)
+				throw new Error('Revibase Passkey returned an unexpected signature');
 			out.push({ signedMessage: input.message, signature: bytes });
 		}
 		return out;

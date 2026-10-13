@@ -18,7 +18,13 @@
 	import NetworkFeeLine from '$lib/components/app/NetworkFeeLine.svelte';
 	import { explorerUrl } from '$lib/shared/explorer';
 	import { canTapHere, tapHint } from '$lib/client/capability';
-	import { finishLink, prepareTap, tapAccessory, type FinishPhase, type PreparedTap } from '$lib/client/link/flow';
+	import {
+		finishLink,
+		prepareTap,
+		tapAccessory,
+		type FinishPhase,
+		type PreparedTap
+	} from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
 	import { linkCopy } from '$lib/client/accessory/link-copy';
 	import { rememberRecentWallet, rememberWallet } from '$lib/client/memory';
@@ -44,7 +50,10 @@
 		if (!tapped) return 'tap';
 		return walletStore.address ? 'confirm' : 'choose';
 	});
-	const holdings = createQuery(() => ({ ...accessoryWalletQuery(a.pda), enabled: view === 'confirm' && !!a.owner && a.kind === 'bearer' }));
+	const holdings = createQuery(() => ({
+		...accessoryWalletQuery(a.pda),
+		enabled: view === 'confirm' && !!a.owner && a.kind === 'bearer'
+	}));
 
 	/** Only claim "your wallet" when the wallet connected here is the one that was linked. */
 	const ownedResult = $derived(!!linked && walletStore.address === linked.recipient);
@@ -102,7 +111,6 @@
 		}
 	}
 
-
 	async function approveHere() {
 		if (!tapped) return;
 		const ctx = walletStore.signingContext();
@@ -128,17 +136,46 @@
 			<div class="animate-rise flex flex-1 flex-col gap-7">
 				{#if view === 'done' && linked}
 					<div class="flex flex-1 flex-col justify-center gap-8">
-						<BondVisual wallet={linked.recipient} icon={ownedResult ? walletStore.walletIcon : null} pda={a.pda} hasMint={!!a.mint} />
-						<PageHeader align="center" title={copy.done.title} body={copy.done.body(ownedResult, shortAddress(linked.recipient))} />
-						<List><WalletRow address={linked.recipient} label="Owner" context="Manages this accessory" icon={ownedResult ? walletStore.walletIcon : null} cluster={data.cluster} /></List>
+						<BondVisual
+							wallet={linked.recipient}
+							icon={ownedResult ? walletStore.walletIcon : null}
+							pda={a.pda}
+							hasMint={!!a.mint}
+						/>
+						<PageHeader
+							align="center"
+							title={copy.done.title}
+							body={copy.done.body(ownedResult, shortAddress(linked.recipient))}
+						/>
+						<List
+							><WalletRow
+								address={linked.recipient}
+								label="Owner"
+								context="Manages this accessory"
+								icon={ownedResult ? walletStore.walletIcon : null}
+								cluster={data.cluster}
+							/></List
+						>
 					</div>
 				{:else}
 					{#if view === 'tap'}
-						<PageHeader step={{ current: 1, total: 2 }} title="Approve with your accessory" body={hint} />
+						<PageHeader
+							step={{ current: 1, total: 2 }}
+							title="Approve with your accessory"
+							body={hint}
+						/>
 					{:else if view === 'choose'}
-						<PageHeader step={{ current: 2, total: 2 }} title={copy.choose.title} body={copy.choose.body} />
+						<PageHeader
+							step={{ current: 2, total: 2 }}
+							title={copy.choose.title}
+							body={copy.choose.body}
+						/>
 					{:else}
-						<PageHeader step={{ current: 2, total: 2 }} title={copy.confirm.title} body={copy.confirm.body} />
+						<PageHeader
+							step={{ current: 2, total: 2 }}
+							title={copy.confirm.title}
+							body={copy.confirm.body}
+						/>
 					{/if}
 
 					<Notice error={failure} />
@@ -148,16 +185,32 @@
 							<AccessoryMark state={tapping ? 'waiting' : 'idle'} pda={a.pda} hasMint={!!a.mint} />
 						</div>
 						{#if !webauthnOk}
-							<Notice title="Open this page in Safari or Chrome" body="This browser can’t read your accessory." />
+							<Notice
+								title="Open this page in Safari or Chrome"
+								body="This browser can’t read your accessory."
+							/>
 						{/if}
 					{:else if view === 'choose'}
 						<WalletConnect />
 					{:else if view === 'confirm' && walletStore.address}
-						<List><WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Owner'} context="Owner · Manages this accessory" icon={walletStore.walletIcon} cluster={data.cluster} /></List>
+						<List
+							><WalletRow
+								address={walletStore.address}
+								label={walletStore.walletName ?? 'Owner'}
+								context="Owner · Manages this accessory"
+								icon={walletStore.walletIcon}
+								cluster={data.cluster}
+							/></List
+						>
 						{#if a.owner && a.kind === 'bearer'}
 							<p class="text-[14px] leading-relaxed text-muted-foreground">
-								{#if holdings.data}Held with this accessory: {formatCompactTokenAmount(holdings.data.lamports, SOL_DECIMALS)} SOL · {holdings.data.tokens.length + (holdings.data.nfts?.length ?? 0)} other assets.{#if holdings.data.nftStatus === 'partial' || holdings.data.nftStatus === 'unavailable'} Some collectibles could not be loaded.{/if}
-								{:else if holdings.isError}Assets could not be loaded. Any assets stay with the accessory and come under your control.
+								{#if holdings.data}Held with this accessory: {formatCompactTokenAmount(
+										holdings.data.lamports,
+										SOL_DECIMALS
+									)} SOL · {holdings.data.tokens.length + (holdings.data.nfts?.length ?? 0)} other assets.{#if holdings.data.nftStatus === 'partial' || holdings.data.nftStatus === 'unavailable'}
+										Some collectibles could not be loaded.{/if}
+								{:else if holdings.isError}Assets could not be loaded. Any assets stay with the
+									accessory and come under your control.
 								{:else}Checking assets held with this accessory…{/if}
 							</p>
 						{/if}
@@ -176,7 +229,13 @@
 		<div class="grid gap-1">
 			{#if view === 'done' && linked}
 				<Button href="/accessory" size="xl">Use accessory</Button>
-				<Button variant="quiet" class="w-full" href={explorerUrl('tx', linked.signature, data.cluster)} target="_blank" rel="noopener noreferrer">View transaction</Button>
+				<Button
+					variant="quiet"
+					class="w-full"
+					href={explorerUrl('tx', linked.signature, data.cluster)}
+					target="_blank"
+					rel="noopener noreferrer">View transaction</Button
+				>
 			{:else if view === 'tap' && webauthnOk}
 				<Button size="xl" disabled={tapping || !prepared} onclick={tap}>
 					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !prepared}<Spinner /> Preparing…{:else}Approve{/if}
@@ -188,10 +247,17 @@
 					{:else if phase}<Spinner /> Preparing…
 					{:else}{copy.action}{/if}
 				</Button>
-				<Button variant="quiet" class="w-full" disabled={!!phase} onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
+				<Button
+					variant="quiet"
+					class="w-full"
+					disabled={!!phase}
+					onclick={() => walletStore.disconnect()}>Use a different wallet</Button
+				>
 			{/if}
 			{#if view !== 'done'}
-				<Button variant="quiet" class="w-full" disabled={!!phase} onclick={() => goto('/accessory')}>Cancel</Button>
+				<Button variant="quiet" class="w-full" disabled={!!phase} onclick={() => goto('/accessory')}
+					>Cancel</Button
+				>
 			{/if}
 		</div>
 	{/snippet}

@@ -5,11 +5,7 @@
  * The self-tests decode its output with @simplewebauthn/server.
  */
 
-export type CborValue =
-  | number
-  | Uint8Array
-  | string
-  | Map<CborValue, CborValue>;
+export type CborValue = number | Uint8Array | string | Map<CborValue, CborValue>;
 
 function head(major: number, value: number): Uint8Array {
   const m = major << 5;

@@ -8,6 +8,14 @@ import type { RequestHandler } from './$types';
 export const POST: RequestHandler = async ({ request, url, platform }) => {
 	const env = getEnv(platform);
 	const body = (await request.json().catch(() => ({}))) as { address?: unknown };
-	if (!isWalletAddress(body.address)) return json({ error: 'Missing wallet.', code: 'bad_request' }, { status: 400 });
-	return json(await issueOwnerLoginChallenge(env.db, { domain: url.host, uri: url.origin, address: body.address, cluster: env.cluster }));
+	if (!isWalletAddress(body.address))
+		return json({ error: 'Missing wallet.', code: 'bad_request' }, { status: 400 });
+	return json(
+		await issueOwnerLoginChallenge(env.db, {
+			domain: url.host,
+			uri: url.origin,
+			address: body.address,
+			cluster: env.cluster
+		})
+	);
 };

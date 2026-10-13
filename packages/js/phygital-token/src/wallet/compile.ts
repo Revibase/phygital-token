@@ -41,7 +41,7 @@ export const PREVIEW_EXECUTE_NAMED_ACCOUNT_COUNT = 4;
  */
 export function compileWalletInstructions(
   instructions: readonly Instruction[],
-  walletPda: Address
+  walletPda: Address,
 ): {
   remainingAccounts: AccountMeta[];
   compactInstructions: CompactInstructionArgs[];
@@ -53,8 +53,7 @@ export function compileWalletInstructions(
   const remainingAccounts: AccountMeta[] = [];
   const indexByAddress = new Map<string, number>();
   const indexOf = (meta: AccountMeta): number => {
-    const role =
-      meta.address === walletPda ? downgradeRoleToNonSigner(meta.role) : meta.role;
+    const role = meta.address === walletPda ? downgradeRoleToNonSigner(meta.role) : meta.role;
     const existing = indexByAddress.get(meta.address);
     if (existing !== undefined) {
       remainingAccounts[existing] = {
@@ -71,7 +70,7 @@ export function compileWalletInstructions(
   const compactInstructions = instructions.map((instruction) => {
     if (instruction.programAddress === PHYGITAL_TOKEN_PROGRAM_ADDRESS) {
       throw new Error(
-        `Inner CPI to ${instruction.programAddress} is not allowed for wallet execute`
+        `Inner CPI to ${instruction.programAddress} is not allowed for wallet execute`,
       );
     }
     return {
@@ -99,7 +98,7 @@ export function elevateRemainingForExecuteChallenge(
   opts: {
     writableAddresses?: readonly Address[];
     signerAddresses?: readonly Address[];
-  }
+  },
 ): AccountMeta[] {
   const writable = new Set(opts.writableAddresses ?? []);
   const signers = new Set(opts.signerAddresses ?? []);
@@ -132,7 +131,7 @@ export function buildExecuteChallenge(input: {
       if (!meta) throw new Error(`Compact account index ${index} out of range`);
       accounts.push(
         ...addressEncoder.encode(meta.address),
-        (isSignerRole(meta.role) ? 1 : 0) | (isWritableRole(meta.role) ? 2 : 0)
+        (isSignerRole(meta.role) ? 1 : 0) | (isWritableRole(meta.role) ? 2 : 0),
       );
     }
   }
@@ -141,7 +140,7 @@ export function buildExecuteChallenge(input: {
     new Uint8Array(addressEncoder.encode(input.phygitalToken)),
     input.slotHash,
     new Uint8Array(
-      getArrayEncoder(getCompactInstructionEncoder()).encode([...input.compactInstructions])
+      getArrayEncoder(getCompactInstructionEncoder()).encode([...input.compactInstructions]),
     ),
     Uint8Array.from(accounts),
   ];
@@ -152,7 +151,7 @@ export function buildExecuteChallenge(input: {
 
 export function withRemainingAccounts(
   instruction: Instruction,
-  remainingAccounts: readonly AccountMeta[]
+  remainingAccounts: readonly AccountMeta[],
 ): Instruction {
   return {
     ...instruction,
@@ -169,7 +168,7 @@ export async function buildExecuteWithOwnerInstruction(input: {
   const [wallet] = await findWalletPda({ phygitalToken: input.phygitalToken });
   const { compactInstructions, remainingAccounts } = compileWalletInstructions(
     input.instructions,
-    wallet
+    wallet,
   );
   return withRemainingAccounts(
     getExecuteWithOwnerInstruction({
@@ -178,6 +177,6 @@ export async function buildExecuteWithOwnerInstruction(input: {
       wallet,
       compactInstructions,
     }),
-    remainingAccounts
+    remainingAccounts,
   );
 }

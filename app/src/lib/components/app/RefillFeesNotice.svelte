@@ -24,10 +24,15 @@
 	const refill = $derived.by(() => {
 		const p = sponsor.data?.prepaid;
 		if (!p || !policy) return null;
-		const { refill } = planFee({ balance: p.balanceLamports, prepaid: p.prepaidLamports, cost: TAP_FEE_ESTIMATE });
+		const { refill } = planFee({
+			balance: p.balanceLamports,
+			prepaid: p.prepaidLamports,
+			cost: TAP_FEE_ESTIMATE
+		});
 		if (refill === 0n) return null;
 		const cap = isSome(policy.solCap) ? policy.solCap.value : null;
-		const tapCanRefill = !!cap && cap.cap >= refill && (cap.maxPerTx === 0n || cap.maxPerTx >= refill);
+		const tapCanRefill =
+			!!cap && cap.cap >= refill && (cap.maxPerTx === 0n || cap.maxPerTx >= refill);
 		return tapCanRefill ? null : refill;
 	});
 
@@ -46,10 +51,17 @@
 </script>
 
 {#if refill !== null}
-	<Notice tone="info" title="Top up fees to use tap signing" body="Tap signing needs a fee top-up from this wallet. You can still tap to sign in.">
+	<Notice
+		tone="info"
+		title="Top up fees to use tap signing"
+		body="Tap signing needs a fee top-up from this wallet. You can still tap to sign in."
+	>
 		{#snippet actions()}
 			<Button variant="secondary" class="w-full" disabled={busy} onclick={refillNow}>
-				{#if busy}<Spinner /> {walletStore.approvePrompt}{:else}Top up {formatTokenAmount(refill, SOL_DECIMALS)} SOL{/if}
+				{#if busy}<Spinner /> {walletStore.approvePrompt}{:else}Top up {formatTokenAmount(
+						refill,
+						SOL_DECIMALS
+					)} SOL{/if}
 			</Button>
 		{/snippet}
 	</Notice>

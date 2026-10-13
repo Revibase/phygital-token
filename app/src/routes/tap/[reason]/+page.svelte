@@ -39,7 +39,8 @@
 		}
 	}
 	const refresher = setInterval(() => {
-		if (resumable && webauthnOk && !tapping && (!challenge || Date.now() - challenge.at > 90_000)) void prepare();
+		if (resumable && webauthnOk && !tapping && (!challenge || Date.now() - challenge.at > 90_000))
+			void prepare();
 	}, 15_000);
 	onDestroy(() => clearInterval(refresher));
 
@@ -61,7 +62,10 @@
 		failure = null;
 		try {
 			const response = await startAuthentication(c.message, { rpc: browserRpc() });
-			const { next } = await postJson<{ next: string }>('/api/tap/resume', { challengeId: c.challengeId, response });
+			const { next } = await postJson<{ next: string }>('/api/tap/resume', {
+				challengeId: c.challengeId,
+				response
+			});
 			await goto(next, { replaceState: true, invalidateAll: true });
 		} catch (err) {
 			failure = describeError(err, 'tap');
@@ -75,7 +79,11 @@
 <svelte:head><title>{copy.title} · Revibase</title></svelte:head>
 
 <PageShell>
-	<section class="flex flex-1 flex-col items-center justify-center gap-8 pb-8" role={data.reason === 'expired' ? undefined : 'alert'} aria-live="polite">
+	<section
+		class="flex flex-1 flex-col items-center justify-center gap-8 pb-8"
+		role={data.reason === 'expired' ? undefined : 'alert'}
+		aria-live="polite"
+	>
 		<AccessoryMark state={retryable && (!resumable || tapping) ? 'waiting' : 'idle'} />
 		<PageHeader align="center" title={copy.title} body={body ?? copy.body} />
 		{#if failure}<div class="w-full"><Notice error={failure} /></div>{/if}
@@ -84,7 +92,8 @@
 		<div class="grid gap-1">
 			{#if resumable && webauthnOk}
 				<Button size="xl" disabled={tapping || !challenge} onclick={resume}>
-					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !challenge}<Spinner /> Preparing…{:else}Continue{/if}
+					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !challenge}<Spinner
+						/> Preparing…{:else}Continue{/if}
 				</Button>
 			{/if}
 			<Button href="/" variant="quiet" class="w-full">Use your wallet instead</Button>

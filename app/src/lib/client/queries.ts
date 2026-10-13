@@ -16,7 +16,6 @@ const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
 const MINUTE = 60 * 1000;
 
-
 export const accessoryMediaQuery = (pda: string) =>
 	queryOptions({
 		queryKey: queryKeys.media(pda),

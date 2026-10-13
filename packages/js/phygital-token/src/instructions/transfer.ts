@@ -77,7 +77,7 @@ function resolveTransferRpId(rpId: string | undefined): string {
   }
   throw new PhygitalTokenError(
     "RP_ID_REQUIRED",
-    "Pass `rpId`; it cannot be inferred outside a browser."
+    "Pass `rpId`; it cannot be inferred outside a browser.",
   );
 }
 
@@ -91,7 +91,7 @@ function resolveTransferRpId(rpId: string | undefined): string {
  * Throws `PASSKEY_NOT_RECOGNIZED` if a different tag is tapped.
  */
 export async function authenticatePasskeyForTransfer(
-  session: TransferSession
+  session: TransferSession,
 ): Promise<AuthenticationResponseJSON> {
   return authenticatePasskey(bufferToBase64URLString(session.challenge), {
     allowList: new Set([session.secp256r1Pubkey]),
@@ -112,7 +112,7 @@ export async function completeTransfer(
   session: TransferSession,
   response: AuthenticationResponseJSON,
   recipient: TransactionSigner,
-  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[]
+  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
   const { secp256r1VerifyInstruction, signedMessageIndex, clientDataJson } =
     buildSecp256r1VerifyInstructionFromWebAuthnResponse({

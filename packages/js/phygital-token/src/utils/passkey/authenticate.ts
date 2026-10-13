@@ -25,21 +25,17 @@ function resolveBrowserRpId(rpId: string | undefined): string {
   }
   throw new PhygitalTokenError(
     "RP_ID_REQUIRED",
-    "Pass `rpId`; it cannot be inferred outside a browser."
+    "Pass `rpId`; it cannot be inferred outside a browser.",
   );
 }
 
 /** NFC tap via browser WebAuthn. */
 export async function authenticatePasskey(
   challenge: string,
-  options?: AuthenticatePasskeyOptions
+  options?: AuthenticatePasskeyOptions,
 ): Promise<AuthenticationResponseJSON> {
   const response = await authenticateWithWebauthn(
-    nfcWebAuthnRequestOptions(
-      challenge,
-      resolveBrowserRpId(options?.rpId),
-      options?.credentialId
-    )
+    nfcWebAuthnRequestOptions(challenge, resolveBrowserRpId(options?.rpId), options?.credentialId),
   );
   return resolveCredentialId(response, {
     allowList: options?.allowList,

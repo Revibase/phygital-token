@@ -3,9 +3,7 @@ import { resolveRpId } from "./constants.js";
 
 describe("resolveRpId", () => {
   it("prefers env override", () => {
-    expect(resolveRpId("signer.revibase.com", "revibase.com")).toBe(
-      "revibase.com",
-    );
+    expect(resolveRpId("signer.revibase.com", "revibase.com")).toBe("revibase.com");
   });
 
   it("maps revibase subdomains to revibase.com", () => {

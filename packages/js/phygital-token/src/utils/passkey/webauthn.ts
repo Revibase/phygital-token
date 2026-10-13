@@ -12,9 +12,7 @@ export type PublicKeyCredentialRequestOptionsJSON = {
   allowCredentials?: Array<{
     id: Base64URLString;
     type: PublicKeyCredentialType;
-    transports?: Array<
-      "ble" | "cable" | "hybrid" | "internal" | "nfc" | "smart-card" | "usb"
-    >;
+    transports?: Array<"ble" | "cable" | "hybrid" | "internal" | "nfc" | "smart-card" | "usb">;
   }>;
   userVerification?: UserVerificationRequirement;
   hints?: Array<"hybrid" | "security-key" | "client-device">;
@@ -35,9 +33,7 @@ export type AuthenticationResponseJSON = {
   type: PublicKeyCredentialType;
 };
 
-export function bufferToBase64URLString(
-  buffer: ArrayBuffer | ArrayBufferView
-): Base64URLString {
+export function bufferToBase64URLString(buffer: ArrayBuffer | ArrayBufferView): Base64URLString {
   const bytes =
     buffer instanceof ArrayBuffer
       ? new Uint8Array(buffer)
@@ -68,10 +64,7 @@ export function base64URLStringToBuffer(base64URLString: string): Uint8Array {
 
 function base64URLStringToArrayBuffer(base64URLString: string): ArrayBuffer {
   const bytes = base64URLStringToBuffer(base64URLString);
-  return bytes.buffer.slice(
-    bytes.byteOffset,
-    bytes.byteOffset + bytes.byteLength
-  ) as ArrayBuffer;
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
 function toPublicKeyCredentialDescriptor(descriptor: {
@@ -83,16 +76,14 @@ function toPublicKeyCredentialDescriptor(descriptor: {
   return {
     ...rest,
     id: base64URLStringToArrayBuffer(id),
-    ...(transports !== undefined
-      ? { transports: transports as AuthenticatorTransport[] }
-      : {}),
+    ...(transports !== undefined ? { transports: transports as AuthenticatorTransport[] } : {}),
   };
 }
 
 export function nfcWebAuthnRequestOptions(
   challenge: Base64URLString,
   rpId: string,
-  credentialId?: Base64URLString
+  credentialId?: Base64URLString,
 ): PublicKeyCredentialRequestOptionsJSON {
   return {
     challenge,
@@ -103,9 +94,7 @@ export function nfcWebAuthnRequestOptions(
         id:
           credentialId ??
           bufferToBase64URLString(
-            crypto.getRandomValues(
-              new Uint8Array(PLACEHOLDER_CREDENTIAL_ID_LENGTH)
-            )
+            crypto.getRandomValues(new Uint8Array(PLACEHOLDER_CREDENTIAL_ID_LENGTH)),
           ),
         type: "public-key",
         transports: ["nfc"],
@@ -115,23 +104,15 @@ export function nfcWebAuthnRequestOptions(
 }
 
 export async function authenticateWithWebauthn(
-  optionsJSON: PublicKeyCredentialRequestOptionsJSON
+  optionsJSON: PublicKeyCredentialRequestOptionsJSON,
 ): Promise<AuthenticationResponseJSON> {
-  if (
-    typeof window === "undefined" ||
-    typeof window.PublicKeyCredential === "undefined"
-  ) {
-    throw new PhygitalTokenError(
-      "WEBAUTHN_UNSUPPORTED",
-      "This browser does not support WebAuthn."
-    );
+  if (typeof window === "undefined" || typeof window.PublicKeyCredential === "undefined") {
+    throw new PhygitalTokenError("WEBAUTHN_UNSUPPORTED", "This browser does not support WebAuthn.");
   }
 
   let allowCredentials: PublicKeyCredentialDescriptor[] | undefined;
   if (optionsJSON.allowCredentials?.length !== 0) {
-    allowCredentials = optionsJSON.allowCredentials?.map(
-      toPublicKeyCredentialDescriptor
-    );
+    allowCredentials = optionsJSON.allowCredentials?.map(toPublicKeyCredentialDescriptor);
   }
 
   const publicKey: PublicKeyCredentialRequestOptions = {
@@ -150,7 +131,7 @@ export async function authenticateWithWebauthn(
       throw new PhygitalTokenError(
         "AUTHENTICATION_CANCELLED",
         "Authentication was cancelled or timed out. Tap the tag again.",
-        { cause: e }
+        { cause: e },
       );
     }
     throw e;
@@ -159,7 +140,7 @@ export async function authenticateWithWebauthn(
   if (!credential) {
     throw new PhygitalTokenError(
       "AUTHENTICATION_CANCELLED",
-      "Authentication was not completed. Tap the tag again."
+      "Authentication was not completed. Tap the tag again.",
     );
   }
 
@@ -181,8 +162,7 @@ export async function authenticateWithWebauthn(
     type: credential.type as PublicKeyCredentialType,
     clientExtensionResults: credential.getClientExtensionResults(),
     authenticatorAttachment:
-      (credential.authenticatorAttachment as AuthenticatorAttachment | null) ??
-      undefined,
+      (credential.authenticatorAttachment as AuthenticatorAttachment | null) ?? undefined,
   };
 
   return assertion;

@@ -25,9 +25,14 @@
 	onMount(() => walletStore.init(data.cluster));
 
 	// Shown from memory instantly on return visits, then revalidated; never persisted (it changes with every link and unlink).
-	const listQuery = createQuery(() => ({ ...walletAccessoriesQuery(walletStore.address ?? ''), enabled: !!walletStore.address }));
+	const listQuery = createQuery(() => ({
+		...walletAccessoriesQuery(walletStore.address ?? ''),
+		enabled: !!walletStore.address
+	}));
 	const accessories = $derived(walletStore.address ? (listQuery.data ?? null) : null);
-	const listFailure = $derived(listQuery.isError && !listQuery.data ? describeError(listQuery.error) : null);
+	const listFailure = $derived(
+		listQuery.isError && !listQuery.data ? describeError(listQuery.error) : null
+	);
 	const reload = () => void listQuery.refetch();
 
 	// The one signature: it logs this browser in, so opening accessories never asks again.
@@ -58,13 +63,23 @@
 	);
 </script>
 
-<svelte:head><title>{walletStore.address ? 'Your accessories' : 'Connect your wallet'} · Revibase</title></svelte:head>
+<svelte:head
+	><title>{walletStore.address ? 'Your accessories' : 'Connect your wallet'} · Revibase</title
+	></svelte:head
+>
 
 <PageShell size="medium">
 	<section class="flex flex-1 flex-col gap-7 pt-4" aria-live="polite">
-		<PageHeader title={walletStore.address ? 'Your accessories' : 'Connect your wallet'} body={summary} />
+		<PageHeader
+			title={walletStore.address ? 'Your accessories' : 'Connect your wallet'}
+			body={summary}
+		/>
 
-		<Notice error={failure ?? listFailure} onretry={listFailure && !failure ? reload : undefined} retrying={listQuery.isFetching} />
+		<Notice
+			error={failure ?? listFailure}
+			onretry={listFailure && !failure ? reload : undefined}
+			retrying={listQuery.isFetching}
+		/>
 
 		{#if !walletStore.address}
 			<WalletConnect afterConnect={login} />
@@ -73,7 +88,18 @@
 			</p>
 		{:else}
 			<List>
-				<WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Your wallet'} icon={walletStore.walletIcon} cluster={data.cluster} onexport={walletStore.walletName === PASSKEY_WALLET_NAME ? () => void passkeyWallet()?.exportKey().catch(() => {}) : undefined} />
+				<WalletRow
+					address={walletStore.address}
+					label={walletStore.walletName ?? 'Your wallet'}
+					icon={walletStore.walletIcon}
+					cluster={data.cluster}
+					onexport={walletStore.walletName === PASSKEY_WALLET_NAME
+						? () =>
+								void passkeyWallet()
+									?.exportKey()
+									.catch(() => {})
+						: undefined}
+				/>
 			</List>
 
 			{#if accessories === null && !failure && !listFailure}
@@ -81,11 +107,18 @@
 					{#each [0, 1] as i (i)}<ListRowSkeleton avatar="size-12 rounded-[26%]" detail />{/each}
 				</List>
 			{:else if accessories?.length === 0}
-				<EmptyState title="No accessories yet" body="Tap an accessory to view it and link a wallet." />
+				<EmptyState
+					title="No accessories yet"
+					body="Tap an accessory to view it and link a wallet."
+				/>
 			{:else if accessories}
 				<List label="Accessories">
 					{#each accessories as acc (acc.pda)}
-						<AccessoryRow accessory={acc} busy={opening === acc.pda} onclick={() => openAccessory(acc)} />
+						<AccessoryRow
+							accessory={acc}
+							busy={opening === acc.pda}
+							onclick={() => openAccessory(acc)}
+						/>
 					{/each}
 				</List>
 			{/if}
@@ -94,7 +127,9 @@
 
 	{#snippet footer()}
 		{#if walletStore.address}
-			<Button variant="quiet" class="w-full" onclick={() => walletStore.disconnect()}>Use a different wallet</Button>
+			<Button variant="quiet" class="w-full" onclick={() => walletStore.disconnect()}
+				>Use a different wallet</Button
+			>
 		{/if}
 	{/snippet}
 </PageShell>

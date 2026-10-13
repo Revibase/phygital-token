@@ -12,12 +12,8 @@ const DEFAULT_PUBKEY = "11111111111111111111111111111111";
  * Whether `set_owner` refuses the token: Controlled and Permanent tokens are
  * locked whenever they have an owner; Bearer tokens never are.
  */
-export function isPhygitalTokenLocked(
-  token: Pick<PhygitalToken, "tokenType" | "owner">
-): boolean {
-  return (
-    token.tokenType !== PhygitalTokenType.Bearer && token.owner !== DEFAULT_PUBKEY
-  );
+export function isPhygitalTokenLocked(token: Pick<PhygitalToken, "tokenType" | "owner">): boolean {
+  return token.tokenType !== PhygitalTokenType.Bearer && token.owner !== DEFAULT_PUBKEY;
 }
 
 /**
@@ -26,7 +22,7 @@ export function isPhygitalTokenLocked(
  * returns to the accessory wallet.
  */
 export async function getPolicyCloseAccounts(
-  phygitalToken: Address
+  phygitalToken: Address,
 ): Promise<{ policy: Address; wallet: Address }> {
   const [[policy], [wallet]] = await Promise.all([
     findPolicyPda({ phygitalToken }),

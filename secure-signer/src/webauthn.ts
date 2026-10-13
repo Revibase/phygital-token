@@ -57,36 +57,24 @@ function extractPrf(cred: PublicKeyCredential): Uint8Array {
   return new Uint8Array(first);
 }
 
-export function assertionToJSON(
-  cred: PublicKeyCredential,
-): AuthenticationAssertionJSON {
+export function assertionToJSON(cred: PublicKeyCredential): AuthenticationAssertionJSON {
   const response = cred.response as AuthenticatorAssertionResponse;
   const out: AuthenticationAssertionJSON = {
     id: cred.id,
     rawId: bytesToBase64(new Uint8Array(cred.rawId), "url"),
     type: "public-key",
     response: {
-      clientDataJSON: bytesToBase64(
-        new Uint8Array(response.clientDataJSON),
-        "url",
-      ),
-      authenticatorData: bytesToBase64(
-        new Uint8Array(response.authenticatorData),
-        "url",
-      ),
+      clientDataJSON: bytesToBase64(new Uint8Array(response.clientDataJSON), "url"),
+      authenticatorData: bytesToBase64(new Uint8Array(response.authenticatorData), "url"),
       signature: bytesToBase64(new Uint8Array(response.signature), "url"),
     },
     clientExtensionResults: {},
   };
   if (response.userHandle) {
-    out.response.userHandle = bytesToBase64(
-      new Uint8Array(response.userHandle),
-      "url",
-    );
+    out.response.userHandle = bytesToBase64(new Uint8Array(response.userHandle), "url");
   }
   if (cred.authenticatorAttachment) {
-    out.authenticatorAttachment =
-      cred.authenticatorAttachment as AuthenticatorAttachment;
+    out.authenticatorAttachment = cred.authenticatorAttachment as AuthenticatorAttachment;
   }
   return out;
 }
@@ -117,8 +105,7 @@ export class BrowserPrfProvider implements PrfProvider {
         } as AuthenticationExtensionsClientInputs,
       },
     })) as PublicKeyCredential | null;
-    if (!cred)
-      throw new WebAuthnUnsupported("credential creation returned null");
+    if (!cred) throw new WebAuthnUnsupported("credential creation returned null");
 
     const credentialId = new Uint8Array(cred.rawId);
     let prfOutput: Uint8Array;
@@ -155,10 +142,7 @@ export class BrowserPrfProvider implements PrfProvider {
   }
 
   /** `challenge` must be the server restore-challenge (PRF + D1 auth). */
-  async getDiscoverable(
-    rpId: string,
-    challenge: Uint8Array,
-  ): Promise<DiscoverablePrfResult> {
+  async getDiscoverable(rpId: string, challenge: Uint8Array): Promise<DiscoverablePrfResult> {
     const assertion = await getAssertion({
       challenge: buf(challenge),
       rpId,

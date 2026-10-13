@@ -22,9 +22,7 @@ function prfEncodings(): string[] {
   ];
 }
 
-function fakeCredential(
-  extensionResults: Record<string, unknown>,
-): PublicKeyCredential {
+function fakeCredential(extensionResults: Record<string, unknown>): PublicKeyCredential {
   return {
     id: bytesToBase64(bytes(16, 1), "url"),
     rawId: bytes(16, 1).buffer,
@@ -44,10 +42,7 @@ function fakeCredential(
 // (what a WebAuthn L3 `toJSON()`-style serializer would produce).
 const EXTENSION_SHAPES: Array<[string, () => Record<string, unknown>]> = [
   ["ArrayBuffer", () => ({ prf: { results: { first: PRF.slice().buffer } } })],
-  [
-    "base64url string",
-    () => ({ prf: { results: { first: bytesToBase64(PRF, "url") } } }),
-  ],
+  ["base64url string", () => ({ prf: { results: { first: bytesToBase64(PRF, "url") } } })],
 ];
 
 function expectNoPrf(serialized: string): void {
@@ -68,35 +63,29 @@ describe("assertionToJSON", () => {
 });
 
 describe("restore request", () => {
-  it.each(EXTENSION_SHAPES)(
-    "never sends PRF output to the API (%s)",
-    async (shape, ext) => {
-      vi.stubGlobal("navigator", {
-        credentials: { get: async () => fakeCredential(ext()) },
-      });
-      const bodies: string[] = [];
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async (_url: string, init: RequestInit) => {
-          bodies.push(String(init.body));
-          return new Response(null, { status: 404 });
-        }),
-      );
+  it.each(EXTENSION_SHAPES)("never sends PRF output to the API (%s)", async (shape, ext) => {
+    vi.stubGlobal("navigator", {
+      credentials: { get: async () => fakeCredential(ext()) },
+    });
+    const bodies: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init: RequestInit) => {
+        bodies.push(String(init.body));
+        return new Response(null, { status: 404 });
+      }),
+    );
 
-      const disc = await new BrowserPrfProvider().getDiscoverable(
-        "localhost",
-        bytes(32, 9),
-      );
-      // The signer itself still gets the PRF output for unwrapping.
-      if (shape === "ArrayBuffer") expect(disc.prfOutput).toEqual(PRF);
+    const disc = await new BrowserPrfProvider().getDiscoverable("localhost", bytes(32, 9));
+    // The signer itself still gets the PRF output for unwrapping.
+    if (shape === "ArrayBuffer") expect(disc.prfOutput).toEqual(PRF);
 
-      await restoreWalletBlob({
-        challengeId: "c1",
-        assertion: disc.assertion as unknown as Record<string, unknown>,
-      });
+    await restoreWalletBlob({
+      challengeId: "c1",
+      assertion: disc.assertion as unknown as Record<string, unknown>,
+    });
 
-      expect(bodies).toHaveLength(1);
-      expectNoPrf(bodies[0]!);
-    },
-  );
+    expect(bodies).toHaveLength(1);
+    expectNoPrf(bodies[0]!);
+  });
 });

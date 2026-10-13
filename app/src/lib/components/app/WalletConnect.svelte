@@ -43,7 +43,12 @@
 			await walletStore.connect(id);
 			if (requireAddress && walletStore.address !== requireAddress) {
 				await walletStore.disconnect();
-				failure = { title: 'That’s not the owner’s wallet', body: `Choose the wallet that owns this accessory (${shortAddress(requireAddress)}).`, recovery: 'none', code: 'owner_required' };
+				failure = {
+					title: 'That’s not the owner’s wallet',
+					body: `Choose the wallet that owns this accessory (${shortAddress(requireAddress)}).`,
+					recovery: 'none',
+					code: 'owner_required'
+				};
 				return;
 			}
 			try {
@@ -66,10 +71,16 @@
 	}
 </script>
 
-{#if showButton}<Button size="xl" {disabled} onclick={() => (open = true)}>Connect wallet</Button>{/if}
+{#if showButton}<Button size="xl" {disabled} onclick={() => (open = true)}>Connect wallet</Button
+	>{/if}
 <ResponsiveSheet bind:open title="Connect wallet" {description}>
 	<div class="space-y-4">
 		<Notice error={failure} />
-		<WalletPicker label="Choose a wallet" options={walletStore.options} {connecting} onpick={pick} />
+		<WalletPicker
+			label="Choose a wallet"
+			options={walletStore.options}
+			{connecting}
+			onpick={pick}
+		/>
 	</div>
 </ResponsiveSheet>

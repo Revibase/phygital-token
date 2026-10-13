@@ -19,13 +19,25 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const fromSigner = signerApi && !!signerOrigin && origin === signerOrigin;
 	const sponsorApi = url.pathname === '/api/sponsor' || url.pathname.startsWith('/api/sponsor/');
 	const cors: Record<string, string> | null = sponsorApi
-		? { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, POST', 'Access-Control-Allow-Headers': 'content-type' }
+		? {
+				'Access-Control-Allow-Origin': '*',
+				'Access-Control-Allow-Methods': 'GET, POST',
+				'Access-Control-Allow-Headers': 'content-type'
+			}
 		: fromSigner
-			? { 'Access-Control-Allow-Origin': signerOrigin!, 'Access-Control-Allow-Methods': 'POST, PUT', 'Access-Control-Allow-Headers': 'content-type', Vary: 'Origin' }
+			? {
+					'Access-Control-Allow-Origin': signerOrigin!,
+					'Access-Control-Allow-Methods': 'POST, PUT',
+					'Access-Control-Allow-Headers': 'content-type',
+					Vary: 'Origin'
+				}
 			: null;
 
 	if ((signerApi || sponsorApi) && request.method === 'OPTIONS') {
-		return new Response(null, { status: cors ? 204 : 403, headers: { ...(cors ?? {}), 'Access-Control-Max-Age': '600' } });
+		return new Response(null, {
+			status: cors ? 204 : 403,
+			headers: { ...(cors ?? {}), 'Access-Control-Max-Age': '600' }
+		});
 	}
 	if (url.pathname.startsWith('/api/') && request.method !== 'GET' && request.method !== 'HEAD') {
 		if (origin !== url.origin && !fromSigner && !sponsorApi) {
@@ -36,7 +48,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 	const headers = response.headers;
 	const csp = headers.get('content-security-policy');
-	if (csp && signerOrigin) headers.set('content-security-policy', `${csp}; frame-src ${signerOrigin}`);
+	if (csp && signerOrigin)
+		headers.set('content-security-policy', `${csp}; frame-src ${signerOrigin}`);
 	if (cors) for (const [k, v] of Object.entries(cors)) headers.set(k, v);
 	headers.set('Referrer-Policy', 'no-referrer');
 	headers.set('X-Content-Type-Options', 'nosniff');

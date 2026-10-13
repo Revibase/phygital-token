@@ -31,16 +31,10 @@ const SECP256R1_PUBKEY_LEN = 33;
 /** memcmp offset of `owner` in account data. */
 const PHYGITAL_TOKEN_OWNER_OFFSET = DISCRIMINATOR_LEN;
 /** memcmp offset of `mint` in account data. */
-const PHYGITAL_TOKEN_MINT_OFFSET =
-  PHYGITAL_TOKEN_OWNER_OFFSET + PUBKEY_LEN;
+const PHYGITAL_TOKEN_MINT_OFFSET = PHYGITAL_TOKEN_OWNER_OFFSET + PUBKEY_LEN;
 /** memcmp offset of `identifier` in account data. */
 const PHYGITAL_TOKEN_IDENTIFIER_OFFSET =
-  PHYGITAL_TOKEN_MINT_OFFSET +
-  PUBKEY_LEN +
-  SIGN_COUNT_LEN +
-  U8_LEN +
-  U8_LEN +
-  SECP256R1_PUBKEY_LEN;
+  PHYGITAL_TOKEN_MINT_OFFSET + PUBKEY_LEN + SIGN_COUNT_LEN + U8_LEN + U8_LEN + SECP256R1_PUBKEY_LEN;
 
 /**
  * Find the token whose on-chain `identifier` matches (via `getProgramAccounts`
@@ -52,10 +46,7 @@ export async function fetchPhygitalTokenByIdentifier(
   rpc: Rpc<SolanaRpcApi>,
   identifier: string | Secp256r1Pubkey,
 ): Promise<PhygitalToken | null> {
-  const parsed =
-    typeof identifier === "string"
-      ? parseSecp256r1Pubkey(identifier)
-      : identifier;
+  const parsed = typeof identifier === "string" ? parseSecp256r1Pubkey(identifier) : identifier;
 
   const data = await rpc
     .getProgramAccounts(PHYGITAL_TOKEN_PROGRAM_ADDRESS, {
@@ -77,9 +68,7 @@ export async function fetchPhygitalTokenByIdentifier(
     return null;
   }
 
-  return getPhygitalTokenDecoder().decode(
-    getBase64Encoder().encode(data[0].account.data[0]),
-  );
+  return getPhygitalTokenDecoder().decode(getBase64Encoder().encode(data[0].account.data[0]));
 }
 
 /**
@@ -113,9 +102,7 @@ export async function fetchPhygitalTokensByOwner(
   }
 
   return data.map((x) =>
-    getPhygitalTokenDecoder().decode(
-      getBase64Encoder().encode(x.account.data[0]),
-    ),
+    getPhygitalTokenDecoder().decode(getBase64Encoder().encode(x.account.data[0])),
   );
 }
 
@@ -149,7 +136,5 @@ export async function fetchPhygitalTokenByMint(
     return null;
   }
 
-  return getPhygitalTokenDecoder().decode(
-    getBase64Encoder().encode(data[0].account.data[0]),
-  );
+  return getPhygitalTokenDecoder().decode(getBase64Encoder().encode(data[0].account.data[0]));
 }

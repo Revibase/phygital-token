@@ -63,13 +63,21 @@
 	{#if leading}<span class="grid shrink-0 place-items-center">{@render leading()}</span>{/if}
 	<span class="min-w-0 flex-1">
 		<span class="flex flex-wrap items-center gap-x-2 gap-y-1">
-			<span class={cn('min-w-0 truncate text-[15px] font-medium', tone === 'destructive' && 'text-destructive')}>{label}</span>
+			<span
+				class={cn(
+					'min-w-0 truncate text-[15px] font-medium',
+					tone === 'destructive' && 'text-destructive'
+				)}>{label}</span
+			>
 			{@render labelBadge?.()}
 		</span>
 		{#if detail}<span class="block truncate text-[13px] text-muted-foreground">{detail}</span>{/if}
-		{#if subdetail}<span class="block text-[12px] leading-snug text-muted-foreground">{subdetail}</span>{/if}
+		{#if subdetail}<span class="block text-[12px] leading-snug text-muted-foreground"
+				>{subdetail}</span
+			>{/if}
 	</span>
-	{#if value !== undefined}<span class="shrink-0 text-[15px] font-medium tabular-nums">{value}</span>{/if}
+	{#if value !== undefined}<span class="shrink-0 text-[15px] font-medium tabular-nums">{value}</span
+		>{/if}
 	{#if busy}
 		<Spinner class="size-4 text-muted-foreground" />
 	{:else if trailing}
@@ -83,9 +91,19 @@
 
 <li>
 	{#if href}
-		<a {href} {rel} {target} {onclick} data-sveltekit-reload={reload || undefined} class={classes} aria-disabled={disabled || undefined}>{@render content()}</a>
+		<a
+			{href}
+			{rel}
+			{target}
+			{onclick}
+			data-sveltekit-reload={reload || undefined}
+			class={classes}
+			aria-disabled={disabled || undefined}>{@render content()}</a
+		>
 	{:else if onclick}
-		<button type="button" class={classes} {disabled} aria-busy={busy || undefined} onclick={onclick}>{@render content()}</button>
+		<button type="button" class={classes} {disabled} aria-busy={busy || undefined} {onclick}
+			>{@render content()}</button
+		>
 	{:else if selectable}
 		<label class={cn(classes, 'cursor-pointer')}>{@render content()}</label>
 	{:else}

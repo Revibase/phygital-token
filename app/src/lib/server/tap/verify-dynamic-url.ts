@@ -63,7 +63,9 @@ export function verifyDynamicUrlWithoutCounterCheck(
 
 	const compressedPk = decodeParam(identifier, 'pk');
 	if (compressedPk.length !== 33 || (compressedPk[0] !== 0x02 && compressedPk[0] !== 0x03)) {
-		throw new TapParamError(`pk must be 33-byte compressed P-256 key, got ${compressedPk.length} bytes`);
+		throw new TapParamError(
+			`pk must be 33-byte compressed P-256 key, got ${compressedPk.length} bytes`
+		);
 	}
 	const randomBytes = decodeParam(nonce, 'n');
 	if (randomBytes.length !== 8) {

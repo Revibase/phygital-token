@@ -1,19 +1,10 @@
-import {
-  address,
-  type Rpc,
-  type SolanaRpcApi,
-  type TransactionPartialSigner,
-} from "@solana/kit";
+import { address, type Rpc, type SolanaRpcApi, type TransactionPartialSigner } from "@solana/kit";
 import {
   SolanaSignAndSendTransaction,
   SolanaSignMessage,
   SolanaSignTransaction,
 } from "@solana/wallet-standard-features";
-import {
-  StandardConnect,
-  StandardDisconnect,
-  StandardEvents,
-} from "@wallet-standard/features";
+import { StandardConnect, StandardDisconnect, StandardEvents } from "@wallet-standard/features";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const startAuthentication = vi.fn(async () => ({ id: "test-passkey-id" }));
@@ -22,7 +13,7 @@ const verifyResponse = vi.fn(() => ({
   secp256r1PublicKey: "test-secp256r1-key",
 }));
 const findPhygitalTokenPda = vi.fn(async () =>
-  address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+  address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
 );
 const session = () => ({
   phygitalTokenPda: address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
@@ -50,17 +41,13 @@ vi.mock("../wallet-standard/session.js", async (importOriginal) => ({
 }));
 
 vi.mock("../wallet/signer.js", () => ({
-  getPhygitalWalletSigner: (...args: unknown[]) =>
-    getPhygitalWalletSigner(...args),
+  getPhygitalWalletSigner: (...args: unknown[]) => getPhygitalWalletSigner(...args),
 }));
 
 import { PhygitalWallet } from "../wallet-standard/wallet.js";
 import { registerPhygitalWallet } from "../wallet-standard/register.js";
 import { REVIBASE_WALLET_NAME } from "../wallet-standard/icon.js";
-import {
-  getRevibaseAccessorySession,
-  RevibaseAccessory,
-} from "../wallet-standard/feature.js";
+import { getRevibaseAccessorySession, RevibaseAccessory } from "../wallet-standard/feature.js";
 import { PHYGITAL_WALLET_SESSION_STORAGE_KEY } from "../wallet-standard/session.js";
 
 function mockRpc(): Rpc<SolanaRpcApi> {
@@ -116,9 +103,11 @@ describe("PhygitalWallet Wallet Standard surface", () => {
     expect(SolanaSignAndSendTransaction in wallet.features).toBe(true);
     expect(SolanaSignMessage in wallet.features).toBe(false);
     expect(RevibaseAccessory in wallet.features).toBe(true);
-    expect(
-      wallet.features[SolanaSignTransaction].supportedTransactionVersions
-    ).toEqual(["legacy", 0, 1]);
+    expect(wallet.features[SolanaSignTransaction].supportedTransactionVersions).toEqual([
+      "legacy",
+      0,
+      1,
+    ]);
   });
 
   it("silent connect returns empty accounts before a live tap", async () => {
@@ -143,9 +132,7 @@ describe("PhygitalWallet Wallet Standard surface", () => {
 
     const { accounts } = await wallet.features[StandardConnect].connect();
     expect(accounts).toHaveLength(1);
-    expect(accounts[0]?.address).toBe(
-      "So11111111111111111111111111111111111111112"
-    );
+    expect(accounts[0]?.address).toBe("So11111111111111111111111111111111111111112");
     expect(accounts[0]?.publicKey).toHaveLength(32);
     expect(accounts[0]?.label).toBe("Revibase Accessory");
     expect(accounts[0]?.features).not.toContain(SolanaSignMessage);
@@ -161,16 +148,14 @@ describe("PhygitalWallet Wallet Standard surface", () => {
     expect(findPhygitalTokenPda).toHaveBeenCalledWith("test-secp256r1-key");
     expect(resolveWalletSession).toHaveBeenCalledWith(
       expect.anything(),
-      address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+      address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
     );
     expect(getPhygitalWalletSigner).toHaveBeenCalledWith(
       expect.anything(),
       address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-      expect.objectContaining({ feePayer })
+      expect.objectContaining({ feePayer }),
     );
-    const stored = JSON.parse(
-      localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)!
-    );
+    const stored = JSON.parse(localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)!);
     expect(stored).toEqual({
       phygitalTokenPda: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
       walletPda: "So11111111111111111111111111111111111111112",
@@ -179,26 +164,20 @@ describe("PhygitalWallet Wallet Standard surface", () => {
 
     await wallet.features[StandardDisconnect].disconnect();
     expect(wallet.accounts).toEqual([]);
-    expect(
-      localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)
-    ).toBeNull();
+    expect(localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)).toBeNull();
   });
 
   it("connect rejects when the owner has not set an accessory policy", async () => {
     resolveWalletSession.mockRejectedValueOnce(
-      new Error(
-        "Revibase wallet is disabled: the owner has not set an accessory policy"
-      )
+      new Error("Revibase wallet is disabled: the owner has not set an accessory policy"),
     );
     const wallet = new PhygitalWallet({ rpc: mockRpc() });
 
     await expect(wallet.features[StandardConnect].connect()).rejects.toThrow(
-      /has not set an accessory policy/
+      /has not set an accessory policy/,
     );
     expect(wallet.accounts).toEqual([]);
-    expect(
-      localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)
-    ).toBeNull();
+    expect(localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)).toBeNull();
   });
 
   it("stays disconnected when local authentication verification fails", async () => {
@@ -209,13 +188,11 @@ describe("PhygitalWallet Wallet Standard surface", () => {
     const wallet = new PhygitalWallet({ rpc: mockRpc() });
 
     await expect(wallet.features[StandardConnect].connect()).rejects.toThrow(
-      "Could not verify this phygital accessory"
+      "Could not verify this phygital accessory",
     );
     expect(wallet.accounts).toEqual([]);
     expect(findPhygitalTokenPda).not.toHaveBeenCalled();
-    expect(
-      localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)
-    ).toBeNull();
+    expect(localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)).toBeNull();
   });
 
   it("eagerly restores accounts from localStorage after refresh", () => {
@@ -225,13 +202,11 @@ describe("PhygitalWallet Wallet Standard surface", () => {
         phygitalTokenPda: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         walletPda: "So11111111111111111111111111111111111111112",
         owner: "SysvarC1ock11111111111111111111111111111111",
-      })
+      }),
     );
     const wallet = new PhygitalWallet({ rpc: mockRpc() });
     expect(wallet.accounts).toHaveLength(1);
-    expect(wallet.accounts[0]?.address).toBe(
-      "So11111111111111111111111111111111111111112"
-    );
+    expect(wallet.accounts[0]?.address).toBe("So11111111111111111111111111111111111111112");
   });
 
   it("silent connect restores a persisted session without a new tap", async () => {
@@ -244,9 +219,7 @@ describe("PhygitalWallet Wallet Standard surface", () => {
       silent: true,
     });
     expect(accounts).toHaveLength(1);
-    expect(accounts[0]?.address).toBe(
-      "So11111111111111111111111111111111111111112"
-    );
+    expect(accounts[0]?.address).toBe("So11111111111111111111111111111111111111112");
     expect(startAuthentication).toHaveBeenCalledTimes(1);
   });
 
@@ -281,21 +254,17 @@ describe("PhygitalWallet Wallet Standard surface", () => {
       changes.push(props);
     });
     resolveWalletSession.mockRejectedValueOnce(
-      new Error("Revibase wallet is disabled: this accessory has no owner")
+      new Error("Revibase wallet is disabled: this accessory has no owner"),
     );
 
     expect(await getRevibaseAccessorySession(wallet, { refresh: true })).toBeNull();
     expect(wallet.accounts).toEqual([]);
     expect(changes).toHaveLength(1);
-    expect(
-      localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)
-    ).toBeNull();
+    expect(localStorage.getItem(PHYGITAL_WALLET_SESSION_STORAGE_KEY)).toBeNull();
   });
 
   it("getRevibaseAccessorySession is null for other wallets", async () => {
-    const other = { features: {} } as unknown as Parameters<
-      typeof getRevibaseAccessorySession
-    >[0];
+    const other = { features: {} } as unknown as Parameters<typeof getRevibaseAccessorySession>[0];
     expect(await getRevibaseAccessorySession(other)).toBeNull();
   });
 

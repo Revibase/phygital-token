@@ -8,12 +8,7 @@ import {
   resolveSdkReadmePath,
 } from "./paths.js";
 
-export type DocCategory =
-  | "verification"
-  | "building-on-phygital"
-  | "sdk"
-  | "glossary"
-  | "readme";
+export type DocCategory = "verification" | "building-on-phygital" | "sdk" | "glossary" | "readme";
 
 export type DocEntry = {
   id: string;
@@ -145,10 +140,7 @@ function scoreLine(line: string, query: string): number {
   return score;
 }
 
-export async function searchDocs(
-  query: string,
-  limit = 8,
-): Promise<SearchDocsResult[]> {
+export async function searchDocs(query: string, limit = 8): Promise<SearchDocsResult[]> {
   const docs = await listDocs();
   const results: SearchDocsResult[] = [];
 

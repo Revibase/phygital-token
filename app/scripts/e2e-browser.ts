@@ -22,11 +22,25 @@ import {
 	getMintToInstruction,
 	TOKEN_PROGRAM_ADDRESS
 } from '@solana-program/token';
-import { encodePermissionRequest, fetchMaybeAccessoryPolicy, fetchMaybePhygitalToken, findPolicyPda, findWalletPda } from 'phygital-token-sdk';
+import {
+	encodePermissionRequest,
+	fetchMaybeAccessoryPolicy,
+	fetchMaybePhygitalToken,
+	findPolicyPda,
+	findWalletPda
+} from 'phygital-token-sdk';
 
 import { base64UrlToBytes } from '../src/lib/shared/encoding';
 import { LeakScanner } from 'secure-signer/testing/kit';
-import { doubleVerifyWire, durableNonceWire, foreignProgramWire, lookupTableWire, opaqueExecuteWire, removeOwnerWire, toB64 } from 'secure-signer/testing/tx-fixtures';
+import {
+	doubleVerifyWire,
+	durableNonceWire,
+	foreignProgramWire,
+	lookupTableWire,
+	opaqueExecuteWire,
+	removeOwnerWire,
+	toB64
+} from 'secure-signer/testing/tx-fixtures';
 import { WebAuthnBridge } from '../test/e2e/webauthn-bridge';
 import { funded, issueAccessory, rpc, send, type AccessoryKind } from './lib';
 
@@ -34,8 +48,10 @@ const APP = 'https://localhost:5173';
 const SIGNER = 'https://localhost:5174';
 /** An integrator's site on its own origin, for tap-to-sign and allowed-site checks. */
 const DAPP = 'https://localhost:4300';
-const IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
-const ANDROID = 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/141.0.0.0 Mobile Safari/537.36';
+const IOS =
+	'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
+const ANDROID =
+	'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/141.0.0.0 Mobile Safari/537.36';
 
 const engine = process.env.E2E_ENGINE === 'webkit' ? 'webkit' : 'chrome';
 const results = new URL('../test/e2e/results/', import.meta.url);
@@ -45,12 +61,27 @@ for (const [url, what] of [
 	[APP, 'the app (REVIBASE_PLATFORM=e2e pnpm dev)'],
 	[SIGNER, 'the signer (pnpm --filter secure-signer exec vite --mode e2e)']
 ]) {
-	const ok = await fetch(url).then((r) => r.ok, () => false);
+	const ok = await fetch(url).then(
+		(r) => r.ok,
+		() => false
+	);
 	assert.ok(ok, `Start ${what} before the e2e run`);
 }
 
-type Stack = { issuer: string; accessories: Record<string, { kind: string; pda: string; keys: { fidoKey: string; ndefKey: string; counter: number; signCount: number } }> };
-export const stack: Stack = JSON.parse(readFileSync(new URL('../.wrangler/e2e/state.json', import.meta.url), 'utf8'));
+type Stack = {
+	issuer: string;
+	accessories: Record<
+		string,
+		{
+			kind: string;
+			pda: string;
+			keys: { fidoKey: string; ndefKey: string; counter: number; signCount: number };
+		}
+	>;
+};
+export const stack: Stack = JSON.parse(
+	readFileSync(new URL('../.wrangler/e2e/state.json', import.meta.url), 'utf8')
+);
 
 const dapp = await createVite({
 	configFile: false,
@@ -62,7 +93,10 @@ const dapp = await createVite({
 		port: 4300,
 		strictPort: true,
 		hmr: false,
-		https: { cert: readFileSync(new URL('../.wrangler/e2e/tls/cert.pem', import.meta.url)), key: readFileSync(new URL('../.wrangler/e2e/tls/key.pem', import.meta.url)) }
+		https: {
+			cert: readFileSync(new URL('../.wrangler/e2e/tls/cert.pem', import.meta.url)),
+			key: readFileSync(new URL('../.wrangler/e2e/tls/key.pem', import.meta.url))
+		}
 	},
 	logLevel: 'warn'
 });
@@ -71,7 +105,10 @@ await dapp.listen();
 await dapp.warmupRequest('/main.ts').catch(() => {});
 await fetch(DAPP + '/main.ts').catch(() => {});
 
-const browser = engine === 'webkit' ? await webkit.launch({ headless: !process.env.E2E_HEADED }) : await chromium.launch({ channel: 'chrome', headless: !process.env.E2E_HEADED });
+const browser =
+	engine === 'webkit'
+		? await webkit.launch({ headless: !process.env.E2E_HEADED })
+		: await chromium.launch({ channel: 'chrome', headless: !process.env.E2E_HEADED });
 
 const outcomes: { name: string; status: 'passed' | 'failed'; error?: string }[] = [];
 const pageErrors: string[] = [];
@@ -98,7 +135,8 @@ async function session(bridge = new WebAuthnBridge()): Promise<Session> {
 	await bridge.install(context);
 	const crossed: Session['crossed'] = [];
 	await context.exposeBinding('__signerPosted', ({ frame }, data: string) => {
-		if (frame === frame.page().mainFrame()) crossed.push({ where: 'signer → app message', value: data });
+		if (frame === frame.page().mainFrame())
+			crossed.push({ where: 'signer → app message', value: data });
 	});
 	await context.addInitScript(`window.addEventListener('message', (e) => {
 		if (window === window.top && e.origin === ${JSON.stringify(SIGNER)}) window.__signerPosted(JSON.stringify(e.data));
@@ -114,15 +152,27 @@ async function session(bridge = new WebAuthnBridge()): Promise<Session> {
 	page.on('response', async (r) => {
 		if (!r.url().includes(':8899')) return;
 		const body = await r.text().catch(() => '');
-		if (process.env.E2E_TRACE) log.push(`rpc ${r.request().postDataJSON()?.method} ${r.status()} ${body.length}b`);
+		if (process.env.E2E_TRACE)
+			log.push(`rpc ${r.request().postDataJSON()?.method} ${r.status()} ${body.length}b`);
 		// The local validator has no DAS index; holdings fall back without it.
 		if (body.includes('wallet-getAssetsByOwner')) return;
-		if (r.status() >= 400 || body.includes('"error"')) log.push(`rpc ${r.request().postDataJSON()?.method}: ${body.slice(0, 300)}`);
+		if (r.status() >= 400 || body.includes('"error"'))
+			log.push(`rpc ${r.request().postDataJSON()?.method}: ${body.slice(0, 300)}`);
 	});
-	return { context, page, bridge, signer: page.frameLocator('iframe[title="Revibase Passkey"]'), log, crossed };
+	return {
+		context,
+		page,
+		bridge,
+		signer: page.frameLocator('iframe[title="Revibase Passkey"]'),
+		log,
+		crossed
+	};
 }
 
-async function test(name: string, fn: (s: Session, another: (bridge?: WebAuthnBridge) => Promise<Session>) => Promise<void>) {
+async function test(
+	name: string,
+	fn: (s: Session, another: (bridge?: WebAuthnBridge) => Promise<Session>) => Promise<void>
+) {
 	if (process.env.E2E_FILTER && !new RegExp(process.env.E2E_FILTER).test(name)) return;
 	const s = await session();
 	const extra: Session[] = [];
@@ -138,9 +188,14 @@ async function test(name: string, fn: (s: Session, another: (bridge?: WebAuthnBr
 	} catch (e) {
 		outcomes.push({ name, status: 'failed', error: String(e) });
 		console.error(`FAIL ${name}: ${e}`);
-		await s.page.screenshot({ path: new URL(`fail-${name.replace(/\W+/g, '-')}.png`, results).pathname }).catch(() => {});
+		await s.page
+			.screenshot({ path: new URL(`fail-${name.replace(/\W+/g, '-')}.png`, results).pathname })
+			.catch(() => {});
 		console.log('  ceremonies', JSON.stringify(s.bridge.ceremonies));
-		for (const line of [...s.log, ...extra.flatMap((x) => x.log)].slice(process.env.E2E_TRACE ? -60 : -15)) console.log('  ' + line);
+		for (const line of [...s.log, ...extra.flatMap((x) => x.log)].slice(
+			process.env.E2E_TRACE ? -60 : -15
+		))
+			console.log('  ' + line);
 	} finally {
 		for (const x of [s, ...extra]) await x.context.close();
 	}
@@ -193,21 +248,39 @@ async function assertNoLeaks(sessions: Session[]) {
 	const items = sessions.flatMap((x) => x.crossed);
 	for (const x of sessions) {
 		if (x.page.isClosed()) continue;
-		const storage = await x.page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage }, cookies: document.cookie })).catch(() => '');
+		const storage = await x.page
+			.evaluate(() =>
+				JSON.stringify({
+					local: { ...localStorage },
+					session: { ...sessionStorage },
+					cookies: document.cookie
+				})
+			)
+			.catch(() => '');
 		items.push({ where: 'app storage', value: storage });
 	}
 	const findings = scanner.scanAll(items);
-	assert.equal(findings.length, 0, `secret material crossed the signer boundary: ${JSON.stringify(findings.slice(0, 3))}`);
-	assert.ok(sessions.every((x) => x.bridge.prfOutputs.length === 0) || items.length > 0, 'the leak scan saw traffic');
+	assert.equal(
+		findings.length,
+		0,
+		`secret material crossed the signer boundary: ${JSON.stringify(findings.slice(0, 3))}`
+	);
+	assert.ok(
+		sessions.every((x) => x.bridge.prfOutputs.length === 0) || items.length > 0,
+		'the leak scan saw traffic'
+	);
 }
 
-const text = (scope: Page | FrameLocator, value: string | RegExp) => scope.getByText(value, { exact: typeof value === 'string' }).first();
+const text = (scope: Page | FrameLocator, value: string | RegExp) =>
+	scope.getByText(value, { exact: typeof value === 'string' }).first();
 
 const screens = new URL('signer/', results);
 mkdirSync(screens, { recursive: true });
 /** Saves the signer's current screen for the readability review. */
 async function capture({ page }: Session, name: string) {
-	await page.locator('iframe[title="Revibase Passkey"]').screenshot({ path: new URL(`${engine}-${name}.png`, screens).pathname });
+	await page
+		.locator('iframe[title="Revibase Passkey"]')
+		.screenshot({ path: new URL(`${engine}-${name}.png`, screens).pathname });
 }
 
 /** A fresh software accessory, issued on chain for one scenario. */
@@ -229,11 +302,20 @@ const ownerOf = async (pda: string) => {
 	return String(token.data.owner);
 };
 
-const walletOf = async (pda: string) => String((await findWalletPda({ phygitalToken: address(pda) }))[0]);
-const balance = async (account: string) => (await rpc.getBalance(address(account), { commitment: 'confirmed' }).send()).value;
+const walletOf = async (pda: string) =>
+	String((await findWalletPda({ phygitalToken: address(pda) }))[0]);
+const balance = async (account: string) =>
+	(await rpc.getBalance(address(account), { commitment: 'confirmed' }).send()).value;
 const tokenBalance = async (owner: string, mint: Address) => {
-	const [ata] = await findAssociatedTokenPda({ owner: address(owner), mint, tokenProgram: TOKEN_PROGRAM_ADDRESS });
-	const info = await rpc.getTokenAccountBalance(ata, { commitment: 'confirmed' }).send().catch(() => null);
+	const [ata] = await findAssociatedTokenPda({
+		owner: address(owner),
+		mint,
+		tokenProgram: TOKEN_PROGRAM_ADDRESS
+	});
+	const info = await rpc
+		.getTokenAccountBalance(ata, { commitment: 'confirmed' })
+		.send()
+		.catch(() => null);
 	return info ? BigInt(info.value.amount) : 0n;
 };
 
@@ -241,7 +323,13 @@ const tokenBalance = async (owner: string, mint: Address) => {
 async function fund(to: string, sol: number) {
 	const payer = await funded();
 	const { getTransferSolInstruction } = await import('@solana-program/system');
-	await send(payer, [getTransferSolInstruction({ source: payer, destination: address(to), amount: lamports(BigInt(Math.round(sol * 1e9))) })]);
+	await send(payer, [
+		getTransferSolInstruction({
+			source: payer,
+			destination: address(to),
+			amount: lamports(BigInt(Math.round(sol * 1e9)))
+		})
+	]);
 }
 
 /** A new SPL mint (6 decimals) with `amount` raw units minted to `owner`'s ATA. */
@@ -250,11 +338,29 @@ async function mintTo(owner: string, amount: bigint) {
 	const mint = await generateKeyPairSigner();
 	const space = BigInt(getMintSize());
 	const rent = await rpc.getMinimumBalanceForRentExemption(space).send();
-	const [ata] = await findAssociatedTokenPda({ owner: address(owner), mint: mint.address, tokenProgram: TOKEN_PROGRAM_ADDRESS });
+	const [ata] = await findAssociatedTokenPda({
+		owner: address(owner),
+		mint: mint.address,
+		tokenProgram: TOKEN_PROGRAM_ADDRESS
+	});
 	await send(payer, [
-		getCreateAccountInstruction({ payer, newAccount: mint, lamports: rent, space, programAddress: TOKEN_PROGRAM_ADDRESS }),
-		getInitializeMint2Instruction({ mint: mint.address, decimals: 6, mintAuthority: payer.address }),
-		await getCreateAssociatedTokenIdempotentInstructionAsync({ payer, owner: address(owner), mint: mint.address }),
+		getCreateAccountInstruction({
+			payer,
+			newAccount: mint,
+			lamports: rent,
+			space,
+			programAddress: TOKEN_PROGRAM_ADDRESS
+		}),
+		getInitializeMint2Instruction({
+			mint: mint.address,
+			decimals: 6,
+			mintAuthority: payer.address
+		}),
+		await getCreateAssociatedTokenIdempotentInstructionAsync({
+			payer,
+			owner: address(owner),
+			mint: mint.address
+		}),
 		getMintToInstruction({ mint: mint.address, token: ata, mintAuthority: payer, amount })
 	]);
 	return mint.address;
@@ -265,7 +371,11 @@ async function claimed(s: Session, kind: AccessoryKind = 'controlled') {
 	const accessory = await issue(kind);
 	await tapIn(s, accessory);
 	await claim(s, accessory);
-	return { ...accessory, owner: (await passkeyAddress(s.page))!, wallet: await walletOf(accessory.pda) };
+	return {
+		...accessory,
+		owner: (await passkeyAddress(s.page))!,
+		wallet: await walletOf(accessory.pda)
+	};
 }
 
 /** The owner allows System transfers by tap: 0.1 SOL a day, at most 0.01 SOL per tap. */
@@ -275,7 +385,9 @@ async function allowTapPayments(s: Session, origins: string[] = [DAPP]) {
 			v: 1,
 			name: 'E2E payments',
 			reason: 'Send small SOL payments with a tap.',
-			programs: [{ id: '11111111111111111111111111111111', access: { only: [{ selector: '02000000' }] } }],
+			programs: [
+				{ id: '11111111111111111111111111111111', access: { only: [{ selector: '02000000' }] } }
+			],
 			limits: [{ asset: 'SOL', amount: '100000000', period: 'day', maxPerTap: '10000000' }],
 			origins
 		},
@@ -288,15 +400,25 @@ async function allowTapPayments(s: Session, origins: string[] = [DAPP]) {
 	await text(s.page, 'Tap permissions saved').waitFor({ timeout: 60_000 });
 }
 
-type DappOutcome = { ok: true; signature: string } | { ok: false; name: string; code?: string; message: string };
+type DappOutcome =
+	{ ok: true; signature: string } | { ok: false; name: string; code?: string; message: string };
 /** Pays from the accessory wallet on the integrator's site, holding the accessory to the phone. */
-async function payOnDapp(s: Session, accessory: Accessory, recipient: string, lamports: bigint, call: 'pay' | 'memo' = 'pay') {
+async function payOnDapp(
+	s: Session,
+	accessory: Accessory,
+	recipient: string,
+	lamports: bigint,
+	call: 'pay' | 'memo' = 'pay'
+) {
 	const page = await s.context.newPage();
 	await page.goto(DAPP + '/');
 	await page.getByText('loaded').waitFor({ timeout: 90_000 });
 	s.bridge.holdAccessory(accessory.acc.fidoKey);
 	const outcome = await page.evaluate(
-		([fn, pda, to, amount]) => (window as unknown as { dapp: Record<string, (...a: string[]) => Promise<unknown>> }).dapp[fn](pda, to, amount),
+		([fn, pda, to, amount]) =>
+			(window as unknown as { dapp: Record<string, (...a: string[]) => Promise<unknown>> }).dapp[
+				fn
+			](pda, to, amount),
 		[call, accessory.pda, recipient, String(lamports)] as const
 	);
 	s.bridge.releaseAccessory();
@@ -305,12 +427,17 @@ async function payOnDapp(s: Session, accessory: Accessory, recipient: string, la
 }
 
 /** The passkey wallet address this browser remembers. */
-const passkeyAddress = (page: Page) => page.evaluate(() => localStorage.getItem('revibase:signer:account'));
+const passkeyAddress = (page: Page) =>
+	page.evaluate(() => localStorage.getItem('revibase:signer:account'));
 
 /** Picks Revibase Passkey in an open wallet list; creates the passkey wallet on first use. */
-async function pickPasskeyWallet({ page, signer }: Session, mode: 'create' | 'existing' = 'create') {
+async function pickPasskeyWallet(
+	{ page, signer }: Session,
+	mode: 'create' | 'existing' = 'create'
+) {
 	const passkey = page.getByRole('button', { name: /Revibase Passkey/ });
-	if (!(await passkey.isVisible())) await page.getByRole('button', { name: 'Connect wallet', exact: true }).click();
+	if (!(await passkey.isVisible()))
+		await page.getByRole('button', { name: 'Connect wallet', exact: true }).click();
 	await passkey.click();
 	if (mode === 'create') {
 		await page.getByRole('button', { name: 'Create a new passkey wallet' }).click();
@@ -367,7 +494,11 @@ try {
 		assert.equal(enrol?.origin, SIGNER, 'the signer frame unwraps with PRF on its own origin');
 		assert.equal(enrol?.topOrigin, APP);
 		const allow = await s.page.locator('iframe[title="Revibase Passkey"]').getAttribute('allow');
-		assert.equal(allow, `publickey-credentials-get ${SIGNER}; clipboard-write ${SIGNER}`, 'the frame is delegated WebAuthn for its own origin only');
+		assert.equal(
+			allow,
+			`publickey-credentials-get ${SIGNER}; clipboard-write ${SIGNER}`,
+			'the frame is delegated WebAuthn for its own origin only'
+		);
 	});
 
 	await test('claim: tap, passkey wallet, signer approval, owner on chain', async (s) => {
@@ -376,9 +507,16 @@ try {
 		await claim(s, accessory);
 		const wallet = await passkeyAddress(s.page);
 		assert.ok(wallet, 'the passkey wallet is remembered');
-		assert.equal(await ownerOf(accessory.pda), wallet, 'the passkey wallet owns the accessory on chain');
+		assert.equal(
+			await ownerOf(accessory.pda),
+			wallet,
+			'the passkey wallet owns the accessory on chain'
+		);
 		const tap = s.bridge.ceremonies.find((c) => c.nfc);
-		assert.ok(tap?.ok && tap.origin === APP && !tap.topOrigin, 'the accessory tap ran top-level on the app');
+		assert.ok(
+			tap?.ok && tap.origin === APP && !tap.topOrigin,
+			'the accessory tap ran top-level on the app'
+		);
 	});
 
 	await test('owner login: opening an owned accessory signs in once through the signer', async (s) => {
@@ -393,13 +531,20 @@ try {
 		await capture(s, 'sign-in-message');
 		const shown = await s.signer.locator('.sign-message').innerText();
 		const wallet = await passkeyAddress(s.page);
-		assert.match(shown, /^localhost:5173 wants you to sign in with your Solana account:\n/, 'the message names the app');
+		assert.match(
+			shown,
+			/^localhost:5173 wants you to sign in with your Solana account:\n/,
+			'the message names the app'
+		);
 		assert.equal(shown.split('\n')[1], wallet, 'and this wallet');
 		await signIn.click();
 		await s.page.waitForURL(APP + '/accessory');
 		await text(s.page, 'Owner').waitFor();
 		const cookies = (await s.context.cookies(APP)).map((c) => c.name);
-		assert.ok(cookies.some((n) => n.endsWith('os')), 'the owner session cookie is set');
+		assert.ok(
+			cookies.some((n) => n.endsWith('os')),
+			'the owner session cookie is set'
+		);
 	});
 
 	await test('new phone: the same passkey restores the wallet from backup', async (s, another) => {
@@ -410,9 +555,16 @@ try {
 		await pickPasskeyWallet(phone, 'existing');
 		await phone.signer.getByRole('button', { name: 'Sign in', exact: true }).click();
 		await text(phone.page, 'Your accessories').waitFor({ timeout: 30_000 });
-		assert.equal(await passkeyAddress(phone.page), wallet, 'the restored wallet has the same address');
+		assert.equal(
+			await passkeyAddress(phone.page),
+			wallet,
+			'the restored wallet has the same address'
+		);
 		const restore = phone.bridge.ceremonies.at(-1);
-		assert.ok(restore?.ok && restore.origin === SIGNER && restore.topOrigin === APP, 'restored by a discoverable get in the signer frame');
+		assert.ok(
+			restore?.ok && restore.origin === SIGNER && restore.topOrigin === APP,
+			'restored by a discoverable get in the signer frame'
+		);
 	});
 
 	await test('unknown passkey: restoring with no backup offers to create a wallet', async (s) => {
@@ -429,7 +581,9 @@ try {
 				v: 1,
 				name: 'E2E payments',
 				reason: 'Send small SOL payments with a tap.',
-				programs: [{ id: '11111111111111111111111111111111', access: { only: [{ selector: '02000000' }] } }],
+				programs: [
+					{ id: '11111111111111111111111111111111', access: { only: [{ selector: '02000000' }] } }
+				],
 				limits: [{ asset: 'SOL', amount: '100000000', period: 'day', maxPerTap: '10000000' }],
 				origins: [DAPP]
 			},
@@ -475,7 +629,11 @@ try {
 		await s.page.getByRole('button', { name: /^Send/ }).last().click();
 		await authorize(s, 'send-token');
 		await s.page.getByText(/^Sent 1\.5/).waitFor({ timeout: 60_000 });
-		assert.equal(await tokenBalance(recipient, mint), 1_500_000n, 'the recipient received 1.5 tokens');
+		assert.equal(
+			await tokenBalance(recipient, mint),
+			1_500_000n,
+			'the recipient received 1.5 tokens'
+		);
 	});
 
 	await test('send all: SOL and tokens move to the owner', async (s) => {
@@ -488,7 +646,11 @@ try {
 		// Each batch needs its own approval; done when the owner holds everything (the toast is brief).
 		const next = s.signer.getByRole('button', { name: /^Authorize/ });
 		const deadline = Date.now() + 120_000;
-		for (let approvals = 0; (await tokenBalance(accessory.owner, mint)) !== 2_000_000n || (await balance(accessory.wallet)) > 0n; ) {
+		for (
+			let approvals = 0;
+			(await tokenBalance(accessory.owner, mint)) !== 2_000_000n ||
+			(await balance(accessory.wallet)) > 0n;
+		) {
 			if (Date.now() > deadline) throw new Error('send all never finished');
 			if (await next.isVisible().catch(() => false)) {
 				if (++approvals > 5) throw new Error('too many approvals');
@@ -496,7 +658,11 @@ try {
 			}
 			await s.page.waitForTimeout(500);
 		}
-		assert.equal(await tokenBalance(accessory.owner, mint), 2_000_000n, 'the owner holds the tokens');
+		assert.equal(
+			await tokenBalance(accessory.owner, mint),
+			2_000_000n,
+			'the owner holds the tokens'
+		);
 		assert.ok((await balance(accessory.owner)) > 0n, 'and the SOL');
 	});
 
@@ -509,10 +675,17 @@ try {
 		await s.page.getByRole('button', { name: 'Move everything to owner first' }).click();
 		await authorize(s, 'release-sweep');
 		await s.page.getByText('Assets sent to owner').waitFor({ timeout: 60_000 });
-		await s.page.getByRole('button', { name: /^Release accessory/ }).last().click();
+		await s.page
+			.getByRole('button', { name: /^Release accessory/ })
+			.last()
+			.click();
 		await authorize(s, 'remove-owner');
 		await s.page.getByText('Accessory released').waitFor({ timeout: 60_000 });
-		assert.equal(await ownerOf(accessory.pda), '11111111111111111111111111111111', 'no owner on chain');
+		assert.equal(
+			await ownerOf(accessory.pda),
+			'11111111111111111111111111111111',
+			'no owner on chain'
+		);
 	});
 
 	await test('export: the key is shown only inside the signer; the app learns nothing', async (s) => {
@@ -531,9 +704,14 @@ try {
 		assert.match(secret, /^[1-9A-HJ-NP-Za-km-z]{80,90}$/, 'the key is revealed inside the signer');
 		await s.signer.getByRole('button', { name: 'Done' }).click();
 		await s.page.waitForTimeout(500);
-		const leaked = [...posted, ...s.crossed.map((c) => c.value)].filter((m) => m.includes(secret) || m.includes(secret.slice(0, 32)));
+		const leaked = [...posted, ...s.crossed.map((c) => c.value)].filter(
+			(m) => m.includes(secret) || m.includes(secret.slice(0, 32))
+		);
 		assert.equal(leaked.length, 0, 'the exported key never reaches the app or the network');
-		assert.ok(posted.some((m) => m.includes('"completed":true')), 'the app only hears that export completed');
+		assert.ok(
+			posted.some((m) => m.includes('"completed":true')),
+			'the app only hears that export completed'
+		);
 	});
 
 	await test('tap to sign: an integrator site pays within the limits, and only within them', async (s) => {
@@ -551,7 +729,11 @@ try {
 		const taps = s.bridge.ceremonies.filter((c) => c.nfc).length;
 		const tooBig = await payOnDapp(s, accessory, recipient, 20_000_000n);
 		assert.ok(!tooBig.ok, 'over the per-tap maximum is refused');
-		assert.equal(s.bridge.ceremonies.filter((c) => c.nfc).length, taps, 'refused before asking for a tap');
+		assert.equal(
+			s.bridge.ceremonies.filter((c) => c.nfc).length,
+			taps,
+			'refused before asking for a tap'
+		);
 
 		const memo = await payOnDapp(s, accessory, recipient, 0n, 'memo');
 		assert.ok(!memo.ok, 'a program the owner never allowed is refused');
@@ -567,7 +749,8 @@ try {
 		const setSites = async (sites: string[]) => {
 			await openWallet(s.page, accessory.pda);
 			await s.page.getByRole('button', { name: /^Tap to sign transactions/ }).click();
-			for (const site of await s.page.getByRole('button', { name: /^Remove https?:/ }).all()) await site.click();
+			for (const site of await s.page.getByRole('button', { name: /^Remove https?:/ }).all())
+				await site.click();
 			for (const site of sites) {
 				await s.page.getByLabel('Add a site').fill(site);
 				await s.page.getByRole('button', { name: 'Add', exact: true }).click();
@@ -578,8 +761,12 @@ try {
 			const [policyPda] = await findPolicyPda({ phygitalToken: address(accessory.pda) });
 			for (let i = 0; ; i++) {
 				const policy = await fetchMaybeAccessoryPolicy(rpc, policyPda, { commitment: 'confirmed' });
-				if (policy.exists && JSON.stringify(policy.data.allowedOrigins) === JSON.stringify(want)) break;
-				if (i > 60) throw new Error(`allowed sites never became ${want}: ${policy.exists ? policy.data.allowedOrigins : 'no policy'}`);
+				if (policy.exists && JSON.stringify(policy.data.allowedOrigins) === JSON.stringify(want))
+					break;
+				if (i > 60)
+					throw new Error(
+						`allowed sites never became ${want}: ${policy.exists ? policy.data.allowedOrigins : 'no policy'}`
+					);
 				await new Promise((r) => setTimeout(r, 500));
 			}
 			await s.page.keyboard.press('Escape');
@@ -589,7 +776,10 @@ try {
 		await setSites(['https://localhost:4301/checkout']);
 		const taps = s.bridge.ceremonies.filter((c) => c.nfc).length;
 		const refused = await payOnDapp(s, accessory, recipient, 5_000_000n);
-		assert.ok(!refused.ok && /origin/i.test(`${refused.code} ${refused.message}`), `a site the owner didn't allow is refused: ${JSON.stringify(refused)}`);
+		assert.ok(
+			!refused.ok && /origin/i.test(`${refused.code} ${refused.message}`),
+			`a site the owner didn't allow is refused: ${JSON.stringify(refused)}`
+		);
 		assert.equal(s.bridge.ceremonies.filter((c) => c.nfc).length, taps, 'refused before the tap');
 
 		await setSites(['https://localhost:4301', DAPP]);
@@ -616,7 +806,11 @@ try {
 		s.bridge.failNext('NotAllowedError', 'get');
 		await send.click();
 		await s.signer.getByRole('button', { name: /^Authorize/ }).click();
-		await s.page.waitForFunction(() => !document.querySelector('[aria-label="Cancel"].fixed'), undefined, { timeout: 30_000 });
+		await s.page.waitForFunction(
+			() => !document.querySelector('[aria-label="Cancel"].fixed'),
+			undefined,
+			{ timeout: 30_000 }
+		);
 		assert.equal(await balance(recipient), 0n, 'nothing was sent');
 
 		await send.click();
@@ -630,36 +824,108 @@ try {
 		const wallet = (await passkeyAddress(s.page))! as Address;
 		// Script on the app origin (an XSS) posting straight to the signer frame.
 		const ask = (message: Record<string, unknown>, opts: { stamp?: boolean } = {}) =>
-			s.page.evaluate(`(${ASK_SIGNER})(${JSON.stringify([message, SIGNER, opts.stamp ?? true])})`) as Promise<{ type: string; code?: string }>;
+			s.page.evaluate(
+				`(${ASK_SIGNER})(${JSON.stringify([message, SIGNER, opts.stamp ?? true])})`
+			) as Promise<{ type: string; code?: string }>;
 		const code = async (message: Record<string, unknown>, opts?: { stamp?: boolean }) => {
 			const reply = await ask(message, opts);
 			return reply.type === 'ERROR' ? reply.code : reply.type;
 		};
 		const tx = (wire: Uint8Array) => ({ type: 'SIGN_TRANSACTION', transaction: toB64(wire) });
-		const signIn = (line1: string, line2: string) => ({ type: 'SIGN_MESSAGE', message: Buffer.from(`${line1}\n${line2}\n\nNonce: 1`).toString('base64') });
+		const signIn = (line1: string, line2: string) => ({
+			type: 'SIGN_MESSAGE',
+			message: Buffer.from(`${line1}\n${line2}\n\nNonce: 1`).toString('base64')
+		});
 
-		assert.equal(await code({ type: 'SIGN_MESSAGE', message: 'aGk=', protocolVersion: 2, timestamp: Date.now() }, { stamp: false }), 'UNSUPPORTED_PROTOCOL');
-		assert.equal(await code({ ...tx(removeOwnerWire({ owner: wallet })), extra: true }), 'INVALID_MESSAGE', 'unknown fields');
-		assert.equal(await code({ ...tx(removeOwnerWire({ owner: wallet })), timestamp: Date.now() - 120_000 }), 'REPLAY_REJECTED', 'stale');
-		assert.equal(await code({ ...tx(removeOwnerWire({ owner: wallet })), timestamp: Date.now() + 120_000 }), 'REPLAY_REJECTED', 'future');
-		assert.ok(['INVALID_MESSAGE', 'NO_REPLY'].includes((await code({ type: 'SIGN_MESSAGE', message: 'A'.repeat(20_000) }))!), 'oversized: refused or dropped unparsed');
-		const replayed = { ...signIn('evil.example wants you to sign in with your Solana account:', wallet), requestId: 'replayed-request-0001' };
+		assert.equal(
+			await code(
+				{ type: 'SIGN_MESSAGE', message: 'aGk=', protocolVersion: 2, timestamp: Date.now() },
+				{ stamp: false }
+			),
+			'UNSUPPORTED_PROTOCOL'
+		);
+		assert.equal(
+			await code({ ...tx(removeOwnerWire({ owner: wallet })), extra: true }),
+			'INVALID_MESSAGE',
+			'unknown fields'
+		);
+		assert.equal(
+			await code({ ...tx(removeOwnerWire({ owner: wallet })), timestamp: Date.now() - 120_000 }),
+			'REPLAY_REJECTED',
+			'stale'
+		);
+		assert.equal(
+			await code({ ...tx(removeOwnerWire({ owner: wallet })), timestamp: Date.now() + 120_000 }),
+			'REPLAY_REJECTED',
+			'future'
+		);
+		assert.ok(
+			['INVALID_MESSAGE', 'NO_REPLY'].includes(
+				(await code({ type: 'SIGN_MESSAGE', message: 'A'.repeat(20_000) }))!
+			),
+			'oversized: refused or dropped unparsed'
+		);
+		const replayed = {
+			...signIn('evil.example wants you to sign in with your Solana account:', wallet),
+			requestId: 'replayed-request-0001'
+		};
 		await code(replayed);
 		assert.equal(await code(replayed), 'REPLAY_REJECTED', 'a reused requestId');
 
-		assert.equal(await code(signIn('evil.example wants you to sign in with your Solana account:', wallet)), 'POLICY_REJECTED', 'sign-in for another site');
-		assert.equal(await code(signIn('localhost:5173 wants you to sign in with your Solana account:', String(await generateKeyPairSigner().then((k) => k.address)))), 'POLICY_REJECTED', 'sign-in for another address');
-		assert.equal(await code(tx(foreignProgramWire({ payer: wallet }))), 'POLICY_REJECTED', 'a top-level program owners never sign');
-		assert.equal(await code(tx(removeOwnerWire({ owner: (await generateKeyPairSigner()).address }))), 'WALLET_MISMATCH', 'another wallet as owner');
-		assert.notEqual(await code(tx(lookupTableWire({ owner: wallet }))), 'SIGN_TRANSACTION_RESULT', 'lookup tables');
-		assert.equal(await code(tx(durableNonceWire({ owner: wallet }))), 'POLICY_REJECTED', 'durable nonce');
-		assert.equal(await code(tx(doubleVerifyWire({ recipient: wallet }))), 'POLICY_REJECTED', 'two secp256r1 verifies');
-		assert.equal(await s.signer.getByRole('button', { name: /^Authorize/ }).count(), 0, 'no refused request ever reached a confirm screen');
+		assert.equal(
+			await code(signIn('evil.example wants you to sign in with your Solana account:', wallet)),
+			'POLICY_REJECTED',
+			'sign-in for another site'
+		);
+		assert.equal(
+			await code(
+				signIn(
+					'localhost:5173 wants you to sign in with your Solana account:',
+					String(await generateKeyPairSigner().then((k) => k.address))
+				)
+			),
+			'POLICY_REJECTED',
+			'sign-in for another address'
+		);
+		assert.equal(
+			await code(tx(foreignProgramWire({ payer: wallet }))),
+			'POLICY_REJECTED',
+			'a top-level program owners never sign'
+		);
+		assert.equal(
+			await code(tx(removeOwnerWire({ owner: (await generateKeyPairSigner()).address }))),
+			'WALLET_MISMATCH',
+			'another wallet as owner'
+		);
+		assert.notEqual(
+			await code(tx(lookupTableWire({ owner: wallet }))),
+			'SIGN_TRANSACTION_RESULT',
+			'lookup tables'
+		);
+		assert.equal(
+			await code(tx(durableNonceWire({ owner: wallet }))),
+			'POLICY_REJECTED',
+			'durable nonce'
+		);
+		assert.equal(
+			await code(tx(doubleVerifyWire({ recipient: wallet }))),
+			'POLICY_REJECTED',
+			'two secp256r1 verifies'
+		);
+		assert.equal(
+			await s.signer.getByRole('button', { name: /^Authorize/ }).count(),
+			0,
+			'no refused request ever reached a confirm screen'
+		);
 
 		// Undecodable inner calls reach the owner, but only as critical, behind "Authorize anyway".
 		const opaque = ask(tx(opaqueExecuteWire({ owner: wallet })));
 		await s.signer.getByRole('button', { name: 'Authorize anyway' }).waitFor({ timeout: 15_000 });
-		assert.equal(await code(tx(removeOwnerWire({ owner: wallet }))), 'SIGNER_BUSY', 'one request at a time');
+		assert.equal(
+			await code(tx(removeOwnerWire({ owner: wallet }))),
+			'SIGNER_BUSY',
+			'one request at a time'
+		);
 		await s.page.evaluate(() => {
 			const frame = document.querySelector('iframe[title="Revibase Passkey"]') as HTMLIFrameElement;
 			frame.style.height = '700px';
@@ -678,7 +944,17 @@ try {
 		await s.page.evaluate(() => {
 			const w = (document.getElementById('signer') as HTMLIFrameElement).contentWindow!;
 			for (const type of ['AUTH_START', 'SIGN_MESSAGE', 'EXPORT_PRIVATE_KEY'])
-				w.postMessage({ type, protocolVersion: 1, requestId: crypto.randomUUID().replaceAll('-', ''), timestamp: Date.now(), authMode: 'unlock', message: 'aGk=' }, '*');
+				w.postMessage(
+					{
+						type,
+						protocolVersion: 1,
+						requestId: crypto.randomUUID().replaceAll('-', ''),
+						timestamp: Date.now(),
+						authMode: 'unlock',
+						message: 'aGk='
+					},
+					'*'
+				);
 		});
 		await s.page.waitForTimeout(3000);
 		const heard = await s.page.evaluate(() => (window as unknown as { heard: unknown[] }).heard);
@@ -697,7 +973,10 @@ try {
 } finally {
 	await browser.close();
 	await dapp.close();
-	writeFileSync(new URL(`report-${engine}.json`, results), JSON.stringify({ engine, outcomes, pageErrors }, null, 2));
+	writeFileSync(
+		new URL(`report-${engine}.json`, results),
+		JSON.stringify({ engine, outcomes, pageErrors }, null, 2)
+	);
 	const failed = outcomes.filter((o) => o.status === 'failed').length;
 	console.log(`${outcomes.length - failed}/${outcomes.length} e2e scenarios passed on ${engine}`);
 	if (pageErrors.length) console.log('page errors:\n  ' + pageErrors.join('\n  '));

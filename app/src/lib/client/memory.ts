@@ -22,11 +22,17 @@ const RECENT_WALLET = 'revibase:recent-wallet';
 const WALLET_INTRO = 'revibase:accessory-wallet-intro:v1';
 
 export function hasSeenWalletIntro(): boolean {
-	try { return localStorage.getItem(WALLET_INTRO) === 'seen'; } catch { return false; }
+	try {
+		return localStorage.getItem(WALLET_INTRO) === 'seen';
+	} catch {
+		return false;
+	}
 }
 
 export function rememberWalletIntro() {
-	try { localStorage.setItem(WALLET_INTRO, 'seen'); } catch {}
+	try {
+		localStorage.setItem(WALLET_INTRO, 'seen');
+	} catch {}
 }
 
 /** The wallet app last connected in this browser (shown first, marked "Recent"). */

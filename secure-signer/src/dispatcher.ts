@@ -12,18 +12,9 @@ import type { ResultPayload } from "./shared/protocol.js";
 import { getAddressDecoder, getBase58Decoder } from "@solana/kit";
 import type * as BackupApiModule from "./api-backup.js";
 import { CookieVaultStore, readLocalBlob, writeLocalBlob, type BlobStore } from "./blob-store.js";
-import {
-  MAX_CREDENTIAL_ID_BYTES,
-  MAX_TX_BYTES,
-  PUT_CHALLENGE_PREFIX,
-} from "./constants.js";
+import { MAX_CREDENTIAL_ID_BYTES, MAX_TX_BYTES, PUT_CHALLENGE_PREFIX } from "./constants.js";
 import { MAX_SIGN_MESSAGE_BYTES } from "./shared/protocol.js";
-import {
-  base64ToBytes,
-  bytesEqual,
-  bytesToBase64,
-  utf8ToBytes,
-} from "./encoding.js";
+import { base64ToBytes, bytesEqual, bytesToBase64, utf8ToBytes } from "./encoding.js";
 import { ed25519Sign } from "./crypto.js";
 import {
   errorResponse,
@@ -71,10 +62,7 @@ export type BackupApi = Pick<
 
 /** PRF provider plus the discoverable (no allowCredentials) restore ceremony. */
 export interface SignerPrf extends PrfProvider {
-  getDiscoverable(
-    rpId: string,
-    challenge: Uint8Array,
-  ): Promise<DiscoverablePrfResult>;
+  getDiscoverable(rpId: string, challenge: Uint8Array): Promise<DiscoverablePrfResult>;
 }
 
 export interface SignerDeps {
@@ -123,10 +111,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
 
   const toBase58Pubkey = (bytes: Uint8Array): string => addr.decode(bytes);
 
-  function prefixedChallengeMessage(
-    prefix: string,
-    challengeBytes: Uint8Array,
-  ): Uint8Array {
+  function prefixedChallengeMessage(prefix: string, challengeBytes: Uint8Array): Uint8Array {
     const p = utf8ToBytes(prefix);
     const out = new Uint8Array(p.length + challengeBytes.length);
     out.set(p, 0);
@@ -142,21 +127,14 @@ export function createSignerDispatcher(deps: SignerDeps): {
     if (!challengeB64) return undefined;
     try {
       const challengeBytes = base64ToBytes(challengeB64, 64, "url");
-      const sig = await ed25519Sign(
-        prefixedChallengeMessage(prefix, challengeBytes),
-        seed,
-      );
+      const sig = await ed25519Sign(prefixedChallengeMessage(prefix, challengeBytes), seed);
       return bytesToBase64(sig, "url");
     } catch {
       return undefined;
     }
   }
 
-  function beginBusy(
-    requestId: string,
-    message: string,
-    opts: { deferUi?: boolean } = {},
-  ) {
+  function beginBusy(requestId: string, message: string, opts: { deferUi?: boolean } = {}) {
     let dismissed = false;
     const dismiss = () => {
       if (dismissed) return;
@@ -190,11 +168,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
     post(errorResponse(requestId, code));
   }
 
-  function ok(
-    requestId: string,
-    type: string,
-    extra: Record<string, unknown>,
-  ): void {
+  function ok(requestId: string, type: string, extra: Record<string, unknown>): void {
     post({ type, requestId, ...extra });
   }
 
@@ -209,10 +183,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
     }
     const request = validation.request;
 
-    const replay = state.checkFreshnessAndReplay(
-      request.requestId,
-      request.timestamp,
-    );
+    const replay = state.checkFreshnessAndReplay(request.requestId, request.timestamp);
     if (replay) {
       fail(request.requestId, replay);
       return;
@@ -305,11 +276,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
   }): Promise<void> {
     let credentialId: Uint8Array;
     try {
-      credentialId = base64ToBytes(
-        opts.credentialIdB64,
-        MAX_CREDENTIAL_ID_BYTES,
-        "url",
-      );
+      credentialId = base64ToBytes(opts.credentialIdB64, MAX_CREDENTIAL_ID_BYTES, "url");
     } catch {
       return fail(opts.requestId, "INVALID_MESSAGE");
     }
@@ -320,28 +287,21 @@ export function createSignerDispatcher(deps: SignerDeps): {
     // so an early failure isn't an unhandled rejection. Awaiting still throws.
     challengePromise.catch(() => {});
     const choice = await ui.confirmFinishCreate(() => {
-      const enrolled = enrollExistingCredential(
-        prf,
-        deps.rpId(),
-        credentialId,
-        {
-          messageToSign: challengePromise.then(({ challenge }) => {
-            try {
-              return prefixedChallengeMessage(
-                PUT_CHALLENGE_PREFIX,
-                base64ToBytes(challenge, 64, "url"),
-              );
-            } catch {
-              throw new ServiceError("INVALID_MESSAGE");
-            }
-          }),
-        },
-      );
-      const busy = beginBusy(
-        opts.requestId,
-        "Confirm on this phone to finish setup…",
-        { deferUi: true },
-      );
+      const enrolled = enrollExistingCredential(prf, deps.rpId(), credentialId, {
+        messageToSign: challengePromise.then(({ challenge }) => {
+          try {
+            return prefixedChallengeMessage(
+              PUT_CHALLENGE_PREFIX,
+              base64ToBytes(challenge, 64, "url"),
+            );
+          } catch {
+            throw new ServiceError("INVALID_MESSAGE");
+          }
+        }),
+      });
+      const busy = beginBusy(opts.requestId, "Confirm on this phone to finish setup…", {
+        deferUi: true,
+      });
       return { busy, enrolled };
     });
     if (!choice.ok) return fail(opts.requestId, "USER_CANCELLED");
@@ -408,11 +368,9 @@ export function createSignerDispatcher(deps: SignerDeps): {
     challengePromise.catch(() => {}); // see handleCreate
     const choice = await ui.confirmImport(() => {
       const unlocked = decryptWallet(prf, opts.rpId, opts.parsed);
-      const busy = beginBusy(
-        opts.requestId,
-        "Use Face ID or Touch ID to approve",
-        { deferUi: true },
-      );
+      const busy = beginBusy(opts.requestId, "Use Face ID or Touch ID to approve", {
+        deferUi: true,
+      });
       return { busy, unlocked };
     });
     if (!choice.ok) return fail(opts.requestId, "USER_CANCELLED");
@@ -425,11 +383,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
         return;
       }
       const { challengeId, challenge } = await challengePromise;
-      const putSignature = await signChallenge(
-        challenge,
-        seed,
-        PUT_CHALLENGE_PREFIX,
-      );
+      const putSignature = await signChallenge(challenge, seed, PUT_CHALLENGE_PREFIX);
       if (!putSignature) {
         seed.fill(0);
         return fail(opts.requestId, "INTERNAL_ERROR");
@@ -475,10 +429,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
     }
   }
 
-  async function handleRemoteUnlock(opts: {
-    requestId: string;
-    rpId: string;
-  }): Promise<void> {
+  async function handleRemoteUnlock(opts: { requestId: string; rpId: string }): Promise<void> {
     // Restore challenge is the WebAuthn challenge — mint before the confirm tap
     // so `getDiscoverable` can start in the click handler.
     let restore: { challengeId: string; challenge: string };
@@ -501,11 +452,9 @@ export function createSignerDispatcher(deps: SignerDeps): {
 
     const choice = await ui.confirmImport(() => {
       const disc = prf.getDiscoverable(opts.rpId, fetchChallengeBytes);
-      const busy = beginBusy(
-        opts.requestId,
-        "Use Face ID or Touch ID to approve",
-        { deferUi: true },
-      );
+      const busy = beginBusy(opts.requestId, "Use Face ID or Touch ID to approve", {
+        deferUi: true,
+      });
       return { busy, disc };
     });
     if (!choice.ok) return fail(opts.requestId, "USER_CANCELLED");
@@ -550,11 +499,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
         disc.prfOutput.fill(0);
         return fail(opts.requestId, "WALLET_MISMATCH");
       }
-      const { seed, publicKey } = await unwrapWallet(
-        disc.prfOutput,
-        parsed,
-        opts.rpId,
-      );
+      const { seed, publicKey } = await unwrapWallet(disc.prfOutput, parsed, opts.rpId);
       disc.prfOutput.fill(0);
       if (busy.wasDismissed()) {
         seed.fill(0);
@@ -565,11 +510,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
         seed.fill(0);
         return fail(opts.requestId, "INTERNAL_ERROR");
       }
-      const putSignature = await signChallenge(
-        backup.challenge,
-        seed,
-        PUT_CHALLENGE_PREFIX,
-      );
+      const putSignature = await signChallenge(backup.challenge, seed, PUT_CHALLENGE_PREFIX);
       if (!putSignature) {
         seed.fill(0);
         return fail(opts.requestId, "INTERNAL_ERROR");
@@ -609,13 +550,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
     credentialIdB64: string | undefined;
     webauthnAttestationObject: string | undefined;
   }): Promise<void> {
-    const {
-      requestId,
-      rpId,
-      authMode,
-      credentialIdB64,
-      webauthnAttestationObject,
-    } = opts;
+    const { requestId, rpId, authMode, credentialIdB64, webauthnAttestationObject } = opts;
 
     if (authMode === "create") {
       if (!credentialIdB64 || !webauthnAttestationObject) {
@@ -701,11 +636,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
         fail(opts.requestId, "WALLET_MISMATCH");
         return "failed";
       }
-      const { seed, publicKey } = await unwrapWallet(
-        disc.prfOutput,
-        parsed,
-        opts.rpId,
-      );
+      const { seed, publicKey } = await unwrapWallet(disc.prfOutput, parsed, opts.rpId);
       disc.prfOutput.fill(0);
       if (!(await writeLocalBlob(raw, store))) {
         seed.fill(0);
@@ -726,11 +657,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
     }
   }
 
-  async function handleSign(
-    requestId: string,
-    rpId: string,
-    txB64: string,
-  ): Promise<void> {
+  async function handleSign(requestId: string, rpId: string, txB64: string): Promise<void> {
     ui.setCeremonyBusy("Reviewing transaction…");
 
     let tx;
@@ -969,10 +896,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
     }
   }
 
-  async function handleExportPrivateKey(
-    requestId: string,
-    rpId: string,
-  ): Promise<void> {
+  async function handleExportPrivateKey(requestId: string, rpId: string): Promise<void> {
     const local = await readLocalBlob(store);
     let seed: Uint8Array;
     let publicKey: Uint8Array;
@@ -1037,7 +961,9 @@ export function createSignerDispatcher(deps: SignerDeps): {
       seed.fill(0);
       secret.fill(0);
       await ui.showExportedSecret(secretB58, toBase58Pubkey(publicKey));
-      ok(requestId, RESULT_TYPE.EXPORT_PRIVATE_KEY, { completed: true } satisfies ResultPayload["EXPORT_PRIVATE_KEY"]);
+      ok(requestId, RESULT_TYPE.EXPORT_PRIVATE_KEY, {
+        completed: true,
+      } satisfies ResultPayload["EXPORT_PRIVATE_KEY"]);
     } catch (e) {
       seed.fill(0);
       throw e;
@@ -1063,10 +989,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
     if (e instanceof ServiceError) return e.code;
     if (e instanceof PrfUnsupported) return "PRF_UNSUPPORTED";
     if (e instanceof WebAuthnUnsupported) return "UNSUPPORTED_CREDENTIAL";
-    if (
-      e instanceof DOMException &&
-      (e.name === "NotAllowedError" || e.name === "AbortError")
-    ) {
+    if (e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "AbortError")) {
       return "USER_CANCELLED";
     }
     return "INTERNAL_ERROR";

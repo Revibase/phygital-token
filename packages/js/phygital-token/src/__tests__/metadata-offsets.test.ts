@@ -1,13 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { address, getAddressEncoder } from "@solana/kit";
-import {
-  getPhygitalTokenEncoder,
-  getPhygitalTokenSize,
-} from "../generated/index.js";
+import { getPhygitalTokenEncoder, getPhygitalTokenSize } from "../generated/index.js";
 
-const OWNER = address(
-  "G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF",
-);
+const OWNER = address("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF");
 const MINT = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const OWNER_OFFSET = 8;
 const MINT_OFFSET = 40;
@@ -34,14 +29,8 @@ describe("PhygitalToken memcmp offsets", () => {
     expect(encoded.length).toBe(getPhygitalTokenSize());
 
     const addressBytes = getAddressEncoder();
-    expect(
-      encoded.subarray(OWNER_OFFSET, OWNER_OFFSET + 32),
-    ).toEqual(addressBytes.encode(OWNER));
-    expect(encoded.subarray(MINT_OFFSET, MINT_OFFSET + 32)).toEqual(
-      addressBytes.encode(MINT),
-    );
-    expect(
-      encoded.subarray(IDENTIFIER_OFFSET, IDENTIFIER_OFFSET + 33),
-    ).toEqual(identifier[0]);
+    expect(encoded.subarray(OWNER_OFFSET, OWNER_OFFSET + 32)).toEqual(addressBytes.encode(OWNER));
+    expect(encoded.subarray(MINT_OFFSET, MINT_OFFSET + 32)).toEqual(addressBytes.encode(MINT));
+    expect(encoded.subarray(IDENTIFIER_OFFSET, IDENTIFIER_OFFSET + 33)).toEqual(identifier[0]);
   });
 });

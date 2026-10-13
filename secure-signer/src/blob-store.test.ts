@@ -13,10 +13,7 @@ class MockPrf implements PrfProvider {
     const credentialId = randomBytes(16);
     return { credentialId, prfOutput: await this.derive(credentialId) };
   }
-  async get(
-    _rpId: string,
-    credentialId: Uint8Array,
-  ): Promise<{ prfOutput: Uint8Array }> {
+  async get(_rpId: string, credentialId: Uint8Array): Promise<{ prfOutput: Uint8Array }> {
     return { prfOutput: await this.derive(credentialId) };
   }
   private derive(credentialId: Uint8Array): Promise<Uint8Array> {
@@ -67,7 +64,9 @@ describe("blob-store", () => {
       headers.set("origin", origin);
       headers.set("sec-fetch-site", "same-origin");
       if (cookie) headers.set("cookie", cookie);
-      const res = await handleVault(new Request(new URL(String(input), origin), { ...init, headers }));
+      const res = await handleVault(
+        new Request(new URL(String(input), origin), { ...init, headers }),
+      );
       const set = res.headers.get("set-cookie");
       if (set) cookie = set.split(";")[0]!;
       return res;

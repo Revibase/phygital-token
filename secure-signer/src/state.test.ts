@@ -38,7 +38,11 @@ describe("SignerState", () => {
     });
     // wrong digest -> null
     expect(
-      s.consumeAuthorization({ operation: "SIGN_PENDING", requestId: "r1", messageDigest: "deadbeef" })
+      s.consumeAuthorization({
+        operation: "SIGN_PENDING",
+        requestId: "r1",
+        messageDigest: "deadbeef",
+      }),
     ).toBeNull();
     // re-authorize, then correct consume works once
     s.authorize({
@@ -49,11 +53,11 @@ describe("SignerState", () => {
       createdAt: 0,
     });
     expect(
-      s.consumeAuthorization({ operation: "SIGN_PENDING", requestId: "r1", messageDigest: digest })
+      s.consumeAuthorization({ operation: "SIGN_PENDING", requestId: "r1", messageDigest: digest }),
     ).not.toBeNull();
     // second consume -> null (single use)
     expect(
-      s.consumeAuthorization({ operation: "SIGN_PENDING", requestId: "r1", messageDigest: digest })
+      s.consumeAuthorization({ operation: "SIGN_PENDING", requestId: "r1", messageDigest: digest }),
     ).toBeNull();
   });
 
@@ -90,8 +94,16 @@ describe("SignerState hardening (mutation-driven)", () => {
     const s = new SignerState();
     s.begin("SIGN_PENDING", "req-a");
     const d = await digestHex(new Uint8Array([1, 2, 3]));
-    s.authorize({ operation: "SIGN_PENDING", requestId: "req-a", walletPublicKey: new Uint8Array(32), messageDigest: d, createdAt: 0 });
-    expect(s.consumeAuthorization({ operation: "SIGN_PENDING", requestId: "req-b", messageDigest: d })).toBeNull();
+    s.authorize({
+      operation: "SIGN_PENDING",
+      requestId: "req-a",
+      walletPublicKey: new Uint8Array(32),
+      messageDigest: d,
+      createdAt: 0,
+    });
+    expect(
+      s.consumeAuthorization({ operation: "SIGN_PENDING", requestId: "req-b", messageDigest: d }),
+    ).toBeNull();
   });
 
   it("fixes finding #5: a full cache of fresh ids refuses new requests instead of evicting one", async () => {
@@ -113,11 +125,15 @@ describe("SignerState hardening (mutation-driven)", () => {
     const s = new SignerState(() => now);
     for (let i = 0; i < SEEN_REQUEST_IDS_LIMIT; i++) s.remember(`id-${i}`, now);
     now += REQUEST_FRESHNESS_WINDOW_MS; // exactly at the edge: still fresh, still held
-    expect(s.checkFreshnessAndReplay("id-0", now - REQUEST_FRESHNESS_WINDOW_MS)).toBe("REPLAY_REJECTED");
+    expect(s.checkFreshnessAndReplay("id-0", now - REQUEST_FRESHNESS_WINDOW_MS)).toBe(
+      "REPLAY_REJECTED",
+    );
     expect(s.checkFreshnessAndReplay("new", now)).toBe("SIGNER_BUSY");
     now += 1; // past the window: the ids are dropped, and a replay of one is stale
     expect(s.checkFreshnessAndReplay("new", now)).toBeNull();
-    expect(s.checkFreshnessAndReplay("id-0", now - REQUEST_FRESHNESS_WINDOW_MS - 1)).toBe("REPLAY_REJECTED");
+    expect(s.checkFreshnessAndReplay("id-0", now - REQUEST_FRESHNESS_WINDOW_MS - 1)).toBe(
+      "REPLAY_REJECTED",
+    );
   });
 
   it("holds a future-dated id until its own timestamp leaves the window", async () => {

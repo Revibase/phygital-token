@@ -19,7 +19,6 @@
 			timer = setTimeout(() => (copied = false), 1500);
 		}
 	}
-
 </script>
 
 <Button
@@ -29,5 +28,7 @@
 	aria-label={copied ? 'Copied' : label}
 	class="-mr-2"
 >
-	{#if copied}<CheckIcon class="animate-rise size-4 text-success" />{:else}<CopyIcon class="size-4" />{/if}
+	{#if copied}<CheckIcon class="animate-rise size-4 text-success" />{:else}<CopyIcon
+			class="size-4"
+		/>{/if}
 </Button>

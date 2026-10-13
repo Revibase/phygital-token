@@ -1,5 +1,10 @@
 import { address } from '@solana/kit';
-import { authenticatePasskeyForTransfer, beginTransfer, getRemoveOwnerInstruction, getPolicyCloseAccounts } from 'phygital-token-sdk';
+import {
+	authenticatePasskeyForTransfer,
+	beginTransfer,
+	getRemoveOwnerInstruction,
+	getPolicyCloseAccounts
+} from 'phygital-token-sdk';
 
 import {
 	buildLinkInstructions,
@@ -25,7 +30,9 @@ export async function prepareTap(secp256r1Pubkey: string, rpId: string): Promise
 	return { session, expiresAt: fetchedAt + TAP_WINDOW_MS };
 }
 
-export async function tapAccessory(prepared: PreparedTap): Promise<LinkTap & { expiresAt: number }> {
+export async function tapAccessory(
+	prepared: PreparedTap
+): Promise<LinkTap & { expiresAt: number }> {
 	return { ...prepared, response: await authenticatePasskeyForTransfer(prepared.session) };
 }
 
@@ -46,7 +53,15 @@ export async function finishLink(
 		precompileSignatures: 1,
 		build: (recipient) => buildLinkInstructions(tap, recipient),
 		verify: (bytes, built) =>
-			validateLinkTransaction(bytes, { ...expectation, feePayer: built.feePayer, ...(built.refill ? { refill: built.refill } : {}) }, { allowWalletAdditions: true }),
+			validateLinkTransaction(
+				bytes,
+				{
+					...expectation,
+					feePayer: built.feePayer,
+					...(built.refill ? { refill: built.refill } : {})
+				},
+				{ allowWalletAdditions: true }
+			),
 		onFeeSource: (source) => {
 			onFeeSource?.(source);
 			onPhase('approve');
@@ -59,12 +74,22 @@ export async function finishLink(
 	return sig;
 }
 
-export async function releaseAccessory(ctx: SigningContext, pda: string, onFeeSource?: OwnerAction['onFeeSource']): Promise<string> {
+export async function releaseAccessory(
+	ctx: SigningContext,
+	pda: string,
+	onFeeSource?: OwnerAction['onFeeSource']
+): Promise<string> {
 	const sig = await confirmAsOwner(ctx, {
 		pda,
 		refillFirst: true,
 		onFeeSource,
-		build: async (owner) => [getRemoveOwnerInstruction({ owner, phygitalToken: address(pda), ...(await getPolicyCloseAccounts(address(pda))) })]
+		build: async (owner) => [
+			getRemoveOwnerInstruction({
+				owner,
+				phygitalToken: address(pda),
+				...(await getPolicyCloseAccounts(address(pda)))
+			})
+		]
 	});
 	forgetWalletAccessories();
 	return sig;

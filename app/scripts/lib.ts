@@ -61,7 +61,9 @@ const airdrop = airdropFactory({ rpc, rpcSubscriptions });
 
 export let failures = 0;
 export function check(label: string, ok: boolean, extra?: unknown) {
-	console.log(`${ok ? '  ✓' : '  ✗'} ${label}${ok || extra === undefined ? '' : ` — ${JSON.stringify(extra)}`}`);
+	console.log(
+		`${ok ? '  ✓' : '  ✗'} ${label}${ok || extra === undefined ? '' : ` — ${JSON.stringify(extra)}`}`
+	);
 	if (!ok) failures++;
 }
 
@@ -72,7 +74,11 @@ export async function send(payer: KeyPairSigner, ixs: Instruction[]) {
 			createTransactionMessage({ version: 1 }),
 			(m) => setTransactionMessageFeePayerSigner(payer, m),
 			(m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-			(m) => setTransactionMessageConfig({ computeUnitLimit: 1_400_000, loadedAccountsDataSizeLimit: 64 * 1024 * 1024 }, m),
+			(m) =>
+				setTransactionMessageConfig(
+					{ computeUnitLimit: 1_400_000, loadedAccountsDataSizeLimit: 64 * 1024 * 1024 },
+					m
+				),
 			(m) => appendTransactionMessageInstructions(ixs, m)
 		)
 	);
@@ -80,12 +86,23 @@ export async function send(payer: KeyPairSigner, ixs: Instruction[]) {
 }
 
 export async function funded(privateKey?: Uint8Array) {
-	const kp = privateKey ? await createKeyPairSignerFromPrivateKeyBytes(privateKey) : await generateKeyPairSigner();
-	await airdrop({ recipientAddress: kp.address, lamports: lamports(2_000_000_000n), commitment: 'confirmed' });
+	const kp = privateKey
+		? await createKeyPairSignerFromPrivateKeyBytes(privateKey)
+		: await generateKeyPairSigner();
+	await airdrop({
+		recipientAddress: kp.address,
+		lamports: lamports(2_000_000_000n),
+		commitment: 'confirmed'
+	});
 	return kp;
 }
 
-export type AccessoryKeys = { ndefKey: string; fidoKey: string; counter: number; signCount: number };
+export type AccessoryKeys = {
+	ndefKey: string;
+	fidoKey: string;
+	counter: number;
+	signCount: number;
+};
 
 export function fakeAccessory(keys?: AccessoryKeys) {
 	const ndefKey = keys ? base64UrlToBytes(keys.ndefKey) : p256.utils.randomSecretKey();
@@ -93,7 +110,12 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 	let counter = keys?.counter ?? 100;
 	let signCount = keys?.signCount ?? 0;
 	return {
-		keys: (): AccessoryKeys => ({ ndefKey: bytesToBase64Url(ndefKey), fidoKey: bytesToBase64Url(fidoKey), counter, signCount }),
+		keys: (): AccessoryKeys => ({
+			ndefKey: bytesToBase64Url(ndefKey),
+			fidoKey: bytesToBase64Url(fidoKey),
+			counter,
+			signCount
+		}),
 		/** The FIDO key, for a browser test's virtual authenticator to tap with. */
 		fidoKey,
 		identifier: p256.getPublicKey(ndefKey),
@@ -115,7 +137,12 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 		webauthn(challengeB64: string): AuthenticationResponseJSON {
 			signCount += 1;
 			const clientData = new TextEncoder().encode(
-				JSON.stringify({ type: 'webauthn.get', challenge: challengeB64, origin: APP, crossOrigin: false })
+				JSON.stringify({
+					type: 'webauthn.get',
+					challenge: challengeB64,
+					origin: APP,
+					crossOrigin: false
+				})
 			);
 			const authData = new Uint8Array(37);
 			authData.set(sha256(new TextEncoder().encode(RP_ID)), 0);
@@ -167,7 +194,11 @@ export async function issueAccessory(issuerKey: Uint8Array, kind: AccessoryKind)
 	const [adminConfig] = await findAdminConfigPda();
 	const acc = fakeAccessory();
 	const pda = await findPhygitalTokenPda([acc.passkey]);
-	const tokenType = { bearer: PhygitalTokenType.Bearer, controlled: PhygitalTokenType.Controlled, permanent: PhygitalTokenType.Permanent }[kind];
+	const tokenType = {
+		bearer: PhygitalTokenType.Bearer,
+		controlled: PhygitalTokenType.Controlled,
+		permanent: PhygitalTokenType.Permanent
+	}[kind];
 	if (tokenType === undefined) throw new Error(`unknown type ${kind}`);
 	// Permanent must name its wallet at initialize.
 	const owner = tokenType === PhygitalTokenType.Permanent ? (await funded()).address : UNSET;
@@ -197,7 +228,11 @@ export class Browser {
 		}
 	}
 	private headers(extra: Record<string, string> = {}) {
-		return { cookie: [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; '), origin: APP, ...extra };
+		return {
+			cookie: [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; '),
+			origin: APP,
+			...extra
+		};
 	}
 	async open(url: string) {
 		const res = await fetch(url, { redirect: 'manual', headers: this.headers() });
@@ -221,7 +256,11 @@ export class Browser {
 
 /** Taps `acc` over a fresh slot-bound transfer challenge, as the link page does. */
 export async function tapForLink(acc: ReturnType<typeof fakeAccessory>): Promise<LinkTap> {
-	const session = await beginTransfer({ rpc, secp256r1Pubkey: bytesToBase64Url(acc.passkey), rpId: RP_ID });
+	const session = await beginTransfer({
+		rpc,
+		secp256r1Pubkey: bytesToBase64Url(acc.passkey),
+		rpId: RP_ID
+	});
 	return { session, response: acc.webauthn(bytesToBase64Url(session.challenge)) };
 }
 
@@ -229,7 +268,11 @@ export async function tapForLink(acc: ReturnType<typeof fakeAccessory>): Promise
 export async function link(acc: ReturnType<typeof fakeAccessory>, wallet: KeyPairSigner) {
 	const tap = await tapForLink(acc);
 	const { value: blockhash } = await rpc.getLatestBlockhash().send();
-	const { transaction, wireBytes } = await buildLinkTransaction({ tap, recipient: createNoopSigner(wallet.address), blockhash });
+	const { transaction, wireBytes } = await buildLinkTransaction({
+		tap,
+		recipient: createNoopSigner(wallet.address),
+		blockhash
+	});
 	validateLinkTransaction(wireBytes, linkExpectation(tap, wallet.address));
 	const signed = await partiallySignTransaction([wallet.keyPair], transaction);
 	await sendAndConfirm(signed as never, { commitment: 'confirmed' });
@@ -248,7 +291,12 @@ export async function prepaid(pda: string) {
  * Sends `build`'s instructions with a Revibase fee payer, as the app does for
  * an owner without SOL: the owner signs, then the fee service.
  */
-export async function sendSponsored(pda: string, owner: KeyPairSigner, build: (feePayer: TransactionSigner) => Promise<Instruction[]>, units = 200_000) {
+export async function sendSponsored(
+	pda: string,
+	owner: KeyPairSigner,
+	build: (feePayer: TransactionSigner) => Promise<Instruction[]>,
+	units = 200_000
+) {
 	const { feePayers } = await prepaid(pda);
 	const sponsor = createSponsorFeePayer(pickFeePayer(feePayers), { endpoint: SPONSOR });
 	const feePayer = createNoopSigner(sponsor.address);
@@ -273,5 +321,10 @@ export async function sendSponsored(pda: string, owner: KeyPairSigner, build: (f
 /** `link`, for a recipient with no SOL: a Revibase fee payer pays for it. */
 export async function linkSponsored(acc: ReturnType<typeof fakeAccessory>, wallet: KeyPairSigner) {
 	const tap = await tapForLink(acc);
-	return sendSponsored(tap.session.phygitalToken, wallet, () => buildLinkInstructions(tap, createNoopSigner(wallet.address)), LINK_COMPUTE_UNIT_LIMIT);
+	return sendSponsored(
+		tap.session.phygitalToken,
+		wallet,
+		() => buildLinkInstructions(tap, createNoopSigner(wallet.address)),
+		LINK_COMPUTE_UNIT_LIMIT
+	);
 }

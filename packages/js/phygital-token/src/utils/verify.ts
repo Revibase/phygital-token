@@ -21,14 +21,8 @@ import { equalBytes } from "@noble/curves/utils.js";
 
 import { PhygitalTokenError } from "./errors.js";
 import { parseSecp256r1Pubkey } from "./parseSecp256r1Pubkey.js";
-import {
-  authenticatePasskey,
-  type AuthenticatePasskeyOptions,
-} from "./passkey/authenticate.js";
-import {
-  parseWebAuthnAssertion,
-  parseWebAuthnClientData,
-} from "./passkey/internal.js";
+import { authenticatePasskey, type AuthenticatePasskeyOptions } from "./passkey/authenticate.js";
+import { parseWebAuthnAssertion, parseWebAuthnClientData } from "./passkey/internal.js";
 import {
   base64URLStringToBuffer,
   utf8ToBase64URLString,
@@ -46,7 +40,7 @@ export type { AuthenticationResponseJSON } from "./passkey/webauthn.js";
  */
 export async function startAuthentication(
   message: string,
-  options?: AuthenticatePasskeyOptions
+  options?: AuthenticatePasskeyOptions,
 ): Promise<AuthenticationResponseJSON> {
   return authenticatePasskey(utf8ToBase64URLString(message), options);
 }
@@ -79,25 +73,28 @@ export async function verifyResponse(
   } & (
     | { expectedMessage: string; expectedChallenge?: never }
     | { expectedChallenge: string; expectedMessage?: never }
-  )
+  ),
 ): Promise<{ isVerified: boolean; secp256r1PublicKey: string; accessoryWallet: Address | null }> {
-  const expectedChallenge =
-    input.expectedChallenge ?? utf8ToBase64URLString(input.expectedMessage);
+  const expectedChallenge = input.expectedChallenge ?? utf8ToBase64URLString(input.expectedMessage);
 
-  const clientData = parseWebAuthnClientData(
-    input.response.response.clientDataJSON
-  );
+  const clientData = parseWebAuthnClientData(input.response.response.clientDataJSON);
   // A tap is an assertion: a registration response is something else entirely.
   if (clientData.type !== "webauthn.get") {
     throw new PhygitalTokenError("INVALID_ASSERTION", "This response is not a tap (webauthn.get).");
   }
   const authenticatorData = base64URLStringToBuffer(input.response.response.authenticatorData);
   if (authenticatorData.length < 37 || (authenticatorData[32]! & 0x01) === 0) {
-    throw new PhygitalTokenError("INVALID_ASSERTION", "The accessory didn't report the user was present.");
+    throw new PhygitalTokenError(
+      "INVALID_ASSERTION",
+      "The accessory didn't report the user was present.",
+    );
   }
   if (
     input.expectedRpId !== undefined &&
-    !equalBytes(authenticatorData.slice(0, 32), sha256(new TextEncoder().encode(input.expectedRpId)))
+    !equalBytes(
+      authenticatorData.slice(0, 32),
+      sha256(new TextEncoder().encode(input.expectedRpId)),
+    )
   ) {
     throw new PhygitalTokenError("RP_ID_MISMATCH", "This tap was made for another site.");
   }
@@ -105,19 +102,14 @@ export async function verifyResponse(
   if (clientData.challenge !== expectedChallenge) {
     throw new PhygitalTokenError(
       "MESSAGE_MISMATCH",
-      "Message mismatch: the signed challenge does not match the expected message."
+      "Message mismatch: the signed challenge does not match the expected message.",
     );
   }
 
   const expectedOrigins: readonly string[] =
-    typeof input.expectedOrigin === "string"
-      ? [input.expectedOrigin]
-      : input.expectedOrigin;
+    typeof input.expectedOrigin === "string" ? [input.expectedOrigin] : input.expectedOrigin;
   if (!expectedOrigins.includes(clientData.origin)) {
-    throw new PhygitalTokenError(
-      "ORIGIN_MISMATCH",
-      "This tap was made on another site."
-    );
+    throw new PhygitalTokenError("ORIGIN_MISMATCH", "This tap was made on another site.");
   }
 
   const { signature, message } = parseWebAuthnAssertion(input.response);
@@ -125,12 +117,14 @@ export async function verifyResponse(
   const isVerified = p256.verify(
     signature,
     message,
-    new Uint8Array(parseSecp256r1Pubkey(input.response.id)[0])
+    new Uint8Array(parseSecp256r1Pubkey(input.response.id)[0]),
   );
 
   return {
     isVerified,
     secp256r1PublicKey: input.response.id,
-    accessoryWallet: isVerified ? (await findWalletPda({ phygitalToken: await findPhygitalTokenPda(input.response.id) }))[0] : null,
+    accessoryWallet: isVerified
+      ? (await findWalletPda({ phygitalToken: await findPhygitalTokenPda(input.response.id) }))[0]
+      : null,
   };
 }

@@ -21,7 +21,12 @@ describe("wire values", () => {
     expect(MAX_MESSAGE_BYTES).toBe(16 * 1024);
     expect(MAX_TX_BYTES).toBe(4096);
     expect(MAX_SIGN_MESSAGE_BYTES).toBe(2048);
-    expect(REQUEST_TYPES).toEqual(["SIGN_TRANSACTION", "SIGN_MESSAGE", "EXPORT_PRIVATE_KEY", "AUTH_START"]);
+    expect(REQUEST_TYPES).toEqual([
+      "SIGN_TRANSACTION",
+      "SIGN_MESSAGE",
+      "EXPORT_PRIVATE_KEY",
+      "AUTH_START",
+    ]);
     expect(RESULT_TYPE).toEqual({
       SIGN_TRANSACTION: "SIGN_TRANSACTION_RESULT",
       SIGN_MESSAGE: "SIGN_MESSAGE_RESULT",
@@ -31,7 +36,9 @@ describe("wire values", () => {
   });
 
   it("accepts the host's request ids (32 random hex chars) and rejects unsafe ones", () => {
-    const hostId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+    const hostId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+      b.toString(16).padStart(2, "0"),
+    ).join("");
     expect(REQUEST_ID_PATTERN.test(hostId)).toBe(true);
     for (const bad of ["", "short", "a".repeat(129), "has space", "semi;colon", "slash/abc"]) {
       expect(REQUEST_ID_PATTERN.test(bad)).toBe(false);

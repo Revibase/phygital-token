@@ -22,7 +22,9 @@ export function formatCompactTokenAmount(raw: bigint, decimals: number): string 
 export function sanitizeDecimalInput(raw: string): string {
 	const cleaned = raw.replace(/,/g, '.').replace(/[^0-9.]/g, '');
 	const dot = cleaned.indexOf('.');
-	return dot === -1 ? cleaned : `${cleaned.slice(0, dot + 1)}${cleaned.slice(dot + 1).replace(/\./g, '')}`;
+	return dot === -1
+		? cleaned
+		: `${cleaned.slice(0, dot + 1)}${cleaned.slice(dot + 1).replace(/\./g, '')}`;
 }
 
 /** Throws on empty, zero, malformed or over-precise input. */
@@ -31,7 +33,8 @@ export function uiAmountToRaw(uiAmount: string, decimals: number): bigint {
 	if (!/^\d*\.?\d*$/.test(trimmed) || !/\d/.test(trimmed)) throw new Error('Enter an amount.');
 	const [whole = '', frac = ''] = trimmed.split('.');
 	if (frac.length > decimals) throw new Error(`This token supports at most ${decimals} decimals.`);
-	const raw = BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt(frac.padEnd(decimals, '0') || '0');
+	const raw =
+		BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt(frac.padEnd(decimals, '0') || '0');
 	if (raw === 0n) throw new Error('Enter an amount.');
 	return raw;
 }

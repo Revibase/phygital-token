@@ -26,17 +26,39 @@ import {
 	type Instruction,
 	type TransactionSigner
 } from '@solana/kit';
-import { createSponsorFeePayer, fetchSponsor, findPolicyPda, findWalletPda, networkFeeLamports, pickFeePayer, type SponsorInfo } from 'phygital-token-sdk';
+import {
+	createSponsorFeePayer,
+	fetchSponsor,
+	findPolicyPda,
+	findWalletPda,
+	networkFeeLamports,
+	pickFeePayer,
+	type SponsorInfo
+} from 'phygital-token-sdk';
 
-import { choosePayer, previewFeeSource, type FeeSource, type PayerInput } from '$lib/shared/fee-payer';
-import { LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS, priorityFeeLamports, v1MessageConfig } from '$lib/shared/link-transaction';
+import {
+	choosePayer,
+	previewFeeSource,
+	type FeeSource,
+	type PayerInput
+} from '$lib/shared/fee-payer';
+import {
+	LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS,
+	priorityFeeLamports,
+	v1MessageConfig
+} from '$lib/shared/link-transaction';
 import { assertTransactionIntact } from '$lib/shared/wallet-transaction';
 import { buildRefillInstruction } from '$lib/shared/wallet-instructions';
 import { TransactionComputeLimitError, v1TransactionFits } from '$lib/shared/transaction-v1-size';
 import { browserRpc } from '../rpc';
 import { waitForConfirmation } from '../tx';
 import { queryClient, queryKeys, refreshAccessory } from '../cache';
-import { canSignOnly, signWithWallet, walletSigner, type SigningContext } from '../wallet/wallet.svelte';
+import {
+	canSignOnly,
+	signWithWallet,
+	walletSigner,
+	type SigningContext
+} from '../wallet/wallet.svelte';
 
 export const SPONSOR_ENDPOINT = '/api/sponsor';
 const COMPUTE_UNIT_PRICE = LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS;
@@ -53,7 +75,11 @@ export type OwnerAction = {
 	 * whoever pays this fee); `refill` is what this transaction moves out of the
 	 * accessory wallet besides, so a sweep can leave it behind.
 	 */
-	build: (owner: TransactionSigner, payer: TransactionSigner, refill: bigint) => Promise<Instruction[]>;
+	build: (
+		owner: TransactionSigner,
+		payer: TransactionSigner,
+		refill: bigint
+	) => Promise<Instruction[]>;
 	/** Unlink refills first, while the owner is still set. */
 	refillFirst?: boolean;
 	/** A fixed compute budget (the link) instead of simulating. */
@@ -63,7 +89,10 @@ export type OwnerAction = {
 	/** The action may grow the tap-payments account: its rent is part of the cost. */
 	growsPolicy?: boolean;
 	/** Checks what the wallet returns before anyone else signs; defaults to `assertTransactionIntact`. */
-	verify?: (signedBytes: Uint8Array, built: { expected: Instruction[]; feePayer: Address; refill: Instruction | null }) => void;
+	verify?: (
+		signedBytes: Uint8Array,
+		built: { expected: Instruction[]; feePayer: Address; refill: Instruction | null }
+	) => void;
 	/** Where this fee is coming from, once decided. */
 	onFeeSource?: (source: FeeSource) => void;
 	/** Refill the prepaid fees back to full through a Revibase fee payer (taps can't, under their limits). */
@@ -74,20 +103,36 @@ export type OwnerAction = {
 	drainsWallet?: boolean;
 };
 
-const lamportsOf = async (account: Address) => BigInt((await browserRpc().getBalance(account, { commitment: 'confirmed' }).send()).value);
+const lamportsOf = async (account: Address) =>
+	BigInt((await browserRpc().getBalance(account, { commitment: 'confirmed' }).send()).value);
 
 function computeLimit(units: number, withRefill: boolean): number {
-	return Math.min(MAX_COMPUTE_UNITS, Math.ceil(((units + (withRefill ? REFILL_COMPUTE_UNITS : 0)) * 12) / 10));
+	return Math.min(
+		MAX_COMPUTE_UNITS,
+		Math.ceil(((units + (withRefill ? REFILL_COMPUTE_UNITS : 0)) * 12) / 10)
+	);
 }
 
 function feeFor(signatures: number, limit: number, precompileSignatures = 0): bigint {
-	return networkFeeLamports({ signatures, precompileSignatures, priorityFeeLamports: priorityFeeLamports(COMPUTE_UNIT_PRICE, limit) });
+	return networkFeeLamports({
+		signatures,
+		precompileSignatures,
+		priorityFeeLamports: priorityFeeLamports(COMPUTE_UNIT_PRICE, limit)
+	});
 }
 
-function message(feePayer: TransactionSigner | Address, blockhash: { blockhash: Blockhash; lastValidBlockHeight: bigint }, limit: number, instructions: Instruction[]) {
+function message(
+	feePayer: TransactionSigner | Address,
+	blockhash: { blockhash: Blockhash; lastValidBlockHeight: bigint },
+	limit: number,
+	instructions: Instruction[]
+) {
 	return pipe(
 		createTransactionMessage({ version: 1 }),
-		(m) => (typeof feePayer === 'string' ? setTransactionMessageFeePayer(feePayer, m) : setTransactionMessageFeePayerSigner(feePayer, m)),
+		(m) =>
+			typeof feePayer === 'string'
+				? setTransactionMessageFeePayer(feePayer, m)
+				: setTransactionMessageFeePayerSigner(feePayer, m),
 		(m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
 		(m) => setTransactionMessageConfig(v1MessageConfig(limit), m),
 		(m) => appendTransactionMessageInstructions(instructions, m)
@@ -103,9 +148,12 @@ async function measure(
 	limit = MAX_COMPUTE_UNITS,
 	balanceAccount?: Address
 ): Promise<{ units: number; rent: bigint; balance?: bigint }> {
-	if (!v1TransactionFits(feePayer, instructions)) throw new Error('This transaction exceeds the v1 size or account limits.');
+	if (!v1TransactionFits(feePayer, instructions))
+		throw new Error('This transaction exceeds the v1 size or account limits.');
 	const rpc = browserRpc();
-	const wire = getBase64EncodedWireTransaction(compileTransaction(message(feePayer, blockhash, limit, instructions)));
+	const wire = getBase64EncodedWireTransaction(
+		compileTransaction(message(feePayer, blockhash, limit, instructions))
+	);
 	const [before, { value }] = await Promise.all([
 		policy ? lamportsOf(policy) : Promise.resolve(0n),
 		rpc
@@ -114,34 +162,67 @@ async function measure(
 				sigVerify: false,
 				replaceRecentBlockhash: true,
 				commitment: 'confirmed',
-				...((policy || balanceAccount) ? { accounts: { encoding: 'base64' as const, addresses: [policy, balanceAccount].filter((a): a is Address => !!a) } } : {})
+				...(policy || balanceAccount
+					? {
+							accounts: {
+								encoding: 'base64' as const,
+								addresses: [policy, balanceAccount].filter((a): a is Address => !!a)
+							}
+						}
+					: {})
 			})
 			.send()
 	]);
 	if (value.err) {
 		const detail = JSON.stringify(value.err);
-		if (detail.includes('ComputationalBudgetExceeded')) throw new TransactionComputeLimitError('This batch exceeds the transaction compute limit.');
+		if (detail.includes('ComputationalBudgetExceeded'))
+			throw new TransactionComputeLimitError('This batch exceeds the transaction compute limit.');
 		throw new Error(`This would fail on the network: ${value.logs?.at(-1) ?? detail}`);
 	}
-	const accounts = (value as { accounts?: readonly ({ lamports: bigint | number } | null)[] | null }).accounts;
+	const accounts = (
+		value as { accounts?: readonly ({ lamports: bigint | number } | null)[] | null }
+	).accounts;
 	const after = policy ? BigInt(accounts?.[0]?.lamports ?? 0) : 0n;
 	const balance = balanceAccount ? accounts?.[policy ? 1 : 0]?.lamports : undefined;
-	if (balanceAccount && balance == null) throw new Error('Couldn’t determine the SOL balance after transfers.');
-	return { units: Number(value.unitsConsumed ?? TYPICAL_COMPUTE_UNITS), rent: after > before ? after - before : 0n, ...(balance != null ? { balance: BigInt(balance) } : {}) };
+	if (balanceAccount && balance == null)
+		throw new Error('Couldn’t determine the SOL balance after transfers.');
+	return {
+		units: Number(value.unitsConsumed ?? TYPICAL_COMPUTE_UNITS),
+		rent: after > before ? after - before : 0n,
+		...(balance != null ? { balance: BigInt(balance) } : {})
+	};
 }
 
 /** Simulations replace the blockhash, so any well-formed one will do. */
-const SIMULATION_BLOCKHASH = { blockhash: '11111111111111111111111111111111' as Blockhash, lastValidBlockHeight: 0n };
+const SIMULATION_BLOCKHASH = {
+	blockhash: '11111111111111111111111111111111' as Blockhash,
+	lastValidBlockHeight: 0n
+};
 
 /** Simulate asset transfers first so the final SOL amount includes exact rent refunds and account costs. */
-export async function walletBalanceAfterInstructions(feePayer: Address, wallet: Address, instructions: Instruction[]): Promise<bigint> {
+export async function walletBalanceAfterInstructions(
+	feePayer: Address,
+	wallet: Address,
+	instructions: Instruction[]
+): Promise<bigint> {
 	if (!instructions.length) return lamportsOf(wallet);
-	return (await measure(feePayer, instructions, SIMULATION_BLOCKHASH, null, MAX_COMPUTE_UNITS, wallet)).balance!;
+	return (
+		await measure(feePayer, instructions, SIMULATION_BLOCKHASH, null, MAX_COMPUTE_UNITS, wallet)
+	).balance!;
 }
 
-async function payerInput(ctx: SigningContext, pda: Address, sponsor: SponsorInfo | null, costs: { owner: bigint; sponsored: bigint }, knownOwnerLamports?: bigint): Promise<PayerInput> {
+async function payerInput(
+	ctx: SigningContext,
+	pda: Address,
+	sponsor: SponsorInfo | null,
+	costs: { owner: bigint; sponsored: bigint },
+	knownOwnerLamports?: bigint
+): Promise<PayerInput> {
 	const [wallet] = await findWalletPda({ phygitalToken: pda });
-	const [ownerLamports, walletLamports] = await Promise.all([knownOwnerLamports ?? lamportsOf(address(ctx.address)), lamportsOf(wallet)]);
+	const [ownerLamports, walletLamports] = await Promise.all([
+		knownOwnerLamports ?? lamportsOf(address(ctx.address)),
+		lamportsOf(wallet)
+	]);
 	return {
 		ownerLamports,
 		ownerCost: costs.owner,
@@ -162,10 +243,18 @@ export const sponsorQuery = (pda: string) => ({
 const sponsorFor = (pda: Address) => queryClient.fetchQuery(sponsorQuery(pda)).catch(() => null);
 
 /** The fee line before approving: a typical transaction's cost against current balances. */
-export async function previewFee(ctx: SigningContext, pda: string, rent = 0n, drainsWallet = false): Promise<FeeSource> {
+export async function previewFee(
+	ctx: SigningContext,
+	pda: string,
+	rent = 0n,
+	drainsWallet = false
+): Promise<FeeSource> {
 	const sponsor = await sponsorFor(address(pda));
 	const limit = computeLimit(TYPICAL_COMPUTE_UNITS, false);
-	const input = await payerInput(ctx, address(pda), sponsor, { owner: feeFor(1, limit) + rent, sponsored: feeFor(2, limit) + rent });
+	const input = await payerInput(ctx, address(pda), sponsor, {
+		owner: feeFor(1, limit) + rent,
+		sponsored: feeFor(2, limit) + rent
+	});
 	return previewFeeSource({ ...input, owner: address(ctx.address), drainsWallet });
 }
 
@@ -196,43 +285,87 @@ export async function submitAsOwner(ctx: SigningContext, action: OwnerAction): P
 
 	// Simulate as whoever can afford to: the owner, else a pool key (funded).
 	const simulateAs = ownerLamports >= 10_000_000n || !sponsor ? owner : sponsor.feePayers[0]!;
-	const measured = action.computeUnits === undefined ? await action.build(createNoopSigner(owner), createNoopSigner(simulateAs), 0n) : null;
-	const { units, rent } = measured ? await measure(simulateAs, measured, blockhash, action.growsPolicy ? policy : null) : { units: action.computeUnits!, rent: 0n };
+	const measured =
+		action.computeUnits === undefined
+			? await action.build(createNoopSigner(owner), createNoopSigner(simulateAs), 0n)
+			: null;
+	const { units, rent } = measured
+		? await measure(simulateAs, measured, blockhash, action.growsPolicy ? policy : null)
+		: { units: action.computeUnits!, rent: 0n };
 	const ownerLimit = computeLimit(units, false);
 	const sponsoredLimit = computeLimit(units, true);
 	const choice = choosePayer({
-		...(await payerInput(ctx, pda, sponsor, {
-			owner: feeFor(1, ownerLimit, action.precompileSignatures) + rent,
-			sponsored: feeFor(2, sponsoredLimit, action.precompileSignatures) + rent
-		}, ownerLamports)),
+		...(await payerInput(
+			ctx,
+			pda,
+			sponsor,
+			{
+				owner: feeFor(1, ownerLimit, action.precompileSignatures) + rent,
+				sponsored: feeFor(2, sponsoredLimit, action.precompileSignatures) + rent
+			},
+			ownerLamports
+		)),
 		drainsWallet: action.drainsWallet,
 		refillNow: action.refillNow
 	});
-	const verify = action.verify ?? ((bytes, built) => assertTransactionIntact(bytes, built.expected, owner, built.feePayer));
+	const verify =
+		action.verify ??
+		((bytes, built) => assertTransactionIntact(bytes, built.expected, owner, built.feePayer));
 
 	if (choice.kind === 'owner') {
 		action.onFeeSource?.({ kind: 'owner' });
 		// Already built as the owner for measuring: sign those same instructions rather than building again.
 		const noop = createNoopSigner(owner);
-		const expected = measured && simulateAs === owner ? measured : await action.build(noop, noop, 0n);
+		const expected =
+			measured && simulateAs === owner ? measured : await action.build(noop, noop, 0n);
 		if (action.simulateFinal) await measure(owner, expected, blockhash, null, ownerLimit);
-		const wire = new Uint8Array(getTransactionEncoder().encode(compileTransaction(message(owner, blockhash, ownerLimit, expected))));
+		const wire = new Uint8Array(
+			getTransactionEncoder().encode(
+				compileTransaction(message(owner, blockhash, ownerLimit, expected))
+			)
+		);
 		const outcome = await signWithWallet(ctx, wire);
 		if (outcome.kind === 'sent') return getBase58Decoder().decode(outcome.signature);
 		verify(outcome.signedBytes, { expected, feePayer: owner, refill: null });
 		return rpc
-			.sendTransaction(getBase64EncodedWireTransaction(getTransactionDecoder().decode(outcome.signedBytes)), { encoding: 'base64', preflightCommitment: 'confirmed' })
+			.sendTransaction(
+				getBase64EncodedWireTransaction(getTransactionDecoder().decode(outcome.signedBytes)),
+				{ encoding: 'base64', preflightCommitment: 'confirmed' }
+			)
 			.send();
 	}
 
-	action.onFeeSource?.(choice.refill > 0n ? { kind: 'refill', lamports: choice.refill } : { kind: 'free' });
-	const feePayer = createSponsorFeePayer(pickFeePayer(sponsor!.feePayers), { endpoint: SPONSOR_ENDPOINT });
-	const built: { expected: Instruction[]; feePayer: Address; refill: Instruction | null } = { expected: [], feePayer: feePayer.address, refill: null };
+	action.onFeeSource?.(
+		choice.refill > 0n ? { kind: 'refill', lamports: choice.refill } : { kind: 'free' }
+	);
+	const feePayer = createSponsorFeePayer(pickFeePayer(sponsor!.feePayers), {
+		endpoint: SPONSOR_ENDPOINT
+	});
+	const built: { expected: Instruction[]; feePayer: Address; refill: Instruction | null } = {
+		expected: [],
+		feePayer: feePayer.address,
+		refill: null
+	};
 	const signer = walletSigner(ctx, (bytes) => verify(bytes, built));
 	const instructions = await action.build(signer, feePayer, choice.refill);
-	built.refill = choice.refill > 0n ? await buildRefillInstruction(signer, pda, feePayer.address, choice.refill) : null;
-	built.expected = built.refill ? (action.refillFirst ? [built.refill, ...instructions] : [...instructions, built.refill]) : instructions;
-	if (action.simulateFinal) await measure(feePayer.address, built.expected, blockhash, null, sponsoredLimit);
-	const signed = await signTransactionMessageWithSigners(message(feePayer, blockhash, sponsoredLimit, built.expected));
-	return rpc.sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: 'base64', preflightCommitment: 'confirmed' }).send();
+	built.refill =
+		choice.refill > 0n
+			? await buildRefillInstruction(signer, pda, feePayer.address, choice.refill)
+			: null;
+	built.expected = built.refill
+		? action.refillFirst
+			? [built.refill, ...instructions]
+			: [...instructions, built.refill]
+		: instructions;
+	if (action.simulateFinal)
+		await measure(feePayer.address, built.expected, blockhash, null, sponsoredLimit);
+	const signed = await signTransactionMessageWithSigners(
+		message(feePayer, blockhash, sponsoredLimit, built.expected)
+	);
+	return rpc
+		.sendTransaction(getBase64EncodedWireTransaction(signed), {
+			encoding: 'base64',
+			preflightCommitment: 'confirmed'
+		})
+		.send();
 }

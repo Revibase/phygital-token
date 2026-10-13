@@ -38,7 +38,11 @@ const tokenInstructions: readonly KnownInstruction[] = [
   { name: "Approve", selector: [4], risky: HANDS_OVER },
   { name: "Approve checked", selector: [13], risky: HANDS_OVER },
   { name: "Set authority", selector: [6], risky: HANDS_OVER },
-  { name: "Close account", selector: [9], risky: "Closes a token account and sends its rent elsewhere" },
+  {
+    name: "Close account",
+    selector: [9],
+    risky: "Closes a token account and sends its rent elsewhere",
+  },
 ];
 
 export const KNOWN_PROGRAMS: readonly KnownProgram[] = [
@@ -51,8 +55,18 @@ export const KNOWN_PROGRAMS: readonly KnownProgram[] = [
       { name: "Create account", selector: [0, 0, 0, 0] },
     ],
   },
-  { address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA", name: "Token Program", metered: true, instructions: tokenInstructions },
-  { address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb", name: "Token-2022 Program", metered: true, instructions: tokenInstructions },
+  {
+    address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    name: "Token Program",
+    metered: true,
+    instructions: tokenInstructions,
+  },
+  {
+    address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    name: "Token-2022 Program",
+    metered: true,
+    instructions: tokenInstructions,
+  },
   {
     address: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
     name: "Associated Token Account Program",
@@ -69,16 +83,36 @@ export const KNOWN_PROGRAMS: readonly KnownProgram[] = [
       { name: "Delegate stake", selector: [2, 0, 0, 0] },
       { name: "Deactivate stake", selector: [5, 0, 0, 0] },
       { name: "Withdraw stake", selector: [4, 0, 0, 0] },
-      { name: "Change stake authority", selector: [1, 0, 0, 0], risky: "Can hand over control of your stake" },
+      {
+        name: "Change stake authority",
+        selector: [1, 0, 0, 0],
+        risky: "Can hand over control of your stake",
+      },
     ],
   },
-  { address: "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr", name: "Memo Program", everythingOnly: true, metered: true, instructions: [] },
-  { address: "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d", name: "Metaplex Core", instructions: [{ name: "Transfer NFT", selector: [14] }] },
-  { address: "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s", name: "Metaplex Token Metadata", instructions: [{ name: "Transfer NFT", selector: [49] }] },
+  {
+    address: "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+    name: "Memo Program",
+    everythingOnly: true,
+    metered: true,
+    instructions: [],
+  },
+  {
+    address: "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d",
+    name: "Metaplex Core",
+    instructions: [{ name: "Transfer NFT", selector: [14] }],
+  },
+  {
+    address: "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+    name: "Metaplex Token Metadata",
+    instructions: [{ name: "Transfer NFT", selector: [49] }],
+  },
   {
     address: "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY",
     name: "Metaplex Bubblegum",
-    instructions: [{ name: "Transfer compressed NFT", selector: [163, 52, 200, 231, 140, 3, 69, 186] }],
+    instructions: [
+      { name: "Transfer compressed NFT", selector: [163, 52, 200, 231, 140, 3, 69, 186] },
+    ],
   },
 ];
 
@@ -95,14 +129,23 @@ export type RuleShape = {
   arguments: ArrayLike<unknown>;
 };
 
-const isNone = (v: unknown) => v === null || v === undefined || (typeof v === "object" && (v as { __option?: string }).__option === "None");
+const isNone = (v: unknown) =>
+  v === null ||
+  v === undefined ||
+  (typeof v === "object" && (v as { __option?: string }).__option === "None");
 
 /**
  * The known instruction a rule allows, when it is exactly "this instruction,
  * any accounts and data". Rules with extra checks are custom: `null`.
  */
 export function nameRule(program: string, rule: RuleShape): KnownInstruction | null {
-  if (!isNone(rule.dataLength) || !isNone(rule.accountCount) || rule.accounts.length || rule.arguments.length) return null;
+  if (
+    !isNone(rule.dataLength) ||
+    !isNone(rule.accountCount) ||
+    rule.accounts.length ||
+    rule.arguments.length
+  )
+    return null;
   const selector = Array.from(rule.selector);
   return (
     knownProgram(program)?.instructions.find(
@@ -111,12 +154,18 @@ export function nameRule(program: string, rule: RuleShape): KnownInstruction | n
   );
 }
 
-export const toHex = (bytes: ArrayLike<number>) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+export const toHex = (bytes: ArrayLike<number>) =>
+  Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
 /** A restricted rule can still permit a risky instruction, including a longer selector. */
 export function ruleRisk(program: string, selector: ArrayLike<number>): string | null {
   const bytes = Array.from(selector);
-  const risky = knownProgram(program)?.instructions.filter((ix) => ix.risky &&
-    ix.selector.slice(0, Math.min(bytes.length, ix.selector.length)).every((b, i) => bytes[i] === b));
-  return risky?.length ? risky.map((ix) => `${ix.name}: ${ix.risky}`).join('; ') : null;
+  const risky = knownProgram(program)?.instructions.filter(
+    (ix) =>
+      ix.risky &&
+      ix.selector
+        .slice(0, Math.min(bytes.length, ix.selector.length))
+        .every((b, i) => bytes[i] === b),
+  );
+  return risky?.length ? risky.map((ix) => `${ix.name}: ${ix.risky}`).join("; ") : null;
 }

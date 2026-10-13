@@ -24,12 +24,19 @@ export const isWalletAddress = (v: unknown): v is string => {
  * when `domain` doesn't match the page) instead of an opaque string. The
  * statement says plainly what signing in is for.
  */
-export function ownerLoginMessage(input: { domain: string; uri: string; address: string; cluster: string; nonce: string; now: number }): string {
+export function ownerLoginMessage(input: {
+	domain: string;
+	uri: string;
+	address: string;
+	cluster: string;
+	nonce: string;
+	now: number;
+}): string {
 	const lines = [
 		`${input.domain} wants you to sign in with your Solana account:`,
 		input.address,
 		'',
-		"Sign in to Revibase to manage the accessories linked to this wallet.",
+		'Sign in to Revibase to manage the accessories linked to this wallet.',
 		'',
 		`URI: ${input.uri}`,
 		'Version: 1',
@@ -45,7 +52,10 @@ export const issueOwnerLoginChallenge = (
 	db: D1Database,
 	site: { domain: string; uri: string; address: string; cluster: string },
 	now = Date.now()
-) => issueChallenge(db, OWNER_LOGIN_NAMESPACE, now, (nonce) => ownerLoginMessage({ ...site, nonce, now }));
+) =>
+	issueChallenge(db, OWNER_LOGIN_NAMESPACE, now, (nonce) =>
+		ownerLoginMessage({ ...site, nonce, now })
+	);
 
 type Failure<C extends string> = { ok: false; status: number; code: C; error: string };
 
@@ -60,25 +70,45 @@ export async function verifyOwnerLogin(
 ): Promise<{ ok: true; wallet: string } | Failure<'bad_request' | 'too_slow' | 'bad_signature'>> {
 	const { challengeId, address, signature } = input;
 	if (!isChallengeId(challengeId) || typeof address !== 'string' || typeof signature !== 'string') {
-		return { ok: false, status: 400, code: 'bad_request', error: 'Missing challenge, wallet or signature.' };
+		return {
+			ok: false,
+			status: 400,
+			code: 'bad_request',
+			error: 'Missing challenge, wallet or signature.'
+		};
 	}
 	const message = await consumeChallenge(db, OWNER_LOGIN_NAMESPACE, challengeId, now);
-	if (!message) return { ok: false, status: 409, code: 'too_slow', error: 'That took too long. Try again.' };
+	if (!message)
+		return { ok: false, status: 409, code: 'too_slow', error: 'That took too long. Try again.' };
 	// The message names the wallet it was issued for; only that wallet's signature counts.
 	if (message.split('\n')[1] !== address) {
-		return { ok: false, status: 401, code: 'bad_signature', error: 'We couldn’t verify that signature.' };
+		return {
+			ok: false,
+			status: 401,
+			code: 'bad_signature',
+			error: 'We couldn’t verify that signature.'
+		};
 	}
 
 	try {
 		const pubkey = new Uint8Array(getBase58Encoder().encode(address));
 		const sig = base64UrlToBytes(signature);
-		if (pubkey.length === 32 && sig.length === 64 && ed25519.verify(sig, new TextEncoder().encode(message), pubkey)) {
+		if (
+			pubkey.length === 32 &&
+			sig.length === 64 &&
+			ed25519.verify(sig, new TextEncoder().encode(message), pubkey)
+		) {
 			return { ok: true, wallet: address };
 		}
 	} catch {
 		// fall through: malformed key or signature
 	}
-	return { ok: false, status: 401, code: 'bad_signature', error: 'We couldn’t verify that signature.' };
+	return {
+		ok: false,
+		status: 401,
+		code: 'bad_signature',
+		error: 'We couldn’t verify that signature.'
+	};
 }
 
 /**
@@ -90,21 +120,43 @@ export async function verifyOwnerBrowse(
 	wallet: string,
 	pda: unknown
 ): Promise<
-	{ ok: true; pda: string; identifier: string } | Failure<'bad_request' | 'not_owner' | 'unknown_accessory'>
+	| { ok: true; pda: string; identifier: string }
+	| Failure<'bad_request' | 'not_owner' | 'unknown_accessory'>
 > {
-	if (typeof pda !== 'string' || !pda) return { ok: false, status: 400, code: 'bad_request', error: 'Missing accessory.' };
+	if (typeof pda !== 'string' || !pda)
+		return { ok: false, status: 400, code: 'bad_request', error: 'Missing accessory.' };
 
 	let resolved;
 	try {
 		resolved = await fetchAccessory(rpc, pda);
 	} catch {
-		return { ok: false, status: 502, code: 'unknown_accessory', error: 'Couldn’t reach the network. Try again.' };
+		return {
+			ok: false,
+			status: 502,
+			code: 'unknown_accessory',
+			error: 'Couldn’t reach the network. Try again.'
+		};
 	}
-	if (!resolved) return { ok: false, status: 404, code: 'unknown_accessory', error: 'This accessory isn’t registered.' };
+	if (!resolved)
+		return {
+			ok: false,
+			status: 404,
+			code: 'unknown_accessory',
+			error: 'This accessory isn’t registered.'
+		};
 
 	const linked = String(resolved.account.owner);
 	if (linked === DEFAULT_PUBKEY || linked !== wallet) {
-		return { ok: false, status: 403, code: 'not_owner', error: 'This wallet isn’t linked to that accessory.' };
+		return {
+			ok: false,
+			status: 403,
+			code: 'not_owner',
+			error: 'This wallet isn’t linked to that accessory.'
+		};
 	}
-	return { ok: true, pda: resolved.pda, identifier: bytesToBase64Url(new Uint8Array(resolved.account.identifier[0])) };
+	return {
+		ok: true,
+		pda: resolved.pda,
+		identifier: bytesToBase64Url(new Uint8Array(resolved.account.identifier[0]))
+	};
 }

@@ -13,19 +13,15 @@ export type RevibaseAccessoryFeature = {
      * Owner, phygital token PDA and wallet PDA of the connected accessory;
      * null when not connected. `refresh` re-reads the chain.
      */
-    getSession(
-      options?: RevibaseAccessoryGetSessionOptions
-    ): Promise<PhygitalWalletSession | null>;
+    getSession(options?: RevibaseAccessoryGetSessionOptions): Promise<PhygitalWalletSession | null>;
   };
 };
 
 /** The connected accessory's session, or null for any other wallet. */
 export async function getRevibaseAccessorySession(
   wallet: Wallet,
-  options?: RevibaseAccessoryGetSessionOptions
+  options?: RevibaseAccessoryGetSessionOptions,
 ): Promise<PhygitalWalletSession | null> {
-  const feature = (wallet.features as Partial<RevibaseAccessoryFeature>)[
-    RevibaseAccessory
-  ];
+  const feature = (wallet.features as Partial<RevibaseAccessoryFeature>)[RevibaseAccessory];
   return feature ? feature.getSession(options) : null;
 }

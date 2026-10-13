@@ -40,17 +40,29 @@ export function sponsorKeys(env: SponsorEnv): Promise<Map<Address, KeyPairSigner
 }
 
 /** Pool keys with enough SOL to pay fees (balances cached for a minute). */
-export async function offeredFeePayers(env: SponsorEnv, rpc: Rpc<SolanaRpcApi>, now = Date.now()): Promise<Address[]> {
+export async function offeredFeePayers(
+	env: SponsorEnv,
+	rpc: Rpc<SolanaRpcApi>,
+	now = Date.now()
+): Promise<Address[]> {
 	const keys = [...(await sponsorKeys(env)).keys()];
 	if (keys.length === 0) return [];
 	if (!balances || now - balances.at > BALANCE_TTL_MS) {
-		const { value } = await rpc.getMultipleAccounts(keys, { encoding: 'base64', commitment: 'confirmed' }).send();
-		balances = { at: now, lamports: new Map(keys.map((k, i) => [k, BigInt(value[i]?.lamports ?? 0)])) };
+		const { value } = await rpc
+			.getMultipleAccounts(keys, { encoding: 'base64', commitment: 'confirmed' })
+			.send();
+		balances = {
+			at: now,
+			lamports: new Map(keys.map((k, i) => [k, BigInt(value[i]?.lamports ?? 0)]))
+		};
 	}
 	return keys.filter((k) => (balances!.lamports.get(k) ?? 0n) >= env.minKeyLamports);
 }
 
-export async function signWithPoolKey(signer: KeyPairSigner, messageBytes: Uint8Array): Promise<SignatureBytes> {
+export async function signWithPoolKey(
+	signer: KeyPairSigner,
+	messageBytes: Uint8Array
+): Promise<SignatureBytes> {
 	return signBytes(signer.keyPair.privateKey, messageBytes);
 }
 

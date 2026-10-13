@@ -66,10 +66,13 @@ const keyCache = new Map<string, Promise<CryptoKey>>();
 function hmacKey(secret: string): Promise<CryptoKey> {
 	let key = keyCache.get(secret);
 	if (!key) {
-		key = crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
-			'sign',
-			'verify'
-		]);
+		key = crypto.subtle.importKey(
+			'raw',
+			encoder.encode(secret),
+			{ name: 'HMAC', hash: 'SHA-256' },
+			false,
+			['sign', 'verify']
+		);
 		keyCache.set(secret, key);
 	}
 	return key;
@@ -109,7 +112,12 @@ export async function verifyToken<T extends AnySession>(
 	if (!valid) return null;
 	try {
 		const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(body))) as AnySession;
-		if (payload.v !== 1 || payload.t !== type || typeof payload.exp !== 'number' || payload.exp <= now) {
+		if (
+			payload.v !== 1 ||
+			payload.t !== type ||
+			typeof payload.exp !== 'number' ||
+			payload.exp <= now
+		) {
 			return null;
 		}
 		return payload as T;
@@ -195,7 +203,10 @@ export function readOwnerBrowse(cookies: Cookies, secret: string) {
  * Admit for viewing `/accessory`: browse_unlock wins when both somehow remain
  * (a physical tap is fresher proof than an owner open).
  */
-export async function readAdmitSession(cookies: Cookies, secret: string): Promise<AdmitSession | null> {
+export async function readAdmitSession(
+	cookies: Cookies,
+	secret: string
+): Promise<AdmitSession | null> {
 	const browse = await readBrowseUnlock(cookies, secret);
 	if (browse) return browse;
 	return readOwnerBrowse(cookies, secret);

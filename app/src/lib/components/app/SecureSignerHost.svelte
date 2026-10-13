@@ -5,7 +5,11 @@
 	import Notice from './Notice.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { secureSigner } from '$lib/client/wallet/secure-signer';
-	import { createPasskey, isCancel, type CreatedPasskey } from '$lib/client/wallet/secure-signer/connect';
+	import {
+		createPasskey,
+		isCancel,
+		type CreatedPasskey
+	} from '$lib/client/wallet/secure-signer/connect';
 	import { passkeyPrompts } from '$lib/client/wallet/secure-signer/prompts.svelte';
 
 	const client = secureSigner();
@@ -15,7 +19,11 @@
 	let creating = $state(false);
 	let createError = $state<string | null>(null);
 
-	onMount(() => (iframe && client ? client.attach(iframe, { setOpen: (v) => (open = v), setHeight: (h) => (height = h) }) : undefined));
+	onMount(() =>
+		iframe && client
+			? client.attach(iframe, { setOpen: (v) => (open = v), setHeight: (h) => (height = h) })
+			: undefined
+	);
 
 	/** Must start inside the click: Safari needs the user gesture for passkey creation. */
 	function create(done: (passkey: CreatedPasskey) => void) {
@@ -24,7 +32,8 @@
 		createPasskey(resolveWebAuthnRpId(location.hostname))
 			.then(done)
 			.catch((err) => {
-				if (!isCancel(err)) createError = 'This browser couldn’t create a passkey. Try Safari or Chrome.';
+				if (!isCancel(err))
+					createError = 'This browser couldn’t create a passkey. Try Safari or Chrome.';
 			})
 			.finally(() => (creating = false));
 	}
@@ -33,7 +42,12 @@
 {#if client}
 	{#if open}
 		<!-- pointer-events-auto: an open dialog underneath sets pointer-events: none on <body>. -->
-		<button type="button" aria-label="Cancel" class="pointer-events-auto fixed inset-0 z-[60] bg-black/40" onclick={() => client.cancel()}></button>
+		<button
+			type="button"
+			aria-label="Cancel"
+			class="pointer-events-auto fixed inset-0 z-[60] bg-black/40"
+			onclick={() => client.cancel()}
+		></button>
 	{/if}
 	<div
 		class={open
@@ -53,32 +67,62 @@
 
 	<ResponsiveSheet
 		above
-		bind:open={() => !!passkeyPrompts.setup, (v) => { if (!v) passkeyPrompts.setup?.({ mode: 'cancel' }); }}
+		bind:open={
+			() => !!passkeyPrompts.setup,
+			(v) => {
+				if (!v) passkeyPrompts.setup?.({ mode: 'cancel' });
+			}
+		}
 		title="Set up your passkey wallet"
 		description="A Solana wallet protected by Face ID or your fingerprint. Nothing to install."
 	>
 		{#if createError}<Notice title="Couldn’t create a passkey" body={createError} />{/if}
-		<Button size="xl" disabled={creating} onclick={() => create((passkey) => passkeyPrompts.setup?.({ mode: 'create', passkey }))}>
+		<Button
+			size="xl"
+			disabled={creating}
+			onclick={() => create((passkey) => passkeyPrompts.setup?.({ mode: 'create', passkey }))}
+		>
 			Create a new passkey wallet
 		</Button>
-		<Button variant="secondary" size="xl" disabled={creating} onclick={() => passkeyPrompts.setup?.({ mode: 'existing' })}>
+		<Button
+			variant="secondary"
+			size="xl"
+			disabled={creating}
+			onclick={() => passkeyPrompts.setup?.({ mode: 'existing' })}
+		>
 			I already have one
 		</Button>
 	</ResponsiveSheet>
 
 	<ResponsiveSheet
 		above
-		bind:open={() => !!passkeyPrompts.lost, (v) => { if (!v) passkeyPrompts.lost?.resolve({ mode: 'cancel' }); }}
+		bind:open={
+			() => !!passkeyPrompts.lost,
+			(v) => {
+				if (!v) passkeyPrompts.lost?.resolve({ mode: 'cancel' });
+			}
+		}
 		title="Can’t find your passkey wallet"
 		description={passkeyPrompts.lost?.reason === 'not_found'
 			? 'That passkey isn’t a Revibase passkey wallet. Pick another one, or create a new wallet.'
 			: 'No passkey wallet was picked. If you made it on another phone, make sure your passkeys sync to this one.'}
 	>
 		{#if createError}<Notice title="Couldn’t create a passkey" body={createError} />{/if}
-		<Button size="xl" disabled={creating} onclick={() => passkeyPrompts.lost?.resolve({ mode: 'retry' })}>Try again</Button>
-		<Button variant="secondary" size="xl" disabled={creating} onclick={() => create((passkey) => passkeyPrompts.lost?.resolve({ mode: 'create', passkey }))}>
+		<Button
+			size="xl"
+			disabled={creating}
+			onclick={() => passkeyPrompts.lost?.resolve({ mode: 'retry' })}>Try again</Button
+		>
+		<Button
+			variant="secondary"
+			size="xl"
+			disabled={creating}
+			onclick={() => create((passkey) => passkeyPrompts.lost?.resolve({ mode: 'create', passkey }))}
+		>
 			Create a new wallet
 		</Button>
-		<p class="text-[13px] leading-snug text-muted-foreground">A new wallet has a new address. Accessories linked to your old wallet stay with it.</p>
+		<p class="text-[13px] leading-snug text-muted-foreground">
+			A new wallet has a new address. Accessories linked to your old wallet stay with it.
+		</p>
 	</ResponsiveSheet>
 {/if}

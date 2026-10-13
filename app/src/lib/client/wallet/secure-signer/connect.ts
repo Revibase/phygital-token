@@ -12,19 +12,29 @@
 import { SecureSignerError } from './client';
 
 export type CreatedPasskey = { credentialId: string; attestationObject: string };
-export type SetupChoice = { mode: 'create'; passkey: CreatedPasskey } | { mode: 'existing' } | { mode: 'cancel' };
-export type LostChoice = { mode: 'create'; passkey: CreatedPasskey } | { mode: 'retry' } | { mode: 'cancel' };
+export type SetupChoice =
+	{ mode: 'create'; passkey: CreatedPasskey } | { mode: 'existing' } | { mode: 'cancel' };
+export type LostChoice =
+	{ mode: 'create'; passkey: CreatedPasskey } | { mode: 'retry' } | { mode: 'cancel' };
 
 export type PasskeySigner = {
-	authenticate(opts: { authMode: 'create' | 'unlock'; credentialId?: string; webauthnAttestationObject?: string }): Promise<string>;
+	authenticate(opts: {
+		authMode: 'create' | 'unlock';
+		credentialId?: string;
+		webauthnAttestationObject?: string;
+	}): Promise<string>;
 };
 
 export function isCancel(err: unknown): boolean {
 	if (err instanceof SecureSignerError) return err.code === 'USER_CANCELLED';
-	return err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'AbortError');
+	return (
+		err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'AbortError')
+	);
 }
 
-const lost = (err: unknown) => err instanceof SecureSignerError && (err.code === 'NOT_FOUND' || err.code === 'AUTHENTICATION_FAILED');
+const lost = (err: unknown) =>
+	err instanceof SecureSignerError &&
+	(err.code === 'NOT_FOUND' || err.code === 'AUTHENTICATION_FAILED');
 
 /** The wallet address, or null when the user backed out. */
 export async function runPasskeyConnect(args: {
@@ -35,7 +45,11 @@ export async function runPasskeyConnect(args: {
 }): Promise<string | null> {
 	if (args.remembered) return args.remembered;
 	const create = (passkey: CreatedPasskey) =>
-		args.signer.authenticate({ authMode: 'create', credentialId: passkey.credentialId, webauthnAttestationObject: passkey.attestationObject });
+		args.signer.authenticate({
+			authMode: 'create',
+			credentialId: passkey.credentialId,
+			webauthnAttestationObject: passkey.attestationObject
+		});
 	try {
 		const choice = await args.promptSetup();
 		if (choice.mode === 'cancel') return null;
@@ -45,7 +59,9 @@ export async function runPasskeyConnect(args: {
 				return await args.signer.authenticate({ authMode: 'unlock' });
 			} catch (err) {
 				if (!lost(err)) throw err;
-				const next = await args.promptLost((err as SecureSignerError).code === 'NOT_FOUND' ? 'not_found' : 'failed');
+				const next = await args.promptLost(
+					(err as SecureSignerError).code === 'NOT_FOUND' ? 'not_found' : 'failed'
+				);
 				if (next.mode === 'cancel') return null;
 				if (next.mode === 'create') return await create(next.passkey);
 			}
@@ -81,12 +97,21 @@ export async function createPasskey(rpId: string): Promise<CreatedPasskey> {
 	})) as PublicKeyCredential | null;
 	if (!cred) throw new DOMException('Passkey creation was cancelled', 'NotAllowedError');
 	try {
-		const first = (cred.getClientExtensionResults() as { prf?: { results?: { first?: ArrayBuffer } } }).prf?.results?.first;
+		const first = (
+			cred.getClientExtensionResults() as { prf?: { results?: { first?: ArrayBuffer } } }
+		).prf?.results?.first;
 		if (first) new Uint8Array(first).fill(0);
 	} catch {
 		/* nothing to scrub */
 	}
 	const attestation = cred.response as AuthenticatorAttestationResponse;
-	const b64url = (b: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-	return { credentialId: b64url(cred.rawId), attestationObject: b64url(attestation.attestationObject) };
+	const b64url = (b: ArrayBuffer) =>
+		btoa(String.fromCharCode(...new Uint8Array(b)))
+			.replace(/\+/g, '-')
+			.replace(/\//g, '_')
+			.replace(/=+$/, '');
+	return {
+		credentialId: b64url(cred.rawId),
+		attestationObject: b64url(attestation.attestationObject)
+	};
 }

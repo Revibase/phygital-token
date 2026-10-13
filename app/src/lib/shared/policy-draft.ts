@@ -25,7 +25,12 @@ import {
 } from 'phygital-token-sdk';
 
 import { bytesEqual } from './encoding';
-import { ASSOCIATED_TOKEN_PROGRAM_ADDRESS, SYSTEM_PROGRAM_ADDRESS, TOKEN_2022_PROGRAM_ADDRESS, TOKEN_PROGRAM_ADDRESS } from './programs';
+import {
+	ASSOCIATED_TOKEN_PROGRAM_ADDRESS,
+	SYSTEM_PROGRAM_ADDRESS,
+	TOKEN_2022_PROGRAM_ADDRESS,
+	TOKEN_PROGRAM_ADDRESS
+} from './programs';
 
 export const DAY_SECONDS = 86_400n;
 /** The limits' key for SOL; every other key is a mint address. */
@@ -41,8 +46,10 @@ export type PolicyDraft = {
 	origins: string[];
 };
 
-
-const only = (...selectors: string[]): ProgramDraft => ({ kind: 'only', rules: selectors.map((selector) => ({ selector })) });
+const only = (...selectors: string[]): ProgramDraft => ({
+	kind: 'only',
+	rules: selectors.map((selector) => ({ selector }))
+});
 
 /**
  * The tap-payments baseline: transfers only (System transfer, Token and
@@ -71,12 +78,22 @@ export function isTapPaymentsDraft(draft: PolicyDraft): boolean {
 			const actual = draft.programs.get(id);
 			return !!actual && samePermission(permissionArgs(id, expected), permissionArgs(id, actual));
 		});
-	} catch { return false; }
+	} catch {
+		return false;
+	}
 }
 
-export const emptyDraft = (): PolicyDraft => ({ limits: new Map(), programs: new Map(), origins: [] });
+export const emptyDraft = (): PolicyDraft => ({
+	limits: new Map(),
+	programs: new Map(),
+	origins: []
+});
 
-const capDraft = (cap: SpendCap): CapDraft => ({ cap: cap.cap, windowSeconds: cap.windowSeconds, maxPerTx: cap.maxPerTx });
+const capDraft = (cap: SpendCap): CapDraft => ({
+	cap: cap.cap,
+	windowSeconds: cap.windowSeconds,
+	maxPerTx: cap.maxPerTx
+});
 
 export function draftFromPolicy(policy: AccessoryPolicy | null): PolicyDraft {
 	if (!policy) return emptyDraft();
@@ -86,7 +103,9 @@ export function draftFromPolicy(policy: AccessoryPolicy | null): PolicyDraft {
 	const programs = new Map<Address, ProgramDraft>(
 		policy.programPermissions.map((p) => [
 			p.programId,
-			p.access.__kind === 'AllInstructions' ? { kind: 'all' } : { kind: 'only', rules: p.access.fields[0].map(ruleFromProgram) }
+			p.access.__kind === 'AllInstructions'
+				? { kind: 'all' }
+				: { kind: 'only', rules: p.access.fields[0].map(ruleFromProgram) }
 		])
 	);
 	return { limits, programs, origins: [...policy.allowedOrigins] };
@@ -95,26 +114,44 @@ export function draftFromPolicy(policy: AccessoryPolicy | null): PolicyDraft {
 export function cloneDraft(d: PolicyDraft): PolicyDraft {
 	return {
 		limits: new Map([...d.limits].map(([k, v]) => [k, { ...v }])),
-		programs: new Map([...d.programs].map(([k, v]) => [k, v.kind === 'all' ? v : { kind: 'only', rules: structuredClone(v.rules) }])),
+		programs: new Map(
+			[...d.programs].map(([k, v]) => [
+				k,
+				v.kind === 'all' ? v : { kind: 'only', rules: structuredClone(v.rules) }
+			])
+		),
 		origins: [...d.origins]
 	};
 }
 
 export function permissionArgs(programId: Address, p: ProgramDraft): ProgramPermissionArgs {
-	return { programId, access: p.kind === 'all' ? { __kind: 'AllInstructions' } : { __kind: 'Restricted', fields: [p.rules.map(ruleToArgs)] } };
+	return {
+		programId,
+		access:
+			p.kind === 'all'
+				? { __kind: 'AllInstructions' }
+				: { __kind: 'Restricted', fields: [p.rules.map(ruleToArgs)] }
+	};
 }
 
 const encoder = getProgramPermissionEncoder();
-const samePermission = (a: ProgramPermissionArgs, b: ProgramPermissionArgs) => bytesEqual(new Uint8Array(encoder.encode(a)), new Uint8Array(encoder.encode(b)));
+const samePermission = (a: ProgramPermissionArgs, b: ProgramPermissionArgs) =>
+	bytesEqual(new Uint8Array(encoder.encode(a)), new Uint8Array(encoder.encode(b)));
 /** Semantic equality: omitted empty checks and JSON key order don't make a draft dirty. */
-export function sameProgram(id: Address, before: ProgramDraft | undefined, after: ProgramDraft | undefined): boolean {
- if (!before || !after) return before === after;
- return samePermission(permissionArgs(id, before), permissionArgs(id, after));
+export function sameProgram(
+	id: Address,
+	before: ProgramDraft | undefined,
+	after: ProgramDraft | undefined
+): boolean {
+	if (!before || !after) return before === after;
+	return samePermission(permissionArgs(id, before), permissionArgs(id, after));
 }
 
-const sameCap = (a: CapDraft, b: CapDraft) => a.cap === b.cap && a.windowSeconds === b.windowSeconds && a.maxPerTx === b.maxPerTx;
+const sameCap = (a: CapDraft, b: CapDraft) =>
+	a.cap === b.cap && a.windowSeconds === b.windowSeconds && a.maxPerTx === b.maxPerTx;
 /** Order doesn't matter to the program, so it doesn't make a draft dirty. */
-export const sameOrigins = (a: string[], b: string[]) => a.length === b.length && a.every((o) => b.includes(o));
+export const sameOrigins = (a: string[], b: string[]) =>
+	a.length === b.length && a.every((o) => b.includes(o));
 
 /** The fewest actions turning `current` into `draft`. The program keeps what's been spent when a limit changes. */
 export function policyDiff(current: PolicyDraft, draft: PolicyDraft): PolicyActionArgs[] {
@@ -122,43 +159,57 @@ export function policyDiff(current: PolicyDraft, draft: PolicyDraft): PolicyActi
 	for (const [id, before] of current.programs) {
 		const after = draft.programs.get(id);
 		if (!after) actions.push({ __kind: 'RemoveProgramPermission', fields: [id] });
-		else if (!sameProgram(id, before, after)) actions.push({ __kind: 'SetProgramPermission', fields: [permissionArgs(id, after)] });
+		else if (!sameProgram(id, before, after))
+			actions.push({ __kind: 'SetProgramPermission', fields: [permissionArgs(id, after)] });
 	}
 	for (const [id, after] of draft.programs) {
-		if (!current.programs.has(id)) actions.push({ __kind: 'SetProgramPermission', fields: [permissionArgs(id, after)] });
+		if (!current.programs.has(id))
+			actions.push({ __kind: 'SetProgramPermission', fields: [permissionArgs(id, after)] });
 	}
 
 	const sol = draft.limits.get(SOL) ?? null;
 	const solBefore = current.limits.get(SOL) ?? null;
 	if (!sol && solBefore) actions.push({ __kind: 'SetSolCap', fields: [null] });
-	if (sol && (!solBefore || !sameCap(sol, solBefore))) actions.push({ __kind: 'SetSolCap', fields: [sol] });
+	if (sol && (!solBefore || !sameCap(sol, solBefore)))
+		actions.push({ __kind: 'SetSolCap', fields: [sol] });
 
 	for (const [mint, before] of current.limits) {
 		if (mint === SOL) continue;
 		const after = draft.limits.get(mint);
 		if (!after) actions.push({ __kind: 'RemoveMintCap', fields: [address(mint)] });
-		else if (!sameCap(before, after)) actions.push({ __kind: 'SetMintCap', fields: [address(mint), after] });
+		else if (!sameCap(before, after))
+			actions.push({ __kind: 'SetMintCap', fields: [address(mint), after] });
 	}
 	for (const [mint, after] of draft.limits) {
-		if (mint !== SOL && !current.limits.has(mint)) actions.push({ __kind: 'SetMintCap', fields: [address(mint), after] });
+		if (mint !== SOL && !current.limits.has(mint))
+			actions.push({ __kind: 'SetMintCap', fields: [address(mint), after] });
 	}
-	if (!sameOrigins(current.origins, draft.origins)) actions.push({ __kind: 'SetAllowedOrigins', fields: [draft.origins] });
+	if (!sameOrigins(current.origins, draft.origins))
+		actions.push({ __kind: 'SetAllowedOrigins', fields: [draft.origins] });
 	return actions;
 }
 
 /** Apply one reviewed program without including other pending edits. */
-export function programSaveDraft(active: PolicyDraft, draft: PolicyDraft, id: Address): PolicyDraft {
- const programs = new Map(active.programs);
- const permission = draft.programs.get(id);
- if (permission) programs.set(id, permission); else programs.delete(id);
- return { limits: new Map(active.limits), programs, origins: [...active.origins] };
+export function programSaveDraft(
+	active: PolicyDraft,
+	draft: PolicyDraft,
+	id: Address
+): PolicyDraft {
+	const programs = new Map(active.programs);
+	const permission = draft.programs.get(id);
+	if (permission) programs.set(id, permission);
+	else programs.delete(id);
+	return { limits: new Map(active.limits), programs, origins: [...active.origins] };
 }
 
 /** The draft as a permission set: the format the editor copies and requests carry. */
 export function draftToSet(d: PolicyDraft): PermissionSet {
 	return {
 		v: 1,
-		programs: [...d.programs].map(([id, p]) => ({ id, access: p.kind === 'all' ? 'all' : { only: p.rules } })),
+		programs: [...d.programs].map(([id, p]) => ({
+			id,
+			access: p.kind === 'all' ? 'all' : { only: p.rules }
+		})),
 		limits: [...d.limits].map(([asset, c]) => ({
 			asset,
 			amount: String(c.cap),
@@ -173,9 +224,21 @@ export function draftToSet(d: PolicyDraft): PermissionSet {
 export function draftFromSet(set: PermissionSet): PolicyDraft {
 	return {
 		limits: new Map(
-			set.limits.map((l) => [l.asset, { cap: BigInt(l.amount), windowSeconds: periodSeconds(l.period), maxPerTx: BigInt(l.maxPerTap ?? '0') }])
+			set.limits.map((l) => [
+				l.asset,
+				{
+					cap: BigInt(l.amount),
+					windowSeconds: periodSeconds(l.period),
+					maxPerTx: BigInt(l.maxPerTap ?? '0')
+				}
+			])
 		),
-		programs: new Map(set.programs.map((p) => [address(p.id), p.access === 'all' ? { kind: 'all' } : { kind: 'only', rules: p.access.only }])),
+		programs: new Map(
+			set.programs.map((p) => [
+				address(p.id),
+				p.access === 'all' ? { kind: 'all' } : { kind: 'only', rules: p.access.only }
+			])
+		),
 		origins: [...(set.origins ?? [])]
 	};
 }
@@ -218,5 +281,8 @@ export const PERIODS: { label: string; seconds: bigint }[] = [
 ];
 
 export function periodLabel(seconds: bigint): string {
-	return PERIODS.find((p) => p.seconds === seconds)?.label ?? (seconds % DAY_SECONDS === 0n ? `every ${seconds / DAY_SECONDS} days` : `every ${seconds}s`);
+	return (
+		PERIODS.find((p) => p.seconds === seconds)?.label ??
+		(seconds % DAY_SECONDS === 0n ? `every ${seconds / DAY_SECONDS} days` : `every ${seconds}s`)
+	);
 }

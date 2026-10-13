@@ -5,7 +5,10 @@ import { signMessageWithWallet, walletStore, type SigningContext } from '../wall
 
 /** Log in with the wallet: one Sign-In With Solana message (not a transaction), then the server remembers this browser. */
 export async function loginOwner(ctx: SigningContext): Promise<void> {
-	const { challengeId, message } = await postJson<{ challengeId: string; message: string }>('/api/owner/challenge', { address: ctx.address });
+	const { challengeId, message } = await postJson<{ challengeId: string; message: string }>(
+		'/api/owner/challenge',
+		{ address: ctx.address }
+	);
 	const signature = await signMessageWithWallet(ctx, message);
 	await postJson('/api/owner/session', { challengeId, address: ctx.address, signature });
 }

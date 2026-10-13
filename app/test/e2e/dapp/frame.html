@@ -6,7 +6,12 @@
 	</head>
 	<body>
 		<!-- A site other than the app embeds the signer and tries to drive it. -->
-		<iframe id="signer" src="https://localhost:5174/" allow="publickey-credentials-get *" title="signer"></iframe>
+		<iframe
+			id="signer"
+			src="https://localhost:5174/"
+			allow="publickey-credentials-get *"
+			title="signer"
+		></iframe>
 		<script>
 			window.heard = [];
 			addEventListener('message', (e) => window.heard.push({ origin: e.origin, data: e.data }));

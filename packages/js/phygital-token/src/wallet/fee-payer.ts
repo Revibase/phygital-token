@@ -31,7 +31,7 @@ const endpointOf = (config?: SponsorConfig) =>
 
 /** The fee-payer pool, and the accessory's prepaid network fees when `phygitalToken` is given. */
 export async function fetchSponsor(
-  config?: SponsorConfig & { phygitalToken?: Address; abortSignal?: AbortSignal }
+  config?: SponsorConfig & { phygitalToken?: Address; abortSignal?: AbortSignal },
 ): Promise<SponsorInfo> {
   const httpFetch = config?.fetch ?? fetch;
   const query = config?.phygitalToken
@@ -74,14 +74,14 @@ export async function fetchSponsor(
 /** A partial signer for one pool key: the fee service checks and signs the final bytes. */
 export function createSponsorFeePayer(
   feePayer: Address,
-  config?: SponsorConfig
+  config?: SponsorConfig,
 ): TransactionPartialSigner<Address> {
   const httpFetch = config?.fetch ?? fetch;
   return {
     address: feePayer,
     signTransactions: async (
       transactions: readonly Transaction[],
-      options
+      options,
     ): Promise<readonly SignatureDictionary[]> => {
       options?.abortSignal?.throwIfAborted();
 
@@ -90,7 +90,7 @@ export function createSponsorFeePayer(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transactions: transactions.map((transaction) =>
-            getBase64EncodedWireTransaction(transaction)
+            getBase64EncodedWireTransaction(transaction),
           ),
         }),
         signal: options?.abortSignal,
@@ -132,7 +132,7 @@ export function createSponsorFeePayer(
 
 /** One partial signer per pool key. */
 export async function createSponsorFeePayers(
-  config?: SponsorConfig
+  config?: SponsorConfig,
 ): Promise<TransactionPartialSigner<Address>[]> {
   const { feePayers } = await fetchSponsor(config);
   return feePayers.map((feePayer) => createSponsorFeePayer(feePayer, config));
@@ -145,7 +145,7 @@ export function pickFeePayer<T>(feePayers: readonly T[]): T {
 
 /** A random key from the Revibase pool. */
 export async function createDefaultFeePayer(
-  config?: SponsorConfig
+  config?: SponsorConfig,
 ): Promise<TransactionPartialSigner<Address>> {
   return pickFeePayer(await createSponsorFeePayers(config));
 }
@@ -153,7 +153,7 @@ export async function createDefaultFeePayer(
 /** The accessory's prepaid network fees. */
 export async function fetchPrepaidFees(
   phygitalToken: Address,
-  config?: SponsorConfig
+  config?: SponsorConfig,
 ): Promise<{ balanceLamports: bigint; prepaidLamports: bigint }> {
   const { prepaid } = await fetchSponsor({ ...config, phygitalToken });
   if (!prepaid) throw new Error("Fee service did not report prepaid fees");

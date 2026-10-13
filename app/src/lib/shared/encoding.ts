@@ -38,5 +38,8 @@ export function shortAddress(address: string): string {
 }
 
 export function accessoryTag(identifier: string): string {
-	return identifier.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
+	return identifier
+		.replace(/[^A-Za-z0-9]/g, '')
+		.slice(-4)
+		.toUpperCase();
 }

@@ -42,7 +42,8 @@ export function decodeTransaction(bytes: Uint8Array): DecodedTransaction {
     const transaction = txDecoder.decode(bytes);
     const [compiled, end] = messageDecoder.read(transaction.messageBytes, 0);
     if (end !== transaction.messageBytes.length) throw new TxError("trailing bytes");
-    if (compiled.version !== "legacy" && compiled.version !== 0 && compiled.version !== 1) throw new TxError("unsupported version");
+    if (compiled.version !== "legacy" && compiled.version !== 0 && compiled.version !== 1)
+      throw new TxError("unsupported version");
     if ("addressTableLookups" in compiled && (compiled.addressTableLookups?.length ?? 0) > 0) {
       throw new TxError("address lookup tables");
     }

@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  HKDF_INFO,
-  HKDF_INFO_LABEL,
-  PRF_INPUT_LABEL,
-  PRF_SALT,
-} from "./constants.js";
+import { HKDF_INFO, HKDF_INFO_LABEL, PRF_INPUT_LABEL, PRF_SALT } from "./constants.js";
 import {
   aesGcmDecrypt,
   aesGcmEncrypt,
@@ -43,12 +38,7 @@ describe("crypto", () => {
     const iv = randomBytes(12);
     const seed = await generateEd25519Seed();
     const key = await deriveWrappingKey(prf, salt);
-    const ct = await aesGcmEncrypt(
-      key,
-      iv,
-      seed,
-      new TextEncoder().encode("aad-A"),
-    );
+    const ct = await aesGcmEncrypt(key, iv, seed, new TextEncoder().encode("aad-A"));
     await expect(
       aesGcmDecrypt(key, iv, ct, new TextEncoder().encode("aad-B")),
     ).rejects.toBeTruthy();

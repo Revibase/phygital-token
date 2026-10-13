@@ -30,18 +30,16 @@ export { PROTOCOL_VERSION };
  * necessary filter, not the authorization mechanism.
  */
 export const EXPECTED_PARENT_ORIGIN: string =
-  (import.meta.env?.VITE_PARENT_ORIGIN as string | undefined) ??
-  "http://localhost:5173";
+  (import.meta.env?.VITE_PARENT_ORIGIN as string | undefined) ?? "http://localhost:5173";
 
 /** WebAuthn RP ID shared with the app: create runs there, get + PRF here. */
 export const resolveRpId: (hostname: string, envRpId?: string) => string = resolveWebAuthnRpId;
 
 export const RP_ID: string = resolveRpId(
   typeof globalThis !== "undefined" && "location" in globalThis
-    ? (globalThis as { location?: { hostname: string } }).location?.hostname ??
-        "localhost"
+    ? ((globalThis as { location?: { hostname: string } }).location?.hostname ?? "localhost")
     : "localhost",
-  import.meta.env?.VITE_RP_ID as string | undefined
+  import.meta.env?.VITE_RP_ID as string | undefined,
 );
 
 // ---------------------------------------------------------------------------
@@ -61,8 +59,8 @@ export const PRF_INPUT_LABEL = "revibase.secure-signer:prf:v1" as const;
  * by a digest await (transient user activation).
  */
 export const PRF_SALT = Uint8Array.from([
-  218, 235, 16, 56, 95, 80, 198, 100, 233, 28, 45, 130, 158, 8, 91, 246, 222,
-  224, 30, 41, 103, 27, 154, 147, 96, 7, 161, 93, 110, 167, 118, 73,
+  218, 235, 16, 56, 95, 80, 198, 100, 233, 28, 45, 130, 158, 8, 91, 246, 222, 224, 30, 41, 103, 27,
+  154, 147, 96, 7, 161, 93, 110, 167, 118, 73,
 ]);
 /** HKDF-SHA256 `info` binding the derived key to this application + purpose. */
 export const HKDF_INFO_LABEL = "revibase.secure-signer:wrap:v1" as const;

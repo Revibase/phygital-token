@@ -28,17 +28,25 @@
 	{@const blocked = source.data}
 	<Notice
 		tone="info"
-		title={blocked.reason === 'accessory' ? 'Add SOL to the accessory wallet' : 'Add SOL to the owner’s account'}
+		title={blocked.reason === 'accessory'
+			? 'Add SOL to the accessory wallet'
+			: 'Add SOL to the owner’s account'}
 		body={blocked.reason === 'accessory'
 			? `This wallet needs a fee top-up. Send at least ${sol(blocked.neededLamports)} SOL to the accessory wallet to keep going.`
 			: `Send at least ${sol(blocked.neededLamports)} SOL to the owner’s account to pay the network fee.`}
 	>
-		{#snippet actions()}<Button variant="secondary" class="w-full" onclick={() => (receiveOpen = true)}>Receive SOL</Button>{/snippet}
+		{#snippet actions()}<Button
+				variant="secondary"
+				class="w-full"
+				onclick={() => (receiveOpen = true)}>Receive SOL</Button
+			>{/snippet}
 	</Notice>
 	<ReceiveSheet
 		bind:open={receiveOpen}
 		address={blocked.address}
 		cluster={page.data.cluster}
-		description={blocked.reason === 'accessory' ? 'Send SOL on Solana to the accessory wallet.' : 'Send SOL on Solana to the owner’s account.'}
+		description={blocked.reason === 'accessory'
+			? 'Send SOL on Solana to the accessory wallet.'
+			: 'Send SOL on Solana to the owner’s account.'}
 	/>
 {/if}

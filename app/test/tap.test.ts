@@ -49,9 +49,24 @@ describe('verifyDynamicUrlWithoutCounterCheck', () => {
 		const params = c.tap(7);
 		const sig = base64UrlToBytes(params.get('s')!);
 		sig[10] ^= 0x01;
-		expect(verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ ...Object.fromEntries(params), s: bytesToBase64Url(sig) })).isVerified).toBe(false);
-		expect(verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ ...Object.fromEntries(params), c: '8' })).isVerified).toBe(false);
-		expect(verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ ...Object.fromEntries(params), n: bytesToBase64Url(new Uint8Array(8)) })).isVerified).toBe(false);
+		expect(
+			verifyDynamicUrlWithoutCounterCheck(
+				new URLSearchParams({ ...Object.fromEntries(params), s: bytesToBase64Url(sig) })
+			).isVerified
+		).toBe(false);
+		expect(
+			verifyDynamicUrlWithoutCounterCheck(
+				new URLSearchParams({ ...Object.fromEntries(params), c: '8' })
+			).isVerified
+		).toBe(false);
+		expect(
+			verifyDynamicUrlWithoutCounterCheck(
+				new URLSearchParams({
+					...Object.fromEntries(params),
+					n: bytesToBase64Url(new Uint8Array(8))
+				})
+			).isVerified
+		).toBe(false);
 	});
 
 	it('canonicalizes padded identifiers so counters are keyed once per chip', () => {
@@ -75,7 +90,9 @@ describe('verifyDynamicUrlWithoutCounterCheck', () => {
 	});
 
 	it('throws on missing params', () => {
-		expect(() => verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ pk: 'x' }))).toThrow(/Missing/);
+		expect(() => verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ pk: 'x' }))).toThrow(
+			/Missing/
+		);
 	});
 });
 
@@ -93,7 +110,9 @@ describe('consumeTapCounter (shared high-water mark)', () => {
 
 	it('lets exactly one of many concurrent submissions of the same URL through', async () => {
 		const db = createTestD1([MIGRATIONS]);
-		const verdicts = await Promise.all(Array.from({ length: 20 }, () => consumeTapCounter(db, 'chip', 42)));
+		const verdicts = await Promise.all(
+			Array.from({ length: 20 }, () => consumeTapCounter(db, 'chip', 42))
+		);
 		expect(verdicts.filter((v) => v === 'new')).toHaveLength(1);
 	});
 });

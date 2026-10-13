@@ -23,7 +23,8 @@ export type SponsorEnv = {
 	minKeyLamports: bigint;
 };
 
-const bigintVar = (value: string | undefined, fallback: bigint) => (value && /^\d+$/.test(value) ? BigInt(value) : fallback);
+const bigintVar = (value: string | undefined, fallback: bigint) =>
+	value && /^\d+$/.test(value) ? BigInt(value) : fallback;
 
 export function getEnv(platform: App.Platform | undefined): ServerEnv {
 	const env = platform?.env;

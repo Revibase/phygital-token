@@ -27,13 +27,13 @@
 		"RP_ID": "revibase.com",
 		"SECURE_SIGNER_ORIGIN": "https://signer.revibase.com",
 		"SOLANA_CLUSTER": "mainnet",
-		"SOLANA_RPC_URL":"https://rpc.revibase.com",
+		"SOLANA_RPC_URL": "https://rpc.revibase.com",
 		// Prepaid network fees per accessory and the most the fee service signs for.
 		// SPONSOR_KEYS (the fee-payer pool) is a secret: `wrangler secret put SPONSOR_KEYS`.
 		"SPONSOR_PREPAID_LAMPORTS": "5000000",
 		"SPONSOR_MAX_CU_LIMIT": "400000",
 		"SPONSOR_MAX_CU_PRICE": "100000",
-		"SPONSOR_MIN_KEY_LAMPORTS": "50000000",
+		"SPONSOR_MIN_KEY_LAMPORTS": "50000000"
 	},
 	"observability": { "enabled": true }
 }

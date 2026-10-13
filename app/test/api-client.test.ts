@@ -4,8 +4,19 @@ import { ApiClientError, getJson, postJson } from '$lib/client/api';
 afterEach(() => vi.unstubAllGlobals());
 
 it('preserves server error codes so authentication can recover', async () => {
-	vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 'unauthenticated', error: 'Sign in again' }), { status: 401 })));
-	await expect(postJson('/api/owner/session')).rejects.toMatchObject({ status: 401, code: 'unauthenticated', message: 'Sign in again' });
+	vi.stubGlobal(
+		'fetch',
+		vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ code: 'unauthenticated', error: 'Sign in again' }), {
+				status: 401
+			})
+		)
+	);
+	await expect(postJson('/api/owner/session')).rejects.toMatchObject({
+		status: 401,
+		code: 'unauthenticated',
+		message: 'Sign in again'
+	});
 });
 
 it('reports connection failures consistently for reads and writes', async () => {
@@ -22,5 +33,10 @@ it('keeps reads uncached and writes authenticated with JSON', async () => {
 	await getJson('/api/read');
 	await postJson('/api/write', { value: 1 });
 	expect(fetch.mock.calls[0][1]).toMatchObject({ credentials: 'same-origin', cache: 'no-store' });
-	expect(fetch.mock.calls[1][1]).toMatchObject({ credentials: 'same-origin', method: 'POST', body: '{"value":1}', headers: { 'content-type': 'application/json' } });
+	expect(fetch.mock.calls[1][1]).toMatchObject({
+		credentials: 'same-origin',
+		method: 'POST',
+		body: '{"value":1}',
+		headers: { 'content-type': 'application/json' }
+	});
 });

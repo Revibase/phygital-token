@@ -8,6 +8,8 @@ type Env = { ASSETS: { fetch(request: Request): Promise<Response> } };
 
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
-    return new URL(request.url).pathname === VAULT_PATH ? handleVault(request) : env.ASSETS.fetch(request);
+    return new URL(request.url).pathname === VAULT_PATH
+      ? handleVault(request)
+      : env.ASSETS.fetch(request);
   },
 };

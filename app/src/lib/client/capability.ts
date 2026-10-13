@@ -13,7 +13,8 @@ export type Platform = 'ios' | 'android' | 'desktop';
 
 export function platform(): Platform {
 	const ua = navigator.userAgent;
-	if (/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
+	if (/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1))
+		return 'ios';
 	if (/Android/i.test(ua)) return 'android';
 	return 'desktop';
 }
@@ -24,7 +25,11 @@ export function isLikelyWalletBrowser(): boolean {
 }
 
 export function canTapHere(): boolean {
-	return typeof window !== 'undefined' && typeof window.PublicKeyCredential !== 'undefined' && !isLikelyWalletBrowser();
+	return (
+		typeof window !== 'undefined' &&
+		typeof window.PublicKeyCredential !== 'undefined' &&
+		!isLikelyWalletBrowser()
+	);
 }
 
 export function tapHint(p: Platform = platform()): string {

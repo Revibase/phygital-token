@@ -1,7 +1,4 @@
-import {
-  isSolanaError,
-  SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM,
-} from "@solana/kit";
+import { isSolanaError, SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM } from "@solana/kit";
 import {
   PHYGITAL_TOKEN_ERROR__DELEGATION_NOT_ALLOWED,
   PHYGITAL_TOKEN_ERROR__INSTRUCTION_NOT_ALLOWED,
@@ -38,20 +35,59 @@ export class PolicyDeniedError extends Error {
   }
 }
 
-const POLICY_SOFT_DENY_BY_CODE: ReadonlyMap<
-  number,
-  { code: string; message: string }
-> = new Map([
-  [ANCHOR_ACCOUNT_NOT_INITIALIZED, { code: "no_policy", message: "The owner has not set an accessory policy" }],
-  [PHYGITAL_TOKEN_ERROR__OWNER_REQUIRED, { code: "no_owner", message: "The accessory has no owner" }],
-  [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH, { code: "origin_not_allowed", message: "The owner only allows taps from other sites" }],
-  [PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED, { code: "spend_not_allowed", message: "No spend cap covers this SOL or token transfer" }],
-  [PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED, { code: "spend_limit", message: "Transfer exceeds the configured spending limit" }],
-  [PHYGITAL_TOKEN_ERROR__MAX_PER_TX_EXCEEDED, { code: "max_per_tx", message: "Transfer exceeds the configured max per transaction" }],
-  [PHYGITAL_TOKEN_ERROR__PROGRAM_NOT_ALLOWED, { code: "program_not_allowed", message: "Program is not allowed: the policy lists every program the accessory may call" }],
-  [PHYGITAL_TOKEN_ERROR__INSTRUCTION_NOT_ALLOWED, { code: "instruction_not_allowed", message: "Instruction does not satisfy the configured program rules" }],
-  [PHYGITAL_TOKEN_ERROR__DELEGATION_NOT_ALLOWED, { code: "delegation_not_allowed", message: "Accessory taps may not leave a delegate on a wallet token account" }],
-  [PHYGITAL_TOKEN_ERROR__TOKEN_AUTHORITY_CHANGED, { code: "token_authority_changed", message: "Accessory taps may not change who controls a wallet token account" }],
+const POLICY_SOFT_DENY_BY_CODE: ReadonlyMap<number, { code: string; message: string }> = new Map([
+  [
+    ANCHOR_ACCOUNT_NOT_INITIALIZED,
+    { code: "no_policy", message: "The owner has not set an accessory policy" },
+  ],
+  [
+    PHYGITAL_TOKEN_ERROR__OWNER_REQUIRED,
+    { code: "no_owner", message: "The accessory has no owner" },
+  ],
+  [
+    PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH,
+    { code: "origin_not_allowed", message: "The owner only allows taps from other sites" },
+  ],
+  [
+    PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED,
+    { code: "spend_not_allowed", message: "No spend cap covers this SOL or token transfer" },
+  ],
+  [
+    PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED,
+    { code: "spend_limit", message: "Transfer exceeds the configured spending limit" },
+  ],
+  [
+    PHYGITAL_TOKEN_ERROR__MAX_PER_TX_EXCEEDED,
+    { code: "max_per_tx", message: "Transfer exceeds the configured max per transaction" },
+  ],
+  [
+    PHYGITAL_TOKEN_ERROR__PROGRAM_NOT_ALLOWED,
+    {
+      code: "program_not_allowed",
+      message: "Program is not allowed: the policy lists every program the accessory may call",
+    },
+  ],
+  [
+    PHYGITAL_TOKEN_ERROR__INSTRUCTION_NOT_ALLOWED,
+    {
+      code: "instruction_not_allowed",
+      message: "Instruction does not satisfy the configured program rules",
+    },
+  ],
+  [
+    PHYGITAL_TOKEN_ERROR__DELEGATION_NOT_ALLOWED,
+    {
+      code: "delegation_not_allowed",
+      message: "Accessory taps may not leave a delegate on a wallet token account",
+    },
+  ],
+  [
+    PHYGITAL_TOKEN_ERROR__TOKEN_AUTHORITY_CHANGED,
+    {
+      code: "token_authority_changed",
+      message: "Accessory taps may not change who controls a wallet token account",
+    },
+  ],
 ]);
 
 /**
@@ -59,7 +95,7 @@ const POLICY_SOFT_DENY_BY_CODE: ReadonlyMap<
  * (`execute_with_owner` skips the policy). Anything else fails for the owner too.
  */
 export const POLICY_DENIAL_CODES: ReadonlySet<string> = new Set(
-  [...POLICY_SOFT_DENY_BY_CODE.values()].map((m) => m.code)
+  [...POLICY_SOFT_DENY_BY_CODE.values()].map((m) => m.code),
 );
 
 /**
@@ -67,7 +103,7 @@ export const POLICY_DENIAL_CODES: ReadonlySet<string> = new Set(
  * the innermost frame. `undefined` when the logs don't say.
  */
 export function failingProgramFromLogs(
-  logs: readonly string[] | null | undefined
+  logs: readonly string[] | null | undefined,
 ): string | undefined {
   for (const line of logs ?? []) {
     const match = /^Program (\S+) failed: /.exec(line);
@@ -78,7 +114,7 @@ export function failingProgramFromLogs(
 
 function programErrorCode(
   error: unknown,
-  logs: readonly string[] | null | undefined
+  logs: readonly string[] | null | undefined,
 ): number | null {
   if (!isSolanaError(error, SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM)) return null;
   const failing = failingProgramFromLogs(logs);
@@ -87,10 +123,7 @@ function programErrorCode(
 }
 
 /** `preview_execute` ended in `PreviewPassed`: a tap would be allowed. */
-export function isPreviewPassed(
-  error: unknown,
-  logs?: readonly string[] | null
-): boolean {
+export function isPreviewPassed(error: unknown, logs?: readonly string[] | null): boolean {
   return programErrorCode(error, logs) === PHYGITAL_TOKEN_ERROR__PREVIEW_PASSED;
 }
 
@@ -100,7 +133,7 @@ export function isPreviewPassed(
  */
 export function policyDeniedErrorFromSolanaError(
   error: unknown,
-  logs?: readonly string[] | null
+  logs?: readonly string[] | null,
 ): PolicyDeniedError | null {
   const code = programErrorCode(error, logs);
   const mapped = code === null ? undefined : POLICY_SOFT_DENY_BY_CODE.get(code);

@@ -22,9 +22,13 @@ import { getPhygitalWalletSigner } from 'phygital-token-sdk';
 const rpc = createSolanaRpc('https://localhost:5173/__e2e/rpc');
 const FEES = 'https://localhost:5173/api/sponsor';
 
-type Outcome = { ok: true; signature: string } | { ok: false; name: string; code?: string; message: string };
+type Outcome =
+	{ ok: true; signature: string } | { ok: false; name: string; code?: string; message: string };
 
-async function run(accessory: string, build: (wallet: Awaited<ReturnType<typeof getPhygitalWalletSigner>>) => Instruction[]): Promise<Outcome> {
+async function run(
+	accessory: string,
+	build: (wallet: Awaited<ReturnType<typeof getPhygitalWalletSigner>>) => Instruction[]
+): Promise<Outcome> {
 	try {
 		const wallet = await getPhygitalWalletSigner(rpc, address(accessory), { feeEndpoint: FEES });
 		const { value: lifetime } = await rpc.getLatestBlockhash().send();
@@ -35,25 +39,43 @@ async function run(accessory: string, build: (wallet: Awaited<ReturnType<typeof 
 			(m) => appendTransactionMessageInstructions(build(wallet), m)
 		);
 		const signed = await signTransactionMessageWithSigners(message);
-		const signature = await rpc.sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: 'base64', preflightCommitment: 'confirmed' }).send();
+		const signature = await rpc
+			.sendTransaction(getBase64EncodedWireTransaction(signed), {
+				encoding: 'base64',
+				preflightCommitment: 'confirmed'
+			})
+			.send();
 		for (let i = 0; i < 60; i++) {
 			const { value } = await rpc.getSignatureStatuses([signature]).send();
 			const status = value[0];
-			if (status?.err) return { ok: false, name: 'TransactionFailed', message: JSON.stringify(status.err) };
-			if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') return { ok: true, signature: getSignatureFromTransaction(signed) };
+			if (status?.err)
+				return { ok: false, name: 'TransactionFailed', message: JSON.stringify(status.err) };
+			if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized')
+				return { ok: true, signature: getSignatureFromTransaction(signed) };
 			await new Promise((r) => setTimeout(r, 500));
 		}
 		return { ok: false, name: 'Timeout', message: 'not confirmed' };
 	} catch (e) {
 		const err = e as { name?: string; code?: string; message?: string };
-		return { ok: false, name: err.name ?? 'Error', code: err.code, message: err.message ?? String(e) };
+		return {
+			ok: false,
+			name: err.name ?? 'Error',
+			code: err.code,
+			message: err.message ?? String(e)
+		};
 	}
 }
 
 (window as unknown as { dapp: unknown }).dapp = {
 	/** Pays `lamports` from the accessory wallet to `recipient`. */
 	pay: (accessory: string, recipient: string, lamports: string) =>
-		run(accessory, (wallet) => [getTransferSolInstruction({ source: wallet, destination: address(recipient), amount: BigInt(lamports) })]),
+		run(accessory, (wallet) => [
+			getTransferSolInstruction({
+				source: wallet,
+				destination: address(recipient),
+				amount: BigInt(lamports)
+			})
+		]),
 	/** Asks the accessory to call a program the owner never allowed (Memo). */
 	memo: (accessory: string) =>
 		run(accessory, (wallet) => [

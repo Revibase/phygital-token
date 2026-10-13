@@ -5,7 +5,12 @@
  * 3. when those run low, the same transaction refills them from the accessory wallet;
  * 4. if the accessory wallet can't, the user is asked to add SOL to it.
  */
-import { AccessoryWalletTopUpRequired, canSpendLamports, planFee, topUpNeeded } from 'phygital-token-sdk';
+import {
+	AccessoryWalletTopUpRequired,
+	canSpendLamports,
+	planFee,
+	topUpNeeded
+} from 'phygital-token-sdk';
 import type { Address } from '@solana/kit';
 
 /** The owner's wallet can't pay, and the prepaid route needs a wallet that signs without sending. */
@@ -37,19 +42,29 @@ export type PayerInput = {
 };
 
 export function choosePayer(input: PayerInput): PayerChoice {
-	if (!input.refillNow && canSpendLamports(input.ownerLamports, input.ownerCost)) return { kind: 'owner' };
-	if (!input.signOnly || !input.prepaid) throw new OwnerWalletNeedsSol(topUpNeeded(input.ownerLamports, input.ownerCost));
+	if (!input.refillNow && canSpendLamports(input.ownerLamports, input.ownerCost))
+		return { kind: 'owner' };
+	if (!input.signOnly || !input.prepaid)
+		throw new OwnerWalletNeedsSol(topUpNeeded(input.ownerLamports, input.ownerCost));
 	const { balanceLamports: balance, prepaidLamports: prepaid } = input.prepaid;
 	const refill = input.refillNow
 		? (prepaid > balance ? prepaid - balance : 0n) + input.sponsoredCost
 		: planFee({ balance, prepaid, cost: input.sponsoredCost }).refill;
-	if (refill > 0n && !canSpendLamports(input.walletLamports, refill) && !(input.drainsWallet && input.walletLamports > refill)) {
+	if (
+		refill > 0n &&
+		!canSpendLamports(input.walletLamports, refill) &&
+		!(input.drainsWallet && input.walletLamports > refill)
+	) {
 		throw new AccessoryWalletTopUpRequired(input.wallet, topUpNeeded(input.walletLamports, refill));
 	}
 	return { kind: 'free', refill };
 }
 
-export type FeeSource = { kind: 'owner' } | { kind: 'free' } | { kind: 'refill'; lamports: bigint } | { kind: 'blocked'; reason: 'owner' | 'accessory'; neededLamports: bigint; address: Address };
+export type FeeSource =
+	| { kind: 'owner' }
+	| { kind: 'free' }
+	| { kind: 'refill'; lamports: bigint }
+	| { kind: 'blocked'; reason: 'owner' | 'accessory'; neededLamports: bigint; address: Address };
 
 /** The line shown before approving; the real choice is made with the exact cost when the user approves. */
 export function previewFeeSource(input: PayerInput & { owner: Address }): FeeSource {
@@ -58,8 +73,20 @@ export function previewFeeSource(input: PayerInput & { owner: Address }): FeeSou
 		if (choice.kind === 'owner') return { kind: 'owner' };
 		return choice.refill > 0n ? { kind: 'refill', lamports: choice.refill } : { kind: 'free' };
 	} catch (err) {
-		if (err instanceof AccessoryWalletTopUpRequired) return { kind: 'blocked', reason: 'accessory', neededLamports: err.neededLamports, address: err.wallet };
-		if (err instanceof OwnerWalletNeedsSol) return { kind: 'blocked', reason: 'owner', neededLamports: err.neededLamports, address: input.owner };
+		if (err instanceof AccessoryWalletTopUpRequired)
+			return {
+				kind: 'blocked',
+				reason: 'accessory',
+				neededLamports: err.neededLamports,
+				address: err.wallet
+			};
+		if (err instanceof OwnerWalletNeedsSol)
+			return {
+				kind: 'blocked',
+				reason: 'owner',
+				neededLamports: err.neededLamports,
+				address: input.owner
+			};
 		throw err;
 	}
 }

@@ -122,9 +122,7 @@ describe("validateInbound", () => {
   });
 
   it("accepts EXPORT_PRIVATE_KEY", () => {
-    expect(validateInbound({ ...base, type: "EXPORT_PRIVATE_KEY" }).ok).toBe(
-      true,
-    );
+    expect(validateInbound({ ...base, type: "EXPORT_PRIVATE_KEY" }).ok).toBe(true);
   });
 });
 
@@ -143,12 +141,19 @@ describe("validateInbound hardening (mutation-driven)", () => {
       code: "UNSUPPORTED_PROTOCOL",
       requestId: rid,
     });
-    expect(validateInbound({ ...base, type: "NOPE" })).toEqual({ ok: false, code: "INVALID_MESSAGE", requestId: rid });
+    expect(validateInbound({ ...base, type: "NOPE" })).toEqual({
+      ok: false,
+      code: "INVALID_MESSAGE",
+      requestId: rid,
+    });
   });
 
-  it.each([Infinity, -Infinity, NaN, "1", null])("rejects a non-finite or non-number timestamp (%s)", (timestamp) => {
-    expect(validateInbound({ ...base, timestamp, type: "EXPORT_PRIVATE_KEY" }).ok).toBe(false);
-  });
+  it.each([Infinity, -Infinity, NaN, "1", null])(
+    "rejects a non-finite or non-number timestamp (%s)",
+    (timestamp) => {
+      expect(validateInbound({ ...base, timestamp, type: "EXPORT_PRIVATE_KEY" }).ok).toBe(false);
+    },
+  );
 
   it.each([
     ["authMode", { authMode: "bogus" }],
@@ -159,22 +164,46 @@ describe("validateInbound hardening (mutation-driven)", () => {
     ["webauthnAttestationObject (non-string)", { webauthnAttestationObject: {} }],
     ["webauthnAttestationObject (too long)", { webauthnAttestationObject: "a".repeat(2_000) }],
   ])("rejects AUTH_START with an invalid %s", (_, fields) => {
-    expect(validateInbound({ ...base, type: "AUTH_START", ...fields })).toMatchObject({ ok: false, code: "INVALID_MESSAGE" });
+    expect(validateInbound({ ...base, type: "AUTH_START", ...fields })).toMatchObject({
+      ok: false,
+      code: "INVALID_MESSAGE",
+    });
   });
 
   it("normalizes AUTH_START to exactly the fields supplied", () => {
-    const r = validateInbound({ ...base, type: "AUTH_START", authMode: "create", credentialId: "Y3JlZA", webauthnAttestationObject: "YXR0" });
+    const r = validateInbound({
+      ...base,
+      type: "AUTH_START",
+      authMode: "create",
+      credentialId: "Y3JlZA",
+      webauthnAttestationObject: "YXR0",
+    });
     expect(r).toEqual({
       ok: true,
-      request: { ...base, type: "AUTH_START", authMode: "create", credentialId: "Y3JlZA", webauthnAttestationObject: "YXR0" },
+      request: {
+        ...base,
+        type: "AUTH_START",
+        authMode: "create",
+        credentialId: "Y3JlZA",
+        webauthnAttestationObject: "YXR0",
+      },
     });
     const bare = validateInbound({ ...base, type: "AUTH_START" });
-    expect(bare.ok && Object.keys(bare.request).sort()).toEqual(["protocolVersion", "requestId", "timestamp", "type"]);
+    expect(bare.ok && Object.keys(bare.request).sort()).toEqual([
+      "protocolVersion",
+      "requestId",
+      "timestamp",
+      "type",
+    ]);
   });
 
   it("accepts a transaction string at the size cap and rejects one byte over", () => {
     const cap = Math.ceil((4096 * 4) / 3) + 4;
-    expect(validateInbound({ ...base, type: "SIGN_TRANSACTION", transaction: "A".repeat(cap) }).ok).toBe(true);
-    expect(validateInbound({ ...base, type: "SIGN_TRANSACTION", transaction: "A".repeat(cap + 1) }).ok).toBe(false);
+    expect(
+      validateInbound({ ...base, type: "SIGN_TRANSACTION", transaction: "A".repeat(cap) }).ok,
+    ).toBe(true);
+    expect(
+      validateInbound({ ...base, type: "SIGN_TRANSACTION", transaction: "A".repeat(cap + 1) }).ok,
+    ).toBe(false);
   });
 });

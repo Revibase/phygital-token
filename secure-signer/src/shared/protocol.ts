@@ -55,7 +55,12 @@ export type SignerErrorCode = (typeof SIGNER_ERROR_CODES)[number];
 export const HOST_ERROR_CODES = ["TIMEOUT", "SIGNER_UNAVAILABLE"] as const;
 export type HostErrorCode = (typeof HOST_ERROR_CODES)[number];
 
-export const REQUEST_TYPES = ["SIGN_TRANSACTION", "SIGN_MESSAGE", "EXPORT_PRIVATE_KEY", "AUTH_START"] as const;
+export const REQUEST_TYPES = [
+  "SIGN_TRANSACTION",
+  "SIGN_MESSAGE",
+  "EXPORT_PRIVATE_KEY",
+  "AUTH_START",
+] as const;
 export type RequestType = (typeof REQUEST_TYPES)[number];
 
 /** The result message type answering each request type. */

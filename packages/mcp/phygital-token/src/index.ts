@@ -103,12 +103,10 @@ function registerTools(server: McpServer) {
         "Pick the right SDK auth path (off-chain tap, transfer, or on-chain verify). Omit useCase to get the decision tree and all use cases.",
       inputSchema: {
         useCase: z
-          .enum([
-            "login_ui_only",
-            "set_owner",
-            "lookup_after_tap",
-            "onchain_cpi_verify",
-          ] as [VerificationUseCase, ...VerificationUseCase[]])
+          .enum(["login_ui_only", "set_owner", "lookup_after_tap", "onchain_cpi_verify"] as [
+            VerificationUseCase,
+            ...VerificationUseCase[],
+          ])
           .optional()
           .describe("Omit to list all use cases with the decision tree."),
       },
@@ -193,8 +191,7 @@ function registerTools(server: McpServer) {
   server.registerTool(
     "plan_set_mint",
     {
-      description:
-        "Deprecated alias of plan_assign_mint (assign_mint / getAssignMintInstruction).",
+      description: "Deprecated alias of plan_assign_mint (assign_mint / getAssignMintInstruction).",
       inputSchema: {
         secp256r1PublicKey: z
           .string()
@@ -240,9 +237,7 @@ function registerTools(server: McpServer) {
         secp256r1PublicKey: z
           .string()
           .optional()
-          .describe(
-            "Optional base64url passkey public key — when set, derives token PDA offline",
-          ),
+          .describe("Optional base64url passkey public key — when set, derives token PDA offline"),
       },
       annotations: { title: "Plan verify", ...READ_ONLY },
     },
@@ -264,11 +259,7 @@ function registerTools(server: McpServer) {
         secp256r1PublicKey: z
           .string()
           .describe("Base64url passkey public key used as the token PDA seed"),
-        owner: z
-          .string()
-          .describe(
-            "Current owner — must match phygital_token.owner on-chain",
-          ),
+        owner: z.string().describe("Current owner — must match phygital_token.owner on-chain"),
       },
       annotations: { title: "Plan remove_owner", ...READ_ONLY },
     },

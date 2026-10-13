@@ -12,7 +12,13 @@ import { VirtualAuthenticator, navigatorFor } from "./kit/index.js";
 import { vi } from "vitest";
 
 import { base64ToBytes, bytesToBase64 } from "../encoding.js";
-import { createSignerHarness, PARENT_ORIGIN, RP_ID, SIGNER_ORIGIN, type SignerHarness } from "./harness.js";
+import {
+  createSignerHarness,
+  PARENT_ORIGIN,
+  RP_ID,
+  SIGNER_ORIGIN,
+  type SignerHarness,
+} from "./harness.js";
 
 export interface TestWallet {
   /** The wallet's ed25519 public key. */
@@ -42,15 +48,22 @@ export async function createTestWallet(seed: string): Promise<TestWallet> {
   const created = await signer.request("AUTH_START", {
     authMode: "create",
     credentialId: bytesToBase64(new Uint8Array(cred.rawId), "url"),
-    webauthnAttestationObject: bytesToBase64(new Uint8Array(cred.response.attestationObject), "url"),
+    webauthnAttestationObject: bytesToBase64(
+      new Uint8Array(cred.response.attestationObject),
+      "url",
+    ),
   });
-  if (created["type"] !== "AUTH_COMPLETE") throw new Error(`wallet create failed: ${JSON.stringify(created)}`);
+  if (created["type"] !== "AUTH_COMPLETE")
+    throw new Error(`wallet create failed: ${JSON.stringify(created)}`);
   const address = String(created["publicKey"]) as Address;
 
   async function signRaw(tx: Uint8Array) {
     const res = await signer.request("SIGN_TRANSACTION", { transaction: bytesToBase64(tx, "std") });
     if (res["type"] === "ERROR") throw new Error(String(res["code"]));
-    return { signature: base64ToBytes(String(res["signature"]), 64, "std"), publicKey: String(res["publicKey"]) };
+    return {
+      signature: base64ToBytes(String(res["signature"]), 64, "std"),
+      publicKey: String(res["publicKey"]),
+    };
   }
   return { address, signer, va, signRaw };
 }

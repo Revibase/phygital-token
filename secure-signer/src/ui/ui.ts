@@ -82,9 +82,7 @@ let lastReportedHeight = -1;
 let liveFamily: SheetFamily = "ceremony";
 let liveSetBusy: ((message: string | null) => void) | null = null;
 
-export function setLayoutReporter(
-  fn: ((height: number) => void) | null,
-): void {
+export function setLayoutReporter(fn: ((height: number) => void) | null): void {
   layoutReporter = fn;
 }
 
@@ -92,9 +90,7 @@ function contentHeight(): number {
   const sheet = app().querySelector(".sheet") as HTMLElement | null;
   if (!sheet) return 0;
   const sheetStyles = getComputedStyle(sheet);
-  let h =
-    (parseFloat(sheetStyles.paddingTop) || 0) +
-    (parseFloat(sheetStyles.paddingBottom) || 0);
+  let h = (parseFloat(sheetStyles.paddingTop) || 0) + (parseFloat(sheetStyles.paddingBottom) || 0);
   for (const child of Array.from(sheet.children) as HTMLElement[]) {
     const cs = getComputedStyle(child);
     h += (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
@@ -107,8 +103,7 @@ function contentHeight(): number {
 
 function reportLayout(): void {
   if (!layoutReporter) return;
-  const h =
-    liveFamily === "ceremony" ? CEREMONY_HEIGHT : Math.max(contentHeight(), 1);
+  const h = liveFamily === "ceremony" ? CEREMONY_HEIGHT : Math.max(contentHeight(), 1);
   if (h === lastReportedHeight) return;
   lastReportedHeight = h;
   layoutReporter(h);
@@ -220,9 +215,7 @@ function mountSheet(
 
   liveSetBusy = (message) => {
     const intros = body.querySelectorAll("p.muted:not(.sheet-busy-copy)");
-    const primaries = sheet.querySelectorAll<HTMLButtonElement>(
-      ".btn-primary, .btn-danger",
-    );
+    const primaries = sheet.querySelectorAll<HTMLButtonElement>(".btn-primary, .btn-danger");
     if (!message) {
       sheet.classList.remove("is-busy");
       busyCopy.hidden = true;
@@ -268,9 +261,7 @@ function promptChoice<T>(args: {
       resolve(v);
     };
     const actions: Node[] = [
-      button(args.primary.label, args.primary.variant ?? "primary", () =>
-        done(args.primary.value),
-      ),
+      button(args.primary.label, args.primary.variant ?? "primary", () => done(args.primary.value)),
     ];
     if (args.secondary) {
       actions.push(
@@ -313,9 +304,7 @@ function promptChoiceWithGesture<T>(args: {
     ];
     if (args.secondaryLabel) {
       actions.push(
-        button(args.secondaryLabel, "ghost", () =>
-          requestDismiss(() => done({ ok: false })),
-        ),
+        button(args.secondaryLabel, "ghost", () => requestDismiss(() => done({ ok: false }))),
       );
     }
     const opts: DismissOpts = {
@@ -348,12 +337,9 @@ export function setCeremonyBusy(message: string | null): void {
     return;
   }
   if (!message) return;
-  confirmScreen(
-    "Waiting",
-    [el("p", { class: "muted", text: message })],
-    [],
-    { family: "ceremony" },
-  );
+  confirmScreen("Waiting", [el("p", { class: "muted", text: message })], [], {
+    family: "ceremony",
+  });
 }
 
 export function confirmImport<T>(onConfirm: () => T): Promise<GestureStart<T>> {
@@ -371,9 +357,7 @@ export function confirmImport<T>(onConfirm: () => T): Promise<GestureStart<T>> {
   });
 }
 
-export function confirmFinishCreate<T>(
-  onConfirm: () => T,
-): Promise<GestureStart<T>> {
+export function confirmFinishCreate<T>(onConfirm: () => T): Promise<GestureStart<T>> {
   return promptChoiceWithGesture({
     title: "Confirm on this phone",
     kicker: "Step 2 of 2 · This phone",
@@ -461,7 +445,8 @@ export function confirmSignTransaction<T>(
     if (model.callout) {
       body.push(
         el("div", {
-          class: model.callout.tone === "danger" ? "callout callout-danger" : "callout callout-warn",
+          class:
+            model.callout.tone === "danger" ? "callout callout-danger" : "callout callout-warn",
           text: model.callout.text,
         }),
       );
@@ -473,9 +458,7 @@ export function confirmSignTransaction<T>(
     const advancedGroup = group("kv", model.details);
     if (advancedGroup) {
       const details = el("details", { class: "tx-details" });
-      details.appendChild(
-        el("summary", { class: "tx-details-summary", text: "Details" }),
-      );
+      details.appendChild(el("summary", { class: "tx-details-summary", text: "Details" }));
       details.appendChild(advancedGroup);
       body.push(details);
     }
@@ -490,9 +473,7 @@ export function confirmSignTransaction<T>(
         button(ctaLabel, ctaVariant, () => {
           done({ ok: true, started: onConfirm() });
         }),
-        button("Cancel", "ghost", () =>
-          requestDismiss(() => done({ ok: false })),
-        ),
+        button("Cancel", "ghost", () => requestDismiss(() => done({ ok: false }))),
       ],
       {
         dismissible: true,
@@ -513,7 +494,10 @@ export function confirmSignMessage<T>(
   return promptChoiceWithGesture({
     title: `Sign in to ${site}`,
     body: [
-      el("p", { class: "muted", text: "This only proves you own this wallet. It can’t move funds." }),
+      el("p", {
+        class: "muted",
+        text: "This only proves you own this wallet. It can’t move funds.",
+      }),
       message,
     ],
     primaryLabel: "Sign in",
@@ -523,9 +507,7 @@ export function confirmSignMessage<T>(
   });
 }
 
-export function confirmExportPrivateKey<T>(
-  onConfirm: () => T,
-): Promise<GestureStart<T>> {
+export function confirmExportPrivateKey<T>(onConfirm: () => T): Promise<GestureStart<T>> {
   return promptChoiceWithGesture({
     title: "Export private key",
     body: [
@@ -546,10 +528,7 @@ export function confirmExportPrivateKey<T>(
   });
 }
 
-export function showExportedSecret(
-  secretBase58: string,
-  publicKey: string,
-): Promise<void> {
+export function showExportedSecret(secretBase58: string, publicKey: string): Promise<void> {
   return new Promise((resolve) => {
     let clipboardTimer: number | null = null;
     let revealed = false;
@@ -627,10 +606,7 @@ export function showExportedSecret(
             el("span", { class: "kv-label", text: "Wallet" }),
             addressEl,
           ]),
-          el("div", { class: "kv-row kv-row-stack" }, [
-            secretHead,
-            secretValue,
-          ]),
+          el("div", { class: "kv-row kv-row-stack" }, [secretHead, secretValue]),
         ]),
       ],
       [copyBtn, button("Done", "ghost", () => requestDismiss(done))],

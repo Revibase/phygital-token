@@ -7,10 +7,8 @@
  * "fixing" them (a lenient decoder is a source of parser differentials, §39).
  */
 
-const B64_STD =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-const B64_URL =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const B64_STD = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const B64_URL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 function buildLookup(alphabet: string): Int16Array {
   const table = new Int16Array(128).fill(-1);
@@ -33,7 +31,7 @@ export class DecodeError extends Error {}
 export function base64ToBytes(
   input: string,
   maxBytes: number,
-  variant: "std" | "url" = "std"
+  variant: "std" | "url" = "std",
 ): Uint8Array {
   if (typeof input !== "string") throw new DecodeError("not a string");
   // Strip a single run of trailing '=' padding (0-2). Reject padding elsewhere.
@@ -74,10 +72,7 @@ export function base64ToBytes(
   return Uint8Array.from(out);
 }
 
-export function bytesToBase64(
-  bytes: Uint8Array,
-  variant: "std" | "url" = "std"
-): string {
+export function bytesToBase64(bytes: Uint8Array, variant: "std" | "url" = "std"): string {
   const alphabet = variant === "url" ? B64_URL : B64_STD;
   let out = "";
   let i = 0;
@@ -96,10 +91,7 @@ export function bytesToBase64(
     if (variant === "std") out += "==";
   } else if (rem === 2) {
     const n = (bytes[i]! << 16) | (bytes[i + 1]! << 8);
-    out +=
-      alphabet[(n >> 18) & 63]! +
-      alphabet[(n >> 12) & 63]! +
-      alphabet[(n >> 6) & 63]!;
+    out += alphabet[(n >> 18) & 63]! + alphabet[(n >> 12) & 63]! + alphabet[(n >> 6) & 63]!;
     if (variant === "std") out += "=";
   }
   return out;

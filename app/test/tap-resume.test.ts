@@ -12,7 +12,9 @@ const RP_ID = 'revibase.test';
 const b64url = (b: ArrayBuffer) => bytesToBase64Url(new Uint8Array(b));
 
 /** No accessory is registered: a tap that passes verification reaches the lookup and stops there. */
-const rpc = { getAccountInfo: () => ({ send: async () => ({ value: null }) }) } as unknown as Rpc<SolanaRpcApi>;
+const rpc = {
+	getAccountInfo: () => ({ send: async () => ({ value: null }) })
+} as unknown as Rpc<SolanaRpcApi>;
 
 async function tap(tamper?: Tamper) {
 	const db = createTestD1([MIGRATIONS]);
@@ -21,7 +23,13 @@ async function tap(tamper?: Tamper) {
 	const { challengeId, message } = await issueResumeChallenge(db);
 	if (tamper) va.tamperNext(tamper);
 	const cred = await va.get(
-		{ publicKey: { challenge: new TextEncoder().encode(message), rpId: RP_ID, allowCredentials: [{ type: 'public-key', id: new Uint8Array(33), transports: ['nfc'] }] } },
+		{
+			publicKey: {
+				challenge: new TextEncoder().encode(message),
+				rpId: RP_ID,
+				allowCredentials: [{ type: 'public-key', id: new Uint8Array(33), transports: ['nfc'] }]
+			}
+		},
 		{ origin: APP }
 	);
 	const response = {

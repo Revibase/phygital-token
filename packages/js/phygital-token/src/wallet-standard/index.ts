@@ -1,7 +1,4 @@
-export {
-  registerPhygitalWallet,
-  type PhygitalWalletOptions,
-} from "./register.js";
+export { registerPhygitalWallet, type PhygitalWalletOptions } from "./register.js";
 export {
   getRevibaseAccessorySession,
   RevibaseAccessory,

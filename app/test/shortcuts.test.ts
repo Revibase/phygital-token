@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { resolveShortcuts, shortcutsFileUrl, shortcutsFor, shortcutDestination, MAX_SHORTCUTS, type ShortcutContext } from '$lib/shared/shortcuts';
+import {
+	resolveShortcuts,
+	shortcutsFileUrl,
+	shortcutsFor,
+	shortcutDestination,
+	MAX_SHORTCUTS,
+	type ShortcutContext
+} from '$lib/shared/shortcuts';
 import { fetchShortcutsFile, loadShortcuts } from '$lib/server/accessory/shortcuts';
 import type { AccessoryView } from '$lib/shared/types';
 
@@ -8,14 +15,22 @@ const MINT = 'So11111111111111111111111111111111111111112';
 const COLLECTION = 'J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w';
 const OWNER = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 
-const ctx: ShortcutContext = { externalUrl: 'https://game.xyz', tokenId: MINT, collectionId: COLLECTION, ownerAddress: OWNER };
-const one = (shortcut: Record<string, unknown>, c: ShortcutContext = ctx) => resolveShortcuts({ version: 2, shortcuts: [shortcut] }, c);
+const ctx: ShortcutContext = {
+	externalUrl: 'https://game.xyz',
+	tokenId: MINT,
+	collectionId: COLLECTION,
+	ownerAddress: OWNER
+};
+const one = (shortcut: Record<string, unknown>, c: ShortcutContext = ctx) =>
+	resolveShortcuts({ version: 2, shortcuts: [shortcut] }, c);
 
 describe('shortcutsFileUrl', () => {
 	it('appends /shortcuts.json to the external_url, keeping its path', () => {
 		expect(shortcutsFileUrl('https://game.xyz')).toBe('https://game.xyz/shortcuts.json');
 		expect(shortcutsFileUrl('https://game.xyz/')).toBe('https://game.xyz/shortcuts.json');
-		expect(shortcutsFileUrl('https://game.xyz/season-1/?ref=x#top')).toBe('https://game.xyz/season-1/shortcuts.json');
+		expect(shortcutsFileUrl('https://game.xyz/season-1/?ref=x#top')).toBe(
+			'https://game.xyz/season-1/shortcuts.json'
+		);
 	});
 
 	it('refuses anything but plain https', () => {
@@ -30,18 +45,38 @@ describe('shortcutsFileUrl', () => {
 describe('resolveShortcuts (Phantom shortcuts.json)', () => {
 	it('reads a Phantom file unchanged, with defaults', () => {
 		expect(one({ label: 'Stake', uri: 'https://game.xyz/stake', icon: 'stake' })).toEqual([
-			{ label: 'Stake', href: 'https://game.xyz/stake', icon: 'stake', image: null, external: false, platform: 'all' }
+			{
+				label: 'Stake',
+				href: 'https://game.xyz/stake',
+				icon: 'stake',
+				image: null,
+				external: false,
+				platform: 'all'
+			}
 		]);
 	});
 
 	it('fills the three placeholders from the mint, collection and owner', () => {
-		const [s] = one({ label: 'Play', uri: 'https://game.xyz/play/{{tokenId}}?c={{collectionId}}&o={{ ownerAddress }}' });
+		const [s] = one({
+			label: 'Play',
+			uri: 'https://game.xyz/play/{{tokenId}}?c={{collectionId}}&o={{ ownerAddress }}'
+		});
 		expect(s.href).toBe(`https://game.xyz/play/${MINT}?c=${COLLECTION}&o=${OWNER}`);
 	});
 
 	it('drops a shortcut whose placeholder has no value, or is unknown', () => {
-		expect(one({ label: 'Stake', uri: 'https://game.xyz/{{ownerAddress}}' }, { ...ctx, ownerAddress: null })).toEqual([]);
-		expect(one({ label: 'Stake', uri: 'https://game.xyz/{{collectionId}}' }, { ...ctx, collectionId: null })).toEqual([]);
+		expect(
+			one(
+				{ label: 'Stake', uri: 'https://game.xyz/{{ownerAddress}}' },
+				{ ...ctx, ownerAddress: null }
+			)
+		).toEqual([]);
+		expect(
+			one(
+				{ label: 'Stake', uri: 'https://game.xyz/{{collectionId}}' },
+				{ ...ctx, collectionId: null }
+			)
+		).toEqual([]);
 		expect(one({ label: 'Stake', uri: 'https://game.xyz/{{secret}}' })).toEqual([]);
 	});
 
@@ -49,7 +84,10 @@ describe('resolveShortcuts (Phantom shortcuts.json)', () => {
 		expect(one({ label: 'App', uri: 'https://app.game.xyz/stake' })).toHaveLength(1);
 		expect(one({ label: 'Evil', uri: 'https://evil.test/stake' })).toEqual([]);
 		expect(one({ label: 'Evil', uri: 'https://game.xyz.evil.test/stake' })).toEqual([]);
-		expect(one({ label: 'Chat', uri: 'https://discord.gg/game', prefersExternalTarget: true })[0].external).toBe(true);
+		expect(
+			one({ label: 'Chat', uri: 'https://discord.gg/game', prefersExternalTarget: true })[0]
+				.external
+		).toBe(true);
 	});
 
 	it('allows https and, for external shortcuts only, Solana Pay', () => {
@@ -57,36 +95,71 @@ describe('resolveShortcuts (Phantom shortcuts.json)', () => {
 		expect(one({ label: 'Tip', uri: pay, prefersExternalTarget: true })[0].href).toBe(pay);
 		expect(one({ label: 'Tip', uri: pay })).toEqual([]);
 		expect(one({ label: 'Http', uri: 'http://game.xyz/x' })).toEqual([]);
-		expect(one({ label: 'Js', uri: 'javascript:alert(1)', prefersExternalTarget: true })).toEqual([]);
+		expect(one({ label: 'Js', uri: 'javascript:alert(1)', prefersExternalTarget: true })).toEqual(
+			[]
+		);
 		expect(one({ label: 'Creds', uri: 'https://a:b@game.xyz/x' })).toEqual([]);
 	});
 
 	it('honours type, platform and limitToCollections', () => {
 		expect(one({ label: 'Swap', uri: 'https://game.xyz', type: 'fungible' })).toEqual([]);
-		expect(one({ label: 'Play', uri: 'https://game.xyz', platform: 'mobile' })[0].platform).toBe('mobile');
+		expect(one({ label: 'Play', uri: 'https://game.xyz', platform: 'mobile' })[0].platform).toBe(
+			'mobile'
+		);
 		expect(one({ label: 'Play', uri: 'https://game.xyz', platform: 'watch' })).toEqual([]);
-		expect(one({ label: 'Mine', uri: 'https://game.xyz', limitToCollections: [COLLECTION] })).toHaveLength(1);
-		expect(one({ label: 'Other', uri: 'https://game.xyz', limitToCollections: [MINT] })).toEqual([]);
-		expect(one({ label: 'Other', uri: 'https://game.xyz', limitToCollections: [COLLECTION] }, { ...ctx, collectionId: null })).toEqual([]);
+		expect(
+			one({ label: 'Mine', uri: 'https://game.xyz', limitToCollections: [COLLECTION] })
+		).toHaveLength(1);
+		expect(one({ label: 'Other', uri: 'https://game.xyz', limitToCollections: [MINT] })).toEqual(
+			[]
+		);
+		expect(
+			one(
+				{ label: 'Other', uri: 'https://game.xyz', limitToCollections: [COLLECTION] },
+				{ ...ctx, collectionId: null }
+			)
+		).toEqual([]);
 	});
 
 	it('takes an https image link as the icon, with a glyph to fall back on', () => {
-		const [s] = one({ label: 'Play', uri: 'https://game.xyz', icon: 'https://cdn.game.xyz/icons/play.webp' });
-		expect(s).toMatchObject({ icon: 'generic-link', image: 'https://cdn.game.xyz/icons/play.webp' });
+		const [s] = one({
+			label: 'Play',
+			uri: 'https://game.xyz',
+			icon: 'https://cdn.game.xyz/icons/play.webp'
+		});
+		expect(s).toMatchObject({
+			icon: 'generic-link',
+			image: 'https://cdn.game.xyz/icons/play.webp'
+		});
 		expect(one({ label: 'Play', uri: 'https://game.xyz', icon: 'gaming' })[0].image).toBeNull();
-		for (const bad of ['http://game.xyz/i.png', 'data:image/png;base64,AAAA', 'https://u:p@game.xyz/i.png', 'rocket']) {
-			expect(one({ label: 'Play', uri: 'https://game.xyz', icon: bad })[0]).toMatchObject({ icon: 'generic-link', image: null });
+		for (const bad of [
+			'http://game.xyz/i.png',
+			'data:image/png;base64,AAAA',
+			'https://u:p@game.xyz/i.png',
+			'rocket'
+		]) {
+			expect(one({ label: 'Play', uri: 'https://game.xyz', icon: bad })[0]).toMatchObject({
+				icon: 'generic-link',
+				image: null
+			});
 		}
 	});
 
 	it('reads immerse preferences without changing the link', () => {
-		expect(one({ label: 'Play', uri: 'https://game.xyz/play', preferredPresentation: 'immerse' })[0].href).toBe('https://game.xyz/play');
+		expect(
+			one({ label: 'Play', uri: 'https://game.xyz/play', preferredPresentation: 'immerse' })[0].href
+		).toBe('https://game.xyz/play');
 	});
 
 	it('falls back to a generic icon, clips labels, skips bad entries and caps the list', () => {
-		expect(one({ label: 'Go', uri: 'https://game.xyz', icon: 'rocket' })[0].icon).toBe('generic-link');
+		expect(one({ label: 'Go', uri: 'https://game.xyz', icon: 'rocket' })[0].icon).toBe(
+			'generic-link'
+		);
 		expect(one({ label: 'x'.repeat(80), uri: 'https://game.xyz' })[0].label).toHaveLength(32);
-		const many = Array.from({ length: 12 }, (_, i) => ({ label: `S${i}`, uri: `https://game.xyz/${i}` }));
+		const many = Array.from({ length: 12 }, (_, i) => ({
+			label: `S${i}`,
+			uri: `https://game.xyz/${i}`
+		}));
 		const list = resolveShortcuts({ shortcuts: [null, { label: '' }, 'x', ...many] }, ctx);
 		expect(list).toHaveLength(MAX_SHORTCUTS);
 		expect(list[0].label).toBe('S0');
@@ -96,7 +169,12 @@ describe('resolveShortcuts (Phantom shortcuts.json)', () => {
 
 	it('filters by device and names the destination', () => {
 		const list = resolveShortcuts(
-			{ shortcuts: [{ label: 'A', uri: 'https://www.game.xyz', platform: 'desktop' }, { label: 'B', uri: `solana:${OWNER}`, prefersExternalTarget: true, platform: 'mobile' }] },
+			{
+				shortcuts: [
+					{ label: 'A', uri: 'https://www.game.xyz', platform: 'desktop' },
+					{ label: 'B', uri: `solana:${OWNER}`, prefersExternalTarget: true, platform: 'mobile' }
+				]
+			},
 			ctx
 		);
 		expect(shortcutsFor(list, 'desktop').map((s) => s.label)).toEqual(['A']);
@@ -124,17 +202,35 @@ describe('loading a project file', () => {
 	}
 	const das = (result: unknown) => () => Response.json({ jsonrpc: '2.0', id: 1, result });
 
-	it.each(['bearer', 'controlled', 'permanent'] as const)('loads minted %s token shortcuts from DAS and the project file', async (kind) => {
-		const seen = stub({
-			das: das({ content: { links: { external_url: 'https://game.xyz/s1' } }, grouping: [{ group_key: 'collection', group_value: COLLECTION }] }),
-			'https://game.xyz/s1/shortcuts.json': () =>
-				Response.json({ version: 2, shortcuts: [{ label: 'Play', uri: 'https://game.xyz/{{tokenId}}', limitToCollections: [COLLECTION] }] })
-		});
-		const { externalUrl, shortcuts } = await loadShortcuts('https://rpc.test', { ...accessory, kind });
-		expect(externalUrl).toBe('https://game.xyz/s1');
-		expect(shortcuts.map((s) => s.href)).toEqual([`https://game.xyz/${MINT}`]);
-		expect(seen).toEqual(['DAS getAsset', 'https://game.xyz/s1/shortcuts.json']);
-	});
+	it.each(['bearer', 'controlled', 'permanent'] as const)(
+		'loads minted %s token shortcuts from DAS and the project file',
+		async (kind) => {
+			const seen = stub({
+				das: das({
+					content: { links: { external_url: 'https://game.xyz/s1' } },
+					grouping: [{ group_key: 'collection', group_value: COLLECTION }]
+				}),
+				'https://game.xyz/s1/shortcuts.json': () =>
+					Response.json({
+						version: 2,
+						shortcuts: [
+							{
+								label: 'Play',
+								uri: 'https://game.xyz/{{tokenId}}',
+								limitToCollections: [COLLECTION]
+							}
+						]
+					})
+			});
+			const { externalUrl, shortcuts } = await loadShortcuts('https://rpc.test', {
+				...accessory,
+				kind
+			});
+			expect(externalUrl).toBe('https://game.xyz/s1');
+			expect(shortcuts.map((s) => s.href)).toEqual([`https://game.xyz/${MINT}`]);
+			expect(seen).toEqual(['DAS getAsset', 'https://game.xyz/s1/shortcuts.json']);
+		}
+	);
 
 	it('has none without a mint or an https external_url, without asking the project', async () => {
 		const seen = stub({ das: das({ content: { links: { external_url: 'http://game.xyz' } } }) });
@@ -148,7 +244,8 @@ describe('loading a project file', () => {
 		stub({
 			'https://a.test/shortcuts.json': () => new Response('not json'),
 			'https://b.test/shortcuts.json': () => new Response('x'.repeat(70 * 1024)),
-			'https://c.test/shortcuts.json': () => new Response('{}', { headers: { 'content-length': String(1024 * 1024) } })
+			'https://c.test/shortcuts.json': () =>
+				new Response('{}', { headers: { 'content-length': String(1024 * 1024) } })
 		});
 		expect(await fetchShortcutsFile('https://a.test/shortcuts.json')).toBeNull();
 		expect(await fetchShortcutsFile('https://b.test/shortcuts.json')).toBeNull();
@@ -164,7 +261,9 @@ describe('loading a project file', () => {
 
 describe('Revibase launch modes', () => {
 	it('drops the retired wallet launch mode', () => {
-		expect(one({ label: 'Stake', uri: 'https://staking.test/app', revibase: { launch: 'wallet' } })).toEqual([]);
+		expect(
+			one({ label: 'Stake', uri: 'https://staking.test/app', revibase: { launch: 'wallet' } })
+		).toEqual([]);
 	});
 
 	it('opens legacy embed and browser preferences on any HTTPS domain', () => {
@@ -184,7 +283,8 @@ describe('Revibase launch modes', () => {
 		).toMatchObject({ external: true });
 	});
 	it('rejects malformed launch settings and refuses Solana URIs except browser launches', () => {
-		for (const revibase of [null, [], 'wallet', {}, { launch: 'invalid' }]) expect(one({ label: 'Go', uri: 'https://game.xyz', revibase })).toEqual([]);
+		for (const revibase of [null, [], 'wallet', {}, { launch: 'invalid' }])
+			expect(one({ label: 'Go', uri: 'https://game.xyz', revibase })).toEqual([]);
 		expect(
 			one({
 				label: 'Pay',

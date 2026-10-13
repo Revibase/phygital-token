@@ -88,9 +88,7 @@ export class FakeBackupApi implements BackupApi {
   }
 
   async backupWalletBlob(params: PutParams): Promise<void> {
-    const blob = decodeWalletBlob(
-      base64ToBytes(params.encryptedWalletBlob, MAX_BLOB_BYTES, "url"),
-    );
+    const blob = decodeWalletBlob(base64ToBytes(params.encryptedWalletBlob, MAX_BLOB_BYTES, "url"));
     const challenge = this.backupChallenges.get(params.challengeId);
     this.backupChallenges.delete(params.challengeId);
     let proofValid = false;

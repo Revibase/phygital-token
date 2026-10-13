@@ -10,11 +10,7 @@ import {
   topUpNeeded,
   WALLET_RENT_EXEMPT_LAMPORTS,
 } from "../wallet/fees.js";
-import {
-  createSponsorFeePayers,
-  fetchSponsor,
-  pickFeePayer,
-} from "../wallet/fee-payer.js";
+import { createSponsorFeePayers, fetchSponsor, pickFeePayer } from "../wallet/fee-payer.js";
 import { PolicyDeniedError } from "../wallet/preview.js";
 
 const WALLET = address("So11111111111111111111111111111111111111112");
@@ -23,13 +19,17 @@ const POOL_B = address("SysvarC1ock11111111111111111111111111111111");
 
 describe("network fees", () => {
   it("charges every signature, precompile ones included, plus the priority fee", () => {
-    expect(networkFeeLamports({ signatures: 2, precompileSignatures: 1, priorityFeeLamports: 3_000n })).toBe(18_000n);
+    expect(
+      networkFeeLamports({ signatures: 2, precompileSignatures: 1, priorityFeeLamports: 3_000n }),
+    ).toBe(18_000n);
   });
 
   it("uses the prepaid balance until it can't cover twice the cost", () => {
     const prepaid = DEFAULT_PREPAID_FEE_LAMPORTS;
     expect(planFee({ balance: 100_000n, prepaid, cost: 20_000n })).toEqual({ refill: 0n });
-    expect(planFee({ balance: 30_000n, prepaid, cost: 20_000n })).toEqual({ refill: prepaid - 30_000n + 20_000n });
+    expect(planFee({ balance: 30_000n, prepaid, cost: 20_000n })).toEqual({
+      refill: prepaid - 30_000n + 20_000n,
+    });
   });
 
   it("always refills at least the shortfall, and never a negative amount", () => {
@@ -41,7 +41,9 @@ describe("network fees", () => {
     expect(canSpendLamports(5_000_000n, 5_000_000n)).toBe(true);
     expect(canSpendLamports(5_000_000n, 5_000_000n - WALLET_RENT_EXEMPT_LAMPORTS)).toBe(true);
     expect(canSpendLamports(5_000_000n, 4_500_000n)).toBe(false);
-    expect(topUpNeeded(4_000_000n, 5_000_000n)).toBe(5_000_000n + WALLET_RENT_EXEMPT_LAMPORTS - 4_000_000n);
+    expect(topUpNeeded(4_000_000n, 5_000_000n)).toBe(
+      5_000_000n + WALLET_RENT_EXEMPT_LAMPORTS - 4_000_000n,
+    );
     expect(topUpNeeded(9_000_000n, 5_000_000n)).toBe(0n);
   });
 
@@ -64,8 +66,15 @@ describe("fee service client", () => {
       balanceLamports: "4200000",
       prepaidLamports: "5000000",
     });
-    const info = await fetchSponsor({ endpoint: "https://fees.test/api/sponsor/", fetch: fetchMock, phygitalToken: WALLET });
-    expect(fetchMock).toHaveBeenCalledWith(`https://fees.test/api/sponsor?accessory=${WALLET}`, expect.anything());
+    const info = await fetchSponsor({
+      endpoint: "https://fees.test/api/sponsor/",
+      fetch: fetchMock,
+      phygitalToken: WALLET,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      `https://fees.test/api/sponsor?accessory=${WALLET}`,
+      expect.anything(),
+    );
     expect(info).toEqual({
       feePayers: [POOL_A, POOL_B],
       limits: { maxComputeUnitLimit: 400_000, maxComputeUnitPriceMicroLamports: 100_000n },
@@ -74,7 +83,9 @@ describe("fee service client", () => {
   });
 
   it("makes one partial signer per pool key and picks among them", async () => {
-    const signers = await createSponsorFeePayers({ fetch: respond({ feePayers: [POOL_A, POOL_B] }) });
+    const signers = await createSponsorFeePayers({
+      fetch: respond({ feePayers: [POOL_A, POOL_B] }),
+    });
     expect(signers.map((s) => s.address)).toEqual([POOL_A, POOL_B]);
     expect(signers).toContain(pickFeePayer(signers));
   });
@@ -84,15 +95,26 @@ describe("fee service client", () => {
       .fn()
       .mockResolvedValueOnce(new Response(JSON.stringify({ feePayers: [POOL_A] })))
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ code: "refill_required", error: "Refill needed", details: { neededLamports: "10" } }), { status: 402 })
+        new Response(
+          JSON.stringify({
+            code: "refill_required",
+            error: "Refill needed",
+            details: { neededLamports: "10" },
+          }),
+          { status: 402 },
+        ),
       );
     const [signer] = await createSponsorFeePayers({ fetch: fetchMock });
-    await expect(signer!.signTransactions([{ messageBytes: new Uint8Array(1), signatures: { [POOL_A]: null } } as never])).rejects.toBeInstanceOf(
-      PolicyDeniedError
-    );
+    await expect(
+      signer!.signTransactions([
+        { messageBytes: new Uint8Array(1), signatures: { [POOL_A]: null } } as never,
+      ]),
+    ).rejects.toBeInstanceOf(PolicyDeniedError);
   });
 
   it("rejects an empty pool", async () => {
-    await expect(fetchSponsor({ fetch: respond({ feePayers: [] }) })).rejects.toThrow(/no fee payers/);
+    await expect(fetchSponsor({ fetch: respond({ feePayers: [] }) })).rejects.toThrow(
+      /no fee payers/,
+    );
   });
 });

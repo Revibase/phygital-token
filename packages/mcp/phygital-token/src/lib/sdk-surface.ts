@@ -1,6 +1,7 @@
 export const SDK_SURFACE = {
   webAuthn: {
-    credentialId: "33 bytes = authenticator passkey; 16 bytes = platform echoed placeholder (recovery runs)",
+    credentialId:
+      "33 bytes = authenticator passkey; 16 bytes = platform echoed placeholder (recovery runs)",
     allowList:
       "Set of base64url compressed public keys. When passed, the tapped credential id must always be in it (else PASSKEY_NOT_RECOGNIZED); it is also the no-RPC fallback for recovering a placeholder id when rpc is omitted. authenticatePasskeyForTransfer derives it from the session",
     recovery:
@@ -22,11 +23,7 @@ export const SDK_SURFACE = {
     "findAdminConfigPda",
     "parseSecp256r1Pubkey",
   ],
-  assignMint: [
-    "getAssignMintInstruction",
-    "findPhygitalTokenPda",
-    "findAdminConfigPda",
-  ],
+  assignMint: ["getAssignMintInstruction", "findPhygitalTokenPda", "findAdminConfigPda"],
   transfer: [
     "beginTransfer({ rpc, secp256r1Pubkey, rpId? })",
     "authenticatePasskeyForTransfer(session)",
@@ -51,8 +48,10 @@ export const SDK_SURFACE = {
     transaction: ["secp256r1_verify", "your_program_instruction"],
     program: "CPI verify via VerifyCpiBuilder",
     optionalBindings: {
-      expected_rp_id: "Option<String> — omit to skip; SHA256(rpId) must match authenticatorData[0..32]",
-      expected_origins: "Option<Vec<String>> — omit to skip; when set, clientDataJSON.origin must match one entry",
+      expected_rp_id:
+        "Option<String> — omit to skip; SHA256(rpId) must match authenticatorData[0..32]",
+      expected_origins:
+        "Option<Vec<String>> — omit to skip; when set, clientDataJSON.origin must match one entry",
     },
   },
   tokenLookup: [
@@ -104,12 +103,14 @@ export const SDK_SURFACE = {
     ],
     types: ["PhygitalToken", "AdminConfig", "Secp256r1VerifyArgs", "PhygitalTokenType"],
     roles: {
-      admin: "sole AdminConfig.admin — create_config signer; set_admin / set_issuer / set_minter / close_phygital_token",
+      admin:
+        "sole AdminConfig.admin — create_config signer; set_admin / set_issuer / set_minter / close_phygital_token",
       issuer: "sole AdminConfig.issuer — may call initialize",
       minter: "sole AdminConfig.minter — may call assign_mint",
     },
     tokenTypes: {
-      Permanent: "discriminant 0 — owner required at init; starts locked; set_owner / remove rejected",
+      Permanent:
+        "discriminant 0 — owner required at init; starts locked; set_owner / remove rejected",
       Bearer: "freely transferable by passkey when unlocked; initialized with no owner",
       Controlled: "lock after claim; forfeit via remove_owner before next transfer",
     },

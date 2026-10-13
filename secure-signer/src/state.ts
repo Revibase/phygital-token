@@ -14,16 +14,9 @@
  */
 
 import type { ErrorCode } from "./protocol.js";
-import {
-  REQUEST_FRESHNESS_WINDOW_MS,
-  SEEN_REQUEST_IDS_LIMIT,
-} from "./constants.js";
+import { REQUEST_FRESHNESS_WINDOW_MS, SEEN_REQUEST_IDS_LIMIT } from "./constants.js";
 
-export type OperationState =
-  | "IDLE"
-  | "SIGN_PENDING"
-  | "PRIVATE_EXPORT_PENDING"
-  | "AUTH_PENDING";
+export type OperationState = "IDLE" | "SIGN_PENDING" | "PRIVATE_EXPORT_PENDING" | "AUTH_PENDING";
 
 export interface Authorization {
   operation: OperationState;
@@ -58,10 +51,7 @@ export class SignerState {
    * that are still fresh, refuse (SIGNER_BUSY) instead of evicting one: an
    * evicted id could be replayed while its timestamp still passes.
    */
-  checkFreshnessAndReplay(
-    requestId: string,
-    timestamp: number,
-  ): ErrorCode | null {
+  checkFreshnessAndReplay(requestId: string, timestamp: number): ErrorCode | null {
     this.forgetExpired();
     if (this.seen.has(requestId)) return "REPLAY_REJECTED";
     const skew = Math.abs(this.now() - timestamp);

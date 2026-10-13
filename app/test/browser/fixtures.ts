@@ -21,12 +21,32 @@ export const project = {
 	shortcuts: resolveShortcuts(
 		{
 			shortcuts: [
-				{ label: 'Play', uri: 'https://project.example/play', icon: 'gaming', revibase: { launch: 'browser' } },
-				{ label: 'Stake NFT', uri: 'https://staking.example/stake', icon: 'stake', revibase: { launch: 'browser' } },
-				{ label: 'Visit website', uri: 'https://project.example/about', icon: 'view', revibase: { launch: 'browser' } }
+				{
+					label: 'Play',
+					uri: 'https://project.example/play',
+					icon: 'gaming',
+					revibase: { launch: 'browser' }
+				},
+				{
+					label: 'Stake NFT',
+					uri: 'https://staking.example/stake',
+					icon: 'stake',
+					revibase: { launch: 'browser' }
+				},
+				{
+					label: 'Visit website',
+					uri: 'https://project.example/about',
+					icon: 'view',
+					revibase: { launch: 'browser' }
+				}
 			]
 		},
-		{ externalUrl: 'https://project.example', tokenId: MINT, collectionId: null, ownerAddress: OWNER }
+		{
+			externalUrl: 'https://project.example',
+			tokenId: MINT,
+			collectionId: null,
+			ownerAddress: OWNER
+		}
 	)
 };
 export const WALLET = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
@@ -38,14 +58,70 @@ export function walletHoldings(funded: boolean) {
 		lamports: 1_200_000_000n,
 		solPriceUsd: 150, // Illustrative preview prices, not live quotes.
 		tokens: [
-			{ tokenAccount: '4Nd1mBQtrMJVYVfKf2PJy9NZUZdTAsp7D4xWLs4gDB4T', mint: USDC, tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', amount: 25_500_000n, decimals: 6, frozen: false, name: 'USD Coin', symbol: 'USDC', icon: '/usdc.svg', priceUsd: 1 },
-			{ tokenAccount: 'Ce4vZ9YiTnqBSHqZHs6s3gNa1LANHNFrSrCq3QFamV8J', mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', amount: 1_000_000_00000n, decimals: 5, frozen: false, name: 'Bonk', symbol: 'Bonk', icon: null, priceUsd: 0.00002 }
-			,{ tokenAccount: '7Yu3oPKm7hSbcX3u7ke1HMuiKeuuSJo4iQ8PYP6VGkCN', mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', amount: 1n, decimals: 0, frozen: false, name: 'Revi collectible #1', symbol: null, icon: '/icon-512.png', tokenStandard: 'NonFungible' },
-			{ tokenAccount: '11111111111111111111111111111111', mint: MINT, tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', amount: 1n, decimals: 0, frozen: true, name: 'Programmable collectible', symbol: null, icon: '/icon-512.png', tokenStandard: 'ProgrammableNonFungible' }
+			{
+				tokenAccount: '4Nd1mBQtrMJVYVfKf2PJy9NZUZdTAsp7D4xWLs4gDB4T',
+				mint: USDC,
+				tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+				amount: 25_500_000n,
+				decimals: 6,
+				frozen: false,
+				name: 'USD Coin',
+				symbol: 'USDC',
+				icon: '/usdc.svg',
+				priceUsd: 1
+			},
+			{
+				tokenAccount: 'Ce4vZ9YiTnqBSHqZHs6s3gNa1LANHNFrSrCq3QFamV8J',
+				mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+				tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+				amount: 1_000_000_00000n,
+				decimals: 5,
+				frozen: false,
+				name: 'Bonk',
+				symbol: 'Bonk',
+				icon: null,
+				priceUsd: 0.00002
+			},
+			{
+				tokenAccount: '7Yu3oPKm7hSbcX3u7ke1HMuiKeuuSJo4iQ8PYP6VGkCN',
+				mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+				tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+				amount: 1n,
+				decimals: 0,
+				frozen: false,
+				name: 'Revi collectible #1',
+				symbol: null,
+				icon: '/icon-512.png',
+				tokenStandard: 'NonFungible'
+			},
+			{
+				tokenAccount: '11111111111111111111111111111111',
+				mint: MINT,
+				tokenProgram: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+				amount: 1n,
+				decimals: 0,
+				frozen: true,
+				name: 'Programmable collectible',
+				symbol: null,
+				icon: '/icon-512.png',
+				tokenStandard: 'ProgrammableNonFungible'
+			}
 		],
 		nfts: [
-			{ id: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU', kind: 'core', name: 'Core collectible', icon: '/icon-512.png', frozen: false },
-			{ id: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM', kind: 'compressed', name: 'Compressed collectible', icon: '/icon-512.png', frozen: false }
+			{
+				id: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+				kind: 'core',
+				name: 'Core collectible',
+				icon: '/icon-512.png',
+				frozen: false
+			},
+			{
+				id: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
+				kind: 'compressed',
+				name: 'Compressed collectible',
+				icon: '/icon-512.png',
+				frozen: false
+			}
 		],
 		nftStatus: 'complete'
 	};
@@ -58,8 +134,28 @@ export function walletPolicy(solCap = 500_000_000n) {
 		discriminator: new Uint8Array(8),
 		phygitalToken: MINT,
 		wallet: WALLET,
-		solCap: { __option: 'Some', value: { cap: solCap, remaining: solCap - 100_000_000n > 0n ? solCap - 100_000_000n : solCap, lastReset: now - (now % day), windowSeconds: day, maxPerTx: 0n } },
-		mintCaps: [{ mint: USDC, cap: { cap: 20_000_000n, remaining: 20_000_000n, lastReset: now - (now % day), windowSeconds: day, maxPerTx: 0n } }],
+		solCap: {
+			__option: 'Some',
+			value: {
+				cap: solCap,
+				remaining: solCap - 100_000_000n > 0n ? solCap - 100_000_000n : solCap,
+				lastReset: now - (now % day),
+				windowSeconds: day,
+				maxPerTx: 0n
+			}
+		},
+		mintCaps: [
+			{
+				mint: USDC,
+				cap: {
+					cap: 20_000_000n,
+					remaining: 20_000_000n,
+					lastReset: now - (now % day),
+					windowSeconds: day,
+					maxPerTx: 0n
+				}
+			}
+		],
 		allowedOrigins: [],
 		programPermissions: []
 	};

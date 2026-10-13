@@ -5,7 +5,9 @@ import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 export function createTestD1(migrationDirs: string[]): D1Database {
 	const db = new DatabaseSync(':memory:');
 	for (const dir of migrationDirs) {
-		for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
+		for (const file of readdirSync(dir)
+			.filter((f) => f.endsWith('.sql'))
+			.sort()) {
 			db.exec(readFileSync(join(dir, file), 'utf8'));
 		}
 	}

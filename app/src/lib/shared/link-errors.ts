@@ -39,7 +39,8 @@ export function fromProgramError(code: number): LinkErrorCode {
  */
 export function fromSendError(err: unknown): LinkErrorCode | null {
 	for (let e = err, depth = 0; e && depth < 5; e = (e as { cause?: unknown }).cause, depth++) {
-		if (isSolanaError(e, SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM)) return fromProgramError(e.context.code);
+		if (isSolanaError(e, SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM))
+			return fromProgramError(e.context.code);
 	}
 	return null;
 }

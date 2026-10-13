@@ -10,14 +10,11 @@ import { REVIBASE_WALLET_ICON } from "./icon.js";
 
 const addressEncoder = getAddressEncoder();
 
-const ACCOUNT_FEATURES = [
-  SolanaSignAndSendTransaction,
-  SolanaSignTransaction,
-] as const;
+const ACCOUNT_FEATURES = [SolanaSignAndSendTransaction, SolanaSignTransaction] as const;
 
 export function createPhygitalWalletAccount(
   walletPda: Address,
-  chains: IdentifierArray = PHYGITAL_WALLET_CHAINS
+  chains: IdentifierArray = PHYGITAL_WALLET_CHAINS,
 ): WalletAccount {
   const publicKey = new Uint8Array(addressEncoder.encode(walletPda));
   return Object.freeze({

@@ -13,8 +13,10 @@ const vault: Plugin = {
       for await (const chunk of req) chunks.push(chunk as Buffer);
       const headers = new Headers();
       // HTTP/2 (the HTTPS dev server) adds pseudo-headers like ":method", which Headers rejects.
-      for (const [k, v] of Object.entries(req.headers)) if (typeof v === "string" && !k.startsWith(":")) headers.set(k, v);
-      const host = req.headers.host ?? (req.headers[":authority"] as string | undefined) ?? "localhost";
+      for (const [k, v] of Object.entries(req.headers))
+        if (typeof v === "string" && !k.startsWith(":")) headers.set(k, v);
+      const host =
+        req.headers.host ?? (req.headers[":authority"] as string | undefined) ?? "localhost";
       const scheme = (req.socket as TLSSocket).encrypted ? "https" : "http";
       const response = await handleVault(
         new Request(`${scheme}://${host}${req.url}`, {

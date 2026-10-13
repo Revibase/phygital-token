@@ -55,10 +55,7 @@ export async function planInitialize(input: {
   };
 }
 
-export async function planAssignMint(input: {
-  secp256r1PublicKey: string;
-  mint: string;
-}) {
+export async function planAssignMint(input: { secp256r1PublicKey: string; mint: string }) {
   const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
   const [adminConfig] = await findAdminConfigPda();
 
@@ -113,7 +110,7 @@ export async function planCreateConfig() {
       set_minter: "getSetMinterInstruction — set the single minter pubkey",
     },
     notes: [
-      "Creates the singleton AdminConfig PDA (seeds = [\"admin\"]).",
+      'Creates the singleton AdminConfig PDA (seeds = ["admin"]).',
       "Signer becomes the sole admin. issuer and minter start as default until set.",
       "Roles must be distinct pubkeys (KeyAlreadyExists if overlapping).",
       "initialize requires issuer; assign_mint requires minter.",
@@ -121,10 +118,7 @@ export async function planCreateConfig() {
   };
 }
 
-export async function planTransfer(input: {
-  secp256r1PublicKey: string;
-  recipient: string;
-}) {
+export async function planTransfer(input: { secp256r1PublicKey: string; recipient: string }) {
   const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
 
   return {
@@ -183,10 +177,7 @@ function buildVerifyChallengeDescription(): string {
   return "messageHash (32 bytes) used directly as the WebAuthn challenge";
 }
 
-export async function planVerify(input: {
-  message: string;
-  secp256r1PublicKey?: string;
-}) {
+export async function planVerify(input: { message: string; secp256r1PublicKey?: string }) {
   const messageBytes = new TextEncoder().encode(input.message);
   const messageHash =
     "SHA256(message) — 32-byte hash passed to verify and used as WebAuthn challenge";
@@ -219,9 +210,7 @@ export async function planVerify(input: {
       formula: buildVerifyChallengeDescription(),
       note: "Hash with buildMessageHash, then pass { rpc, allowList?, messageHash } to authenticatePasskeyForSecp256r1Verify. Use the same digest as VerifyCpiBuilder.message_hash.",
     },
-    derived: tokenPda
-      ? { tokenPda, secp256r1PublicKey: input.secp256r1PublicKey }
-      : undefined,
+    derived: tokenPda ? { tokenPda, secp256r1PublicKey: input.secp256r1PublicKey } : undefined,
     transactionLayout: {
       order: ["secp256r1_verify", "your_program_instruction"],
       verifyAccounts: {
@@ -231,14 +220,16 @@ export async function planVerify(input: {
       verifyArgs: {
         secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
         messageHash: "32-byte WebAuthn challenge — from your instruction",
-        expectedRpId: "Option<string> — omit/None skips; when set, SHA256(rpId) must match authenticatorData[0..32]",
-        expectedOrigins: "Option<string[]> — omit/None skips; when set, clientDataJSON.origin must match one entry",
+        expectedRpId:
+          "Option<string> — omit/None skips; when set, SHA256(rpId) must match authenticatorData[0..32]",
+        expectedOrigins:
+          "Option<string[]> — omit/None skips; when set, clientDataJSON.origin must match one entry",
       },
     },
-    programSide:
-      "Your Rust program CPIs verify via VerifyCpiBuilder (phygital-token-client)",
+    programSide: "Your Rust program CPIs verify via VerifyCpiBuilder (phygital-token-client)",
     buildSecp256r1VerifyInstructionReturns: {
-      secp256r1VerifyInstruction: "Instruction to prepend immediately before your program instruction",
+      secp256r1VerifyInstruction:
+        "Instruction to prepend immediately before your program instruction",
       phygitalTokenPda: "Phygital token PDA — VerifyCpiBuilder.phygital_token",
       secp256r1VerifyArgs: "VerifyCpiBuilder.secp256r1_verify_args (relative index -1)",
     },
@@ -253,10 +244,7 @@ export async function planVerify(input: {
   };
 }
 
-export async function planRemoveOwner(input: {
-  secp256r1PublicKey: string;
-  owner: string;
-}) {
+export async function planRemoveOwner(input: { secp256r1PublicKey: string; owner: string }) {
   const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
 
   return {
@@ -295,11 +283,7 @@ export async function planRemoveOwner(input: {
 
 export function parseTokenType(value: string): "Permanent" | "Controlled" | "Bearer" {
   const normalized = value.trim();
-  if (
-    normalized === "Permanent" ||
-    normalized === "Controlled" ||
-    normalized === "Bearer"
-  ) {
+  if (normalized === "Permanent" || normalized === "Controlled" || normalized === "Bearer") {
     return normalized;
   }
   throw new Error('tokenType must be "Permanent", "Controlled", or "Bearer".');

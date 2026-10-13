@@ -7,7 +7,11 @@ import type { AccessoryStatus, AccessoryView, TokenKind } from '$lib/shared/type
 export const DEFAULT_PUBKEY = '11111111111111111111111111111111';
 
 /** Discriminants of the program's `PhygitalTokenType` (`#[repr(u8)]`). */
-export const TOKEN_KINDS: Record<number, TokenKind> = { 0: 'permanent', 1: 'bearer', 2: 'controlled' };
+export const TOKEN_KINDS: Record<number, TokenKind> = {
+	0: 'permanent',
+	1: 'bearer',
+	2: 'controlled'
+};
 
 /**
  * What an accessory of each type may do, given its on-chain state:
@@ -43,7 +47,8 @@ export function toAccessoryView(pda: string, account: PhygitalToken): AccessoryV
 
 	let status: AccessoryStatus;
 	if (kind === 'unknown') status = 'unavailable';
-	else if (!owner) status = rules.canLink ? 'ready_to_link' : 'unavailable'; // e.g. a Permanent token with no wallet
+	else if (!owner)
+		status = rules.canLink ? 'ready_to_link' : 'unavailable'; // e.g. a Permanent token with no wallet
 	else status = rules.canLink ? 'linked' : 'linked_locked';
 
 	return {

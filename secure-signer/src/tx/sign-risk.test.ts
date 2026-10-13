@@ -4,15 +4,32 @@ import type { ParsedInstructionSummary } from "./parser.js";
 import type { TransactionSummary } from "./policy.js";
 import { classifySignRisk, instructionLabel, riskCallout } from "./sign-risk.js";
 
-const ix = (kind: ParsedInstructionSummary["kind"], inner: ParsedInstructionSummary["inner"] = null): ParsedInstructionSummary => ({
+const ix = (
+  kind: ParsedInstructionSummary["kind"],
+  inner: ParsedInstructionSummary["inner"] = null,
+): ParsedInstructionSummary => ({
   kind,
   signers: ["wallet"],
   phygitalToken: null,
   inner,
   details: [],
 });
-const summary = (...instructions: ParsedInstructionSummary[]): TransactionSummary => ({ feePayer: "11111111111111111111111111111111", walletAddress: "wallet", instructions, config: {}, signatureCount: 1 });
-const inner = (opaque: boolean, dangerous: boolean) => ({ title: "x", details: [], opaque, dangerous, programAddress: "p", accounts: [], dataLength: 0 });
+const summary = (...instructions: ParsedInstructionSummary[]): TransactionSummary => ({
+  feePayer: "11111111111111111111111111111111",
+  walletAddress: "wallet",
+  instructions,
+  config: {},
+  signatureCount: 1,
+});
+const inner = (opaque: boolean, dangerous: boolean) => ({
+  title: "x",
+  details: [],
+  opaque,
+  dangerous,
+  programAddress: "p",
+  accounts: [],
+  dataLength: 0,
+});
 
 describe("sign-risk", () => {
   it("labels each owner action", () => {
@@ -39,7 +56,9 @@ describe("sign-risk", () => {
   });
 
   it("rates a destructive permission change as critical", () => {
-    expect(classifySignRisk(summary({ ...ix("tapPayments"), permissionDanger: true }))).toBe("critical");
+    expect(classifySignRisk(summary({ ...ix("tapPayments"), permissionDanger: true }))).toBe(
+      "critical",
+    );
   });
 
   it("explains what's at stake", () => {

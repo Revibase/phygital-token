@@ -28,7 +28,9 @@
 		recent = recentWallet();
 		mounted = true;
 	});
-	const choices = $derived([...options].sort((a, b) => Number(b.name === recent) - Number(a.name === recent)));
+	const choices = $derived(
+		[...options].sort((a, b) => Number(b.name === recent) - Number(a.name === recent))
+	);
 </script>
 
 {#if !mounted}
@@ -49,7 +51,10 @@
 				chevron
 			>
 				{#snippet leading()}
-					{#if c.icon}<img src={c.icon} alt="" class="size-9 rounded-[9px]" />{:else}<span class="grid size-9 place-items-center rounded-[9px] bg-muted"><WalletIcon class="size-4" /></span>{/if}
+					{#if c.icon}<img src={c.icon} alt="" class="size-9 rounded-[9px]" />{:else}<span
+							class="grid size-9 place-items-center rounded-[9px] bg-muted"
+							><WalletIcon class="size-4" /></span
+						>{/if}
 				{/snippet}
 			</ListRow>
 		{/each}

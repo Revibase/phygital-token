@@ -34,7 +34,10 @@ function collectionOf(asset: GetAssetResult | undefined): string | null {
 export type ProjectShortcuts = { externalUrl: string | null; shortcuts: Shortcut[] };
 
 /** Throws only when DAS is unreachable, so the client can retry. */
-export async function loadShortcuts(rpcUrl: string, accessory: AccessoryView): Promise<ProjectShortcuts> {
+export async function loadShortcuts(
+	rpcUrl: string,
+	accessory: AccessoryView
+): Promise<ProjectShortcuts> {
 	const none = { externalUrl: null, shortcuts: [] };
 	if (!accessory.mint) return none;
 	const asset = await fetchAsset(rpcUrl, accessory.mint);

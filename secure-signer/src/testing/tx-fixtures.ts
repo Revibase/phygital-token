@@ -54,7 +54,9 @@ function message(feePayer: Address, instructions: Instruction[]) {
 }
 
 export function encodeWire(opts: { feePayer: Address; instructions: Instruction[] }): Uint8Array {
-  return new Uint8Array(getTransactionEncoder().encode(compileTransaction(message(opts.feePayer, opts.instructions))));
+  return new Uint8Array(
+    getTransactionEncoder().encode(compileTransaction(message(opts.feePayer, opts.instructions))),
+  );
 }
 
 const systemTransfer = (from: Address, to: Address): Instruction => ({
@@ -67,14 +69,23 @@ const systemTransfer = (from: Address, to: Address): Instruction => ({
 });
 
 /** execute_with_owner moving 1 SOL out of the wallet PDA, authorized by `owner`. */
-export function executeWithOwnerWire(opts: { owner: Address; feePayer?: Address; destination?: Address }): Uint8Array {
+export function executeWithOwnerWire(opts: {
+  owner: Address;
+  feePayer?: Address;
+  destination?: Address;
+}): Uint8Array {
   const wallet = randomAddress();
   const { compactInstructions, remainingAccounts } = compileWalletInstructions(
     [systemTransfer(wallet, opts.destination ?? randomAddress())],
     wallet,
   );
   const ix = withRemainingAccounts(
-    getExecuteWithOwnerInstruction({ owner: createNoopSigner(opts.owner), phygitalToken: randomAddress(), wallet, compactInstructions }),
+    getExecuteWithOwnerInstruction({
+      owner: createNoopSigner(opts.owner),
+      phygitalToken: randomAddress(),
+      wallet,
+      compactInstructions,
+    }),
     remainingAccounts,
   );
   return encodeWire({ feePayer: opts.feePayer ?? opts.owner, instructions: [ix] });
@@ -99,14 +110,22 @@ export function setOwnerWire(opts: { recipient: Address }): Uint8Array {
     phygitalToken: randomAddress(),
     policy: randomAddress(),
     wallet: randomAddress(),
-    secp256r1VerifyArgs: { verifyArgsRelativeIndex: -1, signedMessageIndex: 0, clientDataJson: new Uint8Array(8) },
+    secp256r1VerifyArgs: {
+      verifyArgsRelativeIndex: -1,
+      signedMessageIndex: 0,
+      clientDataJson: new Uint8Array(8),
+    },
     slotNumber: 1n,
   });
   return encodeWire({ feePayer: opts.recipient, instructions: [verify, ix] });
 }
 
 /** update_policy setting a daily SOL cap; `feePayer` (default: the owner) also funds its rent. */
-export function updatePolicyWire(opts: { owner: Address; feePayer?: Address; funder?: Address }): Uint8Array {
+export function updatePolicyWire(opts: {
+  owner: Address;
+  feePayer?: Address;
+  funder?: Address;
+}): Uint8Array {
   const feePayer = opts.feePayer ?? opts.owner;
   const funder = opts.funder ?? feePayer;
   const ix = getUpdatePolicyInstruction({
@@ -114,7 +133,12 @@ export function updatePolicyWire(opts: { owner: Address; feePayer?: Address; fun
     payer: createNoopSigner(funder),
     phygitalToken: randomAddress(),
     policy: randomAddress(),
-    actions: [{ __kind: "SetSolCap", fields: [{ cap: 500_000_000n, windowSeconds: 86_400n, maxPerTx: 0n }] }],
+    actions: [
+      {
+        __kind: "SetSolCap",
+        fields: [{ cap: 500_000_000n, windowSeconds: 86_400n, maxPerTx: 0n }],
+      },
+    ],
   });
   return encodeWire({ feePayer, instructions: [ix] });
 }
@@ -124,24 +148,43 @@ export function refilledSendWire(opts: { owner: Address; feePayer: Address }): U
   const wallet = randomAddress();
   const phygitalToken = randomAddress();
   const execute = (to: Address) => {
-    const { compactInstructions, remainingAccounts } = compileWalletInstructions([systemTransfer(wallet, to)], wallet);
+    const { compactInstructions, remainingAccounts } = compileWalletInstructions(
+      [systemTransfer(wallet, to)],
+      wallet,
+    );
     return withRemainingAccounts(
-      getExecuteWithOwnerInstruction({ owner: createNoopSigner(opts.owner), phygitalToken, wallet, compactInstructions }),
+      getExecuteWithOwnerInstruction({
+        owner: createNoopSigner(opts.owner),
+        phygitalToken,
+        wallet,
+        compactInstructions,
+      }),
       remainingAccounts,
     );
   };
-  return encodeWire({ feePayer: opts.feePayer, instructions: [execute(randomAddress()), execute(opts.feePayer)] });
+  return encodeWire({
+    feePayer: opts.feePayer,
+    instructions: [execute(randomAddress()), execute(opts.feePayer)],
+  });
 }
 
 /** A top-level program the app never asks an owner to sign. */
 export function foreignProgramWire(opts: { payer: Address }): Uint8Array {
-  return encodeWire({ feePayer: opts.payer, instructions: [systemTransfer(opts.payer, randomAddress())] });
+  return encodeWire({
+    feePayer: opts.payer,
+    instructions: [systemTransfer(opts.payer, randomAddress())],
+  });
 }
 
 /** remove_owner with its accessory address hidden behind a lookup table. */
 export function lookupTableWire(opts: { owner: Address }): Uint8Array {
   const phygitalToken = randomAddress();
-  const ix = getRemoveOwnerInstruction({ owner: createNoopSigner(opts.owner), phygitalToken, policy: randomAddress(), wallet: randomAddress() });
+  const ix = getRemoveOwnerInstruction({
+    owner: createNoopSigner(opts.owner),
+    phygitalToken,
+    policy: randomAddress(),
+    wallet: randomAddress(),
+  });
   const compressed = compressTransactionMessageUsingAddressLookupTables(message(opts.owner, [ix]), {
     [randomAddress()]: [phygitalToken],
   });
@@ -158,7 +201,12 @@ export function opaqueExecuteWire(opts: { owner: Address }): Uint8Array {
   };
   const { compactInstructions, remainingAccounts } = compileWalletInstructions([unknown], wallet);
   const ix = withRemainingAccounts(
-    getExecuteWithOwnerInstruction({ owner: createNoopSigner(opts.owner), phygitalToken: randomAddress(), wallet, compactInstructions }),
+    getExecuteWithOwnerInstruction({
+      owner: createNoopSigner(opts.owner),
+      phygitalToken: randomAddress(),
+      wallet,
+      compactInstructions,
+    }),
     remainingAccounts,
   );
   return encodeWire({ feePayer: opts.owner, instructions: [ix] });
@@ -175,7 +223,12 @@ export function durableNonceWire(opts: { owner: Address }): Uint8Array {
     ],
     data: Uint8Array.from([4, 0, 0, 0]),
   };
-  const ix = getRemoveOwnerInstruction({ owner: createNoopSigner(opts.owner), phygitalToken: randomAddress(), policy: randomAddress(), wallet: randomAddress() });
+  const ix = getRemoveOwnerInstruction({
+    owner: createNoopSigner(opts.owner),
+    phygitalToken: randomAddress(),
+    policy: randomAddress(),
+    wallet: randomAddress(),
+  });
   return encodeWire({ feePayer: opts.owner, instructions: [advance, ix] });
 }
 
@@ -187,7 +240,11 @@ export function doubleVerifyWire(opts: { recipient: Address }): Uint8Array {
     phygitalToken: randomAddress(),
     policy: randomAddress(),
     wallet: randomAddress(),
-    secp256r1VerifyArgs: { verifyArgsRelativeIndex: -1, signedMessageIndex: 0, clientDataJson: new Uint8Array(8) },
+    secp256r1VerifyArgs: {
+      verifyArgsRelativeIndex: -1,
+      signedMessageIndex: 0,
+      clientDataJson: new Uint8Array(8),
+    },
     slotNumber: 1n,
   });
   return encodeWire({ feePayer: opts.recipient, instructions: [verify, verify, ix] });
@@ -215,7 +272,8 @@ const u64 = (v: bigint) => {
   new DataView(out.buffer).setBigUint64(0, v, true);
   return out;
 };
-const bytes = (...parts: Array<number[] | Uint8Array>) => Uint8Array.from(parts.flatMap((p) => [...p]));
+const bytes = (...parts: Array<number[] | Uint8Array>) =>
+  Uint8Array.from(parts.flatMap((p) => [...p]));
 
 /** The named actors every catalog screen shares. */
 export const CATALOG = {
@@ -233,7 +291,10 @@ export const CATALOG = {
 
 const sol = (to: Address, lamports: bigint): Instruction => ({
   programAddress: SYSTEM,
-  accounts: [{ address: CATALOG.wallet, role: 3 }, { address: to, role: 1 }],
+  accounts: [
+    { address: CATALOG.wallet, role: 3 },
+    { address: to, role: 1 },
+  ],
   data: bytes([2, 0, 0, 0], u64(lamports)),
 });
 const createAta = (owner: Address, ata: Address, mint: Address): Instruction => ({
@@ -248,7 +309,12 @@ const createAta = (owner: Address, ata: Address, mint: Address): Instruction => 
   ],
   data: Uint8Array.of(1),
 });
-const transferChecked = (mint: Address, to: Address, amount: bigint, decimals: number): Instruction => ({
+const transferChecked = (
+  mint: Address,
+  to: Address,
+  amount: bigint,
+  decimals: number,
+): Instruction => ({
   programAddress: TOKEN,
   accounts: [
     { address: CATALOG.walletTokenAccount, role: 1 },
@@ -259,10 +325,22 @@ const transferChecked = (mint: Address, to: Address, amount: bigint, decimals: n
   data: bytes([12], u64(amount), [decimals]),
 });
 
-function execute(inner: Instruction[], feePayer: Address = CATALOG.owner, version: 0 | 1 | "legacy" = 0): Uint8Array {
-  const { compactInstructions, remainingAccounts } = compileWalletInstructions(inner, CATALOG.wallet);
+function execute(
+  inner: Instruction[],
+  feePayer: Address = CATALOG.owner,
+  version: 0 | 1 | "legacy" = 0,
+): Uint8Array {
+  const { compactInstructions, remainingAccounts } = compileWalletInstructions(
+    inner,
+    CATALOG.wallet,
+  );
   const ix = withRemainingAccounts(
-    getExecuteWithOwnerInstruction({ owner: createNoopSigner(CATALOG.owner), phygitalToken: CATALOG.accessory, wallet: CATALOG.wallet, compactInstructions }),
+    getExecuteWithOwnerInstruction({
+      owner: createNoopSigner(CATALOG.owner),
+      phygitalToken: CATALOG.accessory,
+      wallet: CATALOG.wallet,
+      compactInstructions,
+    }),
     remainingAccounts,
   );
   if (version === 0) return encodeWire({ feePayer, instructions: [ix] });
@@ -289,38 +367,93 @@ const policy = (actions: Parameters<typeof getUpdatePolicyInstruction>[0]["actio
     ],
   });
 const none = { __option: "None" } as const;
-const cap = (capValue: bigint, windowSeconds: bigint, maxPerTx = 0n) => ({ cap: capValue, windowSeconds, maxPerTx });
+const cap = (capValue: bigint, windowSeconds: bigint, maxPerTx = 0n) => ({
+  cap: capValue,
+  windowSeconds,
+  maxPerTx,
+});
 
 /** Every confirm screen worth reading, by name. The owner signs all of them. */
 export function confirmScreenCatalog(): Record<string, Uint8Array> {
   const C = CATALOG;
   return {
-    "link": setOwnerWireFixed(),
-    "unlink": encodeWire({
+    link: setOwnerWireFixed(),
+    unlink: encodeWire({
       feePayer: C.owner,
-      instructions: [getRemoveOwnerInstruction({ owner: createNoopSigner(C.owner), phygitalToken: C.accessory, policy: fixedAddress(11), wallet: C.wallet })],
+      instructions: [
+        getRemoveOwnerInstruction({
+          owner: createNoopSigner(C.owner),
+          phygitalToken: C.accessory,
+          policy: fixedAddress(11),
+          wallet: C.wallet,
+        }),
+      ],
     }),
     "close-policy": encodeWire({
       feePayer: C.owner,
-      instructions: [getClosePolicyInstruction({ owner: createNoopSigner(C.owner), phygitalToken: C.accessory, policy: fixedAddress(11), wallet: C.wallet })],
+      instructions: [
+        getClosePolicyInstruction({
+          owner: createNoopSigner(C.owner),
+          phygitalToken: C.accessory,
+          policy: fixedAddress(11),
+          wallet: C.wallet,
+        }),
+      ],
     }),
     "create-token-account": encodeWire({
       feePayer: C.owner,
-      instructions: [{ ...createAta(C.owner, fixedAddress(12), USDC), accounts: createAta(C.owner, fixedAddress(12), USDC).accounts!.map((a, i) => (i === 0 ? { address: C.owner, role: 3 as const } : a)) }],
+      instructions: [
+        {
+          ...createAta(C.owner, fixedAddress(12), USDC),
+          accounts: createAta(C.owner, fixedAddress(12), USDC).accounts!.map((a, i) =>
+            i === 0 ? { address: C.owner, role: 3 as const } : a,
+          ),
+        },
+      ],
     }),
     "send-sol": execute([sol(C.recipient, 250_000_000n)]),
     "send-sol-sponsored": execute([sol(C.recipient, 250_000_000n)], C.feePayer),
-    "send-sol-with-refill": execute([sol(C.recipient, 250_000_000n), sol(C.feePayer, 4_975_000n)], C.feePayer),
+    "send-sol-with-refill": execute(
+      [sol(C.recipient, 250_000_000n), sol(C.feePayer, 4_975_000n)],
+      C.feePayer,
+    ),
     "send-sol-v1": execute([sol(C.recipient, 250_000_000n)], C.owner, 1),
     "send-sol-legacy": execute([sol(C.recipient, 250_000_000n)], C.owner, "legacy"),
-    "send-usdc-new-account": execute([createAta(C.recipient, C.recipientTokenAccount, USDC), transferChecked(USDC, C.recipientTokenAccount, 1_500_000n, 6)]),
-    "send-usdc-existing-account": execute([transferChecked(USDC, C.recipientTokenAccount, 1_500_000n, 6)]),
-    "send-unknown-token": execute([transferChecked(C.unknownMint, C.recipientTokenAccount, 42_000n, 3)]),
-    "send-token-unchecked": execute([
-      { programAddress: TOKEN, accounts: [{ address: C.walletTokenAccount, role: 1 }, { address: C.recipientTokenAccount, role: 1 }, { address: C.wallet, role: 2 }], data: bytes([3], u64(1_500_000n)) },
+    "send-usdc-new-account": execute([
+      createAta(C.recipient, C.recipientTokenAccount, USDC),
+      transferChecked(USDC, C.recipientTokenAccount, 1_500_000n, 6),
     ]),
-    "send-four-payments": execute([sol(fixedAddress(21), 100_000_000n), sol(fixedAddress(22), 200_000_000n), sol(fixedAddress(23), 300_000_000n), sol(fixedAddress(24), 400_000_000n)]),
-    "send-sol-with-memo": execute([sol(C.recipient, 250_000_000n), { programAddress: MEMO, accounts: [{ address: C.wallet, role: 2 }], data: new TextEncoder().encode("Invoice #1042") }]),
+    "send-usdc-existing-account": execute([
+      transferChecked(USDC, C.recipientTokenAccount, 1_500_000n, 6),
+    ]),
+    "send-unknown-token": execute([
+      transferChecked(C.unknownMint, C.recipientTokenAccount, 42_000n, 3),
+    ]),
+    "send-token-unchecked": execute([
+      {
+        programAddress: TOKEN,
+        accounts: [
+          { address: C.walletTokenAccount, role: 1 },
+          { address: C.recipientTokenAccount, role: 1 },
+          { address: C.wallet, role: 2 },
+        ],
+        data: bytes([3], u64(1_500_000n)),
+      },
+    ]),
+    "send-four-payments": execute([
+      sol(fixedAddress(21), 100_000_000n),
+      sol(fixedAddress(22), 200_000_000n),
+      sol(fixedAddress(23), 300_000_000n),
+      sol(fixedAddress(24), 400_000_000n),
+    ]),
+    "send-sol-with-memo": execute([
+      sol(C.recipient, 250_000_000n),
+      {
+        programAddress: MEMO,
+        accounts: [{ address: C.wallet, role: 2 }],
+        data: new TextEncoder().encode("Invoice #1042"),
+      },
+    ]),
     "send-pnft": execute([
       {
         programAddress: METADATA,
@@ -369,23 +502,76 @@ export function confirmScreenCatalog(): Record<string, Uint8Array> {
           { address: fixedAddress(19), role: 1 },
           { address: fixedAddress(20), role: 0 },
         ],
-        data: bytes([163, 52, 200, 231, 140, 3, 69, 186], new Uint8Array(96), u64(7n), [7, 0, 0, 0]),
+        data: bytes(
+          [163, 52, 200, 231, 140, 3, 69, 186],
+          new Uint8Array(96),
+          u64(7n),
+          [7, 0, 0, 0],
+        ),
       },
     ]),
-    "unknown-program": execute([{ programAddress: C.unknownProgram, accounts: [{ address: C.wallet, role: 3 }], data: Uint8Array.of(9, 9, 9, 9) }]),
-    "approve-delegate": execute([
-      { programAddress: TOKEN, accounts: [{ address: C.walletTokenAccount, role: 1 }, { address: C.recipient, role: 0 }, { address: C.wallet, role: 2 }], data: bytes([4], u64(1_000_000n)) },
+    "unknown-program": execute([
+      {
+        programAddress: C.unknownProgram,
+        accounts: [{ address: C.wallet, role: 3 }],
+        data: Uint8Array.of(9, 9, 9, 9),
+      },
     ]),
-    "policy-sol-limit": policy([{ __kind: "SetSolCap", fields: [{ __option: "Some", value: cap(100_000_000n, 86_400n, 10_000_000n) }] }]),
-    "policy-hourly-limit": policy([{ __kind: "SetSolCap", fields: [{ __option: "Some", value: cap(10_000_000n, 3_600n) }] }]),
+    "approve-delegate": execute([
+      {
+        programAddress: TOKEN,
+        accounts: [
+          { address: C.walletTokenAccount, role: 1 },
+          { address: C.recipient, role: 0 },
+          { address: C.wallet, role: 2 },
+        ],
+        data: bytes([4], u64(1_000_000n)),
+      },
+    ]),
+    "policy-sol-limit": policy([
+      {
+        __kind: "SetSolCap",
+        fields: [{ __option: "Some", value: cap(100_000_000n, 86_400n, 10_000_000n) }],
+      },
+    ]),
+    "policy-hourly-limit": policy([
+      { __kind: "SetSolCap", fields: [{ __option: "Some", value: cap(10_000_000n, 3_600n) }] },
+    ]),
     "policy-no-sol": policy([{ __kind: "SetSolCap", fields: [none] }]),
-    "policy-usdc-limit": policy([{ __kind: "SetMintCap", fields: [USDC, cap(20_000_000n, 604_800n)] }]),
-    "policy-unknown-token-limit": policy([{ __kind: "SetMintCap", fields: [C.unknownMint, cap(20_000_000n, 86_400n)] }]),
+    "policy-usdc-limit": policy([
+      { __kind: "SetMintCap", fields: [USDC, cap(20_000_000n, 604_800n)] },
+    ]),
+    "policy-unknown-token-limit": policy([
+      { __kind: "SetMintCap", fields: [C.unknownMint, cap(20_000_000n, 86_400n)] },
+    ]),
     "policy-remove-token-limit": policy([{ __kind: "RemoveMintCap", fields: [USDC] }]),
-    "policy-allowed-sites": policy([{ __kind: "SetAllowedOrigins", fields: [["https://shop.example", "https://pay.example"]] }]),
+    "policy-allowed-sites": policy([
+      { __kind: "SetAllowedOrigins", fields: [["https://shop.example", "https://pay.example"]] },
+    ]),
     "policy-any-site": policy([{ __kind: "SetAllowedOrigins", fields: [[]] }]),
     "policy-allow-sol-transfers": policy([
-      { __kind: "SetProgramPermission", fields: [{ programId: SYSTEM, access: { __kind: "Restricted", fields: [[{ selector: Uint8Array.of(2, 0, 0, 0), dataLength: none, accountCount: none, accounts: [], arguments: [] }]] } }] },
+      {
+        __kind: "SetProgramPermission",
+        fields: [
+          {
+            programId: SYSTEM,
+            access: {
+              __kind: "Restricted",
+              fields: [
+                [
+                  {
+                    selector: Uint8Array.of(2, 0, 0, 0),
+                    dataLength: none,
+                    accountCount: none,
+                    accounts: [],
+                    arguments: [],
+                  },
+                ],
+              ],
+            },
+          },
+        ],
+      },
     ]),
     "policy-custom-rule": policy([
       {
@@ -395,20 +581,53 @@ export function confirmScreenCatalog(): Record<string, Uint8Array> {
             programId: SYSTEM,
             access: {
               __kind: "Restricted",
-              fields: [[{
-                selector: Uint8Array.of(2, 0, 0, 0),
-                dataLength: { __option: "Some", value: 12 },
-                accountCount: none,
-                accounts: [{ index: 1, key: { __kind: "Address", fields: [C.recipient] }, owner: none, isSigner: none, isWritable: none, data: [] }],
-                arguments: [{ offset: 4, predicate: { __kind: "Unsigned", width: 3, comparison: 3, value: 50_000_000n } }],
-              }]],
+              fields: [
+                [
+                  {
+                    selector: Uint8Array.of(2, 0, 0, 0),
+                    dataLength: { __option: "Some", value: 12 },
+                    accountCount: none,
+                    accounts: [
+                      {
+                        index: 1,
+                        key: { __kind: "Address", fields: [C.recipient] },
+                        owner: none,
+                        isSigner: none,
+                        isWritable: none,
+                        data: [],
+                      },
+                    ],
+                    arguments: [
+                      {
+                        offset: 4,
+                        predicate: {
+                          __kind: "Unsigned",
+                          width: 3,
+                          comparison: 3,
+                          value: 50_000_000n,
+                        },
+                      },
+                    ],
+                  },
+                ],
+              ],
             },
           },
         ],
       },
     ]),
-    "policy-all-token-instructions": policy([{ __kind: "SetProgramPermission", fields: [{ programId: TOKEN, access: { __kind: "AllInstructions" } }] }]),
-    "policy-unknown-program": policy([{ __kind: "SetProgramPermission", fields: [{ programId: C.unknownProgram, access: { __kind: "AllInstructions" } }] }]),
+    "policy-all-token-instructions": policy([
+      {
+        __kind: "SetProgramPermission",
+        fields: [{ programId: TOKEN, access: { __kind: "AllInstructions" } }],
+      },
+    ]),
+    "policy-unknown-program": policy([
+      {
+        __kind: "SetProgramPermission",
+        fields: [{ programId: C.unknownProgram, access: { __kind: "AllInstructions" } }],
+      },
+    ]),
     "policy-remove-program": policy([{ __kind: "RemoveProgramPermission", fields: [SYSTEM] }]),
   };
 }
@@ -420,7 +639,11 @@ function setOwnerWireFixed(): Uint8Array {
     phygitalToken: CATALOG.accessory,
     policy: fixedAddress(11),
     wallet: CATALOG.wallet,
-    secp256r1VerifyArgs: { verifyArgsRelativeIndex: -1, signedMessageIndex: 0, clientDataJson: new Uint8Array(8) },
+    secp256r1VerifyArgs: {
+      verifyArgsRelativeIndex: -1,
+      signedMessageIndex: 0,
+      clientDataJson: new Uint8Array(8),
+    },
     slotNumber: 1n,
   });
   return encodeWire({ feePayer: CATALOG.owner, instructions: [verify, ix] });

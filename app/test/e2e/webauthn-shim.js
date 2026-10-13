@@ -14,11 +14,13 @@
 	// BufferSources cross the binding as { __b64 }; signals stay behind.
 	const encode = (value) => {
 		if (value instanceof ArrayBuffer) return { __b64: b64(new Uint8Array(value)) };
-		if (ArrayBuffer.isView(value)) return { __b64: b64(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)) };
+		if (ArrayBuffer.isView(value))
+			return { __b64: b64(new Uint8Array(value.buffer, value.byteOffset, value.byteLength)) };
 		if (Array.isArray(value)) return value.map(encode);
 		if (value && typeof value === 'object') {
 			const out = {};
-			for (const [k, v] of Object.entries(value)) if (k !== 'signal' && v !== undefined) out[k] = encode(v);
+			for (const [k, v] of Object.entries(value))
+				if (k !== 'signal' && v !== undefined) out[k] = encode(v);
 			return out;
 		}
 		return value;
@@ -63,7 +65,8 @@
 
 	const feature = { create: 'publickey-credentials-create', get: 'publickey-credentials-get' };
 	async function ceremony(op, options) {
-		if (options?.signal?.aborted) throw new DOMException('The operation was aborted.', 'AbortError');
+		if (options?.signal?.aborted)
+			throw new DOMException('The operation was aborted.', 'AbortError');
 		// Keep the browser's Permissions-Policy gate: a frame the page didn't
 		// delegate WebAuthn to must still fail (Chromium exposes the check).
 		const policy = document.permissionsPolicy ?? document.featurePolicy;

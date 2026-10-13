@@ -31,30 +31,12 @@ export { REQUEST_TYPES, RESULT_TYPE, type RequestType } from "./shared/protocol.
 type Common = Pick<SignerRequest, "protocolVersion" | "requestId" | "timestamp">;
 
 export type ValidationResult =
-  | { ok: true; request: InboundRequest }
-  | { ok: false; code: ErrorCode; requestId?: string };
+  { ok: true; request: InboundRequest } | { ok: false; code: ErrorCode; requestId?: string };
 
 const ALLOWED_KEYS: Record<RequestType, ReadonlySet<string>> = {
-  SIGN_TRANSACTION: new Set([
-    "type",
-    "protocolVersion",
-    "requestId",
-    "timestamp",
-    "transaction",
-  ]),
-  SIGN_MESSAGE: new Set([
-    "type",
-    "protocolVersion",
-    "requestId",
-    "timestamp",
-    "message",
-  ]),
-  EXPORT_PRIVATE_KEY: new Set([
-    "type",
-    "protocolVersion",
-    "requestId",
-    "timestamp",
-  ]),
+  SIGN_TRANSACTION: new Set(["type", "protocolVersion", "requestId", "timestamp", "transaction"]),
+  SIGN_MESSAGE: new Set(["type", "protocolVersion", "requestId", "timestamp", "message"]),
+  EXPORT_PRIVATE_KEY: new Set(["type", "protocolVersion", "requestId", "timestamp"]),
   AUTH_START: new Set([
     "type",
     "protocolVersion",
@@ -94,9 +76,7 @@ export function validateInbound(data: unknown): ValidationResult {
 
   const requestId = data["requestId"];
   const rid =
-    typeof requestId === "string" && REQUEST_ID_RE.test(requestId)
-      ? requestId
-      : undefined;
+    typeof requestId === "string" && REQUEST_ID_RE.test(requestId) ? requestId : undefined;
 
   if (data["protocolVersion"] !== PROTOCOL_VERSION) {
     return {
@@ -106,10 +86,7 @@ export function validateInbound(data: unknown): ValidationResult {
     };
   }
   const type = data["type"];
-  if (
-    typeof type !== "string" ||
-    !REQUEST_TYPES.includes(type as RequestType)
-  ) {
+  if (typeof type !== "string" || !REQUEST_TYPES.includes(type as RequestType)) {
     return {
       ok: false,
       code: "INVALID_MESSAGE",
@@ -138,11 +115,7 @@ export function validateInbound(data: unknown): ValidationResult {
   switch (rtype) {
     case "AUTH_START": {
       const authMode = data["authMode"];
-      if (
-        authMode !== undefined &&
-        authMode !== "create" &&
-        authMode !== "unlock"
-      ) {
+      if (authMode !== undefined && authMode !== "create" && authMode !== "unlock") {
         return { ok: false, code: "INVALID_MESSAGE", requestId: rid };
       }
       const credentialId = data["credentialId"];
@@ -164,13 +137,9 @@ export function validateInbound(data: unknown): ValidationResult {
         request: {
           ...common,
           type: "AUTH_START",
-          ...(authMode === "create" || authMode === "unlock"
-            ? { authMode }
-            : {}),
+          ...(authMode === "create" || authMode === "unlock" ? { authMode } : {}),
           ...(typeof credentialId === "string" ? { credentialId } : {}),
-          ...(typeof webauthnAttestationObject === "string"
-            ? { webauthnAttestationObject }
-            : {}),
+          ...(typeof webauthnAttestationObject === "string" ? { webauthnAttestationObject } : {}),
         },
       };
     }

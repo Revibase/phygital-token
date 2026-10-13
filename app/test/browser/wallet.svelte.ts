@@ -14,13 +14,17 @@ export const walletStore = {
 			url.searchParams.delete('savedWallet');
 			window.history.replaceState(window.history.state, '', url);
 		}
-		available = /Phantom/i.test(navigator.userAgent) || localStorage.getItem('simulation:browser-wallet') === 'true';
+		available =
+			/Phantom/i.test(navigator.userAgent) ||
+			localStorage.getItem('simulation:browser-wallet') === 'true';
 		window.addEventListener('simulation:account', ((e: CustomEvent) => {
 			account = e.detail;
 		}) as EventListener);
 	},
 	get options() {
-		return available ? [{ id: 'phantom', name: 'Phantom', icon: '/icon-192.png', ready: true }] : [];
+		return available
+			? [{ id: 'phantom', name: 'Phantom', icon: '/icon-192.png', ready: true }]
+			: [];
 	},
 	get address() {
 		return account;

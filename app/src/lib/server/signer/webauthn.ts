@@ -4,8 +4,15 @@
  * are the WebAuthn challenge. Replay protection is the short-TTL single-use
  * challenge (no signature counter).
  */
-import { verifyAuthenticationResponse, type AuthenticationResponseJSON } from '@simplewebauthn/server';
-import { decodeAttestationObject, isoBase64URL, parseAuthenticatorData } from '@simplewebauthn/server/helpers';
+import {
+	verifyAuthenticationResponse,
+	type AuthenticationResponseJSON
+} from '@simplewebauthn/server';
+import {
+	decodeAttestationObject,
+	isoBase64URL,
+	parseAuthenticatorData
+} from '@simplewebauthn/server/helpers';
 
 import { bytesEqual } from '$lib/shared/encoding';
 
@@ -22,8 +29,10 @@ async function sha256(bytes: Uint8Array): Promise<Uint8Array> {
 export async function credentialFromAttestation(attestationObject: string, rpId: string) {
 	const decoded = decodeAttestationObject(isoBase64URL.toBuffer(attestationObject));
 	const authData = parseAuthenticatorData(decoded.get('authData'));
-	if (!authData.credentialPublicKey || !authData.credentialID?.length) throw new Error('attestation has no credential');
-	if (!bytesEqual(authData.rpIdHash, await sha256(new TextEncoder().encode(rpId)))) throw new Error('attestation rpIdHash mismatch');
+	if (!authData.credentialPublicKey || !authData.credentialID?.length)
+		throw new Error('attestation has no credential');
+	if (!bytesEqual(authData.rpIdHash, await sha256(new TextEncoder().encode(rpId))))
+		throw new Error('attestation rpIdHash mismatch');
 	if (!authData.flags.up || !authData.flags.at) throw new Error('attestation missing UP or AT');
 	return { publicKey: authData.credentialPublicKey, credentialId: authData.credentialID };
 }
@@ -56,7 +65,11 @@ export async function verifyAssertion(opts: {
 			expectedChallenge: opts.expectedChallenge,
 			expectedOrigin: opts.origin,
 			expectedRPID: opts.rpId,
-			credential: { id: opts.assertion.id, publicKey: new Uint8Array(opts.cosePublicKey) as Uint8Array<ArrayBuffer>, counter: 0 },
+			credential: {
+				id: opts.assertion.id,
+				publicKey: new Uint8Array(opts.cosePublicKey) as Uint8Array<ArrayBuffer>,
+				counter: 0
+			},
 			requireUserVerification: true
 		});
 		return result.verified;

@@ -10,7 +10,14 @@
 		error,
 		labelAction,
 		children
-	}: { label?: string; id?: string; hint?: string; error?: string | null; labelAction?: Snippet; children: Snippet } = $props();
+	}: {
+		label?: string;
+		id?: string;
+		hint?: string;
+		error?: string | null;
+		labelAction?: Snippet;
+		children: Snippet;
+	} = $props();
 </script>
 
 <div class="space-y-2">
@@ -21,5 +28,9 @@
 		</div>
 	{/if}
 	{@render children()}
-	{#if error}<FieldError message={error} />{:else if hint}<p class="text-[12px] leading-snug text-muted-foreground">{hint}</p>{/if}
+	{#if error}<FieldError message={error} />{:else if hint}<p
+			class="text-[12px] leading-snug text-muted-foreground"
+		>
+			{hint}
+		</p>{/if}
 </div>

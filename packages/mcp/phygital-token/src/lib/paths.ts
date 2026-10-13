@@ -3,10 +3,7 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PACKAGE_ROOT = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../..",
-);
+const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const require = createRequire(import.meta.url);
 
@@ -41,10 +38,7 @@ export async function resolveSdkReadmePath(): Promise<string | undefined> {
     }
   }
 
-  const monorepoReadme = path.join(
-    resolveRepoRoot(),
-    "packages/js/phygital-token/README.md",
-  );
+  const monorepoReadme = path.join(resolveRepoRoot(), "packages/js/phygital-token/README.md");
   if (await pathExists(monorepoReadme)) {
     return monorepoReadme;
   }
@@ -54,10 +48,7 @@ export async function resolveSdkReadmePath(): Promise<string | undefined> {
 
 /** Rust client README from the monorepo (crate is not an npm package). */
 export async function resolveRustClientReadmePath(): Promise<string | undefined> {
-  const monorepoReadme = path.join(
-    resolveRepoRoot(),
-    "packages/rust/phygital-token/README.md",
-  );
+  const monorepoReadme = path.join(resolveRepoRoot(), "packages/rust/phygital-token/README.md");
   if (await pathExists(monorepoReadme)) {
     return monorepoReadme;
   }

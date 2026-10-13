@@ -16,13 +16,20 @@ import {
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   PhygitalTokenInstruction,
 } from "phygital-token-sdk";
-import { describeInnerInstruction, describePolicyActions, mintMeta, type ClearedInner, type DetailRow } from "./clear-sign.js";
+import {
+  describeInnerInstruction,
+  describePolicyActions,
+  mintMeta,
+  type ClearedInner,
+  type DetailRow,
+} from "./clear-sign.js";
 
 export const COMPUTE_BUDGET_PROGRAM = "ComputeBudget111111111111111111111111111111";
 export const SECP256R1_PROGRAM = "Secp256r1SigVerify1111111111111111111111111";
 export const ATA_PROGRAM = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
 
-export type InstructionKind = "link" | "unlink" | "send" | "tapPayments" | "tapPaymentsOff" | "createTokenAccount";
+export type InstructionKind =
+  "link" | "unlink" | "send" | "tapPayments" | "tapPaymentsOff" | "createTokenAccount";
 
 export interface InnerInstructionSummary extends ClearedInner {
   programAddress: string;
@@ -44,13 +51,20 @@ export interface ParsedInstructionSummary {
   permissionDanger?: boolean;
 }
 
-type KitInstruction = Instruction & { accounts?: readonly AccountMeta[]; data?: ReadonlyUint8Array };
+type KitInstruction = Instruction & {
+  accounts?: readonly AccountMeta[];
+  data?: ReadonlyUint8Array;
+};
 
 /** What the instruction can't tell on its own: who pays this transaction's fee. */
 export type ParseContext = { feePayer?: string };
 
 function summarizeInner(
-  compactInstructions: ReadonlyArray<{ programIdIndex: number; accountIndexes: ReadonlyUint8Array; data: ReadonlyUint8Array }>,
+  compactInstructions: ReadonlyArray<{
+    programIdIndex: number;
+    accountIndexes: ReadonlyUint8Array;
+    data: ReadonlyUint8Array;
+  }>,
   remaining: readonly AccountMeta[],
   self: string,
   wallet: string,
@@ -75,17 +89,18 @@ function summarizeInner(
       accounts[0] === wallet &&
       accounts[1] === feePayer &&
       /^Send\b/.test(described.title);
-    const cleared = refill && feePayer
-      ? {
-          ...described,
-          title: "Refill network fees",
-          details: [
-            ...described.details.filter((d) => d.label === "Amount"),
-            { label: "From", value: wallet },
-            { label: "To", value: feePayer },
-          ],
-        }
-      : described;
+    const cleared =
+      refill && feePayer
+        ? {
+            ...described,
+            title: "Refill network fees",
+            details: [
+              ...described.details.filter((d) => d.label === "Amount"),
+              { label: "From", value: wallet },
+              { label: "To", value: feePayer },
+            ],
+          }
+        : described;
     return { ...cleared, programAddress: prog.address, accounts, dataLength: data.length };
   });
   return nameTokenRecipients(summaries);
@@ -100,14 +115,23 @@ function summarizeInner(
 function nameTokenRecipients(summaries: InnerInstructionSummary[]): InnerInstructionSummary[] {
   const owners = new Map<string, string>();
   for (const s of summaries) {
-    if (s.programAddress === ATA_PROGRAM && s.title === "Create token account" && s.accounts[1] && s.accounts[2]) owners.set(s.accounts[1], s.accounts[2]);
+    if (
+      s.programAddress === ATA_PROGRAM &&
+      s.title === "Create token account" &&
+      s.accounts[1] &&
+      s.accounts[2]
+    )
+      owners.set(s.accounts[1], s.accounts[2]);
   }
   return summaries.map((s) => {
     const account = s.details.find((d) => d.label === "To token account")?.value;
     const owner = account ? owners.get(account) : undefined;
     if (!owner) return s;
     const at = s.details.findIndex((d) => d.label === "To token account");
-    return { ...s, details: [...s.details.slice(0, at), { label: "To", value: owner }, ...s.details.slice(at)] };
+    return {
+      ...s,
+      details: [...s.details.slice(0, at), { label: "To", value: owner }, ...s.details.slice(at)],
+    };
   });
 }
 
@@ -116,15 +140,20 @@ function nameTokenRecipients(summaries: InnerInstructionSummary[]): InnerInstruc
  * or as part of another one (the link's secp256r1 verify). Throws for anything
  * the app never asks an owner to sign.
  */
-export function parseInstruction(ix: KitInstruction, context: ParseContext = {}): ParsedInstructionSummary | null {
+export function parseInstruction(
+  ix: KitInstruction,
+  context: ParseContext = {},
+): ParsedInstructionSummary | null {
   const accounts = [...(ix.accounts ?? [])];
   const data = Uint8Array.from(ix.data ?? []);
 
-  if (ix.programAddress === COMPUTE_BUDGET_PROGRAM || ix.programAddress === SECP256R1_PROGRAM) return null;
+  if (ix.programAddress === COMPUTE_BUDGET_PROGRAM || ix.programAddress === SECP256R1_PROGRAM)
+    return null;
 
   if (ix.programAddress === ATA_PROGRAM) {
     // createIdempotent: payer, ata, owner, mint, system, token program.
-    if (data.length !== 1 || data[0] !== 1 || accounts.length < 6) throw new Error("unsupported ATA instruction");
+    if (data.length !== 1 || data[0] !== 1 || accounts.length < 6)
+      throw new Error("unsupported ATA instruction");
     return {
       kind: "createTokenAccount",
       signers: [accounts[0]!.address],
@@ -132,14 +161,20 @@ export function parseInstruction(ix: KitInstruction, context: ParseContext = {})
       inner: null,
       details: [
         { label: "For", value: accounts[2]!.address },
-        ...(mintMeta(accounts[3]!.address) ? [{ label: "Token", value: mintMeta(accounts[3]!.address)!.symbol }] : []),
+        ...(mintMeta(accounts[3]!.address)
+          ? [{ label: "Token", value: mintMeta(accounts[3]!.address)!.symbol }]
+          : []),
         { label: "Mint", value: accounts[3]!.address },
       ],
     };
   }
 
   if (ix.programAddress !== PHYGITAL_TOKEN_PROGRAM_ADDRESS) throw new Error("program not allowed");
-  const parsed = parsePhygitalTokenInstruction({ programAddress: PHYGITAL_TOKEN_PROGRAM_ADDRESS, accounts, data });
+  const parsed = parsePhygitalTokenInstruction({
+    programAddress: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
+    accounts,
+    data,
+  });
 
   switch (parsed.instructionType) {
     case PhygitalTokenInstruction.SetOwner:
@@ -167,7 +202,13 @@ export function parseInstruction(ix: KitInstruction, context: ParseContext = {})
         kind: "send",
         signers: [owner],
         phygitalToken: parsed.accounts.phygitalToken.address,
-        inner: summarizeInner(parsed.data.compactInstructions, accounts.slice(EXECUTE_WITH_OWNER_NAMED_ACCOUNT_COUNT), owner, parsed.accounts.wallet.address, context),
+        inner: summarizeInner(
+          parsed.data.compactInstructions,
+          accounts.slice(EXECUTE_WITH_OWNER_NAMED_ACCOUNT_COUNT),
+          owner,
+          parsed.accounts.wallet.address,
+          context,
+        ),
         details: [{ label: "Accessory wallet", value: parsed.accounts.wallet.address }],
       };
     }
@@ -177,15 +218,15 @@ export function parseInstruction(ix: KitInstruction, context: ParseContext = {})
       const funder = parsed.accounts.payer.address;
       return {
         kind: "tapPayments",
-        permissionDanger: describePolicyActions(parsed.data.actions).some((row) => row.label === "Permission warning"),
+        permissionDanger: describePolicyActions(parsed.data.actions).some(
+          (row) => row.label === "Permission warning",
+        ),
         signers: [owner],
         phygitalToken: parsed.accounts.phygitalToken.address,
         inner: null,
         details: [
           ...describePolicyActions(parsed.data.actions),
-          ...(funder !== owner
-            ? [{ label: "Deposit paid by", value: funder }]
-            : []),
+          ...(funder !== owner ? [{ label: "Deposit paid by", value: funder }] : []),
         ],
       };
     }

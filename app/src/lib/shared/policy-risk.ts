@@ -27,7 +27,6 @@ export const ALWAYS_ENFORCED = [
 	'You can turn tap permissions off, or change them, at any time.'
 ];
 
-
 const ruleShape = (r: RuleJson) => ({
 	selector: Array.from(r.selector.match(/../g) ?? [], (b) => parseInt(b, 16)),
 	dataLength: r.dataLength,
@@ -36,7 +35,12 @@ const ruleShape = (r: RuleJson) => ({
 	arguments: r.args ?? []
 });
 
-function programRisks(program: string, everything: boolean, rules: RuleJson[], ctx: RiskContext): Risk[] {
+function programRisks(
+	program: string,
+	everything: boolean,
+	rules: RuleJson[],
+	ctx: RiskContext
+): Risk[] {
 	const risks: Risk[] = [];
 	const known = knownProgram(program);
 	const name = programName(program);
@@ -52,16 +56,33 @@ function programRisks(program: string, everything: boolean, rules: RuleJson[], c
 		const risk = ruleRisk(program, ruleShape(rule).selector);
 		if (risk) risks.push({ level: 'danger', message: risk });
 	}
-	if (!known) risks.push({ level: 'caution', message: `${name} isn't one we recognise. Only allow programs from projects you trust.` });
-	if (ctx.upgradeable(program)) risks.push({ level: 'caution', message: `${name}'s developer can change what it does at any time.` });
-	if (ctx.upgradeable(program) === undefined) risks.push({ level: 'caution', message: `${name}: we couldn’t verify whether its developer can change it.` });
+	if (!known)
+		risks.push({
+			level: 'caution',
+			message: `${name} isn't one we recognise. Only allow programs from projects you trust.`
+		});
+	if (ctx.upgradeable(program))
+		risks.push({
+			level: 'caution',
+			message: `${name}'s developer can change what it does at any time.`
+		});
+	if (ctx.upgradeable(program) === undefined)
+		risks.push({
+			level: 'caution',
+			message: `${name}: we couldn’t verify whether its developer can change it.`
+		});
 	return risks;
 }
 
 export function changeRisks(change: Change, ctx: RiskContext): Risk[] {
 	switch (change.kind) {
 		case 'addProgram':
-			return programRisks(change.program, change.access === 'all', change.access === 'all' ? [] : change.access, ctx);
+			return programRisks(
+				change.program,
+				change.access === 'all',
+				change.access === 'all' ? [] : change.access,
+				ctx
+			);
 		case 'widenProgram':
 			return programRisks(change.program, true, [], ctx);
 		case 'addRules':
@@ -69,19 +90,28 @@ export function changeRisks(change: Change, ctx: RiskContext): Risk[] {
 		case 'addLimit':
 		case 'raiseLimit': {
 			const cap = change.kind === 'addLimit' ? change.cap : change.to;
-			const risks: Risk[] = change.kind === 'raiseLimit' ? [{ level: 'caution', message: 'This raises a limit you already set.' }] : [];
+			const risks: Risk[] =
+				change.kind === 'raiseLimit'
+					? [{ level: 'caution', message: 'This raises a limit you already set.' }]
+					: [];
 			const held = ctx.holding(change.asset);
 			if (held !== undefined && cap.cap > held) {
 				const longWindow = cap.windowSeconds === 0n || cap.windowSeconds >= 7n * DAY_SECONDS;
 				risks.push({
 					level: longWindow ? 'danger' : 'caution',
-					message: 'This is more than the accessory wallet holds now, so taps could spend all of it.'
+					message:
+						'This is more than the accessory wallet holds now, so taps could spend all of it.'
 				});
 			}
 			return risks;
 		}
 		case 'addOrigins':
-			return [{ level: 'caution', message: 'These sites could ask your accessory to sign. Only add sites you trust.' }];
+			return [
+				{
+					level: 'caution',
+					message: 'These sites could ask your accessory to sign. Only add sites you trust.'
+				}
+			];
 	}
 }
 
@@ -89,7 +119,13 @@ export function changeRisks(change: Change, ctx: RiskContext): Risk[] {
 export function requestRisks(source: { site: string | null }): Risk[] {
 	return source.site
 		? []
-		: [{ level: 'caution', message: 'This came from a link, not from a site we could check. Make sure you trust whoever sent it.' }];
+		: [
+				{
+					level: 'caution',
+					message:
+						'This came from a link, not from a site we could check. Make sure you trust whoever sent it.'
+				}
+			];
 }
 
 export const hasDanger = (risks: Risk[]) => risks.some((r) => r.level === 'danger');

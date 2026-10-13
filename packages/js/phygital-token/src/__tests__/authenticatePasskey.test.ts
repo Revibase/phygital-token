@@ -5,19 +5,14 @@ const { CRED } = vi.hoisted(() => ({
 }));
 
 vi.mock("../utils/passkey/webauthn.js", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("../utils/passkey/webauthn.js")
-  >();
+  const actual = await importOriginal<typeof import("../utils/passkey/webauthn.js")>();
   return {
     ...actual,
     authenticateWithWebauthn: vi.fn(async () => ({ id: CRED, rawId: CRED })),
   };
 });
 
-import {
-  authenticateWithWebauthn,
-  bufferToBase64URLString,
-} from "../utils/passkey/webauthn.js";
+import { authenticateWithWebauthn, bufferToBase64URLString } from "../utils/passkey/webauthn.js";
 import { authenticatePasskey } from "../utils/passkey/authenticate.js";
 
 const allowList = new Set([CRED]);
@@ -51,7 +46,7 @@ describe("authenticatePasskey", () => {
       rawId: OTHER,
     } as never);
     await expect(
-      authenticatePasskey(challenge, { allowList, rpId: "app.example" })
+      authenticatePasskey(challenge, { allowList, rpId: "app.example" }),
     ).rejects.toMatchObject({ code: "PASSKEY_NOT_RECOGNIZED" });
   });
 });

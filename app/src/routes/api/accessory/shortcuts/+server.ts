@@ -12,14 +12,19 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ cookies, platform }) => {
 	const env = getEnv(platform);
 	const session = await readAdmitSession(cookies, env.sessionSecret);
-	if (!session) return json({ error: 'Tap your accessory again.', code: 'expired' }, { status: 401 });
+	if (!session)
+		return json({ error: 'Tap your accessory again.', code: 'expired' }, { status: 401 });
 	try {
 		const resolved = await fetchAccessory(getRpc(env), session.pda);
-		if (!resolved) return json({ error: 'Accessory not found', code: 'not_found' }, { status: 404 });
+		if (!resolved)
+			return json({ error: 'Accessory not found', code: 'not_found' }, { status: 404 });
 		const accessory = toAccessoryView(resolved.pda, resolved.account);
 		const project = await loadShortcuts(env.rpcUrl, accessory);
 		return json({ shortcuts: await withIconProxy(project.shortcuts, env.sessionSecret) });
 	} catch {
-		return json({ error: 'Couldn’t reach the network. Try again.', code: 'network' }, { status: 502 });
+		return json(
+			{ error: 'Couldn’t reach the network. Try again.', code: 'network' },
+			{ status: 502 }
+		);
 	}
 };

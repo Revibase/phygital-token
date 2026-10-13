@@ -10,7 +10,11 @@ export const GET: RequestHandler = async ({ url, platform }) => {
 		return new Response('Not found', { status: 404 });
 	}
 	const icon = await fetchIconImage(target!);
-	if (!icon) return new Response('Not found', { status: 404, headers: { 'cache-control': 'public, max-age=300' } });
+	if (!icon)
+		return new Response('Not found', {
+			status: 404,
+			headers: { 'cache-control': 'public, max-age=300' }
+		});
 	return new Response(icon.bytes, {
 		headers: {
 			'content-type': icon.type,

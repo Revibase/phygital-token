@@ -66,7 +66,9 @@ function mockRpc(s: Scenario) {
             },
           },
     getRecentPrioritizationFees: () => [{ prioritizationFee: 10_000n, slot: 1n }],
-    getLatestBlockhash: () => ({ value: { blockhash: "11111111111111111111111111111111", lastValidBlockHeight: 10_000n } }),
+    getLatestBlockhash: () => ({
+      value: { blockhash: "11111111111111111111111111111111", lastValidBlockHeight: 10_000n },
+    }),
     getBalance: () => ({ value: s.walletLamports }),
     simulateTransaction: (wire: unknown) => {
       simulated.push(String(wire));
@@ -82,24 +84,26 @@ function mockRpc(s: Scenario) {
   const rpc = new Proxy(
     {},
     {
-      get: (_, method: string) =>
+      get:
+        (_, method: string) =>
         (...args: unknown[]) => ({ send: async () => methods[method]!(...args) }),
-    }
+    },
   ) as Rpc<SolanaRpcApi>;
   return { rpc, simulated };
 }
 
 function sponsorFetch(balanceLamports: bigint) {
-  return vi.fn(async () =>
-    new Response(
-      JSON.stringify({
-        feePayers: [POOL],
-        maxComputeUnitLimit: 400_000,
-        maxComputeUnitPrice: "100000",
-        balanceLamports: String(balanceLamports),
-        prepaidLamports: "5000000",
-      })
-    )
+  return vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          feePayers: [POOL],
+          maxComputeUnitLimit: 400_000,
+          maxComputeUnitPrice: "100000",
+          balanceLamports: String(balanceLamports),
+          prepaidLamports: "5000000",
+        }),
+      ),
   );
 }
 
@@ -111,11 +115,26 @@ function transferFromWallet() {
       (m) => setTransactionMessageFeePayer(WALLET, m),
       (m) =>
         setTransactionMessageLifetimeUsingBlockhash(
-          { blockhash: "11111111111111111111111111111111" as Blockhash, lastValidBlockHeight: 10_000n },
-          m
+          {
+            blockhash: "11111111111111111111111111111111" as Blockhash,
+            lastValidBlockHeight: 10_000n,
+          },
+          m,
         ),
-      (m) => appendTransactionMessageInstructions([{ ...transfer, accounts: [{ ...transfer.accounts![0]!, signer: createNoopSigner(WALLET) }, transfer.accounts![1]!] }], m)
-    )
+      (m) =>
+        appendTransactionMessageInstructions(
+          [
+            {
+              ...transfer,
+              accounts: [
+                { ...transfer.accounts![0]!, signer: createNoopSigner(WALLET) },
+                transfer.accounts![1]!,
+              ],
+            },
+          ],
+          m,
+        ),
+    ),
   );
 }
 
@@ -129,7 +148,7 @@ async function sign(s: Scenario) {
   });
   const error = await signer.modifyAndSignTransactions([transferFromWallet() as never]).then(
     () => null,
-    (e: unknown) => e
+    (e: unknown) => e,
   );
   return { error, onFeePlan, simulated };
 }
@@ -140,13 +159,21 @@ describe("getPhygitalWalletSigner prepaid network fees", () => {
   });
 
   it("uses the prepaid balance without a refill while it lasts", async () => {
-    const { error, onFeePlan } = await sign({ walletLamports: 0n, balanceLamports: 4_000_000n, previews: [] });
+    const { error, onFeePlan } = await sign({
+      walletLamports: 0n,
+      balanceLamports: 4_000_000n,
+      previews: [],
+    });
     expect(error).toBe(STOP);
     expect(onFeePlan).toHaveBeenCalledWith({ source: "free", refillLamports: 0n });
   });
 
   it("refills back to the prepaid amount before the tap when the balance runs low", async () => {
-    const { error, onFeePlan } = await sign({ walletLamports: 1_000_000_000n, balanceLamports: 1_000n, previews: [] });
+    const { error, onFeePlan } = await sign({
+      walletLamports: 1_000_000_000n,
+      balanceLamports: 1_000n,
+      previews: [],
+    });
     expect(error).toBe(STOP);
     const [[plan]] = onFeePlan.mock.calls as [[{ source: string; refillLamports: bigint }]];
     expect(plan.source).toBe("refill");
@@ -167,7 +194,9 @@ describe("getPhygitalWalletSigner prepaid network fees", () => {
       previews: [PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED, PHYGITAL_TOKEN_ERROR__PREVIEW_PASSED],
     });
     expect(error).toBeInstanceOf(RefillBlockedByTapLimit);
-    expect((error as RefillBlockedByTapLimit).manageUrl).toBe(`https://portal.revibase.com/wallet/${TOKEN}`);
+    expect((error as RefillBlockedByTapLimit).manageUrl).toBe(
+      `https://portal.revibase.com/wallet/${TOKEN}`,
+    );
     expect(simulated).toHaveLength(2);
     expect(authenticate).not.toHaveBeenCalled();
   });
@@ -176,7 +205,10 @@ describe("getPhygitalWalletSigner prepaid network fees", () => {
     const { error } = await sign({
       walletLamports: 1_000_000_000n,
       balanceLamports: 0n,
-      previews: [PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED, PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED],
+      previews: [
+        PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED,
+        PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED,
+      ],
     });
     expect(error).toMatchObject({ name: "PolicyDeniedError", code: "spend_limit" });
   });

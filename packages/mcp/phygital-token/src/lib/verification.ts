@@ -1,8 +1,5 @@
 export type VerificationUseCase =
-  | "login_ui_only"
-  | "set_owner"
-  | "lookup_after_tap"
-  | "onchain_cpi_verify";
+  "login_ui_only" | "set_owner" | "lookup_after_tap" | "onchain_cpi_verify";
 
 export type VerificationRecommendation = {
   method: string;
@@ -64,16 +61,11 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     onChain: true,
     rationale:
       "Client prepends secp256r1_verify and passes phygitalTokenPda + secp256r1VerifyArgs into your instruction. Tap takes rpc (recovery) and/or allowList (gate, no-RPC fallback). Your program CPIs verify with VerifyCpiBuilder.",
-    docIds: [
-      "verification:verify-composable",
-      "building-on-phygital:rust-cpi",
-    ],
+    docIds: ["verification:verify-composable", "building-on-phygital:rust-cpi"],
   },
 };
 
-export function recommendVerification(
-  useCase: VerificationUseCase,
-): VerificationRecommendation {
+export function recommendVerification(useCase: VerificationUseCase): VerificationRecommendation {
   return RECOMMENDATIONS[useCase];
 }
 

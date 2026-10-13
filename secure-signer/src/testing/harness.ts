@@ -8,11 +8,7 @@
  */
 
 import type { BlobStore } from "../blob-store.js";
-import {
-  createSignerDispatcher,
-  type BackupApi,
-  type SignerPrf,
-} from "../dispatcher.js";
+import { createSignerDispatcher, type BackupApi, type SignerPrf } from "../dispatcher.js";
 import { BrowserPrfProvider } from "../webauthn.js";
 import { FakeBackupApi } from "./fake-backup-api.js";
 import { MemoryBlobStore } from "./memory-store.js";

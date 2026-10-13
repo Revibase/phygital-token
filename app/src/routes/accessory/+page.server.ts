@@ -35,7 +35,10 @@ async function processTap(
 		redirect(303, `/tap/${outcome.reason}`);
 	}
 
-	await setBrowseUnlock(cookies, env.sessionSecret, { pda: outcome.pda, identifier: outcome.identifier });
+	await setBrowseUnlock(cookies, env.sessionSecret, {
+		pda: outcome.pda,
+		identifier: outcome.identifier
+	});
 	redirect(303, '/accessory');
 }
 

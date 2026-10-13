@@ -10,7 +10,11 @@
  *
  * Runs in the signer Worker (`worker.ts`) and the Vite dev server.
  */
-import { decodeBase64UrlCapped, MAX_BLOB_BYTES, parseWalletBlobHeader } from "./shared/wallet-blob.js";
+import {
+  decodeBase64UrlCapped,
+  MAX_BLOB_BYTES,
+  parseWalletBlobHeader,
+} from "./shared/wallet-blob.js";
 
 export const VAULT_PATH = "/vault";
 export const VAULT_COOKIE = "__Host-vault_blob";
@@ -20,7 +24,12 @@ const MAX_AGE_SECONDS = 400 * 24 * 60 * 60;
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers },
+    headers: {
+      "content-type": "application/json",
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+      ...headers,
+    },
   });
 
 function validBlob(value: unknown): value is string {
@@ -53,11 +62,14 @@ export async function handleVault(request: Request): Promise<Response> {
     const site = request.headers.get("sec-fetch-site");
     if (site && site !== "same-origin") return json({ error: "forbidden" }, 403);
     const blob = readCookie(request.headers.get("cookie"));
-    return validBlob(blob) ? json({ encryptedWalletBlob: blob }) : json({ error: "not_found" }, 404);
+    return validBlob(blob)
+      ? json({ encryptedWalletBlob: blob })
+      : json({ error: "not_found" }, 404);
   }
   if (request.method === "PUT") {
     if (!sameOrigin(request)) return json({ error: "forbidden" }, 403);
-    if (!request.headers.get("content-type")?.startsWith("application/json")) return json({ error: "bad_request" }, 415);
+    if (!request.headers.get("content-type")?.startsWith("application/json"))
+      return json({ error: "bad_request" }, 415);
     let body: { encryptedWalletBlob?: unknown };
     try {
       body = (await request.json()) as typeof body;

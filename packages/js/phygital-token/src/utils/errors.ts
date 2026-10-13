@@ -21,11 +21,7 @@ export type PhygitalTokenErrorCode =
 export class PhygitalTokenError extends Error {
   readonly code: PhygitalTokenErrorCode;
 
-  constructor(
-    code: PhygitalTokenErrorCode,
-    message: string,
-    options?: { cause?: unknown }
-  ) {
+  constructor(code: PhygitalTokenErrorCode, message: string, options?: { cause?: unknown }) {
     super(message, options);
     this.name = "PhygitalTokenError";
     this.code = code;

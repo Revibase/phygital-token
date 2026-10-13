@@ -15,10 +15,23 @@ import { address, generateKeyPairSigner } from '@solana/kit';
 import { getAssignMintInstructionAsync } from 'phygital-token-sdk';
 
 import { base64UrlToBytes, bytesToBase64Url } from '../src/lib/shared/encoding';
-import { createAdmin, fakeAccessory, funded, issueAccessory, link, send, type AccessoryKeys, type AccessoryKind } from './lib';
+import {
+	createAdmin,
+	fakeAccessory,
+	funded,
+	issueAccessory,
+	link,
+	send,
+	type AccessoryKeys,
+	type AccessoryKind
+} from './lib';
 
 const STATE = new URL('./.dev-accessory.json', import.meta.url);
-type State = { issuer: string; minter?: string; accessories: Record<string, { keys: AccessoryKeys; pda: string; kind: string }> };
+type State = {
+	issuer: string;
+	minter?: string;
+	accessories: Record<string, { keys: AccessoryKeys; pda: string; kind: string }>;
+};
 const load = (): State => {
 	if (!existsSync(STATE)) throw new Error('Run `pnpm dev:accessory init` first.');
 	return JSON.parse(readFileSync(STATE, 'utf8'));
@@ -26,7 +39,11 @@ const load = (): State => {
 const save = (s: State) => writeFileSync(STATE, JSON.stringify(s, null, 2));
 async function init() {
 	const { issuerKey, minterKey, issuer } = await createAdmin();
-	save({ issuer: bytesToBase64Url(issuerKey), minter: bytesToBase64Url(minterKey), accessories: {} });
+	save({
+		issuer: bytesToBase64Url(issuerKey),
+		minter: bytesToBase64Url(minterKey),
+		accessories: {}
+	});
 	console.log(`issuer ${issuer} ready`);
 }
 
@@ -66,7 +83,13 @@ async function bindMint(name: string, mintArg?: string) {
 	if (!s.minter) throw new Error('no minter saved; re-run init on a fresh validator');
 	const minter = await funded(base64UrlToBytes(s.minter));
 	const mint = mintArg ? address(mintArg) : (await generateKeyPairSigner()).address;
-	await send(minter, [await getAssignMintInstructionAsync({ authority: minter, phygitalToken: address(entry.pda), mint })]);
+	await send(minter, [
+		await getAssignMintInstructionAsync({
+			authority: minter,
+			phygitalToken: address(entry.pda),
+			mint
+		})
+	]);
 	console.log(mint);
 }
 
@@ -80,7 +103,9 @@ const commands: Record<string, () => Promise<unknown>> = {
 };
 const run = commands[cmd];
 if (!run || (cmd !== 'init' && !name)) {
-	console.log('usage: dev-accessory init | add <name> [bearer|controlled|permanent] | tap <name> | link <name> | mint <name> [mint]');
+	console.log(
+		'usage: dev-accessory init | add <name> [bearer|controlled|permanent] | tap <name> | link <name> | mint <name> [mint]'
+	);
 	process.exit(1);
 }
 run().catch((err) => {

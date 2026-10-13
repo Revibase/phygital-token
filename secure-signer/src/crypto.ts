@@ -7,12 +7,7 @@ import {
   verifySignature,
 } from "@solana/kit";
 
-import {
-  AES_GCM_TAG_BITS,
-  AES_KEY_BITS,
-  ED25519_PUBKEY_BYTES,
-  HKDF_INFO,
-} from "./constants.js";
+import { AES_GCM_TAG_BITS, AES_KEY_BITS, ED25519_PUBKEY_BYTES, HKDF_INFO } from "./constants.js";
 import { base64ToBytes } from "./encoding.js";
 
 const subtle = globalThis.crypto.subtle;
@@ -38,13 +33,9 @@ export async function deriveWrappingKey(
   prfOutput: Uint8Array,
   salt: Uint8Array,
 ): Promise<CryptoKey> {
-  const base = await subtle.importKey(
-    "raw",
-    prfOutput as BufferSource,
-    "HKDF",
-    false,
-    ["deriveKey"],
-  );
+  const base = await subtle.importKey("raw", prfOutput as BufferSource, "HKDF", false, [
+    "deriveKey",
+  ]);
   return subtle.deriveKey(
     {
       name: "HKDF",
@@ -127,10 +118,7 @@ export async function ed25519PublicKey(seed: Uint8Array): Promise<Uint8Array> {
   return pub;
 }
 
-export async function ed25519Sign(
-  message: Uint8Array,
-  seed: Uint8Array,
-): Promise<Uint8Array> {
+export async function ed25519Sign(message: Uint8Array, seed: Uint8Array): Promise<Uint8Array> {
   const privateKey = await createPrivateKeyFromBytes(seed, false);
   return new Uint8Array(await signBytes(privateKey, message));
 }

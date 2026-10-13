@@ -18,9 +18,13 @@ export const POST: RequestHandler = async ({ request, url, cookies, platform }) 
 			{ db: env.db, rpc: getRpc(env), origin: url.origin, rpId: env.rpId },
 			{ challengeId: body.challengeId, response: body.response }
 		);
-		if (!result.ok) return json({ error: result.error, code: result.code }, { status: result.status });
+		if (!result.ok)
+			return json({ error: result.error, code: result.code }, { status: result.status });
 
-		await setBrowseUnlock(cookies, env.sessionSecret, { pda: result.pda, identifier: result.identifier });
+		await setBrowseUnlock(cookies, env.sessionSecret, {
+			pda: result.pda,
+			identifier: result.identifier
+		});
 		return json({ next: '/accessory' });
 	} catch {
 		return json({ error: 'Couldn’t reach the network. Try again.' }, { status: 502 });

@@ -16,9 +16,13 @@ export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 	}
 	try {
 		const result = await verifyOwnerBrowse(getRpc(env), login.wallet, body.pda);
-		if (!result.ok) return json({ error: result.error, code: result.code }, { status: result.status });
+		if (!result.ok)
+			return json({ error: result.error, code: result.code }, { status: result.status });
 
-		const session = await setOwnerBrowse(cookies, env.sessionSecret, { ...result, wallet: login.wallet });
+		const session = await setOwnerBrowse(cookies, env.sessionSecret, {
+			...result,
+			wallet: login.wallet
+		});
 		return json({ ok: true, mode: 'owner' as const, pda: session.pda, expiresAt: session.exp });
 	} catch {
 		return json({ error: 'Couldn’t reach the network. Try again.' }, { status: 502 });

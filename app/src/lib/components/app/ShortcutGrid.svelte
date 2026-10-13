@@ -1,6 +1,10 @@
 <script lang="ts">
 	import Section from './Section.svelte';
-	import { shortcutDestination, type Shortcut, type ShortcutIcon as IconName } from '$lib/shared/shortcuts';
+	import {
+		shortcutDestination,
+		type Shortcut,
+		type ShortcutIcon as IconName
+	} from '$lib/shared/shortcuts';
 	import { SvelteSet } from 'svelte/reactivity';
 	import ShortcutIcon from './ShortcutIcon.svelte';
 	import SolanaPaySheet from './SolanaPaySheet.svelte';
@@ -48,19 +52,46 @@
 			<li>
 				{#snippet body()}
 					{#if s.image && !broken.has(s.image)}
-						<span class="{icon} bg-card"><img src={s.image} alt="" class="size-full object-cover" decoding="async" onerror={() => broken.add(s.image!)} /></span>
+						<span class="{icon} bg-card"
+							><img
+								src={s.image}
+								alt=""
+								class="size-full object-cover"
+								decoding="async"
+								onerror={() => broken.add(s.image!)}
+							/></span
+						>
 					{:else}
-						<span class="{icon} {themes[s.icon] ?? themes['generic-link']}"><ShortcutIcon icon={s.icon} class="size-6 drop-shadow-[0_1px_1px_rgb(0_0_0/0.15)]" /></span>
+						<span class="{icon} {themes[s.icon] ?? themes['generic-link']}"
+							><ShortcutIcon
+								icon={s.icon}
+								class="size-6 drop-shadow-[0_1px_1px_rgb(0_0_0/0.15)]"
+							/></span
+						>
 					{/if}
 					<span class="line-clamp-2 text-[12px] leading-tight font-medium">{s.label}</span>
 				{/snippet}
 				{#if s.href.startsWith('solana:')}
-					<button type="button" class={tile} {title} onclick={() => { payment = { href: s.href, label: s.label }; paymentOpen = true; }}>{@render body()}</button>
+					<button
+						type="button"
+						class={tile}
+						{title}
+						onclick={() => {
+							payment = { href: s.href, label: s.label };
+							paymentOpen = true;
+						}}>{@render body()}</button
+					>
 				{:else}
-					<a href={s.href} target="_blank" rel="noopener noreferrer" class={tile} {title}>{@render body()}</a>
+					<a href={s.href} target="_blank" rel="noopener noreferrer" class={tile} {title}
+						>{@render body()}</a
+					>
 				{/if}
 			</li>
 		{/each}
 	</ul>
 </Section>
-{#if payment}<SolanaPaySheet bind:open={paymentOpen} href={payment.href} label={payment.label} />{/if}
+{#if payment}<SolanaPaySheet
+		bind:open={paymentOpen}
+		href={payment.href}
+		label={payment.label}
+	/>{/if}

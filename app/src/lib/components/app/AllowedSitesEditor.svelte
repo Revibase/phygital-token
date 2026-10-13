@@ -39,7 +39,13 @@
 			{#each origins as origin (origin)}
 				<Panel element="li" class="flex min-h-12 items-center justify-between gap-2 py-0 pr-1">
 					<span class="min-w-0 truncate text-[15px]">{origin}</span>
-					<Button variant="ghost" size="icon" aria-label={`Remove ${origin}`} {disabled} onclick={() => onchange(origins.filter((o) => o !== origin))}>
+					<Button
+						variant="ghost"
+						size="icon"
+						aria-label={`Remove ${origin}`}
+						{disabled}
+						onclick={() => onchange(origins.filter((o) => o !== origin))}
+					>
 						<XIcon class="size-4" />
 					</Button>
 				</Panel>
@@ -54,7 +60,12 @@
 			id={`${uid}-site`}
 			bind:value={text}
 			oninput={() => (problem = null)}
-			onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+			onkeydown={(e) => {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					add();
+				}
+			}}
 			{disabled}
 			inputmode="url"
 			autocapitalize="off"
@@ -65,11 +76,15 @@
 			aria-invalid={!!problem || undefined}
 			class="flex-1"
 		/>
-		<Button type="button" variant="secondary" disabled={disabled || !text.trim()} onclick={add}>Add</Button>
+		<Button type="button" variant="secondary" disabled={disabled || !text.trim()} onclick={add}
+			>Add</Button
+		>
 	</div>
 	<FieldError message={problem} />
 	<p class="text-[12px] leading-snug text-muted-foreground">
-		{origins.length ? 'Other websites can’t use your accessory to sign.' : 'Add a site to stop other websites using your accessory to sign.'}
+		{origins.length
+			? 'Other websites can’t use your accessory to sign.'
+			: 'Add a site to stop other websites using your accessory to sign.'}
 		Apps that read the accessory directly aren’t covered, so spending limits still matter.
 	</p>
 </div>

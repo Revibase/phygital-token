@@ -7,7 +7,14 @@
  * The frame has no cancel message, so a cancelled or timed-out request
  * reloads it (otherwise every later request would be rejected as busy).
  */
-import { PROTOCOL_VERSION, RESULT_TYPE, SIGNER_ERROR_CODES, type HostErrorCode, type RequestType, type SignerErrorCode } from 'secure-signer/shared';
+import {
+	PROTOCOL_VERSION,
+	RESULT_TYPE,
+	SIGNER_ERROR_CODES,
+	type HostErrorCode,
+	type RequestType,
+	type SignerErrorCode
+} from 'secure-signer/shared';
 
 import { bytesToBase64 } from '$lib/shared/encoding';
 
@@ -16,7 +23,10 @@ const REQUEST_TIMEOUT_MS = 120_000;
 const READY_TIMEOUT_MS = 20_000;
 
 /** A code the frame sent, if it's one it may send. */
-const knownCode = (code: unknown): SignerErrorCode => ((SIGNER_ERROR_CODES as readonly unknown[]).includes(code) ? (code as SignerErrorCode) : 'INTERNAL_ERROR');
+const knownCode = (code: unknown): SignerErrorCode =>
+	(SIGNER_ERROR_CODES as readonly unknown[]).includes(code)
+		? (code as SignerErrorCode)
+		: 'INTERNAL_ERROR';
 
 export class SecureSignerError extends Error {
 	/** What the frame answered, or what the host saw when it didn't. */
@@ -29,9 +39,17 @@ export class SecureSignerError extends Error {
 /** The host component: shows or hides the sheet around the iframe. */
 export type SignerShell = { setOpen: (open: boolean) => void; setHeight: (height: number) => void };
 
-type Pending = { resultType: string; resolve: (data: Record<string, unknown>) => void; reject: (err: Error) => void; timer: ReturnType<typeof setTimeout> };
+type Pending = {
+	resultType: string;
+	resolve: (data: Record<string, unknown>) => void;
+	reject: (err: Error) => void;
+	timer: ReturnType<typeof setTimeout>;
+};
 
-const randomRequestId = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+const randomRequestId = () =>
+	Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+		b.toString(16).padStart(2, '0')
+	).join('');
 
 export class SecureSignerClient {
 	readonly #origin: string;
@@ -98,7 +116,8 @@ export class SecureSignerClient {
 		}
 		if (data?.type === 'SIGNER_HEIGHT') {
 			const height = data.height;
-			if (typeof height === 'number' && Number.isFinite(height) && height >= 0) this.#shell?.setHeight(Math.round(height));
+			if (typeof height === 'number' && Number.isFinite(height) && height >= 0)
+				this.#shell?.setHeight(Math.round(height));
 			return;
 		}
 		const requestId = data?.requestId;
@@ -115,7 +134,10 @@ export class SecureSignerClient {
 	#wait(list: Array<() => void>, done: () => boolean): Promise<void> {
 		if (done()) return Promise.resolve();
 		return new Promise((resolve, reject) => {
-			const timer = setTimeout(() => reject(new SecureSignerError('SIGNER_UNAVAILABLE')), READY_TIMEOUT_MS);
+			const timer = setTimeout(
+				() => reject(new SecureSignerError('SIGNER_UNAVAILABLE')),
+				READY_TIMEOUT_MS
+			);
 			list.push(() => {
 				clearTimeout(timer);
 				resolve();
@@ -123,7 +145,10 @@ export class SecureSignerClient {
 		});
 	}
 
-	async #send(type: RequestType, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+	async #send(
+		type: RequestType,
+		payload: Record<string, unknown>
+	): Promise<Record<string, unknown>> {
 		await this.#wait(this.#attachWaiters, () => !!this.#iframe);
 		this.#shell?.setOpen(true);
 		await this.#wait(this.#readyWaiters, () => this.#ready);
@@ -138,18 +163,25 @@ export class SecureSignerClient {
 			}, REQUEST_TIMEOUT_MS);
 			this.#pending.set(requestId, { resultType: RESULT_TYPE[type], resolve, reject, timer });
 		});
-		frame.postMessage({ type, protocolVersion: PROTOCOL_VERSION, requestId, timestamp: Date.now(), ...payload }, this.#origin);
+		frame.postMessage(
+			{ type, protocolVersion: PROTOCOL_VERSION, requestId, timestamp: Date.now(), ...payload },
+			this.#origin
+		);
 		return result;
 	}
 
-	async #request(type: RequestType, payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+	async #request(
+		type: RequestType,
+		payload: Record<string, unknown>
+	): Promise<Record<string, unknown>> {
 		try {
 			for (let attempt = 0; ; attempt++) {
 				try {
 					return await this.#send(type, payload);
 				} catch (err) {
 					// An earlier request was abandoned mid-ceremony: reset once and retry.
-					if (!(err instanceof SecureSignerError && err.code === 'SIGNER_BUSY') || attempt > 0) throw err;
+					if (!(err instanceof SecureSignerError && err.code === 'SIGNER_BUSY') || attempt > 0)
+						throw err;
 					this.#reload();
 				}
 			}
@@ -158,13 +190,19 @@ export class SecureSignerClient {
 		}
 	}
 
-	async authenticate(opts: { authMode: 'create' | 'unlock'; credentialId?: string; webauthnAttestationObject?: string }): Promise<string> {
+	async authenticate(opts: {
+		authMode: 'create' | 'unlock';
+		credentialId?: string;
+		webauthnAttestationObject?: string;
+	}): Promise<string> {
 		const r = await this.#request('AUTH_START', opts);
 		if (typeof r.publicKey !== 'string') throw new SecureSignerError('INTERNAL_ERROR');
 		return r.publicKey;
 	}
 
-	async signTransaction(transaction: Uint8Array): Promise<{ signature: string; publicKey: string }> {
+	async signTransaction(
+		transaction: Uint8Array
+	): Promise<{ signature: string; publicKey: string }> {
 		const r = await this.#request('SIGN_TRANSACTION', { transaction: bytesToBase64(transaction) });
 		return { signature: String(r.signature), publicKey: String(r.publicKey) };
 	}

@@ -8,8 +8,7 @@ export const WALLET_RENT_EXEMPT_LAMPORTS = 890_880n;
 /** Refill once the balance can't cover twice this transaction, so a slightly higher final fee still fits. */
 const REFILL_HEADROOM = 2n;
 
-const SYSTEM_PROGRAM_ADDRESS =
-  "11111111111111111111111111111111" as Address;
+const SYSTEM_PROGRAM_ADDRESS = "11111111111111111111111111111111" as Address;
 const TRANSFER_SOL_DISCRIMINATOR = 2;
 
 /** Base fee (every signature, including secp256r1 precompile ones) plus the priority fee. */
@@ -19,8 +18,7 @@ export function networkFeeLamports(input: {
   priorityFeeLamports?: bigint;
 }): bigint {
   return (
-    LAMPORTS_PER_SIGNATURE *
-      BigInt(input.signatures + (input.precompileSignatures ?? 0)) +
+    LAMPORTS_PER_SIGNATURE * BigInt(input.signatures + (input.precompileSignatures ?? 0)) +
     (input.priorityFeeLamports ?? 0n)
   );
 }
@@ -30,11 +28,9 @@ export function networkFeeLamports(input: {
  * the prepaid balance covers it, otherwise enough to bring the balance back
  * to `prepaid` after paying `cost`.
  */
-export function planFee(input: {
-  balance: bigint;
-  prepaid: bigint;
-  cost: bigint;
-}): { refill: bigint } {
+export function planFee(input: { balance: bigint; prepaid: bigint; cost: bigint }): {
+  refill: bigint;
+} {
   if (input.balance >= input.cost * REFILL_HEADROOM) return { refill: 0n };
   const refill = input.prepaid - input.balance + input.cost;
   const shortfall = input.cost - input.balance;
@@ -58,7 +54,7 @@ export function topUpNeeded(balance: bigint, amount: bigint): bigint {
 export function getRefillInstruction(
   wallet: Address,
   feePayer: Address,
-  lamports: bigint
+  lamports: bigint,
 ): Instruction {
   const data = new Uint8Array(12);
   const view = new DataView(data.buffer);
@@ -76,7 +72,7 @@ export function getRefillInstruction(
 
 /** Reads a refill back: `{ from, to, lamports }` for a System transfer, else `null`. */
 export function parseSolTransfer(
-  instruction: Pick<Instruction, "programAddress" | "accounts" | "data">
+  instruction: Pick<Instruction, "programAddress" | "accounts" | "data">,
 ): { from: Address; to: Address; lamports: bigint } | null {
   const data = instruction.data;
   const accounts = instruction.accounts ?? [];
@@ -117,7 +113,7 @@ export class RefillBlockedByTapLimit extends Error {
 
   constructor(neededLamports: bigint, manageUrl: string) {
     super(
-      "This accessory's network fees need a refill that its tap-payment limits don't allow. The owner can refill them in the Revibase app."
+      "This accessory's network fees need a refill that its tap-payment limits don't allow. The owner can refill them in the Revibase app.",
     );
     this.name = "RefillBlockedByTapLimit";
     this.neededLamports = neededLamports;

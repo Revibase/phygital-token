@@ -19,7 +19,12 @@ function parseAssertion(input: unknown): AuthenticationResponseJSON | null {
 	const r = input as Record<string, unknown>;
 	const inner = r.response as Record<string, unknown> | undefined;
 	if (!isString(r.id) || !isString(r.rawId) || r.type !== 'public-key' || !inner) return null;
-	if (!isString(inner.clientDataJSON) || !isString(inner.authenticatorData) || !isString(inner.signature)) return null;
+	if (
+		!isString(inner.clientDataJSON) ||
+		!isString(inner.authenticatorData) ||
+		!isString(inner.signature)
+	)
+		return null;
 	return {
 		id: r.id,
 		rawId: r.rawId,
@@ -41,18 +46,30 @@ export const issueResumeChallenge = (db: D1Database, now = Date.now()) =>
 
 export type ResumeResult =
 	| { ok: true; pda: string; identifier: string }
-	| { ok: false; status: number; code: 'bad_request' | 'too_slow' | 'tap_rejected' | 'unknown_accessory'; error: string };
+	| {
+			ok: false;
+			status: number;
+			code: 'bad_request' | 'too_slow' | 'tap_rejected' | 'unknown_accessory';
+			error: string;
+	  };
 
 export async function verifyResume(
 	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi>; origin: string; rpId: string },
 	input: { challengeId: unknown; response: unknown },
 	now = Date.now()
 ): Promise<ResumeResult> {
-	if (!isChallengeId(input.challengeId)) return { ok: false, status: 400, code: 'bad_request', error: 'Missing challenge.' };
+	if (!isChallengeId(input.challengeId))
+		return { ok: false, status: 400, code: 'bad_request', error: 'Missing challenge.' };
 	const expectedMessage = await consumeChallenge(deps.db, RESUME_NAMESPACE, input.challengeId, now);
-	if (!expectedMessage) return { ok: false, status: 409, code: 'too_slow', error: 'That took too long. Try again.' };
+	if (!expectedMessage)
+		return { ok: false, status: 409, code: 'too_slow', error: 'That took too long. Try again.' };
 
-	const rejected = { ok: false, status: 401, code: 'tap_rejected', error: 'We couldn’t verify that tap.' } as const;
+	const rejected = {
+		ok: false,
+		status: 401,
+		code: 'tap_rejected',
+		error: 'We couldn’t verify that tap.'
+	} as const;
 	const assertion = parseAssertion(input.response);
 	if (!assertion) return rejected;
 
@@ -70,7 +87,20 @@ export async function verifyResume(
 		return rejected;
 	}
 
-	const resolved = await fetchAccessory(deps.rpc, String(await findPhygitalTokenPda(secp256r1PublicKey)));
-	if (!resolved) return { ok: false, status: 404, code: 'unknown_accessory', error: 'This accessory isn’t registered.' };
-	return { ok: true, pda: resolved.pda, identifier: bytesToBase64Url(new Uint8Array(resolved.account.identifier[0])) };
+	const resolved = await fetchAccessory(
+		deps.rpc,
+		String(await findPhygitalTokenPda(secp256r1PublicKey))
+	);
+	if (!resolved)
+		return {
+			ok: false,
+			status: 404,
+			code: 'unknown_accessory',
+			error: 'This accessory isn’t registered.'
+		};
+	return {
+		ok: true,
+		pda: resolved.pda,
+		identifier: bytesToBase64Url(new Uint8Array(resolved.account.identifier[0]))
+	};
 }

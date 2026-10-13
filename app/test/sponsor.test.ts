@@ -51,7 +51,10 @@ const CAPS = { maxComputeUnitLimit: 400_000, maxComputeUnitPrice: 100_000n };
 async function keypair(): Promise<{ signer: KeyPairSigner; secret: string }> {
 	const seed = ed25519.utils.randomSecretKey();
 	const bytes = new Uint8Array([...seed, ...ed25519.getPublicKey(seed)]);
-	return { signer: await createKeyPairSignerFromBytes(bytes), secret: getBase58Decoder().decode(bytes) };
+	return {
+		signer: await createKeyPairSignerFromBytes(bytes),
+		secret: getBase58Decoder().decode(bytes)
+	};
 }
 
 let poolKey: Awaited<ReturnType<typeof keypair>>;
@@ -76,21 +79,37 @@ async function build(
 	const message = pipe(
 		createTransactionMessage({ version: 0 }),
 		(m) => setTransactionMessageFeePayer(opts.feePayer ?? poolKey.signer.address, m),
-		(m) => setTransactionMessageLifetimeUsingBlockhash({ blockhash: BLOCKHASH, lastValidBlockHeight: 100n }, m),
+		(m) =>
+			setTransactionMessageLifetimeUsingBlockhash(
+				{ blockhash: BLOCKHASH, lastValidBlockHeight: 100n },
+				m
+			),
 		(m) => appendTransactionMessageInstructions(instructions, m),
-		(m) => (opts.limit === null ? m : setTransactionMessageComputeUnitLimit(opts.limit ?? 200_000, m)),
+		(m) =>
+			opts.limit === null ? m : setTransactionMessageComputeUnitLimit(opts.limit ?? 200_000, m),
 		(m) => setTransactionMessageComputeUnitPrice(opts.price ?? 50_000n, m)
 	);
 	const signed = await partiallySignTransactionMessageWithSigners(message);
-	const tx = opts.unsign ? { ...signed, signatures: { ...signed.signatures, [owner.address]: null } } : signed;
+	const tx = opts.unsign
+		? { ...signed, signatures: { ...signed.signatures, [owner.address]: null } }
+		: signed;
 	return new Uint8Array(getTransactionEncoder().encode(tx));
 }
 
 const refill = async (lamports: bigint, feePayer = poolKey.signer.address) =>
-	buildExecuteWithOwnerInstruction({ owner, phygitalToken: TOKEN, instructions: [getRefillInstruction(wallet, feePayer, lamports)] });
+	buildExecuteWithOwnerInstruction({
+		owner,
+		phygitalToken: TOKEN,
+		instructions: [getRefillInstruction(wallet, feePayer, lamports)]
+	});
 
 const updatePolicy = (payer: Address) =>
-	getUpdatePolicyInstructionAsync({ owner, payer: payer === owner.address ? owner : createNoopSigner(payer), phygitalToken: TOKEN, actions: [] });
+	getUpdatePolicyInstructionAsync({
+		owner,
+		payer: payer === owner.address ? owner : createNoopSigner(payer),
+		phygitalToken: TOKEN,
+		actions: []
+	});
 
 /** A well-formed transaction signature, for ledger rows. */
 const sig = () => getBase58Decoder().decode(crypto.getRandomValues(new Uint8Array(64)));
@@ -121,7 +140,11 @@ describe('sponsor checks', () => {
 	});
 
 	it('lets the fee payer fund a new tap-payments account', async () => {
-		const tx = inspectSponsored(await build([await updatePolicy(poolKey.signer.address)]), pool, CAPS);
+		const tx = inspectSponsored(
+			await build([await updatePolicy(poolKey.signer.address)]),
+			pool,
+			CAPS
+		);
 		expect(tx.fundsPolicy).toBe(true);
 		expect(tx.policy).toBe((await findPolicyPda({ phygitalToken: TOKEN }))[0]);
 	});
@@ -132,13 +155,23 @@ describe('sponsor checks', () => {
 	});
 
 	it('reads a refill and rejects any other use of the fee payer inside an execute', async () => {
-		const ok = inspectSponsored(await build([await updatePolicy(owner.address), await refill(4_990_000n)]), pool, CAPS);
+		const ok = inspectSponsored(
+			await build([await updatePolicy(owner.address), await refill(4_990_000n)]),
+			pool,
+			CAPS
+		);
 		expect(ok.refill).toBe(4_990_000n);
 
 		const drain = await buildExecuteWithOwnerInstruction({
 			owner,
 			phygitalToken: TOKEN,
-			instructions: [getTransferSolInstruction({ source: createNoopSigner(poolKey.signer.address), destination: wallet, amount: 1n })]
+			instructions: [
+				getTransferSolInstruction({
+					source: createNoopSigner(poolKey.signer.address),
+					destination: wallet,
+					amount: 1n
+				})
+			]
 		});
 		const wire = await build([drain]);
 		expect(rejection(() => inspectSponsored(wire, pool, CAPS)).message).toMatch(/refill/);
@@ -160,9 +193,15 @@ describe('sponsor checks', () => {
 			policy,
 			wallet,
 			slotNumber: 1n,
-			secp256r1VerifyArgs: { verifyArgsRelativeIndex: -1, signedMessageIndex: 0, clientDataJson: new Uint8Array(4) }
+			secp256r1VerifyArgs: {
+				verifyArgsRelativeIndex: -1,
+				signedMessageIndex: 0,
+				clientDataJson: new Uint8Array(4)
+			}
 		});
-		expect(inspectSponsored(await build([link, await refill(5_000_000n)]), pool, CAPS).refill).toBe(5_000_000n);
+		expect(inspectSponsored(await build([link, await refill(5_000_000n)]), pool, CAPS).refill).toBe(
+			5_000_000n
+		);
 		const early = await build([await refill(5_000_000n), link]);
 		expect(rejection(() => inspectSponsored(early, pool, CAPS)).message).toMatch(/after linking/);
 		const late = await build([await removeOwner(), await refill(5_000_000n)]);
@@ -223,11 +262,15 @@ describe('prepaid fee ledger', () => {
 			[expired]: null
 		};
 		const rpc = {
-			getSignatureStatuses: (sigs: string[]) => ({ send: async () => ({ value: sigs.map((s) => statuses[s]) }) }),
+			getSignatureStatuses: (sigs: string[]) => ({
+				send: async () => ({ value: sigs.map((s) => statuses[s]) })
+			}),
 			isBlockhashValid: () => ({ send: async () => ({ value: false }) })
 		} as unknown as Rpc<SolanaRpcApi>;
 		await settlePending(db, rpc, TOKEN);
-		expect(await prepaidBalance(db, TOKEN, PREPAID)).toBe(PREPAID - 3_000_000n + 3_000_000n - 10_000n);
+		expect(await prepaidBalance(db, TOKEN, PREPAID)).toBe(
+			PREPAID - 3_000_000n + 3_000_000n - 10_000n
+		);
 	});
 });
 
@@ -240,7 +283,7 @@ describe('signSponsored', () => {
 				prepaidLamports: 5_000_000n,
 				maxComputeUnitLimit: 400_000,
 				maxComputeUnitPrice: 100_000n,
-				minKeyLamports: 1n,
+				minKeyLamports: 1n
 			}
 		} as ServerEnv;
 	}
@@ -248,12 +291,26 @@ describe('signSponsored', () => {
 	function rpc(opts: { feePayerDrop?: bigint; err?: unknown } = {}) {
 		const head = Buffer.from(new Uint8Array(PHYGITAL_TOKEN_DISCRIMINATOR)).toString('base64');
 		return {
-			getAccountInfo: () => ({ send: async () => ({ value: { owner: PHYGITAL_TOKEN_PROGRAM_ADDRESS, data: [head, 'base64'] } }) }),
-			getMultipleAccounts: (addrs: string[]) => ({ send: async () => ({ value: addrs.map(() => ({ lamports: 1_000_000_000n })) }) }),
-			simulateTransaction: () => ({
-				send: async () => ({ value: { err: opts.err ?? null, logs: [], accounts: [{ lamports: 1_000_000_000n - (opts.feePayerDrop ?? 20_000n) }] } })
+			getAccountInfo: () => ({
+				send: async () => ({
+					value: { owner: PHYGITAL_TOKEN_PROGRAM_ADDRESS, data: [head, 'base64'] }
+				})
 			}),
-			getSignatureStatuses: (sigs: string[]) => ({ send: async () => ({ value: sigs.map(() => null) }) }),
+			getMultipleAccounts: (addrs: string[]) => ({
+				send: async () => ({ value: addrs.map(() => ({ lamports: 1_000_000_000n })) })
+			}),
+			simulateTransaction: () => ({
+				send: async () => ({
+					value: {
+						err: opts.err ?? null,
+						logs: [],
+						accounts: [{ lamports: 1_000_000_000n - (opts.feePayerDrop ?? 20_000n) }]
+					}
+				})
+			}),
+			getSignatureStatuses: (sigs: string[]) => ({
+				send: async () => ({ value: sigs.map(() => null) })
+			}),
 			isBlockhashValid: () => ({ send: async () => ({ value: true }) })
 		} as unknown as Rpc<SolanaRpcApi>;
 	}
@@ -265,7 +322,13 @@ describe('signSponsored', () => {
 		const { signatures } = await signSponsored(env(db), rpc(), [encoded]);
 		const signature = base64ToBytes(signatures[0]!);
 		const message = bytes.subarray(1 + 64 * 2);
-		expect(ed25519.verify(signature, message, new Uint8Array(getAddressEncoder().encode(poolKey.signer.address)))).toBe(true);
+		expect(
+			ed25519.verify(
+				signature,
+				message,
+				new Uint8Array(getAddressEncoder().encode(poolKey.signer.address))
+			)
+		).toBe(true);
 		expect(await prepaidBalance(db, TOKEN, 5_000_000n)).toBe(5_000_000n - 20_000n);
 		await signSponsored(env(db), rpc(), [encoded]);
 		expect(await prepaidBalance(db, TOKEN, 5_000_000n)).toBe(5_000_000n - 20_000n);
@@ -273,18 +336,30 @@ describe('signSponsored', () => {
 
 	it('asks for a refill once the prepaid fees are used up', async () => {
 		const db = createTestD1([MIGRATIONS]);
-		await reserve(db, 5_000_000n, { signature: sig(), accessory: TOKEN, feePayer: 'x', fee: 4_995_000n, cost: 4_995_000n, refill: 0n, blockhash: BLOCKHASH });
+		await reserve(db, 5_000_000n, {
+			signature: sig(),
+			accessory: TOKEN,
+			feePayer: 'x',
+			fee: 4_995_000n,
+			cost: 4_995_000n,
+			refill: 0n,
+			blockhash: BLOCKHASH
+		});
 		const encoded = Buffer.from(await build([await removeOwner()])).toString('base64');
 		const err = await signSponsored(env(db), rpc(), [encoded]).catch((e: unknown) => e);
 		expect(err).toBeInstanceOf(SponsorError);
 		expect((err as SponsorError).status).toBe(402);
-		expect((err as SponsorError).details?.neededLamports).toBe(String(5_000_000n - 5_000n + 20_000n));
+		expect((err as SponsorError).details?.neededLamports).toBe(
+			String(5_000_000n - 5_000n + 20_000n)
+		);
 	});
 
 	it('refuses a transaction that would cost the pool more than its fee', async () => {
 		const db = createTestD1([MIGRATIONS]);
 		const encoded = Buffer.from(await build([await removeOwner()])).toString('base64');
-		const err = await signSponsored(env(db), rpc({ feePayerDrop: 1_000_000n }), [encoded]).catch((e: unknown) => e);
+		const err = await signSponsored(env(db), rpc({ feePayerDrop: 1_000_000n }), [encoded]).catch(
+			(e: unknown) => e
+		);
 		expect((err as SponsorError).message).toMatch(/more of our SOL/);
 	});
 
@@ -292,20 +367,38 @@ describe('signSponsored', () => {
 		const db = createTestD1([MIGRATIONS]);
 		const info = await sponsorInfo(env(db), rpc(), TOKEN);
 		expect(new Set(info.feePayers)).toEqual(pool);
-		expect(info).toMatchObject({ maxComputeUnitLimit: 400_000, maxComputeUnitPrice: '100000', prepaidLamports: '5000000', balanceLamports: '5000000' });
+		expect(info).toMatchObject({
+			maxComputeUnitLimit: 400_000,
+			maxComputeUnitPrice: '100000',
+			prepaidLamports: '5000000',
+			balanceLamports: '5000000'
+		});
 	});
 });
-
 
 describe('v1 sponsorship', () => {
 	async function v1(priorityFeeLamports: bigint) {
 		const message = pipe(
 			createTransactionMessage({ version: 1 }),
-			m => setTransactionMessageFeePayer(poolKey.signer.address, m),
-			m => setTransactionMessageLifetimeUsingBlockhash({ blockhash: BLOCKHASH, lastValidBlockHeight: 100n }, m),
-			m => setTransactionMessageConfig({ computeUnitLimit: 200_000, loadedAccountsDataSizeLimit: 64 * 1024 * 1024, priorityFeeLamports }, m)
+			(m) => setTransactionMessageFeePayer(poolKey.signer.address, m),
+			(m) =>
+				setTransactionMessageLifetimeUsingBlockhash(
+					{ blockhash: BLOCKHASH, lastValidBlockHeight: 100n },
+					m
+				),
+			(m) =>
+				setTransactionMessageConfig(
+					{
+						computeUnitLimit: 200_000,
+						loadedAccountsDataSizeLimit: 64 * 1024 * 1024,
+						priorityFeeLamports
+					},
+					m
+				)
 		);
-		const tx = await partiallySignTransactionMessageWithSigners(appendTransactionMessageInstructions([await removeOwner()], message));
+		const tx = await partiallySignTransactionMessageWithSigners(
+			appendTransactionMessageInstructions([await removeOwner()], message)
+		);
 		return new Uint8Array(getTransactionEncoder().encode(tx));
 	}
 	it('uses the signed total priority fee when charging prepaid fees', async () => {

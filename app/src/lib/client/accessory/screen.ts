@@ -17,13 +17,23 @@ export function managementActions(a: AccessoryView, owned: boolean) {
 	const changeOwner = release && a.kind === 'bearer' && a.canLink;
 	const connectOwner = valid && !!a.owner && !owned && a.canRelease;
 	const wallet = valid;
-	return { release, changeOwner, connectOwner, wallet, hasActions: release || changeOwner || connectOwner || wallet };
+	return {
+		release,
+		changeOwner,
+		connectOwner,
+		wallet,
+		hasActions: release || changeOwner || connectOwner || wallet
+	};
 }
 
 export function tapScreen(a: AccessoryView, owned: boolean): TapScreen {
 	const none = { walletLabel: null, claim: false, move: false };
 	if (a.status === 'unavailable') {
-		return { ...none, title: 'Unavailable', body: 'This accessory’s record is in an unexpected state. Contact the issuer.' };
+		return {
+			...none,
+			title: 'Unavailable',
+			body: 'This accessory’s record is in an unexpected state. Contact the issuer.'
+		};
 	}
 
 	if (!a.owner) {
@@ -66,7 +76,10 @@ export function tapScreen(a: AccessoryView, owned: boolean): TapScreen {
 /** Shown when this device linked the accessory before and it now points elsewhere. */
 export function changedElsewhereNotice(a: AccessoryView): { title: string; body: string } {
 	return a.kind === 'bearer'
-		? { title: 'Owner changed', body: 'Since you last used it here, another wallet became the owner. You can claim it while it is unlocked.' }
+		? {
+				title: 'Owner changed',
+				body: 'Since you last used it here, another wallet became the owner. You can claim it while it is unlocked.'
+			}
 		: {
 				title: 'Owner changed',
 				// Controlled only moves after the owner releases it, so it can't simply be linked back.

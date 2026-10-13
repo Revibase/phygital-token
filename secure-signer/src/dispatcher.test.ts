@@ -9,7 +9,12 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getAddressDecoder, getAddressEncoder, getTransactionDecoder, type Address } from "@solana/kit";
+import {
+  getAddressDecoder,
+  getAddressEncoder,
+  getTransactionDecoder,
+  type Address,
+} from "@solana/kit";
 import { LeakScanner } from "./testing/kit/leaks.js";
 import { VirtualAuthenticator, navigatorFor } from "./testing/kit/index.js";
 
@@ -72,7 +77,13 @@ afterEach(async () => {
   for (const api of apis) for (const b of api.blobs.values()) blobs.add(b.encryptedWalletBlob);
   for (const h of harnesses) {
     const raw = h.localBlob();
-    if (raw) blobs.add(bytesToBase64(Uint8Array.from(raw, (ch) => ch.charCodeAt(0)), "url"));
+    if (raw)
+      blobs.add(
+        bytesToBase64(
+          Uint8Array.from(raw, (ch) => ch.charCodeAt(0)),
+          "url",
+        ),
+      );
   }
   for (const b64 of blobs) {
     try {
@@ -100,7 +111,11 @@ function harness(opts: Parameters<typeof createSignerHarness<FakeBackupApi>>[0] 
 }
 
 /** Passkey creation runs on the app origin (top level), not in the signer. */
-async function registerOnApp(): Promise<{ credentialId: string; attestationObject: string; rawId: Uint8Array }> {
+async function registerOnApp(): Promise<{
+  credentialId: string;
+  attestationObject: string;
+  rawId: Uint8Array;
+}> {
   const cred = await va.create(
     {
       publicKey: {
@@ -228,15 +243,21 @@ describe("create wallet (AUTH_START create)", () => {
     expect(put?.body.webauthnAttestationObject).toBe(attestationObject);
     expect(put?.body.publicKey).toBe(publicKey);
 
-    const blob = decodeWalletBlob(base64ToBytes(put!.body.encryptedWalletBlob, MAX_BLOB_BYTES, "url"));
+    const blob = decodeWalletBlob(
+      base64ToBytes(put!.body.encryptedWalletBlob, MAX_BLOB_BYTES, "url"),
+    );
     expect(bytesToBase64(blob.credentialId, "url")).toBe(credentialId);
     expect(addr.decode(blob.publicKey)).toBe(publicKey);
 
     // Local copy is byte-identical to the backed-up ciphertext.
     const local = h.localBlob();
-    expect(local && bytesToBase64(Uint8Array.from(local, (c) => c.charCodeAt(0)), "url")).toBe(
-      put!.body.encryptedWalletBlob,
-    );
+    expect(
+      local &&
+        bytesToBase64(
+          Uint8Array.from(local, (c) => c.charCodeAt(0)),
+          "url",
+        ),
+    ).toBe(put!.body.encryptedWalletBlob);
 
     // The blob decrypts with this passkey's PRF to a seed for `publicKey`.
     const { publicKey: derived } = await unwrapWallet(va.prfOutput(rawId, PRF_SALT), blob, RP_ID);
@@ -246,7 +267,10 @@ describe("create wallet (AUTH_START create)", () => {
   it("rejects create without an attestation object before any WebAuthn call", async () => {
     const h = harness();
     const reg = await registerOnApp();
-    const res = await h.request("AUTH_START", { authMode: "create", credentialId: reg.credentialId });
+    const res = await h.request("AUTH_START", {
+      authMode: "create",
+      credentialId: reg.credentialId,
+    });
     expect(errorCode(res)).toBe("INVALID_MESSAGE");
     expect(va.calls.get).toBe(0);
   });
@@ -344,7 +368,9 @@ describe("create wallet (AUTH_START create)", () => {
     h.send(msg);
     await h.waitFor(() => h.responsesFor(String(msg["requestId"]))[0]);
     await h.settle(50);
-    expect(h.responsesFor(String(msg["requestId"])).map((m) => m["code"])).toEqual(["USER_CANCELLED"]);
+    expect(h.responsesFor(String(msg["requestId"])).map((m) => m["code"])).toEqual([
+      "USER_CANCELLED",
+    ]);
     expect(h.api.puts()).toHaveLength(0);
     expect(h.localBlob()).toBeNull();
   });
@@ -408,7 +434,11 @@ describe("remote restore (no local blob)", () => {
     const { deviceA, wallet } = await deviceAWallet();
     const deviceB = harness({ api: deviceA.api });
     const res = await deviceB.request("AUTH_START", { authMode: "unlock" });
-    expect(res).toMatchObject({ type: "AUTH_COMPLETE", publicKey: wallet.publicKey, created: false });
+    expect(res).toMatchObject({
+      type: "AUTH_COMPLETE",
+      publicKey: wallet.publicKey,
+      created: false,
+    });
     expect(deviceB.localBlob()).toBe(deviceA.localBlob());
   });
 
@@ -455,7 +485,10 @@ describe("remote restore (no local blob)", () => {
   it("refuses a tampered blob from the server (DECRYPTION_FAILED) and stores nothing", async () => {
     const { deviceA, wallet } = await deviceAWallet();
     const stored = deviceA.api.blobs.get(wallet.credentialId)!;
-    deviceA.api.restoreOverride = { ...stored, encryptedWalletBlob: flipLastByte(stored.encryptedWalletBlob) };
+    deviceA.api.restoreOverride = {
+      ...stored,
+      encryptedWalletBlob: flipLastByte(stored.encryptedWalletBlob),
+    };
     const deviceB = harness({ api: deviceA.api });
     const res = await deviceB.request("AUTH_START", { authMode: "unlock" });
     expect(errorCode(res)).toBe("DECRYPTION_FAILED");
@@ -467,7 +500,9 @@ describe("remote restore (no local blob)", () => {
     const deviceB = harness({ api: deviceA.api });
     await deviceB.request("AUTH_START", { authMode: "unlock" });
     const restore = deviceA.api.calls.find((c) => c.op === "restore");
-    expect(restore && "body" in restore && restore.body.assertion["clientExtensionResults"]).toEqual({});
+    expect(
+      restore && "body" in restore && restore.body.assertion["clientExtensionResults"],
+    ).toEqual({});
   });
 });
 
@@ -477,7 +512,12 @@ describe("remote restore (no local blob)", () => {
 
 describe("sign message", () => {
   const signIn = (address: string, host = new URL(PARENT_ORIGIN).host) =>
-    bytesToBase64(new TextEncoder().encode(`${host} wants you to sign in with your Solana account:\n${address}\n\nNonce: abc`), "std");
+    bytesToBase64(
+      new TextEncoder().encode(
+        `${host} wants you to sign in with your Solana account:\n${address}\n\nNonce: abc`,
+      ),
+      "std",
+    );
 
   it("signs the app's sign-in message after showing it verbatim", async () => {
     const h = harness();
@@ -486,7 +526,13 @@ describe("sign message", () => {
     const res = await h.request("SIGN_MESSAGE", { message });
     expect(res).toMatchObject({ type: "SIGN_MESSAGE_RESULT", publicKey });
     const signature = base64ToBytes(String(res["signature"]), 64, "std");
-    expect(await ed25519Verify(signature, base64ToBytes(message, 2048, "std"), new Uint8Array(addrEnc.encode(publicKey)))).toBe(true);
+    expect(
+      await ed25519Verify(
+        signature,
+        base64ToBytes(message, 2048, "std"),
+        new Uint8Array(addrEnc.encode(publicKey)),
+      ),
+    ).toBe(true);
     const [screen] = h.ui.prompts("confirmSignMessage");
     expect(screen && "text" in screen && screen.text).toContain(publicKey);
   });
@@ -494,9 +540,19 @@ describe("sign message", () => {
   it("refuses a sign-in for another site or another account, before any prompt", async () => {
     const h = harness();
     const { publicKey } = await createWallet(h);
-    expect(errorCode(await h.request("SIGN_MESSAGE", { message: signIn(publicKey, "evil.example") }))).toBe("POLICY_REJECTED");
-    expect(errorCode(await h.request("SIGN_MESSAGE", { message: signIn(randomAddress()) }))).toBe("POLICY_REJECTED");
-    expect(errorCode(await h.request("SIGN_MESSAGE", { message: bytesToBase64(Uint8Array.of(0xff, 0xfe), "std") }))).toBe("INVALID_MESSAGE");
+    expect(
+      errorCode(await h.request("SIGN_MESSAGE", { message: signIn(publicKey, "evil.example") })),
+    ).toBe("POLICY_REJECTED");
+    expect(errorCode(await h.request("SIGN_MESSAGE", { message: signIn(randomAddress()) }))).toBe(
+      "POLICY_REJECTED",
+    );
+    expect(
+      errorCode(
+        await h.request("SIGN_MESSAGE", {
+          message: bytesToBase64(Uint8Array.of(0xff, 0xfe), "std"),
+        }),
+      ),
+    ).toBe("INVALID_MESSAGE");
     expect(h.ui.prompts("confirmSignMessage")).toHaveLength(0);
   });
 
@@ -505,10 +561,14 @@ describe("sign message", () => {
     const wallet = await createWallet(deviceA);
     const deviceB = harness({ api: deviceA.api });
     va.selectNext(wallet.rawId);
-    expect(await deviceB.request("SIGN_MESSAGE", { message: signIn(wallet.publicKey) })).toMatchObject({ type: "SIGN_MESSAGE_RESULT" });
+    expect(
+      await deviceB.request("SIGN_MESSAGE", { message: signIn(wallet.publicKey) }),
+    ).toMatchObject({ type: "SIGN_MESSAGE_RESULT" });
     va.selectNext(wallet.rawId);
     const other = harness({ api: deviceA.api });
-    expect(errorCode(await other.request("SIGN_MESSAGE", { message: signIn(randomAddress()) }))).toBe("POLICY_REJECTED");
+    expect(
+      errorCode(await other.request("SIGN_MESSAGE", { message: signIn(randomAddress()) })),
+    ).toBe("POLICY_REJECTED");
   });
 });
 
@@ -527,7 +587,11 @@ describe("sign transaction", () => {
     const tx = getTransactionDecoder().decode(wire);
     const signature = base64ToBytes(String(res["signature"]), 64, "std");
     expect(
-      await ed25519Verify(signature, new Uint8Array(tx.messageBytes), new Uint8Array(addrEnc.encode(publicKey))),
+      await ed25519Verify(
+        signature,
+        new Uint8Array(tx.messageBytes),
+        new Uint8Array(addrEnc.encode(publicKey)),
+      ),
     ).toBe(true);
 
     const [screen] = h.ui.prompts("confirmSignTransaction");
@@ -682,7 +746,9 @@ describe("export private key", () => {
     const [shown] = h.ui.prompts("showExportedSecret");
     expect(shown && "publicKey" in shown && shown.publicKey).toBe(publicKey);
     const { getBase58Encoder } = await import("@solana/kit");
-    const secret = new Uint8Array(getBase58Encoder().encode(shown && "secret" in shown ? shown.secret : ""));
+    const secret = new Uint8Array(
+      getBase58Encoder().encode(shown && "secret" in shown ? shown.secret : ""),
+    );
     expect(secret).toHaveLength(64);
     expect(addr.decode(secret.slice(32))).toBe(publicKey);
   });
@@ -771,58 +837,85 @@ describe("fuzz: dispatcher message handling", () => {
     };
   }
 
-  it.each([1, 2, 3])("seed %i: every message gets exactly one response and nothing throws", async (seed) => {
-    const r = rng(seed);
-    const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)]!;
-    const h = harness();
-    const { publicKey } = await createWallet(h);
-    const before = h.posted.length;
-    const junk = [undefined, null, 0, -1, 1e308, "", "x".repeat(20_000), [], {}, true, "AAAA", "@@"];
-    const types = ["AUTH_START", "SIGN_TRANSACTION", "EXPORT_PRIVATE_KEY", "NOPE", 7];
-    let sent = 0;
-    const validTx = toB64(removeOwnerWire({ owner: publicKey }));
-    const wellFormed = (): Record<string, unknown> =>
-      pick([
-        () => h.message("AUTH_START", { authMode: "unlock" }),
-        () => h.message("SIGN_TRANSACTION", { transaction: validTx }),
-        () => h.message("SIGN_TRANSACTION", { transaction: toB64(removeOwnerWire({ owner: randomAddress() })) }),
-        () => h.message("EXPORT_PRIVATE_KEY"),
-      ])();
-    for (let i = 0; i < 80; i++) {
-      h.ui.resetScript().script(pick(["confirm", "cancel", "dismiss-busy", "dismiss-busy"] as const));
-      let msg: unknown;
-      if (r() < 0.5) {
-        msg = wellFormed();
-      } else {
-        const m: Record<string, unknown> = { ...h.message(String(pick(types))) };
-        const mutation = Math.floor(r() * 7);
-        if (mutation === 0) m["protocolVersion"] = pick(junk);
-        if (mutation === 1) m["requestId"] = pick(junk);
-        if (mutation === 2) m["timestamp"] = pick(junk);
-        if (mutation === 3) m[pick(["extra", "blob", "seed"])] = pick(junk);
-        if (mutation === 4) m["transaction"] = pick([...junk, validTx]);
-        if (mutation === 5) m["authMode"] = pick(["create", "unlock", "bogus", 1]);
-        if (mutation === 6) m["credentialId"] = pick(junk);
-        msg = r() < 0.9 ? m : pick(junk);
+  it.each([1, 2, 3])(
+    "seed %i: every message gets exactly one response and nothing throws",
+    async (seed) => {
+      const r = rng(seed);
+      const pick = <T>(xs: readonly T[]): T => xs[Math.floor(r() * xs.length)]!;
+      const h = harness();
+      const { publicKey } = await createWallet(h);
+      const before = h.posted.length;
+      const junk = [
+        undefined,
+        null,
+        0,
+        -1,
+        1e308,
+        "",
+        "x".repeat(20_000),
+        [],
+        {},
+        true,
+        "AAAA",
+        "@@",
+      ];
+      const types = ["AUTH_START", "SIGN_TRANSACTION", "EXPORT_PRIVATE_KEY", "NOPE", 7];
+      let sent = 0;
+      const validTx = toB64(removeOwnerWire({ owner: publicKey }));
+      const wellFormed = (): Record<string, unknown> =>
+        pick([
+          () => h.message("AUTH_START", { authMode: "unlock" }),
+          () => h.message("SIGN_TRANSACTION", { transaction: validTx }),
+          () =>
+            h.message("SIGN_TRANSACTION", {
+              transaction: toB64(removeOwnerWire({ owner: randomAddress() })),
+            }),
+          () => h.message("EXPORT_PRIVATE_KEY"),
+        ])();
+      for (let i = 0; i < 80; i++) {
+        h.ui
+          .resetScript()
+          .script(pick(["confirm", "cancel", "dismiss-busy", "dismiss-busy"] as const));
+        let msg: unknown;
+        if (r() < 0.5) {
+          msg = wellFormed();
+        } else {
+          const m: Record<string, unknown> = { ...h.message(String(pick(types))) };
+          const mutation = Math.floor(r() * 7);
+          if (mutation === 0) m["protocolVersion"] = pick(junk);
+          if (mutation === 1) m["requestId"] = pick(junk);
+          if (mutation === 2) m["timestamp"] = pick(junk);
+          if (mutation === 3) m[pick(["extra", "blob", "seed"])] = pick(junk);
+          if (mutation === 4) m["transaction"] = pick([...junk, validTx]);
+          if (mutation === 5) m["authMode"] = pick(["create", "unlock", "bogus", 1]);
+          if (mutation === 6) m["credentialId"] = pick(junk);
+          msg = r() < 0.9 ? m : pick(junk);
+        }
+        const posts = h.posted.length;
+        const idles = h.ui.prompts("idle").length;
+        h.send(msg);
+        sent++;
+        // One response per inbound message (valid or not). Gate rejections (and
+        // SIGNER_BUSY) never enter a handler; everything else ends in
+        // renderIdle(), so wait for that — a late second response (e.g. a
+        // ceremony that kept going after a dismissal) would show up by then.
+        await h.waitFor(() => (h.posted.length > posts ? true : undefined), 5_000);
+        const gateCodes = [
+          "INVALID_MESSAGE",
+          "UNSUPPORTED_PROTOCOL",
+          "REPLAY_REJECTED",
+          "SIGNER_BUSY",
+        ];
+        if (!gateCodes.includes(String(h.posted.at(-1)?.["code"]))) {
+          await h.waitFor(() => (h.ui.prompts("idle").length > idles ? true : undefined), 5_000);
+        }
+        await h.settle(10);
+        expect(h.posted.length - posts, `message #${i} (seed ${seed})`).toBe(1);
       }
-      const posts = h.posted.length;
-      const idles = h.ui.prompts("idle").length;
-      h.send(msg);
-      sent++;
-      // One response per inbound message (valid or not). Gate rejections (and
-      // SIGNER_BUSY) never enter a handler; everything else ends in
-      // renderIdle(), so wait for that — a late second response (e.g. a
-      // ceremony that kept going after a dismissal) would show up by then.
-      await h.waitFor(() => (h.posted.length > posts ? true : undefined), 5_000);
-      const gateCodes = ["INVALID_MESSAGE", "UNSUPPORTED_PROTOCOL", "REPLAY_REJECTED", "SIGNER_BUSY"];
-      if (!gateCodes.includes(String(h.posted.at(-1)?.["code"]))) {
-        await h.waitFor(() => (h.ui.prompts("idle").length > idles ? true : undefined), 5_000);
-      }
-      await h.settle(10);
-      expect(h.posted.length - posts, `message #${i} (seed ${seed})`).toBe(1);
-    }
-    expect(h.posted.length - before).toBe(sent);
-  }, 60_000);
+      expect(h.posted.length - before).toBe(sent);
+    },
+    60_000,
+  );
 });
 
 // -----------------------------------------------------------------------------
@@ -844,7 +937,10 @@ describe("cold-start (no local blob) sign/export branches", () => {
       const other = await createWallet(harness({ api: deviceA.api }));
       va.selectNext(wallet.rawId);
       deviceA.api.restoreOverride = deviceA.api.blobs.get(other.credentialId)!;
-      const fields = type === "SIGN_TRANSACTION" ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) } : {};
+      const fields =
+        type === "SIGN_TRANSACTION"
+          ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) }
+          : {};
       const res = await deviceB.request(type, fields);
       expect(errorCode(res)).toBe("WALLET_MISMATCH");
       expect(deviceB.localBlob()).toBeNull();
@@ -856,12 +952,17 @@ describe("cold-start (no local blob) sign/export branches", () => {
     async (type) => {
       const { deviceA, deviceB, wallet } = await coldDevice();
       deviceA.api.blobs.clear();
-      const fields = type === "SIGN_TRANSACTION" ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) } : {};
+      const fields =
+        type === "SIGN_TRANSACTION"
+          ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) }
+          : {};
       const msg = deviceB.message(type, fields);
       deviceB.send(msg);
       await deviceB.waitFor(() => deviceB.responsesFor(String(msg["requestId"]))[0]);
       await deviceB.settle(50);
-      expect(deviceB.responsesFor(String(msg["requestId"])).map((m) => m["code"])).toEqual(["NOT_FOUND"]);
+      expect(deviceB.responsesFor(String(msg["requestId"])).map((m) => m["code"])).toEqual([
+        "NOT_FOUND",
+      ]);
     },
   );
 
@@ -870,17 +971,25 @@ describe("cold-start (no local blob) sign/export branches", () => {
     async (type) => {
       const { deviceA, deviceB, wallet } = await coldDevice();
       deviceA.api.failNext.issueRestoreChallenge = "BLOB_UNAVAILABLE";
-      const fields = type === "SIGN_TRANSACTION" ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) } : {};
+      const fields =
+        type === "SIGN_TRANSACTION"
+          ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) }
+          : {};
       const res = await deviceB.request(type, fields);
       expect(errorCode(res)).toBe("BLOB_UNAVAILABLE");
-      expect(deviceB.ui.prompts("confirmSignTransaction").length + deviceB.ui.prompts("confirmExportPrivateKey").length).toBe(0);
+      expect(
+        deviceB.ui.prompts("confirmSignTransaction").length +
+          deviceB.ui.prompts("confirmExportPrivateKey").length,
+      ).toBe(0);
     },
   );
 
   it("SIGN_TRANSACTION: a policy-rejected tx is refused before any prompt or WebAuthn", async () => {
     const { deviceB, wallet } = await coldDevice();
     const before = va.calls.get;
-    const res = await deviceB.request("SIGN_TRANSACTION", { transaction: toB64(foreignProgramWire({ payer: wallet.publicKey })) });
+    const res = await deviceB.request("SIGN_TRANSACTION", {
+      transaction: toB64(foreignProgramWire({ payer: wallet.publicKey })),
+    });
     expect(errorCode(res)).toBe("POLICY_REJECTED");
     expect(deviceB.ui.prompts("confirmSignTransaction")).toHaveLength(0);
     expect(va.calls.get).toBe(before);
@@ -892,7 +1001,10 @@ describe("cold-start (no local blob) sign/export branches", () => {
       const { deviceB, wallet } = await coldDevice();
       const before = va.calls.get;
       deviceB.ui.script("cancel");
-      const fields = type === "SIGN_TRANSACTION" ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) } : {};
+      const fields =
+        type === "SIGN_TRANSACTION"
+          ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) }
+          : {};
       expect(errorCode(await deviceB.request(type, fields))).toBe("USER_CANCELLED");
       expect(va.calls.get).toBe(before);
     },
@@ -903,12 +1015,17 @@ describe("cold-start (no local blob) sign/export branches", () => {
     async (type) => {
       const { deviceB, wallet } = await coldDevice();
       deviceB.ui.script("dismiss-busy");
-      const fields = type === "SIGN_TRANSACTION" ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) } : {};
+      const fields =
+        type === "SIGN_TRANSACTION"
+          ? { transaction: toB64(removeOwnerWire({ owner: wallet.publicKey })) }
+          : {};
       const msg = deviceB.message(type, fields);
       deviceB.send(msg);
       await deviceB.waitFor(() => deviceB.responsesFor(String(msg["requestId"]))[0]);
       await deviceB.settle(60);
-      expect(deviceB.responsesFor(String(msg["requestId"])).map((m) => m["code"] ?? m["type"])).toEqual(["USER_CANCELLED"]);
+      expect(
+        deviceB.responsesFor(String(msg["requestId"])).map((m) => m["code"] ?? m["type"]),
+      ).toEqual(["USER_CANCELLED"]);
       expect(deviceB.ui.prompts("showExportedSecret")).toHaveLength(0);
     },
   );
@@ -929,7 +1046,9 @@ describe("unlock/create error branches", () => {
     await createWallet(deviceA);
     const deviceB = harness({ api: deviceA.api });
     deviceA.api.malformedNext = "restore";
-    expect(errorCode(await deviceB.request("AUTH_START", { authMode: "unlock" }))).toBe("INVALID_MESSAGE");
+    expect(errorCode(await deviceB.request("AUTH_START", { authMode: "unlock" }))).toBe(
+      "INVALID_MESSAGE",
+    );
     expect(deviceB.ui.prompts("confirmImport")).toHaveLength(0);
   });
 
@@ -957,7 +1076,9 @@ describe("unlock/create error branches", () => {
     await createWallet(deviceA);
     deviceA.api.blobs.clear();
     const deviceB = harness({ api: deviceA.api });
-    expect(errorCode(await deviceB.request("AUTH_START", { authMode: "unlock" }))).toBe("NOT_FOUND");
+    expect(errorCode(await deviceB.request("AUTH_START", { authMode: "unlock" }))).toBe(
+      "NOT_FOUND",
+    );
     expect(deviceB.ui.prompts("showRecoverable")).toHaveLength(0);
     expect(deviceA.api.calls.filter((c) => c.op === "restore")).toHaveLength(1);
   });
@@ -968,7 +1089,9 @@ describe("unlock/create error branches", () => {
     const store = new MemoryBlobStore();
     store.mode = "drop-writes";
     const deviceB = harness({ api: deviceA.api, store });
-    expect(errorCode(await deviceB.request("AUTH_START", { authMode: "unlock" }))).toBe("INTERNAL_ERROR");
+    expect(errorCode(await deviceB.request("AUTH_START", { authMode: "unlock" }))).toBe(
+      "INTERNAL_ERROR",
+    );
   });
 
   it("remote restore: cancel at the confirm screen → USER_CANCELLED, no WebAuthn", async () => {
@@ -977,7 +1100,9 @@ describe("unlock/create error branches", () => {
     const deviceB = harness({ api: deviceA.api });
     const before = va.calls.get;
     deviceB.ui.script("cancel");
-    expect(errorCode(await deviceB.request("AUTH_START", { authMode: "unlock" }))).toBe("USER_CANCELLED");
+    expect(errorCode(await deviceB.request("AUTH_START", { authMode: "unlock" }))).toBe(
+      "USER_CANCELLED",
+    );
     expect(va.calls.get).toBe(before);
   });
 
@@ -1043,15 +1168,18 @@ describe("no unhandled promise rejections", () => {
     expect(seen).toEqual([]);
   });
 
-  it.each(["confirm", "cancel"] as const)("local unlock: backup-challenge mint fails and the user presses %s", async (step) => {
-    const h = harness();
-    await createWallet(h);
-    h.api.failNext.issueBackupChallenge = "BLOB_UNAVAILABLE";
-    h.ui.script(step);
-    const seen = await unhandledDuring(async () => {
-      const res = await h.request("AUTH_START", { authMode: "unlock" });
-      expect(errorCode(res)).toBe(step === "cancel" ? "USER_CANCELLED" : "BLOB_UNAVAILABLE");
-    });
-    expect(seen).toEqual([]);
-  });
+  it.each(["confirm", "cancel"] as const)(
+    "local unlock: backup-challenge mint fails and the user presses %s",
+    async (step) => {
+      const h = harness();
+      await createWallet(h);
+      h.api.failNext.issueBackupChallenge = "BLOB_UNAVAILABLE";
+      h.ui.script(step);
+      const seen = await unhandledDuring(async () => {
+        const res = await h.request("AUTH_START", { authMode: "unlock" });
+        expect(errorCode(res)).toBe(step === "cancel" ? "USER_CANCELLED" : "BLOB_UNAVAILABLE");
+      });
+      expect(seen).toEqual([]);
+    },
+  );
 });

@@ -1,7 +1,11 @@
 import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { address, generateKeyPairSigner, type Rpc, type SolanaRpcApi } from '@solana/kit';
-import { findPhygitalTokenPda, type AuthenticationResponseJSON, type PhygitalToken } from 'phygital-token-sdk';
+import {
+	findPhygitalTokenPda,
+	type AuthenticationResponseJSON,
+	type PhygitalToken
+} from 'phygital-token-sdk';
 
 import { bytesToBase64Url } from '$lib/shared/encoding';
 import type { LinkTap } from '$lib/shared/link-transaction';
@@ -33,10 +37,7 @@ export function fakeAccessory() {
 				...overrides
 			};
 		},
-		assert(
-			challenge: Uint8Array,
-			opts: { highS?: boolean } = {}
-		): AuthenticationResponseJSON {
+		assert(challenge: Uint8Array, opts: { highS?: boolean } = {}): AuthenticationResponseJSON {
 			const clientData = new TextEncoder().encode(
 				JSON.stringify({
 					type: 'webauthn.get',
@@ -53,7 +54,8 @@ export function fakeAccessory() {
 			signed.set(authData);
 			signed.set(sha256(clientData), authData.length);
 			let sig = p256.Signature.fromBytes(p256.sign(signed, priv), 'compact');
-			if (!!opts.highS !== sig.hasHighS()) sig = new p256.Signature(sig.r, p256.Point.CURVE().n - sig.s);
+			if (!!opts.highS !== sig.hasHighS())
+				sig = new p256.Signature(sig.r, p256.Point.CURVE().n - sig.s);
 			const der = sig.toBytes('der');
 			return {
 				id: bytesToBase64Url(publicKey),

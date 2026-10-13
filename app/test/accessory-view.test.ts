@@ -14,7 +14,10 @@ describe('accessoryRules', () => {
 	});
 
 	it('Controlled: links only when unlinked; must be released before linking a different wallet', () => {
-		expect(accessoryRules('controlled', UNSET, false)).toEqual({ canLink: true, canRelease: false });
+		expect(accessoryRules('controlled', UNSET, false)).toEqual({
+			canLink: true,
+			canRelease: false
+		});
 		expect(accessoryRules('controlled', W, true)).toEqual({ canLink: false, canRelease: true });
 		// Even if the lock flag were somehow clear, a linked Controlled token is not re-linkable.
 		expect(accessoryRules('controlled', W, false)).toEqual({ canLink: false, canRelease: true });
@@ -23,7 +26,10 @@ describe('accessoryRules', () => {
 	it('Permanent: fixed forever — never links, never releases', () => {
 		expect(accessoryRules('permanent', W, true)).toEqual({ canLink: false, canRelease: false });
 		expect(accessoryRules('permanent', W, false)).toEqual({ canLink: false, canRelease: false });
-		expect(accessoryRules('permanent', UNSET, false)).toEqual({ canLink: false, canRelease: false });
+		expect(accessoryRules('permanent', UNSET, false)).toEqual({
+			canLink: false,
+			canRelease: false
+		});
 	});
 });
 
@@ -46,10 +52,18 @@ describe('toAccessoryView', () => {
 			canLink: false,
 			canRelease: false
 		});
-		expect(view({ tokenType: 0 })).toMatchObject({ status: 'unavailable', canLink: false, canRelease: false });
+		expect(view({ tokenType: 0 })).toMatchObject({
+			status: 'unavailable',
+			canLink: false,
+			canRelease: false
+		});
 	});
 
 	it('Bearer + linked stays re-linkable', () => {
-		expect(view({ tokenType: 1, owner: address(W) })).toMatchObject({ status: 'linked', canLink: true, canRelease: true });
+		expect(view({ tokenType: 1, owner: address(W) })).toMatchObject({
+			status: 'linked',
+			canLink: true,
+			canRelease: true
+		});
 	});
 });

@@ -14,9 +14,7 @@ import {
 import { MAX_BLOB_BYTES } from "./constants.js";
 
 export const API_BASE_URL: string = (() => {
-  const fromEnv = (
-    import.meta.env?.VITE_API_BASE_URL as string | undefined
-  )?.trim();
+  const fromEnv = (import.meta.env?.VITE_API_BASE_URL as string | undefined)?.trim();
   if (fromEnv) return fromEnv.replace(/\/$/, "");
   const host =
     typeof globalThis !== "undefined" && "location" in globalThis
@@ -41,13 +39,9 @@ async function errorCode(res: Response): Promise<string> {
 }
 
 /** Backup client bound to an API base URL and fetch (injectable for tests). */
-export function createBackupApi(opts: {
-  baseUrl: string;
-  fetch?: typeof fetch;
-}) {
+export function createBackupApi(opts: { baseUrl: string; fetch?: typeof fetch }) {
   const baseUrl = opts.baseUrl.replace(/\/$/, "");
-  const fetchImpl: typeof fetch =
-    opts.fetch ?? ((input, init) => fetch(input, init));
+  const fetchImpl: typeof fetch = opts.fetch ?? ((input, init) => fetch(input, init));
 
   async function postJson<T>(path: string, body?: unknown): Promise<T> {
     const res = await fetchImpl(`${baseUrl}${path}`, {
@@ -61,9 +55,7 @@ export function createBackupApi(opts: {
   }
 
   async function issueBackupChallenge(): Promise<Challenge> {
-    const body = await postJson<Partial<ChallengeResponse>>(
-      SIGNER_API_ROUTES.backupChallenge,
-    );
+    const body = await postJson<Partial<ChallengeResponse>>(SIGNER_API_ROUTES.backupChallenge);
     if (
       typeof body.challengeId !== "string" ||
       !body.challengeId ||
@@ -76,9 +68,7 @@ export function createBackupApi(opts: {
   }
 
   async function issueRestoreChallenge(): Promise<Challenge> {
-    const body = await postJson<Partial<ChallengeResponse>>(
-      SIGNER_API_ROUTES.restoreChallenge,
-    );
+    const body = await postJson<Partial<ChallengeResponse>>(SIGNER_API_ROUTES.restoreChallenge);
     if (
       typeof body.challengeId !== "string" ||
       !body.challengeId ||
@@ -169,12 +159,19 @@ let feePayers: Promise<string[] | null> | null = null;
  * screen can say "free" instead of an address. Display only: the policy
  * never depends on it. Fetched once; null if unreachable.
  */
-export function fetchRevibaseFeePayers(fetchImpl: typeof fetch = (i, init) => fetch(i, init)): Promise<string[] | null> {
-  feePayers ??= fetchImpl(`${API_BASE_URL}/api/sponsor`, { credentials: "omit", signal: AbortSignal.timeout(3000) })
+export function fetchRevibaseFeePayers(
+  fetchImpl: typeof fetch = (i, init) => fetch(i, init),
+): Promise<string[] | null> {
+  feePayers ??= fetchImpl(`${API_BASE_URL}/api/sponsor`, {
+    credentials: "omit",
+    signal: AbortSignal.timeout(3000),
+  })
     .then(async (res) => {
       if (!res.ok) return null;
       const body = (await res.json()) as { feePayers?: unknown };
-      return Array.isArray(body.feePayers) ? body.feePayers.filter((a): a is string => typeof a === "string") : null;
+      return Array.isArray(body.feePayers)
+        ? body.feePayers.filter((a): a is string => typeof a === "string")
+        : null;
     })
     .catch(() => null);
   return feePayers;

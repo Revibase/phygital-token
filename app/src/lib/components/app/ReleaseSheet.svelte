@@ -22,17 +22,27 @@
 		cluster,
 		open = $bindable(false),
 		onreleased
-	}: { accessory: AccessoryView; cluster: Cluster; open?: boolean; onreleased?: () => void } = $props();
+	}: {
+		accessory: AccessoryView;
+		cluster: Cluster;
+		open?: boolean;
+		onreleased?: () => void;
+	} = $props();
 
 	let busy = $state(false);
 	let moving = $state<string | null>(null);
 	let failure = $state<FriendlyError | null>(null);
 
-	const holdingsQuery = createQuery(() => ({ ...accessoryWalletQuery(accessory.pda), enabled: open }));
+	const holdingsQuery = createQuery(() => ({
+		...accessoryWalletQuery(accessory.pda),
+		enabled: open
+	}));
 	const held = $derived(holdingsQuery.data ? describeHoldings(holdingsQuery.data) : null);
 
 	const linked = $derived(accessory.owner ? shortAddress(accessory.owner) : 'its owner');
-	const outcome = $derived(`This removes ${linked} as the owner. Someone else can claim it afterward. Assets stay in the accessory wallet and the next owner gains control.`);
+	const outcome = $derived(
+		`This removes ${linked} as the owner. Someone else can claim it afterward. Assets stay in the accessory wallet and the next owner gains control.`
+	);
 
 	async function release() {
 		busy = true;
@@ -56,7 +66,12 @@
 		failure = null;
 		moving = 'Preparing…';
 		try {
-			await sweepToOwner(walletStore.signingContext(), accessory.pda, holdingsQuery.data, (done, total) => (moving = `Moved ${done} of ${total}`));
+			await sweepToOwner(
+				walletStore.signingContext(),
+				accessory.pda,
+				holdingsQuery.data,
+				(done, total) => (moving = `Moved ${done} of ${total}`)
+			);
 			toast.success('Assets sent to owner');
 			await holdingsQuery.refetch();
 		} catch (err) {
@@ -71,15 +86,28 @@
 
 <ResponsiveSheet bind:open title="Release this accessory?" description={outcome}>
 	<Notice error={failure} />
-	<OwnerApproval action="release this accessory" {accessory} {cluster} active={open} {busy} showWallet>
+	<OwnerApproval
+		action="release this accessory"
+		{accessory}
+		{cluster}
+		active={open}
+		{busy}
+		showWallet
+	>
 		{#if held}
-			<Notice tone="info" title={`This accessory wallet holds ${held}`} body="Assets stay here. Whoever claims it next will control them." />
+			<Notice
+				tone="info"
+				title={`This accessory wallet holds ${held}`}
+				body="Assets stay here. Whoever claims it next will control them."
+			/>
 			<Button size="xl" disabled={busy} onclick={moveToOwner}>
 				{#if moving}<Spinner /> {moving}{:else}Move everything to owner first{/if}
 			</Button>
 		{/if}
 		<Button variant="destructive" size="xl" disabled={busy} onclick={release}>
-			{#if busy && !moving}<Spinner /> {walletStore.approvePrompt}{:else}{held ? 'Release anyway' : 'Release accessory'}{/if}
+			{#if busy && !moving}<Spinner /> {walletStore.approvePrompt}{:else}{held
+					? 'Release anyway'
+					: 'Release accessory'}{/if}
 		</Button>
 	</OwnerApproval>
 	<Button variant="quiet" class="w-full" onclick={() => (open = false)}>Cancel</Button>

@@ -30,17 +30,11 @@ export {
   type AuthenticatePasskeyOptions,
 } from "./utils/passkey/authenticate.js";
 
-export {
-  PhygitalTokenError,
-  type PhygitalTokenErrorCode,
-} from "./utils/errors.js";
+export { PhygitalTokenError, type PhygitalTokenErrorCode } from "./utils/errors.js";
 
 export { findPhygitalTokenPda } from "./utils/pdas/index.js";
 
-export {
-  isPhygitalTokenLocked,
-  getPolicyCloseAccounts,
-} from "./utils/policy.js";
+export { isPhygitalTokenLocked, getPolicyCloseAccounts } from "./utils/policy.js";
 
 export {
   getPhygitalWalletSigner,

@@ -2,7 +2,8 @@
 	import { Skeleton } from '$lib/components/ui/skeleton';
 
 	/** A loading placeholder shaped like a `ListRow`. */
-	let { avatar = 'size-9 rounded-full', detail = false }: { avatar?: string; detail?: boolean } = $props();
+	let { avatar = 'size-9 rounded-full', detail = false }: { avatar?: string; detail?: boolean } =
+		$props();
 </script>
 
 <li class="flex min-h-14 items-center gap-3 px-4 py-2.5" aria-hidden="true">

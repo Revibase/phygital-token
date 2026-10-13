@@ -9,7 +9,12 @@ import {
 	type SolanaSignTransactionFeature
 } from '@solana/wallet-standard-features';
 
-import { address, getTransactionDecoder, getTransactionEncoder, type TransactionModifyingSigner } from '@solana/kit';
+import {
+	address,
+	getTransactionDecoder,
+	getTransactionEncoder,
+	type TransactionModifyingSigner
+} from '@solana/kit';
 import { REVIBASE_WALLET_NAME } from 'phygital-token-sdk';
 import { PASSKEY_WALLET_HINT, PASSKEY_WALLET_NAME } from './secure-signer/wallet';
 
@@ -18,7 +23,13 @@ import { bytesToBase64Url } from '$lib/shared/encoding';
 
 export type Cluster = 'mainnet' | 'devnet' | 'testnet' | 'localnet';
 
-export type WalletOption = { id: string; name: string; icon: string; ready: boolean; hint?: string };
+export type WalletOption = {
+	id: string;
+	name: string;
+	icon: string;
+	ready: boolean;
+	hint?: string;
+};
 
 export type SigningContext = {
 	wallet: Wallet;
@@ -54,7 +65,8 @@ class WalletStore {
 		this.#client = client;
 		this.state = client.getSnapshot();
 		client.subscribe((s) => (this.state = s));
-		if (platform() === 'android' && cluster !== 'localnet') void this.#registerMobileWalletAdapter(cluster);
+		if (platform() === 'android' && cluster !== 'localnet')
+			void this.#registerMobileWalletAdapter(cluster);
 	}
 
 	async #registerMobileWalletAdapter(cluster: Exclude<Cluster, 'localnet'>) {
@@ -74,8 +86,19 @@ class WalletStore {
 
 	get options(): WalletOption[] {
 		return (this.state?.connectors ?? [])
-			.filter((c) => c.name !== REVIBASE_WALLET_NAME && (c.features.includes(SolanaSignTransaction) || c.features.includes(SolanaSignAndSendTransaction)))
-			.map((c) => ({ id: c.id, name: c.name, icon: c.icon, ready: c.ready, ...(c.name === PASSKEY_WALLET_NAME ? { hint: PASSKEY_WALLET_HINT } : {}) }));
+			.filter(
+				(c) =>
+					c.name !== REVIBASE_WALLET_NAME &&
+					(c.features.includes(SolanaSignTransaction) ||
+						c.features.includes(SolanaSignAndSendTransaction))
+			)
+			.map((c) => ({
+				id: c.id,
+				name: c.name,
+				icon: c.icon,
+				ready: c.ready,
+				...(c.name === PASSKEY_WALLET_NAME ? { hint: PASSKEY_WALLET_HINT } : {})
+			}));
 	}
 
 	get status() {
@@ -117,7 +140,9 @@ class WalletStore {
 	async disconnect() {
 		await this.#client?.disconnectWallet();
 		// Best effort: the wallet login and any owner_browse it issued end with the connection.
-		void fetch('/api/owner/session', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
+		void fetch('/api/owner/session', { method: 'DELETE', credentials: 'same-origin' }).catch(
+			() => {}
+		);
 	}
 
 	signingContext(): SigningContext {
@@ -136,18 +161,28 @@ class WalletStore {
 
 export const walletStore = new WalletStore();
 
-export type SignOutcome = { kind: 'signed'; signedBytes: Uint8Array } | { kind: 'sent'; signature: Uint8Array };
+export type SignOutcome =
+	{ kind: 'signed'; signedBytes: Uint8Array } | { kind: 'sent'; signature: Uint8Array };
 
 /**
  * Ask the wallet to sign exactly `wireBytes`. Prefer sign-only so the signed
  * copy can be re-validated before it is broadcast; fall back to
  * sign-and-send for wallets that only offer that.
  */
-export async function signWithWallet(ctx: SigningContext, wireBytes: Uint8Array): Promise<SignOutcome> {
-	const features = ctx.wallet.features as Partial<SolanaSignTransactionFeature & SolanaSignAndSendTransactionFeature>;
+export async function signWithWallet(
+	ctx: SigningContext,
+	wireBytes: Uint8Array
+): Promise<SignOutcome> {
+	const features = ctx.wallet.features as Partial<
+		SolanaSignTransactionFeature & SolanaSignAndSendTransactionFeature
+	>;
 	const signOnly = features[SolanaSignTransaction];
 	if (signOnly) {
-		const [result] = await signOnly.signTransaction({ account: ctx.account, transaction: wireBytes, chain: ctx.chain });
+		const [result] = await signOnly.signTransaction({
+			account: ctx.account,
+			transaction: wireBytes,
+			chain: ctx.chain
+		});
 		return { kind: 'signed', signedBytes: new Uint8Array(result.signedTransaction) };
 	}
 	const signAndSend = features[SolanaSignAndSendTransaction];
@@ -170,7 +205,10 @@ export function canSignOnly(ctx: SigningContext): boolean {
  * The connected wallet as a Kit signer that may modify what it signs (wallets
  * add guard instructions). `verify` sees its bytes before anyone else signs.
  */
-export function walletSigner(ctx: SigningContext, verify: (signedBytes: Uint8Array) => void): TransactionModifyingSigner {
+export function walletSigner(
+	ctx: SigningContext,
+	verify: (signedBytes: Uint8Array) => void
+): TransactionModifyingSigner {
 	return {
 		address: address(ctx.address),
 		async modifyAndSignTransactions(transactions) {
@@ -180,10 +218,17 @@ export function walletSigner(ctx: SigningContext, verify: (signedBytes: Uint8Arr
 					const signOnly = features[SolanaSignTransaction];
 					if (!signOnly) throw new Error('This wallet can’t sign without sending.');
 					const wire = new Uint8Array(getTransactionEncoder().encode(transaction));
-					const [result] = await signOnly.signTransaction({ account: ctx.account, transaction: wire, chain: ctx.chain });
+					const [result] = await signOnly.signTransaction({
+						account: ctx.account,
+						transaction: wire,
+						chain: ctx.chain
+					});
 					const signedBytes = new Uint8Array(result!.signedTransaction);
 					verify(signedBytes);
-					return { ...getTransactionDecoder().decode(signedBytes), lifetimeConstraint: (transaction as { lifetimeConstraint?: unknown }).lifetimeConstraint };
+					return {
+						...getTransactionDecoder().decode(signedBytes),
+						lifetimeConstraint: (transaction as { lifetimeConstraint?: unknown }).lifetimeConstraint
+					};
 				})
 			)) as never;
 		}

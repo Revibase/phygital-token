@@ -59,7 +59,7 @@ export async function authenticatePasskeyForSecp256r1Verify(input: {
 export async function buildSecp256r1VerifyInstruction(
   response: AuthenticationResponseJSON,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
-  verifyArgsRelativeIndex = -1
+  verifyArgsRelativeIndex = -1,
 ): Promise<{
   secp256r1VerifyInstruction: Instruction;
   phygitalTokenPda: Address;

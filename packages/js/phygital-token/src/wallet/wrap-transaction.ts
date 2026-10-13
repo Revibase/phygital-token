@@ -47,11 +47,7 @@ import {
   elevateRemainingForExecuteChallenge,
   withRemainingAccounts,
 } from "./compile.js";
-import {
-  isPreviewPassed,
-  PolicyDeniedError,
-  policyDeniedErrorFromSolanaError,
-} from "./preview.js";
+import { isPreviewPassed, PolicyDeniedError, policyDeniedErrorFromSolanaError } from "./preview.js";
 import {
   AccessoryWalletTopUpRequired,
   canSpendLamports,
@@ -74,8 +70,7 @@ const SOL_SPEND_DENIALS = new Set(["spend_not_allowed", "spend_limit", "max_per_
 
 type SlotEntry = { slotNumber: bigint; slotHash: Uint8Array };
 
-const MEMO_PROGRAM_ADDRESS =
-  "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr" as Address;
+const MEMO_PROGRAM_ADDRESS = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr" as Address;
 
 /** Round loaded-accounts data size up to the next 32 KiB page (v1 cost model). */
 const LOADED_ACCOUNTS_PAGE_BYTES = 32 * 1024;
@@ -91,9 +86,7 @@ const PLACEHOLDER_SECP_ARGS: Secp256r1VerifyArgsArgs = {
   clientDataJson: new Uint8Array(0),
 };
 
-type SignedTransaction = Transaction &
-  TransactionWithinSizeLimit &
-  TransactionWithLifetime;
+type SignedTransaction = Transaction & TransactionWithinSizeLimit & TransactionWithLifetime;
 
 export type WalletExecuteAccounts = {
   feePayer: TransactionPartialSigner;
@@ -141,12 +134,9 @@ type BlockContext = {
   lastValidBlockHeight: bigint;
 };
 
-function stripComputeBudgetInstructions(
-  instructions: readonly Instruction[],
-): Instruction[] {
+function stripComputeBudgetInstructions(instructions: readonly Instruction[]): Instruction[] {
   return instructions.filter(
-    (instruction) =>
-      instruction.programAddress !== COMPUTE_BUDGET_PROGRAM_ADDRESS,
+    (instruction) => instruction.programAddress !== COMPUTE_BUDGET_PROGRAM_ADDRESS,
   );
 }
 
@@ -171,9 +161,7 @@ function toStaticInstruction(instruction: Instruction): Instruction {
  * Upgrade any decompiled message to v1: flatten ALT metas, drop incoming v1
  * config (limits are set separately for preview vs finalize), set `version: 1`.
  */
-export function asV1TransactionMessage(
-  message: DecompiledMessage,
-): V1DecompiledMessage {
+export function asV1TransactionMessage(message: DecompiledMessage): V1DecompiledMessage {
   const { config: _incomingConfig, ...rest } = message as DecompiledMessage & {
     config?: unknown;
   };
@@ -203,17 +191,12 @@ function pickPriorityFeeMicroLamports(
 function withMargin(unitsConsumed: number): number {
   // Integer math — avoid `* 1.1` float rounding (100000 * 1.1 → 110000.00000000001).
   const tenths = Math.round(COMPUTE_UNIT_ESTIMATE_MARGIN * 10);
-  return Math.min(
-    1_400_000,
-    Math.max(1, Math.ceil((unitsConsumed * tenths) / 10)),
-  );
+  return Math.min(1_400_000, Math.max(1, Math.ceil((unitsConsumed * tenths) / 10)));
 }
 
 function roundUpLoadedAccountsDataSize(bytes: number): number {
   if (bytes <= 0) return LOADED_ACCOUNTS_PAGE_BYTES;
-  return (
-    Math.ceil(bytes / LOADED_ACCOUNTS_PAGE_BYTES) * LOADED_ACCOUNTS_PAGE_BYTES
-  );
+  return Math.ceil(bytes / LOADED_ACCOUNTS_PAGE_BYTES) * LOADED_ACCOUNTS_PAGE_BYTES;
 }
 
 function priorityFeeLamportsFromMicroLamports(
@@ -241,9 +224,7 @@ function collectWritableAddresses(message: DecompiledMessage): Address[] {
   return [...writable];
 }
 
-function stripBudgetAndEnsureV1(
-  message: DecompiledMessage,
-): V1DecompiledMessage {
+function stripBudgetAndEnsureV1(message: DecompiledMessage): V1DecompiledMessage {
   const v1 = asV1TransactionMessage(message);
   return {
     ...v1,
@@ -255,14 +236,9 @@ function stripBudgetAndEnsureV1(
  * Placeholder v1 config so policy preview can simulate (`sigVerify: false`).
  * Real CU / priority fee / loaded-accounts limits are applied only at finalize.
  */
-function applyPlaceholderResourceLimits(
-  message: DecompiledMessage,
-): V1DecompiledMessage {
+function applyPlaceholderResourceLimits(message: DecompiledMessage): V1DecompiledMessage {
   const withoutBudget = stripBudgetAndEnsureV1(message);
-  let next = setTransactionMessageComputeUnitLimit(
-    PREVIEW_COMPUTE_UNIT_LIMIT,
-    withoutBudget,
-  );
+  let next = setTransactionMessageComputeUnitLimit(PREVIEW_COMPUTE_UNIT_LIMIT, withoutBudget);
   next = setTransactionMessagePriorityFeeLamports(0n, next);
   return setTransactionMessageLoadedAccountsDataSizeLimit(
     PREVIEW_LOADED_ACCOUNTS_DATA_SIZE_LIMIT,
@@ -294,19 +270,13 @@ function applyResourceLimits(
   ) as V1DecompiledMessage;
 }
 
-function applyBlockhashIfNeeded<T extends DecompiledMessage>(
-  message: T,
-  block: BlockContext,
-): T {
+function applyBlockhashIfNeeded<T extends DecompiledMessage>(message: T, block: BlockContext): T {
   if (!isTransactionMessageWithBlockhashLifetime(message)) {
     return message;
   }
 
   const { lastValidBlockHeight } = message.lifetimeConstraint;
-  if (
-    lastValidBlockHeight >
-    block.lastValidBlockHeight + MIN_BLOCKHASH_REMAINING_SLOTS
-  ) {
+  if (lastValidBlockHeight > block.lastValidBlockHeight + MIN_BLOCKHASH_REMAINING_SLOTS) {
     return message;
   }
 
@@ -363,14 +333,9 @@ function buildWrappedBaseMessage(input: {
     slotNumber: pending.slotNumber,
   });
 
-  const executeWithRemaining = withRemainingAccounts(
-    executeIx,
-    pending.remainingAccounts,
-  );
+  const executeWithRemaining = withRemainingAccounts(executeIx, pending.remainingAccounts);
   const instructions = [
-    ...(input.secp256r1VerifyInstruction
-      ? [input.secp256r1VerifyInstruction]
-      : []),
+    ...(input.secp256r1VerifyInstruction ? [input.secp256r1VerifyInstruction] : []),
     executeWithRemaining,
     ...pending.prepared.memoInstructions,
   ];
@@ -380,11 +345,7 @@ function buildWrappedBaseMessage(input: {
     instructions,
   } as DecompiledMessage);
 
-  return withFeePayerIfWallet(
-    baseMessage,
-    executeAccounts.wallet,
-    executeAccounts.feePayer,
-  );
+  return withFeePayerIfWallet(baseMessage, executeAccounts.wallet, executeAccounts.feePayer);
 }
 
 /** The page origin the browser will put in the tap's `clientDataJSON`, if any. */
@@ -449,7 +410,9 @@ async function assertPolicyPreviewSucceeds(
 
   if (!value.err) {
     // Only a program without `preview_execute`'s final error could land it.
-    throw new Error("Policy preview did not report a result: the phygital-token program is out of date");
+    throw new Error(
+      "Policy preview did not report a result: the phygital-token program is out of date",
+    );
   }
   const solanaError = getSolanaErrorFromTransactionError(value.err);
   if (isPreviewPassed(solanaError, value.logs)) return;
@@ -519,8 +482,7 @@ async function prepareWrappedWalletTransaction(input: {
 
   const decompileConfig = isTransactionWithBlockhashLifetime(input.transaction)
     ? {
-        lastValidBlockHeight:
-          input.transaction.lifetimeConstraint.lastValidBlockHeight,
+        lastValidBlockHeight: input.transaction.lifetimeConstraint.lastValidBlockHeight,
       }
     : undefined;
 
@@ -548,9 +510,7 @@ async function prepareWrappedWalletTransaction(input: {
   }
 
   if (bodyInstructions.length === 0) {
-    throw new Error(
-      "Transaction has no instructions to wrap (only compute budget/memo, or empty)",
-    );
+    throw new Error("Transaction has no instructions to wrap (only compute budget/memo, or empty)");
   }
 
   return {
@@ -574,9 +534,7 @@ function elevateForExecuteAccounts(
       executeAccounts.policy,
       ...(feePayerInRemaining ? [executeAccounts.feePayer.address] : []),
     ],
-    signerAddresses: feePayerInRemaining
-      ? [executeAccounts.feePayer.address]
-      : [],
+    signerAddresses: feePayerInRemaining ? [executeAccounts.feePayer.address] : [],
   });
 }
 
@@ -631,10 +589,9 @@ async function finalizeWrappedWalletTransaction(input: {
   });
 
   // Estimate against the real execute envelope (includes secp) — not the preview.
-  const limits = await estimateResourceLimitsFactory({ rpc: input.rpc })(
-    baseMessage,
-    { abortSignal: input.abortSignal },
-  );
+  const limits = await estimateResourceLimitsFactory({ rpc: input.rpc })(baseMessage, {
+    abortSignal: input.abortSignal,
+  });
 
   let message = applyResourceLimits(
     baseMessage,
@@ -646,9 +603,7 @@ async function finalizeWrappedWalletTransaction(input: {
     message = applyBlockhashIfNeeded(message, input.block);
   }
 
-  const compiledTx = compileTransaction(
-    message as Parameters<typeof compileTransaction>[0],
-  );
+  const compiledTx = compileTransaction(message as Parameters<typeof compileTransaction>[0]);
   return withLifetimeConstraint(compiledTx, message);
 }
 
@@ -711,9 +666,7 @@ export async function modifyAndWrapWalletTransaction(input: {
   onPreview?: () => void;
   authenticate: (
     messageHash: Uint8Array,
-  ) => Promise<
-    Awaited<ReturnType<typeof authenticatePasskeyForSecp256r1Verify>>
-  >;
+  ) => Promise<Awaited<ReturnType<typeof authenticatePasskeyForSecp256r1Verify>>>;
   feePayer: (wrapped: SignedTransaction) => Promise<SignatureDictionary>;
   /** Set when the Revibase pool pays: a refill is added when the prepaid fees run low. */
   prepaidFees?: PrepaidFees;
@@ -724,10 +677,7 @@ export async function modifyAndWrapWalletTransaction(input: {
     walletPda: input.walletPda,
   });
 
-  const earlyCompiled = compileWalletInstructions(
-    prepared.bodyInstructions,
-    input.walletPda,
-  );
+  const earlyCompiled = compileWalletInstructions(prepared.bodyInstructions, input.walletPda);
   const remainingAccounts = elevateForExecuteAccounts(
     earlyCompiled.remainingAccounts,
     input.executeAccounts,

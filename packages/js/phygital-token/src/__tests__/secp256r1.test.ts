@@ -5,9 +5,7 @@ import {
   getSecp256r1VerifyInstruction,
   type Secp256r1VerifyEntry,
 } from "../instructions/internal/secp256r1Verify.js";
-import {
-  base64URLStringToBuffer,
-} from "../utils/passkey/webauthn.js";
+import { base64URLStringToBuffer } from "../utils/passkey/webauthn.js";
 import {
   buildSecp256r1Message,
   recoverSecp256r1PublicKeyCandidates,
@@ -50,9 +48,7 @@ describe("recoverSecp256r1PublicKeyCandidates", () => {
           new TextEncoder().encode("high-s-challenge"),
         );
         return {
-          signatureDer: flipSignatureToHighS(
-            p256.sign(message, privateKey, { format: "der" }),
-          ),
+          signatureDer: flipSignatureToHighS(p256.sign(message, privateKey, { format: "der" })),
           message,
         };
       },
@@ -106,9 +102,7 @@ describe("getSecp256r1VerifyInstruction", () => {
     };
 
     const ix = getSecp256r1VerifyInstruction([credential, enabler]);
-    expect(ix.programAddress).toBe(
-      "Secp256r1SigVerify1111111111111111111111111",
-    );
+    expect(ix.programAddress).toBe("Secp256r1SigVerify1111111111111111111111111");
     expect(ix.data?.length).toBeGreaterThan(0);
     expect(ix.data?.[0]).toBe(2);
   });

@@ -103,7 +103,12 @@ export function withinProject(url: URL, externalUrl: string): boolean {
 	return url.hostname === home || url.hostname.endsWith(`.${home}`);
 }
 
-function resolveUri(raw: unknown, external: boolean, ctx: ShortcutContext, explicit = false): string | null {
+function resolveUri(
+	raw: unknown,
+	external: boolean,
+	ctx: ShortcutContext,
+	explicit = false
+): string | null {
 	if (typeof raw !== 'string' || !raw.trim() || raw.length > MAX_URI) return null;
 	const filled = fill(raw.trim(), ctx);
 	if (!filled) return null;
@@ -142,7 +147,8 @@ export function resolveShortcuts(file: unknown, ctx: ShortcutContext): Shortcut[
 		if (only.length > 0 && (!ctx.collectionId || !only.includes(ctx.collectionId))) continue;
 
 		const config = s.revibase;
-		if (config !== undefined && (!config || typeof config !== 'object' || Array.isArray(config))) continue;
+		if (config !== undefined && (!config || typeof config !== 'object' || Array.isArray(config)))
+			continue;
 		const launch = (config as { launch?: unknown } | undefined)?.launch;
 		if (config !== undefined && launch !== 'embed' && launch !== 'browser') continue;
 		const external = launch ? launch === 'browser' : s.prefersExternalTarget === true;

@@ -15,7 +15,13 @@ import type { LinkErrorCode, TapFailureReason } from '$lib/shared/types';
 
 export type Recovery = 'tap_again' | 'retry' | 'add_sol' | 'start_over' | 'none';
 
-export type FriendlyError = { title: string; body: string; recovery: Recovery; code: string; detail?: string };
+export type FriendlyError = {
+	title: string;
+	body: string;
+	recovery: Recovery;
+	code: string;
+	detail?: string;
+};
 
 const LINK_COPY: Record<LinkErrorCode, Omit<FriendlyError, 'code'>> = {
 	accessory_locked: {
@@ -93,31 +99,82 @@ function isUserRejection(err: unknown): boolean {
 
 export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'): FriendlyError {
 	if (err instanceof ApiClientError) {
-		if (err.code in LINK_COPY) return { ...linkErrorCopy(err.code as LinkErrorCode), detail: err.message };
+		if (err.code in LINK_COPY)
+			return { ...linkErrorCopy(err.code as LinkErrorCode), detail: err.message };
 		if (err.code === 'unknown_accessory') {
-			return { title: 'We don’t recognize this accessory', body: 'It isn’t registered, so we can’t confirm it’s genuine.', recovery: 'none', code: err.code };
+			return {
+				title: 'We don’t recognize this accessory',
+				body: 'It isn’t registered, so we can’t confirm it’s genuine.',
+				recovery: 'none',
+				code: err.code
+			};
 		}
 		if (err.code === 'not_owner') {
-			return { title: 'That’s a different wallet', body: 'This accessory isn’t linked to the wallet you connected.', recovery: 'none', code: err.code };
+			return {
+				title: 'That’s a different wallet',
+				body: 'This accessory isn’t linked to the wallet you connected.',
+				recovery: 'none',
+				code: err.code
+			};
 		}
 		if (err.code === 'bad_signature') {
-			return { title: 'We couldn’t verify that signature', body: 'Approve the message in your wallet, then try again.', recovery: 'retry', code: err.code };
+			return {
+				title: 'We couldn’t verify that signature',
+				body: 'Approve the message in your wallet, then try again.',
+				recovery: 'retry',
+				code: err.code
+			};
 		}
-		if (err.code === 'expired') return { title: 'This session expired', body: err.message, recovery: 'start_over', code: err.code };
-		return { title: 'Something went wrong', body: err.message, recovery: 'retry', code: String(err.code) };
+		if (err.code === 'expired')
+			return {
+				title: 'This session expired',
+				body: err.message,
+				recovery: 'start_over',
+				code: err.code
+			};
+		return {
+			title: 'Something went wrong',
+			body: err.message,
+			recovery: 'retry',
+			code: String(err.code)
+		};
 	}
 	if (err instanceof SecureSignerError) {
 		if (err.code === 'USER_CANCELLED') return linkErrorCopy('wallet_rejected');
 		if (err.code === 'PRF_UNSUPPORTED') {
-			return { title: 'This browser can’t use passkey wallets', body: 'Open this page in Safari (iPhone) or Chrome (Android).', recovery: 'none', code: err.code };
+			return {
+				title: 'This browser can’t use passkey wallets',
+				body: 'Open this page in Safari (iPhone) or Chrome (Android).',
+				recovery: 'none',
+				code: err.code
+			};
 		}
 		if (err.code === 'POLICY_REJECTED' || err.code === 'WALLET_MISMATCH') {
-			return { title: 'Your passkey wallet refused this', body: 'It only signs Revibase owner actions for its own address.', recovery: 'none', code: err.code };
+			return {
+				title: 'Your passkey wallet refused this',
+				body: 'It only signs Revibase owner actions for its own address.',
+				recovery: 'none',
+				code: err.code
+			};
 		}
-		if (err.code === 'TIMEOUT' || err.code === 'SIGNER_UNAVAILABLE' || err.code === 'BLOB_UNAVAILABLE') {
-			return { title: 'Couldn’t reach your passkey wallet', body: 'Check your connection and try again.', recovery: 'retry', code: err.code };
+		if (
+			err.code === 'TIMEOUT' ||
+			err.code === 'SIGNER_UNAVAILABLE' ||
+			err.code === 'BLOB_UNAVAILABLE'
+		) {
+			return {
+				title: 'Couldn’t reach your passkey wallet',
+				body: 'Check your connection and try again.',
+				recovery: 'retry',
+				code: err.code
+			};
 		}
-		return { title: 'Your passkey wallet couldn’t sign', body: 'Nothing was changed. Please try again.', recovery: 'retry', code: err.code };
+		return {
+			title: 'Your passkey wallet couldn’t sign',
+			body: 'Nothing was changed. Please try again.',
+			recovery: 'retry',
+			code: err.code
+		};
 	}
 	if (err instanceof AccessoryWalletTopUpRequired) {
 		return {
@@ -136,16 +193,33 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 		};
 	}
 	if (err instanceof RefillBlockedByTapLimit) {
-		return { title: 'Taps are paused', body: 'Network fees need a refill. Refill them on the accessory’s wallet page, or raise its SOL limit in tap permissions.', recovery: 'none', code: 'refill_blocked' };
+		return {
+			title: 'Taps are paused',
+			body: 'Network fees need a refill. Refill them on the accessory’s wallet page, or raise its SOL limit in tap permissions.',
+			recovery: 'none',
+			code: 'refill_blocked'
+		};
 	}
 	if (err instanceof PolicyDeniedError && !err.soft) {
-		return { title: 'Couldn’t cover the network fee', body: 'Nothing was sent. Please try again.', recovery: 'retry', code: err.code, detail: err.message };
+		return {
+			title: 'Couldn’t cover the network fee',
+			body: 'Nothing was sent. Please try again.',
+			recovery: 'retry',
+			code: err.code,
+			detail: err.message
+		};
 	}
 	if (err instanceof PolicyDeniedError && err.code === 'refill_required') {
-		return { title: 'Couldn’t cover the network fee', body: 'This accessory’s free network fees just ran out. Try again to refill them from its wallet.', recovery: 'retry', code: err.code };
+		return {
+			title: 'Couldn’t cover the network fee',
+			body: 'This accessory’s free network fees just ran out. Try again to refill them from its wallet.',
+			recovery: 'retry',
+			code: err.code
+		};
 	}
 	const onChain = fromSendError(err);
-	if (onChain && onChain !== 'unknown') return { ...linkErrorCopy(onChain), detail: err instanceof Error ? err.message : undefined };
+	if (onChain && onChain !== 'unknown')
+		return { ...linkErrorCopy(onChain), detail: err instanceof Error ? err.message : undefined };
 	if (err instanceof LinkTransactionRejected) {
 		return {
 			title: 'We stopped an unexpected transaction',

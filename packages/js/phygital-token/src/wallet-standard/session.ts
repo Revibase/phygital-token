@@ -27,7 +27,7 @@ type StoredSession = {
 /** Throws without an owner or an accessory policy (taps are blocked). */
 export async function resolveWalletSession(
   rpc: Rpc<SolanaRpcApi>,
-  phygitalTokenPda: Address
+  phygitalTokenPda: Address,
 ): Promise<PhygitalWalletSession> {
   const [policyPda] = await findPolicyPda({ phygitalToken: phygitalTokenPda });
   const [{ data: token }, policy] = await Promise.all([
@@ -38,9 +38,7 @@ export async function resolveWalletSession(
     throw new Error("Revibase wallet is disabled: this accessory has no owner");
   }
   if (!policy.exists) {
-    throw new Error(
-      "Revibase wallet is disabled: the owner has not set an accessory policy"
-    );
+    throw new Error("Revibase wallet is disabled: the owner has not set an accessory policy");
   }
   return { phygitalTokenPda, walletPda: policy.data.wallet, owner: token.owner };
 }
@@ -80,15 +78,12 @@ export function loadPhygitalWalletSession(): PhygitalWalletSession | null {
   } catch {
     try {
       store.removeItem(STORAGE_KEY);
-    } catch {
-    }
+    } catch {}
     return null;
   }
 }
 
-export function savePhygitalWalletSession(
-  session: PhygitalWalletSession
-): void {
+export function savePhygitalWalletSession(session: PhygitalWalletSession): void {
   const store = storage();
   if (!store) return;
   const payload: StoredSession = {
@@ -108,8 +103,7 @@ export function clearPhygitalWalletSession(): void {
   if (!store) return;
   try {
     store.removeItem(STORAGE_KEY);
-  } catch {
-  }
+  } catch {}
 }
 
 /** @internal test helper */

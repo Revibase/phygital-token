@@ -99,11 +99,7 @@ export interface VaCredential<R> {
 }
 
 export type WebAuthnFault =
-  | "NotAllowedError"
-  | "AbortError"
-  | "InvalidStateError"
-  | "SecurityError"
-  | "NotSupportedError";
+  "NotAllowedError" | "AbortError" | "InvalidStateError" | "SecurityError" | "NotSupportedError";
 
 export type CeremonyKind = "create" | "get";
 
@@ -292,8 +288,7 @@ export class VirtualAuthenticator {
       privateKey: input.privateKey,
       publicKey: p256.getPublicKey(input.privateKey, false),
       signCount: input.signCount ?? 0,
-      prfSecret:
-        input.prfSecret === undefined ? this.derive("prf", 32) : input.prfSecret,
+      prfSecret: input.prfSecret === undefined ? this.derive("prf", 32) : input.prfSecret,
       discoverable: input.discoverable ?? true,
     };
     this.store.set(toBase64Url(cred.id), cred);
@@ -422,9 +417,8 @@ export class VirtualAuthenticator {
 
     const spki = concatBytes(
       Uint8Array.from([
-        0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02,
-        0x01, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x03,
-        0x42, 0x00,
+        0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, 0x06, 0x08,
+        0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x03, 0x42, 0x00,
       ]),
       cred.publicKey,
     );
@@ -480,9 +474,7 @@ export class VirtualAuthenticator {
 
     const ext: Record<string, unknown> = {};
     const prfIn = (
-      pk.extensions as
-        | { prf?: { eval?: { first?: Bytesish; second?: Bytesish } } }
-        | undefined
+      pk.extensions as { prf?: { eval?: { first?: Bytesish; second?: Bytesish } } } | undefined
     )?.prf;
     if (prfIn && cred.prfSecret) {
       const first = toBytes(prfIn.eval?.first);

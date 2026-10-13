@@ -16,5 +16,9 @@ export const load: PageServerLoad = async ({ params, platform, setHeaders, cooki
 	if (!resolved) error(404, 'Accessory not found');
 	const [wallet] = await findWalletPda({ phygitalToken: address(resolved.pda) });
 	const session = await readAdmitSession(cookies, env.sessionSecret);
-	return { accessory: toAccessoryView(resolved.pda, resolved.account), wallet: String(wallet), accessoryHref: session?.pda === resolved.pda ? '/accessory' : '/' };
+	return {
+		accessory: toAccessoryView(resolved.pda, resolved.account),
+		wallet: String(wallet),
+		accessoryHref: session?.pda === resolved.pda ? '/accessory' : '/'
+	};
 };

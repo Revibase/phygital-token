@@ -27,7 +27,9 @@ export const STATE_FILE = new URL('state.json', stateDir);
 try {
 	await rpc.getVersion().send();
 } catch {
-	throw new Error('No validator on 127.0.0.1:8899. Start solana-test-validator --reset with the program first.');
+	throw new Error(
+		'No validator on 127.0.0.1:8899. Start solana-test-validator --reset with the program first.'
+	);
 }
 
 const { issuerKey } = await createAdmin();
@@ -43,7 +45,14 @@ for (let i = 0; i < 2; i++) {
 	sponsorKeys.push(getBase58Decoder().decode(secret));
 }
 
-const accessories: Record<string, { kind: AccessoryKind; pda: string; keys: ReturnType<ReturnType<typeof import('./lib').fakeAccessory>['keys']> }> = {};
+const accessories: Record<
+	string,
+	{
+		kind: AccessoryKind;
+		pda: string;
+		keys: ReturnType<ReturnType<typeof import('./lib').fakeAccessory>['keys']>;
+	}
+> = {};
 for (const [name, kind] of [
 	['bearer', 'bearer'],
 	['controlled', 'controlled'],
@@ -61,14 +70,54 @@ writeFileSync(
 mkdirSync(new URL('tls/', stateDir), { recursive: true });
 // HTTPS, as in production: WebKit keeps the signer's Secure, Partitioned vault cookie only there.
 if (!existsSync(new URL('tls/cert.pem', stateDir))) {
-	execFileSync('openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:prime256v1', '-nodes', '-days', '30', '-subj', '/CN=localhost',
-		'-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1', '-keyout', 'tls/key.pem', '-out', 'tls/cert.pem'], { cwd: stateDir, stdio: 'ignore' });
+	execFileSync(
+		'openssl',
+		[
+			'req',
+			'-x509',
+			'-newkey',
+			'ec',
+			'-pkeyopt',
+			'ec_paramgen_curve:prime256v1',
+			'-nodes',
+			'-days',
+			'30',
+			'-subj',
+			'/CN=localhost',
+			'-addext',
+			'subjectAltName=DNS:localhost,IP:127.0.0.1',
+			'-keyout',
+			'tls/key.pem',
+			'-out',
+			'tls/cert.pem'
+		],
+		{ cwd: stateDir, stdio: 'ignore' }
+	);
 }
-execFileSync('pnpm', ['exec', 'wrangler', 'd1', 'migrations', 'apply', 'DB', '--local', '-c', 'test/e2e/wrangler.jsonc', '--persist-to', '.wrangler/e2e'], {
-	cwd: appRoot,
-	stdio: 'inherit',
-	env: { ...process.env, CI: '1' }
-});
+execFileSync(
+	'pnpm',
+	[
+		'exec',
+		'wrangler',
+		'd1',
+		'migrations',
+		'apply',
+		'DB',
+		'--local',
+		'-c',
+		'test/e2e/wrangler.jsonc',
+		'--persist-to',
+		'.wrangler/e2e'
+	],
+	{
+		cwd: appRoot,
+		stdio: 'inherit',
+		env: { ...process.env, CI: '1' }
+	}
+);
 
-writeFileSync(STATE_FILE, JSON.stringify({ issuer: bytesToBase64Url(issuerKey), accessories }, null, 2));
+writeFileSync(
+	STATE_FILE,
+	JSON.stringify({ issuer: bytesToBase64Url(issuerKey), accessories }, null, 2)
+);
 console.log(`e2e stack ready: ${Object.keys(accessories).join(', ')}`);

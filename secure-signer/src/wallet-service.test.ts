@@ -23,10 +23,7 @@ class MockPrf implements PrfProvider {
     const credentialId = randomBytes(16);
     return { credentialId, prfOutput: await this.derive(credentialId) };
   }
-  async get(
-    _rpId: string,
-    credentialId: Uint8Array,
-  ): Promise<{ prfOutput: Uint8Array }> {
+  async get(_rpId: string, credentialId: Uint8Array): Promise<{ prfOutput: Uint8Array }> {
     return { prfOutput: await this.derive(credentialId) };
   }
   private derive(credentialId: Uint8Array): Promise<Uint8Array> {
@@ -56,9 +53,7 @@ describe("wallet-service pipeline", () => {
     const parsed = parseBlob(created.blob);
     const again = await enrollExistingCredential(prf, RP, parsed.credentialId);
     // New seed/wallet, but same credential id binding
-    expect([...parseBlob(again.blob).credentialId]).toEqual([
-      ...parsed.credentialId,
-    ]);
+    expect([...parseBlob(again.blob).credentialId]).toEqual([...parsed.credentialId]);
     const { publicKey } = await decryptWallet(prf, RP, parseBlob(again.blob));
     expect([...publicKey]).toEqual([...again.publicKey]);
   });
@@ -78,9 +73,7 @@ describe("wallet-service pipeline", () => {
     resolveMsg(msg);
     const enrolled = await pending;
     expect(enrolled.signature).toBeDefined();
-    expect(
-      await ed25519Verify(enrolled.signature!, msg, enrolled.publicKey),
-    ).toBe(true);
+    expect(await ed25519Verify(enrolled.signature!, msg, enrolled.publicKey)).toBe(true);
   });
 
   it("fails to decrypt with a different authenticator (wrong passkey)", async () => {
@@ -132,7 +125,8 @@ describe("wallet-service hardening (mutation-driven)", () => {
   it("rejects a blob whose ciphertext decrypts to a seed for a different key (WALLET_MISMATCH)", async () => {
     // Only someone holding the PRF could craft this: AAD names key A, the
     // encrypted seed is for key B. The post-decrypt check must still refuse it.
-    const { deriveWrappingKey, aesGcmEncrypt, generateEd25519SeedAndPublicKey } = await import("./crypto.js");
+    const { deriveWrappingKey, aesGcmEncrypt, generateEd25519SeedAndPublicKey } =
+      await import("./crypto.js");
     const { buildAad, encodeWalletBlob } = await import("./wallet-format.js");
     const prf = new Uint8Array(32).fill(7);
     const credentialId = new Uint8Array(16).fill(1);
@@ -143,8 +137,16 @@ describe("wallet-service hardening (mutation-driven)", () => {
     const key = await deriveWrappingKey(prf, kdfSalt);
     const aad = buildAad({ publicKey: claimed.publicKey, credentialId, kdfSalt }, RP);
     const ciphertext = await aesGcmEncrypt(key, iv, actual.seed, aad);
-    const blob = encodeWalletBlob({ publicKey: claimed.publicKey, credentialId, kdfSalt, iv, ciphertext });
-    await expect(unwrapWallet(prf, decodeWalletBlob(blob), RP)).rejects.toMatchObject({ code: "WALLET_MISMATCH" });
+    const blob = encodeWalletBlob({
+      publicKey: claimed.publicKey,
+      credentialId,
+      kdfSalt,
+      iv,
+      ciphertext,
+    });
+    await expect(unwrapWallet(prf, decodeWalletBlob(blob), RP)).rejects.toMatchObject({
+      code: "WALLET_MISMATCH",
+    });
   });
 
   it("zeroes the PRF output after create, enroll and decrypt", async () => {

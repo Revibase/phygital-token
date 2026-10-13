@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { cn } from '$lib/utils';
 
-	let { address, icon = null, size = 'md' }: { address: string; icon?: string | null; size?: 'sm' | 'md' } = $props();
+	let {
+		address,
+		icon = null,
+		size = 'md'
+	}: { address: string; icon?: string | null; size?: 'sm' | 'md' } = $props();
 	const hue = $derived([...address].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7));
 </script>
 
