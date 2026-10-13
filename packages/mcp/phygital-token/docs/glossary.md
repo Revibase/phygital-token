@@ -47,8 +47,6 @@ AccessoryPolicy (seeds=["policy", phygital_token])  ← created by the owner's f
 | **Policy action** | `PolicyAction` | One incremental `update_policy` change: `SetAllowedOrigins(Vec<String>)` (replaces the list; `https://host[:port]` or `http://localhost[:port]`, no trailing slash; empty = any), `SetSolCap(Option)`, `SetMintCap(mint, CapArg)`, `RemoveMintCap`, `SetProgramPermission` (add or replace by program id), `RemoveProgramPermission`. |
 | **Compact instruction** | `CompactInstruction` | An inner instruction as indexes into the execute instruction's remaining accounts. The wallet PDA is passed unsigned; the program signs for it. |
 | **Execute challenge** | `build_execute_challenge` | WebAuthn challenge for `execute_with_accessory`: `SHA256("execute" ‖ phygital_token ‖ slot_hash ‖ borsh(compact_instructions) ‖ accounts)`, where `accounts` is each referenced account's key followed by its effective privilege byte (`is_signer | is_writable << 1`). |
-| **Expected rpId** | `verify.expected_rp_id` | Optional `Option<String>`. When set, `SHA256(rpId)` must match authenticatorData\[0..32\]. Omit / `None` skips. |
-| **Expected origins** | `verify.expected_origins` | Optional `Option<Vec<String>>` allow-list. When set, signed `clientDataJSON.origin` must match one entry. Omit / `None` skips. |
 
 ## Instruction map
 
@@ -62,7 +60,6 @@ AccessoryPolicy (seeds=["policy", phygital_token])  ← created by the owner's f
 | `initialize` | Creates a **phygital_token** PDA seeded by `secp256r1_pubkey`, stores `identifier`, `token_type`, and `owner`. Permanent requires a non-default `owner`. Stores the wallet bump. Restricted to **AdminConfig.issuer**. |
 | `assign_mint` | Binds an SPL mint pubkey onto `phygital_token.mint`. Restricted to **AdminConfig.minter**. |
 | `set_owner` | Passkey-authorized owner update to `recipient` (no SPL token). Requires the token to be unlocked (Bearer, or no owner). Permanent is always locked → always `TokenIsCurrentlyLocked`. Controlled is locked again once it has an owner. A new owner closes the previous owner's accessory policy. |
-| `verify` | Passkey-authorized message proof; optional `expected_rp_id` / `expected_origins` (`Option`); updates `last_sign_count`. |
 | `remove_owner` | Wallet-signed forfeiture — resets `phygital_token.owner` to default, which unlocks a Controlled token. Rejected for Permanent. Closes the accessory policy. |
 | `update_policy` | Owner applies `PolicyAction`s to the accessory policy, creating it on first use (`payer` funds it). The account resizes to fit; growth is paid by that call's `payer`. Rent freed by removing entries stays in the account until it closes. |
 | `close_policy` | Owner closes the accessory policy (rent to the accessory wallet); the accessory is blocked again. |
@@ -80,8 +77,7 @@ AccessoryPolicy (seeds=["policy", phygital_token])  ← created by the owner's f
 | `initialize` | `getInitializeInstruction` |
 | `assign_mint` | `getAssignMintInstruction` |
 | `set_owner` | `beginTransfer` / `authenticatePasskeyForTransfer` / `completeTransfer` |
-| `verify` | `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify` / `buildSecp256r1VerifyInstruction` |
 | `phygital_token` PDA | `findPhygitalTokenPda(secp256r1Pubkey)`, `fetchPhygitalTokenByIdentifier` |
 | off-chain auth | `startAuthentication(message, { rpc })` + `verifyResponse({ expectedMessage, expectedOrigin, response })` → your session |
 
-Test helpers mirror on-chain instruction names (`initialize`, `assign_mint`, `set_owner`, `verify`, etc.).
+Test helpers mirror on-chain instruction names (`initialize`, `assign_mint`, `set_owner`, etc.).

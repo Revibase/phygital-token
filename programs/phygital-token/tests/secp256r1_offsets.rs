@@ -8,12 +8,14 @@ mod common;
 use anchor_lang::prelude::Pubkey;
 use anchor_lang::solana_program::instruction::Instruction;
 use common::{assert_phygital_token_program_error, current_slot_entry, TestContext, TestPasskey};
-use phygital_token::{SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START};
+use phygital_token::{
+    build_set_owner_challenge, Secp256r1VerifyArgs, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
+    SIGNATURE_OFFSETS_START,
+};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
-const MESSAGE_HASH: [u8; 32] = [9u8; 32];
-const OTHER_MESSAGE_HASH: [u8; 32] = [10u8; 32];
+const OTHER_CHALLENGE: [u8; 32] = [10u8; 32];
 
 // Byte ranges of the first offsets entry in a test precompile instruction.
 const SIGNATURE_INSTRUCTION_INDEX: core::ops::Range<usize> = 4..6;
@@ -28,121 +30,121 @@ fn point_at(ix: &mut Instruction, field: core::ops::Range<usize>, instruction: u
     ix.data[field].copy_from_slice(&instruction.to_le_bytes());
 }
 
-#[allow(clippy::result_large_err)]
-fn send(ctx: &mut TestContext, instructions: &[Instruction]) -> litesvm::types::TransactionResult {
-    let payer = ctx.payer.insecure_clone();
-    TestContext::send_instructions(&mut ctx.svm, instructions, &[&payer])
+/// A `set_owner` claim of `token` by a fresh, funded recipient.
+struct Claim {
+    token: Pubkey,
+    recipient: Keypair,
+    slot_number: u64,
+    challenge: [u8; 32],
+    sign_count: u32,
+}
+
+impl Claim {
+    fn new(ctx: &mut TestContext, token: Pubkey) -> Self {
+        let recipient = Keypair::new();
+        ctx.svm.airdrop(&recipient.pubkey(), 1_000_000_000).unwrap();
+        let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
+        Self {
+            token,
+            challenge: build_set_owner_challenge(&token, slot_hash, &recipient.pubkey()),
+            recipient,
+            slot_number,
+            sign_count: ctx.next_sign_count(token),
+        }
+    }
+
+    #[allow(clippy::result_large_err)]
+    fn send(
+        &self,
+        ctx: &mut TestContext,
+        precompiles: Vec<Instruction>,
+        args: Secp256r1VerifyArgs,
+    ) -> litesvm::types::TransactionResult {
+        let set_owner =
+            ctx.set_owner_ix(self.recipient.pubkey(), self.token, args, self.slot_number);
+        let mut instructions = precompiles;
+        instructions.push(set_owner);
+        TestContext::send_instructions(&mut ctx.svm, &instructions, &[&self.recipient])
+    }
 }
 
 /// The attacker signs with their own key in instruction 0; instruction 1 sends
 /// the precompile there for the key and keeps the victim's key in its own data.
-#[test]
-fn verify_rejects_a_public_key_read_from_another_instruction() {
-    let mut ctx = TestContext::new();
-    let victim = TestPasskey::generate();
-    let token = ctx.init_phygital_token(&victim);
-    let attacker = TestPasskey::generate();
-    let sign_count = ctx.next_sign_count(token.phygital_token);
-
-    let (signed_by_attacker, args) =
-        attacker.verify_secp256r1_instruction(MESSAGE_HASH, sign_count);
-    let mut forged = signed_by_attacker.clone();
-    point_at(&mut forged, SIGNATURE_INSTRUCTION_INDEX, 0);
-    point_at(&mut forged, PUBLIC_KEY_INSTRUCTION_INDEX, 0);
-    point_at(&mut forged, MESSAGE_INSTRUCTION_INDEX, 0);
-    forged.data[PUBLIC_KEY].copy_from_slice(&victim.compressed_pubkey);
-    let verify = ctx.verify_ix(token.phygital_token, args, MESSAGE_HASH, None, None);
-
-    let result = send(&mut ctx, &[signed_by_attacker, forged, verify]);
-    assert_phygital_token_program_error(result, "InvalidSignatureOffsets");
-    assert_eq!(ctx.last_sign_count(token.phygital_token), 0);
-}
-
-/// A genuine earlier signature by the victim (instruction 0) must not vouch for
-/// a different message placed in the precompile instruction's own data.
-#[test]
-fn verify_rejects_a_message_read_from_another_instruction() {
-    let mut ctx = TestContext::new();
-    let victim = TestPasskey::generate();
-    let token = ctx.init_phygital_token(&victim);
-    let sign_count = ctx.next_sign_count(token.phygital_token);
-
-    let (old_signature, _) = victim.verify_secp256r1_instruction(OTHER_MESSAGE_HASH, sign_count);
-    // Only the unsigned message bytes of this one are used.
-    let (mut forged, args) = victim.verify_secp256r1_instruction(MESSAGE_HASH, sign_count);
-    point_at(&mut forged, SIGNATURE_INSTRUCTION_INDEX, 0);
-    point_at(&mut forged, MESSAGE_INSTRUCTION_INDEX, 0);
-    let verify = ctx.verify_ix(token.phygital_token, args, MESSAGE_HASH, None, None);
-
-    let result = send(&mut ctx, &[old_signature, forged, verify]);
-    assert_phygital_token_program_error(result, "InvalidSignatureOffsets");
-}
-
-#[test]
-fn verify_rejects_a_signature_read_from_another_instruction() {
-    let mut ctx = TestContext::new();
-    let passkey = TestPasskey::generate();
-    let token = ctx.init_phygital_token(&passkey);
-    let sign_count = ctx.next_sign_count(token.phygital_token);
-
-    let (genuine, args) = passkey.verify_secp256r1_instruction(MESSAGE_HASH, sign_count);
-    let mut pointing = genuine.clone();
-    point_at(&mut pointing, SIGNATURE_INSTRUCTION_INDEX, 0);
-    let verify = ctx.verify_ix(token.phygital_token, args, MESSAGE_HASH, None, None);
-
-    let result = send(&mut ctx, &[genuine, pointing, verify]);
-    assert_phygital_token_program_error(result, "InvalidSignatureOffsets");
-}
-
-/// The same forgery against `set_owner` would hand the attacker any Bearer
-/// token, and with it its wallet.
+/// Accepted, this would hand the attacker any Bearer token and its wallet.
 #[test]
 fn set_owner_rejects_a_public_key_read_from_another_instruction() {
     let mut ctx = TestContext::new();
     let victim = TestPasskey::generate();
     let token = ctx.init_phygital_token(&victim);
     let attacker = TestPasskey::generate();
-    let thief = Keypair::new();
-    ctx.svm.airdrop(&thief.pubkey(), 1_000_000_000).unwrap();
-    let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
-    let sign_count = ctx.next_sign_count(token.phygital_token);
+    let claim = Claim::new(&mut ctx, token.phygital_token);
 
-    let (signed_by_attacker, args) = attacker.secp256r1_verify_instruction(
-        token.phygital_token,
-        thief.pubkey(),
-        slot_hash,
-        sign_count,
-    );
+    let (signed_by_attacker, args) =
+        attacker.secp256r1_instruction_for_challenge(claim.challenge, claim.sign_count);
     let mut forged = signed_by_attacker.clone();
     point_at(&mut forged, SIGNATURE_INSTRUCTION_INDEX, 0);
     point_at(&mut forged, PUBLIC_KEY_INSTRUCTION_INDEX, 0);
     point_at(&mut forged, MESSAGE_INSTRUCTION_INDEX, 0);
     forged.data[PUBLIC_KEY].copy_from_slice(&victim.compressed_pubkey);
-    let set_owner = ctx.set_owner_ix(thief.pubkey(), token.phygital_token, args, slot_number);
 
-    let result = TestContext::send_instructions(
-        &mut ctx.svm,
-        &[signed_by_attacker, forged, set_owner],
-        &[&thief],
-    );
+    let result = claim.send(&mut ctx, vec![signed_by_attacker, forged], args);
     assert_phygital_token_program_error(result, "InvalidSignatureOffsets");
     assert_eq!(
         ctx.phygital_token_owner(token.phygital_token),
         Pubkey::default()
     );
+    assert_eq!(ctx.last_sign_count(token.phygital_token), 0);
+}
+
+/// A genuine earlier signature by the victim (instruction 0) must not vouch for
+/// a different message placed in the precompile instruction's own data.
+#[test]
+fn set_owner_rejects_a_message_read_from_another_instruction() {
+    let mut ctx = TestContext::new();
+    let victim = TestPasskey::generate();
+    let token = ctx.init_phygital_token(&victim);
+    let claim = Claim::new(&mut ctx, token.phygital_token);
+
+    let (old_signature, _) =
+        victim.secp256r1_instruction_for_challenge(OTHER_CHALLENGE, claim.sign_count);
+    // Only the unsigned message bytes of this one are used.
+    let (mut forged, args) =
+        victim.secp256r1_instruction_for_challenge(claim.challenge, claim.sign_count);
+    point_at(&mut forged, SIGNATURE_INSTRUCTION_INDEX, 0);
+    point_at(&mut forged, MESSAGE_INSTRUCTION_INDEX, 0);
+
+    let result = claim.send(&mut ctx, vec![old_signature, forged], args);
+    assert_phygital_token_program_error(result, "InvalidSignatureOffsets");
+}
+
+#[test]
+fn set_owner_rejects_a_signature_read_from_another_instruction() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let token = ctx.init_phygital_token(&passkey);
+    let claim = Claim::new(&mut ctx, token.phygital_token);
+
+    let (genuine, args) =
+        passkey.secp256r1_instruction_for_challenge(claim.challenge, claim.sign_count);
+    let mut pointing = genuine.clone();
+    point_at(&mut pointing, SIGNATURE_INSTRUCTION_INDEX, 0);
+
+    let result = claim.send(&mut ctx, vec![genuine, pointing], args);
+    assert_phygital_token_program_error(result, "InvalidSignatureOffsets");
 }
 
 /// The precompile accepts at most eight signatures; the last entry is read from
 /// its own position in the offsets table.
 #[test]
-fn verify_reads_the_last_offsets_entry() {
+fn set_owner_reads_the_last_offsets_entry() {
     const ENTRIES: usize = 8;
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let token = ctx.init_phygital_token(&passkey);
-    let sign_count = ctx.next_sign_count(token.phygital_token);
+    let claim = Claim::new(&mut ctx, token.phygital_token);
 
-    let (single, mut args) = passkey.verify_secp256r1_instruction(MESSAGE_HASH, sign_count);
+    let (single, mut args) =
+        passkey.secp256r1_instruction_for_challenge(claim.challenge, claim.sign_count);
     let message = &single.data[MESSAGE_START..];
     let table_end = SIGNATURE_OFFSETS_START + ENTRIES * SIGNATURE_OFFSETS_SERIALIZED_SIZE;
     let public_key_offset = table_end;
@@ -168,8 +170,13 @@ fn verify_reads_the_last_offsets_entry() {
     data.extend_from_slice(message);
     let precompile = Instruction { data, ..single };
     args.signed_message_index = (ENTRIES - 1) as u8;
-    let verify = ctx.verify_ix(token.phygital_token, args, MESSAGE_HASH, None, None);
 
-    send(&mut ctx, &[precompile, verify]).expect("the last entry verifies");
-    assert_eq!(ctx.last_sign_count(token.phygital_token), sign_count);
+    claim
+        .send(&mut ctx, vec![precompile], args)
+        .expect("the last entry verifies");
+    assert_eq!(
+        ctx.phygital_token_owner(token.phygital_token),
+        claim.recipient.pubkey()
+    );
+    assert_eq!(ctx.last_sign_count(token.phygital_token), claim.sign_count);
 }

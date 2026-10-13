@@ -126,7 +126,7 @@ fn tap_is_bound_to_the_signed_instructions_and_slot() {
     let sign_count = ctx.next_sign_count(token.phygital_token);
     let (secp_ix, args) = token
         .passkey
-        .verify_secp256r1_instruction(challenge, sign_count);
+        .secp256r1_instruction_for_challenge(challenge, sign_count);
     let payer = ctx.payer.insecure_clone();
     let token_key = token.phygital_token;
 

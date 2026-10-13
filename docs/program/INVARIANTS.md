@@ -16,14 +16,14 @@ in another instruction, could vouch for bytes the passkey never signed.
 **T2. The assertion answers this instruction's challenge.** `clientDataJSON.type`
 is `webauthn.get`, `clientDataJSON.challenge` equals the expected 32 bytes, and
 the signed message ends with `SHA256(clientDataJSON)`.
-— `src/webauthn/mod.rs`; `tests/verify_flow.rs`, `tests/set_owner_webauthn_coverage.rs`, `tests/wallet_accessory_gate.rs`.
+— `src/webauthn/mod.rs`; `tests/set_owner_webauthn_coverage.rs`, `tests/wallet_accessory_gate.rs`.
 
 **T3. The user was present.** The authenticator data's UP flag is set.
 — `src/webauthn/mod.rs`; `tests/set_owner_webauthn_coverage.rs`.
 
 **T4. Each assertion is accepted at most once per token.** The authenticator's sign
 count must exceed `last_sign_count`, which is then updated.
-— `PhygitalToken::accept_assertion` in `src/state/phygital_token.rs`; `tests/set_owner_flow.rs`, `tests/verify_flow.rs`, `tests/wallet_accessory_gate.rs`.
+— `PhygitalToken::accept_assertion` in `src/state/phygital_token.rs`; `tests/set_owner_flow.rs`, `tests/wallet_accessory_gate.rs`.
 
 **T5. Challenges cannot be reused across actions or for long.** `set_owner` and the
 execute instructions sign domain-tagged challenges ("transfer", "execute") that
@@ -32,8 +32,6 @@ include the token and a slot hash that must still be in the SlotHashes sysvar
 a tap cannot be resubmitted for a different new owner; the execute challenge
 covers every inner instruction (W2).
 — `src/webauthn/challenge.rs`, `src/sysvar/slot_hashes.rs`; `tests/set_owner_challenge.rs` (including a front-run attempt), `tests/set_owner_security.rs`, `tests/wallet_accessory_gate.rs`.
-`verify` takes the caller's `message_hash` as the challenge; freshness and domain
-separation are the caller's responsibility.
 
 ## Ownership
 

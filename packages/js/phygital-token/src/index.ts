@@ -5,12 +5,6 @@ export {
   type TransferSession,
 } from "./instructions/transfer.js";
 
-export {
-  buildMessageHash,
-  authenticatePasskeyForSecp256r1Verify,
-  buildSecp256r1VerifyInstruction,
-} from "./instructions/verify.js";
-
 export { parseSecp256r1Pubkey } from "./utils/parseSecp256r1Pubkey.js";
 
 export {

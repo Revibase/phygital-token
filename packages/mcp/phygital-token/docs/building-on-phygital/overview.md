@@ -3,7 +3,6 @@
 Third-party developers can:
 
 - **Authenticate off-chain** (Web2 passkey login) → `startAuthentication(message, { rpc, allowList? })` / `verifyResponse` → your session
-- **Prove possession on-chain** (composable) → `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash })` / `buildSecp256r1VerifyInstruction` (`verify` CPI)
 - **Set owner on-chain** → `beginTransfer({ rpc, secp256r1Pubkey, recipient })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_owner`)
 - **Bootstrap roles** → `getCreateConfigInstruction` → `getSetIssuerInstruction` / `getSetMinterInstruction`
 - **Initialize tokens** → `findPhygitalTokenPda` + `getInitializeInstruction` (issuer-only; passkey seeds PDA; chip `identifier` stored for binding)
@@ -34,23 +33,7 @@ All tap helpers share `authenticatePasskey`, which prompts browser WebAuthn.
 4. **Server:** `verifyResponse({ expectedMessage: message, expectedOrigin, response })`, where `expectedOrigin` is your site's origin (a fixed value, not the request's `Origin` header).
 5. **Server:** on `isVerified`, map `secp256r1PublicKey` → user (`findPhygitalTokenPda` + `fetchPhygitalToken` → `owner`) and **create your normal session**.
 
-Does **not** write to chain and does **not** set a cookie for you. Does **not** check rpId/origin.
-## On-chain `verify` (composable)
-
-```
-buildMessageHash(message)
-        ↓
-authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash })
-        ↓
-buildSecp256r1VerifyInstruction(tap)  // phygitalTokenPda from tap
-        ↓
-[secp256r1_verify, your_program_instruction]  // your program CPIs verify
-```
-
-Hash with `buildMessageHash`, then tap. Pass the same digest to `VerifyCpiBuilder.message_hash`. Token PDA is derived after the NFC tap from `response.id`. Optional `.expected_rp_id(...)` / `.expected_origins(...)` are set on your CPI — omit them to skip; when `expected_origins` is set, the signed origin must match one entry. See `verification:verify-composable` and `building-on-phygital:rust-cpi`.
-
-`verify` advances `last_sign_count` — it does **not** change `phygital_token.owner`.
-
+Does **not** write to chain and does **not** set a cookie for you. `verifyResponse` rejects taps from any origin other than `expectedOrigin`, and from another relying party when `expectedRpId` is passed.
 ## On-chain owner
 
 ```
@@ -81,10 +64,9 @@ send [secp256r1_verify, set_owner]
 - [ ] Never reuse challenges across authorization scopes
 - [ ] For transfers, use the slot-bound transfer challenge — not a login message
 - [ ] Ensure `isPhygitalTokenLocked(token)` is false before `set_owner`
-- [ ] For composable on-chain proofs, hash `message` with `buildMessageHash` before the tap. Fold freshness or domain separation into `message` before hashing.
 
 ## Packages
 
-**TypeScript:** `phygital-token-sdk` — `startAuthentication`, `verifyResponse`, `buildMessageHash`, `authenticatePasskeyForSecp256r1Verify`, `buildSecp256r1VerifyInstruction`, `beginTransfer`, `completeTransfer`, `getInitializeInstruction`, `getAssignMintInstruction`, `getCreateConfigInstruction`, `getClosePhygitalTokenInstruction`, `findAdminConfigPda`
+**TypeScript:** `phygital-token-sdk` — `startAuthentication`, `verifyResponse`, `beginTransfer`, `completeTransfer`, `getInitializeInstruction`, `getAssignMintInstruction`, `getCreateConfigInstruction`, `getClosePhygitalTokenInstruction`, `findAdminConfigPda`
 
-**Rust:** `phygital-token-client` at `packages/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `verify`, `set_owner`, `remove_owner`, `assign_mint`, `create_config`, …
+**Rust:** `phygital-token-client` at `packages/rust/phygital-token` — instruction builders / CPI helpers for `initialize`, `set_owner`, `remove_owner`, `assign_mint`, `create_config`, …

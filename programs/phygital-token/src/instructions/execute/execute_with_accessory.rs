@@ -66,7 +66,6 @@ impl<'info> ExecuteWithAccessory<'info> {
             token.accept_assertion(secp256r1_verify_args.verify_webauthn_assertion(
                 &accounts.instructions_sysvar,
                 challenge,
-                None,
                 Some(&origin_allowed),
             )?)?;
             token.wallet_bump

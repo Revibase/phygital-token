@@ -6,6 +6,11 @@ All notable changes to this artifact are documented here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- `VerifyCpi`, `VerifyCpiBuilder` and the other `verify` instruction types: the
+  program no longer has a `verify` instruction.
+
 ## [1.9.0]
 
 First public release.

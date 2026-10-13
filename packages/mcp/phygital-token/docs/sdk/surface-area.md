@@ -13,7 +13,7 @@ When recovery is ambiguous, the SDK selects the candidate with an initialized Ph
 
 ## Shared tap helper
 
-All three on-chain tap entry points (`authenticatePasskey`, `authenticatePasskeyForTransfer`, `authenticatePasskeyForSecp256r1Verify`) share:
+The tap entry points (`authenticatePasskey`, `startAuthentication`, `authenticatePasskeyForTransfer`) share:
 
 | Option | Behavior |
 |--------|----------|
@@ -66,17 +66,6 @@ Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_
 
 `set_owner` requires an unlocked token (`isPhygitalTokenLocked`): Controlled and Permanent tokens are locked whenever they have an owner, so Permanent always fails with `TokenIsCurrentlyLocked` and a claimed Controlled token must `remove_owner` first. Linking a new owner closes the previous owner's accessory policy (`completeTransfer` passes the accounts).
 
-## Verify (on-chain composable)
-
-| Export | Purpose |
-|--------|---------|
-| `buildMessageHash(message)` | SHA-256 `message` to a 32-byte `messageHash` |
-| `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId? })` | Uses `messageHash` as WebAuthn challenge; `rpc` recovers a placeholder id, `allowList` gates the tapped id (and is the no-RPC recovery fallback) |
-| `buildSecp256r1VerifyInstruction` | After tap: `{ secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }` |
-| `getVerifyInstruction` | Generated `verify` ix — `expectedRpId` / `expectedOrigins` are `Option` (`null` skips). CPI callers set these on `VerifyCpiBuilder`, not the tap helper. |
-
-See `verification:verify-composable` and `building-on-phygital:rust-cpi`. When `expectedOrigins` is set, `clientDataJSON.origin` must match one listed origin.
-
 ## Remove owner
 
 | Export | Purpose |
@@ -108,7 +97,7 @@ Issue any short-lived message string — no `generateAuthenticationOptions`. The
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getInitializeInstruction`, `getAssignMintInstruction`, `getSetOwnerInstruction`, `getVerifyInstruction`, `getRemoveOwnerInstruction`, `getCreateConfigInstruction`, `getSetAdminInstruction`, `getSetIssuerInstruction`, `getSetMinterInstruction`, `getClosePhygitalTokenInstruction`, …
+- Instructions: `getInitializeInstruction`, `getAssignMintInstruction`, `getSetOwnerInstruction`, `getRemoveOwnerInstruction`, `getCreateConfigInstruction`, `getSetAdminInstruction`, `getSetIssuerInstruction`, `getSetMinterInstruction`, `getClosePhygitalTokenInstruction`, …
 - Accounts: `fetchPhygitalToken`, `fetchAdminConfig`, `findAdminConfigPda`, `PhygitalToken`, `AdminConfig`, …
 - Types: `PhygitalTokenType` (`Permanent` | `Bearer` | `Controlled`), `Secp256r1Pubkey`, …
 
@@ -116,7 +105,7 @@ Re-exported from `./generated/index.js`:
 
 Crate: `phygital-token-client` at `packages/rust/phygital-token`.
 
-On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `AssignMintCpiBuilder`, `SetOwnerCpiBuilder`, `CreateConfigCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
+On-chain: instruction builders, CPI helpers (`AssignMintCpiBuilder`, `SetOwnerCpiBuilder`, `CreateConfigCpiBuilder`, …), account layouts, errors.
 
 `PhygitalTokenType`: `Permanent` (0, immutable owner, stays locked), `Bearer` (1), `Controlled` (2, lock/forfeit).
 

@@ -10,8 +10,8 @@ Guarantees are listed in [INVARIANTS.md](INVARIANTS.md).
 - **Token ownership.** The owner controls the wallet (`execute_with_owner`) and the
   policy.
 - **Wallet contents.** SOL, tokens and NFTs held by each token's wallet PDA.
-- **Authentication results.** Integrators trust `verify` (directly or by CPI) to
-  mean "this accessory was tapped for this message".
+- **Token records.** Integrators that check a tap off-chain look the token up
+  by the tapped key and trust its type and owner.
 
 ## Actors and trust
 
@@ -62,12 +62,10 @@ These are trust assumptions, not bugs:
   directly writes its own `clientDataJSON`, including `origin`. The policy's
   allowed origins stop a different website from requesting a tap through a
   browser; they do not stop a native app.
-- **`verify` does not choose freshness.** The caller's `message_hash` is the
-  challenge; integrators must include a nonce or slot hash themselves.
 - **Authenticators that always report a sign count of 0 cannot be used.** The
   count must increase.
-- **Optional rpId check.** Only `verify` can check the rpId hash, and only when
-  asked; `set_owner` and the execute instructions never do. With a standard
+- **No rpId check.** `set_owner` and the execute instructions never check the
+  rpId hash. With a standard
   authenticator a credential's key is scoped to one rpId, so the key match
   implies it. If the accessory's chip signs for any rpId with the same key,
   the challenge and sign count are the remaining protections.

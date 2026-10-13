@@ -7,7 +7,7 @@ export const SDK_SURFACE = {
     recovery:
       "When multiple keys verify, picks the initialized PhygitalToken PDA on-chain (rpc), or the one in allowList when no rpc is given",
     authenticatePasskey:
-      "Shared browser WebAuthn helper. Used by authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify.",
+      "Shared browser WebAuthn helper. Used by startAuthentication, authenticatePasskeyForTransfer and the accessory wallet.",
   },
   admin: [
     "getCreateConfigInstruction",
@@ -30,30 +30,10 @@ export const SDK_SURFACE = {
     "completeTransfer",
   ],
   removeOwner: ["getRemoveOwnerInstruction"],
-  verifyComposable: [
-    "buildMessageHash",
-    "authenticatePasskeyForSecp256r1Verify({ rpc?, allowList?, messageHash, rpId? })",
-    "buildSecp256r1VerifyInstruction",
-  ],
   verification: [
     "startAuthentication(message, { rpc?, allowList?, rpId? })",
     "verifyResponse({ expectedMessage, expectedOrigin, response })",
   ],
-  onChainComposition: {
-    client: [
-      "buildMessageHash",
-      "authenticatePasskeyForSecp256r1Verify({ rpc?, allowList?, messageHash, rpId? })",
-      "buildSecp256r1VerifyInstruction",
-    ],
-    transaction: ["secp256r1_verify", "your_program_instruction"],
-    program: "CPI verify via VerifyCpiBuilder",
-    optionalBindings: {
-      expected_rp_id:
-        "Option<String> — omit to skip; SHA256(rpId) must match authenticatorData[0..32]",
-      expected_origins:
-        "Option<Vec<String>> — omit to skip; when set, clientDataJSON.origin must match one entry",
-    },
-  },
   tokenLookup: [
     "findPhygitalTokenPda",
     "findAdminConfigPda",
@@ -65,7 +45,6 @@ export const SDK_SURFACE = {
     "getInitializeInstruction",
     "getAssignMintInstruction",
     "getSetOwnerInstruction",
-    "getVerifyInstruction",
     "getRemoveOwnerInstruction",
     "getCreateConfigInstruction",
     "getSetAdminInstruction",
@@ -85,9 +64,6 @@ export const SDK_SURFACE = {
     cpi: [
       "ClosePhygitalTokenCpi",
       "ClosePhygitalTokenCpiBuilder",
-      "VerifyCpi",
-      "VerifyCpiBuilder",
-      "VerifyInstructionArgs",
       "AssignMintCpi",
       "AssignMintCpiBuilder",
       "SetOwnerCpi",

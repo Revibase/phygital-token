@@ -17,9 +17,7 @@ const tsSections = [
   SDK_SURFACE.assignMint,
   SDK_SURFACE.transfer,
   SDK_SURFACE.removeOwner,
-  SDK_SURFACE.verifyComposable,
   SDK_SURFACE.verification,
-  SDK_SURFACE.onChainComposition.client,
   SDK_SURFACE.tokenLookup,
   SDK_SURFACE.generated,
 ];

@@ -84,22 +84,13 @@ impl TestPasskey {
         self.build_secp256r1_verify_instruction(challenge, sign_count, None, Some(auth_flags))
     }
 
-    pub fn verify_secp256r1_instruction(
+    /// A tap over `challenge` as given (for execute and hand-built cases).
+    pub fn secp256r1_instruction_for_challenge(
         &self,
-        message_hash: [u8; 32],
+        challenge: [u8; 32],
         sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.verify_secp256r1_instruction_with(message_hash, sign_count, None)
-    }
-
-    pub fn verify_secp256r1_instruction_with(
-        &self,
-        message_hash: [u8; 32],
-        sign_count: u32,
-        signature_override: Option<[u8; 64]>,
-    ) -> (Instruction, Secp256r1VerifyArgs) {
-        // `verify` uses message_hash as the WebAuthn challenge directly.
-        self.build_secp256r1_verify_instruction(message_hash, sign_count, signature_override, None)
+        self.build_secp256r1_verify_instruction(challenge, sign_count, None, None)
     }
 
     fn build_secp256r1_verify_instruction(
@@ -119,15 +110,15 @@ impl TestPasskey {
     }
 
     /// An assertion whose `clientDataJSON.type` is `client_type`.
-    pub fn verify_secp256r1_instruction_with_type(
+    pub fn secp256r1_instruction_for_challenge_with_type(
         &self,
         client_type: &str,
-        message_hash: [u8; 32],
+        challenge: [u8; 32],
         sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
         self.build_secp256r1_verify_instruction_typed(
             client_type,
-            message_hash,
+            challenge,
             sign_count,
             None,
             None,

@@ -70,7 +70,6 @@ impl SetOwner<'_> {
             &ctx.accounts.instructions_sysvar,
             challenge,
             None,
-            None,
         )?)?;
 
         emit!(SetOwnerEvent {

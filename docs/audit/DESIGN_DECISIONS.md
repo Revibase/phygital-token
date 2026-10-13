@@ -16,11 +16,12 @@ accessories. See [program threat model](../program/THREAT_MODEL.md#trusted-roles
 [BUILD.md](BUILD.md#deploying) rather than in code; a front-run is recoverable by
 the upgrade authority.
 
-**Optional rpId and origin checks.** `verify` checks them only when the caller
-asks, and `set_owner` / execute never check rpId. A credential's key is scoped to
-one rpId on standard authenticators, and the challenge plus sign count bind the
-action. The policy's allowed origins bind browser taps only; a native client
-writes its own `clientDataJSON`.
+**No rpId check, optional origin check.** No instruction checks the rpId; only
+`execute_with_accessory` checks the origin, and only when the owner's policy
+lists allowed origins. A credential's key is scoped to one rpId on standard
+authenticators, and the challenge plus sign count bind the action. The policy's
+allowed origins bind browser taps only; a native client writes its own
+`clientDataJSON`.
 
 **`clientDataJSON` is scanned, not parsed.** The first `"type"`, `"challenge"`
 and `"origin"` keys are taken as the fields, which is what browsers serialize
@@ -31,8 +32,13 @@ challenge must still match.
 bytes are compared to the expected challenge, so two spellings of the same bytes
 authorize the same thing.
 
-**`verify` is CPI-callable and takes the caller's challenge.** Freshness and
-domain separation of `message_hash` are the integrating program's job.
+**No on-chain authentication instruction.** Integrators check taps off-chain
+(`verifyResponse` in the SDK) and read the token account. An earlier `verify`
+instruction let other programs check a tap by CPI over a message they chose; it
+was removed because nothing used it, and because anyone could replay a pending
+tap's assertion through it to advance the sign count and make the real
+`set_owner` or execute fail. Adding an instruction later does not change
+existing discriminators.
 
 **Strictly increasing sign count.** Authenticators that always report 0 cannot
 be used as accessories.

@@ -6,6 +6,12 @@ All notable changes to this artifact are documented here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- The `plan_verify` tool, the `onchain_cpi_verify` use case and the
+  composable-verify and Rust CPI docs: the program no longer has a `verify`
+  instruction.
+
 ### Changed
 
 - `plan_transfer` and the docs describe the recipient-bound `set_owner`

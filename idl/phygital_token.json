@@ -853,68 +853,6 @@
           }
         }
       ]
-    },
-    {
-      "name": "verify",
-      "docs": [
-        "Tap: proves the accessory signed `message_hash` and records its sign count.",
-        "`expected_rp_id` / `expected_origins` are optional WebAuthn bindings.",
-        "`None` skips the check. When `expected_origins` is `Some`, the signed",
-        "origin must match one listed origin."
-      ],
-      "discriminator": [
-        133,
-        161,
-        141,
-        48,
-        120,
-        198,
-        88,
-        150
-      ],
-      "accounts": [
-        {
-          "name": "phygital_token",
-          "writable": true
-        },
-        {
-          "name": "instructions_sysvar",
-          "address": "Sysvar1nstructions1111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "secp256r1_verify_args",
-          "type": {
-            "defined": {
-              "name": "Secp256r1VerifyArgs"
-            }
-          }
-        },
-        {
-          "name": "message_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "expected_rp_id",
-          "type": {
-            "option": "string"
-          }
-        },
-        {
-          "name": "expected_origins",
-          "type": {
-            "option": {
-              "vec": "string"
-            }
-          }
-        }
-      ]
     }
   ],
   "accounts": [

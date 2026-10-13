@@ -6,6 +6,13 @@ All notable changes to this artifact are documented here. The format follows
 
 ## [Unreleased]
 
+### Removed
+
+- The `verify` instruction. Taps are authenticated off-chain; no program used
+  it by CPI, and anyone could replay a pending tap's assertion through it to
+  advance the sign count and make the real `set_owner` or execute fail. Error
+  6015 (`RpIdMismatch`) is no longer raised; the other codes are unchanged.
+
 ### Security
 
 - `set_owner`: the tap's challenge now names the recipient,

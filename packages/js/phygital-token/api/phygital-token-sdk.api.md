@@ -200,14 +200,6 @@ export type AssignMintInstructionDataArgs = {
 export function authenticatePasskey(challenge: string, options?: AuthenticatePasskeyOptions): Promise<AuthenticationResponseJSON>;
 
 // @public
-export function authenticatePasskeyForSecp256r1Verify(input: {
-    allowList?: ReadonlySet<string>;
-    rpc?: Rpc<SolanaRpcApi>;
-    messageHash: Uint8Array;
-    rpId?: string;
-}): Promise<AuthenticationResponseJSON>;
-
-// @public
 export function authenticatePasskeyForTransfer(session: TransferSession): Promise<AuthenticationResponseJSON>;
 
 // @public
@@ -255,16 +247,6 @@ export function buildExecuteWithOwnerInstruction(input: {
     phygitalToken: Address;
     instructions: readonly Instruction[];
 }): Promise<Instruction>;
-
-// @public
-export function buildMessageHash(message: Uint8Array): Uint8Array;
-
-// @public
-export function buildSecp256r1VerifyInstruction(response: AuthenticationResponseJSON, existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[], verifyArgsRelativeIndex?: number): Promise<{
-    secp256r1VerifyInstruction: Instruction;
-    phygitalTokenPda: Address;
-    secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
-}>;
 
 // @public
 export const bytesToHex: (bytes: ArrayLike<number>) => string;
@@ -1203,23 +1185,6 @@ export function getUpdatePolicyInstructionDataDecoder(): Decoder<UpdatePolicyIns
 // @public (undocumented)
 export function getUpdatePolicyInstructionDataEncoder(): Encoder<UpdatePolicyInstructionDataArgs>;
 
-// @public (undocumented)
-export function getVerifyDiscriminatorBytes(): ReadonlyUint8Array;
-
-// @public (undocumented)
-export function getVerifyInstruction<TAccountPhygitalToken extends string, TAccountInstructionsSysvar extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: VerifyInput<TAccountPhygitalToken, TAccountInstructionsSysvar>, config?: {
-    programAddress?: TProgramAddress;
-}): VerifyInstruction<TProgramAddress, TAccountPhygitalToken, TAccountInstructionsSysvar>;
-
-// @public (undocumented)
-export function getVerifyInstructionDataCodec(): Codec<VerifyInstructionDataArgs, VerifyInstructionData>;
-
-// @public (undocumented)
-export function getVerifyInstructionDataDecoder(): Decoder<VerifyInstructionData>;
-
-// @public (undocumented)
-export function getVerifyInstructionDataEncoder(): Encoder<VerifyInstructionDataArgs>;
-
 // @public
 export const hexToBytes: (hex: string) => Uint8Array<ArrayBuffer>;
 
@@ -1517,9 +1482,7 @@ export type ParsedPhygitalTokenInstruction<TProgram extends string = "phygix8byC
     instructionType: PhygitalTokenInstruction.SetOwner;
 } & ParsedSetOwnerInstruction<TProgram>) | ({
     instructionType: PhygitalTokenInstruction.UpdatePolicy;
-} & ParsedUpdatePolicyInstruction<TProgram>) | ({
-    instructionType: PhygitalTokenInstruction.Verify;
-} & ParsedVerifyInstruction<TProgram>);
+} & ParsedUpdatePolicyInstruction<TProgram>);
 
 // @public (undocumented)
 export type ParsedPreviewExecuteInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
@@ -1603,16 +1566,6 @@ export type ParsedUpdatePolicyInstruction<TProgram extends string = typeof PHYGI
 };
 
 // @public (undocumented)
-export type ParsedVerifyInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
-    programAddress: Address<TProgram>;
-    accounts: {
-        phygitalToken: TAccountMetas[0];
-        instructionsSysvar: TAccountMetas[1];
-    };
-    data: VerifyInstructionData;
-};
-
-// @public (undocumented)
 export function parseExecuteWithAccessoryInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedExecuteWithAccessoryInstruction<TProgram, TAccountMetas>;
 
 // @public (undocumented)
@@ -1660,9 +1613,6 @@ export function parseSolTransfer(instruction: Pick<Instruction, "programAddress"
 
 // @public (undocumented)
 export function parseUpdatePolicyInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedUpdatePolicyInstruction<TProgram, TAccountMetas>;
-
-// @public (undocumented)
-export function parseVerifyInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedVerifyInstruction<TProgram, TAccountMetas>;
 
 // @public
 export type Period = "day" | "week" | "month" | "lifetime" | number;
@@ -1902,9 +1852,7 @@ export enum PhygitalTokenInstruction {
     // (undocumented)
     SetOwner = 12,
     // (undocumented)
-    UpdatePolicy = 13,
-    // (undocumented)
-    Verify = 14
+    UpdatePolicy = 13
 }
 
 // @public (undocumented)
@@ -1940,7 +1888,6 @@ export type PhygitalTokenPluginInstructions = {
     setMinter: (input: SetMinterAsyncInput) => ReturnType<typeof getSetMinterInstructionAsync> & SelfPlanAndSendFunctions;
     setOwner: (input: SetOwnerAsyncInput) => ReturnType<typeof getSetOwnerInstructionAsync> & SelfPlanAndSendFunctions;
     updatePolicy: (input: MakeOptional<UpdatePolicyAsyncInput, "payer">) => ReturnType<typeof getUpdatePolicyInstructionAsync> & SelfPlanAndSendFunctions;
-    verify: (input: VerifyInput) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
 };
 
 // @public (undocumented)
@@ -2549,43 +2496,6 @@ export type UpdatePolicyInstructionData = {
 // @public (undocumented)
 export type UpdatePolicyInstructionDataArgs = {
     actions: Array<PolicyActionArgs>;
-};
-
-// @public (undocumented)
-export const VERIFY_DISCRIMINATOR: ReadonlyUint8Array;
-
-// @public (undocumented)
-export type VerifyInput<TAccountPhygitalToken extends string = string, TAccountInstructionsSysvar extends string = string> = {
-    phygitalToken: Address<TAccountPhygitalToken>;
-    instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-    secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
-    messageHash: VerifyInstructionDataArgs["messageHash"];
-    expectedRpId: VerifyInstructionDataArgs["expectedRpId"];
-    expectedOrigins: VerifyInstructionDataArgs["expectedOrigins"];
-};
-
-// @public (undocumented)
-export type VerifyInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountInstructionsSysvar extends string | AccountMeta<string> = "Sysvar1nstructions1111111111111111111111111", TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
-TAccountPhygitalToken extends string ? WritableAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
-TAccountInstructionsSysvar extends string ? ReadonlyAccount<TAccountInstructionsSysvar> : TAccountInstructionsSysvar,
-...TRemainingAccounts
-]>;
-
-// @public (undocumented)
-export type VerifyInstructionData = {
-    discriminator: ReadonlyUint8Array;
-    secp256r1VerifyArgs: Secp256r1VerifyArgs;
-    messageHash: ReadonlyUint8Array;
-    expectedRpId: Option_2<string>;
-    expectedOrigins: Option_2<Array<string>>;
-};
-
-// @public (undocumented)
-export type VerifyInstructionDataArgs = {
-    secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
-    messageHash: ReadonlyUint8Array;
-    expectedRpId: OptionOrNullable<string>;
-    expectedOrigins: OptionOrNullable<Array<string>>;
 };
 
 // @public

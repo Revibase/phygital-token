@@ -10,7 +10,6 @@ import {
   planInitialize,
   planRemoveOwner,
   planTransfer,
-  planVerify,
 } from "../lib/instructions.js";
 import { READ_ONLY } from "./annotations.js";
 
@@ -112,33 +111,6 @@ export function registerPlanTools(server: McpServer) {
     },
     async ({ secp256r1PublicKey, recipient }) =>
       jsonResult(await planTransfer({ secp256r1PublicKey, recipient })),
-  );
-
-  server.registerTool(
-    "plan_verify",
-    {
-      description:
-        "Plan the on-chain verify flow (offline): transaction layout, derived accounts, message binding. Your program CPIs verify; the client prepends secp256r1_verify.",
-      inputSchema: {
-        message: z
-          .string()
-          .describe(
-            "Message string; hash with buildMessageHash before the tap. Same digest is the WebAuthn challenge and VerifyCpiBuilder.message_hash.",
-          ),
-        secp256r1PublicKey: z
-          .string()
-          .optional()
-          .describe("Optional base64url passkey public key — when set, derives token PDA offline"),
-      },
-      annotations: { title: "Plan verify", ...READ_ONLY },
-    },
-    async ({ message, secp256r1PublicKey }) =>
-      jsonResult(
-        await planVerify({
-          message,
-          secp256r1PublicKey,
-        }),
-      ),
   );
 
   server.registerTool(

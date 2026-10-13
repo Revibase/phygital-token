@@ -67,7 +67,8 @@ pub enum PhygitalError {
     #[msg("WebAuthn user presence flag (UP) was not set by the authenticator.")]
     UserPresenceNotVerified,
 
-    /// The authenticator data's rpId hash differs from `expected_rp_id`.
+    /// No longer raised: only the removed `verify` instruction checked the rpId.
+    /// Kept so the codes after it keep their numbers.
     #[msg("WebAuthn rpId hash does not match the expected relying party id.")]
     RpIdMismatch,
 

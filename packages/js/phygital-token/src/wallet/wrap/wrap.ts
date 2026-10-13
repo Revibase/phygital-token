@@ -19,9 +19,9 @@ import {
   type TransactionWithLifetime,
 } from "@solana/kit";
 import {
-  authenticatePasskeyForSecp256r1Verify,
-  buildSecp256r1VerifyInstruction,
-} from "../../instructions/verify.js";
+  authenticatePasskeyForChallenge,
+  buildSecp256r1VerifyFromTap,
+} from "../../instructions/internal/tap.js";
 import type { CompactInstructionArgs } from "../../generated/index.js";
 import { PhygitalTokenError } from "../../utils/errors.js";
 import { getLatestSlotHash } from "../../utils/slotHash.js";
@@ -166,7 +166,7 @@ async function finalizeWrappedWalletTransaction(input: {
   rpc: Rpc<SolanaRpcApi>;
   pending: PendingWalletWrap;
   executeAccounts: WalletExecuteAccounts;
-  passkeyTap: Awaited<ReturnType<typeof authenticatePasskeyForSecp256r1Verify>>;
+  passkeyTap: Awaited<ReturnType<typeof authenticatePasskeyForChallenge>>;
   unitPrice: bigint;
   block: BlockContext | null;
   abortSignal?: AbortSignal;
@@ -174,7 +174,7 @@ async function finalizeWrappedWalletTransaction(input: {
   const { pending, executeAccounts, passkeyTap } = input;
 
   const { secp256r1VerifyInstruction, secp256r1VerifyArgs, phygitalTokenPda } =
-    await buildSecp256r1VerifyInstruction(passkeyTap);
+    await buildSecp256r1VerifyFromTap(passkeyTap);
   if (phygitalTokenPda !== executeAccounts.phygitalToken) {
     throw new PhygitalTokenError(
       "PASSKEY_NOT_RECOGNIZED",
@@ -252,7 +252,7 @@ export async function modifyAndWrapWalletTransaction(input: {
   onPreview?: () => void;
   authenticate: (
     messageHash: Uint8Array,
-  ) => Promise<Awaited<ReturnType<typeof authenticatePasskeyForSecp256r1Verify>>>;
+  ) => Promise<Awaited<ReturnType<typeof authenticatePasskeyForChallenge>>>;
   feePayer: (wrapped: SignedTransaction) => Promise<SignatureDictionary>;
   /** Set when the Revibase pool pays: a refill is added when the prepaid fees run low. */
   prepaidFees?: PrepaidFees;

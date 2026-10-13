@@ -1,36 +1,27 @@
 import {
   type AuthenticationResponseJSON,
   bufferToBase64URLString,
-} from "../utils/passkey/webauthn.js";
-import { authenticatePasskey } from "../utils/passkey/authenticate.js";
+} from "../../utils/passkey/webauthn.js";
+import { authenticatePasskey } from "../../utils/passkey/authenticate.js";
 import type { Address, Instruction, Rpc, SolanaRpcApi } from "@solana/kit";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   type Secp256r1VerifyEntry,
-} from "../utils/passkey/secp256r1.js";
-import { type Secp256r1VerifyArgsArgs } from "../generated/index.js";
-import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
-import { findPhygitalTokenPda } from "../utils/pdas/token.js";
-import { sha256 } from "@noble/hashes/sha2.js";
-
-/** SHA-256 `message` to a 32-byte digest for on-chain `verify`. */
-export function buildMessageHash(message: Uint8Array): Uint8Array {
-  return sha256(message);
-}
+} from "../../utils/passkey/secp256r1.js";
+import { type Secp256r1VerifyArgsArgs } from "../../generated/index.js";
+import { parseSecp256r1Pubkey } from "../../utils/parseSecp256r1Pubkey.js";
+import { findPhygitalTokenPda } from "../../utils/pdas/token.js";
 
 /**
- * Prompt an NFC / WebAuthn tap for on-chain `verify`.
- *
- * Uses `messageHash` (32 bytes) directly as the WebAuthn challenge — the same
- * digest your program must pass to `VerifyCpiBuilder.message_hash`. Hash with
- * {@link buildMessageHash} first.
+ * Prompt an NFC / WebAuthn tap over a 32-byte challenge, used as the WebAuthn
+ * challenge as-is (for `execute_with_accessory`, the execute challenge).
  *
  * @param input.allowList - Base64url compressed secp256r1 public keys. The tapped credential id must be in it; recovers a placeholder id locally when `rpc` is omitted.
  * @param input.rpc - Kit `Rpc` to recover a placeholder id on-chain (preferred over `allowList` for recovery).
- * @param input.messageHash - SHA-256 of the message you bind on-chain (32 bytes).
+ * @param input.messageHash - The 32-byte challenge.
  * @param input.rpId - Relying party ID. Defaults to the page hostname.
  */
-export async function authenticatePasskeyForSecp256r1Verify(input: {
+export async function authenticatePasskeyForChallenge(input: {
   allowList?: ReadonlySet<string>;
   rpc?: Rpc<SolanaRpcApi>;
   messageHash: Uint8Array;
@@ -44,19 +35,13 @@ export async function authenticatePasskeyForSecp256r1Verify(input: {
 }
 
 /**
- * After the tap: secp256r1_verify instruction to prepend, plus the phygital
- * token PDA (`phygitalTokenPda`) and `secp256r1VerifyArgs` for
- * `VerifyCpiBuilder`.
+ * After the tap: the secp256r1 precompile instruction to prepend, the tapped
+ * token's PDA, and the `secp256r1VerifyArgs` for the program instruction.
  *
- * `message_hash`, the instructions sysvar, and optional `expected_rp_id` /
- * `expected_origins` come from your program instruction — not this return
- * value. When `expected_origins` is set, the signed origin must match one
- * listed origin; omit it to skip the origin check.
- *
- * @param verifyArgsRelativeIndex - Index of the secp instruction relative to
- *   yours. Default `-1` (secp immediately precedes your instruction).
+ * @param verifyArgsRelativeIndex - Index of the precompile instruction
+ *   relative to the program instruction. Default `-1` (immediately before).
  */
-export async function buildSecp256r1VerifyInstruction(
+export async function buildSecp256r1VerifyFromTap(
   response: AuthenticationResponseJSON,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
   verifyArgsRelativeIndex = -1,

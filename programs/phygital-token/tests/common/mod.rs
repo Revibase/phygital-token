@@ -15,7 +15,6 @@ mod slots;
 mod spl;
 mod state;
 mod tx;
-mod verify;
 mod wallet;
 
 pub use assertions::{assert_phygital_token_program_error, assert_transaction_failed};

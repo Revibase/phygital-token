@@ -98,7 +98,7 @@ Projects generate `/permissions#r=…` links using the SDK's `encodePermissionRe
 
 The passkey signer independently derives program names, custom-rule details and risk warnings from decoded instructions using `secure-signer/shared`; it never trusts descriptions supplied by the app. Token burn, approval, authority and close-account permissions are detected even when the rule has additional constraints.
 
-Owners can limit which sites may ask for a tap (`allowed_origins`, empty = any site). The program checks the tap's signed `clientDataJSON.origin`, which browsers set, so other websites can't use a tap; a native app talking to the accessory directly can still claim any origin, so spending limits remain the backstop. A permission request's `origins` are added only when the owner already limits sites. The field sits before the program permissions, so close devnet policies saved with an older layout before upgrading the program. Caller-selected origins in sign-in `verify` are separate.
+Owners can limit which sites may ask for a tap (`allowed_origins`, empty = any site). The program checks the tap's signed `clientDataJSON.origin`, which browsers set, so other websites can't use a tap; a native app talking to the accessory directly can still claim any origin, so spending limits remain the backstop. A permission request's `origins` are added only when the owner already limits sites. The field sits before the program permissions, so close devnet policies saved with an older layout before upgrading the program.
 
 ## Touch controls and action hierarchy
 

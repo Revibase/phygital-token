@@ -5,9 +5,10 @@ Program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz`, built with Anchor 1.0.
 Each physical accessory carries a P-256 passkey. The program records that key
 in a token account and accepts a **tap** (a WebAuthn assertion verified by the
 secp256r1 precompile) as proof that the accessory was present. On that basis it
-offers authentication (`verify`), ownership (`set_owner`, `remove_owner`) and an
-optional wallet PDA per token that the owner, or a tap within the owner's
-policy, can sign for.
+offers ownership (`set_owner`, `remove_owner`) and an optional wallet PDA per
+token that the owner, or a tap within the owner's policy, can sign for.
+Authenticating a tap happens off-chain: the token's address is derived from the
+passkey, so a verifier can read its type and owner.
 
 - Start at [`src/lib.rs`](src/lib.rs) for the module map.
 - Invariants: [`docs/program/INVARIANTS.md`](../../docs/program/INVARIANTS.md).
@@ -40,7 +41,6 @@ listed. Every accepted tap must carry a higher sign count than the last.
 | `close_phygital_token` | admin | token PDA matches its key | closes the token and its policy; the wallet keeps its assets |
 | `set_owner` | `recipient` | not locked; tap over `SHA256("transfer" ‖ token ‖ slot_hash ‖ recipient)`; slot in SlotHashes | owner = `recipient`; a different owner closes the policy |
 | `remove_owner` | owner | not Permanent | owner cleared; policy closed |
-| `verify` | — | tap over the caller's `message_hash`; optional rpId and origin list | sign count recorded |
 | `update_policy` | owner, payer | edits valid; permissions valid | creates or resizes the policy |
 | `close_policy` | owner | policy belongs to token and wallet | policy closed, rent to the wallet |
 | `execute_with_owner` | owner | top level; no durable nonce; no call into this program; token not privileged | inner instructions signed as the wallet |

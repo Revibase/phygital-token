@@ -11,8 +11,8 @@
 //! 2. optionally checks `clientDataJSON.origin`;
 //! 3. finds the precompile instruction and reads the verified public key and
 //!    message from it ([`secp256r1`]);
-//! 4. checks the user-present flag, that the message ends with
-//!    `SHA256(clientDataJSON)`, and optionally the rpId hash;
+//! 4. checks the user-present flag and that the message ends with
+//!    `SHA256(clientDataJSON)`;
 //! 5. returns the public key and sign count for the caller to compare with the
 //!    token ([`crate::state::PhygitalToken::accept_assertion`]).
 
@@ -21,7 +21,7 @@ mod client_data;
 pub mod secp256r1;
 
 use anchor_lang::prelude::*;
-use solana_sha256_hasher::{hash, hashv};
+use solana_sha256_hasher::hash;
 
 use crate::error::PhygitalError;
 use crate::sysvar::relative_instruction_parts;
@@ -84,12 +84,13 @@ impl Secp256r1VerifyArgs {
     /// signing public key and the authenticator's sign count. The caller must
     /// still check the key belongs to the token and the count has advanced.
     ///
-    /// `expected_rp_id` and `origin_allowed` are skipped when `None`.
+    /// The origin check is skipped when `origin_allowed` is `None`. The rpId
+    /// is not checked: a credential's key is scoped to one rpId on standard
+    /// authenticators, and the challenge binds the action.
     pub fn verify_webauthn_assertion(
         &self,
         instructions_sysvar: &UncheckedAccount,
         expected_challenge: [u8; 32],
-        expected_rp_id: Option<&str>,
         origin_allowed: Option<OriginCheck>,
     ) -> Result<(Secp256r1Pubkey, u32)> {
         require!(
@@ -145,14 +146,6 @@ impl Secp256r1VerifyArgs {
             client_data_hash == hash(&self.client_data_json).to_bytes(),
             PhygitalError::ClientDataHashMismatch
         );
-
-        if let Some(rp_id) = expected_rp_id {
-            let expected_hash = hashv(&[rp_id.as_bytes()]).to_bytes();
-            let actual_hash: [u8; 32] = message[..32]
-                .try_into()
-                .map_err(|_| PhygitalError::InvalidAuthenticatorData)?;
-            require!(expected_hash == actual_hash, PhygitalError::RpIdMismatch);
-        }
 
         Ok((Secp256r1Pubkey(extracted_pubkey), sign_count))
     }

@@ -8,6 +8,11 @@ All notable changes to this artifact are documented here. The format follows
 
 ### Breaking
 
+- Removed `buildMessageHash`, `authenticatePasskeyForSecp256r1Verify`,
+  `buildSecp256r1VerifyInstruction` and the generated `getVerifyInstruction`
+  family: the program no longer has a `verify` instruction. Authenticate taps
+  with `startAuthentication` and `verifyResponse`.
+
 - `hexToBytes` throws `PermissionFormatError` on odd-length or non-hex input
   instead of silently decoding it to different bytes.
 

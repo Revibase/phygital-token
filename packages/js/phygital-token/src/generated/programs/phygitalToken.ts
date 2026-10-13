@@ -60,7 +60,6 @@ import {
   getSetMinterInstructionAsync,
   getSetOwnerInstructionAsync,
   getUpdatePolicyInstructionAsync,
-  getVerifyInstruction,
   parseAssignMintInstruction,
   parseClosePhygitalTokenInstruction,
   parseClosePolicyInstruction,
@@ -75,7 +74,6 @@ import {
   parseSetMinterInstruction,
   parseSetOwnerInstruction,
   parseUpdatePolicyInstruction,
-  parseVerifyInstruction,
   type AssignMintAsyncInput,
   type ClosePhygitalTokenAsyncInput,
   type ClosePolicyInput,
@@ -97,7 +95,6 @@ import {
   type ParsedSetMinterInstruction,
   type ParsedSetOwnerInstruction,
   type ParsedUpdatePolicyInstruction,
-  type ParsedVerifyInstruction,
   type PreviewExecuteInput,
   type RemoveOwnerAsyncInput,
   type SetAdminAsyncInput,
@@ -105,7 +102,6 @@ import {
   type SetMinterAsyncInput,
   type SetOwnerAsyncInput,
   type UpdatePolicyAsyncInput,
-  type VerifyInput,
 } from "../instructions/index.js";
 import { findAdminConfigPda, findPolicyPda, findWalletPda } from "../pdas/index.js";
 
@@ -176,7 +172,6 @@ export enum PhygitalTokenInstruction {
   SetMinter,
   SetOwner,
   UpdatePolicy,
-  Verify,
 }
 
 export function identifyPhygitalTokenInstruction(
@@ -337,17 +332,6 @@ export function identifyPhygitalTokenInstruction(
   ) {
     return PhygitalTokenInstruction.UpdatePolicy;
   }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([133, 161, 141, 48, 120, 198, 88, 150]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.Verify;
-  }
   throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION, {
     instructionData: data,
     programName: "phygitalToken",
@@ -390,8 +374,7 @@ export type ParsedPhygitalTokenInstruction<
   | ({ instructionType: PhygitalTokenInstruction.SetOwner } & ParsedSetOwnerInstruction<TProgram>)
   | ({
       instructionType: PhygitalTokenInstruction.UpdatePolicy;
-    } & ParsedUpdatePolicyInstruction<TProgram>)
-  | ({ instructionType: PhygitalTokenInstruction.Verify } & ParsedVerifyInstruction<TProgram>);
+    } & ParsedUpdatePolicyInstruction<TProgram>);
 
 export function parsePhygitalTokenInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -496,13 +479,6 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseUpdatePolicyInstruction(instruction),
       };
     }
-    case PhygitalTokenInstruction.Verify: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.Verify,
-        ...parseVerifyInstruction(instruction),
-      };
-    }
     default:
       throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE, {
         instructionType: instructionType as string,
@@ -572,9 +548,6 @@ export type PhygitalTokenPluginInstructions = {
   updatePolicy: (
     input: MakeOptional<UpdatePolicyAsyncInput, "payer">,
   ) => ReturnType<typeof getUpdatePolicyInstructionAsync> & SelfPlanAndSendFunctions;
-  verify: (
-    input: VerifyInput,
-  ) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
 };
 
 export type PhygitalTokenPluginPdas = {
@@ -633,7 +606,6 @@ export function phygitalTokenProgram() {
               client,
               getUpdatePolicyInstructionAsync({ ...input, payer: input.payer ?? client.payer }),
             ),
-          verify: (input) => addSelfPlanAndSendFunctions(client, getVerifyInstruction(input)),
         },
         pdas: { adminConfig: findAdminConfigPda, policy: findPolicyPda, wallet: findWalletPda },
         identifyAccount: identifyPhygitalTokenAccount,

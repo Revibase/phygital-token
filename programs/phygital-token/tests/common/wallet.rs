@@ -231,7 +231,7 @@ impl TestContext {
         let challenge = self.execute_challenge(token, instructions, slot_hash);
         let (secp_ix, args) = phygital_token
             .passkey
-            .verify_secp256r1_instruction(challenge, self.next_sign_count(token));
+            .secp256r1_instruction_for_challenge(challenge, self.next_sign_count(token));
         let ix = self.execute_with_accessory_ix(token, instructions, args, slot_number);
         (secp_ix, ix)
     }

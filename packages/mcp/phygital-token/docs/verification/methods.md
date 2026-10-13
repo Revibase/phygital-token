@@ -24,7 +24,7 @@ import {
 [ Sign in with accessory ]   ← startAuthentication + verifyResponse → same session
 ```
 
-No `generateAuthenticationOptions`. No rpId/origin binding on verify.
+No `generateAuthenticationOptions`.
 
 | | |
 |--|--|
@@ -36,8 +36,7 @@ No `generateAuthenticationOptions`. No rpId/origin binding on verify.
 | Need | Use |
 |------|-----|
 | UI login / vault gate | `startAuthentication` + `verifyResponse` → your session |
-| Load on-chain state after a tap | verify → `findPhygitalTokenPda` + `fetchPhygitalToken` |
+| Load on-chain state after a tap | `verifyResponse` → `findPhygitalTokenPda` + `fetchPhygitalToken` |
 | Set owner | `beginTransfer` → `completeTransfer` |
-| On-chain possession proof / CPI | `buildMessageHash` → `authenticatePasskeyForSecp256r1Verify` → `buildSecp256r1VerifyInstruction` |
 
 `verifyResponse` derives the accessory-wallet PDA locally without RPC. Invalid signatures return `accessoryWallet: null`. Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.

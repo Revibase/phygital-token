@@ -15,7 +15,6 @@ const SERVER_INSTRUCTIONS = [
   "",
   "Routing:",
   "- Which verification method to use → recommend_verification",
-  "- On-chain verify (your program CPIs verify) → plan_verify",
   "- Admin bootstrap → plan_create_config",
   "- Initialize / assign_mint / transfer / forfeiture → plan_initialize, plan_assign_mint, plan_transfer, plan_remove_owner",
   "- Token PDA from passkey public key → find_token_pda",

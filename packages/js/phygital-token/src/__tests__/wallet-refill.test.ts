@@ -34,9 +34,9 @@ const { STOP, authenticate } = vi.hoisted(() => {
   const STOP = { reason: "tap reached" };
   return { STOP, authenticate: vi.fn(() => Promise.reject(STOP)) };
 });
-vi.mock("../instructions/verify.js", async (original) => ({
-  ...(await original<typeof import("../instructions/verify.js")>()),
-  authenticatePasskeyForSecp256r1Verify: () => authenticate(),
+vi.mock("../instructions/internal/tap.js", async (original) => ({
+  ...(await original<typeof import("../instructions/internal/tap.js")>()),
+  authenticatePasskeyForChallenge: () => authenticate(),
 }));
 
 type Scenario = { walletLamports: bigint; balanceLamports: bigint; previews: number[] };

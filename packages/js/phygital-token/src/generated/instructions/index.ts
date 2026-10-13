@@ -20,4 +20,3 @@ export * from "./setIssuer.js";
 export * from "./setMinter.js";
 export * from "./setOwner.js";
 export * from "./updatePolicy.js";
-export * from "./verify.js";

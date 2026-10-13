@@ -1,11 +1,11 @@
 //! # phygital-token
 //!
 //! A Solana program that binds a physical accessory (an NFC chip holding a
-//! P-256 passkey) to an on-chain token, so that a live tap can be verified
-//! on-chain.
+//! P-256 passkey) to an on-chain token.
 //!
-//! - **Authenticate** (`verify`): prove a tap over a caller-chosen message. Needs
-//!   no owner, wallet, policy or SOL.
+//! - **Look up** (`initialize`): the token lives at a PDA derived from the
+//!   accessory's public key, so whoever checks a tap off-chain can find the
+//!   token, its type and its owner. Authenticating needs no instruction.
 //! - **Own** (`set_owner`, `remove_owner`): a tap assigns the token to a wallet
 //!   key; Controlled and Permanent tokens stay locked while owned.
 //! - **Optional wallet** (`execute_with_owner`, `update_policy`,
@@ -135,33 +135,13 @@ pub mod phygital_token {
         SetOwner::handler(ctx, secp256r1_verify_args, slot_number)
     }
 
-    /// Tap: proves the accessory signed `message_hash` and records its sign count.
-    /// `expected_rp_id` / `expected_origins` are optional WebAuthn bindings.
-    /// `None` skips the check. When `expected_origins` is `Some`, the signed
-    /// origin must match one listed origin.
-    pub fn verify(
-        ctx: Context<Verify>,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-        message_hash: [u8; 32],
-        expected_rp_id: Option<String>,
-        expected_origins: Option<Vec<String>>,
-    ) -> Result<()> {
-        Verify::handler(
-            ctx,
-            secp256r1_verify_args,
-            message_hash,
-            expected_rp_id,
-            expected_origins,
-        )
-    }
-
     /// Owner: gives up the token (not Permanent ones) and closes its policy.
     pub fn remove_owner(ctx: Context<RemoveOwner>) -> Result<()> {
         RemoveOwner::handler(ctx)
     }
 
-    // Optional accessory wallet. Nothing above needs it: authentication is
-    // `verify`. The owner can always execute; a tap needs the owner's policy.
+    // Optional accessory wallet. Nothing above needs it. The owner can always
+    // execute; a tap needs the owner's policy.
 
     /// Owner: creates or edits the policy that lets a tap use the wallet.
     pub fn update_policy(ctx: Context<UpdatePolicy>, actions: Vec<PolicyAction>) -> Result<()> {

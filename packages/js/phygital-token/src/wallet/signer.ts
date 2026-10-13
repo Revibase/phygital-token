@@ -7,7 +7,7 @@ import type {
   TransactionPartialSigner,
 } from "@solana/kit";
 import { isTransactionWithDurableNonceLifetime } from "@solana/kit";
-import { authenticatePasskeyForSecp256r1Verify } from "../instructions/verify.js";
+import { authenticatePasskeyForChallenge } from "../instructions/internal/tap.js";
 import { findPolicyPda, findWalletPda } from "../generated/index.js";
 import {
   createSponsorFeePayer,
@@ -126,7 +126,7 @@ export async function getPhygitalWalletSigner(
         onPreview: () => config?.onPhaseChange?.("previewing"),
         authenticate: async (messageHash) => {
           config?.onPhaseChange?.("awaitingPasskey");
-          const tap = await authenticatePasskeyForSecp256r1Verify({ rpc, messageHash });
+          const tap = await authenticatePasskeyForChallenge({ rpc, messageHash });
           config?.onPhaseChange?.("building");
           return tap;
         },

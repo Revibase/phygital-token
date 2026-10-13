@@ -5,6 +5,7 @@ use common::{
     assert_phygital_token_program_error, assert_transaction_failed, current_slot_entry,
     TestContext, TestPasskey, LAMPORTS_PER_SOL,
 };
+use phygital_token::build_set_owner_challenge;
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -165,4 +166,28 @@ fn set_owner_rejects_recipient_not_signing() {
         ctx.phygital_token_owner(phygital_token.phygital_token),
         Pubkey::default()
     );
+}
+
+/// A registration (`webauthn.create`) assertion is not a tap.
+#[test]
+fn set_owner_rejects_a_registration_client_data_type() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let token = ctx.init_phygital_token(&passkey);
+    let recipient = Keypair::new();
+    let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
+    let challenge =
+        build_set_owner_challenge(&token.phygital_token, slot_hash, &recipient.pubkey());
+
+    let (secp_ix, args) = passkey.secp256r1_instruction_for_challenge_with_type(
+        "webauthn.create",
+        challenge,
+        ctx.next_sign_count(token.phygital_token),
+    );
+    let set_owner = ctx.set_owner_ix(recipient.pubkey(), token.phygital_token, args, slot_number);
+    ctx.svm
+        .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
+        .ok();
+    let result = ctx.send_set_owner_with_instructions(vec![secp_ix, set_owner], &[&recipient]);
+    assert_phygital_token_program_error(result, "ClientDataTypeMismatch");
 }

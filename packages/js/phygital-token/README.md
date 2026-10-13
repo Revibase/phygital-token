@@ -10,7 +10,7 @@ pnpm add phygital-token-sdk @solana/kit
 
 ## Choosing an integration
 
-Most integrations only need tap authentication: it covers login, access gates and on-chain `verify`, and needs no wallet, policy or SOL. The accessory wallet below is optional; use it only when the accessory itself should hold assets or approve transactions. The Revibase developer site explains which account each flow uses.
+Most integrations only need tap authentication: it covers login and access gates, and needs no wallet, policy or SOL. The accessory wallet below is optional; use it only when the accessory itself should hold assets or approve transactions. The Revibase developer site explains which account each flow uses.
 
 ## Authenticate with an accessory
 
@@ -50,21 +50,6 @@ const token = await fetchPhygitalToken(
 It rejects anything that isn't a tap (`INVALID_ASSERTION`: a registration response, or no user presence) and, with `expectedRpId`, a tap made for another relying party (`RP_ID_MISMATCH`). `expectedOrigin` is your site's origin as a fixed value, not the request's `Origin` header. A tap made on another site throws `ORIGIN_MISMATCH`, so that site can't pass your challenge to a user and authenticate with their tap. It also returns `accessoryWallet`, derived locally without RPC (`null` when the signature is invalid); you only need it if you use the optional accessory wallet.
 
 Reject expired/reused challenges and unlinked tokens before creating a session. The owner is delegated identity, not proof of wallet-key control or NFT ownership.
-
-## On-chain `verify` (CPI)
-
-```ts
-import {
-  buildMessageHash,
-  authenticatePasskeyForSecp256r1Verify,
-  buildSecp256r1VerifyInstruction,
-} from "phygital-token-sdk";
-
-const messageHash = buildMessageHash(message);
-const tap = await authenticatePasskeyForSecp256r1Verify({ rpc, messageHash });
-const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
-  await buildSecp256r1VerifyInstruction(tap);
-```
 
 ## Optional: accessory wallet
 
