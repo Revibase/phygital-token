@@ -22,13 +22,18 @@ import {
   ED25519_PUBKEY_BYTES,
   HKDF_INFO,
   KDF_SALT_BYTES,
-  MAX_BLOB_BYTES,
   MAX_CREDENTIAL_ID_BYTES,
 } from "../constants.js";
-import { bytesEqual, utf8ToBytes } from "../encoding.js";
+import { utf8ToBytes } from "../encoding.js";
+import {
+  BLOB_CIPHERTEXT_BYTES,
+  parseWalletBlob,
+  WalletBlobParseError,
+  type ParsedWalletBlob,
+} from "../shared/wallet-blob.js";
 
 /** seed(32) + GCM tag(16) = fixed 48. Attacker-chosen sizes are rejected. */
-export const EXPECTED_CIPHERTEXT_BYTES = 48;
+export const EXPECTED_CIPHERTEXT_BYTES = BLOB_CIPHERTEXT_BYTES;
 
 export class BlobError extends Error {}
 
@@ -40,36 +45,7 @@ export interface WalletBlobFields {
   ciphertext: Uint8Array; // 48
 }
 
-export interface ParsedWalletBlob extends WalletBlobFields {
-  version: number;
-}
-
-// --- bounds-checked reader (no OOB reads on attacker bytes) ---
-class Reader {
-  private o = 0;
-  constructor(private readonly b: Uint8Array) {}
-  private need(n: number) {
-    if (this.o + n > this.b.length) throw new BlobError("truncated");
-  }
-  bytes(n: number): Uint8Array {
-    if (n < 0) throw new BlobError("bad length");
-    this.need(n);
-    const out = this.b.subarray(this.o, this.o + n);
-    this.o += n;
-    return out;
-  }
-  u8(): number {
-    this.need(1);
-    return this.b[this.o++]!;
-  }
-  u16(): number {
-    this.need(2);
-    return (this.b[this.o++]! << 8) | this.b[this.o++]!;
-  }
-  atEnd(): boolean {
-    return this.o === this.b.length;
-  }
-}
+export type { ParsedWalletBlob };
 
 function writeU16(n: number): Uint8Array {
   if (n < 0 || n > 0xffff) throw new BlobError("u16 overflow");
@@ -108,33 +84,17 @@ export function encodeWalletBlob(f: WalletBlobFields): Uint8Array {
   ]);
 }
 
-/** Strict decode. `bytes` is attacker-controlled; every field is bounded. */
+/**
+ * Strict decode. `bytes` is attacker-controlled; the shared parser bounds every
+ * field. Failures are reported as `BlobError`.
+ */
 export function decodeWalletBlob(bytes: Uint8Array): ParsedWalletBlob {
-  // Hard size cap BEFORE structural parsing.
-  if (bytes.length < 4 + 1 + 32 + 2 + 1 + 32 + 12 + 2 + EXPECTED_CIPHERTEXT_BYTES)
-    throw new BlobError("too short");
-  if (bytes.length > MAX_BLOB_BYTES) throw new BlobError("too large");
-
-  const r = new Reader(bytes);
-  const magic = r.bytes(4);
-  if (!bytesEqual(magic, BLOB_MAGIC)) throw new BlobError("bad magic");
-  const version = r.u8();
-  if (version !== BLOB_VERSION) throw new BlobError("unsupported version");
-
-  const publicKey = r.bytes(ED25519_PUBKEY_BYTES).slice();
-  const credLen = r.u16();
-  if (credLen < 1 || credLen > MAX_CREDENTIAL_ID_BYTES) throw new BlobError("credentialId length");
-  const credentialId = r.bytes(credLen).slice();
-  const kdfSalt = r.bytes(KDF_SALT_BYTES).slice();
-  const iv = r.bytes(AES_GCM_IV_BYTES).slice();
-  const ctLen = r.u16();
-  if (ctLen !== EXPECTED_CIPHERTEXT_BYTES) throw new BlobError("ciphertext length");
-  const ciphertext = r.bytes(ctLen).slice();
-
-  // Reject trailing bytes — no ambiguity / hidden data.
-  if (!r.atEnd()) throw new BlobError("trailing bytes");
-
-  return { version, publicKey, credentialId, kdfSalt, iv, ciphertext };
+  try {
+    return parseWalletBlob(bytes);
+  } catch (e) {
+    if (e instanceof WalletBlobParseError) throw new BlobError(e.message);
+    throw e;
+  }
 }
 
 /**
