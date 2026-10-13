@@ -7,20 +7,25 @@
     "url": "git+https://github.com/Revibase/phygital-token.git"
   },
   "scripts": {
-    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r --parallel run typecheck",
+    "test": "pnpm -r run test",
     "idl:sync": "cp target/idl/phygital_token.json idl/phygital_token.json",
     "generate:sdk": "codama run js && node packages/js/phygital-token/scripts/add-import-extensions.mjs",
     "generate:rust-sdk": "codama run rust",
+    "generate": "pnpm idl:sync && pnpm generate:sdk && pnpm generate:rust-sdk",
     "build:sdk": "pnpm --filter phygital-token-sdk build",
-    "build:program": "NO_DNA=1 anchor build && pnpm idl:sync && pnpm generate:sdk && pnpm generate:rust-sdk && pnpm build:sdk"
+    "build:program": "NO_DNA=1 anchor build && pnpm generate && pnpm build:sdk"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "^1.5.0",
     "@codama/renderers-js": "^2.2.0",
     "@codama/renderers-rust": "^3.1.0",
     "codama": "^1.7.0",
-    "prettier": "^2.6.2",
+    "prettier": "^3.9.10",
+    "prettier-plugin-svelte": "4.1.1",
     "typescript": "catalog:"
   },
   "packageManager": "pnpm@11.9.0",
