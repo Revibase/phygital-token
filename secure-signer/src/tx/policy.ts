@@ -5,7 +5,10 @@
  * Guarantees enforced here:
  *  - every top-level program is on the allowlist: phygital-token (link, unlink,
  *    execute_with_owner, update_policy, close_policy), ATA createIdempotent,
- *    ComputeBudget, and the secp256r1 precompile only beside a link;
+ *    ComputeBudget, the secp256r1 precompile only beside a link, and the
+ *    wallet's own transfers (System transfer, Token/Token-2022 transfer and
+ *    close-to-self, Token Metadata / Core / Bubblegum NFT transfers) when the
+ *    signer decodes them fully;
  *  - the authenticated wallet is a REQUIRED SIGNER of the transaction;
  *  - every signing role of every instruction (owner, recipient) is the
  *    authenticated wallet, so it never co-signs someone else's operation.
@@ -25,6 +28,7 @@ import type { ErrorCode } from "../messaging/protocol.js";
 import type { DecodedTransaction } from "./decode.js";
 import {
   COMPUTE_BUDGET_PROGRAM,
+  joinWalletTransfers,
   parseInstruction,
   SECP256R1_PROGRAM,
   type ParsedInstructionSummary,
@@ -91,7 +95,10 @@ function computeBudget(tx: DecodedTransaction): TransactionSummary["config"] | n
 
 /** Allowlist + decode for the confirm UI before the wallet key is known (cold-start restore). */
 export function previewPolicy(tx: DecodedTransaction): PolicyResult {
-  const summaries: ParsedInstructionSummary[] = [];
+  const parsed: {
+    ix: (typeof tx.message.instructions)[number];
+    summary: ParsedInstructionSummary;
+  }[] = [];
   let verifies = 0;
   let precompileSignatures = 0;
   for (const ix of tx.message.instructions) {
@@ -105,8 +112,9 @@ export function previewPolicy(tx: DecodedTransaction): PolicyResult {
     } catch {
       return { ok: false, code: "POLICY_REJECTED" };
     }
-    if (summary) summaries.push(summary);
+    if (summary) parsed.push({ ix, summary });
   }
+  const summaries = joinWalletTransfers(parsed);
   if (summaries.length === 0) return { ok: false, code: "POLICY_REJECTED" };
   // A secp256r1 verify only ever accompanies the link it authorizes.
   if (verifies > 1 || (verifies === 1 && !summaries.some((s) => s.kind === "setOwner"))) {

@@ -10,7 +10,7 @@ that hold it.
 | Only the parent frame on the configured origin is heard | `dispatcher.ts` (origin + `event.source`), `messaging/protocol.ts` (schema) | `dispatcher.test.ts` › message gate (origin, `event.source`, schema) |
 | Replay and staleness refused | `messaging/state.ts` | `messaging/state.test.ts`; `dispatcher.test.ts` › freshness and replay edges |
 | The exact bytes shown are the bytes signed, once | `messaging/state.ts`, `tx/decode.ts`, `tx/policy.ts` | `dispatcher.test.ts` › sign; `tx/policy.test.ts`, `fuzz.test.ts` |
-| Signs only owner actions for its own address | `tx/policy.ts`, `tx/parser.ts` | `tx/policy.test.ts`; `dispatcher.test.ts` › WALLET_MISMATCH / POLICY_REJECTED |
+| Signs only owner actions and its own fully readable transfers, for its own address | `tx/policy.ts`, `tx/parser.ts` | `tx/policy.test.ts` (incl. transfers out of another wallet, co-signed transfers, close-elsewhere / approve / burn refused); `dispatcher.test.ts` › WALLET_MISMATCH / POLICY_REJECTED |
 | Sign-in messages only for the parent site and this address | `flows/sign-message.ts` (`signInMessageProblem`) | `dispatcher.test.ts` › sign message |
 | Blob substitution fails | `keys/wallet-format.ts` (AAD binds pubkey, credentialId, salt, rpId) | `keys/wallet-format.test.ts`; `dispatcher.test.ts` › tampered blob, other-credential blob |
 | Decrypt failures don't leak which step failed | `keys/wallet-service.ts` | `keys/wallet-service.test.ts`; `dispatcher.test.ts` |

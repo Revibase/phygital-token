@@ -30,7 +30,7 @@ and generic results/errors. Encrypted wallet blobs stay on the signer origin
 | Backup squatting (someone registers a backup under your credential id first) | Backups are keyed by credential id **and** the passkey key it registered; restore verifies the assertion against each candidate, so a squatter's row (a self-made `none` attestation proves nothing) can't block or replace yours. At most 3 backups per credential id. |
 | Blob substitution (wallet A shown, B used) | AAD binds {pubkey, credentialId, salt, rpId}; after decrypt the derived pubkey must match; the trusted UI shows the **derived** key, never a parent label.                      |
 | Transaction substitution after confirm     | Validated message bytes are copied + frozen; authorization is single-use and bound to their SHA-256; the exact frozen bytes are signed (no re-encode → no parser differential). |
-| Arbitrary signing oracle                   | Top-level allowlist (phygital-token owner instructions, ATA createIdempotent, ComputeBudget, secp256r1 beside a link); the wallet must be a required signer and every signing role (owner, recipient); inner spend is clear-signed; per-tx WebAuthn. The fee payer and the `update_policy` funder may be anyone (a Revibase fee payer when the owner has no SOL): they only pay, and are shown ("Network fee: Free" for Revibase's pool, else the address). A refill to the fee payer is shown as "Refill network fees". |
+| Arbitrary signing oracle                   | Top-level allowlist (phygital-token owner instructions, ATA createIdempotent, ComputeBudget, secp256r1 beside a link, and the wallet's own transfers: System transfer, Token/Token-2022 transfer and close-to-self, Token Metadata / Core / Bubblegum V1 and V2 NFT transfers, each only when the signer decodes it fully, so nothing opaque and nothing that hands over control); the wallet must be a required signer and every signing role (owner, recipient, transfer authority, every signer account a transfer lists); inner spend and top-level transfers are clear-signed; per-tx WebAuthn. The fee payer and the `update_policy` funder may be anyone (a Revibase fee payer when the owner has no SOL): they only pay, and are shown ("Network fee: Free" for Revibase's pool, else the address). A refill to the fee payer is shown as "Refill network fees". |
 | Sign-in replay to another site/account     | `SIGN_MESSAGE` only signs a message whose first line names the parent site and whose second line is this wallet's address.                                                      |
 | Replay                                     | Random requestId + freshness window + duplicate rejection + single-use authorization.                                                                                           |
 | Message injection                          | `event.origin` **and** `event.source === window.parent`; strict schema (unknown fields/types/versions rejected); size caps before parsing.                                      |
@@ -55,6 +55,12 @@ and generic results/errors. Encrypted wallet blobs stay on the signer origin
   key may run anything as the accessory wallet (`execute_with_owner` is not
   limited by tap payments); the signer clear-signs the inner instructions and
   flags anything it can't decode as critical, but does not block them.
+- **A compromised parent asking for a transfer of the wallet's own assets.**
+  The passkey wallet holds assets itself (accessories' assets sent to their
+  owner arrive there), so it signs plain transfers out of its own address. A
+  parent can request one to any recipient; the defense is the clear-signed
+  screen (amount, asset, recipient in full) and the per-transaction passkey
+  prompt, the same as for a send from an accessory wallet.
 - **Secure memory erasure.** JavaScript cannot guarantee wiping. Buffers we own
   are best-effort zeroed; copies made by the runtime are not under our control.
 - **Loss of the sole passkey.** With no synced copy, the wallet is unrecoverable

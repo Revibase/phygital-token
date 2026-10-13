@@ -152,7 +152,7 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 		if (err.code === 'POLICY_REJECTED' || err.code === 'WALLET_MISMATCH') {
 			return {
 				title: 'Your passkey wallet refused this',
-				body: 'It only signs Revibase owner actions for its own address.',
+				body: 'It only signs Revibase actions and transfers from its own address.',
 				recovery: 'none',
 				code: err.code
 			};

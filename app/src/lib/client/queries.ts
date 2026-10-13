@@ -6,6 +6,7 @@ import { fetchAccessoryMedia } from './media';
 import { fetchAccessoryShortcuts } from './shortcuts';
 import { fetchWalletAccessories } from './wallet-accessories';
 import { previewFee } from './accessory-wallet/submit';
+import { fetchPasskeyWallet } from './passkey-wallet/send';
 import { walletStore } from './wallet/wallet.svelte';
 import { queryKeys } from './cache';
 
@@ -48,6 +49,16 @@ export const accessoryWalletQuery = (pda: string) =>
 	queryOptions({
 		queryKey: queryKeys.accessoryWallet(pda),
 		queryFn: () => fetchAccessoryWallet(pda),
+		staleTime: 15 * 1000,
+		gcTime: 5 * MINUTE,
+		retry: 1
+	});
+
+/** The passkey wallet's own balances: what's in the connected Revibase Passkey wallet itself. */
+export const passkeyWalletQuery = (wallet: string) =>
+	queryOptions({
+		queryKey: queryKeys.passkeyWallet(wallet),
+		queryFn: () => fetchPasskeyWallet(wallet),
 		staleTime: 15 * 1000,
 		gcTime: 5 * MINUTE,
 		retry: 1

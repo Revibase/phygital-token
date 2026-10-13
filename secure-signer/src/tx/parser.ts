@@ -2,15 +2,24 @@
  * Decode the top-level instructions the Revibase app asks an owner to sign,
  * producing a TRUSTED summary for the confirmation UI.
  *
- * Each phygital-token instruction reports the accounts that must sign it
- * (`signers`), so the policy can bind them to the authenticated wallet. For
- * `execute_with_owner` the inner compact instructions are DECOMPILED so the
- * user sees the real spend; they are displayed, not blocked: the owner may do
- * anything with its accessory wallet.
+ * Each instruction reports the accounts that must sign it (`signers`), so the
+ * policy can bind them to the authenticated wallet. For `execute_with_owner`
+ * the inner compact instructions are DECOMPILED so the user sees the real
+ * spend; they are displayed, not blocked: the owner may do anything with its
+ * accessory wallet.
+ *
+ * The wallet's own transfers (SOL, tokens, NFTs out of the passkey wallet
+ * itself) are allowed top-level too, but only when every one decodes fully:
+ * nothing opaque, nothing that hands over control.
  */
 
 import { PROGRAM_IDS } from "../shared/programs.js";
-import { type AccountMeta, type Instruction, type ReadonlyUint8Array } from "@solana/kit";
+import {
+  isSignerRole,
+  type AccountMeta,
+  type Instruction,
+  type ReadonlyUint8Array,
+} from "@solana/kit";
 import {
   EXECUTE_WITH_OWNER_NAMED_ACCOUNT_COUNT,
   parsePhygitalTokenInstruction,
@@ -30,7 +39,23 @@ export const SECP256R1_PROGRAM: string = PROGRAM_IDS.secp256r1;
 export const ATA_PROGRAM: string = PROGRAM_IDS.associatedToken;
 
 export type InstructionKind =
-  "setOwner" | "removeOwner" | "send" | "tapPayments" | "tapPaymentsOff" | "createTokenAccount";
+  | "setOwner"
+  | "removeOwner"
+  | "send"
+  | "transfer"
+  | "tapPayments"
+  | "tapPaymentsOff"
+  | "createTokenAccount";
+
+/** Programs whose transfers the wallet may sign top-level, moving its own assets. */
+const WALLET_TRANSFER_PROGRAMS: ReadonlySet<string> = new Set([
+  PROGRAM_IDS.system,
+  PROGRAM_IDS.token,
+  PROGRAM_IDS.token2022,
+  PROGRAM_IDS.tokenMetadata,
+  PROGRAM_IDS.metaplexCore,
+  PROGRAM_IDS.bubblegum,
+]);
 
 export interface InnerInstructionSummary extends ClearedInner {
   programAddress: string;
@@ -44,7 +69,7 @@ export interface ParsedInstructionSummary {
   signers: string[];
   /** The phygital token account referenced by the instruction, if present. */
   phygitalToken: string | null;
-  /** Decoded inner spend for `execute_with_owner`, else null. */
+  /** Decoded spend: the inner instructions of `execute_with_owner`, or a top-level transfer itself; else null. */
   inner: InnerInstructionSummary[] | null;
   /** Extra trusted rows. */
   details: DetailRow[];
@@ -136,6 +161,69 @@ function nameTokenRecipients(summaries: InnerInstructionSummary[]): InnerInstruc
   });
 }
 
+/** Who signs `ix`: every account it lists that signs the transaction. */
+function instructionSigners(accounts: readonly AccountMeta[]): string[] {
+  return [...new Set(accounts.filter((a) => isSignerRole(a.role)).map((a) => a.address))];
+}
+
+/** A top-level transfer out of the signing wallet, or throws when it isn't one the signer can fully show. */
+function walletTransfer(ix: KitInstruction): ParsedInstructionSummary {
+  const metas = [...(ix.accounts ?? [])];
+  const signers = instructionSigners(metas);
+  if (signers.length === 0) throw new Error("transfer without a signer");
+  const accounts = metas.map((a) => a.address);
+  const data = Uint8Array.from(ix.data ?? []);
+  // Closing a token account is only safe when its rent goes back to the one signer.
+  const described = describeInnerInstruction(
+    ix.programAddress,
+    accounts,
+    data,
+    signers.length === 1 ? signers[0] : undefined,
+  );
+  if (described.opaque || described.dangerous || described.title === "Memo")
+    throw new Error("transfer not allowed");
+  return {
+    kind: "transfer",
+    signers,
+    phygitalToken: null,
+    inner: [{ ...described, programAddress: ix.programAddress, accounts, dataLength: data.length }],
+    details: [],
+  };
+}
+
+/**
+ * Top-level wallet transfers read like an accessory send: a token account the
+ * same transaction opens becomes one of the actions, and names its owner as
+ * the recipient of the tokens sent to it.
+ */
+export function joinWalletTransfers(
+  parsed: ReadonlyArray<{ ix: KitInstruction; summary: ParsedInstructionSummary }>,
+): ParsedInstructionSummary[] {
+  if (!parsed.some((p) => p.summary.kind === "transfer")) return parsed.map((p) => p.summary);
+  const rows = parsed.map(({ ix, summary }) => {
+    if (summary.kind === "transfer") return summary.inner ?? [];
+    if (summary.kind !== "createTokenAccount") return [];
+    const accounts = (ix.accounts ?? []).map((a) => a.address);
+    const data = Uint8Array.from(ix.data ?? []);
+    return [
+      {
+        ...describeInnerInstruction(ix.programAddress, accounts, data),
+        programAddress: ix.programAddress,
+        accounts,
+        dataLength: data.length,
+      },
+    ];
+  });
+  const named = nameTokenRecipients(rows.flat());
+  let next = 0;
+  return parsed.map(({ summary }, i) => {
+    const inner = named.slice(next, (next += rows[i]!.length));
+    if (summary.kind === "createTokenAccount")
+      return { ...summary, kind: "transfer", inner, details: [] };
+    return summary.kind === "transfer" ? { ...summary, inner } : summary;
+  });
+}
+
 /**
  * `null` for instructions shown only as transaction settings (compute budget)
  * or as part of another one (the link's secp256r1 verify). Throws for anything
@@ -150,6 +238,8 @@ export function parseInstruction(
 
   if (ix.programAddress === COMPUTE_BUDGET_PROGRAM || ix.programAddress === SECP256R1_PROGRAM)
     return null;
+
+  if (WALLET_TRANSFER_PROGRAMS.has(ix.programAddress)) return walletTransfer(ix);
 
   if (ix.programAddress === ATA_PROGRAM) {
     // createIdempotent: payer, ata, owner, mint, system, token program.

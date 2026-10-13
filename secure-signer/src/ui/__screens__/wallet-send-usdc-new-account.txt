@@ -1,0 +1,18 @@
+# Send 1.5 USDC
+To LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+[warn] Moves funds out of your passkey wallet. Confirm the amount and destination carefully.
+  Create token account: LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+  Send 1.5 USDC: LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+  Network fee: 0.000005 SOL
+Details
+  Your wallet: 4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi
+  Step 1: Create token account
+  Owner: LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+  Mint: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+  Step 2: Send 1.5 USDC
+  Amount: 1.5 USDC
+  Mint: EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+  From token account: 32ZsJ2yJjwuoBiWE5xnZjG9tKmK3CubbmEzgkQLyQzgD
+  To: LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+  To token account: QWmroo4YnnMqYW3cnxWkFdaTxGD3P7vMSzwMHGbUzwF
+[Authorize]

@@ -121,6 +121,7 @@ function primaryActionRows(summary: TransactionSummary): Row[] {
           : undefined) ??
         destination(s.details) ??
         s.details.find((d) => d.label === "Owner")?.value ??
+        s.details.find((d) => d.label === "Rent back to")?.value ??
         s.details.find((d) => d.label === "Text")?.value ??
         s.details.find((d) => d.label === "Program")?.value ??
         "—",
@@ -138,8 +139,12 @@ function advancedRows(summary: TransactionSummary, primary: readonly Row[]): Row
   };
 
   for (const [i, ix] of summary.instructions.entries()) {
+    // A wallet transfer is one action: name it by what it does rather than repeat "Send from your wallet".
     if (summary.instructions.length > 1)
-      rows.push({ label: `Step ${i + 1}`, value: instructionLabel(ix.kind) });
+      rows.push({
+        label: `Step ${i + 1}`,
+        value: (ix.kind === "transfer" && ix.inner?.[0]?.title) || instructionLabel(ix.kind),
+      });
     ix.details.forEach(add);
     const inner = ix.inner ?? [];
     for (const [n, action] of inner.entries()) {

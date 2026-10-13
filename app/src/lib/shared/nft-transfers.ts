@@ -151,7 +151,7 @@ export async function buildCoreTransfer(
 		await accountData(rpc, nft.id, MPL_CORE_PROGRAM_PROGRAM_ADDRESS)
 	);
 	if (asset.key !== CoreKey.AssetV1 || asset.owner !== wallet)
-		throw new Error('This NFT is no longer owned by the accessory wallet.');
+		throw new Error('This NFT is no longer owned by this wallet.');
 	return [
 		coreTransfer({
 			asset: nft.id,
@@ -210,7 +210,7 @@ export async function buildCompressedTransfer(
 		asset.burnt ||
 		!compression?.compressed
 	)
-		throw new Error('This compressed NFT is no longer owned by the accessory wallet.');
+		throw new Error('This compressed NFT is no longer owned by this wallet.');
 	if (asset.ownership.frozen || (compression.flags ?? 0) & 11)
 		throw new Error('This compressed NFT is frozen or non-transferable.');
 	const index = compression.leaf_id;

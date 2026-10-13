@@ -56,7 +56,7 @@ export function collectibleAssets(holdings: WalletHoldings): SendAsset[] {
 	];
 }
 
-/** A token account's rent, which the accessory wallet pays when it opens one (165-byte SPL account). */
+/** A token account's rent, which the sending wallet pays when it opens one (165-byte SPL account). */
 export const TOKEN_ACCOUNT_RENT_LAMPORTS = 2_039_280n;
 
 export const recipientTokenAccount = async (recipient: Address, token: TokenHolding) =>
@@ -69,8 +69,8 @@ export const recipientTokenAccount = async (recipient: Address, token: TokenHold
 	)[0];
 
 /**
- * A token transfer out of the accessory wallet, opening the recipient's
- * account first when it doesn't exist yet: the wallet pays that rent.
+ * A token transfer out of `wallet`, opening the recipient's account first
+ * when it doesn't exist yet: the wallet pays that rent.
  */
 async function tokenTransfer(
 	wallet: Address,
@@ -123,10 +123,7 @@ export function solSendAmount(
 	return amount;
 }
 
-/** Network fees are paid by whoever `choosePayer` picks; a new recipient token account by the accessory wallet. */
-export async function buildSendInnerInstructions(input: {
-	owner: TransactionSigner;
-	pda: Address;
+type TransferInput = {
 	asset: SendAsset;
 	recipient: Address;
 	amount: bigint;
@@ -134,9 +131,27 @@ export async function buildSendInnerInstructions(input: {
 	openAccount?: boolean;
 	rpc?: Rpc<SolanaRpcApi>;
 	dasUrl?: string;
-}): Promise<Instruction[]> {
+};
+
+/** Network fees are paid by whoever `choosePayer` picks; a new recipient token account by the accessory wallet. */
+export async function buildSendInnerInstructions(
+	input: TransferInput & { owner: TransactionSigner; pda: Address }
+): Promise<Instruction[]> {
 	const [wallet] = await findWalletPda({ phygitalToken: input.pda });
 	if (input.recipient === wallet) throw new Error('That’s the accessory wallet itself.');
+	return buildTransferInstructions({ ...input, wallet });
+}
+
+/**
+ * `asset` out of `wallet`, which signs as its authority: the accessory wallet
+ * inside an execute, or the passkey wallet sending its own. `wallet` pays any
+ * new recipient token account.
+ */
+export async function buildTransferInstructions(
+	input: TransferInput & { wallet: Address }
+): Promise<Instruction[]> {
+	const { wallet } = input;
+	if (input.recipient === wallet) throw new Error('That’s this wallet itself.');
 	const restriction = sendAssetRestriction(input.asset);
 	if (restriction) throw new Error(restriction);
 	let inner: Instruction[];
@@ -205,17 +220,27 @@ export function sweepTokenOrder(
 }
 
 /** One batch: open the owner's account if missing, transfer, close back into the accessory wallet. */
-export async function buildSweepTokenInner(
+export function buildSweepTokenInner(
 	owner: TransactionSigner,
-	pda: Address,
+	_pda: Address,
 	wallet: Address,
+	tokens: readonly TokenHolding[],
+	missing: ReadonlySet<Address> = new Set()
+): Promise<Instruction[]> {
+	return buildTokenSweepInstructions(wallet, owner.address, tokens, missing);
+}
+
+/** Every unit of each token from `wallet` to `recipient` (opening their account when `missing`), then closes it back into `wallet`. */
+export async function buildTokenSweepInstructions(
+	wallet: Address,
+	recipient: Address,
 	tokens: readonly TokenHolding[],
 	missing: ReadonlySet<Address> = new Set()
 ): Promise<Instruction[]> {
 	const inner: Instruction[] = [];
 	for (const token of tokens) {
 		inner.push(
-			...(await tokenTransfer(wallet, token, owner.address, token.amount, missing.has(token.mint))),
+			...(await tokenTransfer(wallet, token, recipient, token.amount, missing.has(token.mint))),
 			getCloseAccountInstruction(
 				{ account: token.tokenAccount, destination: wallet, owner: wallet },
 				{ programAddress: token.tokenProgram }

@@ -64,9 +64,9 @@ export const SPONSOR_ENDPOINT = '/api/sponsor';
 const COMPUTE_UNIT_PRICE = LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS;
 /** What the refill's own execute adds when it rides along. */
 const REFILL_COMPUTE_UNITS = 40_000;
-const MAX_COMPUTE_UNITS = 1_400_000;
+export const MAX_COMPUTE_UNITS = 1_400_000;
 /** A typical owner transaction, for the fee line shown before the exact one is built. */
-const TYPICAL_COMPUTE_UNITS = 200_000;
+export const TYPICAL_COMPUTE_UNITS = 200_000;
 
 export type OwnerAction = {
 	pda: string;
@@ -103,17 +103,17 @@ export type OwnerAction = {
 	drainsWallet?: boolean;
 };
 
-const lamportsOf = async (account: Address) =>
+export const lamportsOf = async (account: Address) =>
 	BigInt((await browserRpc().getBalance(account, { commitment: 'confirmed' }).send()).value);
 
-function computeLimit(units: number, withRefill: boolean): number {
+export function computeLimit(units: number, withRefill: boolean): number {
 	return Math.min(
 		MAX_COMPUTE_UNITS,
 		Math.ceil(((units + (withRefill ? REFILL_COMPUTE_UNITS : 0)) * 12) / 10)
 	);
 }
 
-function feeFor(signatures: number, limit: number, precompileSignatures = 0): bigint {
+export function feeFor(signatures: number, limit: number, precompileSignatures = 0): bigint {
 	return networkFeeLamports({
 		signatures,
 		precompileSignatures,
@@ -121,7 +121,7 @@ function feeFor(signatures: number, limit: number, precompileSignatures = 0): bi
 	});
 }
 
-function message(
+export function message(
 	feePayer: TransactionSigner | Address,
 	blockhash: { blockhash: Blockhash; lastValidBlockHeight: bigint },
 	limit: number,
@@ -140,7 +140,7 @@ function message(
 }
 
 /** Compute used, and how much the tap-payments account grows (its rent), by simulating as `feePayer`. */
-async function measure(
+export async function measure(
 	feePayer: Address,
 	instructions: Instruction[],
 	blockhash: { blockhash: Blockhash; lastValidBlockHeight: bigint },

@@ -17,4 +17,4 @@ export function configureSecureSigner(origin: string) {
 
 export const secureSigner = () => client;
 export const passkeyWallet = () => wallet;
-export { PASSKEY_WALLET_NAME, PASSKEY_WALLET_HINT } from './wallet';
+export { PASSKEY_WALLET_NAME, PASSKEY_WALLET_HINT, PASSKEY_WALLET_ICON } from './wallet';

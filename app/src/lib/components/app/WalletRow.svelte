@@ -19,7 +19,8 @@
 		context = null,
 		cluster = null,
 		nftOwnership = null,
-		onexport
+		onexport,
+		href
 	}: {
 		address: string;
 		label: string;
@@ -28,13 +29,52 @@
 		cluster?: string | null;
 		onexport?: () => void;
 		nftOwnership?: 'same' | 'different' | null;
+		/** Opens this wallet's own page instead of the options menu. */
+		href?: string;
 	} = $props();
 	function copyAddress() {
 		return copyText(address, 'Wallet address copied');
 	}
 </script>
 
-<ListRow {label} detail={shortAddress(address)} subdetail={context ?? undefined}>
+{#snippet menu()}
+	<DropdownMenu.Root>
+		<DropdownMenu.Trigger
+			aria-label="Owner options"
+			class={buttonVariants({ variant: 'ghost', size: 'icon' })}
+			><EllipsisVertical class="size-4" /></DropdownMenu.Trigger
+		>
+		<DropdownMenu.Content align="end" class="max-w-72">
+			<DropdownMenu.Item onSelect={copyAddress}
+				><Copy class="size-4 shrink-0" />Copy wallet address</DropdownMenu.Item
+			>
+			{#if cluster}
+				<DropdownMenu.Item>
+					{#snippet child({ props })}<a
+							{...props}
+							href={explorerUrl('address', address, cluster)}
+							target="_blank"
+							rel="noopener noreferrer"><ArrowUpRight class="size-4 shrink-0" />Open in explorer</a
+						>{/snippet}
+				</DropdownMenu.Item>
+			{/if}
+			{#if onexport}
+				<DropdownMenu.Item onSelect={onexport}
+					><KeyRound class="size-4 shrink-0" />Export key</DropdownMenu.Item
+				>
+			{/if}
+		</DropdownMenu.Content>
+	</DropdownMenu.Root>
+{/snippet}
+
+<ListRow
+	{label}
+	detail={shortAddress(address)}
+	subdetail={context ?? undefined}
+	{href}
+	chevron={!!href}
+	trailing={href ? undefined : menu}
+>
 	{#snippet labelBadge()}
 		{#if nftOwnership}
 			<span
@@ -49,34 +89,4 @@
 		{/if}
 	{/snippet}
 	{#snippet leading()}<WalletAvatar {address} {icon} />{/snippet}
-	{#snippet trailing()}
-		<DropdownMenu.Root>
-			<DropdownMenu.Trigger
-				aria-label="Owner options"
-				class={buttonVariants({ variant: 'ghost', size: 'icon' })}
-				><EllipsisVertical class="size-4" /></DropdownMenu.Trigger
-			>
-			<DropdownMenu.Content align="end" class="max-w-72">
-				<DropdownMenu.Item onSelect={copyAddress}
-					><Copy class="size-4 shrink-0" />Copy wallet address</DropdownMenu.Item
-				>
-				{#if cluster}
-					<DropdownMenu.Item>
-						{#snippet child({ props })}<a
-								{...props}
-								href={explorerUrl('address', address, cluster)}
-								target="_blank"
-								rel="noopener noreferrer"
-								><ArrowUpRight class="size-4 shrink-0" />Open in explorer</a
-							>{/snippet}
-					</DropdownMenu.Item>
-				{/if}
-				{#if onexport}
-					<DropdownMenu.Item onSelect={onexport}
-						><KeyRound class="size-4 shrink-0" />Export key</DropdownMenu.Item
-					>
-				{/if}
-			</DropdownMenu.Content>
-		</DropdownMenu.Root>
-	{/snippet}
 </ListRow>

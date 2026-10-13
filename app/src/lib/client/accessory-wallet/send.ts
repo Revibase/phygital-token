@@ -111,13 +111,12 @@ type SweepEntry = { asset: SendAsset; inner: Instruction[] };
 const collectibleKey = (asset: SendAsset) =>
 	asset.kind === 'nft' ? asset.nft.id : asset.kind === 'token' ? asset.token.tokenAccount : 'sol';
 
-async function prepareSweep(
-	ownerAddress: Address,
-	pda: string,
-	holdings: WalletHoldings,
-	sendSol: boolean
-) {
-	const owner = createNoopSigner(ownerAddress);
+/**
+ * What a send-all moves to `recipient`, and which of their token accounts it
+ * opens: sendable tokens (transferred whole, then closed), then collectibles
+ * that need their own transfer (NFTs and programmable NFTs).
+ */
+export async function sweepTargets(recipient: Address, holdings: WalletHoldings) {
 	const tokens = sweepTokenOrder(holdings);
 	const collectibles = collectibleAssets(holdings).filter(
 		(a) =>
@@ -126,10 +125,10 @@ async function prepareSweep(
 	);
 	// One lookup for every recipient token account the sweep might open.
 	const [tokenAtas, collectibleAtas] = await Promise.all([
-		Promise.all(tokens.map((t) => recipientTokenAccount(ownerAddress, t))),
+		Promise.all(tokens.map((t) => recipientTokenAccount(recipient, t))),
 		Promise.all(
 			collectibles.map((a) =>
-				a.kind === 'token' ? recipientTokenAccount(ownerAddress, a.token) : Promise.resolve(null)
+				a.kind === 'token' ? recipientTokenAccount(recipient, a.token) : Promise.resolve(null)
 			)
 		)
 	]);
@@ -145,9 +144,57 @@ async function prepareSweep(
 			.filter((_, i) => collectibleAtas[i] && missingAtas.has(collectibleAtas[i]))
 			.map(collectibleKey)
 	);
+	return {
+		/** Existing recipient accounts first: their returned rent helps fund later account openings. */
+		tokens: sweepTokenOrder(holdings, missing),
+		collectibles,
+		missing,
+		opensAccount: (asset: SendAsset) => opensAccount.has(collectibleKey(asset))
+	};
+}
+
+/**
+ * Sends each batch in order. A batch simulation finds over the compute limit
+ * (raised before any signature) is split in two and retried.
+ */
+export async function sendInBatches<T>(
+	batches: readonly T[][],
+	send: (batch: T[]) => Promise<void>,
+	onProgress?: (done: number, total: number) => void
+): Promise<void> {
+	let total = batches.length;
+	let done = 0;
+	async function sendBatch(batch: T[]): Promise<void> {
+		try {
+			await send(batch);
+		} catch (error) {
+			if (!(error instanceof TransactionComputeLimitError) || batch.length < 2) throw error;
+			total++;
+			const middle = Math.ceil(batch.length / 2);
+			await sendBatch(batch.slice(0, middle));
+			await sendBatch(batch.slice(middle));
+			return;
+		}
+		onProgress?.(++done, total);
+	}
+	for (const batch of batches) await sendBatch(batch);
+	onProgress?.(total, total);
+}
+
+async function prepareSweep(
+	ownerAddress: Address,
+	pda: string,
+	holdings: WalletHoldings,
+	sendSol: boolean
+) {
+	const owner = createNoopSigner(ownerAddress);
+	const { tokens, collectibles, missing, opensAccount } = await sweepTargets(
+		ownerAddress,
+		holdings
+	);
 
 	const entries: SweepEntry[] = await Promise.all([
-		...sweepTokenOrder(holdings, missing).map(async (token) => ({
+		...tokens.map(async (token) => ({
 			asset: { kind: 'token', token } as SendAsset,
 			inner: await buildSweepTokenInner(owner, address(pda), holdings.wallet, [token], missing)
 		})),
@@ -159,7 +206,7 @@ async function prepareSweep(
 				asset,
 				recipient: ownerAddress,
 				amount: 1n,
-				openAccount: opensAccount.has(collectibleKey(asset)),
+				openAccount: opensAccount(asset),
 				rpc: browserRpc(),
 				dasUrl: rpcUrl()
 			})
@@ -212,11 +259,10 @@ export async function sweepToOwner(
 	{ sendSol = true }: { sendSol?: boolean } = {}
 ) {
 	const plan = await prepareSweep(address(ctx.address), pda, holdings, sendSol);
-	let total = plan.batches.length;
-	let done = 0;
-	async function sendBatch(batch: SweepEntry[]): Promise<void> {
-		try {
-			await confirmAsOwner(ctx, {
+	await sendInBatches(
+		plan.batches,
+		(batch) =>
+			confirmAsOwner(ctx, {
 				pda,
 				drainsWallet: batch.some((entry) => entry.asset.kind === 'sol'),
 				simulateFinal: true,
@@ -242,7 +288,7 @@ export async function sweepToOwner(
 											asset,
 											recipient: owner.address,
 											amount: 1n,
-											openAccount: plan.opensAccount.has(collectibleKey(asset)),
+											openAccount: plan.opensAccount(asset),
 											rpc: browserRpc(),
 											dasUrl: rpcUrl()
 										})
@@ -288,18 +334,7 @@ export async function sweepToOwner(
 						throw new Error('Transfer data changed and no longer fits. Refresh and try again.');
 					return [execute];
 				}
-			});
-		} catch (error) {
-			if (!(error instanceof TransactionComputeLimitError) || batch.length < 2) throw error;
-			// This error is raised only by simulation, before any wallet signature.
-			total++;
-			const middle = Math.ceil(batch.length / 2);
-			await sendBatch(batch.slice(0, middle));
-			await sendBatch(batch.slice(middle));
-			return;
-		}
-		onProgress?.(++done, total);
-	}
-	for (const batch of plan.batches) await sendBatch(batch);
-	onProgress?.(total, total);
+			}).then(() => {}),
+		onProgress
+	);
 }

@@ -15,7 +15,7 @@
 	import { loginOwner, openOwnedAccessory } from '$lib/client/accessory/open-owned';
 	import { describeError, type FriendlyError } from '$lib/client/link/messages';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
-	import { passkeyWallet, PASSKEY_WALLET_NAME } from '$lib/client/wallet/secure-signer';
+	import { PASSKEY_WALLET_NAME } from '$lib/client/wallet/secure-signer';
 	import type { AccessoryView } from '$lib/shared/types';
 
 	let { data } = $props();
@@ -88,18 +88,23 @@
 			</p>
 		{:else}
 			<List>
-				<WalletRow
-					address={walletStore.address}
-					label={walletStore.walletName ?? 'Your wallet'}
-					icon={walletStore.walletIcon}
-					cluster={data.cluster}
-					onexport={walletStore.walletName === PASSKEY_WALLET_NAME
-						? () =>
-								void passkeyWallet()
-									?.exportKey()
-									.catch(() => {})
-						: undefined}
-				/>
+				{#if walletStore.walletName === PASSKEY_WALLET_NAME}
+					<!-- The passkey wallet has no other app: its balances, sends and key live on its own page. -->
+					<WalletRow
+						address={walletStore.address}
+						label="Passkey wallet"
+						icon={walletStore.walletIcon}
+						context="Balances, send and receive"
+						href="/passkey-wallet"
+					/>
+				{:else}
+					<WalletRow
+						address={walletStore.address}
+						label={walletStore.walletName ?? 'Your wallet'}
+						icon={walletStore.walletIcon}
+						cluster={data.cluster}
+					/>
+				{/if}
 			</List>
 
 			{#if accessories === null && !failure && !listFailure}

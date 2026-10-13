@@ -198,6 +198,41 @@ describe("clear-sign", () => {
     ).toBe("Send NFT");
   });
 
+  it("reads Bubblegum transfer_v2: tree, leaf, from and to", () => {
+    const accounts = ["config", "payer", "authority", "owner", "delegate", "newOwner", "tree"];
+    const data = Uint8Array.from([
+      119,
+      40,
+      6,
+      235,
+      234,
+      221,
+      248,
+      49,
+      ...new Uint8Array(98),
+      7,
+      0,
+      0,
+      0,
+    ]);
+    const cleared = describeInnerInstruction(
+      "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY",
+      accounts,
+      data,
+    );
+    expect(cleared).toMatchObject({
+      title: "Send compressed NFT",
+      opaque: false,
+      dangerous: false,
+    });
+    expect(cleared.details).toEqual([
+      { label: "Tree", value: "tree" },
+      { label: "Leaf", value: "#7" },
+      { label: "From", value: "owner" },
+      { label: "To", value: "newOwner" },
+    ]);
+  });
+
   it("shows full recipient addresses in details (anti address-poisoning)", () => {
     const to = "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin";
     const data = new Uint8Array(12);

@@ -35,6 +35,8 @@ export default async function (env: any) {
 				return `import { walletHoldings } from ${fixtures}; export async function fetchAccessoryWallet(){return walletHoldings(document.cookie.includes('simulation_holdings=funded'))}`;
 			if (path === root + 'src/lib/client/accessory-wallet/send.ts')
 				return `export { previewSweepApprovals as estimateSweepApprovals } from ${JSON.stringify(root + 'test/browser/sweep-estimate.ts')}; export async function opensTokenAccount(){return false} export async function recipientAccountFunding(){return {openAccount:false,rent:0n}} export async function sendFromAccessoryWallet(){throw new Error('Asset transfers are disabled in this local preview')} export async function sweepToOwner(){throw new Error('Asset transfers are disabled in this local preview')}`;
+			if (path === root + 'src/lib/client/passkey-wallet/send.ts')
+				return `import { walletHoldings } from ${fixtures}; export const MAX_NETWORK_FEE=75_000n; export const typicalNetworkFee=()=>17_000n; export async function fetchPasskeyWallet(){return walletHoldings(document.cookie.includes('simulation_holdings=funded'))} export async function estimateSendAllApprovals(){return 1} export async function sendFromPasskeyWallet(){throw new Error('Asset transfers are disabled in this local preview')} export async function sendAllFromPasskeyWallet(){throw new Error('Asset transfers are disabled in this local preview')}`;
 			if (path === root + 'src/lib/client/wallet-accessories.ts')
 				return `import { accessory } from ${fixtures}; export async function fetchWalletAccessories(wallet){return wallet===accessory.owner?[accessory]:[]}`;
 			if (path === root + 'src/lib/client/program-upgradeability.ts')

@@ -8,6 +8,24 @@ The accessory is the entry point. A tap proves it is genuine and present; that i
 2. The wallet is reached only from Manage accessory, as its last row. It is view-only until the accessory is claimed: balances show, but Receive, Send, Send all and tap settings are hidden, because whoever claims it controls what is there.
 3. Tap to sign is off until the owner turns it on. Turning it off never affects authentication.
 
+## Two wallets: accessory and passkey
+
+There are two wallet screens, and they must never be mistaken for each other.
+
+| | Accessory wallet | Passkey wallet |
+| --- | --- | --- |
+| What it is | A PDA that belongs to the accessory and stays with it when it changes hands | The owner's own Revibase Passkey wallet, created with their passkey |
+| Where | Manage accessory → Accessory wallet (`/wallet/[pda]`) | Home → Passkey wallet (`/passkey-wallet`), shown only when that wallet is connected |
+| Identity row | "Accessory wallet · Stays with this accessory", with the accessory's artwork | "Passkey wallet · Yours · not tied to an accessory", with the passkey icon |
+| Who approves | The owner wallet, through `OwnerApproval` | The passkey itself |
+| Network fees | Revibase's fee service, refilled from the accessory wallet when needed | The passkey wallet's own SOL, as in Phantom or Solflare; never sponsored |
+| Send all | Always to the owner | To any address the user enters |
+| Signer screen | "Send from accessory wallet" | "Send from your wallet" |
+
+When an accessory's owner is the connected passkey wallet, its Send all destination reads "Your passkey wallet", so a sweep visibly lands in the page the user can open. Other wallets (Phantom, Solflare, mobile wallets) get no passkey wallet page: their own app manages their assets. Export key lives in the passkey wallet's menu.
+
+The passkey wallet's sends are plain transfers signed by the wallet itself, with nothing from phygital-token around them. Single sends support SOL (including all of it, minus the exact fee), tokens and every NFT standard the accessory wallet supports. Send all moves tokens (closing their accounts back into the wallet), then collectibles, then SOL last with whatever the final fee leaves. A wallet without enough SOL for the fee says how much to add before anything is signed.
+
 ## Product and hierarchy
 
 The accessory is the product. Its on-chain owner wallet manages it; its stable accessory-wallet PDA can hold assets. The bound NFT holder can differ from both. Claiming changes the owner role without moving the bound NFT or accessory-wallet assets. Enabling tap transactions is a separate, optional choice.

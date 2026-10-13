@@ -11,6 +11,7 @@ export const queryKeys = {
 		['accessory-shortcuts', pda, owner ?? ''] as const,
 	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const,
 	accessoryWallet: (pda: string) => ['accessory-wallet', pda] as const,
+	passkeyWallet: (wallet: string) => ['passkey-wallet', wallet] as const,
 	accessoryPolicy: (pda: string) => ['accessory-policy', pda] as const,
 	/** Everything about an accessory's network fees starts with this, so one invalidation covers it. */
 	fees: (pda: string) => ['fees', pda] as const,

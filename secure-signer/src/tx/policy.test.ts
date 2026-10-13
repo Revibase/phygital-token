@@ -22,6 +22,7 @@ import {
   removeOwnerWire,
   setOwnerWire,
   updatePolicyWire,
+  walletTransferWire,
 } from "../../testing/tx-fixtures.js";
 import { decodeTransaction, TxError } from "./decode.js";
 import { evaluatePolicy, previewPolicy } from "./policy.js";
@@ -165,6 +166,132 @@ describe("evaluatePolicy", () => {
     expect(evaluatePolicy(decodeTransaction(foreignProgramWire({ payer })), pubkey(payer))).toEqual(
       { ok: false, code: "POLICY_REJECTED" },
     );
+  });
+
+  it("signs the wallet's own top-level transfer and shows it", () => {
+    const wallet = randomAddress();
+    const to = randomAddress();
+    const result = evaluatePolicy(
+      decodeTransaction(walletTransferWire({ from: wallet, to })),
+      pubkey(wallet),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const [ix] = result.summary.instructions;
+    expect(ix).toMatchObject({ kind: "transfer", signers: [wallet], phygitalToken: null });
+    expect(ix!.inner?.[0]).toMatchObject({ title: "Send 1 SOL", opaque: false, dangerous: false });
+    expect(ix!.inner?.[0]!.details).toContainEqual({ label: "To", value: to });
+  });
+
+  it("never signs a transfer out of someone else's wallet, even as its fee payer", () => {
+    const wallet = randomAddress();
+    expect(
+      evaluatePolicy(
+        decodeTransaction(walletTransferWire({ from: randomAddress(), feePayer: wallet })),
+        pubkey(wallet),
+      ),
+    ).toEqual({ ok: false, code: "POLICY_REJECTED" });
+    expect(
+      evaluatePolicy(
+        decodeTransaction(walletTransferWire({ from: randomAddress() })),
+        pubkey(wallet),
+      ),
+    ).toEqual({ ok: false, code: "WALLET_MISMATCH" });
+  });
+
+  it("refuses a transfer another key co-signs", () => {
+    const wallet = randomAddress();
+    const other = randomAddress();
+    const coreTransfer = {
+      programAddress: "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d" as Address,
+      accounts: [
+        { address: randomAddress(), role: 1 as const },
+        { address: randomAddress(), role: 0 as const },
+        { address: other, role: 3 as const },
+        { address: wallet, role: 2 as const },
+        { address: randomAddress(), role: 0 as const },
+      ],
+      data: Uint8Array.of(14, 0),
+    };
+    const wire = encodeWire({ feePayer: wallet, instructions: [coreTransfer] });
+    expect(evaluatePolicy(decodeTransaction(wire), pubkey(wallet))).toEqual({
+      ok: false,
+      code: "POLICY_REJECTED",
+    });
+  });
+
+  it("refuses top-level token instructions that hand over control or can't be read", () => {
+    const wallet = randomAddress();
+    const tokenAccount = randomAddress();
+    const token = (data: number[], accounts: Address[]) => ({
+      programAddress: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address,
+      accounts: accounts.map((address) => ({
+        address,
+        role: address === wallet ? (2 as const) : (1 as const),
+      })),
+      data: Uint8Array.from(data),
+    });
+    for (const ix of [
+      // Close with the rent going to someone else.
+      token([9], [tokenAccount, randomAddress(), wallet]),
+      // Approve a delegate.
+      token([4, 1, 0, 0, 0, 0, 0, 0, 0], [tokenAccount, randomAddress(), wallet]),
+      // Burn: not something the signer reads as a transfer.
+      token([8, 1, 0, 0, 0, 0, 0, 0, 0], [tokenAccount, randomAddress(), wallet]),
+    ]) {
+      const wire = encodeWire({ feePayer: wallet, instructions: [ix] });
+      expect(evaluatePolicy(decodeTransaction(wire), pubkey(wallet))).toEqual({
+        ok: false,
+        code: "POLICY_REJECTED",
+      });
+    }
+    // Closing its own account with the rent back to itself is fine.
+    const close = encodeWire({
+      feePayer: wallet,
+      instructions: [token([9], [tokenAccount, wallet, wallet])],
+    });
+    const closed = evaluatePolicy(decodeTransaction(close), pubkey(wallet));
+    expect(closed.ok && closed.summary.instructions[0]!.inner?.[0]!.title).toBe(
+      "Close token account",
+    );
+  });
+
+  it("names the recipient of a top-level token send when the same transaction opens their account", () => {
+    const wallet = randomAddress();
+    const recipient = randomAddress();
+    const ata = randomAddress();
+    const mint = randomAddress();
+    const createAta = {
+      programAddress: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" as Address,
+      accounts: [
+        { address: wallet, role: 3 as const },
+        { address: ata, role: 1 as const },
+        { address: recipient, role: 0 as const },
+        { address: mint, role: 0 as const },
+        { address: "11111111111111111111111111111111" as Address, role: 0 as const },
+        { address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address, role: 0 as const },
+      ],
+      data: Uint8Array.of(1),
+    };
+    const transfer = {
+      programAddress: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address,
+      accounts: [
+        { address: randomAddress(), role: 1 as const },
+        { address: mint, role: 0 as const },
+        { address: ata, role: 1 as const },
+        { address: wallet, role: 2 as const },
+      ],
+      data: Uint8Array.from([12, 1, 0, 0, 0, 0, 0, 0, 0, 0]),
+    };
+    const wire = encodeWire({ feePayer: wallet, instructions: [createAta, transfer] });
+    const result = evaluatePolicy(decodeTransaction(wire), pubkey(wallet));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.summary.instructions.map((i) => i.kind)).toEqual(["transfer", "transfer"]);
+    expect(result.summary.instructions[1]!.inner?.[0]!.details).toContainEqual({
+      label: "To",
+      value: recipient,
+    });
   });
 
   it("allows a secp256r1 verify only beside a link", () => {

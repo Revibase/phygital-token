@@ -2,6 +2,8 @@ import { rememberWallet, rememberRecentWallet } from '$lib/client/memory';
 // Test-only wallet boundary. Production pages and their controls remain unchanged.
 let account = $state<string | null>(null);
 let available = $state(false);
+// `localStorage['simulation:wallet'] = 'passkey'` previews the Revibase Passkey wallet instead of Phantom.
+let passkey = $state(false);
 export const walletStore = {
 	init() {
 		if (typeof window === 'undefined') return;
@@ -17,6 +19,7 @@ export const walletStore = {
 		available =
 			/Phantom/i.test(navigator.userAgent) ||
 			localStorage.getItem('simulation:browser-wallet') === 'true';
+		passkey = localStorage.getItem('simulation:wallet') === 'passkey';
 		window.addEventListener('simulation:account', ((e: CustomEvent) => {
 			account = e.detail;
 		}) as EventListener);
@@ -33,7 +36,7 @@ export const walletStore = {
 		return account ? 'connected' : 'disconnected';
 	},
 	get walletName() {
-		return account ? 'Phantom' : null;
+		return account ? (passkey ? 'Revibase Passkey' : 'Phantom') : null;
 	},
 	get walletIcon() {
 		return account ? '/icon-192.png' : null;
@@ -47,10 +50,16 @@ export const walletStore = {
 	async disconnect() {
 		account = null;
 	},
+	get approvePrompt() {
+		return `Approve in ${passkey ? 'Revibase Passkey' : 'Phantom'}…`;
+	},
 	signingContext() {
-		return { address: account, wallet: { name: 'Phantom' } };
+		return { address: account, wallet: { name: passkey ? 'Revibase Passkey' : 'Phantom' } };
 	}
 };
 export async function signWithWallet() {
+	throw new Error('Signing must be simulated explicitly');
+}
+export async function signMessageWithWallet() {
 	throw new Error('Signing must be simulated explicitly');
 }

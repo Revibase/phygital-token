@@ -1,7 +1,4 @@
 <script lang="ts">
-	import { SOL_INFO } from '$lib/shared/policy-explain';
-	import Section from '$lib/components/app/Section.svelte';
-	import ListRowSkeleton from '$lib/components/app/ListRowSkeleton.svelte';
 	import { onMount } from 'svelte';
 	import { createQuery } from '@tanstack/svelte-query';
 	import ArrowDownIcon from '@lucide/svelte/icons/arrow-down';
@@ -15,36 +12,32 @@
 	import Notice from '$lib/components/app/Notice.svelte';
 	import EmptyState from '$lib/components/app/EmptyState.svelte';
 	import CopyField from '$lib/components/app/CopyField.svelte';
-	import TokenIcon from '$lib/components/app/TokenIcon.svelte';
 	import ReceiveSheet from '$lib/components/app/ReceiveSheet.svelte';
 	import AccessoryWalletExplainer from '$lib/components/app/AccessoryWalletExplainer.svelte';
 	import { hasSeenWalletIntro, rememberWalletIntro } from '$lib/client/memory';
 	import SendAllSheet from '$lib/components/app/SendAllSheet.svelte';
-	import {
-		isCollectible,
-		transferRestriction,
-		portfolioValue,
-		formatUsd
-	} from '$lib/shared/wallet-holdings';
-	import {
-		collectibleAssets,
-		sendAssetRestriction,
-		type SendAsset
-	} from '$lib/shared/wallet-instructions';
+	import { transferRestriction, portfolioValue, formatUsd } from '$lib/shared/wallet-holdings';
+	import type { SendAsset } from '$lib/shared/wallet-instructions';
+	import HoldingsList from '$lib/components/app/HoldingsList.svelte';
+	import WalletRow from '$lib/components/app/WalletRow.svelte';
 	import SendSheet from '$lib/components/app/SendSheet.svelte';
 	import PolicySheet from '$lib/components/app/PolicySheet.svelte';
 	import RefillFeesNotice from '$lib/components/app/RefillFeesNotice.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { accessoryPolicyQuery, accessoryWalletQuery } from '$lib/client/queries';
+	import {
+		accessoryMediaQuery,
+		accessoryPolicyQuery,
+		accessoryWalletQuery
+	} from '$lib/client/queries';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
-	import { formatCompactTokenAmount, SOL_DECIMALS } from '$lib/shared/amount';
-	import { shortAddress } from '$lib/shared/encoding';
 
 	let { data } = $props();
 	const a = $derived(data.accessory);
 
 	const holdingsQuery = createQuery(() => accessoryWalletQuery(a.pda));
 	const policyQuery = createQuery(() => accessoryPolicyQuery(a.pda));
+	// The accessory's own artwork marks this wallet as the accessory's, not the owner's.
+	const media = createQuery(() => ({ ...accessoryMediaQuery(a.pda), enabled: !!a.mint }));
 	const holdings = $derived(holdingsQuery.data);
 	const valuation = $derived(holdings ? portfolioValue(holdings) : null);
 	const policy = $derived(policyQuery.data ?? null);
@@ -62,32 +55,6 @@
 	let sendOpen = $state(false);
 	let sendAllOpen = $state(false);
 	let selectedAsset = $state<SendAsset>({ kind: 'sol' });
-	const tokens = $derived(holdings?.tokens.filter((t) => !isCollectible(t)) ?? []);
-	const collectibles = $derived(
-		holdings
-			? collectibleAssets(holdings)
-					.map((asset) =>
-						asset.kind === 'token'
-							? {
-									asset,
-									id: asset.token.tokenAccount,
-									name: asset.token.name ?? shortAddress(asset.token.mint),
-									icon: asset.token.icon,
-									restriction: sendAssetRestriction(asset)
-								}
-							: asset.kind === 'nft'
-								? {
-										asset,
-										id: asset.nft.id,
-										name: asset.nft.name ?? shortAddress(asset.nft.id),
-										icon: asset.nft.icon,
-										restriction: sendAssetRestriction(asset)
-									}
-								: null
-					)
-					.filter((nft) => nft !== null)
-			: []
-	);
 	function selectAsset(asset: SendAsset) {
 		if (!canPrepare) return;
 		selectedAsset = asset;
@@ -134,6 +101,15 @@
 		</nav>
 
 		<h1 class="sr-only">Accessory wallet</h1>
+		<List>
+			<WalletRow
+				address={data.wallet}
+				label="Accessory wallet"
+				icon={media.data?.image ?? null}
+				context="Stays with this accessory"
+				cluster={data.cluster}
+			/>
+		</List>
 		{#if showEmpty}
 			<EmptyState
 				title="Nothing here yet"
@@ -211,85 +187,11 @@
 				retrying={holdingsQuery.isFetching}
 			/>
 		{:else if !showEmpty}
-			{#if canPrepare}<p class="px-1 text-[13px] text-muted-foreground">
-					Tap an asset to send
-				</p>{/if}
-			<List label="Tokens">
-				{#if !holdings}
-					{#each [0, 1] as i (i)}<ListRowSkeleton />{/each}
-				{:else}
-					<ListRow
-						label="Solana"
-						detail="SOL"
-						value={formatCompactTokenAmount(holdings.lamports, SOL_DECIMALS)}
-						onclick={viewOnly ? undefined : () => selectAsset({ kind: 'sol' })}
-						disabled={!viewOnly && !canPrepare}
-						chevron={!viewOnly}
-					>
-						{#snippet leading()}<TokenIcon src={SOL_INFO.icon} label="SOL" />{/snippet}
-					</ListRow>
-					{#if !tokens.length}<li class="px-4 py-5 text-[14px] text-muted-foreground">
-							{viewOnly ? 'No tokens.' : 'Tokens you receive will appear here.'}
-						</li>{/if}
-					{#each tokens as t (t.tokenAccount)}
-						<ListRow
-							label={t.name ?? t.symbol ?? shortAddress(t.mint)}
-							detail={!viewOnly && transferRestriction(t)
-								? 'Can’t be sent'
-								: (t.symbol ?? shortAddress(t.mint))}
-							value={formatCompactTokenAmount(t.amount, t.decimals)}
-							onclick={viewOnly ? undefined : () => selectAsset({ kind: 'token', token: t })}
-							disabled={!viewOnly && !canPrepare}
-							chevron={!viewOnly}
-						>
-							{#snippet leading()}<TokenIcon src={t.icon} label={t.symbol ?? t.mint} />{/snippet}
-						</ListRow>
-					{/each}
-				{/if}
-			</List>
-		{/if}
-
-		{#if holdings?.nftStatus === 'unavailable' || holdings?.nftStatus === 'partial'}<Notice
-				tone="info"
-				title="Some collectibles may be missing"
-				body="We couldn’t load all your collectibles. Refresh before sending all."
-			/>{/if}
-		{#if collectibles.length}
-			<Section label="Collectibles">
-				<div class="grid grid-cols-2 gap-3">
-					{#each collectibles as nft (nft.id)}
-						{#snippet card()}
-							{#if nft.icon}<img
-									src={nft.icon}
-									alt=""
-									class="aspect-square w-full object-cover"
-									loading="lazy"
-								/>{:else}<div
-									class="grid aspect-square place-items-center bg-muted text-4xl text-muted-foreground"
-								>
-									◇
-								</div>{/if}
-							<div class="space-y-1 p-3">
-								<p class="truncate text-[14px] font-medium">{nft.name}</p>
-								{#if nft.restriction && !viewOnly}<p class="text-[12px] text-muted-foreground">
-										Can’t be sent yet
-									</p>{/if}
-							</div>
-						{/snippet}
-						{#if viewOnly}
-							<div class="overflow-hidden rounded-2xl border bg-card">{@render card()}</div>
-						{:else}
-							<button
-								type="button"
-								disabled={!canPrepare}
-								onclick={() => selectAsset(nft.asset)}
-								class="overflow-hidden rounded-2xl border bg-card text-left outline-none transition-colors enabled:hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-ring"
-								aria-label={`Send ${nft.name}`}>{@render card()}</button
-							>
-						{/if}
-					{/each}
-				</div>
-			</Section>
+			<HoldingsList
+				{holdings}
+				onselect={viewOnly ? undefined : selectAsset}
+				disabled={!canPrepare}
+			/>
 		{/if}
 		{#if owned}<RefillFeesNotice pda={a.pda} {policy} />{/if}
 	</section>

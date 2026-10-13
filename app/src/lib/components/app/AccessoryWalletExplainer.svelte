@@ -9,6 +9,10 @@
 		the owner can move them at any time.
 	</p>
 	<p class="text-muted-foreground">
+		It belongs to the accessory, not to you: it’s separate from the wallet you own it with, and
+		stays with the accessory if it changes hands.
+	</p>
+	<p class="text-muted-foreground">
 		Turn on tap to sign if you want the accessory to approve transactions, within limits the owner
 		sets.
 	</p>

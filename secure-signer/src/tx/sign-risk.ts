@@ -13,6 +13,7 @@ const LABELS: Record<InstructionKind, string> = {
   setOwner: "Link accessory",
   removeOwner: "Unlink accessory",
   send: "Send from accessory wallet",
+  transfer: "Send from your wallet",
   tapPayments: "Change tap permissions",
   tapPaymentsOff: "Disable tap transactions",
   createTokenAccount: "Create token account",
@@ -36,7 +37,7 @@ export function instructionSubtitle(kind: InstructionKind): string | null {
 }
 
 function sendRisk(ixs: ParsedInstructionSummary[]): SignRisk | null {
-  const sends = ixs.filter((ix) => ix.kind === "send");
+  const sends = ixs.filter((ix) => ix.kind === "send" || ix.kind === "transfer");
   if (sends.length === 0) return null;
   for (const ix of sends) {
     const inner = ix.inner ?? [];
@@ -71,6 +72,8 @@ export function riskCallout(ixs: ParsedInstructionSummary[]): string | null {
   const kinds = new Set(ixs.map((i) => i.kind));
   if (kinds.has("send"))
     return "Moves funds out of the accessory wallet. Confirm the amount and destination carefully.";
+  if (kinds.has("transfer"))
+    return "Moves funds out of your passkey wallet. Confirm the amount and destination carefully.";
   if (kinds.has("tapPayments"))
     return "Anyone holding the accessory can use these programs and spending limits with a tap.";
   if (kinds.has("removeOwner")) return "Whoever links the accessory next controls its wallet.";

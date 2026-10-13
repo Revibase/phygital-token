@@ -40,7 +40,7 @@ secure-signer/
       api-backup.ts       #   app worker backup client (/api/signer/*)
     tx/                   # what is being signed
       decode.ts           #   @solana/kit legacy/v0/v1 decode + decompile
-      policy.ts           #   program allowlist + signer binding
+      policy.ts           #   program allowlist (owner actions, own transfers) + signer binding
       parser.ts           #   phygital-token instruction decode
       clear-sign.ts       #   human-readable summaries
     ui/ui.ts              # trusted confirm/create/unlock/export screens

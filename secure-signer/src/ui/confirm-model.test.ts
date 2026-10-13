@@ -131,6 +131,7 @@ describe("confirm screens", () => {
       "setOwner",
       "tapPayments",
       "tapPaymentsOff",
+      "transfer",
     ]);
   });
 });

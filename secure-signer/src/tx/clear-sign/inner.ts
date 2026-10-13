@@ -28,6 +28,8 @@ const METADATA_TRANSFER_V1 = 49;
 
 const BUBBLEGUM_TRANSFER = [163, 52, 200, 231, 140, 3, 69, 186] as const;
 
+const BUBBLEGUM_TRANSFER_V2 = [119, 40, 6, 235, 234, 221, 248, 49] as const;
+
 const CORE_TRANSFER_V1 = 14;
 
 /** SPL Token / Token-2022 instructions that hand over control of an account. */
@@ -231,6 +233,22 @@ export function describeInnerInstruction(
           { label: "Leaf", value: index === null ? "?" : `#${index}` },
           { label: "From", value: full(accounts[1]) },
           { label: "To", value: full(accounts[3]) },
+        ],
+        opaque: false,
+        dangerous: false,
+      };
+    }
+    // transfer_v2 (mpl-account-compression trees): tree config, payer, authority, leaf owner,
+    // leaf delegate, new leaf owner, merkle tree, ...; the leaf index ends the data too.
+    if (hasPrefix(data, BUBBLEGUM_TRANSFER_V2)) {
+      const index = readU32LE(data, data.length - 4);
+      return {
+        title: "Send compressed NFT",
+        details: [
+          { label: "Tree", value: full(accounts[6]) },
+          { label: "Leaf", value: index === null ? "?" : `#${index}` },
+          { label: "From", value: full(accounts[3]) },
+          { label: "To", value: full(accounts[5]) },
         ],
         opaque: false,
         dangerous: false,

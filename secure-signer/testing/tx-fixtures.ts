@@ -168,11 +168,33 @@ export function refilledSendWire(opts: { owner: Address; feePayer: Address }): U
   });
 }
 
-/** A top-level program the app never asks an owner to sign. */
+/** A top-level program the app never asks an owner to sign (a stake withdrawal). */
 export function foreignProgramWire(opts: { payer: Address }): Uint8Array {
   return encodeWire({
     feePayer: opts.payer,
-    instructions: [systemTransfer(opts.payer, randomAddress())],
+    instructions: [
+      {
+        programAddress: "Stake11111111111111111111111111111111111111" as Address,
+        accounts: [
+          { address: randomAddress(), role: 1 },
+          { address: opts.payer, role: 1 },
+          { address: opts.payer, role: 2 },
+        ],
+        data: Uint8Array.from([4, 0, 0, 0, 0, 202, 154, 59, 0, 0, 0, 0]),
+      },
+    ],
+  });
+}
+
+/** SOL straight out of `from`, signed by it: the passkey wallet sending its own funds. */
+export function walletTransferWire(opts: {
+  from: Address;
+  to?: Address;
+  feePayer?: Address;
+}): Uint8Array {
+  return encodeWire({
+    feePayer: opts.feePayer ?? opts.from,
+    instructions: [systemTransfer(opts.from, opts.to ?? randomAddress())],
   });
 }
 
@@ -287,20 +309,26 @@ export const CATALOG = {
   unknownMint: fixedAddress(8),
   nft: fixedAddress(9),
   unknownProgram: fixedAddress(10),
+  ownerTokenAccount: fixedAddress(30),
 } as const;
 
-const sol = (to: Address, lamports: bigint): Instruction => ({
+const sol = (to: Address, lamports: bigint, from: Address = CATALOG.wallet): Instruction => ({
   programAddress: SYSTEM,
   accounts: [
-    { address: CATALOG.wallet, role: 3 },
+    { address: from, role: 3 },
     { address: to, role: 1 },
   ],
   data: bytes([2, 0, 0, 0], u64(lamports)),
 });
-const createAta = (owner: Address, ata: Address, mint: Address): Instruction => ({
+const createAta = (
+  owner: Address,
+  ata: Address,
+  mint: Address,
+  payer: Address = CATALOG.wallet,
+): Instruction => ({
   programAddress: ATA,
   accounts: [
-    { address: CATALOG.wallet, role: 3 },
+    { address: payer, role: 3 },
     { address: ata, role: 1 },
     { address: owner, role: 0 },
     { address: mint, role: 0 },
@@ -314,13 +342,15 @@ const transferChecked = (
   to: Address,
   amount: bigint,
   decimals: number,
+  authority: Address = CATALOG.wallet,
+  source: Address = CATALOG.walletTokenAccount,
 ): Instruction => ({
   programAddress: TOKEN,
   accounts: [
-    { address: CATALOG.walletTokenAccount, role: 1 },
+    { address: source, role: 1 },
     { address: mint, role: 0 },
     { address: to, role: 1 },
-    { address: CATALOG.wallet, role: 2 },
+    { address: authority, role: 2 },
   ],
   data: bytes([12], u64(amount), [decimals]),
 });
@@ -412,6 +442,34 @@ export function confirmScreenCatalog(): Record<string, Uint8Array> {
       ],
     }),
     "send-sol": execute([sol(C.recipient, 250_000_000n)]),
+    // The passkey wallet moving its own assets, top-level: it pays its own fee.
+    "wallet-send-sol": encodeWire({
+      feePayer: C.owner,
+      instructions: [sol(C.recipient, 250_000_000n, C.owner)],
+    }),
+    "wallet-send-usdc-new-account": encodeWire({
+      feePayer: C.owner,
+      instructions: [
+        createAta(C.recipient, C.recipientTokenAccount, USDC, C.owner),
+        transferChecked(USDC, C.recipientTokenAccount, 1_500_000n, 6, C.owner, C.ownerTokenAccount),
+      ],
+    }),
+    "wallet-send-all": encodeWire({
+      feePayer: C.owner,
+      instructions: [
+        transferChecked(USDC, C.recipientTokenAccount, 1_500_000n, 6, C.owner, C.ownerTokenAccount),
+        {
+          programAddress: TOKEN,
+          accounts: [
+            { address: C.ownerTokenAccount, role: 1 },
+            { address: C.owner, role: 1 },
+            { address: C.owner, role: 2 },
+          ],
+          data: Uint8Array.of(9),
+        },
+        sol(C.recipient, 1_234_000_000n, C.owner),
+      ],
+    }),
     "send-sol-sponsored": execute([sol(C.recipient, 250_000_000n)], C.feePayer),
     "send-sol-with-refill": execute(
       [sol(C.recipient, 250_000_000n), sol(C.feePayer, 4_975_000n)],
