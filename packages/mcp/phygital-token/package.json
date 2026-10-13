@@ -31,7 +31,8 @@
     "docs",
     "README.md",
     "LICENSE",
-    "cursor-mcp.example.json"
+    "cursor-mcp.example.json",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/add-shebang.mjs",
