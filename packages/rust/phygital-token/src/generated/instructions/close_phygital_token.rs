@@ -20,8 +20,6 @@ pub struct ClosePhygitalToken {
     pub admin_config: solana_address::Address,
 
     pub phygital_token: solana_address::Address,
-    /// the wallet PDA is unreachable once its token is gone.
-    pub policy: solana_address::Address,
 }
 
 impl ClosePhygitalToken {
@@ -34,7 +32,7 @@ impl ClosePhygitalToken {
         &self,
         remaining_accounts: &[solana_instruction::AccountMeta],
     ) -> solana_instruction::Instruction {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.admin, true,
         ));
@@ -50,7 +48,6 @@ impl ClosePhygitalToken {
             self.phygital_token,
             false,
         ));
-        accounts.push(solana_instruction::AccountMeta::new(self.policy, false));
         accounts.extend_from_slice(remaining_accounts);
         let data = ClosePhygitalTokenInstructionData::new()
             .try_to_vec()
@@ -95,14 +92,12 @@ impl Default for ClosePhygitalTokenInstructionData {
 ///   1. `[writable]` rent_recipient
 ///   2. `[]` admin_config
 ///   3. `[writable]` phygital_token
-///   4. `[writable]` policy
 #[derive(Clone, Debug, Default)]
 pub struct ClosePhygitalTokenBuilder {
     admin: Option<solana_address::Address>,
     rent_recipient: Option<solana_address::Address>,
     admin_config: Option<solana_address::Address>,
     phygital_token: Option<solana_address::Address>,
-    policy: Option<solana_address::Address>,
     __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
@@ -130,12 +125,6 @@ impl ClosePhygitalTokenBuilder {
         self.phygital_token = Some(phygital_token);
         self
     }
-    /// the wallet PDA is unreachable once its token is gone.
-    #[inline(always)]
-    pub fn policy(&mut self, policy: solana_address::Address) -> &mut Self {
-        self.policy = Some(policy);
-        self
-    }
     /// Add an additional account to the instruction.
     #[inline(always)]
     pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
@@ -158,7 +147,6 @@ impl ClosePhygitalTokenBuilder {
             rent_recipient: self.rent_recipient.expect("rent_recipient is not set"),
             admin_config: self.admin_config.expect("admin_config is not set"),
             phygital_token: self.phygital_token.expect("phygital_token is not set"),
-            policy: self.policy.expect("policy is not set"),
         };
 
         accounts.instruction_with_remaining_accounts(&self.__remaining_accounts)
@@ -174,8 +162,6 @@ pub struct ClosePhygitalTokenCpiAccounts<'a, 'b> {
     pub admin_config: &'b solana_account_info::AccountInfo<'a>,
 
     pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
-    /// the wallet PDA is unreachable once its token is gone.
-    pub policy: &'b solana_account_info::AccountInfo<'a>,
 }
 
 /// `close_phygital_token` CPI instruction.
@@ -190,8 +176,6 @@ pub struct ClosePhygitalTokenCpi<'a, 'b> {
     pub admin_config: &'b solana_account_info::AccountInfo<'a>,
 
     pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
-    /// the wallet PDA is unreachable once its token is gone.
-    pub policy: &'b solana_account_info::AccountInfo<'a>,
 }
 
 impl<'a, 'b> ClosePhygitalTokenCpi<'a, 'b> {
@@ -205,7 +189,6 @@ impl<'a, 'b> ClosePhygitalTokenCpi<'a, 'b> {
             rent_recipient: accounts.rent_recipient,
             admin_config: accounts.admin_config,
             phygital_token: accounts.phygital_token,
-            policy: accounts.policy,
         }
     }
     #[inline(always)]
@@ -231,7 +214,7 @@ impl<'a, 'b> ClosePhygitalTokenCpi<'a, 'b> {
         signers_seeds: &[&[&[u8]]],
         remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
     ) -> solana_program_error::ProgramResult {
-        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.admin.key,
             true,
@@ -246,10 +229,6 @@ impl<'a, 'b> ClosePhygitalTokenCpi<'a, 'b> {
         ));
         accounts.push(solana_instruction::AccountMeta::new(
             *self.phygital_token.key,
-            false,
-        ));
-        accounts.push(solana_instruction::AccountMeta::new(
-            *self.policy.key,
             false,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
@@ -268,13 +247,12 @@ impl<'a, 'b> ClosePhygitalTokenCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(6 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.admin.clone());
         account_infos.push(self.rent_recipient.clone());
         account_infos.push(self.admin_config.clone());
         account_infos.push(self.phygital_token.clone());
-        account_infos.push(self.policy.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -295,7 +273,6 @@ impl<'a, 'b> ClosePhygitalTokenCpi<'a, 'b> {
 ///   1. `[writable]` rent_recipient
 ///   2. `[]` admin_config
 ///   3. `[writable]` phygital_token
-///   4. `[writable]` policy
 #[derive(Clone, Debug)]
 pub struct ClosePhygitalTokenCpiBuilder<'a, 'b> {
     instruction: Box<ClosePhygitalTokenCpiBuilderInstruction<'a, 'b>>,
@@ -309,7 +286,6 @@ impl<'a, 'b> ClosePhygitalTokenCpiBuilder<'a, 'b> {
             rent_recipient: None,
             admin_config: None,
             phygital_token: None,
-            policy: None,
             __remaining_accounts: Vec::new(),
         });
         Self { instruction }
@@ -341,12 +317,6 @@ impl<'a, 'b> ClosePhygitalTokenCpiBuilder<'a, 'b> {
         phygital_token: &'b solana_account_info::AccountInfo<'a>,
     ) -> &mut Self {
         self.instruction.phygital_token = Some(phygital_token);
-        self
-    }
-    /// the wallet PDA is unreachable once its token is gone.
-    #[inline(always)]
-    pub fn policy(&mut self, policy: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-        self.instruction.policy = Some(policy);
         self
     }
     /// Add an additional account to the instruction.
@@ -402,8 +372,6 @@ impl<'a, 'b> ClosePhygitalTokenCpiBuilder<'a, 'b> {
                 .instruction
                 .phygital_token
                 .expect("phygital_token is not set"),
-
-            policy: self.instruction.policy.expect("policy is not set"),
         };
         instruction.invoke_signed_with_remaining_accounts(
             signers_seeds,
@@ -419,7 +387,6 @@ struct ClosePhygitalTokenCpiBuilderInstruction<'a, 'b> {
     rent_recipient: Option<&'b solana_account_info::AccountInfo<'a>>,
     admin_config: Option<&'b solana_account_info::AccountInfo<'a>>,
     phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
-    policy: Option<&'b solana_account_info::AccountInfo<'a>>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }

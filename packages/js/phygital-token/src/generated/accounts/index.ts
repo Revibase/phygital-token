@@ -6,6 +6,5 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./accessoryPolicy.js";
 export * from "./adminConfig.js";
 export * from "./phygitalToken.js";

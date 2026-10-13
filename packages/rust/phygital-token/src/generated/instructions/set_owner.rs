@@ -5,7 +5,6 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use crate::generated::types::Secp256r1VerifyArgs;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
@@ -21,10 +20,6 @@ pub struct SetOwner {
     pub slot_hashes: solana_address::Address,
 
     pub instructions_sysvar: solana_address::Address,
-
-    pub policy: solana_address::Address,
-
-    pub wallet: solana_address::Address,
 }
 
 impl SetOwner {
@@ -38,7 +33,7 @@ impl SetOwner {
         args: SetOwnerInstructionArgs,
         remaining_accounts: &[solana_instruction::AccountMeta],
     ) -> solana_instruction::Instruction {
-        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_instruction::AccountMeta::new_readonly(
             self.recipient,
             true,
@@ -55,8 +50,6 @@ impl SetOwner {
             self.instructions_sysvar,
             false,
         ));
-        accounts.push(solana_instruction::AccountMeta::new(self.policy, false));
-        accounts.push(solana_instruction::AccountMeta::new(self.wallet, false));
         accounts.extend_from_slice(remaining_accounts);
         let mut data = SetOwnerInstructionData::new().try_to_vec().unwrap();
         let mut args = args.try_to_vec().unwrap();
@@ -95,7 +88,9 @@ impl Default for SetOwnerInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct SetOwnerInstructionArgs {
-    pub secp256r1_verify_args: Secp256r1VerifyArgs,
+    pub verify_args_relative_index: i64,
+    pub signed_message_index: u8,
+    pub client_data_json: Vec<u8>,
     pub slot_number: u64,
 }
 
@@ -113,17 +108,15 @@ impl SetOwnerInstructionArgs {
 ///   1. `[writable]` phygital_token
 ///   2. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
 ///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
-///   4. `[writable]` policy
-///   5. `[writable]` wallet
 #[derive(Clone, Debug, Default)]
 pub struct SetOwnerBuilder {
     recipient: Option<solana_address::Address>,
     phygital_token: Option<solana_address::Address>,
     slot_hashes: Option<solana_address::Address>,
     instructions_sysvar: Option<solana_address::Address>,
-    policy: Option<solana_address::Address>,
-    wallet: Option<solana_address::Address>,
-    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+    verify_args_relative_index: Option<i64>,
+    signed_message_index: Option<u8>,
+    client_data_json: Option<Vec<u8>>,
     slot_number: Option<u64>,
     __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
@@ -158,21 +151,18 @@ impl SetOwnerBuilder {
         self
     }
     #[inline(always)]
-    pub fn policy(&mut self, policy: solana_address::Address) -> &mut Self {
-        self.policy = Some(policy);
+    pub fn verify_args_relative_index(&mut self, verify_args_relative_index: i64) -> &mut Self {
+        self.verify_args_relative_index = Some(verify_args_relative_index);
         self
     }
     #[inline(always)]
-    pub fn wallet(&mut self, wallet: solana_address::Address) -> &mut Self {
-        self.wallet = Some(wallet);
+    pub fn signed_message_index(&mut self, signed_message_index: u8) -> &mut Self {
+        self.signed_message_index = Some(signed_message_index);
         self
     }
     #[inline(always)]
-    pub fn secp256r1_verify_args(
-        &mut self,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-    ) -> &mut Self {
-        self.secp256r1_verify_args = Some(secp256r1_verify_args);
+    pub fn client_data_json(&mut self, client_data_json: Vec<u8>) -> &mut Self {
+        self.client_data_json = Some(client_data_json);
         self
     }
     #[inline(always)]
@@ -206,14 +196,20 @@ impl SetOwnerBuilder {
             instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!(
                 "Sysvar1nstructions1111111111111111111111111"
             )),
-            policy: self.policy.expect("policy is not set"),
-            wallet: self.wallet.expect("wallet is not set"),
         };
         let args = SetOwnerInstructionArgs {
-            secp256r1_verify_args: self
-                .secp256r1_verify_args
+            verify_args_relative_index: self
+                .verify_args_relative_index
                 .clone()
-                .expect("secp256r1_verify_args is not set"),
+                .expect("verify_args_relative_index is not set"),
+            signed_message_index: self
+                .signed_message_index
+                .clone()
+                .expect("signed_message_index is not set"),
+            client_data_json: self
+                .client_data_json
+                .clone()
+                .expect("client_data_json is not set"),
             slot_number: self.slot_number.clone().expect("slot_number is not set"),
         };
 
@@ -230,10 +226,6 @@ pub struct SetOwnerCpiAccounts<'a, 'b> {
     pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
 
     pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-
-    pub policy: &'b solana_account_info::AccountInfo<'a>,
-
-    pub wallet: &'b solana_account_info::AccountInfo<'a>,
 }
 
 /// `set_owner` CPI instruction.
@@ -248,10 +240,6 @@ pub struct SetOwnerCpi<'a, 'b> {
     pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
 
     pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-
-    pub policy: &'b solana_account_info::AccountInfo<'a>,
-
-    pub wallet: &'b solana_account_info::AccountInfo<'a>,
     /// The arguments for the instruction.
     pub __args: SetOwnerInstructionArgs,
 }
@@ -268,8 +256,6 @@ impl<'a, 'b> SetOwnerCpi<'a, 'b> {
             phygital_token: accounts.phygital_token,
             slot_hashes: accounts.slot_hashes,
             instructions_sysvar: accounts.instructions_sysvar,
-            policy: accounts.policy,
-            wallet: accounts.wallet,
             __args: args,
         }
     }
@@ -296,7 +282,7 @@ impl<'a, 'b> SetOwnerCpi<'a, 'b> {
         signers_seeds: &[&[&[u8]]],
         remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
     ) -> solana_program_error::ProgramResult {
-        let mut accounts = Vec::with_capacity(6 + remaining_accounts.len());
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
         accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.recipient.key,
             true,
@@ -311,14 +297,6 @@ impl<'a, 'b> SetOwnerCpi<'a, 'b> {
         ));
         accounts.push(solana_instruction::AccountMeta::new_readonly(
             *self.instructions_sysvar.key,
-            false,
-        ));
-        accounts.push(solana_instruction::AccountMeta::new(
-            *self.policy.key,
-            false,
-        ));
-        accounts.push(solana_instruction::AccountMeta::new(
-            *self.wallet.key,
             false,
         ));
         remaining_accounts.iter().for_each(|remaining_account| {
@@ -337,14 +315,12 @@ impl<'a, 'b> SetOwnerCpi<'a, 'b> {
             accounts,
             data,
         };
-        let mut account_infos = Vec::with_capacity(7 + remaining_accounts.len());
+        let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
         account_infos.push(self.__program.clone());
         account_infos.push(self.recipient.clone());
         account_infos.push(self.phygital_token.clone());
         account_infos.push(self.slot_hashes.clone());
         account_infos.push(self.instructions_sysvar.clone());
-        account_infos.push(self.policy.clone());
-        account_infos.push(self.wallet.clone());
         remaining_accounts
             .iter()
             .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
@@ -365,8 +341,6 @@ impl<'a, 'b> SetOwnerCpi<'a, 'b> {
 ///   1. `[writable]` phygital_token
 ///   2. `[]` slot_hashes
 ///   3. `[]` instructions_sysvar
-///   4. `[writable]` policy
-///   5. `[writable]` wallet
 #[derive(Clone, Debug)]
 pub struct SetOwnerCpiBuilder<'a, 'b> {
     instruction: Box<SetOwnerCpiBuilderInstruction<'a, 'b>>,
@@ -380,9 +354,9 @@ impl<'a, 'b> SetOwnerCpiBuilder<'a, 'b> {
             phygital_token: None,
             slot_hashes: None,
             instructions_sysvar: None,
-            policy: None,
-            wallet: None,
-            secp256r1_verify_args: None,
+            verify_args_relative_index: None,
+            signed_message_index: None,
+            client_data_json: None,
             slot_number: None,
             __remaining_accounts: Vec::new(),
         });
@@ -418,21 +392,18 @@ impl<'a, 'b> SetOwnerCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn policy(&mut self, policy: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-        self.instruction.policy = Some(policy);
+    pub fn verify_args_relative_index(&mut self, verify_args_relative_index: i64) -> &mut Self {
+        self.instruction.verify_args_relative_index = Some(verify_args_relative_index);
         self
     }
     #[inline(always)]
-    pub fn wallet(&mut self, wallet: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-        self.instruction.wallet = Some(wallet);
+    pub fn signed_message_index(&mut self, signed_message_index: u8) -> &mut Self {
+        self.instruction.signed_message_index = Some(signed_message_index);
         self
     }
     #[inline(always)]
-    pub fn secp256r1_verify_args(
-        &mut self,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-    ) -> &mut Self {
-        self.instruction.secp256r1_verify_args = Some(secp256r1_verify_args);
+    pub fn client_data_json(&mut self, client_data_json: Vec<u8>) -> &mut Self {
+        self.instruction.client_data_json = Some(client_data_json);
         self
     }
     #[inline(always)]
@@ -475,11 +446,21 @@ impl<'a, 'b> SetOwnerCpiBuilder<'a, 'b> {
     #[allow(clippy::vec_init_then_push)]
     pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
         let args = SetOwnerInstructionArgs {
-            secp256r1_verify_args: self
+            verify_args_relative_index: self
                 .instruction
-                .secp256r1_verify_args
+                .verify_args_relative_index
                 .clone()
-                .expect("secp256r1_verify_args is not set"),
+                .expect("verify_args_relative_index is not set"),
+            signed_message_index: self
+                .instruction
+                .signed_message_index
+                .clone()
+                .expect("signed_message_index is not set"),
+            client_data_json: self
+                .instruction
+                .client_data_json
+                .clone()
+                .expect("client_data_json is not set"),
             slot_number: self
                 .instruction
                 .slot_number
@@ -505,10 +486,6 @@ impl<'a, 'b> SetOwnerCpiBuilder<'a, 'b> {
                 .instruction
                 .instructions_sysvar
                 .expect("instructions_sysvar is not set"),
-
-            policy: self.instruction.policy.expect("policy is not set"),
-
-            wallet: self.instruction.wallet.expect("wallet is not set"),
             __args: args,
         };
         instruction.invoke_signed_with_remaining_accounts(
@@ -525,9 +502,9 @@ struct SetOwnerCpiBuilderInstruction<'a, 'b> {
     phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
     slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
     instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
-    policy: Option<&'b solana_account_info::AccountInfo<'a>>,
-    wallet: Option<&'b solana_account_info::AccountInfo<'a>>,
-    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+    verify_args_relative_index: Option<i64>,
+    signed_message_index: Option<u8>,
+    client_data_json: Option<Vec<u8>>,
     slot_number: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,

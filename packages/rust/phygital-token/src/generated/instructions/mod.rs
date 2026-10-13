@@ -7,30 +7,20 @@
 
 pub(crate) mod r#assign_mint;
 pub(crate) mod r#close_phygital_token;
-pub(crate) mod r#close_policy;
 pub(crate) mod r#create_config;
-pub(crate) mod r#execute_with_accessory;
-pub(crate) mod r#execute_with_owner;
 pub(crate) mod r#initialize;
-pub(crate) mod r#preview_execute;
 pub(crate) mod r#remove_owner;
 pub(crate) mod r#set_admin;
 pub(crate) mod r#set_issuer;
 pub(crate) mod r#set_minter;
 pub(crate) mod r#set_owner;
-pub(crate) mod r#update_policy;
 
 pub use self::r#assign_mint::*;
 pub use self::r#close_phygital_token::*;
-pub use self::r#close_policy::*;
 pub use self::r#create_config::*;
-pub use self::r#execute_with_accessory::*;
-pub use self::r#execute_with_owner::*;
 pub use self::r#initialize::*;
-pub use self::r#preview_execute::*;
 pub use self::r#remove_owner::*;
 pub use self::r#set_admin::*;
 pub use self::r#set_issuer::*;
 pub use self::r#set_minter::*;
 pub use self::r#set_owner::*;
-pub use self::r#update_policy::*;

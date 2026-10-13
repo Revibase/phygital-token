@@ -59,7 +59,8 @@ export type PhygitalToken = {
   mint: Address;
   lastSignCount: number;
   tokenType: number;
-  walletBump: number;
+  /** Unused; keeps the layout and every field offset stable. */
+  reserved: number;
   publicKey: Secp256r1Pubkey;
   identifier: Secp256r1Pubkey;
 };
@@ -69,7 +70,8 @@ export type PhygitalTokenArgs = {
   mint: Address;
   lastSignCount: number;
   tokenType: number;
-  walletBump: number;
+  /** Unused; keeps the layout and every field offset stable. */
+  reserved: number;
   publicKey: Secp256r1PubkeyArgs;
   identifier: Secp256r1PubkeyArgs;
 };
@@ -83,7 +85,7 @@ export function getPhygitalTokenEncoder(): FixedSizeEncoder<PhygitalTokenArgs> {
       ["mint", getAddressEncoder()],
       ["lastSignCount", getU32Encoder()],
       ["tokenType", getU8Encoder()],
-      ["walletBump", getU8Encoder()],
+      ["reserved", getU8Encoder()],
       ["publicKey", getSecp256r1PubkeyEncoder()],
       ["identifier", getSecp256r1PubkeyEncoder()],
     ]),
@@ -99,7 +101,7 @@ export function getPhygitalTokenDecoder(): FixedSizeDecoder<PhygitalToken> {
     ["mint", getAddressDecoder()],
     ["lastSignCount", getU32Decoder()],
     ["tokenType", getU8Decoder()],
-    ["walletBump", getU8Decoder()],
+    ["reserved", getU8Decoder()],
     ["publicKey", getSecp256r1PubkeyDecoder()],
     ["identifier", getSecp256r1PubkeyDecoder()],
   ]);

@@ -34,10 +34,9 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
-  getAddressFromResolvedInstructionAccount,
   type ResolvedInstructionAccount,
 } from "@solana/kit/program-client-core";
-import { findAdminConfigPda, findPolicyPda } from "../pdas/index.js";
+import { findAdminConfigPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
 export const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
@@ -54,7 +53,6 @@ export type ClosePhygitalTokenInstruction<
   TAccountRentRecipient extends string | AccountMeta<string> = string,
   TAccountAdminConfig extends string | AccountMeta<string> = string,
   TAccountPhygitalToken extends string | AccountMeta<string> = string,
-  TAccountPolicy extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -72,7 +70,6 @@ export type ClosePhygitalTokenInstruction<
       TAccountPhygitalToken extends string
         ? WritableAccount<TAccountPhygitalToken>
         : TAccountPhygitalToken,
-      TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
       ...TRemainingAccounts,
     ]
   >;
@@ -107,14 +104,11 @@ export type ClosePhygitalTokenAsyncInput<
   TAccountRentRecipient extends string = string,
   TAccountAdminConfig extends string = string,
   TAccountPhygitalToken extends string = string,
-  TAccountPolicy extends string = string,
 > = {
   admin: TransactionSigner<TAccountAdmin>;
   rentRecipient: Address<TAccountRentRecipient>;
   adminConfig?: Address<TAccountAdminConfig>;
   phygitalToken: Address<TAccountPhygitalToken>;
-  /** the wallet PDA is unreachable once its token is gone. */
-  policy?: Address<TAccountPolicy>;
 };
 
 export async function getClosePhygitalTokenInstructionAsync<
@@ -122,15 +116,13 @@ export async function getClosePhygitalTokenInstructionAsync<
   TAccountRentRecipient extends string,
   TAccountAdminConfig extends string,
   TAccountPhygitalToken extends string,
-  TAccountPolicy extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: ClosePhygitalTokenAsyncInput<
     TAccountAdmin,
     TAccountRentRecipient,
     TAccountAdminConfig,
-    TAccountPhygitalToken,
-    TAccountPolicy
+    TAccountPhygitalToken
   >,
   config?: { programAddress?: TProgramAddress },
 ): Promise<
@@ -139,8 +131,7 @@ export async function getClosePhygitalTokenInstructionAsync<
     TAccountAdmin,
     TAccountRentRecipient,
     TAccountAdminConfig,
-    TAccountPhygitalToken,
-    TAccountPolicy
+    TAccountPhygitalToken
   >
 > {
   // Program address.
@@ -152,7 +143,6 @@ export async function getClosePhygitalTokenInstructionAsync<
     rentRecipient: { value: input.rentRecipient ?? null, isWritable: true },
     adminConfig: { value: input.adminConfig ?? null, isWritable: false },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
-    policy: { value: input.policy ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -163,14 +153,6 @@ export async function getClosePhygitalTokenInstructionAsync<
   if (!accounts.adminConfig.value) {
     accounts.adminConfig.value = await findAdminConfigPda();
   }
-  if (!accounts.policy.value) {
-    accounts.policy.value = await findPolicyPda({
-      phygitalToken: getAddressFromResolvedInstructionAccount(
-        "phygitalToken",
-        accounts.phygitalToken.value,
-      ),
-    });
-  }
 
   const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
@@ -179,7 +161,6 @@ export async function getClosePhygitalTokenInstructionAsync<
       getAccountMeta("rentRecipient", accounts.rentRecipient),
       getAccountMeta("adminConfig", accounts.adminConfig),
       getAccountMeta("phygitalToken", accounts.phygitalToken),
-      getAccountMeta("policy", accounts.policy),
     ],
     data: getClosePhygitalTokenInstructionDataEncoder().encode({}),
     programAddress,
@@ -188,8 +169,7 @@ export async function getClosePhygitalTokenInstructionAsync<
     TAccountAdmin,
     TAccountRentRecipient,
     TAccountAdminConfig,
-    TAccountPhygitalToken,
-    TAccountPolicy
+    TAccountPhygitalToken
   >);
 }
 
@@ -198,14 +178,11 @@ export type ClosePhygitalTokenInput<
   TAccountRentRecipient extends string = string,
   TAccountAdminConfig extends string = string,
   TAccountPhygitalToken extends string = string,
-  TAccountPolicy extends string = string,
 > = {
   admin: TransactionSigner<TAccountAdmin>;
   rentRecipient: Address<TAccountRentRecipient>;
   adminConfig: Address<TAccountAdminConfig>;
   phygitalToken: Address<TAccountPhygitalToken>;
-  /** the wallet PDA is unreachable once its token is gone. */
-  policy: Address<TAccountPolicy>;
 };
 
 export function getClosePhygitalTokenInstruction<
@@ -213,15 +190,13 @@ export function getClosePhygitalTokenInstruction<
   TAccountRentRecipient extends string,
   TAccountAdminConfig extends string,
   TAccountPhygitalToken extends string,
-  TAccountPolicy extends string,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: ClosePhygitalTokenInput<
     TAccountAdmin,
     TAccountRentRecipient,
     TAccountAdminConfig,
-    TAccountPhygitalToken,
-    TAccountPolicy
+    TAccountPhygitalToken
   >,
   config?: { programAddress?: TProgramAddress },
 ): ClosePhygitalTokenInstruction<
@@ -229,8 +204,7 @@ export function getClosePhygitalTokenInstruction<
   TAccountAdmin,
   TAccountRentRecipient,
   TAccountAdminConfig,
-  TAccountPhygitalToken,
-  TAccountPolicy
+  TAccountPhygitalToken
 > {
   // Program address.
   const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
@@ -241,7 +215,6 @@ export function getClosePhygitalTokenInstruction<
     rentRecipient: { value: input.rentRecipient ?? null, isWritable: true },
     adminConfig: { value: input.adminConfig ?? null, isWritable: false },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
-    policy: { value: input.policy ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -255,7 +228,6 @@ export function getClosePhygitalTokenInstruction<
       getAccountMeta("rentRecipient", accounts.rentRecipient),
       getAccountMeta("adminConfig", accounts.adminConfig),
       getAccountMeta("phygitalToken", accounts.phygitalToken),
-      getAccountMeta("policy", accounts.policy),
     ],
     data: getClosePhygitalTokenInstructionDataEncoder().encode({}),
     programAddress,
@@ -264,8 +236,7 @@ export function getClosePhygitalTokenInstruction<
     TAccountAdmin,
     TAccountRentRecipient,
     TAccountAdminConfig,
-    TAccountPhygitalToken,
-    TAccountPolicy
+    TAccountPhygitalToken
   >);
 }
 
@@ -279,8 +250,6 @@ export type ParsedClosePhygitalTokenInstruction<
     rentRecipient: TAccountMetas[1];
     adminConfig: TAccountMetas[2];
     phygitalToken: TAccountMetas[3];
-    /** the wallet PDA is unreachable once its token is gone. */
-    policy: TAccountMetas[4];
   };
   data: ClosePhygitalTokenInstructionData;
 };
@@ -293,10 +262,10 @@ export function parseClosePhygitalTokenInstruction<
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClosePhygitalTokenInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+  if (instruction.accounts.length < 4) {
     throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
       actualAccountMetas: instruction.accounts.length,
-      expectedAccountMetas: 5,
+      expectedAccountMetas: 4,
     });
   }
   let accountIndex = 0;
@@ -312,7 +281,6 @@ export function parseClosePhygitalTokenInstruction<
       rentRecipient: getNextAccount(),
       adminConfig: getNextAccount(),
       phygitalToken: getNextAccount(),
-      policy: getNextAccount(),
     },
     data: getClosePhygitalTokenInstructionDataDecoder().decode(instruction.data),
   };
