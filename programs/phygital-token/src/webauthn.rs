@@ -36,13 +36,13 @@ pub fn build_transfer_challenge(phygital_token: &Pubkey, slot_hash: [u8; 32]) ->
     hashv(&[b"transfer", phygital_token.as_ref(), &slot_hash]).to_bytes()
 }
 
-// `#[repr(C)]` pins field order to match the secp256r1 program's on-wire offset
-// layout, which is read via an unaligned pointer cast below. Without it, Rust may
-// reorder the fields and the cast would map them incorrectly.
-#[repr(C)]
-#[allow(dead_code)]
+/// `*_instruction_index` value that makes the secp256r1 precompile read from its
+/// own instruction data.
+const CURRENT_INSTRUCTION: u16 = u16::MAX;
+
+/// One entry of the secp256r1 precompile's offsets table: seven little-endian
+/// `u16`s. The signature offset is not needed here and is not kept.
 struct Secp256r1SignatureOffsets {
-    signature_offset: u16,
     signature_instruction_index: u16,
     public_key_offset: u16,
     public_key_instruction_index: u16,
@@ -50,9 +50,6 @@ struct Secp256r1SignatureOffsets {
     message_data_size: u16,
     message_instruction_index: u16,
 }
-
-const _: () =
-    assert!(core::mem::size_of::<Secp256r1SignatureOffsets>() == SIGNATURE_OFFSETS_SERIALIZED_SIZE);
 
 /// Minimum WebAuthn authenticator data: rpIdHash (32) + flags (1) + signCount (4).
 pub const AUTH_DATA_MIN_LEN: usize = 37;
@@ -77,29 +74,46 @@ pub struct Secp256r1VerifyArgs {
 }
 
 impl Secp256r1VerifyArgs {
+    /// Reads entry `signed_message_index` of the offsets table and requires all
+    /// three of its instruction indexes to name the precompile instruction
+    /// itself. The precompile verifies the signature over the key and message
+    /// found in whichever instruction each index names, while this program reads
+    /// the key and message from the precompile instruction's own data: an index
+    /// naming another instruction would let a signature by one key vouch for a
+    /// different key placed at the same offsets here.
     fn read_signature_offsets(
         data: &[u8],
         signed_message_index: u8,
     ) -> Result<Secp256r1SignatureOffsets> {
-        let start = signed_message_index
-            .saturating_mul(SIGNATURE_OFFSETS_SERIALIZED_SIZE as u8)
-            .saturating_add(SIGNATURE_OFFSETS_START as u8);
-        let start_usize = start as usize;
-        let end_usize = start_usize
-            .checked_add(SIGNATURE_OFFSETS_SERIALIZED_SIZE)
+        let start = usize::from(signed_message_index)
+            .checked_mul(SIGNATURE_OFFSETS_SERIALIZED_SIZE)
+            .and_then(|offset| offset.checked_add(SIGNATURE_OFFSETS_START))
             .ok_or(PhygitalError::InvalidSignatureOffsets)?;
-
+        let field = |index: usize| -> Result<u16> {
+            let at = index
+                .checked_mul(2)
+                .and_then(|offset| offset.checked_add(start))
+                .ok_or(PhygitalError::InvalidSignatureOffsets)?;
+            let bytes: [u8; 2] = data
+                .get(at..at.saturating_add(2))
+                .and_then(|bytes| bytes.try_into().ok())
+                .ok_or(PhygitalError::InvalidSignatureOffsets)?;
+            Ok(u16::from_le_bytes(bytes))
+        };
+        let offsets = Secp256r1SignatureOffsets {
+            signature_instruction_index: field(1)?,
+            public_key_offset: field(2)?,
+            public_key_instruction_index: field(3)?,
+            message_data_offset: field(4)?,
+            message_data_size: field(5)?,
+            message_instruction_index: field(6)?,
+        };
         require!(
-            end_usize <= data.len(),
+            offsets.signature_instruction_index == CURRENT_INSTRUCTION
+                && offsets.public_key_instruction_index == CURRENT_INSTRUCTION
+                && offsets.message_instruction_index == CURRENT_INSTRUCTION,
             PhygitalError::InvalidSignatureOffsets
         );
-
-        let offsets = unsafe {
-            core::ptr::read_unaligned(
-                data.as_ptr().add(start_usize) as *const Secp256r1SignatureOffsets
-            )
-        };
-
         Ok(offsets)
     }
 
