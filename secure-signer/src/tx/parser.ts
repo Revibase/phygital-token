@@ -30,7 +30,7 @@ export const SECP256R1_PROGRAM: string = PROGRAM_IDS.secp256r1;
 export const ATA_PROGRAM: string = PROGRAM_IDS.associatedToken;
 
 export type InstructionKind =
-  "link" | "unlink" | "send" | "tapPayments" | "tapPaymentsOff" | "createTokenAccount";
+  "setOwner" | "removeOwner" | "send" | "tapPayments" | "tapPaymentsOff" | "createTokenAccount";
 
 export interface InnerInstructionSummary extends ClearedInner {
   programAddress: string;
@@ -180,7 +180,7 @@ export function parseInstruction(
   switch (parsed.instructionType) {
     case PhygitalTokenInstruction.SetOwner:
       return {
-        kind: "link",
+        kind: "setOwner",
         signers: [parsed.accounts.recipient.address],
         phygitalToken: parsed.accounts.phygitalToken.address,
         inner: null,
@@ -191,7 +191,7 @@ export function parseInstruction(
       };
     case PhygitalTokenInstruction.RemoveOwner:
       return {
-        kind: "unlink",
+        kind: "removeOwner",
         signers: [parsed.accounts.owner.address],
         phygitalToken: parsed.accounts.phygitalToken.address,
         inner: null,

@@ -377,8 +377,8 @@ const cap = (capValue: bigint, windowSeconds: bigint, maxPerTx = 0n) => ({
 export function confirmScreenCatalog(): Record<string, Uint8Array> {
   const C = CATALOG;
   return {
-    link: setOwnerWireFixed(),
-    unlink: encodeWire({
+    "set-owner": setOwnerWireFixed(),
+    "remove-owner": encodeWire({
       feePayer: C.owner,
       instructions: [
         getRemoveOwnerInstruction({

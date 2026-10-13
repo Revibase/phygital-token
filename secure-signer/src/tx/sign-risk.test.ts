@@ -33,19 +33,19 @@ const inner = (opaque: boolean, dangerous: boolean) => ({
 
 describe("sign-risk", () => {
   it("labels each owner action", () => {
-    expect(instructionLabel("link")).toBe("Link accessory");
+    expect(instructionLabel("setOwner")).toBe("Link accessory");
     expect(instructionLabel("send")).toBe("Send from accessory wallet");
     expect(instructionLabel("tapPaymentsOff")).toBe("Disable tap transactions");
   });
 
   it("rates links and turning tap payments off as normal", () => {
-    expect(classifySignRisk(summary(ix("link")))).toBe("normal");
+    expect(classifySignRisk(summary(ix("setOwner")))).toBe("normal");
     expect(classifySignRisk(summary(ix("tapPaymentsOff")))).toBe("normal");
   });
 
   it("rates sends, unlinks and tap-payment changes as elevated", () => {
     expect(classifySignRisk(summary(ix("send", [inner(false, false)])))).toBe("elevated");
-    expect(classifySignRisk(summary(ix("unlink")))).toBe("elevated");
+    expect(classifySignRisk(summary(ix("removeOwner")))).toBe("elevated");
     expect(classifySignRisk(summary(ix("tapPayments")))).toBe("elevated");
   });
 
@@ -62,7 +62,7 @@ describe("sign-risk", () => {
   });
 
   it("explains what's at stake", () => {
-    expect(riskCallout([ix("unlink")])).toMatch(/links the accessory next/);
-    expect(riskCallout([ix("link")])).toBeNull();
+    expect(riskCallout([ix("removeOwner")])).toMatch(/links the accessory next/);
+    expect(riskCallout([ix("setOwner")])).toBeNull();
   });
 });

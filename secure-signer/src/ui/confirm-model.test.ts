@@ -126,11 +126,11 @@ describe("confirm screens", () => {
     );
     expect([...kinds].sort()).toEqual([
       "createTokenAccount",
-      "link",
+      "removeOwner",
       "send",
+      "setOwner",
       "tapPayments",
       "tapPaymentsOff",
-      "unlink",
     ]);
   });
 });

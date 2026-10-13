@@ -109,7 +109,7 @@ export function previewPolicy(tx: DecodedTransaction): PolicyResult {
   }
   if (summaries.length === 0) return { ok: false, code: "POLICY_REJECTED" };
   // A secp256r1 verify only ever accompanies the link it authorizes.
-  if (verifies > 1 || (verifies === 1 && !summaries.some((s) => s.kind === "link"))) {
+  if (verifies > 1 || (verifies === 1 && !summaries.some((s) => s.kind === "setOwner"))) {
     return { ok: false, code: "POLICY_REJECTED" };
   }
 

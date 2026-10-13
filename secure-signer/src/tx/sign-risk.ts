@@ -10,8 +10,8 @@ import type { TransactionSummary } from "./policy.js";
 export type SignRisk = "normal" | "elevated" | "critical";
 
 const LABELS: Record<InstructionKind, string> = {
-  link: "Link accessory",
-  unlink: "Unlink accessory",
+  setOwner: "Link accessory",
+  removeOwner: "Unlink accessory",
   send: "Send from accessory wallet",
   tapPayments: "Change tap permissions",
   tapPaymentsOff: "Disable tap transactions",
@@ -19,8 +19,8 @@ const LABELS: Record<InstructionKind, string> = {
 };
 
 const SUBTITLES: Partial<Record<InstructionKind, string>> = {
-  link: "This wallet becomes the accessory’s owner",
-  unlink: "The accessory wallet stays with the accessory",
+  setOwner: "This wallet becomes the accessory’s owner",
+  removeOwner: "The accessory wallet stays with the accessory",
   send: "Approved with your wallet — not limited by tap permissions",
   tapPayments: "Changes what a tap of the accessory can do",
   tapPaymentsOff:
@@ -50,7 +50,10 @@ export function classifySignRisk(summary: TransactionSummary): SignRisk {
   if (summary.instructions.some((ix) => ix.permissionDanger)) return "critical";
   const send = sendRisk(summary.instructions);
   if (send === "critical") return "critical";
-  if (send || summary.instructions.some((ix) => ix.kind === "tapPayments" || ix.kind === "unlink"))
+  if (
+    send ||
+    summary.instructions.some((ix) => ix.kind === "tapPayments" || ix.kind === "removeOwner")
+  )
     return "elevated";
   return "normal";
 }
@@ -70,6 +73,6 @@ export function riskCallout(ixs: ParsedInstructionSummary[]): string | null {
     return "Moves funds out of the accessory wallet. Confirm the amount and destination carefully.";
   if (kinds.has("tapPayments"))
     return "Anyone holding the accessory can use these programs and spending limits with a tap.";
-  if (kinds.has("unlink")) return "Whoever links the accessory next controls its wallet.";
+  if (kinds.has("removeOwner")) return "Whoever links the accessory next controls its wallet.";
   return null;
 }

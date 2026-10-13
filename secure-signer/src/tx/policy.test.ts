@@ -88,8 +88,8 @@ describe("evaluatePolicy", () => {
   it("accepts a link with its secp256r1 verify, unlink and tap-payment changes", () => {
     const owner = randomAddress();
     for (const [wire, kind] of [
-      [setOwnerWire({ recipient: owner }), "link"],
-      [removeOwnerWire({ owner, feePayer: owner }), "unlink"],
+      [setOwnerWire({ recipient: owner }), "setOwner"],
+      [removeOwnerWire({ owner, feePayer: owner }), "removeOwner"],
       [updatePolicyWire({ owner }), "tapPayments"],
     ] as const) {
       const result = evaluatePolicy(decodeTransaction(wire), pubkey(owner));
