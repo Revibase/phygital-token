@@ -46,7 +46,7 @@ impl Claim {
         let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
         Self {
             token,
-            challenge: build_set_owner_challenge(&token, slot_hash, &recipient.pubkey()),
+            challenge: build_set_owner_challenge(&token, slot_hash),
             recipient,
             slot_number,
             sign_count: ctx.next_sign_count(token),
@@ -70,7 +70,7 @@ impl Claim {
 
 /// The attacker signs with their own key in instruction 0; instruction 1 sends
 /// the precompile there for the key and keeps the victim's key in its own data.
-/// Accepted, this would hand the attacker any Bearer token and its wallet.
+/// Accepted, this would hand the attacker any Bearer token.
 #[test]
 fn set_owner_rejects_a_public_key_read_from_another_instruction() {
     let mut ctx = TestContext::new();

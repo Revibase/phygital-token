@@ -5,10 +5,9 @@ Program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz`, built with Anchor 1.0.
 Each physical accessory carries a P-256 passkey. The program records that key
 in a token account and accepts a **tap** (a WebAuthn assertion verified by the
 secp256r1 precompile) as proof that the accessory was present. On that basis it
-offers ownership (`set_owner`, `remove_owner`) and an optional wallet PDA per
-token that the owner, or a tap within the owner's policy, can sign for.
-Authenticating a tap happens off-chain: the token's address is derived from the
-passkey, so a verifier can read its type and owner.
+offers ownership (`set_owner`, `remove_owner`). Authenticating a tap happens
+off-chain: the token's address is derived from the passkey, so a verifier can
+read its type and owner.
 
 - Start at [`src/lib.rs`](src/lib.rs) for the module map.
 - Invariants: [`docs/program/INVARIANTS.md`](../../docs/program/INVARIANTS.md).
@@ -21,8 +20,6 @@ passkey, so a verifier can read its type and owner.
 |---------|---------|------------|-----------|
 | `AdminConfig` | `["admin"]` | `create_config` | never |
 | `PhygitalToken` | `["token", x(passkey)]` | `initialize` | `close_phygital_token` |
-| `AccessoryPolicy` | `["policy", token]` | `update_policy` | `close_policy`, or any owner change |
-| wallet (no data) | `["wallet", token]` | never (system account) | never |
 
 `x(passkey)` is the 32-byte x coordinate of the compressed public key.
 
@@ -38,19 +35,13 @@ listed. Every accepted tap must carry a higher sign count than the last.
 | `set_admin` / `set_issuer` / `set_minter` | admin | new key is not default and holds no role | replaces the role key |
 | `initialize` | issuer | Permanent ⇔ an owner is given | creates the token; sign count 0 |
 | `assign_mint` | minter | — | sets `mint` (informational) |
-| `close_phygital_token` | admin | token PDA matches its key | closes the token and its policy; the wallet keeps its assets |
-| `set_owner` | `recipient` | not locked; tap over `SHA256("transfer" ‖ token ‖ slot_hash ‖ recipient)`; slot in SlotHashes | owner = `recipient`; a different owner closes the policy |
-| `remove_owner` | owner | not Permanent | owner cleared; policy closed |
-| `update_policy` | owner, payer | edits valid; permissions valid | creates or resizes the policy |
-| `close_policy` | owner | policy belongs to token and wallet | policy closed, rent to the wallet |
-| `execute_with_owner` | owner | top level; no durable nonce; no call into this program; token not privileged | inner instructions signed as the wallet |
-| `execute_with_accessory` | — | as above, plus: owner set; policy loaded; tap over the execute challenge; origin allowed; every inner instruction allowed; every spend capped; wallet owner and size unchanged | inner instructions signed as the wallet; caps charged |
-| `preview_execute` | — | as `execute_with_accessory` without the tap | always fails; `PreviewPassed` if it would succeed |
+| `close_phygital_token` | admin | token PDA matches its key | closes the token |
+| `set_owner` | `recipient` | not locked; tap over `SHA256("transfer" ‖ token ‖ slot_hash)`; slot in SlotHashes | owner = `recipient` |
+| `remove_owner` | owner | not Permanent | owner cleared |
 
-The execute challenge is
-`SHA256("execute" ‖ token ‖ slot_hash ‖ borsh(instructions) ‖ accounts)`, where
-`accounts` lists, for each inner instruction's program and accounts, the key
-and its signer/writable flags ([`src/webauthn/challenge.rs`](src/webauthn/challenge.rs)).
+The challenge does not name the recipient, so a tap can be made before the
+wallet that finishes the claim is known (the handoff flows). The recipient must
+still sign; see the accepted limitation in the threat model.
 
 ## Build and test
 

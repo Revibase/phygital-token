@@ -11,6 +11,7 @@ use anchor_lang::prelude::*;
 use crate::error::PhygitalError;
 
 pub(super) const JSON_CHALLENGE_KEY: &[u8] = br#""challenge":""#;
+#[cfg(test)]
 pub(super) const JSON_ORIGIN_KEY: &[u8] = br#""origin":""#;
 pub(super) const JSON_TYPE_KEY: &[u8] = br#""type":""#;
 /// Unpadded base64url of a 32-byte challenge.

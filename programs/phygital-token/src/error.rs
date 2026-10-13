@@ -72,7 +72,7 @@ pub enum PhygitalError {
     #[msg("WebAuthn rpId hash does not match the expected relying party id.")]
     RpIdMismatch,
 
-    /// `clientDataJSON.origin` is not allowed.
+    /// No longer raised: only the removed accessory wallet checked the origin.
     #[msg("WebAuthn origin does not match any expected origin.")]
     OriginMismatch,
 
@@ -89,7 +89,6 @@ pub enum PhygitalError {
     KeyAlreadyExists,
 
     /// `initialize` gave a Permanent token no owner, or another type an owner.
-    /// A tapped execute on a token without an owner.
     #[msg("Only Permanent phygital tokens set an owner at initialize, and they must set one.")]
     PermanentOwnerRequired,
 
@@ -97,66 +96,53 @@ pub enum PhygitalError {
     #[msg("Permanent phygital token owner cannot be transferred or removed.")]
     PermanentOwnerImmutable,
 
+    // 6022-6037: no longer raised. They belonged to the removed accessory
+    // wallet and are kept so `ClientDataTypeMismatch` keeps its number.
     #[msg("The token has no owner.")]
     OwnerRequired,
 
-    /// A compact instruction references a remaining account that does not exist.
     #[msg("Compact instruction account index out of bounds.")]
     InvalidAccountIndex,
 
-    /// An inner instruction calls this program.
     #[msg("Compact instructions may not call the phygital-token program.")]
     SelfReentrancyNotAllowed,
 
-    /// An execute instruction was invoked through CPI.
     #[msg("Execute must be a top-level instruction.")]
     ExecuteViaCpiNotAllowed,
 
-    /// An execute instruction in a durable-nonce transaction.
     #[msg("Durable-nonce transactions are not allowed.")]
     DurableNonceNotAllowed,
 
-    /// Inner instructions changed the wallet's owner program or data length.
     #[msg("Wallet PDA owner or data length changed during inner CPI.")]
     WalletInvariantViolated,
 
-    /// The token or policy account was passed to an inner instruction as signer or writable.
     #[msg("Protected account may not be a signer or writable in inner instructions.")]
     ProtectedAccountPrivilege,
 
-    /// A policy edit is invalid (see `policy::actions` and `policy::permissions`).
     #[msg("Policy arguments are invalid.")]
     InvalidPolicyArgs,
 
-    /// The policy does not list the inner instruction's program.
     #[msg("Program is not allowed: the policy lists every program the accessory may call.")]
     ProgramNotAllowed,
 
-    /// The program is listed, but no rule matches the inner instruction.
     #[msg("Instruction does not satisfy the configured program rules.")]
     InstructionNotAllowed,
 
-    /// SOL or a token left the wallet with no cap covering it.
     #[msg("No spend cap covers this SOL or token transfer.")]
     SpendNotAllowed,
 
-    /// The spend exceeds what remains of the cap in this window.
     #[msg("Transfer exceeds the configured spending limit.")]
     SpendLimitExceeded,
 
-    /// The spend exceeds the cap's per-execute limit.
     #[msg("Transfer exceeds the configured max per transaction.")]
     MaxPerTxExceeded,
 
-    /// A wallet-owned token account has a delegate after the execute.
     #[msg("Execute may not leave a standing delegate on a wallet-owned token account.")]
     DelegationNotAllowed,
 
-    /// A wallet-owned token account changed owner, mint or close authority, or was closed with lamports left.
     #[msg("Wallet-owned token account control changed during execute.")]
     TokenAuthorityChanged,
 
-    /// Returned by every successful `preview_execute`; it never lands.
     #[msg("Preview passed: an accessory tap would be allowed (preview_execute never lands).")]
     PreviewPassed,
 

@@ -6,7 +6,7 @@
 
 use anchor_lang::prelude::*;
 
-use crate::constants::{ADMIN_CONFIG_SEED, PHYGITAL_TOKEN_SEED, WALLET_SEED};
+use crate::constants::{ADMIN_CONFIG_SEED, PHYGITAL_TOKEN_SEED};
 use crate::error::PhygitalError;
 use crate::state::{AdminConfig, PhygitalToken, PhygitalTokenType};
 use crate::webauthn::{secp256r1_pda_seed, Secp256r1Pubkey};
@@ -55,15 +55,11 @@ pub struct Initialize<'info> {
 
 impl Initialize<'_> {
     pub fn handler(ctx: Context<Self>, args: InitializeArgs) -> Result<()> {
-        let token_key = ctx.accounts.phygital_token.key();
-        let (_, wallet_bump) =
-            Pubkey::find_program_address(&[WALLET_SEED, token_key.as_ref()], &crate::ID);
         ctx.accounts.phygital_token.load_init()?.init(
             args.identifier,
             args.token_type,
             args.secp256r1_pubkey,
             args.owner,
-            wallet_bump,
         )?;
 
         emit!(InitializeEvent {

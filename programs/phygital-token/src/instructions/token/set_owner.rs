@@ -1,17 +1,15 @@
 //! `set_owner`: a tap makes the transaction's `recipient` signer the owner.
-//! The recipient is part of the signed challenge, so the tap names who it is for.
 //!
 //! Refused while the token is locked (Controlled or Permanent with an owner).
-//! The tap signs [`crate::webauthn::challenge::build_set_owner_challenge`]. A
-//! change of owner closes the policy.
+//! The tap signs [`crate::webauthn::challenge::build_set_owner_challenge`],
+//! which does not name the recipient: see the accepted limitation in
+//! `docs/program/THREAT_MODEL.md`.
 
 use anchor_lang::prelude::*;
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 
-use crate::constants::{POLICY_SEED, WALLET_SEED};
 use crate::error::PhygitalError;
-use crate::policy::close_policy_if_exists;
 use crate::state::PhygitalToken;
 use crate::sysvar::fetch_slot_hash;
 use crate::webauthn::challenge::build_set_owner_challenge;
@@ -39,18 +37,6 @@ pub struct SetOwner<'info> {
     /// CHECK: validated as the instructions sysvar address
     #[account(address = INSTRUCTIONS_SYSVAR_ID)]
     pub instructions_sysvar: UncheckedAccount<'info>,
-
-    /// CHECK: seeds-checked; closed if it exists.
-    #[account(mut, seeds = [POLICY_SEED, phygital_token.key().as_ref()], bump)]
-    pub policy: UncheckedAccount<'info>,
-
-    /// CHECK: seeds-checked; receives the policy's rent when it closes.
-    #[account(
-        mut,
-        seeds = [WALLET_SEED, phygital_token.key().as_ref()],
-        bump = phygital_token.load()?.wallet_bump,
-    )]
-    pub wallet: UncheckedAccount<'info>,
 }
 
 impl SetOwner<'_> {
@@ -64,13 +50,11 @@ impl SetOwner<'_> {
 
         let slot_hash = fetch_slot_hash(&ctx.accounts.slot_hashes, slot_number)?;
         let recipient = ctx.accounts.recipient.key();
-        let challenge =
-            build_set_owner_challenge(&ctx.accounts.phygital_token.key(), slot_hash, &recipient);
-        token.accept_assertion(secp256r1_verify_args.verify_webauthn_assertion(
-            &ctx.accounts.instructions_sysvar,
-            challenge,
-            None,
-        )?)?;
+        let challenge = build_set_owner_challenge(&ctx.accounts.phygital_token.key(), slot_hash);
+        token.accept_assertion(
+            secp256r1_verify_args
+                .verify_webauthn_assertion(&ctx.accounts.instructions_sysvar, challenge)?,
+        )?;
 
         emit!(SetOwnerEvent {
             owner: token.owner,
@@ -78,11 +62,6 @@ impl SetOwner<'_> {
             public_key: token.public_key,
             identifier: token.identifier,
         });
-
-        // A new owner (a Bearer re-link) doesn't inherit the old owner's policy.
-        if token.owner != recipient {
-            close_policy_if_exists(&ctx.accounts.policy, &ctx.accounts.wallet)?;
-        }
         token.owner = recipient;
         Ok(())
     }

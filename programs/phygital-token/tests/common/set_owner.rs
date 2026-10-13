@@ -17,8 +17,6 @@ impl TestContext {
                 phygital_token,
                 slot_hashes: SLOT_HASHES_SYSVAR_ID,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
-                policy: self.policy_pda(phygital_token),
-                wallet: self.wallet_pda(phygital_token),
             }
             .to_account_metas(None),
             data: phygital_token::instruction::SetOwner {
@@ -56,7 +54,6 @@ impl TestContext {
 
         let (secp_ix, verify_args) = phygital_token.passkey.secp256r1_verify_instruction(
             phygital_token.phygital_token,
-            recipient.pubkey(),
             slot_hash,
             sign_count,
         );

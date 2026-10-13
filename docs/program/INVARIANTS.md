@@ -16,22 +16,20 @@ in another instruction, could vouch for bytes the passkey never signed.
 **T2. The assertion answers this instruction's challenge.** `clientDataJSON.type`
 is `webauthn.get`, `clientDataJSON.challenge` equals the expected 32 bytes, and
 the signed message ends with `SHA256(clientDataJSON)`.
-— `src/webauthn/mod.rs`; `tests/set_owner_webauthn_coverage.rs`, `tests/wallet_accessory_gate.rs`.
+— `src/webauthn/mod.rs`; `tests/set_owner_webauthn_coverage.rs`.
 
 **T3. The user was present.** The authenticator data's UP flag is set.
 — `src/webauthn/mod.rs`; `tests/set_owner_webauthn_coverage.rs`.
 
 **T4. Each assertion is accepted at most once per token.** The authenticator's sign
 count must exceed `last_sign_count`, which is then updated.
-— `PhygitalToken::accept_assertion` in `src/state/phygital_token.rs`; `tests/set_owner_flow.rs`, `tests/wallet_accessory_gate.rs`.
+— `PhygitalToken::accept_assertion` in `src/state/phygital_token.rs`; `tests/set_owner_flow.rs`, `tests/e2e_scenarios.rs`.
 
-**T5. Challenges cannot be reused across actions or for long.** `set_owner` and the
-execute instructions sign domain-tagged challenges ("transfer", "execute") that
-include the token and a slot hash that must still be in the SlotHashes sysvar
-(the latest 512 slots). The `set_owner` challenge also names the recipient, so
-a tap cannot be resubmitted for a different new owner; the execute challenge
-covers every inner instruction (W2).
-— `src/webauthn/challenge.rs`, `src/sysvar/slot_hashes.rs`; `tests/set_owner_challenge.rs` (including a front-run attempt), `tests/set_owner_security.rs`, `tests/wallet_accessory_gate.rs`.
+**T5. Challenges cannot be reused for other tokens or for long.** `set_owner` signs
+a domain-tagged challenge ("transfer") that includes the token and a slot hash
+that must still be in the SlotHashes sysvar (the latest 512 slots). It does not
+name the recipient: see the accepted limitation in the threat model.
+— `src/webauthn/challenge.rs`, `src/sysvar/slot_hashes.rs`; `tests/set_owner_challenge.rs`, `tests/set_owner_security.rs`.
 
 ## Ownership
 
@@ -44,60 +42,6 @@ requires an owner exactly for Permanent tokens; `remove_owner` refuses them, and
 O1 blocks `set_owner`.
 — `src/state/phygital_token.rs`, `src/instructions/token/remove_owner.rs`; `tests/remove_owner.rs`.
 
-**O3. A new owner never inherits the previous owner's policy.** `set_owner` (when
-the owner changes), `remove_owner` and `close_phygital_token` close the policy.
-— `close_policy_if_exists` in `src/policy/mod.rs`; `tests/wallet_policy_close.rs`.
-
-## Wallet execution
-
-**W1. Only the owner, or a tap within the owner's policy, signs as the wallet.**
-`execute_with_owner` requires the owner's signature; `execute_with_accessory`
-requires an owner, a policy stored for this token and wallet, and a tap.
-— `src/instructions/execute/`; `tests/wallet_owner_execute.rs`, `tests/wallet_accessory_gate.rs`.
-
-**W2. A tap authorizes exactly the instructions and accounts it signed.** The execute
-challenge covers every inner instruction's program, accounts (with signer and
-writable flags) and data.
-— `build_execute_challenge` in `src/webauthn/challenge.rs`; `tests/wallet_accessory_gate.rs`.
-
-**W3. Execution cannot be wrapped or deferred.** Execute instructions must be top
-level and the transaction may not use a durable nonce.
-— `src/wallet/guards.rs`; `tests/wallet_owner_execute.rs` (durable nonce). The CPI case has no test yet: it needs a caller program.
-
-**W4. Inner instructions cannot reach the program's own state.** They may not call
-this program, and the token (and on the tap path the policy) may not be passed
-as signer or writable.
-— `src/wallet/cpi.rs`; `tests/wallet_owner_execute.rs`.
-
-**W5. The wallet stays a plain system account.** Its owner program and data length
-must be unchanged after the inner instructions.
-— `src/wallet/cpi.rs`; `tests/wallet_owner_execute.rs`.
-
-**W6. On the tap path, every inner instruction is allowed by the policy.** Unlisted
-programs are blocked; restricted programs need a matching rule.
-— `src/policy/matcher.rs`; `tests/wallet_policy_flow.rs`, unit tests in that module.
-
-**W7. On the tap path, every SOL or token decrease is charged to a cap.** Each
-tracked account is measured separately; a decrease with no cap fails; caps
-enforce a per-window total and a per-execute maximum.
-— `src/wallet/spend.rs`, `src/policy/caps.rs`; `tests/wallet_policy_flow.rs`, `tests/wallet_attacks.rs`.
-
-**W8. On the tap path, the wallet keeps control of its token accounts.** No delegate
-remains, no tracked account changes owner, mint or close authority, and no new
-wallet account gets a foreign close authority.
-— `charge` in `src/wallet/spend.rs`; `tests/wallet_policy_flow.rs`, `tests/wallet_attacks.rs`.
-
-## Policy storage
-
-**P1. The in-place policy reader agrees with the Borsh encoding.** `PolicyView`
-offsets and the matcher's enum tags match the derived encoding.
-— `src/policy/view.rs`, `src/policy/matcher.rs`; unit tests in those modules.
-
-**P2. Stored permissions are unambiguous.** One entry per program, never this
-program; restricted programs have rules; no rule's selector prefixes another's;
-argument and account constraints fit the declared data length and account count.
-— `validate_permissions` in `src/policy/permissions.rs`; unit tests there, `tests/wallet_policy_update.rs`.
-
 ## Failure behavior
 
 **F1. Malformed input fails with a typed error.** The crate denies
@@ -106,9 +50,9 @@ argument and account constraints fit the declared data length and account count.
 **F2. Arithmetic and indexing fail closed.** The release profile sets
 `overflow-checks = true`, so an overflowing operation aborts the transaction
 instead of wrapping, and an out-of-range slice index aborts it too. Clippy's
-`arithmetic_side_effects` and `indexing_slicing` lints flag 77 such sites; each
+`arithmetic_side_effects` and `indexing_slicing` lints flag 37 such sites; each
 was reviewed and is bounded by a check just before it (a length check, a
 `checked_*` offset, a fixed-size layout or a loop bound), so none is reachable
 in practice. They are left as plain operations rather than converted to new
 error variants, which would change the program's error codes.
-— `src/lib.rs`; property tests in `webauthn/`, `sysvar/`, `wallet/token_account.rs`, `policy/view.rs`.
+— `src/lib.rs`; property tests in `webauthn/` and `sysvar/`.

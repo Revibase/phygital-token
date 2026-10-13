@@ -12,10 +12,8 @@ mod remove_owner;
 mod secp256r1;
 mod set_owner;
 mod slots;
-mod spl;
 mod state;
 mod tx;
-mod wallet;
 
 pub use assertions::{assert_phygital_token_program_error, assert_transaction_failed};
 
@@ -23,10 +21,8 @@ use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::{prelude::*, InstructionData, ToAccountMetas};
 use litesvm::LiteSVM;
 use phygital_token::{
-    build_execute_challenge, secp256r1_pda_seed, AccessoryPolicy, CompactInstruction,
-    InitializeArgs, PhygitalToken, PhygitalTokenType, PolicyAction, ProgramAccess,
-    ProgramPermission, Secp256r1Pubkey, Secp256r1VerifyArgs, ADMIN_CONFIG_SEED,
-    PHYGITAL_TOKEN_SEED, POLICY_SEED, WALLET_SEED,
+    secp256r1_pda_seed, InitializeArgs, PhygitalToken, PhygitalTokenType, Secp256r1Pubkey,
+    Secp256r1VerifyArgs, ADMIN_CONFIG_SEED, PHYGITAL_TOKEN_SEED,
 };
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
@@ -38,10 +34,6 @@ use solana_signer::Signer;
 use solana_transaction::versioned::VersionedTransaction;
 
 pub use secp256r1::{current_slot_entry, TestPasskey};
-pub use spl::{
-    token_approve_ix, token_close_ix, token_set_authority_ix, token_transfer_ix, AuthorityType,
-    DECIMALS,
-};
 
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 pub const TEST_RP_ID: &str = "localhost";
@@ -176,44 +168,4 @@ impl TestContext {
     pub fn admin_config_pda(&self) -> Pubkey {
         Pubkey::find_program_address(&[ADMIN_CONFIG_SEED], &self.program_id).0
     }
-
-    pub fn wallet_pda(&self, phygital_token: Pubkey) -> Pubkey {
-        self.token_pda(WALLET_SEED, phygital_token)
-    }
-
-    pub fn policy_pda(&self, phygital_token: Pubkey) -> Pubkey {
-        self.token_pda(POLICY_SEED, phygital_token)
-    }
-
-    fn token_pda(&self, seed: &[u8], phygital_token: Pubkey) -> Pubkey {
-        Pubkey::find_program_address(&[seed, phygital_token.as_ref()], &self.program_id).0
-    }
-
-    /// The token's accessory policy, if one exists.
-    pub fn policy(&self, phygital_token: Pubkey) -> Option<AccessoryPolicy> {
-        let account = self.svm.get_account(&self.policy_pda(phygital_token))?;
-        if account.owner != self.program_id || account.data.is_empty() {
-            return None;
-        }
-        Some(
-            AccessoryPolicy::try_deserialize(&mut account.data.as_ref())
-                .expect("deserialize policy"),
-        )
-    }
-}
-
-/// Policy entry allowing every instruction of `program_id`.
-pub fn allow(program_id: Pubkey) -> PolicyAction {
-    PolicyAction::SetProgramPermission(ProgramPermission {
-        program_id,
-        access: ProgramAccess::AllInstructions,
-    })
-}
-
-/// SOL cap of `lamports` per lifetime.
-pub fn sol_cap(lamports: u64) -> PolicyAction {
-    PolicyAction::SetSolCap(Some(phygital_token::CapArg {
-        cap: lamports,
-        ..Default::default()
-    }))
 }

@@ -8,9 +8,6 @@
 //!   token, its type and its owner. Authenticating needs no instruction.
 //! - **Own** (`set_owner`, `remove_owner`): a tap assigns the token to a wallet
 //!   key; Controlled and Permanent tokens stay locked while owned.
-//! - **Optional wallet** (`execute_with_owner`, `update_policy`,
-//!   `execute_with_accessory`): each token has a wallet PDA. The owner can sign
-//!   as it freely; a tap can sign as it only within a policy the owner set.
 //!
 //! ## Where to start reading
 //!
@@ -18,8 +15,6 @@
 //! |--------|----------------|
 //! | [`instructions`] | One file per instruction: account constraints and handler. |
 //! | [`webauthn`] | Verifying a tap's WebAuthn assertion; the signed challenges. |
-//! | [`wallet`] | Signing inner instructions as the wallet PDA; spend accounting. |
-//! | [`policy`] | Editing, validating and matching the owner's policy. |
 //! | [`state`] | Account layouts. |
 //! | [`sysvar`] | In-place readers for the Instructions and SlotHashes sysvars. |
 //!
@@ -42,10 +37,8 @@
 pub mod constants;
 pub mod error;
 pub mod instructions;
-pub mod policy;
 pub mod state;
 pub(crate) mod sysvar;
-pub mod wallet;
 pub mod webauthn;
 
 // Anchor's `#[program]` macro resolves each instruction's `Accounts` type and
@@ -54,22 +47,13 @@ pub use instructions::*;
 
 pub use constants::*;
 pub use error::PhygitalError;
-pub use policy::{
-    AccountConstraint, AccountKeyConstraint, CapArg, Comparison, DataConstraint, DataPredicate,
-    InstructionRule, NumericWidth, PolicyAction, ProgramAccess, ProgramPermission,
-};
-pub use state::{
-    AccessoryPolicy, AdminConfig, MintCap, PhygitalToken, PhygitalTokenType, SpendCap,
-};
-pub use wallet::CompactInstruction;
-pub use webauthn::challenge::{build_execute_challenge, build_set_owner_challenge};
+pub use state::{AdminConfig, PhygitalToken, PhygitalTokenType};
+pub use webauthn::challenge::build_set_owner_challenge;
 pub use webauthn::secp256r1::{
     COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
     SIGNATURE_OFFSETS_START,
 };
-pub use webauthn::{
-    secp256r1_pda_seed, OriginCheck, Secp256r1Pubkey, Secp256r1VerifyArgs, AUTH_DATA_MIN_LEN,
-};
+pub use webauthn::{secp256r1_pda_seed, Secp256r1Pubkey, Secp256r1VerifyArgs, AUTH_DATA_MIN_LEN};
 
 use anchor_lang::prelude::*;
 declare_id!("phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz");
@@ -110,8 +94,7 @@ pub mod phygital_token {
         SetRole::set_minter(ctx, minter)
     }
 
-    /// Admin: deletes a token and its policy. The wallet PDA and its assets
-    /// remain and return if the same passkey is initialized again.
+    /// Admin: deletes a token.
     pub fn close_phygital_token(ctx: Context<ClosePhygitalToken>) -> Result<()> {
         ClosePhygitalToken::handler(ctx)
     }
@@ -135,53 +118,8 @@ pub mod phygital_token {
         SetOwner::handler(ctx, secp256r1_verify_args, slot_number)
     }
 
-    /// Owner: gives up the token (not Permanent ones) and closes its policy.
+    /// Owner: gives up the token (not Permanent ones).
     pub fn remove_owner(ctx: Context<RemoveOwner>) -> Result<()> {
         RemoveOwner::handler(ctx)
-    }
-
-    // Optional accessory wallet. Nothing above needs it. The owner can always
-    // execute; a tap needs the owner's policy.
-
-    /// Owner: creates or edits the policy that lets a tap use the wallet.
-    pub fn update_policy(ctx: Context<UpdatePolicy>, actions: Vec<PolicyAction>) -> Result<()> {
-        UpdatePolicy::handler(ctx, actions)
-    }
-
-    /// Owner: deletes the policy, blocking taps from using the wallet.
-    pub fn close_policy(_ctx: Context<ClosePolicy>) -> Result<()> {
-        Ok(())
-    }
-
-    /// Owner: runs instructions as the wallet PDA.
-    pub fn execute_with_owner<'info>(
-        ctx: Context<'info, ExecuteWithOwner<'info>>,
-        compact_instructions: Vec<CompactInstruction>,
-    ) -> Result<()> {
-        ExecuteWithOwner::handler(ctx, compact_instructions)
-    }
-
-    /// Tap: runs instructions as the wallet PDA, within the owner's policy.
-    pub fn execute_with_accessory<'info>(
-        ctx: Context<'info, ExecuteWithAccessory<'info>>,
-        compact_instructions: Vec<CompactInstruction>,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-        slot_number: u64,
-    ) -> Result<()> {
-        ExecuteWithAccessory::handler(
-            ctx,
-            compact_instructions,
-            secp256r1_verify_args,
-            slot_number,
-        )
-    }
-
-    /// Simulation only: always fails, with `PreviewPassed` when a tap would pass.
-    pub fn preview_execute<'info>(
-        ctx: Context<'info, PreviewExecute<'info>>,
-        compact_instructions: Vec<CompactInstruction>,
-        origin: Option<String>,
-    ) -> Result<()> {
-        PreviewExecute::handler(ctx, compact_instructions, origin)
     }
 }

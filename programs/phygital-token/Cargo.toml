@@ -31,7 +31,6 @@ solana-sha256-hasher = { version = "3.1", features = ["sha2"] }
 solana-security-txt = "1.1.3"
 
 [dev-dependencies]
-anchor-spl = "1.0.2"
 litesvm = { version = "0.10.0", features = ["precompiles"] }
 solana-message = "3.0.1"
 solana-transaction = "3.0.2"
