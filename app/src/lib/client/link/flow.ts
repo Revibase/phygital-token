@@ -23,10 +23,22 @@ import { forgetWalletAccessories, refreshAccessory } from '../cache';
 /** A slot-bound transfer challenge, and when a tap over it stops being usable. */
 export type PreparedTap = Pick<LinkTap, 'session'> & { expiresAt: number };
 
-/** Fetch before the click: iOS WebAuthn requires a user gesture without a network await. */
-export async function prepareTap(secp256r1Pubkey: string, rpId: string): Promise<PreparedTap> {
+/**
+ * Fetch before the click: iOS WebAuthn requires a user gesture without a network await.
+ * The challenge names `recipient`, so the wallet must be connected first.
+ */
+export async function prepareTap(
+	secp256r1Pubkey: string,
+	rpId: string,
+	recipient: string
+): Promise<PreparedTap> {
 	const fetchedAt = Date.now();
-	const session = await beginTransfer({ rpc: browserRpc(), secp256r1Pubkey, rpId });
+	const session = await beginTransfer({
+		rpc: browserRpc(),
+		secp256r1Pubkey,
+		recipient: address(recipient),
+		rpId
+	});
 	return { session, expiresAt: fetchedAt + TAP_WINDOW_MS };
 }
 

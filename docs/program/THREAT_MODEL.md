@@ -37,7 +37,7 @@ These are trust assumptions, not bugs:
 - **The minter can change any token's `mint`.** The program does not use it;
   off-chain readers must not treat it as proof of anything.
 - **Whoever first calls `create_config` becomes admin.** Deploy and initialize in
-  one step, or check the config before announcing the program (see open issues).
+  one step and check the config before announcing the program (see Deployment).
 
 ## Threats and mitigations
 
@@ -46,6 +46,7 @@ These are trust assumptions, not bugs:
 | Forge a tap without the chip | precompile signature, key read from the verified bytes only, key match | T1 |
 | Replay a captured tap | strictly increasing sign count; slot-hash expiry | T4, T5 |
 | Reuse a tap made for another action | domain-tagged challenges binding the token | T5 |
+| Front-run a `set_owner` tap with another recipient | the challenge names the recipient | T5 |
 | A relayer alters a tapped execute | challenge covers every inner instruction, account and flag | W2 |
 | Wrap a tapped execute in a CPI, or hold it with a durable nonce | top-level only; nonce transactions refused | W3 |
 | Inner instruction re-enters the program or writes its accounts | self-calls refused; token and policy unprivileged | W4 |
@@ -71,16 +72,10 @@ These are trust assumptions, not bugs:
   implies it. If the accessory's chip signs for any rpId with the same key,
   the challenge and sign count are the remaining protections.
 
-## Open issues
+## Deployment
 
-Tracked for a decision before deployment:
-
-1. **`set_owner` does not bind the recipient.** Its challenge is
-   `SHA256("transfer" ‖ token ‖ slot_hash)`, so the tap is signed before the
-   wallet is chosen. Anyone who sees the assertion before it lands (an RPC
-   node, the slot leader, a fee sponsor, or the page that requested the tap)
-   can submit it with themselves as `recipient`. That takes a Bearer token, or
-   an unowned Controlled token, and its wallet. Binding the recipient into the
-   challenge closes this, but the wallet must then be chosen before the tap.
-2. **`create_config` can be front-run after deployment.** Requiring the program's
-   upgrade authority to sign would close this.
+`create_config` makes its first caller the admin, so it must be called in the
+same transaction as the program deployment, or immediately after it, with the
+resulting admin checked before the program is announced. See
+[docs/audit/BUILD.md](../audit/BUILD.md#deploying). This was chosen over
+restricting `create_config` to the upgrade authority in the program.

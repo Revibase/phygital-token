@@ -40,15 +40,22 @@ function buildVerifyInputFromWebAuthn(input: {
   };
 }
 
+/**
+ * The `set_owner` challenge:
+ * `SHA256("transfer" || phygitalToken || slotHash || recipient)`. Binding the
+ * recipient means the tap authorizes that one wallet as the new owner.
+ */
 export async function buildTransferChallenge(input: {
   phygitalToken: Address;
   slotHash: Uint8Array;
+  recipient: Address;
 }): Promise<Uint8Array> {
   return sha256(
     concatBytes(
       TRANSFER_ACTION_BYTES,
       encodeAddress(input.phygitalToken),
       new Uint8Array(input.slotHash),
+      encodeAddress(input.recipient),
     ),
   );
 }

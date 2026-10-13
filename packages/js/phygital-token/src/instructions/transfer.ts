@@ -31,13 +31,16 @@ export type TransferSession = {
   secp256r1Pubkey: string;
   slotHash: Uint8Array;
   slotNumber: bigint;
+  /** The wallet that will become owner; part of the signed challenge. */
+  recipient: Address;
   challenge: Uint8Array;
   rpId: string;
 };
 
 /**
  * Prepares a transfer session with slot-bound challenge data.
- * Recipient is chosen at wallet confirmation and must sign the transfer transaction.
+ * The challenge names `recipient`, so choose the wallet before the tap; that
+ * wallet must also sign the transaction.
  * Must be followed promptly by {@link authenticatePasskeyForTransfer} and
  * {@link completeTransfer}.
  *
@@ -45,11 +48,13 @@ export type TransferSession = {
  * @param input.secp256r1Pubkey - Base64url compressed secp256r1 public key for the
  *   physical token (same shape as a phygital `response.id` / compressed passkey). The phygital
  *   token PDA is derived via {@link findPhygitalTokenPda}.
+ * @param input.recipient - The wallet that will become the owner.
  * @param input.rpId - Relying party ID for the NFC tap. Defaults to `window.location.hostname`.
  */
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
   secp256r1Pubkey: string;
+  recipient: Address;
   rpId?: string;
 }): Promise<TransferSession> {
   const rpId = resolveTransferRpId(input.rpId);
@@ -58,6 +63,7 @@ export async function beginTransfer(input: {
   const challenge = await buildTransferChallenge({
     phygitalToken,
     slotHash,
+    recipient: input.recipient,
   });
 
   return {
@@ -66,6 +72,7 @@ export async function beginTransfer(input: {
     phygitalToken,
     slotHash,
     slotNumber,
+    recipient: input.recipient,
     challenge,
     rpId,
   };
@@ -107,7 +114,8 @@ export async function authenticatePasskeyForTransfer(
  * Linking a new owner closes the previous owner's accessory policy, refunding
  * its payer.
  *
- * @param recipient - Kit `TransactionSigner` for the wallet that will be linked.
+ * @param recipient - Kit `TransactionSigner` for the new owner. Must be the
+ *   session's `recipient`, which the tap signed for.
  */
 export async function completeTransfer(
   session: TransferSession,
@@ -115,6 +123,12 @@ export async function completeTransfer(
   recipient: TransactionSigner,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
+  if (recipient.address !== session.recipient) {
+    throw new PhygitalTokenError(
+      "RECIPIENT_MISMATCH",
+      "This tap was made for a different wallet. Tap again with this wallet connected.",
+    );
+  }
   const { secp256r1VerifyInstruction, signedMessageIndex, clientDataJson } =
     buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       response,

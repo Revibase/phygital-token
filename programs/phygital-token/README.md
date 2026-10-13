@@ -38,7 +38,7 @@ listed. Every accepted tap must carry a higher sign count than the last.
 | `initialize` | issuer | Permanent ⇔ an owner is given | creates the token; sign count 0 |
 | `assign_mint` | minter | — | sets `mint` (informational) |
 | `close_phygital_token` | admin | token PDA matches its key | closes the token and its policy; the wallet keeps its assets |
-| `set_owner` | `recipient` | not locked; tap over `SHA256("transfer" ‖ token ‖ slot_hash)`; slot in SlotHashes | owner = `recipient`; a different owner closes the policy |
+| `set_owner` | `recipient` | not locked; tap over `SHA256("transfer" ‖ token ‖ slot_hash ‖ recipient)`; slot in SlotHashes | owner = `recipient`; a different owner closes the policy |
 | `remove_owner` | owner | not Permanent | owner cleared; policy closed |
 | `verify` | — | tap over the caller's `message_hash`; optional rpId and origin list | sign count recorded |
 | `update_policy` | owner, payer | edits valid; permissions valid | creates or resizes the policy |

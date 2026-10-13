@@ -6,6 +6,11 @@ All notable changes to this artifact are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `plan_transfer` and the docs describe the recipient-bound `set_owner`
+  challenge and the new `beginTransfer({ rpc, secp256r1Pubkey, recipient })`.
+
 ## [1.10.0]
 
 First public release.

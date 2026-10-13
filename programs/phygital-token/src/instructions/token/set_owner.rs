@@ -1,4 +1,5 @@
 //! `set_owner`: a tap makes the transaction's `recipient` signer the owner.
+//! The recipient is part of the signed challenge, so the tap names who it is for.
 //!
 //! Refused while the token is locked (Controlled or Permanent with an owner).
 //! The tap signs [`crate::webauthn::challenge::build_set_owner_challenge`]. A
@@ -62,7 +63,9 @@ impl SetOwner<'_> {
         require!(!token.is_locked(), PhygitalError::TokenIsCurrentlyLocked);
 
         let slot_hash = fetch_slot_hash(&ctx.accounts.slot_hashes, slot_number)?;
-        let challenge = build_set_owner_challenge(&ctx.accounts.phygital_token.key(), slot_hash);
+        let recipient = ctx.accounts.recipient.key();
+        let challenge =
+            build_set_owner_challenge(&ctx.accounts.phygital_token.key(), slot_hash, &recipient);
         token.accept_assertion(secp256r1_verify_args.verify_webauthn_assertion(
             &ctx.accounts.instructions_sysvar,
             challenge,
@@ -70,7 +73,6 @@ impl SetOwner<'_> {
             None,
         )?)?;
 
-        let recipient = ctx.accounts.recipient.key();
         emit!(SetOwnerEvent {
             owner: token.owner,
             recipient,

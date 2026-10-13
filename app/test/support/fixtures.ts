@@ -75,6 +75,7 @@ export function fakeAccessory() {
 /** A tap over a random slot-bound challenge, as the link page holds it before finishing. */
 export async function fakeTap(rpc: Rpc<SolanaRpcApi>, acc = fakeAccessory()) {
 	const challenge = crypto.getRandomValues(new Uint8Array(32));
+	const recipient = await generateKeyPairSigner();
 	const tap: LinkTap = {
 		session: {
 			rpc,
@@ -82,10 +83,11 @@ export async function fakeTap(rpc: Rpc<SolanaRpcApi>, acc = fakeAccessory()) {
 			secp256r1Pubkey: acc.publicKeyB64,
 			slotHash: crypto.getRandomValues(new Uint8Array(32)),
 			slotNumber: 123456n,
+			recipient: recipient.address,
 			challenge,
 			rpId: RP_ID
 		},
 		response: acc.assert(challenge)
 	};
-	return { acc, tap, recipient: await generateKeyPairSigner() };
+	return { acc, tap, recipient };
 }

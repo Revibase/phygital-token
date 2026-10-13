@@ -33,7 +33,7 @@ The URL’s `pk` is the chip identifier, not its WebAuthn passkey. Resolve it to
 
 Phone only: accessory approval → wallet selection → wallet approval → confirmation, all on the link page (`src/lib/client/link/flow.ts`). Desktop visitors see “Open on your phone” with a QR code of the page (never its single-use tap parameters).
 
-The page fetches the slot-bound challenge itself (`beginTransfer`) before the click, since iOS WebAuthn requires a user gesture without awaiting a network request, and refreshes it as it goes stale. After the tap, the countdown uses a conservative SlotHashes expiry estimate (`TAP_WINDOW_MS`); when it runs out the page returns to the tap step, and the program remains authoritative. The wallet then signs through the shared owner path (`submitAsOwner`), which checks the exact bytes, and the page waits for confirmation. A reload starts again from the tap.
+The owner's wallet is connected first, because the challenge names the new owner. The page then fetches the slot-bound challenge itself (`beginTransfer`) before the click, since iOS WebAuthn requires a user gesture without awaiting a network request, and refreshes it as it goes stale. After the tap, the countdown uses a conservative SlotHashes expiry estimate (`TAP_WINDOW_MS`); when it runs out the page returns to the tap step, and the program remains authoritative. That wallet then signs through the shared owner path (`submitAsOwner`), which checks the exact bytes, and the page waits for confirmation. A reload starts again from the tap.
 
 Wallets are whatever `@solana/connector` detects (Wallet Standard, plus Mobile Wallet Adapter on Android) and the built-in “Revibase Passkey” wallet, which registers itself through Wallet Standard. There are no hardcoded wallet deeplinks.
 

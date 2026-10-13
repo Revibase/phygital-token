@@ -20,6 +20,7 @@ fn set_owner_rejects_wrong_signature() {
     let bad_sig = [0u8; 64];
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with(
         phygital_token.phygital_token,
+        recipient.pubkey(),
         slot_hash,
         1,
         Some(bad_sig),
@@ -52,8 +53,12 @@ fn set_owner_rejects_passkey_for_different_token() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     // Sign with passkey A but target phygital_token B (whose public_key is passkey B).
-    let (secp_ix, verify_args) =
-        passkey_a.secp256r1_verify_instruction(phygital_token_b.phygital_token, slot_hash, 1);
+    let (secp_ix, verify_args) = passkey_a.secp256r1_verify_instruction(
+        phygital_token_b.phygital_token,
+        recipient.pubkey(),
+        slot_hash,
+        1,
+    );
     let transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),
         phygital_token_b.phygital_token,
@@ -75,8 +80,12 @@ fn set_owner_succeeds_when_secp_not_immediately_preceding() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(phygital_token.phygital_token, slot_hash, 1);
+    let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
+        phygital_token.phygital_token,
+        recipient.pubkey(),
+        slot_hash,
+        1,
+    );
     verify_args.verify_args_relative_index = -2;
     let transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),

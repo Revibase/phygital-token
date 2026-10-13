@@ -237,6 +237,7 @@ export type AuthenticationResponseJSON = {
 export function beginTransfer(input: {
     rpc: Rpc<SolanaRpcApi>;
     secp256r1Pubkey: string;
+    recipient: Address;
     rpId?: string;
 }): Promise<TransferSession>;
 
@@ -1870,7 +1871,7 @@ export class PhygitalTokenError extends Error {
 }
 
 // @public
-export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "RP_ID_REQUIRED" | "RECOVERY_SOURCE_REQUIRED" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_CREDENTIAL_ID" | "PASSKEY_RECOVERY_FAILED" | "PASSKEY_NOT_RECOGNIZED" | "PASSKEY_AMBIGUOUS" | "INVALID_ASSERTION" | "MESSAGE_MISMATCH" | "ORIGIN_MISMATCH" | "RP_ID_MISMATCH" | "SLOT_HASH_UNAVAILABLE";
+export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "RP_ID_REQUIRED" | "RECOVERY_SOURCE_REQUIRED" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_CREDENTIAL_ID" | "PASSKEY_RECOVERY_FAILED" | "PASSKEY_NOT_RECOGNIZED" | "PASSKEY_AMBIGUOUS" | "INVALID_ASSERTION" | "MESSAGE_MISMATCH" | "ORIGIN_MISMATCH" | "RP_ID_MISMATCH" | "SLOT_HASH_UNAVAILABLE" | "RECIPIENT_MISMATCH";
 
 // @public (undocumented)
 export enum PhygitalTokenInstruction {
@@ -2501,6 +2502,7 @@ export type TransferSession = {
     secp256r1Pubkey: string;
     slotHash: Uint8Array;
     slotNumber: bigint;
+    recipient: Address;
     challenge: Uint8Array;
     rpId: string;
 };

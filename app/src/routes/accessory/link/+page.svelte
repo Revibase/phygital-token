@@ -44,11 +44,12 @@
 	let hint = $state('Tap Approve, then hold your accessory to your phone.');
 	let webauthnOk = $state(true);
 
-	type View = 'tap' | 'choose' | 'confirm' | 'done';
+	// The tap's challenge names the new owner, so the wallet comes first.
+	type View = 'choose' | 'tap' | 'confirm' | 'done';
 	const view = $derived.by((): View => {
 		if (linked) return 'done';
-		if (!tapped) return 'tap';
-		return walletStore.address ? 'confirm' : 'choose';
+		if (!walletStore.address) return 'choose';
+		return tapped ? 'confirm' : 'tap';
 	});
 	const holdings = createQuery(() => ({
 		...accessoryWalletQuery(a.pda),
@@ -64,10 +65,14 @@
 	let preparing = false;
 	let prepareFailures = 0;
 	async function refreshChallenge() {
-		if (tapped || tapping || preparing) return;
+		const recipient = walletStore.address;
+		if (!recipient || tapped || tapping || preparing) return;
 		preparing = true;
 		try {
-			prepared = await prepareTap(a.publicKey, data.rpId);
+			const next = await prepareTap(a.publicKey, data.rpId, recipient);
+			// The wallet changed while this was in flight: its challenge names the old one.
+			if (walletStore.address !== recipient) return;
+			prepared = next;
 			prepareFailures = 0;
 			clearTimeout(staleTimer);
 			staleTimer = setTimeout(() => void refreshChallenge(), STALE_MS);
@@ -84,7 +89,18 @@
 		hint = `Tap Approve, then ${tapHint().charAt(0).toLowerCase()}${tapHint().slice(1)}`;
 		webauthnOk = canTapHere();
 		walletStore.init(data.cluster);
-		void refreshChallenge();
+	});
+
+	// A tap or challenge is only good for the wallet it names: start over when it changes.
+	let challengeFor: string | null = null;
+	$effect(() => {
+		const recipient = walletStore.address;
+		if (recipient === challengeFor) return;
+		challengeFor = recipient;
+		clearTimeout(staleTimer);
+		prepared = null;
+		if (!phase && !linked) tapped = null;
+		if (recipient) void refreshChallenge();
 	});
 
 	/** The tap's slot hash aged out before the wallet approved: it can never land, so tap again. */
@@ -158,17 +174,17 @@
 						>
 					</div>
 				{:else}
-					{#if view === 'tap'}
+					{#if view === 'choose'}
 						<PageHeader
 							step={{ current: 1, total: 2 }}
-							title="Approve with your accessory"
-							body={hint}
-						/>
-					{:else if view === 'choose'}
-						<PageHeader
-							step={{ current: 2, total: 2 }}
 							title={copy.choose.title}
 							body={copy.choose.body}
+						/>
+					{:else if view === 'tap'}
+						<PageHeader
+							step={{ current: 2, total: 2 }}
+							title="Approve with your accessory"
+							body={hint}
 						/>
 					{:else}
 						<PageHeader
@@ -180,7 +196,16 @@
 
 					<Notice error={failure} />
 
-					{#if view === 'tap'}
+					{#if view === 'tap' && walletStore.address}
+						<List
+							><WalletRow
+								address={walletStore.address}
+								label={walletStore.walletName ?? 'Owner'}
+								context="Becomes the owner"
+								icon={walletStore.walletIcon}
+								cluster={data.cluster}
+							/></List
+						>
 						<div class="grid flex-1 place-items-center py-6">
 							<AccessoryMark state={tapping ? 'waiting' : 'idle'} pda={a.pda} hasMint={!!a.mint} />
 						</div>
@@ -217,7 +242,7 @@
 						<NetworkFeeLine pda={a.pda} />
 					{/if}
 
-					{#if tapped && (view === 'choose' || view === 'confirm')}
+					{#if tapped && view === 'confirm'}
 						<Countdown until={tapped.expiresAt} onexpire={tapExpired} />
 					{/if}
 				{/if}
@@ -240,6 +265,12 @@
 				<Button size="xl" disabled={tapping || !prepared} onclick={tap}>
 					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !prepared}<Spinner /> Preparing…{:else}Approve{/if}
 				</Button>
+				<Button
+					variant="quiet"
+					class="w-full"
+					disabled={tapping}
+					onclick={() => walletStore.disconnect()}>Use a different wallet</Button
+				>
 			{:else if view === 'confirm' && walletStore.address}
 				<Button size="xl" disabled={!!phase} onclick={approveHere}>
 					{#if phase === 'approve'}<Spinner /> {walletStore.approvePrompt}

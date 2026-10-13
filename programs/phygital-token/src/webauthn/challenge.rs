@@ -14,12 +14,23 @@ use crate::error::PhygitalError;
 use crate::wallet::CompactInstruction;
 
 /// WebAuthn challenge for `set_owner`:
-/// `SHA256("transfer" || phygital_token || slot_hash)`.
+/// `SHA256("transfer" || phygital_token || slot_hash || recipient)`.
 ///
-/// The `"transfer"` tag predates the instruction's name and is kept because
-/// existing clients sign it.
-pub fn build_set_owner_challenge(phygital_token: &Pubkey, slot_hash: [u8; 32]) -> [u8; 32] {
-    hashv(&[b"transfer", phygital_token.as_ref(), &slot_hash]).to_bytes()
+/// Binding `recipient` means a tap authorizes one specific new owner: anyone
+/// who sees the assertion before it lands cannot resubmit it for themselves.
+/// (The `"transfer"` tag predates the instruction's name.)
+pub fn build_set_owner_challenge(
+    phygital_token: &Pubkey,
+    slot_hash: [u8; 32],
+    recipient: &Pubkey,
+) -> [u8; 32] {
+    hashv(&[
+        b"transfer",
+        phygital_token.as_ref(),
+        &slot_hash,
+        recipient.as_ref(),
+    ])
+    .to_bytes()
 }
 
 /// `SHA256("execute" || phygital_token || slot_hash || borsh(instructions) || accounts)`,

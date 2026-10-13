@@ -107,8 +107,12 @@ fn set_owner_rejects_a_public_key_read_from_another_instruction() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
     let sign_count = ctx.next_sign_count(token.phygital_token);
 
-    let (signed_by_attacker, args) =
-        attacker.secp256r1_verify_instruction(token.phygital_token, slot_hash, sign_count);
+    let (signed_by_attacker, args) = attacker.secp256r1_verify_instruction(
+        token.phygital_token,
+        thief.pubkey(),
+        slot_hash,
+        sign_count,
+    );
     let mut forged = signed_by_attacker.clone();
     point_at(&mut forged, SIGNATURE_INSTRUCTION_INDEX, 0);
     point_at(&mut forged, PUBLIC_KEY_INSTRUCTION_INDEX, 0);

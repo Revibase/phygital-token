@@ -43,34 +43,44 @@ impl TestPasskey {
         }
     }
 
+    /// A `set_owner` tap authorizing `recipient`.
     pub fn secp256r1_verify_instruction(
         &self,
         phygital_token: Pubkey,
+        recipient: Pubkey,
         slot_hash: [u8; 32],
         sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.secp256r1_verify_instruction_with(phygital_token, slot_hash, sign_count, None)
+        self.secp256r1_verify_instruction_with(
+            phygital_token,
+            recipient,
+            slot_hash,
+            sign_count,
+            None,
+        )
     }
 
     pub fn secp256r1_verify_instruction_with(
         &self,
         phygital_token: Pubkey,
+        recipient: Pubkey,
         slot_hash: [u8; 32],
         sign_count: u32,
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let challenge = build_set_owner_challenge(&phygital_token, slot_hash);
+        let challenge = build_set_owner_challenge(&phygital_token, slot_hash, &recipient);
         self.build_secp256r1_verify_instruction(challenge, sign_count, signature_override, None)
     }
 
     pub fn secp256r1_verify_instruction_with_auth_flags(
         &self,
         phygital_token: Pubkey,
+        recipient: Pubkey,
         slot_hash: [u8; 32],
         sign_count: u32,
         auth_flags: u8,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let challenge = build_set_owner_challenge(&phygital_token, slot_hash);
+        let challenge = build_set_owner_challenge(&phygital_token, slot_hash, &recipient);
         self.build_secp256r1_verify_instruction(challenge, sign_count, None, Some(auth_flags))
     }
 

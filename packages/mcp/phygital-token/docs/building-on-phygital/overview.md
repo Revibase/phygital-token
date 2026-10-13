@@ -4,7 +4,7 @@ Third-party developers can:
 
 - **Authenticate off-chain** (Web2 passkey login) → `startAuthentication(message, { rpc, allowList? })` / `verifyResponse` → your session
 - **Prove possession on-chain** (composable) → `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash })` / `buildSecp256r1VerifyInstruction` (`verify` CPI)
-- **Set owner on-chain** → `beginTransfer({ rpc, secp256r1Pubkey })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_owner`)
+- **Set owner on-chain** → `beginTransfer({ rpc, secp256r1Pubkey, recipient })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_owner`)
 - **Bootstrap roles** → `getCreateConfigInstruction` → `getSetIssuerInstruction` / `getSetMinterInstruction`
 - **Initialize tokens** → `findPhygitalTokenPda` + `getInitializeInstruction` (issuer-only; passkey seeds PDA; chip `identifier` stored for binding)
 - **Bind an SPL mint** → `getAssignMintInstruction` (`assign_mint`; minter-only)
@@ -54,7 +54,7 @@ Hash with `buildMessageHash`, then tap. Pass the same digest to `VerifyCpiBuilde
 ## On-chain owner
 
 ```
-beginTransfer({ rpc, secp256r1Pubkey, rpId? })
+beginTransfer({ rpc, secp256r1Pubkey, recipient, rpId? })
         ↓
 authenticatePasskeyForTransfer(session)
         ↓

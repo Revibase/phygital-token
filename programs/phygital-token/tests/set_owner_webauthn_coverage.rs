@@ -18,8 +18,12 @@ fn set_owner_rejects_signature_index_out_of_bounds() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(phygital_token.phygital_token, slot_hash, 1);
+    let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
+        phygital_token.phygital_token,
+        recipient.pubkey(),
+        slot_hash,
+        1,
+    );
     verify_args.signed_message_index = 1;
 
     let transfer_ix = ctx.set_owner_ix(
@@ -44,8 +48,12 @@ fn set_owner_rejects_unparseable_client_data() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(phygital_token.phygital_token, slot_hash, 1);
+    let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
+        phygital_token.phygital_token,
+        recipient.pubkey(),
+        slot_hash,
+        1,
+    );
     verify_args.client_data_json = b"not-json".to_vec();
 
     let transfer_ix = ctx.set_owner_ix(
@@ -70,8 +78,12 @@ fn set_owner_rejects_client_data_hash_mismatch() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, mut verify_args) =
-        passkey.secp256r1_verify_instruction(phygital_token.phygital_token, slot_hash, 1);
+    let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
+        phygital_token.phygital_token,
+        recipient.pubkey(),
+        slot_hash,
+        1,
+    );
     verify_args.client_data_json.push(b' ');
 
     let transfer_ix = ctx.set_owner_ix(
@@ -98,6 +110,7 @@ fn set_owner_rejects_missing_user_presence() {
 
     let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with_auth_flags(
         phygital_token.phygital_token,
+        recipient.pubkey(),
         slot_hash,
         1,
         0x00,
@@ -116,8 +129,8 @@ fn set_owner_rejects_missing_user_presence() {
     assert_phygital_token_program_error(err, "UserPresenceNotVerified");
 }
 
-/// The passkey signs over the phygital_token PDA only — recipient is not in the challenge —
-/// but the recipient wallet must co-sign to accept owner.
+/// The tap names the recipient, and the recipient wallet must also co-sign to accept
+/// ownership.
 #[test]
 fn set_owner_rejects_recipient_not_signing() {
     let mut ctx = TestContext::new();
@@ -126,8 +139,12 @@ fn set_owner_rejects_recipient_not_signing() {
     let recipient = Keypair::new();
 
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
-    let (secp_ix, verify_args) =
-        passkey.secp256r1_verify_instruction(phygital_token.phygital_token, slot_hash, 1);
+    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
+        phygital_token.phygital_token,
+        recipient.pubkey(),
+        slot_hash,
+        1,
+    );
 
     let mut transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),

@@ -24,6 +24,7 @@ import {
 	createNoopSigner,
 	compileTransaction,
 	type Instruction,
+	type Address,
 	type KeyPairSigner,
 	type TransactionSigner
 } from '@solana/kit';
@@ -256,11 +257,15 @@ export class Browser {
 	}
 }
 
-/** Taps `acc` over a fresh slot-bound transfer challenge, as the link page does. */
-export async function tapForLink(acc: ReturnType<typeof fakeAccessory>): Promise<LinkTap> {
+/** Taps `acc` over a fresh slot-bound transfer challenge for `recipient`, as the link page does. */
+export async function tapForLink(
+	acc: ReturnType<typeof fakeAccessory>,
+	recipient: Address
+): Promise<LinkTap> {
 	const session = await beginTransfer({
 		rpc,
 		secp256r1Pubkey: bytesToBase64Url(acc.passkey),
+		recipient,
 		rpId: RP_ID
 	});
 	return { session, response: acc.webauthn(bytesToBase64Url(session.challenge)) };
@@ -268,7 +273,7 @@ export async function tapForLink(acc: ReturnType<typeof fakeAccessory>): Promise
 
 /** Links `acc` to `wallet`, which pays the fee: tap, build, check the bytes, sign and send. */
 export async function link(acc: ReturnType<typeof fakeAccessory>, wallet: KeyPairSigner) {
-	const tap = await tapForLink(acc);
+	const tap = await tapForLink(acc, wallet.address);
 	const { value: blockhash } = await rpc.getLatestBlockhash().send();
 	const { transaction, wireBytes } = await buildLinkTransaction({
 		tap,
@@ -325,7 +330,7 @@ export async function sendSponsored(
 
 /** `link`, for a recipient with no SOL: a Revibase fee payer pays for it. */
 export async function linkSponsored(acc: ReturnType<typeof fakeAccessory>, wallet: KeyPairSigner) {
-	const tap = await tapForLink(acc);
+	const tap = await tapForLink(acc, wallet.address);
 	return sendSponsored(
 		tap.session.phygitalToken,
 		wallet,

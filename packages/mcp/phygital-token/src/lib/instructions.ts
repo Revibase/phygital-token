@@ -123,7 +123,7 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
 
   return {
     flow: [
-      "1. beginTransfer({ rpc, secp256r1Pubkey, rpId? }) — derives token PDA from passkey; fetch slot hash, build challenge; rpId defaults to hostname",
+      "1. beginTransfer({ rpc, secp256r1Pubkey, recipient, rpId? }) — derives token PDA from passkey; fetch slot hash, build challenge; rpId defaults to hostname",
       "2. authenticatePasskeyForTransfer(session) — browser WebAuthn tap",
       "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + set_owner",
     ],
@@ -133,7 +133,7 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
       complete: "completeTransfer",
     },
     challenge: {
-      formula: "SHA256('transfer' || tokenPda || slotHash)",
+      formula: "SHA256('transfer' || tokenPda || slotHash || recipient)",
       fetchedAt: "beginTransfer reads slot_hashes sysvar (~512 slot window)",
       note: "Run beginTransfer with a live rpc to get challengeBase64 and slotNumber.",
     },
@@ -165,7 +165,8 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
       "A claimed Controlled token is locked until remove_owner.",
       "Linking a new owner closes the previous owner's accessory policy and returns its rent to the accessory wallet; completeTransfer passes the policy and wallet accounts (getPolicyCloseAccounts).",
       "Permanent tokens remain locked (cannot forfeit), so set_owner always fails with TokenIsCurrentlyLocked.",
-      "beginTransfer takes Kit Rpc + base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
+      "beginTransfer takes Kit Rpc, base64url secp256r1Pubkey and the recipient address; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
+      "The challenge names the recipient: choose the wallet before the tap. completeTransfer refuses any other signer (RECIPIENT_MISMATCH).",
       "Browser tap: pass rpc to recover a 16-byte placeholder on-chain; allowList gates the tapped credential id and is the no-RPC recovery fallback.",
       "completeTransfer takes a Kit TransactionSigner for recipient.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",

@@ -56,6 +56,7 @@ impl TestContext {
 
         let (secp_ix, verify_args) = phygital_token.passkey.secp256r1_verify_instruction(
             phygital_token.phygital_token,
+            recipient.pubkey(),
             slot_hash,
             sign_count,
         );

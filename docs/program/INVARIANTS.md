@@ -28,8 +28,10 @@ count must exceed `last_sign_count`, which is then updated.
 **T5. Challenges cannot be reused across actions or for long.** `set_owner` and the
 execute instructions sign domain-tagged challenges ("transfer", "execute") that
 include the token and a slot hash that must still be in the SlotHashes sysvar
-(the latest 512 slots).
-— `src/webauthn/challenge.rs`, `src/sysvar/slot_hashes.rs`; `tests/set_owner_challenge.rs`, `tests/set_owner_security.rs`, `tests/wallet_accessory_gate.rs`.
+(the latest 512 slots). The `set_owner` challenge also names the recipient, so
+a tap cannot be resubmitted for a different new owner; the execute challenge
+covers every inner instruction (W2).
+— `src/webauthn/challenge.rs`, `src/sysvar/slot_hashes.rs`; `tests/set_owner_challenge.rs` (including a front-run attempt), `tests/set_owner_security.rs`, `tests/wallet_accessory_gate.rs`.
 `verify` takes the caller's `message_hash` as the challenge; freshness and domain
 separation are the caller's responsibility.
 
