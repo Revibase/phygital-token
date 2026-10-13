@@ -51,9 +51,10 @@ export class SponsorError extends Error {
 	}
 }
 
-const reject = (message: string, code = 'not_sponsorable'): never => {
+/** Refuses the transaction. A function declaration, so TypeScript narrows after calls. */
+function reject(message: string, code = 'not_sponsorable'): never {
 	throw new SponsorError(400, code, message);
-};
+}
 
 export type SponsorCaps = { maxComputeUnitLimit: number; maxComputeUnitPrice: bigint };
 
@@ -99,7 +100,8 @@ function refillsIn(
 	for (const inner of compact) {
 		const program = remaining[inner.programIdIndex]?.address;
 		const accounts = Array.from(inner.accountIndexes, (i) => remaining[i]);
-		if (!program || accounts.some((a) => !a)) reject('Execute references a missing account');
+		if (!program || !accounts.every((a): a is NonNullable<typeof a> => !!a))
+			reject('Execute references a missing account');
 		const touchesPool = accounts.some((a) => pool.has(a.address)) || pool.has(program);
 		if (!touchesPool) continue;
 		const transfer = parseSolTransfer({
@@ -109,7 +111,7 @@ function refillsIn(
 		});
 		if (!transfer || transfer.from !== wallet || transfer.to !== feePayer)
 			reject('A fee payer may only receive the refill');
-		total += transfer!.lamports;
+		total += transfer.lamports;
 		refills++;
 	}
 	return { total, only: refills === 1 && compact.length === 1 };
@@ -237,7 +239,7 @@ export function inspectSponsored(
 			} catch {
 				return reject('Unknown phygital-token instruction');
 			}
-			phygital.push({ ix, kind: kind!, index });
+			phygital.push({ ix, kind, index });
 		} else if (program === SECP256R1_PROGRAM_ADDRESS) {
 			precompileSignatures += ix.data?.[0] ?? 0;
 		} else if (
@@ -347,7 +349,7 @@ export function inspectSponsored(
 				p.ix,
 				data.compactInstructions,
 				EXECUTE_WITH_OWNER_NAMED_ACCOUNT_COUNT,
-				p.main.wallet!,
+				p.main.wallet ?? reject('Execute is missing its wallet account'),
 				feePayer,
 				pool
 			).total;
@@ -359,7 +361,7 @@ export function inspectSponsored(
 				p.ix,
 				data.compactInstructions,
 				EXECUTE_WITH_ACCESSORY_NAMED_ACCOUNT_COUNT,
-				p.main.wallet!,
+				p.main.wallet ?? reject('Execute is missing its wallet account'),
 				feePayer,
 				pool
 			).total;
@@ -369,7 +371,7 @@ export function inspectSponsored(
 	// 4. Fees within the caps.
 	const limit = getTransactionMessageComputeUnitLimit(message);
 	if (limit === undefined) reject('Set a compute unit limit', 'fee_caps');
-	if (limit! > caps.maxComputeUnitLimit)
+	if (limit > caps.maxComputeUnitLimit)
 		reject('Compute unit limit is above what we sponsor', 'fee_caps');
 	let priorityFeeLamports: bigint;
 	if (message.version === 1) {
@@ -384,7 +386,7 @@ export function inspectSponsored(
 		const price = getTransactionMessageComputeUnitPrice(message as never) ?? 0n;
 		if (price > caps.maxComputeUnitPrice)
 			reject('Priority fee is above what we sponsor', 'fee_caps');
-		priorityFeeLamports = priorityFeeLamportsFor(price, limit!);
+		priorityFeeLamports = priorityFeeLamportsFor(price, limit);
 	}
 	const fee = networkFeeLamports({
 		signatures: Object.keys(tx.signatures).length,
