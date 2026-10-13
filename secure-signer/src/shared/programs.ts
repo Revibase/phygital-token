@@ -6,6 +6,22 @@
  * with its selector.
  */
 
+/** Every program address the signer and the app's editor refer to, defined once. */
+export const PROGRAM_IDS = {
+  system: "11111111111111111111111111111111",
+  token: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+  token2022: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+  associatedToken: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+  stake: "Stake11111111111111111111111111111111111111",
+  memo: "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+  memoV1: "Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo",
+  metaplexCore: "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d",
+  tokenMetadata: "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+  bubblegum: "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY",
+  computeBudget: "ComputeBudget111111111111111111111111111111",
+  secp256r1: "Secp256r1SigVerify1111111111111111111111111",
+} as const;
+
 export type KnownInstruction = {
   name: string;
   selector: readonly number[];
@@ -47,7 +63,7 @@ const tokenInstructions: readonly KnownInstruction[] = [
 
 export const KNOWN_PROGRAMS: readonly KnownProgram[] = [
   {
-    address: "11111111111111111111111111111111",
+    address: PROGRAM_IDS.system,
     name: "System Program",
     metered: true,
     instructions: [
@@ -56,19 +72,19 @@ export const KNOWN_PROGRAMS: readonly KnownProgram[] = [
     ],
   },
   {
-    address: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    address: PROGRAM_IDS.token,
     name: "Token Program",
     metered: true,
     instructions: tokenInstructions,
   },
   {
-    address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    address: PROGRAM_IDS.token2022,
     name: "Token-2022 Program",
     metered: true,
     instructions: tokenInstructions,
   },
   {
-    address: "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+    address: PROGRAM_IDS.associatedToken,
     name: "Associated Token Account Program",
     metered: true,
     instructions: [
@@ -77,7 +93,7 @@ export const KNOWN_PROGRAMS: readonly KnownProgram[] = [
     ],
   },
   {
-    address: "Stake11111111111111111111111111111111111111",
+    address: PROGRAM_IDS.stake,
     name: "Stake Program",
     instructions: [
       { name: "Delegate stake", selector: [2, 0, 0, 0] },
@@ -91,24 +107,24 @@ export const KNOWN_PROGRAMS: readonly KnownProgram[] = [
     ],
   },
   {
-    address: "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr",
+    address: PROGRAM_IDS.memo,
     name: "Memo Program",
     everythingOnly: true,
     metered: true,
     instructions: [],
   },
   {
-    address: "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d",
+    address: PROGRAM_IDS.metaplexCore,
     name: "Metaplex Core",
     instructions: [{ name: "Transfer NFT", selector: [14] }],
   },
   {
-    address: "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+    address: PROGRAM_IDS.tokenMetadata,
     name: "Metaplex Token Metadata",
     instructions: [{ name: "Transfer NFT", selector: [49] }],
   },
   {
-    address: "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY",
+    address: PROGRAM_IDS.bubblegum,
     name: "Metaplex Bubblegum",
     instructions: [
       { name: "Transfer compressed NFT", selector: [163, 52, 200, 231, 140, 3, 69, 186] },

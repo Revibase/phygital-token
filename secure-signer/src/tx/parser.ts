@@ -9,6 +9,7 @@
  * anything with its accessory wallet.
  */
 
+import { PROGRAM_IDS } from "../shared/programs.js";
 import { type AccountMeta, type Instruction, type ReadonlyUint8Array } from "@solana/kit";
 import {
   EXECUTE_WITH_OWNER_NAMED_ACCOUNT_COUNT,
@@ -24,9 +25,9 @@ import {
   type DetailRow,
 } from "./clear-sign.js";
 
-export const COMPUTE_BUDGET_PROGRAM = "ComputeBudget111111111111111111111111111111";
-export const SECP256R1_PROGRAM = "Secp256r1SigVerify1111111111111111111111111";
-export const ATA_PROGRAM = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
+export const COMPUTE_BUDGET_PROGRAM: string = PROGRAM_IDS.computeBudget;
+export const SECP256R1_PROGRAM: string = PROGRAM_IDS.secp256r1;
+export const ATA_PROGRAM: string = PROGRAM_IDS.associatedToken;
 
 export type InstructionKind =
   "link" | "unlink" | "send" | "tapPayments" | "tapPaymentsOff" | "createTokenAccount";
