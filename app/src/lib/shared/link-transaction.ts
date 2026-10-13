@@ -1,6 +1,5 @@
 import {
 	AccountRole,
-	address,
 	appendTransactionMessageInstructions,
 	compileTransaction,
 	createTransactionMessage,
@@ -28,30 +27,13 @@ import {
 } from 'phygital-token-sdk';
 
 import { base64UrlToBytes, bytesEqual } from './encoding';
-
-export const SECP256R1_PROGRAM_ADDRESS = address('Secp256r1SigVerify1111111111111111111111111');
-export const SLOT_HASHES_SYSVAR = address('SysvarS1otHashes111111111111111111111111111');
-export const INSTRUCTIONS_SYSVAR = address('Sysvar1nstructions1111111111111111111111111');
-/** Wallet guard program (Phantom and others wrap what they sign with its assertions). */
-export const LIGHTHOUSE_PROGRAM_ADDRESS = address('L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95');
-
-/** set_owner is cheap; the secp256r1 precompile is charged per signature, not per CU. */
-export const LINK_COMPUTE_UNIT_LIMIT = 60_000;
-export const LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS = 50_000n;
-
-/** A compute-unit price over `units`, in lamports, rounded up (as the fee service checks it). */
-export function priorityFeeLamports(microLamportsPerUnit: bigint, units: number): bigint {
-	return (microLamportsPerUnit * BigInt(units) + 999_999n) / 1_000_000n;
-}
-
-/** The v1 message config every app transaction uses, at the app's compute-unit price. */
-export function v1MessageConfig(units: number) {
-	return {
-		computeUnitLimit: units,
-		loadedAccountsDataSizeLimit: 64 * 1024 * 1024,
-		priorityFeeLamports: priorityFeeLamports(LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS, units)
-	};
-}
+import {
+	INSTRUCTIONS_SYSVAR,
+	LIGHTHOUSE_PROGRAM_ADDRESS,
+	SECP256R1_PROGRAM_ADDRESS,
+	SLOT_HASHES_SYSVAR
+} from './addresses';
+import { LINK_COMPUTE_UNIT_LIMIT, v1MessageConfig } from './fee-policy';
 
 /**
  * How long a tap over a freshly fetched slot hash stays usable.

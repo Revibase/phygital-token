@@ -22,10 +22,10 @@ import { buildRefillInstruction } from '$lib/shared/wallet-instructions';
 import {
 	buildLinkTransaction,
 	linkExpectation,
-	LIGHTHOUSE_PROGRAM_ADDRESS,
 	LinkTransactionRejected,
 	validateLinkTransaction
 } from '$lib/shared/link-transaction';
+import { LIGHTHOUSE_PROGRAM_ADDRESS } from '$lib/shared/addresses';
 import { fakeAccessory, fakeTap } from './support/fixtures';
 
 // completeTransfer only looks up the accessory policy (none here).

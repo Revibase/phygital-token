@@ -8,12 +8,12 @@ import {
 
 import {
 	buildLinkInstructions,
-	LINK_COMPUTE_UNIT_LIMIT,
 	linkExpectation,
 	TAP_WINDOW_MS,
 	validateLinkTransaction,
 	type LinkTap
 } from '$lib/shared/link-transaction';
+import { LINK_COMPUTE_UNIT_LIMIT } from '$lib/shared/fee-policy';
 import { browserRpc } from '../rpc';
 import type { SigningContext } from '../wallet/wallet.svelte';
 import { confirmAsOwner, submitAsOwner, type OwnerAction } from '../accessory-wallet/submit';

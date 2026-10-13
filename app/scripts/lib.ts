@@ -32,12 +32,11 @@ import { base64UrlToBytes, bytesToBase64Url } from '../src/lib/shared/encoding';
 import {
 	buildLinkInstructions,
 	buildLinkTransaction,
-	LINK_COMPUTE_UNIT_LIMIT,
 	linkExpectation,
-	v1MessageConfig,
 	validateLinkTransaction,
 	type LinkTap
 } from '../src/lib/shared/link-transaction';
+import { LINK_COMPUTE_UNIT_LIMIT, v1MessageConfig } from '../src/lib/shared/fee-policy';
 import {
 	beginTransfer,
 	createSponsorFeePayer,

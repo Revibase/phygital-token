@@ -46,7 +46,7 @@ import {
 	LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS,
 	priorityFeeLamports,
 	v1MessageConfig
-} from '$lib/shared/link-transaction';
+} from '$lib/shared/fee-policy';
 import { assertTransactionIntact } from '$lib/shared/wallet-transaction';
 import { buildRefillInstruction } from '$lib/shared/wallet-instructions';
 import { TransactionComputeLimitError, v1TransactionFits } from '$lib/shared/transaction-v1-size';

@@ -8,11 +8,8 @@ import {
 } from '@solana/kit';
 import { COMPUTE_BUDGET_PROGRAM_ADDRESS } from '@solana-program/compute-budget';
 
-import {
-	LIGHTHOUSE_PROGRAM_ADDRESS,
-	LinkTransactionRejected,
-	sameInstruction
-} from './link-transaction';
+import { LinkTransactionRejected, sameInstruction } from './link-transaction';
+import { LIGHTHOUSE_PROGRAM_ADDRESS } from './addresses';
 
 /**
  * Re-check what the owner's wallet returns: the fee payer is the expected one

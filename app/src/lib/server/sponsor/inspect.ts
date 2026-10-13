@@ -35,11 +35,8 @@ import {
 	type CompactInstruction
 } from 'phygital-token-sdk';
 
-import {
-	LIGHTHOUSE_PROGRAM_ADDRESS,
-	priorityFeeLamports as priorityFeeLamportsFor,
-	SECP256R1_PROGRAM_ADDRESS
-} from '$lib/shared/link-transaction';
+import { LIGHTHOUSE_PROGRAM_ADDRESS, SECP256R1_PROGRAM_ADDRESS } from '$lib/shared/addresses';
+import { priorityFeeLamports as priorityFeeLamportsFor } from '$lib/shared/fee-policy';
 
 const MEMO_PROGRAM_ADDRESS = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr' as Address;
 
