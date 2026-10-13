@@ -1,3 +1,4 @@
+/** Codes carried by `PhygitalTokenError`. */
 export type PhygitalTokenErrorCode =
   | "INVALID_PUBLIC_KEY"
   | "RP_ID_REQUIRED"

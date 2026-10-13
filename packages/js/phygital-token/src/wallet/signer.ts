@@ -18,15 +18,18 @@ import {
 import type { FeePlan } from "./wrap/types.js";
 import { modifyAndWrapWalletTransaction } from "./wrap/wrap.js";
 
+/** Progress of a wallet signing request, for UI. */
 export type PhygitalWalletSignPhase =
   "preparing" | "previewing" | "awaitingPasskey" | "building" | "feePaying" | "complete";
 
+/** Optional progress callbacks for `getPhygitalWalletSigner`. */
 export type PhygitalWalletSignerCallbacks = {
   onPhaseChange?: (phase: PhygitalWalletSignPhase) => void;
   /** Where this transaction's network fee comes from, before the passkey prompt. Revibase fee payers only. */
   onFeePlan?: (plan: FeePlan) => void;
 };
 
+/** Options for `getPhygitalWalletSigner`. */
 export type PhygitalWalletSignerConfig = PhygitalWalletSignerCallbacks & {
   fetch?: typeof fetch;
   /**

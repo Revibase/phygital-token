@@ -35,6 +35,7 @@ function dataArgs(d: DataCheckJson): DataConstraintArgs {
   };
 }
 
+/** A JSON rule as the program's `InstructionRule` arguments. */
 export function ruleToArgs(rule: RuleJson): InstructionRuleArgs {
   return {
     selector: hexToBytes(rule.selector),
@@ -82,6 +83,7 @@ function dataJson(d: DataConstraint | DataConstraintArgs): DataCheckJson {
       };
 }
 
+/** A stored `InstructionRule` as JSON. Inverse of `ruleToArgs`. */
 export function ruleFromProgram(rule: InstructionRule | InstructionRuleArgs): RuleJson {
   return clean({
     selector: bytesToHex(rule.selector),

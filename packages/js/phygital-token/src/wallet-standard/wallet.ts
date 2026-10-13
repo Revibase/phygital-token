@@ -76,6 +76,7 @@ type PhygitalWalletFeatures = StandardConnectFeature &
   SolanaSignAndSendTransactionFeature &
   RevibaseAccessoryFeature;
 
+/** Options for `registerPhygitalWallet`. */
 export type PhygitalWalletOptions = {
   rpc: Rpc<SolanaRpcApi>;
   /** Defaults to mainnet only (`solana:mainnet`). Override only for local testing. */

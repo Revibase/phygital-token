@@ -86,7 +86,7 @@ export class AccessoryWalletTopUpRequired extends Error {
     readonly wallet: Address;
 }
 
-// @public (undocumented)
+// @public
 export type AccountCheckJson = {
     index: number;
     key?: string;
@@ -210,7 +210,7 @@ export function authenticatePasskeyForSecp256r1Verify(input: {
 // @public
 export function authenticatePasskeyForTransfer(session: TransferSession): Promise<AuthenticationResponseJSON>;
 
-// @public (undocumented)
+// @public
 export type AuthenticatePasskeyOptions = {
     allowList?: ReadonlySet<string>;
     rpc?: Rpc<SolanaRpcApi>;
@@ -218,7 +218,7 @@ export type AuthenticatePasskeyOptions = {
     credentialId?: string;
 };
 
-// @public (undocumented)
+// @public
 export type AuthenticationResponseJSON = {
     id: Base64URLString_2;
     rawId: Base64URLString_2;
@@ -265,7 +265,7 @@ export function buildSecp256r1VerifyInstruction(response: AuthenticationResponse
     secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
 }>;
 
-// @public (undocumented)
+// @public
 export const bytesToHex: (bytes: ArrayLike<number>) => string;
 
 // @public
@@ -432,7 +432,7 @@ export function createSponsorFeePayer(feePayer: Address, config?: SponsorConfig)
 // @public
 export function createSponsorFeePayers(config?: SponsorConfig): Promise<TransactionPartialSigner<Address>[]>;
 
-// @public (undocumented)
+// @public
 export type DataCheckJson = {
     offset: number;
     bytes?: string;
@@ -522,7 +522,7 @@ export function encodePermissionRequest(set: PermissionSet, base?: string): Prom
 // @public (undocumented)
 export const EXECUTE_WITH_ACCESSORY_DISCRIMINATOR: ReadonlyUint8Array;
 
-// @public (undocumented)
+// @public
 export const EXECUTE_WITH_ACCESSORY_NAMED_ACCOUNT_COUNT = 5;
 
 // @public (undocumented)
@@ -609,7 +609,7 @@ export type ExecuteWithOwnerInstructionDataArgs = {
 // @public
 export function failingProgramFromLogs(logs: readonly string[] | null | undefined): string | undefined;
 
-// @public (undocumented)
+// @public
 export type FeePlan = {
     source: "free" | "refill";
     refillLamports: bigint;
@@ -1219,7 +1219,7 @@ export function getVerifyInstructionDataDecoder(): Decoder<VerifyInstructionData
 // @public (undocumented)
 export function getVerifyInstructionDataEncoder(): Encoder<VerifyInstructionDataArgs>;
 
-// @public (undocumented)
+// @public
 export const hexToBytes: (hex: string) => Uint8Array<ArrayBuffer>;
 
 // @public (undocumented)
@@ -1343,10 +1343,10 @@ export function isProgramAccess<K extends ProgramAccess["__kind"]>(kind: K, valu
 // @public
 export function isValidOrigin(origin: string): boolean;
 
-// @public (undocumented)
+// @public
 export const LAMPORTS_PER_SIGNATURE = 5000n;
 
-// @public (undocumented)
+// @public
 export type LimitJson = {
     asset: string;
     amount: string;
@@ -1620,7 +1620,7 @@ export function parseExecuteWithOwnerInstruction<TProgram extends string, TAccou
 // @public (undocumented)
 export function parseInitializeInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedInitializeInstruction<TProgram, TAccountMetas>;
 
-// @public (undocumented)
+// @public
 export function parsePermissionSet(v: unknown): PermissionSet;
 
 // @public (undocumented)
@@ -1632,7 +1632,7 @@ export function parsePreviewExecuteInstruction<TProgram extends string, TAccount
 // @public (undocumented)
 export function parseRemoveOwnerInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedRemoveOwnerInstruction<TProgram, TAccountMetas>;
 
-// @public (undocumented)
+// @public
 export function parseRule(v: unknown, path?: string): RuleJson;
 
 // @public
@@ -1663,16 +1663,16 @@ export function parseUpdatePolicyInstruction<TProgram extends string, TAccountMe
 // @public (undocumented)
 export function parseVerifyInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedVerifyInstruction<TProgram, TAccountMetas>;
 
-// @public (undocumented)
+// @public
 export type Period = "day" | "week" | "month" | "lifetime" | number;
 
-// @public (undocumented)
+// @public
 export function periodFromSeconds(seconds: bigint): Period;
 
-// @public (undocumented)
+// @public
 export function periodSeconds(period: Period): bigint;
 
-// @public (undocumented)
+// @public
 export const PERMISSION_LIMITS: {
     readonly programs: 64;
     readonly rulesPerProgram: 32;
@@ -1681,17 +1681,17 @@ export const PERMISSION_LIMITS: {
     readonly textLength: 280;
 };
 
-// @public (undocumented)
+// @public
 export class PermissionFormatError extends Error {
     constructor(path: string, message: string);
     // (undocumented)
     readonly path: string;
 }
 
-// @public (undocumented)
+// @public
 export const PERMISSIONS_URL = "https://portal.revibase.com/permissions";
 
-// @public (undocumented)
+// @public
 export type PermissionSet = {
     v: 1;
     name?: string;
@@ -1869,7 +1869,7 @@ export class PhygitalTokenError extends Error {
     readonly code: PhygitalTokenErrorCode;
 }
 
-// @public (undocumented)
+// @public
 export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "RP_ID_REQUIRED" | "RECOVERY_SOURCE_REQUIRED" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_CREDENTIAL_ID" | "PASSKEY_RECOVERY_FAILED" | "PASSKEY_NOT_RECOGNIZED" | "PASSKEY_AMBIGUOUS" | "INVALID_ASSERTION" | "MESSAGE_MISMATCH" | "ORIGIN_MISMATCH" | "RP_ID_MISMATCH" | "SLOT_HASH_UNAVAILABLE";
 
 // @public (undocumented)
@@ -1970,7 +1970,7 @@ export enum PhygitalTokenType {
 // @public (undocumented)
 export type PhygitalTokenTypeArgs = PhygitalTokenType;
 
-// @public (undocumented)
+// @public
 export type PhygitalWalletOptions = {
     rpc: Rpc<SolanaRpcApi>;
     chains?: readonly SolanaChain[];
@@ -1981,30 +1981,30 @@ export type PhygitalWalletOptions = {
     onFeePlan?: PhygitalWalletSignerCallbacks["onFeePlan"];
 };
 
-// @public (undocumented)
+// @public
 export type PhygitalWalletSession = {
     phygitalTokenPda: Address;
     walletPda: Address;
     owner: Address;
 };
 
-// @public (undocumented)
+// @public
 export type PhygitalWalletSignerCallbacks = {
     onPhaseChange?: (phase: PhygitalWalletSignPhase) => void;
     onFeePlan?: (plan: FeePlan) => void;
 };
 
-// @public (undocumented)
+// @public
 export type PhygitalWalletSignerConfig = PhygitalWalletSignerCallbacks & {
     fetch?: typeof fetch;
     feePayer?: TransactionPartialSigner | readonly TransactionPartialSigner[];
     feeEndpoint?: string;
 };
 
-// @public (undocumented)
+// @public
 export type PhygitalWalletSignPhase = "preparing" | "previewing" | "awaitingPasskey" | "building" | "feePaying" | "complete";
 
-// @public (undocumented)
+// @public
 export function pickFeePayer<T>(feePayers: readonly T[]): T;
 
 // @public
@@ -2079,7 +2079,7 @@ export type PolicyActionArgs = {
     fields: readonly [Address];
 };
 
-// @public (undocumented)
+// @public
 export class PolicyDeniedError extends Error {
     constructor(args: {
         code: string;
@@ -2106,7 +2106,7 @@ export type PolicySeeds = {
 // @public (undocumented)
 export const PREVIEW_EXECUTE_DISCRIMINATOR: ReadonlyUint8Array;
 
-// @public (undocumented)
+// @public
 export const PREVIEW_EXECUTE_NAMED_ACCOUNT_COUNT = 4;
 
 // @public (undocumented)
@@ -2163,7 +2163,7 @@ export type ProgramAccessArgs = {
     fields: readonly [Array<InstructionRuleArgs>];
 };
 
-// @public (undocumented)
+// @public
 export type ProgramJson = {
     id: string;
     access: "all" | {
@@ -2235,13 +2235,13 @@ export type RemoveOwnerInstructionDataArgs = {};
 // @public
 export function resolveWalletSession(rpc: Rpc<SolanaRpcApi>, phygitalTokenPda: Address): Promise<PhygitalWalletSession>;
 
-// @public (undocumented)
+// @public
 export const REVIBASE_WALLET_NAME: "Revibase";
 
-// @public (undocumented)
+// @public
 export const RevibaseAccessory = "revibase:accessory";
 
-// @public (undocumented)
+// @public
 export type RevibaseAccessoryFeature = {
     [RevibaseAccessory]: {
         version: "1.0.0";
@@ -2249,15 +2249,15 @@ export type RevibaseAccessoryFeature = {
     };
 };
 
-// @public (undocumented)
+// @public
 export type RevibaseAccessoryGetSessionOptions = {
     refresh?: boolean;
 };
 
-// @public (undocumented)
+// @public
 export function ruleFromProgram(rule: InstructionRule | InstructionRuleArgs): RuleJson;
 
-// @public (undocumented)
+// @public
 export type RuleJson = {
     selector: string;
     dataLength?: number;
@@ -2266,7 +2266,7 @@ export type RuleJson = {
     args?: DataCheckJson[];
 };
 
-// @public (undocumented)
+// @public
 export function ruleToArgs(rule: RuleJson): InstructionRuleArgs;
 
 // @public
@@ -2469,13 +2469,13 @@ export type SpendCapArgs = {
     maxPerTx: number | bigint;
 };
 
-// @public (undocumented)
+// @public
 export type SponsorConfig = {
     endpoint?: string;
     fetch?: typeof fetch;
 };
 
-// @public (undocumented)
+// @public
 export type SponsorInfo = {
     feePayers: Address[];
     limits?: {
@@ -2494,7 +2494,7 @@ export function startAuthentication(message: string, options?: AuthenticatePassk
 // @public
 export function topUpNeeded(balance: bigint, amount: bigint): bigint;
 
-// @public (undocumented)
+// @public
 export type TransferSession = {
     rpc: Rpc<SolanaRpcApi>;
     phygitalToken: Address;
@@ -2611,7 +2611,7 @@ export type WalletSeeds = {
     phygitalToken: Address;
 };
 
-// @public (undocumented)
+// @public
 export function withRemainingAccounts(instruction: Instruction, remainingAccounts: readonly AccountMeta[]): Instruction;
 
 // (No @packageDocumentation comment for this package)

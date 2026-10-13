@@ -30,8 +30,11 @@ const EXECUTE_ACTION_BYTES = new TextEncoder().encode("execute");
  * `execute_with_accessory` (token, policy, wallet, slotHashes, ixSysvar),
  * `preview_execute` (token, policy, wallet, ixSysvar).
  */
+/** Named accounts before the remaining accounts in `execute_with_owner`. */
 export const EXECUTE_WITH_OWNER_NAMED_ACCOUNT_COUNT = 4;
+/** Named accounts before the remaining accounts in `execute_with_accessory`. */
 export const EXECUTE_WITH_ACCESSORY_NAMED_ACCOUNT_COUNT = 5;
+/** Named accounts before the remaining accounts in `preview_execute`. */
 export const PREVIEW_EXECUTE_NAMED_ACCOUNT_COUNT = 4;
 
 /**
@@ -149,6 +152,7 @@ export function buildExecuteChallenge(input: {
   return sha256(preimage);
 }
 
+/** Returns `instruction` with `remainingAccounts` appended after its named accounts. */
 export function withRemainingAccounts(
   instruction: Instruction,
   remainingAccounts: readonly AccountMeta[],

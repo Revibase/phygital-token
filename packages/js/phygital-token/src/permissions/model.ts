@@ -1,8 +1,10 @@
 /** The permission JSON types, limits and small shared helpers. */
 import { Comparison, NumericWidth } from "../generated/index.js";
 
+/** A cap window: a named period, or a custom length in seconds (`0` = lifetime). */
 export type Period = "day" | "week" | "month" | "lifetime" | number;
 
+/** A check on bytes at `offset` in instruction or account data. */
 export type DataCheckJson = {
   offset: number;
   bytes?: string;
@@ -13,6 +15,7 @@ export type DataCheckJson = {
   };
 };
 
+/** A check on the account at position `index` in an instruction. */
 export type AccountCheckJson = {
   index: number;
   /** A base58 address, "wallet" (the accessory wallet), or omitted for any. */
@@ -23,6 +26,7 @@ export type AccountCheckJson = {
   data?: DataCheckJson[];
 };
 
+/** One allowed instruction, matched by its data prefix (`selector`, hex). */
 export type RuleJson = {
   selector: string;
   dataLength?: number;
@@ -31,6 +35,7 @@ export type RuleJson = {
   args?: DataCheckJson[];
 };
 
+/** A program the accessory may call: every instruction, or only those matching `rules`. */
 export type ProgramJson = {
   id: string;
   access: "all" | { only: RuleJson[] };
@@ -38,6 +43,7 @@ export type ProgramJson = {
   reason?: string;
 };
 
+/** A spending cap on SOL or one mint, in raw units per `period`. */
 export type LimitJson = {
   /** "SOL" or a mint address. */
   asset: string;
@@ -46,6 +52,7 @@ export type LimitJson = {
   maxPerTap?: string;
 };
 
+/** A complete accessory policy in its readable JSON form (version 1). */
 export type PermissionSet = {
   v: 1;
   name?: string;
@@ -61,6 +68,7 @@ export type PermissionSet = {
   origins?: string[];
 };
 
+/** Size limits `parsePermissionSet` enforces, keeping a saved policy within one transaction. */
 export const PERMISSION_LIMITS = {
   programs: 64,
   rulesPerProgram: 32,
@@ -69,6 +77,7 @@ export const PERMISSION_LIMITS = {
   textLength: 280,
 } as const;
 
+/** Thrown by the permission parsers; `path` points at the offending field, e.g. `programs[2].rules[0]`. */
 export class PermissionFormatError extends Error {
   constructor(
     readonly path: string,
@@ -108,10 +117,12 @@ export const U64_MAX = (1n << 64n) - 1n;
 
 export const WSOL = "So11111111111111111111111111111111111111112";
 
+/** Window length in seconds for a `Period` (`0` = lifetime). */
 export function periodSeconds(period: Period): bigint {
   return typeof period === "number" ? BigInt(period) : PERIOD_SECONDS[period];
 }
 
+/** The named `Period` for a window length, or the number of seconds if none matches. */
 export function periodFromSeconds(seconds: bigint): Period {
   const named = (Object.entries(PERIOD_SECONDS) as [Exclude<Period, number>, bigint][]).find(
     ([, s]) => s === seconds,
@@ -143,17 +154,16 @@ export function isValidOrigin(origin: string): boolean {
   );
 }
 
+/** Hex string to bytes. Assumes well-formed input (validate first; see `parsePermissionSet`). */
 export const hexToBytes = (hex: string) =>
   Uint8Array.from(hex.match(/../g) ?? [], (b) => parseInt(b, 16));
 
+/** Bytes to lowercase hex. */
 export const bytesToHex = (bytes: ArrayLike<number>) =>
   Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
-// --- strict parsing -----------------------------------------------------------
-
+/** Drops keys whose value is `undefined`, in place, so JSON output stays minimal. */
 export function clean<T extends object>(o: T): T {
   for (const k of Object.keys(o) as (keyof T)[]) if (o[k] === undefined) delete o[k];
   return o;
 }
-
-// --- to and from the program's types -------------------------------------------

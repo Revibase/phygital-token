@@ -2,10 +2,13 @@ import type { Wallet } from "@wallet-standard/base";
 
 import type { PhygitalWalletSession } from "./session.js";
 
+/** Wallet Standard feature name for reading the connected accessory's session. */
 export const RevibaseAccessory = "revibase:accessory";
 
+/** `refresh: true` re-reads the session from the chain instead of the cache. */
 export type RevibaseAccessoryGetSessionOptions = { refresh?: boolean };
 
+/** The `revibase:accessory` Wallet Standard feature. */
 export type RevibaseAccessoryFeature = {
   [RevibaseAccessory]: {
     version: "1.0.0";

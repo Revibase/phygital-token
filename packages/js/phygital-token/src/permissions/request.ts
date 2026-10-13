@@ -7,6 +7,7 @@
  */
 import { parsePermissionSet, PermissionFormatError, type PermissionSet } from "./format.js";
 
+/** The page that shows a permission request to the accessory's owner. */
 export const PERMISSIONS_URL = "https://portal.revibase.com/permissions";
 /** Compressed payload cap, comfortably within a scannable QR code. */
 export const MAX_REQUEST_BYTES = 4096;

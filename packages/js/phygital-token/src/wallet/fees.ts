@@ -1,5 +1,6 @@
 import { AccountRole, type Address, type Instruction } from "@solana/kit";
 
+/** Base network fee per signature. */
 export const LAMPORTS_PER_SIGNATURE = 5_000n;
 /** What Revibase prepays in network fees for each accessory. */
 export const DEFAULT_PREPAID_FEE_LAMPORTS = 5_000_000n;

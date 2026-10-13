@@ -19,6 +19,7 @@ export type PublicKeyCredentialRequestOptionsJSON = {
   extensions?: AuthenticationExtensionsClientInputs;
 };
 
+/** A WebAuthn assertion in the standard JSON form (base64url fields). */
 export type AuthenticationResponseJSON = {
   id: Base64URLString;
   rawId: Base64URLString;

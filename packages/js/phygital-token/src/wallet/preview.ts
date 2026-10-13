@@ -16,6 +16,12 @@ import {
 /** Anchor's `AccountNotInitialized`: the token has no accessory policy. */
 const ANCHOR_ACCOUNT_NOT_INITIALIZED = 3012;
 
+/**
+ * The accessory's policy would refuse this transaction. `code` is a stable
+ * reason (e.g. `program_not_allowed`, `spend_limit`); `soft` marks states the
+ * owner can fix by setting up a policy or an owner rather than by changing the
+ * request.
+ */
 export class PolicyDeniedError extends Error {
   readonly code: string;
   readonly soft: boolean;

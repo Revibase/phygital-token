@@ -60,4 +60,8 @@ export type PrepaidFees = {
   onPlan?: (plan: FeePlan) => void;
 };
 
+/**
+ * How the network fee is paid: from the accessory's prepaid fees (`free`), or
+ * with a transfer of `refillLamports` from the accessory wallet that tops them up.
+ */
 export type FeePlan = { source: "free" | "refill"; refillLamports: bigint };

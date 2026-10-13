@@ -7,6 +7,7 @@ import {
   type AuthenticationResponseJSON,
 } from "./webauthn.js";
 
+/** Options for `authenticatePasskey`. */
 export type AuthenticatePasskeyOptions = {
   /** Base64url compressed secp256r1 public keys. The tapped credential id must be in it; recovers a placeholder id locally when no `rpc` is given. */
   allowList?: ReadonlySet<string>;

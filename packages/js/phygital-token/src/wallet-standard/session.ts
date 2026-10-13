@@ -12,6 +12,7 @@ const DEFAULT_PUBKEY = "11111111111111111111111111111111";
 /** Wallet Standard chains — program is deployed on mainnet only. */
 export const PHYGITAL_WALLET_CHAINS = [SOLANA_MAINNET_CHAIN] as const;
 
+/** The connected accessory: its token PDA, wallet PDA and current owner. */
 export type PhygitalWalletSession = {
   phygitalTokenPda: Address;
   walletPda: Address;

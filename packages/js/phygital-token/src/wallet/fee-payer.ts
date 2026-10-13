@@ -13,11 +13,13 @@ import { PolicyDeniedError } from "./preview.js";
 /** Revibase fee service: a pool of fee-payer keys plus each accessory's prepaid network fees. */
 export const DEFAULT_FEE_PAYER_ENDPOINT = "https://portal.revibase.com/api/sponsor";
 
+/** Where the fee service lives; defaults to `DEFAULT_FEE_PAYER_ENDPOINT` and global `fetch`. */
 export type SponsorConfig = {
   endpoint?: string;
   fetch?: typeof fetch;
 };
 
+/** What the fee service reports: its fee-payer keys, signing limits and, if asked, an accessory's prepaid fees. */
 export type SponsorInfo = {
   feePayers: Address[];
   /** The most the fee service will sign for; sponsored transactions must stay within them. */
@@ -138,6 +140,7 @@ export async function createSponsorFeePayers(
   return feePayers.map((feePayer) => createSponsorFeePayer(feePayer, config));
 }
 
+/** A uniformly random entry, spreading load across a fee-payer pool. Throws on an empty list. */
 export function pickFeePayer<T>(feePayers: readonly T[]): T {
   if (feePayers.length === 0) throw new Error("No fee payers to pick from");
   return feePayers[Math.floor(Math.random() * feePayers.length)]!;

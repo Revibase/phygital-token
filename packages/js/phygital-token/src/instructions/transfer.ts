@@ -22,6 +22,7 @@ import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 import { PhygitalTokenError } from "../utils/errors.js";
 import { findPhygitalTokenPda } from "../utils/pdas/token.js";
 
+/** State from `beginTransfer` needed to collect the tap and build `set_owner`. */
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
   /** Phygital token PDA derived from {@link TransferSession.secp256r1Pubkey}. */

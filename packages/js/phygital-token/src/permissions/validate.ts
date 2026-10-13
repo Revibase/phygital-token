@@ -139,6 +139,7 @@ export function selectorsOverlap(a: string, b: string): boolean {
   return a.startsWith(b) || b.startsWith(a);
 }
 
+/** Parses one rule strictly; throws `PermissionFormatError` naming the bad field. */
 export function parseRule(v: unknown, path = "rule"): RuleJson {
   const o = object(v, path, ["selector", "dataLength", "accountCount", "accounts", "args"]);
   const selector = hex(o.selector, `${path}.selector`, 64);
@@ -176,6 +177,11 @@ export function parseRule(v: unknown, path = "rule"): RuleJson {
   return clean({ selector, dataLength, accountCount, accounts, args });
 }
 
+/**
+ * Parses a permission set strictly: unknown keys, out-of-range values and
+ * rules the program would reject or could never match all throw
+ * `PermissionFormatError`. A set that parses can be saved as-is.
+ */
 export function parsePermissionSet(v: unknown): PermissionSet {
   const o = object(v, "permissions", ["v", "name", "reason", "programs", "limits", "origins"]);
   if (o.v !== 1) throw new PermissionFormatError("permissions.v", "must be 1");
