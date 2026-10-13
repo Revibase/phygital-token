@@ -1,11 +1,5 @@
 import type { TransactionSummary } from "../tx/policy.js";
-import { formatUnits } from "../tx/clear-sign.js";
-import {
-  classifySignRisk,
-  instructionLabel,
-  instructionSubtitle,
-  riskCallout,
-} from "../tx/sign-risk.js";
+import { confirmModel, isAddress, type ConfirmModel, type Row } from "./confirm-model.js";
 
 const app = (): HTMLElement => {
   const root = document.getElementById("app");
@@ -39,13 +33,7 @@ function shorten(addr: string): string {
   return addr.length > 12 ? `${addr.slice(0, 6)}…${addr.slice(-6)}` : addr;
 }
 
-const BASE58_ADDRESS = "[1-9A-HJ-NP-Za-km-z]{32,44}";
-const ADDRESS_ONLY = new RegExp(`^${BASE58_ADDRESS}$`);
-const ADDRESS_IN_TEXT = new RegExp(`\\b${BASE58_ADDRESS}\\b`, "g");
-
-function isAddress(value: string): boolean {
-  return ADDRESS_ONLY.test(value);
-}
+const ADDRESS_IN_TEXT = /\b[1-9A-HJ-NP-Za-km-z]{32,44}\b/g;
 
 function shortenAddresses(text: string): string {
   return text.replace(ADDRESS_IN_TEXT, (a) => shorten(a));
@@ -412,155 +400,7 @@ export function showRecoverable(message: string): Promise<"retry" | "cancel"> {
   });
 }
 
-type Hero = { title: string; subtitle: string | null };
-
-function pickToSubtitle(
-  details: ReadonlyArray<{ label: string; value: string }>,
-): string | null {
-  const to = details.find((d) => d.label === "To");
-  return to ? `To ${to.value}` : null;
-}
-
-function confirmHero(summary: TransactionSummary): Hero {
-  const spends = summary.instructions.flatMap((ix) => ix.inner ?? []);
-  const send = spends.find((s) => /^Send\b/i.test(s.title));
-  if (send) {
-    return {
-      title: send.title.replace(/\s*\((Token(?:-2022)?)\)\s*$/i, "").trim(),
-      subtitle: pickToSubtitle(send.details),
-    };
-  }
-  if (spends.length === 1) {
-    return {
-      title: spends[0]!.title,
-      subtitle: pickToSubtitle(spends[0]!.details),
-    };
-  }
-  if (spends.length > 1) {
-    return {
-      title: `${spends.length} actions`,
-      subtitle: spends.map((s) => s.title).join(" · "),
-    };
-  }
-
-  const first = summary.instructions[0];
-  if (!first) return { title: "Authorize", subtitle: null };
-  return {
-    title: instructionLabel(first.kind),
-    subtitle: instructionSubtitle(first.kind),
-  };
-}
-
-/** Who pays the network fee, when it isn't this wallet. */
-function feeRow(summary: TransactionSummary): { label: string; value: string } | null {
-  if (summary.feePayer === summary.walletAddress) return null;
-  return summary.revibaseFeePayers?.includes(summary.feePayer)
-    ? { label: "Network fee", value: "Free" }
-    : { label: "Network fee paid by", value: summary.feePayer };
-}
-
-/** Names Revibase's fee payers wherever their address would show (refills, tap-payments deposits). */
-function nameFeePayers(summary: TransactionSummary, rows: Array<{ label: string; value: string }>) {
-  const known = new Set(summary.revibaseFeePayers ?? []);
-  return rows.map((r) => (known.has(r.value) ? { ...r, value: "Revibase network fees" } : r));
-}
-
-function primaryRows(
-  summary: TransactionSummary,
-): Array<{ label: string; value: string }> {
-  const fee = feeRow(summary);
-  return nameFeePayers(summary, [...primaryActionRows(summary), ...(fee ? [fee] : [])]);
-}
-
-function primaryActionRows(
-  summary: TransactionSummary,
-): Array<{ label: string; value: string }> {
-  const rows: Array<{ label: string; value: string }> = [];
-  const spends = summary.instructions.flatMap((ix) => ix.inner ?? []);
-
-  if (spends.length === 1) {
-    for (const d of spends[0]!.details) {
-      if (
-        d.label === "Amount" ||
-        d.label === "To" ||
-        d.label === "From" ||
-        d.label === "Text"
-      ) {
-        rows.push(d);
-      }
-    }
-    return rows;
-  }
-
-  if (spends.length > 1) {
-    for (const [i, s] of spends.entries()) {
-      rows.push({
-        label: spends.length <= 3 ? s.title : `Action ${i + 1}`,
-        value: pickToSubtitle(s.details)?.replace(/^To /, "") ?? "—",
-      });
-    }
-    return rows;
-  }
-
-  for (const ix of summary.instructions) {
-    for (const d of ix.details.slice(0, 4)) {
-      rows.push(d);
-    }
-  }
-  return rows;
-}
-
-function advancedRows(
-  summary: TransactionSummary,
-  primary: Array<{ label: string; value: string }>,
-): Array<{ label: string; value: string }> {
-  const rows: Array<{ label: string; value: string }> = [
-    { label: "Wallet", value: summary.walletAddress },
-  ];
-  const primaryKeys = new Set(primary.map((r) => `${r.label}|${r.value}`));
-
-  for (const [i, ix] of summary.instructions.entries()) {
-    if (summary.instructions.length > 1) {
-      rows.push({
-        label: `Step ${i + 1}`,
-        value: instructionLabel(ix.kind),
-      });
-    }
-    for (const d of ix.details) {
-      if (!primaryKeys.has(`${d.label}|${d.value}`)) rows.push(d);
-    }
-    if (ix.inner) {
-      for (const inner of ix.inner) {
-        for (const d of inner.details) {
-          if (d.label === "Mint" || d.label === "Owner") rows.push(d);
-        }
-      }
-    }
-  }
-
-  if (summary.config.priorityFeeLamports !== undefined) {
-    rows.push({
-      label: "Priority fee",
-      value: `${formatUnits(
-        BigInt(summary.config.priorityFeeLamports),
-        9,
-      )} SOL`,
-    });
-  }
-  if (summary.config.computeUnitLimit !== undefined) {
-    rows.push({
-      label: "Compute units",
-      value: String(summary.config.computeUnitLimit),
-    });
-  }
-
-  return rows;
-}
-
-function group(
-  className: string,
-  rows: Array<{ label: string; value: string }>,
-): HTMLElement | null {
+function group(className: string, rows: Row[]): HTMLElement | null {
   if (rows.length === 0) return null;
   return el(
     "div",
@@ -592,7 +432,7 @@ function detailRow(label: string, value: string): HTMLElement {
   ]);
 }
 
-function heroBlock(hero: Hero): HTMLElement {
+function heroBlock(hero: ConfirmModel["hero"]): HTMLElement {
   const wrap = el("div", { class: "tx-hero" });
   wrap.appendChild(el("p", { class: "tx-hero-title", text: hero.title }));
   if (hero.subtitle) {
@@ -615,30 +455,22 @@ export function confirmSignTransaction<T>(
       detachEscape();
       resolve(v);
     };
-    const risk = classifySignRisk(summary);
-    const hero = confirmHero(summary);
-    const callout = riskCallout(summary.instructions);
-    const primary = primaryRows(summary);
-    const advanced = nameFeePayers(summary, advancedRows(summary, primary));
+    const model = confirmModel(summary);
+    const body: Node[] = [heroBlock(model.hero)];
 
-    const body: Node[] = [heroBlock(hero)];
-
-    if (callout) {
+    if (model.callout) {
       body.push(
         el("div", {
-          class:
-            risk === "critical"
-              ? "callout callout-danger"
-              : "callout callout-warn",
-          text: callout,
+          class: model.callout.tone === "danger" ? "callout callout-danger" : "callout callout-warn",
+          text: model.callout.text,
         }),
       );
     }
 
-    const primaryGroup = group("kv kv-primary", primary);
+    const primaryGroup = group("kv kv-primary", model.rows);
     if (primaryGroup) body.push(primaryGroup);
 
-    const advancedGroup = group("kv", advanced);
+    const advancedGroup = group("kv", model.details);
     if (advancedGroup) {
       const details = el("details", { class: "tx-details" });
       details.appendChild(
@@ -648,9 +480,8 @@ export function confirmSignTransaction<T>(
       body.push(details);
     }
 
-    const ctaVariant = risk === "critical" ? "danger" : "primary";
-    const ctaLabel =
-      risk === "critical" ? "Authorize anyway" : "Authorize";
+    const ctaVariant = model.cta.danger ? "danger" : "primary";
+    const ctaLabel = model.cta.label;
 
     confirmScreen(
       "Authorize",

@@ -27,6 +27,7 @@ and generic results/errors. Encrypted wallet blobs stay on the signer origin
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Parent XSS reads the private key           | Key generated + decrypted only in the signer origin; never posted in plaintext; per-op WebAuthn; export is a dedicated in-iframe ceremony.                                      |
 | Malicious storage / stolen blob            | Blob is public ciphertext at rest in D1; PRF→HKDF→AES-256-GCM; holding it reveals nothing without the passkey. Parent XSS no longer receives restore ciphertext. |
+| Backup squatting (someone registers a backup under your credential id first) | Backups are keyed by credential id **and** the passkey key it registered; restore verifies the assertion against each candidate, so a squatter's row (a self-made `none` attestation proves nothing) can't block or replace yours. At most 3 backups per credential id. |
 | Blob substitution (wallet A shown, B used) | AAD binds {pubkey, credentialId, salt, rpId}; after decrypt the derived pubkey must match; the trusted UI shows the **derived** key, never a parent label.                      |
 | Transaction substitution after confirm     | Validated message bytes are copied + frozen; authorization is single-use and bound to their SHA-256; the exact frozen bytes are signed (no re-encode → no parser differential). |
 | Arbitrary signing oracle                   | Top-level allowlist (phygital-token owner instructions, ATA createIdempotent, ComputeBudget, secp256r1 beside a link); the wallet must be a required signer and every signing role (owner, recipient); inner spend is clear-signed; per-tx WebAuthn. The fee payer and the `update_policy` funder may be anyone (a Revibase fee payer when the owner has no SOL): they only pay, and are shown ("Network fee: Free" for Revibase's pool, else the address). A refill to the fee payer is shown as "Refill network fees". |
@@ -38,6 +39,8 @@ and generic results/errors. Encrypted wallet blobs stay on the signer origin
 | DoS by parent                              | Accepted for availability; confidentiality/integrity preserved. Operations are serialized.                                                                                      |
 
 ## What it explicitly does NOT defend against (§42 — no false claims)
+
+- **Holding up an accessory's prepaid fees.** The fee service reserves the fee for an owner transaction before the owner has signed it, until its blockhash expires, so anyone can briefly tie up that balance. No funds move; accepted for availability.
 
 - **Signer-origin XSS or a malicious browser extension** with host access to the
   signer origin. If the signer origin itself is compromised, the key is exposed.

@@ -14,6 +14,7 @@
 		hideTitle = false,
 		wide = false,
 		tall = false,
+		above = false,
 		headerActions,
 		children
 	}: {
@@ -23,6 +24,8 @@
 		hideTitle?: boolean;
 		wide?: boolean;
 		tall?: boolean;
+		/** Over other sheets (z-55), still under the signer frame (z-60/61): for prompts that open mid-flow. */
+		above?: boolean;
 		headerActions?: Snippet;
 		children: Snippet;
 	} = $props();
@@ -58,7 +61,7 @@
 			tabindex={-1}
 			onOpenAutoFocus={focusDialog}
 			showCloseButton={false}
-			class={cn("max-h-[min(720px,calc(100dvh-4rem))] gap-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden outline-none rounded-[20px] bg-background p-6 shadow-[0_24px_64px_-24px_rgb(14_26_26/0.35)] ring-black/5 sm:max-w-[420px] data-open:duration-200 data-closed:duration-150", wide && "sm:max-w-[900px]")}
+			class={cn("max-h-[min(720px,calc(100dvh-4rem))] gap-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden outline-none rounded-[20px] bg-background p-6 shadow-[0_24px_64px_-24px_rgb(14_26_26/0.35)] ring-black/5 sm:max-w-[420px] data-open:duration-200 data-closed:duration-150", wide && "sm:max-w-[900px]", above && "z-[55]")}
 		>
 			<div class="space-y-5">
 				{@render header(Dialog.Title, Dialog.Description)}
@@ -68,7 +71,7 @@
 	</Dialog.Root>
 {:else}
 	<DrawerRoot bind:open>
-		<Drawer.Content bind:ref={dialogEl} tabindex={-1} onOpenAutoFocus={focusDialog} class={cn("bg-background outline-none", tall && "h-[90dvh]")}>
+		<Drawer.Content bind:ref={dialogEl} tabindex={-1} onOpenAutoFocus={focusDialog} class={cn("bg-background outline-none", tall && "h-[90dvh]", above && "z-[55]")}>
 			<div class={cn("mx-auto flex min-h-0 w-full max-w-md flex-col px-5 pt-5", tall && "flex-1")}>
 				{@render header(Drawer.Title, Drawer.Description)}
 				<!-- Only the body scrolls; no-drag keeps vaul from turning a scroll into a swipe-to-close. -->

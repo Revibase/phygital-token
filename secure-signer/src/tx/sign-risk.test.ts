@@ -11,7 +11,7 @@ const ix = (kind: ParsedInstructionSummary["kind"], inner: ParsedInstructionSumm
   inner,
   details: [],
 });
-const summary = (...instructions: ParsedInstructionSummary[]): TransactionSummary => ({ feePayer: "11111111111111111111111111111111", walletAddress: "wallet", instructions, config: {} });
+const summary = (...instructions: ParsedInstructionSummary[]): TransactionSummary => ({ feePayer: "11111111111111111111111111111111", walletAddress: "wallet", instructions, config: {}, signatureCount: 1 });
 const inner = (opaque: boolean, dangerous: boolean) => ({ title: "x", details: [], opaque, dangerous, programAddress: "p", accounts: [], dataLength: 0 });
 
 describe("sign-risk", () => {

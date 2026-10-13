@@ -161,6 +161,11 @@ export interface VirtualAuthenticatorOptions {
 export interface CeremonyContext {
   /** The web origin the ceremony runs in, e.g. "https://signer.revibase.com". */
   origin: string;
+  /**
+   * The top-level origin when the ceremony runs in a frame. A different one
+   * marks the ceremony cross-origin, as browsers record in clientDataJSON.
+   */
+  topOrigin?: string;
 }
 
 const FLAG_UP = 0x01;
@@ -375,7 +380,7 @@ export class VirtualAuthenticator {
     });
 
     const tamper = this.tampers.shift() ?? {};
-    const clientDataJSON = this.clientData("webauthn.create", challenge, ctx.origin, tamper);
+    const clientDataJSON = this.clientData("webauthn.create", challenge, ctx, tamper);
     const cose = cborEncode(
       new Map<CborValue, CborValue>([
         [1, 2],
@@ -464,7 +469,7 @@ export class VirtualAuthenticator {
     if (this.opts.counter === "increment") cred.signCount++;
 
     const tamper = this.tampers.shift() ?? {};
-    const clientDataJSON = this.clientData("webauthn.get", challenge, ctx.origin, tamper);
+    const clientDataJSON = this.clientData("webauthn.get", challenge, ctx, tamper);
     const authData = this.authDataHead(tamper.rpId ?? rpId, 0, cred.signCount, tamper);
     const signed = concatBytes(authData, sha256(clientDataJSON));
     const signature = p256.sign(
@@ -538,15 +543,18 @@ export class VirtualAuthenticator {
   private clientData(
     type: string,
     challenge: Uint8Array,
-    origin: string,
+    ctx: CeremonyContext,
     tamper: Tamper,
   ): Uint8Array {
+    const crossOrigin = ctx.topOrigin !== undefined && ctx.topOrigin !== ctx.origin;
     return utf8(
       JSON.stringify({
         type: tamper.type ?? type,
         challenge: toBase64Url(tamper.challenge ?? challenge),
-        origin: tamper.origin ?? origin,
-        crossOrigin: false,
+        origin: tamper.origin ?? ctx.origin,
+        crossOrigin,
+        // Chromium's shape for a ceremony in a cross-origin frame.
+        ...(crossOrigin ? { topOrigin: ctx.topOrigin } : {}),
       }),
     );
   }

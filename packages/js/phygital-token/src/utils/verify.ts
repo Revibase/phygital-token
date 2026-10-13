@@ -16,6 +16,8 @@ import { findWalletPda } from "../generated/pdas/wallet.js";
 import { findPhygitalTokenPda } from "./pdas/token.js";
 
 import { p256 } from "@noble/curves/nist.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { equalBytes } from "@noble/curves/utils.js";
 
 import { PhygitalTokenError } from "./errors.js";
 import { parseSecp256r1Pubkey } from "./parseSecp256r1Pubkey.js";
@@ -28,6 +30,7 @@ import {
   parseWebAuthnClientData,
 } from "./passkey/internal.js";
 import {
+  base64URLStringToBuffer,
   utf8ToBase64URLString,
   type AuthenticationResponseJSON,
 } from "./passkey/webauthn.js";
@@ -71,6 +74,8 @@ export async function verifyResponse(
   input: {
     response: AuthenticationResponseJSON;
     expectedOrigin: string | readonly string[];
+    /** The relying party the tap must be for (authenticatorData's rpIdHash). Recommended. */
+    expectedRpId?: string;
   } & (
     | { expectedMessage: string; expectedChallenge?: never }
     | { expectedChallenge: string; expectedMessage?: never }
@@ -82,6 +87,20 @@ export async function verifyResponse(
   const clientData = parseWebAuthnClientData(
     input.response.response.clientDataJSON
   );
+  // A tap is an assertion: a registration response is something else entirely.
+  if (clientData.type !== "webauthn.get") {
+    throw new PhygitalTokenError("INVALID_ASSERTION", "This response is not a tap (webauthn.get).");
+  }
+  const authenticatorData = base64URLStringToBuffer(input.response.response.authenticatorData);
+  if (authenticatorData.length < 37 || (authenticatorData[32]! & 0x01) === 0) {
+    throw new PhygitalTokenError("INVALID_ASSERTION", "The accessory didn't report the user was present.");
+  }
+  if (
+    input.expectedRpId !== undefined &&
+    !equalBytes(authenticatorData.slice(0, 32), sha256(new TextEncoder().encode(input.expectedRpId)))
+  ) {
+    throw new PhygitalTokenError("RP_ID_MISMATCH", "This tap was made for another site.");
+  }
 
   if (clientData.challenge !== expectedChallenge) {
     throw new PhygitalTokenError(

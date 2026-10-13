@@ -12,19 +12,10 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { address, generateKeyPairSigner } from '@solana/kit';
-import {
-	findAdminConfigPda,
-	findPhygitalTokenPda,
-	getCreateConfigInstructionAsync,
-	getInitializeInstructionAsync,
-	getAssignMintInstructionAsync,
-	getSetIssuerInstructionAsync,
-	getSetMinterInstructionAsync,
-	PhygitalTokenType
-} from 'phygital-token-sdk';
+import { getAssignMintInstructionAsync } from 'phygital-token-sdk';
 
 import { base64UrlToBytes, bytesToBase64Url } from '../src/lib/shared/encoding';
-import { fakeAccessory, funded, link, rpc, send, type AccessoryKeys } from './lib';
+import { createAdmin, fakeAccessory, funded, issueAccessory, link, send, type AccessoryKeys, type AccessoryKind } from './lib';
 
 const STATE = new URL('./.dev-accessory.json', import.meta.url);
 type State = { issuer: string; minter?: string; accessories: Record<string, { keys: AccessoryKeys; pda: string; kind: string }> };
@@ -33,46 +24,15 @@ const load = (): State => {
 	return JSON.parse(readFileSync(STATE, 'utf8'));
 };
 const save = (s: State) => writeFileSync(STATE, JSON.stringify(s, null, 2));
-const UNSET = address('11111111111111111111111111111111');
-
 async function init() {
-	const [adminConfig] = await findAdminConfigPda();
-	if ((await rpc.getAccountInfo(adminConfig, { encoding: 'base64' }).send()).value) {
-		throw new Error('AdminConfig already exists; restart the validator with --reset first.');
-	}
-	const admin = await funded();
-	const issuerKey = crypto.getRandomValues(new Uint8Array(32));
-	const issuer = await funded(issuerKey);
-	await send(admin, [await getCreateConfigInstructionAsync({ authority: admin })]);
-	await send(admin, [await getSetIssuerInstructionAsync({ admin, issuer: issuer.address })]);
-	const minterKey = crypto.getRandomValues(new Uint8Array(32));
-	const minter = await funded(minterKey);
-	await send(admin, [await getSetMinterInstructionAsync({ admin, minter: minter.address })]);
+	const { issuerKey, minterKey, issuer } = await createAdmin();
 	save({ issuer: bytesToBase64Url(issuerKey), minter: bytesToBase64Url(minterKey), accessories: {} });
-	console.log(`issuer ${issuer.address} ready`);
+	console.log(`issuer ${issuer} ready`);
 }
 
 async function add(name: string, kind = 'bearer') {
 	const s = load();
-	const issuer = await funded(base64UrlToBytes(s.issuer));
-	const [adminConfig] = await findAdminConfigPda();
-	const acc = fakeAccessory();
-	const pda = await findPhygitalTokenPda([acc.passkey]);
-	const tokenType = { bearer: PhygitalTokenType.Bearer, controlled: PhygitalTokenType.Controlled, permanent: PhygitalTokenType.Permanent }[kind];
-	if (tokenType === undefined) throw new Error(`unknown type ${kind}`);
-	// Permanent must name its wallet at initialize.
-	const owner = tokenType === PhygitalTokenType.Permanent ? (await funded()).address : UNSET;
-	await send(issuer, [
-		await getInitializeInstructionAsync({
-			authority: issuer,
-			adminConfig,
-			phygitalToken: pda,
-			identifier: [acc.identifier],
-			secp256r1Pubkey: [acc.passkey],
-			tokenType,
-			owner
-		})
-	]);
+	const { acc, pda } = await issueAccessory(base64UrlToBytes(s.issuer), kind as AccessoryKind);
 	s.accessories[name] = { keys: acc.keys(), pda: String(pda), kind };
 	save(s);
 	console.log(`${kind} accessory "${name}" → ${pda}`);

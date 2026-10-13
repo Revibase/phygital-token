@@ -11,6 +11,7 @@ export type PhygitalTokenErrorCode =
   | "INVALID_ASSERTION"
   | "MESSAGE_MISMATCH"
   | "ORIGIN_MISMATCH"
+  | "RP_ID_MISMATCH"
   | "SLOT_HASH_UNAVAILABLE";
 
 /**

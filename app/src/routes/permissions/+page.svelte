@@ -21,7 +21,7 @@
 	import { Spinner } from '$lib/components/ui/spinner';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import { accessoryPolicyQuery, accessoryWalletQuery, walletAccessoriesQuery } from '$lib/client/queries';
-	import { assetInfos } from '$lib/client/asset-info';
+	import { assetInfos, withHoldings } from '$lib/client/asset-info';
 	import { programUpgradeability } from '$lib/client/program-upgradeability';
 	import { savePolicy } from '$lib/client/accessory-wallet/policy';
 	import { describeError, type FriendlyError } from '$lib/client/link/messages';
@@ -70,8 +70,10 @@
 	const policy = $derived(policies.data ?? null);
 	const merged = $derived(request ? mergeRequest(draftFromPolicy(policy), request) : null);
 	const assets = $derived(request?.limits.map((l) => l.asset) ?? []);
-	const heldMints = $derived(balances.data?.tokens.map((t) => t.mint).join(',') ?? '');
-	const infos = createQuery(() => ({ queryKey: ['asset-infos', assets.join(','), heldMints], queryFn: () => assetInfos(assets, balances.data), enabled: !!accessory && !!request && balances.isSuccess }));
+	// Mint details for the request's assets come from chain on their own; held tokens are named from the
+	// wallet's holdings once those load. Keying this query on the holdings left it stuck fetching.
+	const infos = createQuery(() => ({ queryKey: ['request-asset-infos', assets.join(',')], queryFn: () => assetInfos(assets), enabled: !!request }));
+	const assetInfo = $derived(infos.data ? withHoldings(infos.data, balances.data) : undefined);
 	const upgrades = createQuery(() => ({ queryKey: ['program-upgradeability', request?.programs.map((p) => p.id).join(',')], queryFn: () => programUpgradeability(request!.programs.map((p) => p.id)), enabled: !!request }));
 	const holding = (asset: string) => (asset === SOL ? balances.data?.lamports : balances.data?.tokens.filter((t) => t.mint === asset).reduce((sum, t) => sum + t.amount, 0n));
 	const risks = $derived(merged ? [...requestRisks({ site }), ...merged.changes.flatMap((c) => changeRisks(c, { holding, upgradeable: (id) => upgrades.data?.get(id) }))] : []);
@@ -166,7 +168,7 @@
 							{/if}
 							<Section label="Changes">
 								{#each merged.changes as change, i (i)}
-									{@const line = explainChange(change, (asset) => assetInfoOr(infos.data, asset))}
+									{@const line = explainChange(change, (asset) => assetInfoOr(assetInfo, asset))}
 									<Panel class="space-y-1">
 										<p class="text-[15px] font-medium">{line.title}</p>
 										{#if line.reason}<p class="text-[14px] leading-snug">Project’s own words: “{line.reason}”</p>{/if}

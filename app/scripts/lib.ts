@@ -37,7 +37,20 @@ import {
 	validateLinkTransaction,
 	type LinkTap
 } from '../src/lib/shared/link-transaction';
-import { beginTransfer, createSponsorFeePayer, fetchSponsor, pickFeePayer, type AuthenticationResponseJSON } from 'phygital-token-sdk';
+import {
+	beginTransfer,
+	createSponsorFeePayer,
+	fetchSponsor,
+	findAdminConfigPda,
+	findPhygitalTokenPda,
+	getCreateConfigInstructionAsync,
+	getInitializeInstructionAsync,
+	getSetIssuerInstructionAsync,
+	getSetMinterInstructionAsync,
+	pickFeePayer,
+	PhygitalTokenType,
+	type AuthenticationResponseJSON
+} from 'phygital-token-sdk';
 
 export const APP = process.env.APP_URL ?? 'http://localhost:5173';
 export const RP_ID = new URL(APP).hostname;
@@ -81,6 +94,8 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 	let signCount = keys?.signCount ?? 0;
 	return {
 		keys: (): AccessoryKeys => ({ ndefKey: bytesToBase64Url(ndefKey), fidoKey: bytesToBase64Url(fidoKey), counter, signCount }),
+		/** The FIDO key, for a browser test's virtual authenticator to tap with. */
+		fidoKey,
 		identifier: p256.getPublicKey(ndefKey),
 		passkey: p256.getPublicKey(fidoKey),
 		tapUrl() {
@@ -123,6 +138,51 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 			};
 		}
 	};
+}
+
+const UNSET = address('11111111111111111111111111111111');
+
+/** AdminConfig with a fresh admin, issuer and minter on a reset validator. */
+export async function createAdmin() {
+	const [adminConfig] = await findAdminConfigPda();
+	if ((await rpc.getAccountInfo(adminConfig, { encoding: 'base64' }).send()).value) {
+		throw new Error('AdminConfig already exists; restart the validator with --reset first.');
+	}
+	const admin = await funded();
+	const issuerKey = crypto.getRandomValues(new Uint8Array(32));
+	const issuer = await funded(issuerKey);
+	await send(admin, [await getCreateConfigInstructionAsync({ authority: admin })]);
+	await send(admin, [await getSetIssuerInstructionAsync({ admin, issuer: issuer.address })]);
+	const minterKey = crypto.getRandomValues(new Uint8Array(32));
+	const minter = await funded(minterKey);
+	await send(admin, [await getSetMinterInstructionAsync({ admin, minter: minter.address })]);
+	return { issuerKey, minterKey, issuer: issuer.address };
+}
+
+export type AccessoryKind = 'bearer' | 'controlled' | 'permanent';
+
+/** Issues a new software accessory; a Permanent one is owned by a fresh wallet. */
+export async function issueAccessory(issuerKey: Uint8Array, kind: AccessoryKind) {
+	const issuer = await funded(issuerKey);
+	const [adminConfig] = await findAdminConfigPda();
+	const acc = fakeAccessory();
+	const pda = await findPhygitalTokenPda([acc.passkey]);
+	const tokenType = { bearer: PhygitalTokenType.Bearer, controlled: PhygitalTokenType.Controlled, permanent: PhygitalTokenType.Permanent }[kind];
+	if (tokenType === undefined) throw new Error(`unknown type ${kind}`);
+	// Permanent must name its wallet at initialize.
+	const owner = tokenType === PhygitalTokenType.Permanent ? (await funded()).address : UNSET;
+	await send(issuer, [
+		await getInitializeInstructionAsync({
+			authority: issuer,
+			adminConfig,
+			phygitalToken: pda,
+			identifier: [acc.identifier],
+			secp256r1Pubkey: [acc.passkey],
+			tokenType,
+			owner
+		})
+	]);
+	return { acc, pda };
 }
 
 export class Browser {

@@ -16,7 +16,7 @@ import {
   PHYGITAL_TOKEN_PROGRAM_ADDRESS,
   PhygitalTokenInstruction,
 } from "phygital-token-sdk";
-import { describeInnerInstruction, describePolicyActions, type ClearedInner, type DetailRow } from "./clear-sign.js";
+import { describeInnerInstruction, describePolicyActions, mintMeta, type ClearedInner, type DetailRow } from "./clear-sign.js";
 
 export const COMPUTE_BUDGET_PROGRAM = "ComputeBudget111111111111111111111111111111";
 export const SECP256R1_PROGRAM = "Secp256r1SigVerify1111111111111111111111111";
@@ -57,7 +57,7 @@ function summarizeInner(
   context: ParseContext,
 ): InnerInstructionSummary[] {
   // Compact indices are relative to remaining only (on-chain ctx.remaining_accounts).
-  return compactInstructions.map((ci) => {
+  const summaries = compactInstructions.map((ci) => {
     const prog = remaining[ci.programIdIndex];
     if (!prog) throw new Error("inner program index out of range");
     const accounts = [...ci.accountIndexes].map((ai) => {
@@ -88,6 +88,27 @@ function summarizeInner(
       : described;
     return { ...cleared, programAddress: prog.address, accounts, dataLength: data.length };
   });
+  return nameTokenRecipients(summaries);
+}
+
+/**
+ * A token send names a token account, not a person. When the same transaction
+ * creates that account (ATA create: payer, account, owner, mint), its owner is
+ * the recipient. Safe to show: the ATA program fails the whole transaction
+ * unless the account is the owner's derived address for that mint.
+ */
+function nameTokenRecipients(summaries: InnerInstructionSummary[]): InnerInstructionSummary[] {
+  const owners = new Map<string, string>();
+  for (const s of summaries) {
+    if (s.programAddress === ATA_PROGRAM && s.title === "Create token account" && s.accounts[1] && s.accounts[2]) owners.set(s.accounts[1], s.accounts[2]);
+  }
+  return summaries.map((s) => {
+    const account = s.details.find((d) => d.label === "To token account")?.value;
+    const owner = account ? owners.get(account) : undefined;
+    if (!owner) return s;
+    const at = s.details.findIndex((d) => d.label === "To token account");
+    return { ...s, details: [...s.details.slice(0, at), { label: "To", value: owner }, ...s.details.slice(at)] };
+  });
 }
 
 /**
@@ -111,6 +132,7 @@ export function parseInstruction(ix: KitInstruction, context: ParseContext = {})
       inner: null,
       details: [
         { label: "For", value: accounts[2]!.address },
+        ...(mintMeta(accounts[3]!.address) ? [{ label: "Token", value: mintMeta(accounts[3]!.address)!.symbol }] : []),
         { label: "Mint", value: accounts[3]!.address },
       ],
     };

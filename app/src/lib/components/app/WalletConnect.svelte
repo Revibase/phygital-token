@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import { describeError, type FriendlyError } from '$lib/client/link/messages';
+	import { ApiClientError } from '$lib/client/api';
 	import { rememberRecentWallet } from '$lib/client/memory';
 	import { shortAddress } from '$lib/shared/encoding';
 	import { Button } from '$lib/components/ui/button';
@@ -48,7 +49,10 @@
 			try {
 				await afterConnect?.();
 			} catch (err) {
-				await walletStore.disconnect().catch(() => {});
+				// A dropped request (offline, or Safari aborting it as the page reloads) isn't a refusal:
+				// keep the wallet. Anything that still needs a session asks again.
+				const dropped = err instanceof ApiClientError && err.status === 0;
+				if (!dropped) await walletStore.disconnect().catch(() => {});
 				throw err;
 			}
 			rememberRecentWallet(walletStore.walletName);

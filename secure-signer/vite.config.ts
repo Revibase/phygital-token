@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import type { TLSSocket } from "node:tls";
 import { defineConfig, type Plugin } from "vite";
 import { handleVault, VAULT_PATH } from "./src/vault.js";
 
@@ -10,10 +12,12 @@ const vault: Plugin = {
       const chunks: Buffer[] = [];
       for await (const chunk of req) chunks.push(chunk as Buffer);
       const headers = new Headers();
-      for (const [k, v] of Object.entries(req.headers)) if (typeof v === "string") headers.set(k, v);
-      const host = req.headers.host ?? "localhost";
+      // HTTP/2 (the HTTPS dev server) adds pseudo-headers like ":method", which Headers rejects.
+      for (const [k, v] of Object.entries(req.headers)) if (typeof v === "string" && !k.startsWith(":")) headers.set(k, v);
+      const host = req.headers.host ?? (req.headers[":authority"] as string | undefined) ?? "localhost";
+      const scheme = (req.socket as TLSSocket).encrypted ? "https" : "http";
       const response = await handleVault(
-        new Request(`http://${host}${req.url}`, {
+        new Request(`${scheme}://${host}${req.url}`, {
           method: req.method ?? "GET",
           headers,
           ...(chunks.length ? { body: new Uint8Array(Buffer.concat(chunks)) } : {}),
@@ -35,7 +39,15 @@ const vault: Plugin = {
 //   polyfill <script> into index.html.
 // - `scripts/assert-no-inline.mjs` (run in the build script) fails the build if
 //   any inline <script> or on* handler survives, so a CSP regression can't ship.
-export default defineConfig({
+// `vite --mode e2e`: the app's local end-to-end stack runs over HTTPS (Safari
+// keeps the Secure, Partitioned vault cookie only there), with the certificate
+// app/scripts/e2e-setup.ts generates.
+const e2eTls = () => ({
+  cert: readFileSync(new URL("../app/.wrangler/e2e/tls/cert.pem", import.meta.url)),
+  key: readFileSync(new URL("../app/.wrangler/e2e/tls/key.pem", import.meta.url)),
+});
+
+export default defineConfig(({ mode }) => ({
   root: ".",
   plugins: [vault],
   // phygital-token-sdk (Codama-generated) reads `process.env["NODE_ENV"]` at
@@ -58,6 +70,6 @@ export default defineConfig({
       },
     },
   },
-  server: { port: 5174, strictPort: true },
+  server: { port: 5174, strictPort: true, ...(mode === "e2e" ? { https: e2eTls() } : {}) },
   preview: { port: 5174, strictPort: true },
-});
+}));

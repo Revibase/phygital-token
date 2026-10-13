@@ -7,7 +7,11 @@
 import type { Option } from "@solana/kit";
 import { ruleFromProgram, type PolicyAction, type ProgramAccess } from "phygital-token-sdk";
 
+import { getAddressDecoder } from "@solana/kit";
+
 import { knownProgram, nameRule, ruleRisk, toHex } from "../shared/programs.js";
+
+const getBase58Address = (bytes: Uint8Array) => getAddressDecoder().decode(bytes);
 
 export interface DetailRow {
   label: string;
@@ -27,7 +31,7 @@ const SYSTEM = "11111111111111111111111111111111";
 const TOKEN = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const TOKEN_2022 = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
 const ATA = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL";
-const MEMO = "MemoSq4gqBnyyd8CMoPbUxRWDFBIdzy9SHRdJrEqeL";
+const MEMO = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr";
 const MEMO_V1 = "Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo";
 const METADATA = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s";
 const BUBBLEGUM = "BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY";
@@ -75,7 +79,11 @@ export function mintMeta(
   return KNOWN_MINT_META.get(mint) ?? null;
 }
 
-/** UI amount + symbol when decimals are known; otherwise a clear fallback. */
+/**
+ * UI amount + symbol when decimals are known. A token the signer can't name
+ * says "tokens" (its mint is shown on its own row); without decimals the
+ * amount is labelled as raw units rather than passed off as a balance.
+ */
 export function formatTokenAmount(
   raw: bigint,
   mint: string,
@@ -83,14 +91,8 @@ export function formatTokenAmount(
 ): string {
   const known = mintMeta(mint);
   const decimals = known?.decimals ?? decimalsHint ?? null;
-  const symbol = known?.symbol;
-  if (decimals == null) {
-    return symbol
-      ? `${raw.toString()} ${symbol}`
-      : `${raw.toString()} · mint ${shorten(mint)}`;
-  }
-  const amount = formatUnits(raw, decimals);
-  return symbol ? `${amount} ${symbol}` : `${amount} · mint ${shorten(mint)}`;
+  if (decimals == null) return `${raw.toString()} raw units`;
+  return `${formatUnits(raw, decimals)} ${known?.symbol ?? "tokens"}`;
 }
 
 function readU32LE(data: Uint8Array, o: number): number | null {
@@ -111,10 +113,6 @@ function readU64LE(data: Uint8Array, o: number): bigint | null {
   return v;
 }
 
-function shorten(addr: string): string {
-  return addr.length > 12 ? `${addr.slice(0, 4)}…${addr.slice(-4)}` : addr;
-}
-
 /** Format raw units with known decimals; trim trailing zeros. */
 export function formatUnits(raw: bigint, decimals: number): string {
   if (decimals <= 0) return raw.toString();
@@ -129,15 +127,15 @@ export function formatUnits(raw: bigint, decimals: number): string {
 }
 
 export function windowPhrase(windowSeconds: bigint): string {
-  if (windowSeconds === 0n) return "lifetime";
+  if (windowSeconds === 0n) return "in total";
   if (windowSeconds === 86_400n) return "every day";
   if (windowSeconds === 604_800n) return "every week";
   if (windowSeconds === 2_592_000n) return "every month";
-  if (windowSeconds % 86_400n === 0n) {
-    const days = windowSeconds / 86_400n;
-    return `every ${days} day${days === 1n ? "" : "s"}`;
-  }
-  return `every ${windowSeconds}s`;
+  const every = (n: bigint, unit: string) => `every ${n === 1n ? "" : `${n} `}${unit}${n === 1n ? "" : "s"}`;
+  if (windowSeconds % 86_400n === 0n) return every(windowSeconds / 86_400n, "day");
+  if (windowSeconds % 3_600n === 0n) return every(windowSeconds / 3_600n, "hour");
+  if (windowSeconds % 60n === 0n) return every(windowSeconds / 60n, "minute");
+  return every(windowSeconds, "second");
 }
 
 function accessLabel(access: ProgramAccess): string {
@@ -175,10 +173,12 @@ export function describePolicyActions(actions: readonly PolicyAction[]): DetailR
       case "SetMintCap": {
         const [mint, cap] = action.fields;
         rows.push({ label: "Token taps can spend", value: capPhrase(cap, (raw) => formatTokenAmount(raw, String(mint))) });
+        rows.push({ label: "Mint", value: String(mint) });
         break;
       }
       case "RemoveMintCap":
-        rows.push({ label: "Token taps can spend", value: `None · mint ${String(action.fields[0])}` });
+        rows.push({ label: "Token taps can spend", value: "None" });
+        rows.push({ label: "Mint", value: String(action.fields[0]) });
         break;
       case "SetAllowedOrigins": {
         const origins = action.fields[0];
@@ -187,27 +187,71 @@ export function describePolicyActions(actions: readonly PolicyAction[]): DetailR
       }
       case "SetProgramPermission": {
         const permission = action.fields[0];
-        rows.push({ label: "Allow program", value: `${knownProgram(permission.programId)?.name ?? "Unknown program"} · ${full(String(permission.programId))}` });
+        const program = String(permission.programId);
+        rows.push({ label: "Allow program", value: knownProgram(program)?.name ?? "Unknown program" });
+        rows.push({ label: "Program address", value: program });
         rows.push({ label: "Access", value: accessLabel(permission.access) });
         if (permission.access.__kind === "Restricted") {
           for (const rule of permission.access.fields[0]) {
-            const named = nameRule(permission.programId, rule);
-            const count = rule.accounts.length + rule.arguments.length;
-            rows.push({ label: "Allowed instruction", value: named?.name ?? `Custom rule: selector 0x${toHex(rule.selector)}, plus ${count} account / data checks` });
-            if (!named) rows.push({ label: "Rule details", value: JSON.stringify(ruleFromProgram(rule)) });
-            const risk = ruleRisk(permission.programId, rule.selector);
+            rows.push(...describeRule(program, rule));
+            const risk = ruleRisk(program, rule.selector);
             if (risk) rows.push({ label: "Permission warning", value: risk });
           }
-        } else if (!knownProgram(permission.programId)?.metered || [TOKEN, TOKEN_2022].includes(permission.programId)) {
+        } else if (!knownProgram(program)?.metered || [TOKEN, TOKEN_2022].includes(program)) {
           rows.push({ label: "Permission warning", value: "Allows every instruction, including potentially destructive actions" });
         }
         break;
       }
-      case "RemoveProgramPermission":
-        rows.push({ label: "Remove program", value: full(String(action.fields[0])) });
+      case "RemoveProgramPermission": {
+        const program = String(action.fields[0]);
+        rows.push({ label: "Remove program", value: knownProgram(program)?.name ?? "Unknown program" });
+        rows.push({ label: "Program address", value: program });
         break;
+      }
     }
   }
+  return rows;
+}
+
+const COMPARISON: Record<string, string> = { eq: "is", ne: "is not", lt: "is less than", le: "is at most", gt: "is more than", ge: "is at least" };
+
+/**
+ * One instruction rule in plain words: the instruction it allows, then one row
+ * per condition. Addresses get rows of their own, so each can be expanded and
+ * checked in full; nothing is shown as JSON or hex beyond the selector.
+ */
+function describeRule(program: string, rule: Parameters<typeof nameRule>[1] & Parameters<typeof ruleFromProgram>[0]): DetailRow[] {
+  const named = nameRule(program, rule);
+  if (named) return [{ label: "Allowed instruction", value: named.name }];
+  const json = ruleFromProgram(rule);
+  const selector = Array.from(rule.selector);
+  const base = knownProgram(program)?.instructions.find((i) => i.selector.length === selector.length && i.selector.every((b, n) => b === selector[n]));
+  const isSolTransfer = program === SYSTEM && base?.name === "Transfer SOL";
+  const rows: DetailRow[] = [
+    { label: "Allowed instruction", value: base ? base.name : `Instructions starting 0x${toHex(rule.selector)}` },
+  ];
+  const data = (check: { offset: number; bytes?: string; unsigned?: { width: string; is: string; value: string } }, subject: string) => {
+    if (check.unsigned) {
+      const { width, is, value } = check.unsigned;
+      if (isSolTransfer && subject === "instruction data" && check.offset === 4 && width === "u64") {
+        return `the amount ${COMPARISON[is]} ${formatUnits(BigInt(value), 9)} SOL`;
+      }
+      return `the ${width} at byte ${check.offset} of the ${subject} ${COMPARISON[is]} ${value}`;
+    }
+    return `bytes ${check.offset}–${check.offset + (check.bytes?.length ?? 0) / 2 - 1} of the ${subject} are 0x${check.bytes}`;
+  };
+  if (json.dataLength !== undefined) rows.push({ label: "Only if", value: `the instruction data is exactly ${json.dataLength} bytes` });
+  if (json.accountCount !== undefined) rows.push({ label: "Only if", value: `it uses exactly ${json.accountCount} accounts` });
+  for (const account of json.accounts ?? []) {
+    const name = isSolTransfer ? (["the sender", "the recipient"][account.index] ?? `account ${account.index + 1}`) : `account ${account.index + 1}`;
+    if (account.key === "wallet") rows.push({ label: "Only if", value: `${name} is the accessory wallet` });
+    else if (account.key) rows.push({ label: `Only if ${name} is`, value: account.key });
+    if (account.owner) rows.push({ label: `Only if ${name} belongs to`, value: account.owner });
+    if (account.signer !== undefined) rows.push({ label: "Only if", value: `${name} ${account.signer ? "signs" : "doesn’t sign"}` });
+    if (account.writable !== undefined) rows.push({ label: "Only if", value: `${name} is ${account.writable ? "writable" : "read-only"}` });
+    for (const check of account.data ?? []) rows.push({ label: "Only if", value: data(check, `${name}’s data`) });
+  }
+  for (const check of json.args ?? []) rows.push({ label: "Only if", value: data(check, "instruction data") });
   return rows;
 }
 
@@ -221,10 +265,11 @@ function hasPrefix(data: Uint8Array, prefix: readonly number[]): boolean {
   return prefix.every((b, i) => data[i] === b);
 }
 
-function generic(title: string, accounts: readonly string[], data: Uint8Array): ClearedInner {
+function generic(title: string, programAddress: string, accounts: readonly string[], data: Uint8Array): ClearedInner {
   return {
     title,
     details: [
+      { label: "Program", value: programAddress },
       { label: "Accounts", value: String(accounts.length) },
       { label: "Data bytes", value: String(data.length) },
     ],
@@ -261,7 +306,7 @@ export function describeInnerInstruction(
         };
       }
     }
-    return generic("System program", accounts, data);
+    return generic("Unreadable System Program call", programAddress, accounts, data);
   }
 
   if (programAddress === MEMO || programAddress === MEMO_V1) {
@@ -291,13 +336,15 @@ export function describeInnerInstruction(
         const amountLabel = mint
           ? formatTokenAmount(amount, mint, decimals)
           : formatUnits(amount, decimals);
+        // The destination is a token account; its owner is named when the
+        // transaction creates it (see the parser), else it's labelled as one.
         return {
-          title: `Send ${amountLabel} (${kind})`,
+          title: `Send ${amountLabel}`,
           details: [
             { label: "Amount", value: amountLabel },
             { label: "Mint", value: full(mint || undefined) },
-            { label: "From", value: full(accounts[0]) },
-            { label: "To", value: full(accounts[2]) },
+            { label: "From token account", value: full(accounts[0]) },
+            { label: "To token account", value: full(accounts[2]) },
           ],
           opaque: false,
           dangerous: false,
@@ -307,13 +354,13 @@ export function describeInnerInstruction(
     if (disc === 3 && data.length >= 9) {
       const amount = readU64LE(data, 1);
       if (amount !== null) {
-        // Transfer (unchecked) has no mint/decimals in the ix — amount stays opaque.
+        // Transfer (unchecked) carries no mint or decimals: say so instead of guessing a balance.
         return {
-          title: `Send tokens (${kind})`,
+          title: "Send tokens",
           details: [
-            { label: "Amount", value: amount.toString() },
-            { label: "From", value: full(accounts[0]) },
-            { label: "To", value: full(accounts[1]) },
+            { label: "Amount", value: `${amount.toString()} raw units (token not named in the transaction)` },
+            { label: "From token account", value: full(accounts[0]) },
+            { label: "To token account", value: full(accounts[1]) },
           ],
           opaque: false,
           dangerous: false,
@@ -322,10 +369,10 @@ export function describeInnerInstruction(
     }
     if (disc === 9 && data.length === 1 && self && accounts[1] === self) {
       return {
-        title: `Close token account (${kind})`,
+        title: "Close token account",
         details: [
-          { label: "Account", value: full(accounts[0]) },
-          { label: "Rent to", value: full(accounts[1]) },
+          { label: "Token account", value: full(accounts[0]) },
+          { label: "Rent back to", value: full(accounts[1]) },
         ],
         opaque: false,
         dangerous: false,
@@ -333,17 +380,31 @@ export function describeInnerInstruction(
     }
     const control = disc === undefined ? undefined : TOKEN_CONTROL_IXS.get(disc);
     if (control) {
-      return {
-        title: `${control} (${kind})`,
-        details: accounts.slice(0, 3).map((a, i) => ({
-          label: `Account ${i + 1}`,
-          value: full(a),
-        })),
-        opaque: false,
-        dangerous: true,
-      };
+      // Token layouts: approve(d) = account, [mint,] delegate; set_authority = account (new authority in data);
+      // close = account, destination.
+      const delegateIndex = disc === 13 ? 2 : 1;
+      const named: DetailRow[] =
+        disc === 4 || disc === 13
+          ? [
+              { label: "Token account", value: full(accounts[0]) },
+              { label: "Delegate", value: full(accounts[delegateIndex]) },
+              { label: "Amount", value: `${readU64LE(data, 1)?.toString() ?? "?"} raw units` },
+            ]
+          : disc === 6
+            ? [
+                { label: "Account", value: full(accounts[0]) },
+                {
+                  label: "New authority",
+                  value: data[2] === 1 && data.length >= 35 ? getBase58Address(data.slice(3, 35)) : "None (removes it)",
+                },
+              ]
+            : [
+                { label: "Token account", value: full(accounts[0]) },
+                { label: "Rent goes to", value: full(accounts[1]) },
+              ];
+      return { title: control, details: named, opaque: false, dangerous: true };
     }
-    return generic(`${kind} instruction`, accounts, data);
+    return generic(`Unreadable ${kind} call`, programAddress, accounts, data);
   }
 
   if (programAddress === ATA) {
@@ -360,47 +421,55 @@ export function describeInnerInstruction(
   }
 
   if (programAddress === METADATA) {
+    // TransferV1: token, token owner, destination token, destination owner, mint, ...
     if (data[0] === METADATA_TRANSFER_V1) {
       return {
-        title: "Transfer pNFT (Token Metadata)",
-        details: accounts.slice(0, 4).map((a, i) => ({
-          label: `Account ${i + 1}`,
-          value: full(a),
-        })),
-        opaque: false,
-        dangerous: false,
-      };
-    }
-    return generic("Token Metadata instruction", accounts, data);
-  }
-  if (programAddress === BUBBLEGUM) {
-    if (hasPrefix(data, BUBBLEGUM_TRANSFER)) {
-      return {
-        title: "Transfer cNFT (Bubblegum)",
+        title: "Send NFT",
         details: [
-          { label: "Accounts", value: String(accounts.length) },
-          { label: "Data bytes", value: String(data.length) },
+          { label: "NFT", value: full(accounts[4]) },
+          { label: "From", value: full(accounts[1]) },
+          { label: "To", value: full(accounts[3]) },
         ],
         opaque: false,
         dangerous: false,
       };
     }
-    return generic("Bubblegum instruction", accounts, data);
+    return generic("Unreadable Token Metadata call", programAddress, accounts, data);
   }
-  if (programAddress === CORE) {
-    if (data[0] === CORE_TRANSFER_V1) {
+  if (programAddress === BUBBLEGUM) {
+    // transfer: tree config, leaf owner, leaf delegate, new leaf owner, merkle tree, ...; the leaf index ends the data.
+    if (hasPrefix(data, BUBBLEGUM_TRANSFER)) {
+      const index = readU32LE(data, data.length - 4);
       return {
-        title: "Transfer NFT (Core)",
-        details: accounts.slice(0, 3).map((a, i) => ({
-          label: `Account ${i + 1}`,
-          value: full(a),
-        })),
+        title: "Send compressed NFT",
+        details: [
+          { label: "Tree", value: full(accounts[4]) },
+          { label: "Leaf", value: index === null ? "?" : `#${index}` },
+          { label: "From", value: full(accounts[1]) },
+          { label: "To", value: full(accounts[3]) },
+        ],
         opaque: false,
         dangerous: false,
       };
     }
-    return generic("Core instruction", accounts, data);
+    return generic("Unreadable Bubblegum call", programAddress, accounts, data);
+  }
+  if (programAddress === CORE) {
+    // TransferV1: asset, collection, payer, authority, new owner, ...
+    if (data[0] === CORE_TRANSFER_V1) {
+      return {
+        title: "Send NFT",
+        details: [
+          { label: "NFT", value: full(accounts[0]) },
+          { label: "Collection", value: full(accounts[1]) },
+          { label: "To", value: full(accounts[4]) },
+        ],
+        opaque: false,
+        dangerous: false,
+      };
+    }
+    return generic("Unreadable Metaplex Core call", programAddress, accounts, data);
   }
 
-  return generic(`Call ${shorten(programAddress)}`, accounts, data);
+  return generic("Call an unknown program", programAddress, accounts, data);
 }

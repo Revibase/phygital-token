@@ -16,8 +16,7 @@ const MINT_DECIMALS_OFFSET = 44;
  * other mints read from chain (their symbol falls back to a short address).
  */
 export async function assetInfos(assets: readonly string[], holdings?: WalletHoldings): Promise<Map<string, AssetInfo>> {
-	const out = new Map<string, AssetInfo>([[SOL, SOL_INFO]]);
-	for (const t of holdings?.tokens ?? []) out.set(t.mint, { symbol: t.symbol ?? t.name ?? shortAddress(t.mint), decimals: t.decimals, icon: t.icon, name: t.name ?? undefined });
+	const out = withHoldings(new Map<string, AssetInfo>([[SOL, SOL_INFO]]), holdings);
 	const missing = [...new Set(assets)].filter((a) => !out.has(a));
 	if (missing.length) {
 		try {
@@ -33,5 +32,12 @@ export async function assetInfos(assets: readonly string[], holdings?: WalletHol
 		}
 	}
 	for (const m of missing) if (!out.has(m)) out.set(m, { symbol: `${shortAddress(m)} (raw units)`, decimals: 0 });
+	return out;
+}
+
+/** `infos` with the wallet's held tokens named from its holdings, which know them best. */
+export function withHoldings(infos: ReadonlyMap<string, AssetInfo>, holdings?: WalletHoldings): Map<string, AssetInfo> {
+	const out = new Map(infos);
+	for (const t of holdings?.tokens ?? []) out.set(t.mint, { symbol: t.symbol ?? t.name ?? shortAddress(t.mint), decimals: t.decimals, icon: t.icon, name: t.name ?? undefined });
 	return out;
 }

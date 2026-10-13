@@ -1,0 +1,16 @@
+# Send 0.25 SOL
+To LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+[warn] Moves funds out of the accessory wallet. Confirm the amount and destination carefully.
+  Send 0.25 SOL: LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+  Memo: Invoice #1042
+  Network fee: 0.000005 SOL
+Details
+  Your wallet: 4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi
+  Accessory wallet: GgBaCs3NCBuZN12kCJgAW63ydqohFkHEdfdEXBPzLHq
+  Action 1: Send 0.25 SOL
+  Amount: 0.25 SOL
+  From: GgBaCs3NCBuZN12kCJgAW63ydqohFkHEdfdEXBPzLHq
+  To: LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+  Action 2: Memo
+  Text: Invoice #1042
+[Authorize]

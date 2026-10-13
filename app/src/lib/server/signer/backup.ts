@@ -50,6 +50,14 @@ async function sha256Hex(bytes: Uint8Array): Promise<string> {
 
 type Row = { public_key: string; encrypted_blob: string; webauthn_public_key: string };
 
+/**
+ * Backups that may share one credential id. A real passkey has one; extra rows
+ * only come from someone registering a self-made attestation under its id, which
+ * can't block the owner (rows are keyed by credential id and passkey key), but
+ * mustn't grow without bound either.
+ */
+const MAX_BACKUPS_PER_CREDENTIAL = 3;
+
 export async function issueBackupChallenge(db: D1Database): Promise<ChallengeResponse> {
 	const { challengeId, message } = await issueChallenge(db, BACKUP, Date.now(), randomChallenge);
 	return { challengeId, challenge: message };
@@ -76,21 +84,24 @@ export async function restoreBlob(
 	} catch {
 		throw bad('invalid_assertion', 'Invalid assertion rawId');
 	}
-	const row = await env.db
-		.prepare('SELECT public_key, encrypted_blob, webauthn_public_key FROM revibase_signer_wallets WHERE credential_id_hash = ?')
-		.bind(hash)
-		.first<Row>();
-	if (!row) throw new SignerApiError(404, 'not_found', 'No wallet backup for this passkey');
+	const { results: rows } = await env.db
+		.prepare('SELECT public_key, encrypted_blob, webauthn_public_key FROM revibase_signer_wallets WHERE credential_id_hash = ? LIMIT ?')
+		.bind(hash, MAX_BACKUPS_PER_CREDENTIAL)
+		.all<Row>();
+	if (!rows.length) throw new SignerApiError(404, 'not_found', 'No wallet backup for this passkey');
 
-	const verified = await verifyAssertion({
-		assertion,
-		expectedChallenge: challenge,
-		origin: env.signerOrigin,
-		rpId: env.rpId,
-		cosePublicKey: base64UrlToBytes(row.webauthn_public_key)
-	});
-	if (!verified) throw new SignerApiError(401, 'webauthn_invalid', 'WebAuthn assertion verification failed');
-	return { encryptedWalletBlob: row.encrypted_blob, publicKey: row.public_key };
+	// The backup is the one whose registered key signed this assertion.
+	for (const row of rows) {
+		const verified = await verifyAssertion({
+			assertion,
+			expectedChallenge: challenge,
+			origin: env.signerOrigin,
+			rpId: env.rpId,
+			cosePublicKey: base64UrlToBytes(row.webauthn_public_key)
+		});
+		if (verified) return { encryptedWalletBlob: row.encrypted_blob, publicKey: row.public_key };
+	}
+	throw new SignerApiError(401, 'webauthn_invalid', 'WebAuthn assertion verification failed');
 }
 
 export async function putBlob(env: { db: D1Database; rpId: string }, body: Record<string, unknown>): Promise<WalletBlobPutResponse> {
@@ -141,38 +152,49 @@ export async function putBlob(env: { db: D1Database; rpId: string }, body: Recor
 	const hash = await sha256Hex(header.credentialId);
 	const blob = bytesToBase64Url(header.raw);
 	const now = Date.now();
-	const existing = await env.db
-		.prepare('SELECT public_key FROM revibase_signer_wallets WHERE credential_id_hash = ?')
-		.bind(hash)
+	// This wallet's own backup under this passkey: the ed25519 proof above is the authority to replace it.
+	const updated = await env.db
+		.prepare('UPDATE revibase_signer_wallets SET encrypted_blob = ?, updated_at = ? WHERE credential_id_hash = ? AND public_key = ? RETURNING public_key')
+		.bind(blob, now, hash, publicKey)
 		.first<{ public_key: string }>();
-	if (existing) {
-		if (existing.public_key !== publicKey) {
-			throw new SignerApiError(409, 'wallet_conflict', 'A different wallet is already stored for this passkey');
-		}
-		await env.db
-			.prepare('UPDATE revibase_signer_wallets SET encrypted_blob = ?, updated_at = ? WHERE credential_id_hash = ?')
-			.bind(blob, now, hash)
-			.run();
-		return { ok: true, created: false };
-	}
+	if (updated) return { ok: true, created: false };
+
 	if (!attested) throw bad('webauthn_required', 'webauthnAttestationObject is required on first backup');
+	const passkeyKey = bytesToBase64Url(attested.publicKey);
+	const same = await env.db
+		.prepare('SELECT public_key FROM revibase_signer_wallets WHERE credential_id_hash = ? AND webauthn_public_key = ?')
+		.bind(hash, passkeyKey)
+		.first<{ public_key: string }>();
+	if (same) throw new SignerApiError(409, 'wallet_conflict', 'A different wallet is already stored for this passkey');
+	const count = await env.db
+		.prepare('SELECT COUNT(*) AS n FROM revibase_signer_wallets WHERE credential_id_hash = ?')
+		.bind(hash)
+		.first<{ n: number }>();
+	if ((count?.n ?? 0) >= MAX_BACKUPS_PER_CREDENTIAL) throw new SignerApiError(409, 'too_many_backups', 'Too many backups for this passkey');
 	await env.db
 		.prepare(
-			`INSERT INTO revibase_signer_wallets (credential_id_hash, public_key, encrypted_blob, webauthn_public_key, created_at, updated_at)
+			`INSERT INTO revibase_signer_wallets (credential_id_hash, webauthn_public_key, public_key, encrypted_blob, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?)`
 		)
-		.bind(hash, publicKey, blob, bytesToBase64Url(attested.publicKey), now, now)
+		.bind(hash, passkeyKey, publicKey, blob, now, now)
 		.run();
 	return { ok: true, created: true };
 }
+
+/** Generous for a blob, an attestation or an assertion; anything bigger is refused unread. */
+export const MAX_SIGNER_BODY_BYTES = 16 * 1024;
 
 /** JSON handler for one `/api/signer/*` route; CORS is added in hooks.server.ts. */
 export function signerRoute(fn: (env: ServerEnv, body: Record<string, unknown>) => Promise<unknown>): RequestHandler {
 	return async ({ request, platform }) => {
 		const env = getEnv(platform);
 		let body: Record<string, unknown> = {};
+		const tooLarge = () => json({ error: 'Request too large', code: 'too_large' }, { status: 413 });
+		if (Number(request.headers.get('content-length') ?? 0) > MAX_SIGNER_BODY_BYTES) return tooLarge();
 		try {
-			const parsed = await request.json();
+			const text = await request.text();
+			if (text.length > MAX_SIGNER_BODY_BYTES) return tooLarge();
+			const parsed = text ? JSON.parse(text) : {};
 			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) body = parsed as Record<string, unknown>;
 		} catch {
 			return json({ error: 'Invalid JSON body', code: 'bad_request' }, { status: 400 });

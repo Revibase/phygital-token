@@ -32,11 +32,12 @@
 
 {#if client}
 	{#if open}
-		<button type="button" aria-label="Cancel" class="fixed inset-0 z-[60] bg-black/40" onclick={() => client.cancel()}></button>
+		<!-- pointer-events-auto: an open dialog underneath sets pointer-events: none on <body>. -->
+		<button type="button" aria-label="Cancel" class="pointer-events-auto fixed inset-0 z-[60] bg-black/40" onclick={() => client.cancel()}></button>
 	{/if}
 	<div
 		class={open
-			? 'fixed inset-x-0 bottom-0 z-[61] mx-auto w-full max-w-[480px] overflow-hidden rounded-t-[22px] bg-background shadow-2xl md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:max-w-[440px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[22px]'
+			? 'pointer-events-auto fixed inset-x-0 bottom-0 z-[61] mx-auto w-full max-w-[480px] overflow-hidden rounded-t-[22px] bg-background shadow-2xl md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:max-w-[440px] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-[22px]'
 			: 'pointer-events-none fixed right-0 bottom-0 size-px overflow-hidden opacity-0'}
 		aria-hidden={!open}
 	>
@@ -44,13 +45,14 @@
 			bind:this={iframe}
 			src={client.frameSrc}
 			title="Revibase Passkey"
-			allow="publickey-credentials-get *; clipboard-write *"
+			allow={`publickey-credentials-get ${client.origin}; clipboard-write ${client.origin}`}
 			class="block w-full border-0"
 			style:height={open ? `${Math.max(height, 200)}px` : '1px'}
 		></iframe>
 	</div>
 
 	<ResponsiveSheet
+		above
 		bind:open={() => !!passkeyPrompts.setup, (v) => { if (!v) passkeyPrompts.setup?.({ mode: 'cancel' }); }}
 		title="Set up your passkey wallet"
 		description="A Solana wallet protected by Face ID or your fingerprint. Nothing to install."
@@ -65,6 +67,7 @@
 	</ResponsiveSheet>
 
 	<ResponsiveSheet
+		above
 		bind:open={() => !!passkeyPrompts.lost, (v) => { if (!v) passkeyPrompts.lost?.resolve({ mode: 'cancel' }); }}
 		title="Can’t find your passkey wallet"
 		description={passkeyPrompts.lost?.reason === 'not_found'

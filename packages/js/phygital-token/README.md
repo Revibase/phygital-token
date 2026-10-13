@@ -35,6 +35,7 @@ const response = await startAuthentication(message, { rpc });
 const { isVerified, secp256r1PublicKey } = await verifyResponse({
   expectedMessage: message,
   expectedOrigin: "https://app.example.com",
+  expectedRpId: "app.example.com", // the rpId the tap was requested for
   response,
 });
 if (!isVerified) throw new Error("bad tap");
@@ -46,7 +47,7 @@ const token = await fetchPhygitalToken(
 // token.data.owner
 ```
 
-`expectedOrigin` is your site's origin as a fixed value, not the request's `Origin` header. A tap made on another site throws `ORIGIN_MISMATCH`, so that site can't pass your challenge to a user and authenticate with their tap. It also returns `accessoryWallet`, derived locally without RPC (`null` when the signature is invalid); you only need it if you use the optional accessory wallet.
+It rejects anything that isn't a tap (`INVALID_ASSERTION`: a registration response, or no user presence) and, with `expectedRpId`, a tap made for another relying party (`RP_ID_MISMATCH`). `expectedOrigin` is your site's origin as a fixed value, not the request's `Origin` header. A tap made on another site throws `ORIGIN_MISMATCH`, so that site can't pass your challenge to a user and authenticate with their tap. It also returns `accessoryWallet`, derived locally without RPC (`null` when the signature is invalid); you only need it if you use the optional accessory wallet.
 
 Reject expired/reused challenges and unlinked tokens before creating a session. The owner is delegated identity, not proof of wallet-key control or NFT ownership.
 

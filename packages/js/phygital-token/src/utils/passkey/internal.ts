@@ -111,6 +111,7 @@ export function recoverSecp256r1PublicKeyCandidates(
 }
 
 type WebAuthnClientDataJson = {
+  type?: unknown;
   challenge?: unknown;
   origin?: unknown;
   crossOrigin?: unknown;
@@ -127,6 +128,7 @@ function readRequiredClientDataString(value: unknown, field: string): string {
 }
 
 export function parseWebAuthnClientData(clientDataJSON: string): {
+  type: string;
   challenge: string;
   origin: string;
   crossOrigin: boolean;
@@ -144,6 +146,7 @@ export function parseWebAuthnClientData(clientDataJSON: string): {
   }
 
   return {
+    type: readRequiredClientDataString(parsed.type, "type"),
     challenge: readRequiredClientDataString(parsed.challenge, "challenge"),
     origin: readRequiredClientDataString(parsed.origin, "origin"),
     crossOrigin: parsed.crossOrigin === true,

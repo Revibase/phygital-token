@@ -34,6 +34,8 @@ export interface TransactionSummary {
   revibaseFeePayers?: readonly string[];
   instructions: ParsedInstructionSummary[];
   config: { priorityFeeLamports?: bigint; computeUnitLimit?: number };
+  /** Signatures the fee is charged for: the transaction's own plus each secp256r1 one. */
+  signatureCount: number;
 }
 
 export type PolicyResult = { ok: true; summary: TransactionSummary } | { ok: false; code: ErrorCode };
@@ -46,7 +48,12 @@ function readU64(data: Uint8Array, o: number): bigint {
 }
 
 function computeBudget(tx: DecodedTransaction): TransactionSummary["config"] | null {
-  if (tx.message.version === 1) return { computeUnitLimit: getTransactionMessageComputeUnitLimit(tx.message) ?? 0, priorityFeeLamports: getTransactionMessagePriorityFeeLamports(tx.message) ?? 0n };
+  if (tx.message.version === 1) {
+    // v1 carries these in the message config; unset ones aren't settings to show.
+    const limit = getTransactionMessageComputeUnitLimit(tx.message);
+    const priority = getTransactionMessagePriorityFeeLamports(tx.message);
+    return { ...(limit ? { computeUnitLimit: limit } : {}), ...(priority ? { priorityFeeLamports: priority } : {}) };
+  }
   let limit: number | undefined;
   let microLamports: bigint | undefined;
   let other = 0;
@@ -71,8 +78,12 @@ function computeBudget(tx: DecodedTransaction): TransactionSummary["config"] | n
 export function previewPolicy(tx: DecodedTransaction): PolicyResult {
   const summaries: ParsedInstructionSummary[] = [];
   let verifies = 0;
+  let precompileSignatures = 0;
   for (const ix of tx.message.instructions) {
-    if (ix.programAddress === SECP256R1_PROGRAM) verifies++;
+    if (ix.programAddress === SECP256R1_PROGRAM) {
+      verifies++;
+      precompileSignatures += ix.data?.[0] ?? 0;
+    }
     let summary: ParsedInstructionSummary | null;
     try {
       summary = parseInstruction(ix, { feePayer: tx.message.feePayer.address });
@@ -94,7 +105,8 @@ export function previewPolicy(tx: DecodedTransaction): PolicyResult {
   const config = computeBudget(tx);
   if (!config) return { ok: false, code: "POLICY_REJECTED" };
 
-  return { ok: true, summary: { walletAddress, feePayer: tx.message.feePayer.address, instructions: summaries, config } };
+  const signatureCount = Object.keys(tx.transaction.signatures).length + precompileSignatures;
+  return { ok: true, summary: { walletAddress, feePayer: tx.message.feePayer.address, instructions: summaries, config, signatureCount } };
 }
 
 export function evaluatePolicy(tx: DecodedTransaction, walletPubkey: Uint8Array): PolicyResult {

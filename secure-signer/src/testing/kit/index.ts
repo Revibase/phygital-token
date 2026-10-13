@@ -17,3 +17,4 @@ export {
   type WebAuthnFault,
 } from "./virtual-authenticator.js";
 export { cborEncode, type CborValue } from "./cbor.js";
+export { LeakScanner, flatten, type LeakFinding } from "./leaks.js";

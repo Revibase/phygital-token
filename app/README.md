@@ -39,6 +39,25 @@ pnpm --filter revibase dev:simulation  # UI preview without hardware, localhost:
 pnpm --filter revibase test:browser    # run with the simulation server active
 ```
 
+### End to end: real app, signer and chain
+
+`pnpm test:e2e` drives the real app, the real secure-signer iframe and a local validator in a browser. WebAuthn is a virtual authenticator in the test process (`test/e2e/webauthn-bridge.ts`), shared by every frame, so passkey creation on the app, PRF in the signer frame and NFC accessory taps all run without hardware or OS prompts. Everything that consumes the credentials stays real. It runs over HTTPS, as in production: WebKit keeps the signer's `Secure; Partitioned` vault cookie only there, and blocks a plain-HTTP RPC from an HTTPS page.
+
+The validator must support v1 transactions (Agave 4.x):
+
+```bash
+solana-test-validator --reset --bpf-program phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz target/deploy/phygital_token.so
+pnpm --filter revibase e2e:setup                                     # accessories, fee payers, D1, TLS cert
+REVIBASE_PLATFORM=e2e NODE_EXTRA_CA_CERTS=$PWD/app/.wrangler/e2e/tls/cert.pem pnpm --filter revibase dev   # https://localhost:5173
+pnpm --filter secure-signer exec vite --mode e2e                      # https://localhost:5174
+pnpm --filter revibase test:e2e                                       # system Chrome
+E2E_ENGINE=webkit pnpm --filter revibase test:e2e                     # WebKit
+```
+
+`E2E_FILTER=regex` runs matching scenarios; `E2E_HEADED=1` shows the browser. The e2e stack has its own bindings (`test/e2e/wrangler.jsonc`), secrets (`test/e2e/.dev.vars`) and D1 store (`.wrangler/e2e`), so it never touches your `.dev.vars`. The app also serves the validator at `/__e2e/rpc` in this mode.
+
+Scenarios cover the passkey wallet (create, reload, restore on a new phone, unknown passkey, export), claiming, owner sign-in, permission requests, SOL, token and send-all transfers, release with sweep, tap-to-sign from another site within limits and allowed sites, recovery from cancels and dismissed prompts, a hostile parent posting crafted messages to the signer, and a foreign site framing it. After each scenario a leak scan checks that no PRF output reached the app, the network or app storage. Every signer confirm screen is saved to `test/e2e/results/signer/` for review.
+
 ### NFT transfers
 
 Adapted the Kit clients and standard-specific builders from `phygital-wallet/apps/web/src/features/send/lib/transfers`. Standard SPL NFTs, programmable NFTs, Core and compressed NFTs share the same recipient-only send form and Send all flow. Programmable source token accounts are normally frozen; this does not block Token Metadata transfers. Rule sets, Core plugins and compressed-NFT freeze/non-transferable flags remain enforced; failures stop before signing. Missing/incomplete DAS indexing is disclosed rather than silently reporting a complete portfolio. Discovery currently bounds pagination to 4,000 indexed assets and reports incomplete results.

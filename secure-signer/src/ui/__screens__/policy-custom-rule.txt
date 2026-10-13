@@ -1,0 +1,14 @@
+# Change tap permissions
+Changes what a tap of the accessory can do
+[warn] Anyone holding the accessory can use these programs and spending limits with a tap.
+  Allow program: System Program
+  Program address: 11111111111111111111111111111111
+  Access: 1 rule
+  Allowed instruction: Transfer SOL
+  Only if: the instruction data is exactly 12 bytes
+  Only if the recipient is: LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+  Only if: the amount is at most 0.05 SOL
+  Network fee: 0.000005 SOL
+Details
+  Your wallet: 4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi
+[Authorize]

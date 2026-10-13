@@ -1,0 +1,11 @@
+# Send tokens
+To token account QWmroo4YnnMqYW3cnxWkFdaTxGD3P7vMSzwMHGbUzwF
+[warn] Moves funds out of the accessory wallet. Confirm the amount and destination carefully.
+  Amount: 1500000 raw units (token not named in the transaction)
+  From token account: US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx
+  To token account: QWmroo4YnnMqYW3cnxWkFdaTxGD3P7vMSzwMHGbUzwF
+  Network fee: 0.000005 SOL
+Details
+  Your wallet: 4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi
+  Accessory wallet: GgBaCs3NCBuZN12kCJgAW63ydqohFkHEdfdEXBPzLHq
+[Authorize]

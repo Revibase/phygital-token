@@ -19,7 +19,9 @@
 		"dev:accessory": "tsx scripts/dev-accessory.ts",
 		"dev:simulation": "vite --config vite.browser-simulation.config.ts",
 		"test:browser": "node scripts/browser-simulation.mjs",
-		"e2e:nfts": "node --import tsx scripts/e2e-nfts.ts"
+		"e2e:nfts": "node --import tsx scripts/e2e-nfts.ts",
+		"e2e:setup": "tsx scripts/e2e-setup.ts",
+		"test:e2e": "APP_URL=https://localhost:5173 NODE_EXTRA_CA_CERTS=.wrangler/e2e/tls/cert.pem tsx scripts/e2e-browser.ts"
 	},
 	"devDependencies": {
 		"@fontsource-variable/inter": "^5.3.0",

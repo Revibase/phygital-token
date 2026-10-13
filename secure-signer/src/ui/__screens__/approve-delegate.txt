@@ -1,0 +1,10 @@
+# Approve delegate
+[danger] This hands control of your tokens to someone else. Only continue if you meant to.
+  Token account: US517G5965aydkZ46HS38QLi7UQiSojurfbQfKCELFx
+  Delegate: LbUiWL3xVV8hTFYBVdbTNrpDo41NKS6o3LHHuDzjfcY
+  Amount: 1000000 raw units
+  Network fee: 0.000005 SOL
+Details
+  Your wallet: 4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi
+  Accessory wallet: GgBaCs3NCBuZN12kCJgAW63ydqohFkHEdfdEXBPzLHq
+[Authorize anyway]

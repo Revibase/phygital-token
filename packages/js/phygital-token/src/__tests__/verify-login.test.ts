@@ -20,6 +20,8 @@ function buildAssertion(args: {
   origin?: string;
   rpId?: string;
   signCount?: number;
+  type?: string;
+  flags?: number;
 }): { response: AuthenticationResponseJSON; publicKey: string } {
   const publicKey = bufferToBase64URLString(
     p256.getPublicKey(args.privateKey, true),
@@ -27,7 +29,7 @@ function buildAssertion(args: {
   const challengeB64 = utf8ToBase64URLString(args.message);
 
   const clientData = {
-    type: "webauthn.get",
+    type: args.type ?? "webauthn.get",
     challenge: challengeB64,
     origin: args.origin ?? "https://app.example.com",
     crossOrigin: false,
@@ -39,7 +41,7 @@ function buildAssertion(args: {
   const rpId = args.rpId ?? "app.example.com";
   const authData = new Uint8Array(37);
   authData.set(sha256(new TextEncoder().encode(rpId)), 0);
-  authData[32] = 0x01;
+  authData[32] = args.flags ?? 0x01;
   new DataView(authData.buffer).setUint32(33, args.signCount ?? 7, false);
 
   const signed = buildSecp256r1Message(
@@ -67,6 +69,29 @@ function buildAssertion(args: {
 }
 
 describe("startAuthentication / verifyResponse", async () => {
+  it("rejects a registration (webauthn.create) passed off as a tap", async () => {
+    const privateKey = p256.utils.randomSecretKey();
+    const message = "revibase-signin:create";
+    const { response } = buildAssertion({ privateKey, message, type: "webauthn.create" });
+    await expect(verifyResponse({ expectedMessage: message, expectedOrigin, response })).rejects.toMatchObject({ code: "INVALID_ASSERTION" });
+  });
+
+  it("rejects an assertion without user presence", async () => {
+    const privateKey = p256.utils.randomSecretKey();
+    const message = "revibase-signin:no-presence";
+    const { response } = buildAssertion({ privateKey, message, flags: 0x00 });
+    await expect(verifyResponse({ expectedMessage: message, expectedOrigin, response })).rejects.toMatchObject({ code: "INVALID_ASSERTION" });
+  });
+
+  it("checks the relying party when expectedRpId is given", async () => {
+    const privateKey = p256.utils.randomSecretKey();
+    const message = "revibase-signin:rp";
+    const { response } = buildAssertion({ privateKey, message, rpId: "evil.example" });
+    await expect(verifyResponse({ expectedMessage: message, expectedOrigin, expectedRpId: "app.example.com", response })).rejects.toMatchObject({ code: "RP_ID_MISMATCH" });
+    const ok = buildAssertion({ privateKey, message, rpId: "app.example.com" });
+    expect((await verifyResponse({ expectedMessage: message, expectedOrigin, expectedRpId: "app.example.com", response: ok.response })).isVerified).toBe(true);
+  });
+
   it("verifies a tap for the issued message", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const message = "revibase-signin:abc";

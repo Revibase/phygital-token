@@ -44,7 +44,7 @@ export type ResumeResult =
 	| { ok: false; status: number; code: 'bad_request' | 'too_slow' | 'tap_rejected' | 'unknown_accessory'; error: string };
 
 export async function verifyResume(
-	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi>; origin: string },
+	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi>; origin: string; rpId: string },
 	input: { challengeId: unknown; response: unknown },
 	now = Date.now()
 ): Promise<ResumeResult> {
@@ -61,6 +61,7 @@ export async function verifyResume(
 		const result = await verifyResponse({
 			expectedMessage,
 			expectedOrigin: deps.origin,
+			expectedRpId: deps.rpId,
 			response: assertion
 		});
 		if (!result.isVerified) return rejected;

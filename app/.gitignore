@@ -30,3 +30,4 @@ scripts/.dev-accessory.json
 
 # Browser simulation reports and screenshots
 /test/browser/results/
+/test/e2e/results/
