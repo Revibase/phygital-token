@@ -7,6 +7,7 @@
  * wallet key over another one, plus the registration attestation on create.
  * No cookies: each call authenticates itself.
  */
+import { readJsonObject } from '../http/read-json';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { getAddressDecoder } from '@solana/kit';
 import { ed25519 } from '@noble/curves/ed25519.js';
@@ -219,21 +220,10 @@ export function signerRoute(
 ): RequestHandler {
 	return async ({ request, platform }) => {
 		const env = getEnv(platform);
-		let body: Record<string, unknown> = {};
-		const tooLarge = () => json({ error: 'Request too large', code: 'too_large' }, { status: 413 });
-		if (Number(request.headers.get('content-length') ?? 0) > MAX_SIGNER_BODY_BYTES)
-			return tooLarge();
+		const read = await readJsonObject(request, MAX_SIGNER_BODY_BYTES);
+		if (!read.ok) return read.response;
 		try {
-			const text = await request.text();
-			if (text.length > MAX_SIGNER_BODY_BYTES) return tooLarge();
-			const parsed: unknown = text ? JSON.parse(text) : {};
-			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
-				body = parsed as Record<string, unknown>;
-		} catch {
-			return json({ error: 'Invalid JSON body', code: 'bad_request' }, { status: 400 });
-		}
-		try {
-			return json(await fn(env, body));
+			return json(await fn(env, read.body));
 		} catch (err) {
 			if (err instanceof SignerApiError)
 				return json({ error: err.message, code: err.code }, { status: err.status });

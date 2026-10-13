@@ -2,17 +2,16 @@ import { json } from '@sveltejs/kit';
 
 import { verifyOwnerLogin } from '$lib/server/accessory/owner-browse';
 import { getEnv } from '$lib/server/env';
+import { readJsonObject } from '$lib/server/http/read-json';
 import { clearCookie, setOwnerSession } from '$lib/server/session/cookies';
 import type { RequestHandler } from './$types';
 
 /** Log in: one signed message proves this browser controls the wallet. */
 export const POST: RequestHandler = async ({ request, cookies, platform }) => {
 	const env = getEnv(platform);
-	const body = (await request.json().catch(() => ({}))) as {
-		challengeId?: unknown;
-		address?: unknown;
-		signature?: unknown;
-	};
+	const read = await readJsonObject(request);
+	if (!read.ok) return read.response;
+	const body = read.body as { challengeId?: unknown; address?: unknown; signature?: unknown };
 	const result = await verifyOwnerLogin(env.db, body);
 	if (!result.ok)
 		return json({ error: result.error, code: result.code }, { status: result.status });

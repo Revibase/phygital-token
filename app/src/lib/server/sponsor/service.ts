@@ -3,6 +3,7 @@
  * accessory taps. Each accessory has prepaid fees in D1; when they run low the
  * transaction itself refills them from the accessory wallet.
  */
+import { readJsonObject } from '../http/read-json';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import {
 	getBase58Decoder,
@@ -206,14 +207,11 @@ export const sponsorGet: RequestHandler = async ({ url, platform }) => {
 
 export const sponsorSign: RequestHandler = async ({ request, platform }) => {
 	const env = getEnv(platform);
-	let body: { transactions?: unknown };
+	// A batch of base64 transactions (each at most 1,232 bytes on the wire).
+	const read = await readJsonObject(request, 64 * 1024);
+	if (!read.ok) return read.response;
 	try {
-		body = await request.json<typeof body>();
-	} catch {
-		return json({ error: 'Invalid JSON body', code: 'bad_request' }, { status: 400 });
-	}
-	try {
-		return json(await signSponsored(env, getRpc(env), body?.transactions));
+		return json(await signSponsored(env, getRpc(env), read.body.transactions));
 	} catch (err) {
 		return respond(err);
 	}

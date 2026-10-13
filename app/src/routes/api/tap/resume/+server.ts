@@ -1,18 +1,16 @@
 import { json } from '@sveltejs/kit';
 
 import { getEnv, getRpc } from '$lib/server/env';
+import { readJsonObject } from '$lib/server/http/read-json';
 import { setBrowseUnlock } from '$lib/server/session/cookies';
 import { verifyResume } from '$lib/server/tap/resume';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, url, cookies, platform }) => {
 	const env = getEnv(platform);
-	let body: { challengeId?: unknown; response?: unknown };
-	try {
-		body = await request.json();
-	} catch {
-		return json({ error: 'Invalid JSON' }, { status: 400 });
-	}
+	const read = await readJsonObject(request);
+	if (!read.ok) return read.response;
+	const body = read.body as { challengeId?: unknown; response?: unknown };
 	try {
 		const result = await verifyResume(
 			{ db: env.db, rpc: getRpc(env), origin: url.origin, rpId: env.rpId },
