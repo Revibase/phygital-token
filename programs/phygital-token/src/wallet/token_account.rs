@@ -74,3 +74,49 @@ pub(super) fn token_account_view(data: &[u8]) -> Option<TokenView> {
         close_authority: coption(CLOSE_AUTHORITY),
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    fn account(len: usize) -> Vec<u8> {
+        let mut data = vec![0u8; len];
+        data[MINT..MINT + 32].copy_from_slice(&[1; 32]);
+        data[OWNER..OWNER + 32].copy_from_slice(&[2; 32]);
+        data[AMOUNT..AMOUNT + 8].copy_from_slice(&500u64.to_le_bytes());
+        data[STATE] = STATE_INITIALIZED;
+        data[CLOSE_AUTHORITY..CLOSE_AUTHORITY + 4].copy_from_slice(&COPTION_SOME);
+        data[CLOSE_AUTHORITY + 4..CLOSE_AUTHORITY + 36].copy_from_slice(&[3; 32]);
+        data
+    }
+
+    #[test]
+    fn reads_an_spl_token_account() {
+        let view = token_account_view(&account(BASE_LEN)).unwrap();
+        assert_eq!(view.mint, Pubkey::new_from_array([1; 32]));
+        assert_eq!(view.owner, Pubkey::new_from_array([2; 32]));
+        assert_eq!(view.amount, 500);
+        assert_eq!(view.delegate, None);
+        assert_eq!(view.close_authority, Some(Pubkey::new_from_array([3; 32])));
+    }
+
+    #[test]
+    fn requires_the_token_2022_account_type_and_an_initialized_state() {
+        let mut extended = account(BASE_LEN + 10);
+        assert!(token_account_view(&extended).is_none());
+        extended[ACCOUNT_TYPE] = ACCOUNT_TYPE_ACCOUNT;
+        assert!(token_account_view(&extended).is_some());
+        let mut uninitialized = account(BASE_LEN);
+        uninitialized[STATE] = 0;
+        assert!(token_account_view(&uninitialized).is_none());
+        assert!(token_account_view(&account(BASE_LEN)[..BASE_LEN - 1]).is_none());
+    }
+
+    proptest! {
+        #[test]
+        fn never_panics(data in proptest::collection::vec(any::<u8>(), 0..400)) {
+            let _ = token_account_view(&data);
+        }
+    }
+}

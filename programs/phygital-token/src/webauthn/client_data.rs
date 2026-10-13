@@ -89,3 +89,62 @@ fn decode_base64url_32(input: &[u8]) -> Result<[u8; 32]> {
     out[31] = (b << 4) | (c >> 2);
     Ok(out)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+    use proptest::prelude::*;
+
+    #[test]
+    fn finds_the_first_occurrence_of_each_field() {
+        let json = br#"{"type":"webauthn.get","challenge":"abc","origin":"https://a.example","crossOrigin":false,"other":{"origin":"x"}}"#;
+        assert_eq!(
+            json_quoted_value(json, JSON_TYPE_KEY).unwrap(),
+            b"webauthn.get"
+        );
+        assert_eq!(
+            json_quoted_value(json, JSON_ORIGIN_KEY).unwrap(),
+            b"https://a.example"
+        );
+    }
+
+    #[test]
+    fn keeps_escapes_and_stops_at_the_closing_quote() {
+        let json = br#"{"origin":"a\"b","x":1}"#;
+        assert_eq!(
+            json_quoted_value(json, JSON_ORIGIN_KEY).unwrap(),
+            br#"a\"b"#
+        );
+        assert!(json_quoted_value(br#"{"origin":"unterminated"#, JSON_ORIGIN_KEY).is_err());
+        assert!(json_quoted_value(br#"{"type":"x"}"#, JSON_ORIGIN_KEY).is_err());
+    }
+
+    #[test]
+    fn rejects_challenges_of_the_wrong_length_or_alphabet() {
+        let good = URL_SAFE_NO_PAD.encode([5u8; 32]);
+        assert!(decode_base64url_32(good.as_bytes()).is_ok());
+        assert!(decode_base64url_32(&good.as_bytes()[..42]).is_err());
+        let mut padded = good.clone();
+        padded.push('=');
+        assert!(decode_base64url_32(padded.as_bytes()).is_err());
+        let standard = good.replace('-', "+").replace('_', "/");
+        if standard != good {
+            assert!(decode_base64url_32(standard.as_bytes()).is_err());
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn decodes_what_base64url_encodes(bytes in any::<[u8; 32]>()) {
+            let encoded = URL_SAFE_NO_PAD.encode(bytes);
+            prop_assert_eq!(decode_base64url_32(encoded.as_bytes()).unwrap(), bytes);
+        }
+
+        #[test]
+        fn scanning_never_panics(json in proptest::collection::vec(any::<u8>(), 0..300)) {
+            let _ = json_quoted_value(&json, JSON_ORIGIN_KEY);
+            let _ = extract_challenge_from_client_data_json(&json);
+        }
+    }
+}

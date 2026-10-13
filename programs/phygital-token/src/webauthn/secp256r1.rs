@@ -153,3 +153,91 @@ fn extract_public_key_data<'a>(
         .get(public_key_offset..public_key_end)
         .ok_or(PhygitalError::InvalidSecp256r1PublicKey)?)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const MIN_MESSAGE: usize = 4;
+
+    /// A precompile instruction with one entry whose key and message follow
+    /// the table, built field by field like the SDK does.
+    fn instruction(indexes: [u16; 3], message: &[u8]) -> Vec<u8> {
+        let key_at = SIGNATURE_OFFSETS_START + SIGNATURE_OFFSETS_SERIALIZED_SIZE;
+        let signature_at = key_at + COMPRESSED_PUBKEY_SERIALIZED_SIZE;
+        let message_at = signature_at + 64;
+        let mut data = vec![1, 0];
+        for field in [
+            signature_at as u16,
+            indexes[0],
+            key_at as u16,
+            indexes[1],
+            message_at as u16,
+            message.len() as u16,
+            indexes[2],
+        ] {
+            data.extend_from_slice(&field.to_le_bytes());
+        }
+        data.extend_from_slice(&[2; COMPRESSED_PUBKEY_SERIALIZED_SIZE]);
+        data.extend_from_slice(&[7; 64]);
+        data.extend_from_slice(message);
+        data
+    }
+
+    fn code(result: Result<impl Sized>) -> u32 {
+        match result {
+            Err(Error::AnchorError(e)) => e.error_code_number,
+            _ => panic!("expected an Anchor error"),
+        }
+    }
+
+    #[test]
+    fn reads_key_and_message_of_a_self_contained_entry() {
+        let data = instruction([CURRENT_INSTRUCTION; 3], b"message");
+        let (key, message) = signed_public_key_and_message(&data, 0, MIN_MESSAGE).unwrap();
+        assert_eq!(key, [2; COMPRESSED_PUBKEY_SERIALIZED_SIZE]);
+        assert_eq!(message, b"message");
+    }
+
+    #[test]
+    fn every_instruction_index_must_name_the_precompile_itself() {
+        let offsets = PhygitalError::InvalidSignatureOffsets as u32 + 6000;
+        for position in 0..3 {
+            let mut indexes = [CURRENT_INSTRUCTION; 3];
+            indexes[position] = 0;
+            let data = instruction(indexes, b"message");
+            assert_eq!(
+                code(signed_public_key_and_message(&data, 0, MIN_MESSAGE)),
+                offsets
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_out_of_range_entries_and_short_messages() {
+        let data = instruction([CURRENT_INSTRUCTION; 3], b"message");
+        assert_eq!(
+            code(signed_public_key_and_message(&data, 1, MIN_MESSAGE)),
+            PhygitalError::SignatureIndexOutOfBounds as u32 + 6000
+        );
+        assert_eq!(
+            code(signed_public_key_and_message(&data, 0, 8)),
+            PhygitalError::InvalidSignatureOffsets as u32 + 6000
+        );
+        assert_eq!(
+            code(signed_public_key_and_message(&data[..10], 0, MIN_MESSAGE)),
+            PhygitalError::InvalidSignatureOffsets as u32 + 6000
+        );
+        assert_eq!(
+            code(signed_public_key_and_message(&[], 0, MIN_MESSAGE)),
+            PhygitalError::InvalidSecp256r1Instruction as u32 + 6000
+        );
+    }
+
+    proptest::proptest! {
+        #[test]
+        fn never_panics(data in proptest::collection::vec(proptest::prelude::any::<u8>(), 0..400), index in 0u8..=255) {
+            let _ = signed_public_key_and_message(&data, index, MIN_MESSAGE);
+        }
+    }
+}

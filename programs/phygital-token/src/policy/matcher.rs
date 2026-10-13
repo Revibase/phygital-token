@@ -272,3 +272,52 @@ mod tests {
         assert!(!rule_ok(&rule, &invalid, &remaining, &key));
     }
 }
+
+/// The matcher hard-codes Borsh variant tags; these pin them to the types.
+#[cfg(test)]
+mod tag_tests {
+    use crate::policy::permissions::*;
+    use anchor_lang::prelude::*;
+
+    fn tag(value: &impl AnchorSerialize) -> u8 {
+        let mut bytes = Vec::new();
+        value.serialize(&mut bytes).unwrap();
+        bytes[0]
+    }
+
+    #[test]
+    fn enum_tags_match_the_matcher() {
+        assert_eq!(tag(&ProgramAccess::AllInstructions), 0);
+        assert_eq!(tag(&ProgramAccess::Restricted(vec![])), 1);
+        assert_eq!(tag(&AccountKeyConstraint::Any), 0);
+        assert_eq!(tag(&AccountKeyConstraint::Address(Pubkey::default())), 1);
+        assert_eq!(tag(&AccountKeyConstraint::Wallet), 2);
+        assert_eq!(tag(&DataPredicate::BytesEqual(vec![])), 0);
+        let unsigned = DataPredicate::Unsigned {
+            width: NumericWidth::U8,
+            comparison: Comparison::Equal,
+            value: 0,
+        };
+        assert_eq!(tag(&unsigned), 1);
+        let widths = [
+            NumericWidth::U8,
+            NumericWidth::U16,
+            NumericWidth::U32,
+            NumericWidth::U64,
+        ];
+        for (i, width) in widths.into_iter().enumerate() {
+            assert_eq!(usize::from(tag(&width)), i);
+        }
+        let comparisons = [
+            Comparison::Equal,
+            Comparison::NotEqual,
+            Comparison::LessThan,
+            Comparison::LessThanOrEqual,
+            Comparison::GreaterThan,
+            Comparison::GreaterThanOrEqual,
+        ];
+        for (i, comparison) in comparisons.into_iter().enumerate() {
+            assert_eq!(usize::from(tag(&comparison)), i);
+        }
+    }
+}

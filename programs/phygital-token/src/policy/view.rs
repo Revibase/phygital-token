@@ -131,3 +131,190 @@ impl PolicyView {
         &data[self.permissions..]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::policy::{
+        AccountConstraint, AccountKeyConstraint, DataConstraint, DataPredicate, InstructionRule,
+        ProgramAccess, ProgramPermission,
+    };
+    use proptest::prelude::*;
+
+    fn cap(n: u64) -> SpendCap {
+        SpendCap {
+            cap: n,
+            remaining: n - 1,
+            last_reset: 1_700_000_000,
+            window_seconds: 3_600,
+            max_per_tx: n / 2,
+        }
+    }
+
+    fn sample() -> AccessoryPolicy {
+        AccessoryPolicy {
+            phygital_token: Pubkey::new_unique(),
+            wallet: Pubkey::new_unique(),
+            sol_cap: Some(cap(1_000)),
+            mint_caps: vec![
+                MintCap {
+                    mint: Pubkey::new_unique(),
+                    cap: cap(2_000),
+                },
+                MintCap {
+                    mint: Pubkey::new_unique(),
+                    cap: cap(3_000),
+                },
+            ],
+            allowed_origins: vec!["https://a.example".into(), "https://b.example:8443".into()],
+            program_permissions: vec![
+                ProgramPermission {
+                    program_id: Pubkey::new_unique(),
+                    access: ProgramAccess::AllInstructions,
+                },
+                ProgramPermission {
+                    program_id: Pubkey::new_unique(),
+                    access: ProgramAccess::Restricted(vec![InstructionRule {
+                        selector: vec![3, 0, 0, 0],
+                        data_length: Some(12),
+                        account_count: Some(2),
+                        accounts: vec![AccountConstraint {
+                            index: 0,
+                            key: AccountKeyConstraint::Wallet,
+                            owner: None,
+                            is_signer: Some(true),
+                            is_writable: None,
+                            data: vec![],
+                        }],
+                        arguments: vec![DataConstraint {
+                            offset: 4,
+                            predicate: DataPredicate::BytesEqual(vec![9]),
+                        }],
+                    }]),
+                },
+            ],
+        }
+    }
+
+    fn encode(policy: &AccessoryPolicy) -> Vec<u8> {
+        let mut data = Vec::new();
+        policy.try_serialize(&mut data).unwrap();
+        data
+    }
+
+    fn with_view<R>(
+        data: &mut [u8],
+        policy: &AccessoryPolicy,
+        f: impl FnOnce(&PolicyView, &[u8]) -> R,
+    ) -> R {
+        let key = Pubkey::new_unique();
+        let mut lamports = 0;
+        let mut copy = data.to_vec();
+        let info = AccountInfo::new(
+            &key,
+            false,
+            false,
+            &mut lamports,
+            &mut copy,
+            &crate::ID,
+            false,
+        );
+        let view = PolicyView::load(&info, &policy.phygital_token, &policy.wallet).unwrap();
+        f(&view, data)
+    }
+
+    /// The in-place offsets agree with the derived Borsh encoding.
+    #[test]
+    fn view_reads_what_borsh_wrote() {
+        let policy = sample();
+        let mut data = encode(&policy);
+        with_view(&mut data, &policy, |view, data| {
+            assert_eq!(view.sol_cap(data), policy.sol_cap);
+            assert_eq!(view.mint_count(), policy.mint_caps.len());
+            for (slot, mint) in policy.mint_caps.iter().enumerate() {
+                assert_eq!(view.mint_cap(data, slot), *mint);
+                assert_eq!(view.mint_slot(data, &mint.mint), Some(slot));
+            }
+            assert_eq!(view.mint_slot(data, &Pubkey::new_unique()), None);
+            assert!(view
+                .origin_allowed(data, b"https://b.example:8443")
+                .unwrap());
+            assert!(!view.origin_allowed(data, b"https://c.example").unwrap());
+            let mut permissions = Vec::new();
+            policy
+                .program_permissions
+                .serialize(&mut permissions)
+                .unwrap();
+            assert_eq!(view.permissions(data), &permissions[..]);
+        });
+    }
+
+    /// Writes through the view land on the fields Borsh reads back.
+    #[test]
+    fn view_writes_what_borsh_reads() {
+        let policy = sample();
+        let mut data = encode(&policy);
+        let key = Pubkey::new_unique();
+        let mut lamports = 0;
+        let mut copy = data.clone();
+        let info = AccountInfo::new(
+            &key,
+            false,
+            false,
+            &mut lamports,
+            &mut copy,
+            &crate::ID,
+            false,
+        );
+        let view = PolicyView::load(&info, &policy.phygital_token, &policy.wallet).unwrap();
+        let new_sol = cap(7_777);
+        let new_mint = MintCap {
+            mint: policy.mint_caps[1].mint,
+            cap: cap(8_888),
+        };
+        view.set_sol_cap(&mut data, &new_sol);
+        view.set_mint_cap(&mut data, 1, &new_mint);
+        let decoded = AccessoryPolicy::try_deserialize(&mut &data[..]).unwrap();
+        assert_eq!(decoded.sol_cap, Some(new_sol));
+        assert_eq!(decoded.mint_caps[0], policy.mint_caps[0]);
+        assert_eq!(decoded.mint_caps[1], new_mint);
+        assert_eq!(decoded.allowed_origins, policy.allowed_origins);
+        assert_eq!(decoded.program_permissions, policy.program_permissions);
+    }
+
+    #[test]
+    fn view_rejects_another_tokens_policy() {
+        let policy = sample();
+        let mut data = encode(&policy);
+        let key = Pubkey::new_unique();
+        let mut lamports = 0;
+        let info = AccountInfo::new(
+            &key,
+            false,
+            false,
+            &mut lamports,
+            &mut data,
+            &crate::ID,
+            false,
+        );
+        assert!(PolicyView::load(&info, &Pubkey::new_unique(), &policy.wallet).is_err());
+        assert!(PolicyView::load(&info, &policy.phygital_token, &Pubkey::new_unique()).is_err());
+    }
+
+    proptest! {
+        /// Truncated or corrupted policy bytes fail cleanly instead of panicking.
+        #[test]
+        fn load_never_panics(cut in 0usize..600, flip in proptest::collection::vec((0usize..600, any::<u8>()), 0..8)) {
+            let policy = sample();
+            let mut data = encode(&policy);
+            for (at, byte) in flip {
+                if at >= 72 && at < data.len() { data[at] = byte; }
+            }
+            data.truncate(cut.min(data.len()));
+            let key = Pubkey::new_unique();
+            let mut lamports = 0;
+            let info = AccountInfo::new(&key, false, false, &mut lamports, &mut data, &crate::ID, false);
+            let _ = PolicyView::load(&info, &policy.phygital_token, &policy.wallet);
+        }
+    }
+}

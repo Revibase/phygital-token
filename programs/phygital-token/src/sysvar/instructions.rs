@@ -77,3 +77,61 @@ pub(crate) fn instruction_parts(sysvar: &[u8], index: usize) -> Result<(&[u8], &
         .ok_or(PhygitalError::InvalidSysvarDataFormat)?;
     Ok((program_id, data))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// Serializes instructions the way the runtime lays out the sysvar.
+    fn sysvar(instructions: &[(u8, [u8; 32], &[u8])], current: u16) -> Vec<u8> {
+        let mut body = Vec::new();
+        let mut offsets = Vec::new();
+        let header = 2 + 2 * instructions.len();
+        for (accounts, program, data) in instructions {
+            offsets.push((header + body.len()) as u16);
+            body.extend_from_slice(&u16::from(*accounts).to_le_bytes());
+            for _ in 0..*accounts {
+                body.push(0);
+                body.extend_from_slice(&[9; 32]);
+            }
+            body.extend_from_slice(program);
+            body.extend_from_slice(&(data.len() as u16).to_le_bytes());
+            body.extend_from_slice(data);
+        }
+        let mut out = (instructions.len() as u16).to_le_bytes().to_vec();
+        for offset in offsets {
+            out.extend_from_slice(&offset.to_le_bytes());
+        }
+        out.extend_from_slice(&body);
+        out.extend_from_slice(&current.to_le_bytes());
+        out
+    }
+
+    #[test]
+    fn finds_program_and_data_by_absolute_and_relative_index() {
+        let data = sysvar(&[(2, [1; 32], b"first"), (0, [2; 32], b"second")], 1);
+        assert_eq!(
+            instruction_parts(&data, 0).unwrap(),
+            (&[1u8; 32][..], &b"first"[..])
+        );
+        assert_eq!(
+            relative_instruction_parts(&data, -1).unwrap(),
+            (&[1u8; 32][..], &b"first"[..])
+        );
+        assert_eq!(
+            relative_instruction_parts(&data, 0).unwrap(),
+            (&[2u8; 32][..], &b"second"[..])
+        );
+        assert!(relative_instruction_parts(&data, 1).is_err());
+        assert!(relative_instruction_parts(&data, -2).is_err());
+    }
+
+    proptest! {
+        #[test]
+        fn never_panics(data in proptest::collection::vec(any::<u8>(), 0..300), index in 0usize..10, relative in -5i64..5) {
+            let _ = instruction_parts(&data, index);
+            let _ = relative_instruction_parts(&data, relative);
+        }
+    }
+}
