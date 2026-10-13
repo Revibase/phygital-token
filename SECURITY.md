@@ -16,8 +16,7 @@ once a fix is ready.
 | Component | Path | Notes |
 |-----------|------|-------|
 | On-chain program | [`programs/phygital-token`](programs/phygital-token) | Highest priority. Program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz`. |
-| Passkey signer iframe | [`secure-signer`](secure-signer) | Threat model: [THREAT_MODEL.md](secure-signer/THREAT_MODEL.md); guarantees and tests: [SECURITY.md](secure-signer/SECURITY.md). |
-| Web app and its server routes | [`app`](app) | Session, tap verification, signer backup and fee-sponsor endpoints. See [ARCHITECTURE.md](app/ARCHITECTURE.md). |
+| Web app and its server routes | [`app`](app) | Sessions, tap verification and the link (handoff) ceremony. See [ARCHITECTURE.md](app/ARCHITECTURE.md). |
 | TypeScript SDK | [`packages/js/phygital-token`](packages/js/phygital-token) | Transaction building, passkey verification helpers. |
 | Rust CPI client | [`packages/rust/phygital-token`](packages/rust/phygital-token) | Generated from the IDL. |
 | MCP server | [`packages/mcp/phygital-token`](packages/mcp/phygital-token) | Read-only documentation and instruction planning. |

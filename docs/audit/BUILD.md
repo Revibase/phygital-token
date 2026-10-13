@@ -75,8 +75,6 @@ This procedure was chosen over requiring the upgrade authority inside
 ## Web components
 
 - App: `pnpm --filter revibase deploy` (Cloudflare Worker). Set the D1
-  `database_id` in `app/wrangler.jsonc`, and the secrets `SESSION_SECRET` and
-  `SPONSOR_KEYS` with `wrangler secret put`.
-- Signer: `pnpm --filter secure-signer deploy`. The build requires
-  `VITE_PARENT_ORIGIN` and `VITE_API_BASE_URL` (from `.env.<mode>`) and writes
-  `dist/_headers` from `deploy/_headers.template` with those origins.
+  `database_id` and `ORIGIN` in `app/wrangler.jsonc`, the secret
+  `SESSION_SECRET` with `wrangler secret put`, and apply the migrations
+  (`wrangler d1 migrations apply DB --remote`).
