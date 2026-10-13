@@ -74,6 +74,18 @@ pub use webauthn::{
 use anchor_lang::prelude::*;
 declare_id!("phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz");
 
+// Embedded in the program binary so anyone holding only the program id can
+// find how to report a vulnerability (`solana-verify`/explorers display it).
+#[cfg(not(feature = "no-entrypoint"))]
+solana_security_txt::security_txt! {
+    name: "phygital-token",
+    project_url: "https://github.com/Revibase/phygital-token",
+    contacts: "link:https://github.com/Revibase/phygital-token/security/advisories/new",
+    policy: "https://github.com/Revibase/phygital-token/blob/master/SECURITY.md",
+    preferred_languages: "en",
+    source_code: "https://github.com/Revibase/phygital-token"
+}
+
 #[program]
 pub mod phygital_token {
     use super::*;
