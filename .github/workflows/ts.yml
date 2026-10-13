@@ -24,6 +24,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Other packages typecheck and test against the SDK's built output.
+      - run: pnpm --filter phygital-token-sdk build
       # `wrangler types` reads binding names (never values) from .dev.vars.
       - run: cp app/.dev.vars.example app/.dev.vars
       - run: pnpm format:check
@@ -33,7 +35,6 @@ jobs:
       - run: pnpm test
       - name: Build packages
         run: |
-          pnpm --filter phygital-token-sdk build
           pnpm --filter phygital-token-mcp build
           pnpm --filter secure-signer build
           pnpm --filter revibase build
