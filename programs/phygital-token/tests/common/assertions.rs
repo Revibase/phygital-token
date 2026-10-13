@@ -1,14 +1,18 @@
 use litesvm::types::TransactionResult;
 
-/// Asserts the transaction failed with the given Anchor error variant name
-/// (e.g. `"MintMismatch"`). Matches on the variant name rather than the numeric
-/// code so the assertion does not drift when error variants are added or removed.
+/// Asserts the transaction failed with exactly the given Anchor error (e.g.
+/// `"OwnerRequired"`), by matching Anchor's log line
+/// `Error Code: <name>. Error Number: <n>.` Matching the whole name (not a
+/// substring) keeps `OwnerRequired` from passing on `PermanentOwnerRequired`,
+/// and matching by name keeps tests readable without hard-coding numbers.
 pub fn assert_phygital_token_program_error(result: TransactionResult, expected_name: &str) {
     let err = result.expect_err("expected transaction to fail");
-    let err_str = format!("{err:?}");
+    let needle = format!("Error Code: {expected_name}. Error Number: ");
     assert!(
-        err_str.contains(expected_name),
-        "expected error {expected_name}, got: {err:?}"
+        err.meta.logs.iter().any(|line| line.contains(&needle)),
+        "expected error {expected_name}, got: {:?}\nlogs: {:#?}",
+        err.err,
+        err.meta.logs
     );
 }
 
