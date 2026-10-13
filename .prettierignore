@@ -1,7 +1,21 @@
 .anchor
 .DS_Store
+.pnpm-store
+.svelte-kit
+.wrangler
 target
 node_modules
 dist
 build
 test-ledger
+coverage
+graphify-out
+pnpm-lock.yaml
+Cargo.lock
+# Generated code: regenerate instead of formatting by hand.
+idl
+packages/js/phygital-token/src/generated
+packages/rust/phygital-token/src/generated
+app/worker-configuration.d.ts
+app/src/lib/shared/program-idls/*.json
+secure-signer/src/ui/__screens__
