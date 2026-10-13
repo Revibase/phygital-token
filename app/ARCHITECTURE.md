@@ -7,7 +7,7 @@ See [README.md](README.md) for development, testing and deployment. The program 
 | Entry | Grants |
 | --- | --- |
 | Signed NFC URL | Ten-minute `browse_unlock` session: inspect the accessory and open the link page. |
-| Wallet sign-in | Twelve-hour `owner_session`; a current owner check issues a view-only `owner_browse` session. |
+| Wallet sign-in | Thirty-day `owner_session` (`OWNER_SESSION_TTL_MS`); a current owner check issues a view-only `owner_browse` session. |
 | Fresh WebAuthn assertion | Slot-bound approval for linking, completed with the recipient wallet signature. |
 | Owner signature | Unlinking (rejected for Permanent tokens), sending from the accessory wallet and changing tap payments, without a physical tap. |
 
@@ -22,16 +22,16 @@ The URL’s `pk` is the chip identifier, not its WebAuthn passkey. Resolve it to
 - Shared `auth_challenges` are single-use; consume them atomically. Session cookies are HMAC-signed, HttpOnly, Secure and SameSite=Lax (`__Host-` in production).
 - `browse_unlock` opens the link page; `owner_browse` does not. Linking runs entirely in that page: the server keeps no link state.
 - Linking uses SDK `beginTransfer` → `authenticatePasskeyForTransfer` → `completeTransfer`. The program checks the recent slot hash, token passkey, user-presence flag, increasing sign count, lock state and recipient signer.
-- The transfer challenge does not bind a recipient: the page that tapped chooses it. Show that recipient before submission and permit cancellation.
+- The transfer challenge names the recipient (`SHA256("transfer" ‖ token ‖ slot_hash ‖ recipient)`), so a tap can only make the wallet it was made for the owner. The page connects that wallet before the tap, shows it, and discards the tap if the wallet changes.
 - Validate exact transaction bytes before and after signing. Preserve the approved programs, accounts, recipient, slot and assertion; reject unexpected signers or lookup tables.
-- Linking does not enforce origin/rpId on-chain. A transfer assertion harvested on another site remains a protocol risk; chip identifier/passkey binding also depends on the issuer.
+- Linking does not enforce origin/rpId on-chain. A transfer assertion harvested on another site can still be used, but only for the recipient it names; chip identifier/passkey binding also depends on the issuer.
 - JSON mutations require same-origin requests, except `/api/signer/*`, which accepts only the secure-signer origin (CORS, no cookies; each call authenticates itself).
 - `/api/sponsor` is public (open CORS, no cookies). Its pool keys sign only as a fee payer (and `update_policy` payer) for one real phygital-token action on one accessory, within compute and priority caps, and only if a simulation shows the key losing no more than the fee and any tap-payments rent net of the refill. A pool key may appear nowhere else, except as the refill's destination.
 - The passkey wallet's keys never reach this page: they are wrapped by the passkey's PRF inside the secure-signer iframe, which shows its own consent screen and signs only owner actions. See [secure-signer](../secure-signer/README.md).
 
 ## Linking and recovery
 
-Phone only: accessory approval → wallet selection → wallet approval → confirmation, all on the link page (`src/lib/client/link/flow.ts`). Desktop visitors see “Open on your phone” with a QR code of the page (never its single-use tap parameters).
+Phone only: wallet selection → accessory approval → wallet approval → confirmation, all on the link page (`src/lib/client/link/flow.ts`). Desktop visitors see “Open on your phone” with a QR code of the page (never its single-use tap parameters).
 
 The owner's wallet is connected first, because the challenge names the new owner. The page then fetches the slot-bound challenge itself (`beginTransfer`) before the click, since iOS WebAuthn requires a user gesture without awaiting a network request, and refreshes it as it goes stale. After the tap, the countdown uses a conservative SlotHashes expiry estimate (`TAP_WINDOW_MS`); when it runs out the page returns to the tap step, and the program remains authoritative. That wallet then signs through the shared owner path (`submitAsOwner`), which checks the exact bytes, and the page waits for confirmation. A reload starts again from the tap.
 

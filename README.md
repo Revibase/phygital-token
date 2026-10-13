@@ -21,10 +21,19 @@ Optionally, each token also has a wallet PDA that can hold assets. Its owner can
 
 Integrator guides (authenticate, check access, and the optional accessory wallet: request permissions, transact) are published on the Revibase developer site.
 
-- [App setup and testing](app/README.md), [architecture and security boundaries](app/ARCHITECTURE.md).
-- [Accessory, wallet and custom-action UX](docs/wallet-ux.md).
-- [TypeScript SDK](packages/js/phygital-token/README.md), [Rust CPI client](packages/rust/phygital-token/README.md), [MCP server](packages/mcp/phygital-token/README.md).
-- [Passkey signer](secure-signer/README.md), [threat model](secure-signer/THREAT_MODEL.md), [security operations](secure-signer/SECURITY.md).
+**Security review:** start with [docs/audit/SCOPE.md](docs/audit/SCOPE.md), then
+[ARCHITECTURE](docs/audit/ARCHITECTURE.md) (trust boundaries),
+[DESIGN_DECISIONS](docs/audit/DESIGN_DECISIONS.md) (accepted risks) and
+[BUILD](docs/audit/BUILD.md) (reproducible builds and deployment).
+Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+
+| Topic | Read |
+|-------|------|
+| On-chain program | [README](programs/phygital-token/README.md) (every instruction), [invariants](docs/program/INVARIANTS.md), [threat model](docs/program/THREAT_MODEL.md) |
+| Passkey signer | [README](secure-signer/README.md), [threat model](secure-signer/THREAT_MODEL.md), [guarantees and tests](secure-signer/SECURITY.md) |
+| App | [setup and testing](app/README.md), [architecture and security boundaries](app/ARCHITECTURE.md), [accessory and wallet UX](docs/wallet-ux.md) |
+| Packages | [TypeScript SDK](packages/js/phygital-token/README.md), [Rust CPI client](packages/rust/phygital-token/README.md), [MCP server](packages/mcp/phygital-token/README.md) |
+| Contributing | [CONTRIBUTING.md](CONTRIBUTING.md), [code of conduct](CODE_OF_CONDUCT.md) |
 
 ## License
 
