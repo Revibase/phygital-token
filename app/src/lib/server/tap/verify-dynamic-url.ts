@@ -4,9 +4,9 @@ import { p256 } from '@noble/curves/nist.js';
 import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
 
 /**
- * Port of phygital-wallet `apps/api/src/tap/verify-dynamic-url.ts` (same crypto
- * as revibase vault / phygital-token-sdk ≤0.13). phygital-token-sdk ≥0.14
- * deliberately ships no signed-URL helper, so it lives here.
+ * Verifies the chip-signed dynamic tap URL (the same scheme phygital-token-sdk
+ * ≤0.13 shipped). phygital-token-sdk ≥0.14 deliberately ships no signed-URL
+ * helper, so it lives here.
  */
 
 export type VerifyDynamicUrlResult = {

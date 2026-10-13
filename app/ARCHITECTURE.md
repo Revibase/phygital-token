@@ -53,7 +53,7 @@ The fee service doesn't need the owner's signature first: a transaction can't la
 
 ## Shortcuts and local state
 
-Project `shortcuts.json` comes from the mint’s HTTPS `external_url`. Every HTTPS shortcut opens in a new browser tab. `revibase.launch` may be `browser` or `embed` (other values skip the shortcut); `embed` and Phantom `preferredPresentation: "immerse"` open in a tab like everything else. See the [integrator contract](../../developer/content/docs/cards/landing-page.md).
+Project `shortcuts.json` comes from the mint’s HTTPS `external_url`. Every HTTPS shortcut opens in a new browser tab. `revibase.launch` may be `browser` or `embed` (other values skip the shortcut); `embed` and Phantom `preferredPresentation: "immerse"` open in a tab like everything else. The integrator contract is documented on the Revibase developer site.
 
 Shortcuts carry no session proofs or authentication credentials. Destinations handle their own sign-in and wallet connection.
 

@@ -1,9 +1,8 @@
--- Tables OWNED BY phygital-wallet in the shared `phygital-token` database,
--- mirrored here verbatim so local `wrangler dev` has them:
---   apps/api/d1/migrations/0006_tap_counters.sql
---   apps/api/d1/migrations/0007_auth_challenges.sql
--- IF NOT EXISTS makes this a no-op against the real shared database. If
--- phygital-wallet changes these schemas, update this mirror to match.
+-- Tables shared with other services that accept the same tap URLs (see
+-- README.md in this folder). Their schema is owned outside this app and is
+-- mirrored here verbatim so local `wrangler dev` has them. IF NOT EXISTS makes
+-- this a no-op against a shared production database. If the owning service
+-- changes these schemas, update this mirror to match.
 CREATE TABLE IF NOT EXISTS tap_counters (
   identifier TEXT PRIMARY KEY NOT NULL,
   c INTEGER NOT NULL,

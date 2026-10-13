@@ -13,8 +13,8 @@ export function bytesToBase64(bytes: Uint8Array): string {
 
 /**
  * Standard base64 → URL-safe (`-`/`_`, no padding). This is the canonical
- * spelling of a chip identifier; phygital-wallet keys `tap_counters` the same
- * way, so both services share one high-water mark per chip.
+ * spelling of a chip identifier; every service sharing `tap_counters` keys it
+ * the same way, so they share one high-water mark per chip.
  */
 export function bytesToBase64Url(bytes: Uint8Array): string {
 	return bytesToBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

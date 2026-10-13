@@ -19,7 +19,7 @@ Optionally, each token also has a wallet PDA that can hold assets. Its owner can
 
 ## Documentation
 
-Integrator guides (authenticate, check access, and the optional accessory wallet: request permissions, transact) live on the developer site, in the separate `developer` repository.
+Integrator guides (authenticate, check access, and the optional accessory wallet: request permissions, transact) are published on the Revibase developer site.
 
 - [App setup and testing](app/README.md), [architecture and security boundaries](app/ARCHITECTURE.md).
 - [Accessory, wallet and custom-action UX](docs/wallet-ux.md).

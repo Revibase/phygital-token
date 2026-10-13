@@ -60,7 +60,7 @@ Scenarios cover the passkey wallet (create, reload, restore on a new phone, unkn
 
 ### NFT transfers
 
-Adapted the Kit clients and standard-specific builders from `phygital-wallet/apps/web/src/features/send/lib/transfers`. Standard SPL NFTs, programmable NFTs, Core and compressed NFTs share the same recipient-only send form and Send all flow. Programmable source token accounts are normally frozen; this does not block Token Metadata transfers. Rule sets, Core plugins and compressed-NFT freeze/non-transferable flags remain enforced; failures stop before signing. Missing/incomplete DAS indexing is disclosed rather than silently reporting a complete portfolio. Discovery currently bounds pagination to 4,000 indexed assets and reports incomplete results.
+Standard SPL NFTs, programmable NFTs, Core and compressed NFTs share the same recipient-only send form and Send all flow. Programmable source token accounts are normally frozen; this does not block Token Metadata transfers. Rule sets, Core plugins and compressed-NFT freeze/non-transferable flags remain enforced; failures stop before signing. Missing/incomplete DAS indexing is disclosed rather than silently reporting a complete portfolio. Discovery currently bounds pagination to 4,000 indexed assets and reports incomplete results.
 
 For local chain verification of NFT transfers, build the SDK and program, then run from the repository root:
 
@@ -68,7 +68,7 @@ For local chain verification of NFT transfers, build the SDK and program, then r
 NFT_PROGRAM_FIXTURES=/path/to/pinned/metaplex/programs pnpm -C app e2e:nfts
 ```
 
-The directory needs `manifest.json` and the Metaplex binaries listed in it; the existing reference repo supplies them at `phygital-wallet/packages/testing/fixtures/programs`. The harness checks SHA-256 pins and runs entirely in LiteSVM against this repository's `target/deploy/phygital_token.so`. It mints disposable assets to an accessory wallet and checks actual owner-authorized CPI transfers: an allowing pNFT rule set and recipient token record; a denying rule set leaving ownership intact; a Core collection transfer and stale-owner rejection; an invalid compressed proof leaving the root intact; and a successful Bubblegum V1 transfer matching the independently computed recipient leaf/root. Bubblegum V2 routing, hash/flag/collection encoding and separate nonce/index handling are unit tested. No live wallet or blockchain transactions are used. Final simulation tests ensure a changed rule set prevents a wallet signature and the simulated transaction matches the transaction handed to the wallet.
+The directory needs the Metaplex program binaries and a `manifest.json` listing each as `{ "id", "file", "sha256", "group": "metaplex" }`; dump them from mainnet with `solana program dump -um <id> <file>`. The harness checks SHA-256 pins and runs entirely in LiteSVM against this repository's `target/deploy/phygital_token.so`. It mints disposable assets to an accessory wallet and checks actual owner-authorized CPI transfers: an allowing pNFT rule set and recipient token record; a denying rule set leaving ownership intact; a Core collection transfer and stale-owner rejection; an invalid compressed proof leaving the root intact; and a successful Bubblegum V1 transfer matching the independently computed recipient leaf/root. Bubblegum V2 routing, hash/flag/collection encoding and separate nonce/index handling are unit tested. No live wallet or blockchain transactions are used. Final simulation tests ensure a changed rule set prevents a wallet signature and the simulated transaction matches the transaction handed to the wallet.
 
 Wallet transactions use v1 with inline accounts and a 4,096-byte size limit; address lookup tables are unnecessary. Compressed-NFT proofs still need to fit the 64-account and transaction-size limits. Creator rules/plugins requiring extra authorization data or additional signers may reject the transfer during simulation. The app does not bypass these restrictions.
 
@@ -78,13 +78,13 @@ Run `pnpm --filter revibase deploy` to build, check the production output for te
 
 Set the fee-payer pool with `wrangler secret put SPONSOR_KEYS` and keep its keys funded: a key below `SPONSOR_MIN_KEY_LAMPORTS` stops being offered. Apply the migrations (including `revibase_0009_sponsor_ledger.sql` and `revibase_0010_drop_link_intents.sql`) before deploying.
 
-There is **one** D1 binding, `DB`: the shared `phygital-token` database that phygital-wallet's API also uses.
+There is **one** D1 binding, `DB`. In production it can be shared with other services that accept the same tap URLs. Replace the placeholder `database_id` in `wrangler.jsonc` with your database's before deploying (`wrangler d1 create phygital-token`).
 
-- **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned by phygital-wallet.
+- **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned outside this app; see [migrations/README.md](migrations/README.md).
   - `tap_counters` must be shared so there is one tap-counter high-water mark per chip across every service.
   - Resume and owner-login challenges are stored in `auth_challenges` under their own namespaces (message string → `startAuthentication` / `verifyResponse`).
 - **This app's tables:** `revibase_identifier_cache`, `revibase_signer_wallets` and `revibase_sponsor_txs`.
-- **Migrations:** apply the app's own with `wrangler d1 migrations apply DB --remote`. The files are prefixed `revibase_` so they never clash with phygital-wallet's migration history. `revibase_0000_shared_tables_mirror.sql` only mirrors the shared tables for local dev; it uses `IF NOT EXISTS` and is a no-op remotely.
+- **Migrations:** apply the app's own with `wrangler d1 migrations apply DB --remote`. The files are prefixed `revibase_` so they never clash with another service's migration history in a shared database. `revibase_0000_shared_tables_mirror.sql` only mirrors the shared tables for local dev; it uses `IF NOT EXISTS` and is a no-op remotely.
 - Set `SESSION_SECRET` with `wrangler secret put`. `SOLANA_RPC_URL` is sent to the browser, which calls it directly (reads, DAS and sending), so it must be your public RPC proxy Worker, not a URL with an API key. Set it as a plain var.
 
 ### Local click-through preview

@@ -15,15 +15,14 @@ import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
  * - `os`  — owner_session: this browser proved control of a wallet (one signMessage).
  *
  * Purpose is bound into the token (`t`), so a browse_unlock cookie never
- * verifies as owner_browse (and vice versa). Matches phygital-wallet's
- * browse_unlock / authority_browse admit model.
+ * verifies as owner_browse (and vice versa).
  *
  * All are HttpOnly + SameSite=Lax + Secure, with the `__Host-` prefix in
  * production so they cannot be set by a subdomain or scoped to a sub-path.
  */
 
 export const BROWSE_SESSION_TTL_MS = 10 * 60 * 1000;
-/** Wallet login lifetime (phygital-wallet's authority session). */
+/** Wallet login lifetime. */
 export const OWNER_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Physical-possession admit: also opens the link page. */

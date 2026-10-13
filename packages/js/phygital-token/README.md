@@ -10,7 +10,7 @@ pnpm add phygital-token-sdk @solana/kit
 
 ## Choosing an integration
 
-Most integrations only need tap authentication: it covers login, access gates and on-chain `verify`, and needs no wallet, policy or SOL. The accessory wallet below is optional; use it only when the accessory itself should hold assets or approve transactions. The developer site (in the separate `developer` repository) explains which account each flow uses.
+Most integrations only need tap authentication: it covers login, access gates and on-chain `verify`, and needs no wallet, policy or SOL. The accessory wallet below is optional; use it only when the accessory itself should hold assets or approve transactions. The Revibase developer site explains which account each flow uses.
 
 ## Authenticate with an accessory
 

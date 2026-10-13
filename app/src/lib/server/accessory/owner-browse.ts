@@ -60,7 +60,7 @@ export const issueOwnerLoginChallenge = (
 type Failure<C extends string> = { ok: false; status: number; code: C; error: string };
 
 /**
- * Wallet login (phygital-wallet's owner-session): the wallet signs a single-use
+ * Wallet login (owner session): the wallet signs a single-use
  * challenge with `solana:signMessage` once. The caller then sets the `os` cookie.
  */
 export async function verifyOwnerLogin(
@@ -112,7 +112,7 @@ export async function verifyOwnerLogin(
 }
 
 /**
- * Quiet per-item admit (phygital-wallet's authority-browse): the logged-in wallet
+ * Quiet per-item admit (owner browse): the logged-in wallet
  * may open an accessory the chain says is linked to it. No signature, no tap.
  */
 export async function verifyOwnerBrowse(

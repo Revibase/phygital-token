@@ -51,7 +51,7 @@ export const RP_ID: string = resolveRpId(
 
 /**
  * Preimage of `PRF_SALT`. Never change — existing wallets cannot unwrap.
- * Distinct from phygital-wallet's authority signer, which shares the RP ID.
+ * Distinct from the Revibase authority signer, which shares the RP ID.
  */
 export const PRF_INPUT_LABEL = "revibase.secure-signer:prf:v1" as const;
 /**

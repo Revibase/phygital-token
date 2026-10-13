@@ -83,8 +83,8 @@ no seed/multi-credential backup (accepted decision).
 
 1. **Recovery/backup** — a lost sole passkey strands funds. A future version
    could add an encrypted seed backup or multi-credential enrollment.
-2. **Shared RP ID** — phygital-wallet's authority passkeys share `rpId`
-   `revibase.com`. Domain separation (distinct PRF salt, HKDF label, blob magic
+2. **Shared RP ID** — other Revibase passkeys (the authority signer) share
+   `rpId` `revibase.com`. Domain separation (distinct PRF salt, HKDF label, blob magic
    and backup table) keeps the wallets apart; a discoverable restore that picks
    the other kind of passkey gets `NOT_FOUND`.
 3. **Shared RP ID enrollment** — passkeys are created on the **app** origin

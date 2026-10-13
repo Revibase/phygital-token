@@ -1,4 +1,5 @@
--- Short-lived linking ceremonies (set_linked_wallet). Rows are pruned after expiry.
+-- Short-lived linking ceremonies (set_owner, then named set_linked_wallet).
+-- Rows are pruned after expiry. Dropped in revibase_0010.
 CREATE TABLE IF NOT EXISTS revibase_link_intents (
   id TEXT PRIMARY KEY NOT NULL,
   kind TEXT NOT NULL,                  -- 'phone' | 'desktop'
