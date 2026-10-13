@@ -14,8 +14,9 @@ All notable changes to this artifact are documented here. The format follows
 
 ### Changed
 
-- `plan_transfer` and the docs describe the recipient-bound `set_owner`
-  challenge and the new `beginTransfer({ rpc, secp256r1Pubkey, recipient })`.
+- `plan_transfer`, `plan_remove_owner` and the docs drop the accessory wallet
+  and policy, and describe the `set_owner` challenge without the recipient
+  (`beginTransfer({ rpc, secp256r1Pubkey })`).
 
 ## [1.10.0]
 

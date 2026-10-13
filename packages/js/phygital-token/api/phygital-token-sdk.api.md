@@ -8,7 +8,6 @@ import { Account } from '@solana/kit';
 import { AccountMeta } from '@solana/kit';
 import { AccountSignerMeta } from '@solana/kit';
 import { Address } from '@solana/kit';
-import { ClientWithPayer } from '@solana/kit';
 import { ClientWithRpc } from '@solana/kit';
 import { ClientWithTransactionPlanning } from '@solana/kit';
 import { ClientWithTransactionSending } from '@solana/kit';
@@ -25,16 +24,12 @@ import { FixedSizeCodec } from '@solana/kit';
 import { FixedSizeDecoder } from '@solana/kit';
 import { FixedSizeEncoder } from '@solana/kit';
 import { GetAccountInfoApi } from '@solana/kit';
-import { GetDiscriminatedUnionVariant } from '@solana/kit';
-import { GetDiscriminatedUnionVariantContent } from '@solana/kit';
 import { GetMultipleAccountsApi } from '@solana/kit';
 import { Instruction } from '@solana/kit';
 import { InstructionWithAccounts } from '@solana/kit';
 import { InstructionWithData } from '@solana/kit';
 import { MaybeAccount } from '@solana/kit';
 import { MaybeEncodedAccount } from '@solana/kit';
-import { Option as Option_2 } from '@solana/kit';
-import { OptionOrNullable } from '@solana/kit';
 import { ProgramDerivedAddress } from '@solana/kit';
 import { ReadonlyAccount } from '@solana/kit';
 import { ReadonlySignerAccount } from '@solana/kit';
@@ -43,103 +38,11 @@ import { Rpc } from '@solana/kit';
 import { SelfFetchFunctions } from '@solana/kit/program-client-core';
 import { SelfPlanAndSendFunctions } from '@solana/kit/program-client-core';
 import { SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM } from '@solana/kit';
-import { SolanaChain } from '@solana/wallet-standard-chains';
 import { SolanaError } from '@solana/kit';
 import { SolanaRpcApi } from '@solana/kit';
-import type { TransactionModifyingSigner } from '@solana/kit';
-import { TransactionPartialSigner } from '@solana/kit';
 import { TransactionSigner } from '@solana/kit';
-import type { Wallet } from '@wallet-standard/base';
 import { WritableAccount } from '@solana/kit';
 import { WritableSignerAccount } from '@solana/kit';
-
-// @public (undocumented)
-export const ACCESSORY_POLICY_DISCRIMINATOR: ReadonlyUint8Array;
-
-// @public
-export function accessoryManageUrl(phygitalToken: Address): string;
-
-// @public (undocumented)
-export type AccessoryPolicy = {
-    discriminator: ReadonlyUint8Array;
-    phygitalToken: Address;
-    wallet: Address;
-    solCap: Option_2<SpendCap>;
-    mintCaps: Array<MintCap>;
-    allowedOrigins: Array<string>;
-    programPermissions: Array<ProgramPermission>;
-};
-
-// @public (undocumented)
-export type AccessoryPolicyArgs = {
-    phygitalToken: Address;
-    wallet: Address;
-    solCap: OptionOrNullable<SpendCapArgs>;
-    mintCaps: Array<MintCapArgs>;
-    allowedOrigins: Array<string>;
-    programPermissions: Array<ProgramPermissionArgs>;
-};
-
-// @public
-export class AccessoryWalletTopUpRequired extends Error {
-    constructor(wallet: Address, neededLamports: bigint);
-    // (undocumented)
-    readonly neededLamports: bigint;
-    // (undocumented)
-    readonly wallet: Address;
-}
-
-// @public
-export type AccountCheckJson = {
-    index: number;
-    key?: string;
-    owner?: string;
-    signer?: boolean;
-    writable?: boolean;
-    data?: DataCheckJson[];
-};
-
-// @public (undocumented)
-export type AccountConstraint = {
-    index: number;
-    key: AccountKeyConstraint;
-    owner: Option_2<Address>;
-    isSigner: Option_2<boolean>;
-    isWritable: Option_2<boolean>;
-    data: Array<DataConstraint>;
-};
-
-// @public (undocumented)
-export type AccountConstraintArgs = {
-    index: number;
-    key: AccountKeyConstraintArgs;
-    owner: OptionOrNullable<Address>;
-    isSigner: OptionOrNullable<boolean>;
-    isWritable: OptionOrNullable<boolean>;
-    data: Array<DataConstraintArgs>;
-};
-
-// @public (undocumented)
-export type AccountKeyConstraint = {
-    __kind: "Any";
-} | {
-    __kind: "Address";
-    fields: readonly [Address];
-} | {
-    __kind: "Wallet";
-};
-
-// @public (undocumented)
-export function accountKeyConstraint(kind: "Any"): GetDiscriminatedUnionVariant<AccountKeyConstraintArgs, "__kind", "Any">;
-
-// @public (undocumented)
-export function accountKeyConstraint(kind: "Address", data: GetDiscriminatedUnionVariantContent<AccountKeyConstraintArgs, "__kind", "Address">["fields"]): GetDiscriminatedUnionVariant<AccountKeyConstraintArgs, "__kind", "Address">;
-
-// @public (undocumented)
-export function accountKeyConstraint(kind: "Wallet"): GetDiscriminatedUnionVariant<AccountKeyConstraintArgs, "__kind", "Wallet">;
-
-// @public (undocumented)
-export type AccountKeyConstraintArgs = AccountKeyConstraint;
 
 // @public (undocumented)
 export const ADMIN_CONFIG_DISCRIMINATOR: ReadonlyUint8Array;
@@ -232,79 +135,34 @@ export type AuthenticationResponseJSON = {
 export function beginTransfer(input: {
     rpc: Rpc<SolanaRpcApi>;
     secp256r1Pubkey: string;
-    recipient: Address;
     rpId?: string;
 }): Promise<TransferSession>;
-
-// @public
-export function blockedPrograms(code: string, called: readonly Address[], permissions: readonly ProgramPermission[]): Address[];
-
-// @public
-export function buildExecuteChallenge(input: {
-    phygitalToken: Address;
-    slotHash: Uint8Array;
-    compactInstructions: readonly CompactInstructionArgs[];
-    remainingAccounts: readonly AccountMeta[];
-}): Uint8Array;
-
-// @public
-export function buildExecuteWithOwnerInstruction(input: {
-    owner: TransactionSigner;
-    phygitalToken: Address;
-    instructions: readonly Instruction[];
-}): Promise<Instruction>;
-
-// @public
-export const bytesToHex: (bytes: ArrayLike<number>) => string;
-
-// @public
-export function canSpendLamports(balance: bigint, amount: bigint): boolean;
-
-// @public (undocumented)
-export type CapArg = {
-    cap: bigint;
-    windowSeconds: bigint;
-    maxPerTx: bigint;
-};
-
-// @public (undocumented)
-export type CapArgArgs = {
-    cap: number | bigint;
-    windowSeconds: number | bigint;
-    maxPerTx: number | bigint;
-};
 
 // @public (undocumented)
 export const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
-export const CLOSE_POLICY_DISCRIMINATOR: ReadonlyUint8Array;
-
-// @public (undocumented)
-export type ClosePhygitalTokenAsyncInput<TAccountAdmin extends string = string, TAccountRentRecipient extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string, TAccountPolicy extends string = string> = {
+export type ClosePhygitalTokenAsyncInput<TAccountAdmin extends string = string, TAccountRentRecipient extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string> = {
     admin: TransactionSigner<TAccountAdmin>;
     rentRecipient: Address<TAccountRentRecipient>;
     adminConfig?: Address<TAccountAdminConfig>;
     phygitalToken: Address<TAccountPhygitalToken>;
-    policy?: Address<TAccountPolicy>;
 };
 
 // @public (undocumented)
-export type ClosePhygitalTokenInput<TAccountAdmin extends string = string, TAccountRentRecipient extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string, TAccountPolicy extends string = string> = {
+export type ClosePhygitalTokenInput<TAccountAdmin extends string = string, TAccountRentRecipient extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string> = {
     admin: TransactionSigner<TAccountAdmin>;
     rentRecipient: Address<TAccountRentRecipient>;
     adminConfig: Address<TAccountAdminConfig>;
     phygitalToken: Address<TAccountPhygitalToken>;
-    policy: Address<TAccountPolicy>;
 };
 
 // @public (undocumented)
-export type ClosePhygitalTokenInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountAdmin extends string | AccountMeta<string> = string, TAccountRentRecipient extends string | AccountMeta<string> = string, TAccountAdminConfig extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountPolicy extends string | AccountMeta<string> = string, TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
+export type ClosePhygitalTokenInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountAdmin extends string | AccountMeta<string> = string, TAccountRentRecipient extends string | AccountMeta<string> = string, TAccountAdminConfig extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
 TAccountAdmin extends string ? ReadonlySignerAccount<TAccountAdmin> & AccountSignerMeta<TAccountAdmin> : TAccountAdmin,
 TAccountRentRecipient extends string ? WritableAccount<TAccountRentRecipient> : TAccountRentRecipient,
 TAccountAdminConfig extends string ? ReadonlyAccount<TAccountAdminConfig> : TAccountAdminConfig,
 TAccountPhygitalToken extends string ? WritableAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
-TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
 ...TRemainingAccounts
 ]>;
 
@@ -315,66 +173,6 @@ export type ClosePhygitalTokenInstructionData = {
 
 // @public (undocumented)
 export type ClosePhygitalTokenInstructionDataArgs = {};
-
-// @public (undocumented)
-export type ClosePolicyInput<TAccountOwner extends string = string, TAccountPhygitalToken extends string = string, TAccountPolicy extends string = string, TAccountWallet extends string = string> = {
-    owner: TransactionSigner<TAccountOwner>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    policy: Address<TAccountPolicy>;
-    wallet: Address<TAccountWallet>;
-};
-
-// @public (undocumented)
-export type ClosePolicyInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountOwner extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountPolicy extends string | AccountMeta<string> = string, TAccountWallet extends string | AccountMeta<string> = string, TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
-TAccountOwner extends string ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner> : TAccountOwner,
-TAccountPhygitalToken extends string ? ReadonlyAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
-TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
-TAccountWallet extends string ? WritableAccount<TAccountWallet> : TAccountWallet,
-...TRemainingAccounts
-]>;
-
-// @public (undocumented)
-export type ClosePolicyInstructionData = {
-    discriminator: ReadonlyUint8Array;
-};
-
-// @public (undocumented)
-export type ClosePolicyInstructionDataArgs = {};
-
-// @public
-export type CompactInstruction = {
-    programIdIndex: number;
-    accountIndexes: ReadonlyUint8Array;
-    data: ReadonlyUint8Array;
-};
-
-// @public (undocumented)
-export type CompactInstructionArgs = CompactInstruction;
-
-// @public (undocumented)
-export enum Comparison {
-    // (undocumented)
-    Equal = 0,
-    // (undocumented)
-    GreaterThan = 4,
-    // (undocumented)
-    GreaterThanOrEqual = 5,
-    // (undocumented)
-    LessThan = 2,
-    // (undocumented)
-    LessThanOrEqual = 3,
-    // (undocumented)
-    NotEqual = 1
-}
-
-// @public (undocumented)
-export type ComparisonArgs = Comparison;
-
-// @public
-export function compileWalletInstructions(instructions: readonly Instruction[], walletPda: Address): {
-    remainingAccounts: AccountMeta[];
-    compactInstructions: CompactInstructionArgs[];
-};
 
 // @public
 export function completeTransfer(session: TransferSession, response: AuthenticationResponseJSON, recipient: TransactionSigner, existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[]): Promise<Instruction[]>;
@@ -412,72 +210,6 @@ export type CreateConfigInstructionData = {
 // @public (undocumented)
 export type CreateConfigInstructionDataArgs = {};
 
-// @public
-export function createDefaultFeePayer(config?: SponsorConfig): Promise<TransactionPartialSigner<Address>>;
-
-// @public
-export function createSponsorFeePayer(feePayer: Address, config?: SponsorConfig): TransactionPartialSigner<Address>;
-
-// @public
-export function createSponsorFeePayers(config?: SponsorConfig): Promise<TransactionPartialSigner<Address>[]>;
-
-// @public
-export type DataCheckJson = {
-    offset: number;
-    bytes?: string;
-    unsigned?: {
-        width: "u8" | "u16" | "u32" | "u64";
-        is: "eq" | "ne" | "lt" | "le" | "gt" | "ge";
-        value: string;
-    };
-};
-
-// @public (undocumented)
-export type DataConstraint = {
-    offset: number;
-    predicate: DataPredicate;
-};
-
-// @public (undocumented)
-export type DataConstraintArgs = {
-    offset: number;
-    predicate: DataPredicateArgs;
-};
-
-// @public (undocumented)
-export type DataPredicate = {
-    __kind: "BytesEqual";
-    fields: readonly [ReadonlyUint8Array];
-} | {
-    __kind: "Unsigned";
-    width: NumericWidth;
-    comparison: Comparison;
-    value: bigint;
-};
-
-// @public (undocumented)
-export function dataPredicate(kind: "BytesEqual", data: GetDiscriminatedUnionVariantContent<DataPredicateArgs, "__kind", "BytesEqual">["fields"]): GetDiscriminatedUnionVariant<DataPredicateArgs, "__kind", "BytesEqual">;
-
-// @public (undocumented)
-export function dataPredicate(kind: "Unsigned", data: GetDiscriminatedUnionVariantContent<DataPredicateArgs, "__kind", "Unsigned">): GetDiscriminatedUnionVariant<DataPredicateArgs, "__kind", "Unsigned">;
-
-// @public (undocumented)
-export type DataPredicateArgs = {
-    __kind: "BytesEqual";
-    fields: readonly [ReadonlyUint8Array];
-} | {
-    __kind: "Unsigned";
-    width: NumericWidthArgs;
-    comparison: ComparisonArgs;
-    value: number | bigint;
-};
-
-// @public (undocumented)
-export function decodeAccessoryPolicy<TAddress extends string = string>(encodedAccount: EncodedAccount<TAddress>): Account<AccessoryPolicy, TAddress>;
-
-// @public (undocumented)
-export function decodeAccessoryPolicy<TAddress extends string = string>(encodedAccount: MaybeEncodedAccount<TAddress>): MaybeAccount<AccessoryPolicy, TAddress>;
-
 // @public (undocumented)
 export function decodeAdminConfig<TAddress extends string = string>(encodedAccount: EncodedAccount<TAddress>): Account<AdminConfig, TAddress>;
 
@@ -490,128 +222,11 @@ export function decodePhygitalToken<TAddress extends string = string>(encodedAcc
 // @public (undocumented)
 export function decodePhygitalToken<TAddress extends string = string>(encodedAccount: MaybeEncodedAccount<TAddress>): MaybeAccount<PhygitalToken, TAddress>;
 
-// @public
-export const DEFAULT_FEE_PAYER_ENDPOINT = "https://portal.revibase.com/api/sponsor";
-
-// @public
-export const DEFAULT_PREPAID_FEE_LAMPORTS = 5000000n;
-
-// @public
-export function elevateRemainingForExecuteChallenge(remainingAccounts: readonly AccountMeta[], opts: {
-    writableAddresses?: readonly Address[];
-    signerAddresses?: readonly Address[];
-}): AccountMeta[];
-
-// @public (undocumented)
-export const EXECUTE_WITH_ACCESSORY_DISCRIMINATOR: ReadonlyUint8Array;
-
-// @public
-export const EXECUTE_WITH_ACCESSORY_NAMED_ACCOUNT_COUNT = 5;
-
-// @public (undocumented)
-export const EXECUTE_WITH_OWNER_DISCRIMINATOR: ReadonlyUint8Array;
-
-// @public
-export const EXECUTE_WITH_OWNER_NAMED_ACCOUNT_COUNT = 4;
-
-// @public (undocumented)
-export type ExecuteWithAccessoryInput<TAccountPhygitalToken extends string = string, TAccountPolicy extends string = string, TAccountWallet extends string = string, TAccountSlotHashes extends string = string, TAccountInstructionsSysvar extends string = string> = {
-    phygitalToken: Address<TAccountPhygitalToken>;
-    policy: Address<TAccountPolicy>;
-    wallet: Address<TAccountWallet>;
-    slotHashes?: Address<TAccountSlotHashes>;
-    instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-    compactInstructions: ExecuteWithAccessoryInstructionDataArgs["compactInstructions"];
-    secp256r1VerifyArgs: ExecuteWithAccessoryInstructionDataArgs["secp256r1VerifyArgs"];
-    slotNumber: ExecuteWithAccessoryInstructionDataArgs["slotNumber"];
-};
-
-// @public (undocumented)
-export type ExecuteWithAccessoryInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountPolicy extends string | AccountMeta<string> = string, TAccountWallet extends string | AccountMeta<string> = string, TAccountSlotHashes extends string | AccountMeta<string> = "SysvarS1otHashes111111111111111111111111111", TAccountInstructionsSysvar extends string | AccountMeta<string> = "Sysvar1nstructions1111111111111111111111111", TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
-TAccountPhygitalToken extends string ? WritableAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
-TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
-TAccountWallet extends string ? ReadonlyAccount<TAccountWallet> : TAccountWallet,
-TAccountSlotHashes extends string ? ReadonlyAccount<TAccountSlotHashes> : TAccountSlotHashes,
-TAccountInstructionsSysvar extends string ? ReadonlyAccount<TAccountInstructionsSysvar> : TAccountInstructionsSysvar,
-...TRemainingAccounts
-]>;
-
-// @public (undocumented)
-export type ExecuteWithAccessoryInstructionData = {
-    discriminator: ReadonlyUint8Array;
-    compactInstructions: Array<CompactInstruction>;
-    secp256r1VerifyArgs: Secp256r1VerifyArgs;
-    slotNumber: bigint;
-};
-
-// @public (undocumented)
-export type ExecuteWithAccessoryInstructionDataArgs = {
-    compactInstructions: Array<CompactInstructionArgs>;
-    secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
-    slotNumber: number | bigint;
-};
-
-// @public (undocumented)
-export type ExecuteWithOwnerAsyncInput<TAccountOwner extends string = string, TAccountPhygitalToken extends string = string, TAccountWallet extends string = string, TAccountInstructionsSysvar extends string = string> = {
-    owner: TransactionSigner<TAccountOwner>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    wallet?: Address<TAccountWallet>;
-    instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-    compactInstructions: ExecuteWithOwnerInstructionDataArgs["compactInstructions"];
-};
-
-// @public (undocumented)
-export type ExecuteWithOwnerInput<TAccountOwner extends string = string, TAccountPhygitalToken extends string = string, TAccountWallet extends string = string, TAccountInstructionsSysvar extends string = string> = {
-    owner: TransactionSigner<TAccountOwner>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    wallet: Address<TAccountWallet>;
-    instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-    compactInstructions: ExecuteWithOwnerInstructionDataArgs["compactInstructions"];
-};
-
-// @public (undocumented)
-export type ExecuteWithOwnerInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountOwner extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountWallet extends string | AccountMeta<string> = string, TAccountInstructionsSysvar extends string | AccountMeta<string> = "Sysvar1nstructions1111111111111111111111111", TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
-TAccountOwner extends string ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner> : TAccountOwner,
-TAccountPhygitalToken extends string ? ReadonlyAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
-TAccountWallet extends string ? ReadonlyAccount<TAccountWallet> : TAccountWallet,
-TAccountInstructionsSysvar extends string ? ReadonlyAccount<TAccountInstructionsSysvar> : TAccountInstructionsSysvar,
-...TRemainingAccounts
-]>;
-
-// @public (undocumented)
-export type ExecuteWithOwnerInstructionData = {
-    discriminator: ReadonlyUint8Array;
-    compactInstructions: Array<CompactInstruction>;
-};
-
-// @public (undocumented)
-export type ExecuteWithOwnerInstructionDataArgs = {
-    compactInstructions: Array<CompactInstructionArgs>;
-};
-
-// @public
-export function failingProgramFromLogs(logs: readonly string[] | null | undefined): string | undefined;
-
-// @public
-export type FeePlan = {
-    source: "free" | "refill";
-    refillLamports: bigint;
-};
-
-// @public (undocumented)
-export function fetchAccessoryPolicy<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<Account<AccessoryPolicy, TAddress>>;
-
 // @public (undocumented)
 export function fetchAdminConfig<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<Account<AdminConfig, TAddress>>;
 
 // @public (undocumented)
-export function fetchAllAccessoryPolicy(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address>, config?: FetchAccountsConfig): Promise<Account<AccessoryPolicy>[]>;
-
-// @public (undocumented)
 export function fetchAllAdminConfig(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address>, config?: FetchAccountsConfig): Promise<Account<AdminConfig>[]>;
-
-// @public (undocumented)
-export function fetchAllMaybeAccessoryPolicy(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address>, config?: FetchAccountsConfig): Promise<MaybeAccount<AccessoryPolicy>[]>;
 
 // @public (undocumented)
 export function fetchAllMaybeAdminConfig(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address>, config?: FetchAccountsConfig): Promise<MaybeAccount<AdminConfig>[]>;
@@ -621,9 +236,6 @@ export function fetchAllMaybePhygitalToken(rpc: Parameters<typeof fetchEncodedAc
 
 // @public (undocumented)
 export function fetchAllPhygitalToken(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address>, config?: FetchAccountsConfig): Promise<Account<PhygitalToken>[]>;
-
-// @public (undocumented)
-export function fetchMaybeAccessoryPolicy<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<MaybeAccount<AccessoryPolicy, TAddress>>;
 
 // @public (undocumented)
 export function fetchMaybeAdminConfig<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<MaybeAccount<AdminConfig, TAddress>>;
@@ -643,18 +255,6 @@ export function fetchPhygitalTokenByMint(mint: Address, rpc: Rpc<SolanaRpcApi>):
 // @public
 export function fetchPhygitalTokensByOwner(rpc: Rpc<SolanaRpcApi>, owner: Address): Promise<PhygitalToken[]>;
 
-// @public
-export function fetchPrepaidFees(phygitalToken: Address, config?: SponsorConfig): Promise<{
-    balanceLamports: bigint;
-    prepaidLamports: bigint;
-}>;
-
-// @public
-export function fetchSponsor(config?: SponsorConfig & {
-    phygitalToken?: Address;
-    abortSignal?: AbortSignal;
-}): Promise<SponsorInfo>;
-
 // @public (undocumented)
 export function findAdminConfigPda(config?: {
     programAddress?: Address | undefined;
@@ -662,46 +262,6 @@ export function findAdminConfigPda(config?: {
 
 // @public
 export function findPhygitalTokenPda(secp256r1Pubkey: Secp256r1Pubkey | Base64URLString_2): Promise<Address>;
-
-// @public (undocumented)
-export function findPolicyPda(seeds: PolicySeeds, config?: {
-    programAddress?: Address | undefined;
-}): Promise<ProgramDerivedAddress>;
-
-// @public (undocumented)
-export function findWalletPda(seeds: WalletSeeds, config?: {
-    programAddress?: Address | undefined;
-}): Promise<ProgramDerivedAddress>;
-
-// @public
-export function getAccessoryPolicyCodec(): Codec<AccessoryPolicyArgs, AccessoryPolicy>;
-
-// @public
-export function getAccessoryPolicyDecoder(): Decoder<AccessoryPolicy>;
-
-// @public (undocumented)
-export function getAccessoryPolicyDiscriminatorBytes(): ReadonlyUint8Array;
-
-// @public
-export function getAccessoryPolicyEncoder(): Encoder<AccessoryPolicyArgs>;
-
-// @public (undocumented)
-export function getAccountConstraintCodec(): Codec<AccountConstraintArgs, AccountConstraint>;
-
-// @public (undocumented)
-export function getAccountConstraintDecoder(): Decoder<AccountConstraint>;
-
-// @public (undocumented)
-export function getAccountConstraintEncoder(): Encoder<AccountConstraintArgs>;
-
-// @public (undocumented)
-export function getAccountKeyConstraintCodec(): Codec<AccountKeyConstraintArgs, AccountKeyConstraint>;
-
-// @public (undocumented)
-export function getAccountKeyConstraintDecoder(): Decoder<AccountKeyConstraint>;
-
-// @public (undocumented)
-export function getAccountKeyConstraintEncoder(): Encoder<AccountKeyConstraintArgs>;
 
 // @public
 export function getAdminConfigCodec(): FixedSizeCodec<AdminConfigArgs, AdminConfig>;
@@ -741,26 +301,17 @@ export function getAssignMintInstructionDataDecoder(): FixedSizeDecoder<AssignMi
 export function getAssignMintInstructionDataEncoder(): FixedSizeEncoder<AssignMintInstructionDataArgs>;
 
 // @public (undocumented)
-export function getCapArgCodec(): FixedSizeCodec<CapArgArgs, CapArg>;
-
-// @public (undocumented)
-export function getCapArgDecoder(): FixedSizeDecoder<CapArg>;
-
-// @public (undocumented)
-export function getCapArgEncoder(): FixedSizeEncoder<CapArgArgs>;
-
-// @public (undocumented)
 export function getClosePhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array;
 
 // @public (undocumented)
-export function getClosePhygitalTokenInstruction<TAccountAdmin extends string, TAccountRentRecipient extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TAccountPolicy extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ClosePhygitalTokenInput<TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken, TAccountPolicy>, config?: {
+export function getClosePhygitalTokenInstruction<TAccountAdmin extends string, TAccountRentRecipient extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ClosePhygitalTokenInput<TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
     programAddress?: TProgramAddress;
-}): ClosePhygitalTokenInstruction<TProgramAddress, TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken, TAccountPolicy>;
+}): ClosePhygitalTokenInstruction<TProgramAddress, TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>;
 
 // @public (undocumented)
-export function getClosePhygitalTokenInstructionAsync<TAccountAdmin extends string, TAccountRentRecipient extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TAccountPolicy extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ClosePhygitalTokenAsyncInput<TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken, TAccountPolicy>, config?: {
+export function getClosePhygitalTokenInstructionAsync<TAccountAdmin extends string, TAccountRentRecipient extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ClosePhygitalTokenAsyncInput<TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
     programAddress?: TProgramAddress;
-}): Promise<ClosePhygitalTokenInstruction<TProgramAddress, TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken, TAccountPolicy>>;
+}): Promise<ClosePhygitalTokenInstruction<TProgramAddress, TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>>;
 
 // @public (undocumented)
 export function getClosePhygitalTokenInstructionDataCodec(): FixedSizeCodec<ClosePhygitalTokenInstructionDataArgs, ClosePhygitalTokenInstructionData>;
@@ -770,41 +321,6 @@ export function getClosePhygitalTokenInstructionDataDecoder(): FixedSizeDecoder<
 
 // @public (undocumented)
 export function getClosePhygitalTokenInstructionDataEncoder(): FixedSizeEncoder<ClosePhygitalTokenInstructionDataArgs>;
-
-// @public (undocumented)
-export function getClosePolicyDiscriminatorBytes(): ReadonlyUint8Array;
-
-// @public (undocumented)
-export function getClosePolicyInstruction<TAccountOwner extends string, TAccountPhygitalToken extends string, TAccountPolicy extends string, TAccountWallet extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ClosePolicyInput<TAccountOwner, TAccountPhygitalToken, TAccountPolicy, TAccountWallet>, config?: {
-    programAddress?: TProgramAddress;
-}): ClosePolicyInstruction<TProgramAddress, TAccountOwner, TAccountPhygitalToken, TAccountPolicy, TAccountWallet>;
-
-// @public (undocumented)
-export function getClosePolicyInstructionDataCodec(): FixedSizeCodec<ClosePolicyInstructionDataArgs, ClosePolicyInstructionData>;
-
-// @public (undocumented)
-export function getClosePolicyInstructionDataDecoder(): FixedSizeDecoder<ClosePolicyInstructionData>;
-
-// @public (undocumented)
-export function getClosePolicyInstructionDataEncoder(): FixedSizeEncoder<ClosePolicyInstructionDataArgs>;
-
-// @public (undocumented)
-export function getCompactInstructionCodec(): Codec<CompactInstructionArgs, CompactInstruction>;
-
-// @public (undocumented)
-export function getCompactInstructionDecoder(): Decoder<CompactInstruction>;
-
-// @public (undocumented)
-export function getCompactInstructionEncoder(): Encoder<CompactInstructionArgs>;
-
-// @public (undocumented)
-export function getComparisonCodec(): FixedSizeCodec<ComparisonArgs, Comparison>;
-
-// @public (undocumented)
-export function getComparisonDecoder(): FixedSizeDecoder<Comparison>;
-
-// @public (undocumented)
-export function getComparisonEncoder(): FixedSizeEncoder<ComparisonArgs>;
 
 // @public (undocumented)
 export function getCreateConfigDiscriminatorBytes(): ReadonlyUint8Array;
@@ -829,63 +345,6 @@ export function getCreateConfigInstructionDataDecoder(): FixedSizeDecoder<Create
 export function getCreateConfigInstructionDataEncoder(): FixedSizeEncoder<CreateConfigInstructionDataArgs>;
 
 // @public (undocumented)
-export function getDataConstraintCodec(): Codec<DataConstraintArgs, DataConstraint>;
-
-// @public (undocumented)
-export function getDataConstraintDecoder(): Decoder<DataConstraint>;
-
-// @public (undocumented)
-export function getDataConstraintEncoder(): Encoder<DataConstraintArgs>;
-
-// @public (undocumented)
-export function getDataPredicateCodec(): Codec<DataPredicateArgs, DataPredicate>;
-
-// @public (undocumented)
-export function getDataPredicateDecoder(): Decoder<DataPredicate>;
-
-// @public (undocumented)
-export function getDataPredicateEncoder(): Encoder<DataPredicateArgs>;
-
-// @public (undocumented)
-export function getExecuteWithAccessoryDiscriminatorBytes(): ReadonlyUint8Array;
-
-// @public (undocumented)
-export function getExecuteWithAccessoryInstruction<TAccountPhygitalToken extends string, TAccountPolicy extends string, TAccountWallet extends string, TAccountSlotHashes extends string, TAccountInstructionsSysvar extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ExecuteWithAccessoryInput<TAccountPhygitalToken, TAccountPolicy, TAccountWallet, TAccountSlotHashes, TAccountInstructionsSysvar>, config?: {
-    programAddress?: TProgramAddress;
-}): ExecuteWithAccessoryInstruction<TProgramAddress, TAccountPhygitalToken, TAccountPolicy, TAccountWallet, TAccountSlotHashes, TAccountInstructionsSysvar>;
-
-// @public (undocumented)
-export function getExecuteWithAccessoryInstructionDataCodec(): Codec<ExecuteWithAccessoryInstructionDataArgs, ExecuteWithAccessoryInstructionData>;
-
-// @public (undocumented)
-export function getExecuteWithAccessoryInstructionDataDecoder(): Decoder<ExecuteWithAccessoryInstructionData>;
-
-// @public (undocumented)
-export function getExecuteWithAccessoryInstructionDataEncoder(): Encoder<ExecuteWithAccessoryInstructionDataArgs>;
-
-// @public (undocumented)
-export function getExecuteWithOwnerDiscriminatorBytes(): ReadonlyUint8Array;
-
-// @public (undocumented)
-export function getExecuteWithOwnerInstruction<TAccountOwner extends string, TAccountPhygitalToken extends string, TAccountWallet extends string, TAccountInstructionsSysvar extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ExecuteWithOwnerInput<TAccountOwner, TAccountPhygitalToken, TAccountWallet, TAccountInstructionsSysvar>, config?: {
-    programAddress?: TProgramAddress;
-}): ExecuteWithOwnerInstruction<TProgramAddress, TAccountOwner, TAccountPhygitalToken, TAccountWallet, TAccountInstructionsSysvar>;
-
-// @public (undocumented)
-export function getExecuteWithOwnerInstructionAsync<TAccountOwner extends string, TAccountPhygitalToken extends string, TAccountWallet extends string, TAccountInstructionsSysvar extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ExecuteWithOwnerAsyncInput<TAccountOwner, TAccountPhygitalToken, TAccountWallet, TAccountInstructionsSysvar>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<ExecuteWithOwnerInstruction<TProgramAddress, TAccountOwner, TAccountPhygitalToken, TAccountWallet, TAccountInstructionsSysvar>>;
-
-// @public (undocumented)
-export function getExecuteWithOwnerInstructionDataCodec(): Codec<ExecuteWithOwnerInstructionDataArgs, ExecuteWithOwnerInstructionData>;
-
-// @public (undocumented)
-export function getExecuteWithOwnerInstructionDataDecoder(): Decoder<ExecuteWithOwnerInstructionData>;
-
-// @public (undocumented)
-export function getExecuteWithOwnerInstructionDataEncoder(): Encoder<ExecuteWithOwnerInstructionDataArgs>;
-
-// @public (undocumented)
 export function getInitializeDiscriminatorBytes(): ReadonlyUint8Array;
 
 // @public (undocumented)
@@ -906,33 +365,6 @@ export function getInitializeInstructionDataDecoder(): FixedSizeDecoder<Initiali
 
 // @public (undocumented)
 export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<InitializeInstructionDataArgs>;
-
-// @public (undocumented)
-export function getInstructionRuleCodec(): Codec<InstructionRuleArgs, InstructionRule>;
-
-// @public (undocumented)
-export function getInstructionRuleDecoder(): Decoder<InstructionRule>;
-
-// @public (undocumented)
-export function getInstructionRuleEncoder(): Encoder<InstructionRuleArgs>;
-
-// @public (undocumented)
-export function getMintCapCodec(): FixedSizeCodec<MintCapArgs, MintCap>;
-
-// @public (undocumented)
-export function getMintCapDecoder(): FixedSizeDecoder<MintCap>;
-
-// @public (undocumented)
-export function getMintCapEncoder(): FixedSizeEncoder<MintCapArgs>;
-
-// @public (undocumented)
-export function getNumericWidthCodec(): FixedSizeCodec<NumericWidthArgs, NumericWidth>;
-
-// @public (undocumented)
-export function getNumericWidthDecoder(): FixedSizeDecoder<NumericWidth>;
-
-// @public (undocumented)
-export function getNumericWidthEncoder(): FixedSizeEncoder<NumericWidthArgs>;
 
 // @public
 export function getPhygitalTokenCodec(): FixedSizeCodec<PhygitalTokenArgs, PhygitalToken>;
@@ -961,74 +393,13 @@ export function getPhygitalTokenTypeDecoder(): FixedSizeDecoder<PhygitalTokenTyp
 // @public (undocumented)
 export function getPhygitalTokenTypeEncoder(): FixedSizeEncoder<PhygitalTokenTypeArgs>;
 
-// @public
-export function getPhygitalWalletSigner(rpc: Rpc<SolanaRpcApi>, phygitalTokenPda: Address, config?: PhygitalWalletSignerConfig): Promise<TransactionModifyingSigner>;
-
-// @public (undocumented)
-export function getPolicyActionCodec(): Codec<PolicyActionArgs, PolicyAction>;
-
-// @public (undocumented)
-export function getPolicyActionDecoder(): Decoder<PolicyAction>;
-
-// @public (undocumented)
-export function getPolicyActionEncoder(): Encoder<PolicyActionArgs>;
-
-// @public
-export function getPolicyCloseAccounts(phygitalToken: Address): Promise<{
-    policy: Address;
-    wallet: Address;
-}>;
-
-// @public (undocumented)
-export function getPreviewExecuteDiscriminatorBytes(): ReadonlyUint8Array;
-
-// @public (undocumented)
-export function getPreviewExecuteInstruction<TAccountPhygitalToken extends string, TAccountPolicy extends string, TAccountWallet extends string, TAccountInstructionsSysvar extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: PreviewExecuteInput<TAccountPhygitalToken, TAccountPolicy, TAccountWallet, TAccountInstructionsSysvar>, config?: {
-    programAddress?: TProgramAddress;
-}): PreviewExecuteInstruction<TProgramAddress, TAccountPhygitalToken, TAccountPolicy, TAccountWallet, TAccountInstructionsSysvar>;
-
-// @public (undocumented)
-export function getPreviewExecuteInstructionDataCodec(): Codec<PreviewExecuteInstructionDataArgs, PreviewExecuteInstructionData>;
-
-// @public (undocumented)
-export function getPreviewExecuteInstructionDataDecoder(): Decoder<PreviewExecuteInstructionData>;
-
-// @public (undocumented)
-export function getPreviewExecuteInstructionDataEncoder(): Encoder<PreviewExecuteInstructionDataArgs>;
-
-// @public (undocumented)
-export function getProgramAccessCodec(): Codec<ProgramAccessArgs, ProgramAccess>;
-
-// @public (undocumented)
-export function getProgramAccessDecoder(): Decoder<ProgramAccess>;
-
-// @public (undocumented)
-export function getProgramAccessEncoder(): Encoder<ProgramAccessArgs>;
-
-// @public (undocumented)
-export function getProgramPermissionCodec(): Codec<ProgramPermissionArgs, ProgramPermission>;
-
-// @public (undocumented)
-export function getProgramPermissionDecoder(): Decoder<ProgramPermission>;
-
-// @public (undocumented)
-export function getProgramPermissionEncoder(): Encoder<ProgramPermissionArgs>;
-
-// @public
-export function getRefillInstruction(wallet: Address, feePayer: Address, lamports: bigint): Instruction;
-
 // @public (undocumented)
 export function getRemoveOwnerDiscriminatorBytes(): ReadonlyUint8Array;
 
 // @public (undocumented)
-export function getRemoveOwnerInstruction<TAccountOwner extends string, TAccountPhygitalToken extends string, TAccountPolicy extends string, TAccountWallet extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: RemoveOwnerInput<TAccountOwner, TAccountPhygitalToken, TAccountPolicy, TAccountWallet>, config?: {
+export function getRemoveOwnerInstruction<TAccountOwner extends string, TAccountPhygitalToken extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: RemoveOwnerInput<TAccountOwner, TAccountPhygitalToken>, config?: {
     programAddress?: TProgramAddress;
-}): RemoveOwnerInstruction<TProgramAddress, TAccountOwner, TAccountPhygitalToken, TAccountPolicy, TAccountWallet>;
-
-// @public (undocumented)
-export function getRemoveOwnerInstructionAsync<TAccountOwner extends string, TAccountPhygitalToken extends string, TAccountPolicy extends string, TAccountWallet extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: RemoveOwnerAsyncInput<TAccountOwner, TAccountPhygitalToken, TAccountPolicy, TAccountWallet>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<RemoveOwnerInstruction<TProgramAddress, TAccountOwner, TAccountPhygitalToken, TAccountPolicy, TAccountWallet>>;
+}): RemoveOwnerInstruction<TProgramAddress, TAccountOwner, TAccountPhygitalToken>;
 
 // @public (undocumented)
 export function getRemoveOwnerInstructionDataCodec(): FixedSizeCodec<RemoveOwnerInstructionDataArgs, RemoveOwnerInstructionData>;
@@ -1039,9 +410,6 @@ export function getRemoveOwnerInstructionDataDecoder(): FixedSizeDecoder<RemoveO
 // @public (undocumented)
 export function getRemoveOwnerInstructionDataEncoder(): FixedSizeEncoder<RemoveOwnerInstructionDataArgs>;
 
-// @public
-export function getRevibaseAccessorySession(wallet: Wallet, options?: RevibaseAccessoryGetSessionOptions): Promise<PhygitalWalletSession | null>;
-
 // @public (undocumented)
 export function getSecp256r1PubkeyCodec(): FixedSizeCodec<Secp256r1PubkeyArgs, Secp256r1Pubkey>;
 
@@ -1050,15 +418,6 @@ export function getSecp256r1PubkeyDecoder(): FixedSizeDecoder<Secp256r1Pubkey>;
 
 // @public (undocumented)
 export function getSecp256r1PubkeyEncoder(): FixedSizeEncoder<Secp256r1PubkeyArgs>;
-
-// @public (undocumented)
-export function getSecp256r1VerifyArgsCodec(): Codec<Secp256r1VerifyArgsArgs, Secp256r1VerifyArgs>;
-
-// @public (undocumented)
-export function getSecp256r1VerifyArgsDecoder(): Decoder<Secp256r1VerifyArgs>;
-
-// @public (undocumented)
-export function getSecp256r1VerifyArgsEncoder(): Encoder<Secp256r1VerifyArgsArgs>;
 
 // @public (undocumented)
 export function getSetAdminDiscriminatorBytes(): ReadonlyUint8Array;
@@ -1130,14 +489,9 @@ export function getSetMinterInstructionDataEncoder(): FixedSizeEncoder<SetMinter
 export function getSetOwnerDiscriminatorBytes(): ReadonlyUint8Array;
 
 // @public (undocumented)
-export function getSetOwnerInstruction<TAccountRecipient extends string, TAccountPhygitalToken extends string, TAccountSlotHashes extends string, TAccountInstructionsSysvar extends string, TAccountPolicy extends string, TAccountWallet extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetOwnerInput<TAccountRecipient, TAccountPhygitalToken, TAccountSlotHashes, TAccountInstructionsSysvar, TAccountPolicy, TAccountWallet>, config?: {
+export function getSetOwnerInstruction<TAccountRecipient extends string, TAccountPhygitalToken extends string, TAccountSlotHashes extends string, TAccountInstructionsSysvar extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetOwnerInput<TAccountRecipient, TAccountPhygitalToken, TAccountSlotHashes, TAccountInstructionsSysvar>, config?: {
     programAddress?: TProgramAddress;
-}): SetOwnerInstruction<TProgramAddress, TAccountRecipient, TAccountPhygitalToken, TAccountSlotHashes, TAccountInstructionsSysvar, TAccountPolicy, TAccountWallet>;
-
-// @public (undocumented)
-export function getSetOwnerInstructionAsync<TAccountRecipient extends string, TAccountPhygitalToken extends string, TAccountSlotHashes extends string, TAccountInstructionsSysvar extends string, TAccountPolicy extends string, TAccountWallet extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetOwnerAsyncInput<TAccountRecipient, TAccountPhygitalToken, TAccountSlotHashes, TAccountInstructionsSysvar, TAccountPolicy, TAccountWallet>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<SetOwnerInstruction<TProgramAddress, TAccountRecipient, TAccountPhygitalToken, TAccountSlotHashes, TAccountInstructionsSysvar, TAccountPolicy, TAccountWallet>>;
+}): SetOwnerInstruction<TProgramAddress, TAccountRecipient, TAccountPhygitalToken, TAccountSlotHashes, TAccountInstructionsSysvar>;
 
 // @public (undocumented)
 export function getSetOwnerInstructionDataCodec(): Codec<SetOwnerInstructionDataArgs, SetOwnerInstructionData>;
@@ -1147,40 +501,6 @@ export function getSetOwnerInstructionDataDecoder(): Decoder<SetOwnerInstruction
 
 // @public (undocumented)
 export function getSetOwnerInstructionDataEncoder(): Encoder<SetOwnerInstructionDataArgs>;
-
-// @public (undocumented)
-export function getSpendCapCodec(): FixedSizeCodec<SpendCapArgs, SpendCap>;
-
-// @public (undocumented)
-export function getSpendCapDecoder(): FixedSizeDecoder<SpendCap>;
-
-// @public (undocumented)
-export function getSpendCapEncoder(): FixedSizeEncoder<SpendCapArgs>;
-
-// @public (undocumented)
-export function getUpdatePolicyDiscriminatorBytes(): ReadonlyUint8Array;
-
-// @public (undocumented)
-export function getUpdatePolicyInstruction<TAccountOwner extends string, TAccountPayer extends string, TAccountPhygitalToken extends string, TAccountPolicy extends string, TAccountSystemProgram extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: UpdatePolicyInput<TAccountOwner, TAccountPayer, TAccountPhygitalToken, TAccountPolicy, TAccountSystemProgram>, config?: {
-    programAddress?: TProgramAddress;
-}): UpdatePolicyInstruction<TProgramAddress, TAccountOwner, TAccountPayer, TAccountPhygitalToken, TAccountPolicy, TAccountSystemProgram>;
-
-// @public (undocumented)
-export function getUpdatePolicyInstructionAsync<TAccountOwner extends string, TAccountPayer extends string, TAccountPhygitalToken extends string, TAccountPolicy extends string, TAccountSystemProgram extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: UpdatePolicyAsyncInput<TAccountOwner, TAccountPayer, TAccountPhygitalToken, TAccountPolicy, TAccountSystemProgram>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<UpdatePolicyInstruction<TProgramAddress, TAccountOwner, TAccountPayer, TAccountPhygitalToken, TAccountPolicy, TAccountSystemProgram>>;
-
-// @public (undocumented)
-export function getUpdatePolicyInstructionDataCodec(): Codec<UpdatePolicyInstructionDataArgs, UpdatePolicyInstructionData>;
-
-// @public (undocumented)
-export function getUpdatePolicyInstructionDataDecoder(): Decoder<UpdatePolicyInstructionData>;
-
-// @public (undocumented)
-export function getUpdatePolicyInstructionDataEncoder(): Encoder<UpdatePolicyInstructionDataArgs>;
-
-// @public
-export const hexToBytes: (hex: string) => Uint8Array<ArrayBuffer>;
 
 // @public (undocumented)
 export function identifyPhygitalTokenAccount(account: {
@@ -1246,34 +566,6 @@ export type InitializeInstructionDataArgs = {
 };
 
 // @public (undocumented)
-export type InstructionRule = {
-    selector: ReadonlyUint8Array;
-    dataLength: Option_2<number>;
-    accountCount: Option_2<number>;
-    accounts: Array<AccountConstraint>;
-    arguments: Array<DataConstraint>;
-};
-
-// @public (undocumented)
-export type InstructionRuleArgs = {
-    selector: ReadonlyUint8Array;
-    dataLength: OptionOrNullable<number>;
-    accountCount: OptionOrNullable<number>;
-    accounts: Array<AccountConstraintArgs>;
-    arguments: Array<DataConstraintArgs>;
-};
-
-// @public (undocumented)
-export function isAccountKeyConstraint<K extends AccountKeyConstraint["__kind"]>(kind: K, value: AccountKeyConstraint): value is AccountKeyConstraint & {
-    __kind: K;
-};
-
-// @public (undocumented)
-export function isDataPredicate<K extends DataPredicate["__kind"]>(kind: K, value: DataPredicate): value is DataPredicate & {
-    __kind: K;
-};
-
-// @public (undocumented)
 export function isPhygitalTokenError<TProgramErrorCode extends PhygitalTokenError_2>(error: unknown, transactionMessage: {
     instructions: Record<number, {
         programAddress: Address;
@@ -1288,74 +580,10 @@ export function isPhygitalTokenError<TProgramErrorCode extends PhygitalTokenErro
 export function isPhygitalTokenLocked(token: Pick<PhygitalToken, "tokenType" | "owner">): boolean;
 
 // @public (undocumented)
-export function isPolicyAction<K extends PolicyAction["__kind"]>(kind: K, value: PolicyAction): value is PolicyAction & {
-    __kind: K;
-};
-
-// @public
-export function isPreviewPassed(error: unknown, logs?: readonly string[] | null): boolean;
-
-// @public (undocumented)
-export function isProgramAccess<K extends ProgramAccess["__kind"]>(kind: K, value: ProgramAccess): value is ProgramAccess & {
-    __kind: K;
-};
-
-// @public
-export function isValidOrigin(origin: string): boolean;
-
-// @public
-export const LAMPORTS_PER_SIGNATURE = 5000n;
-
-// @public
-export type LimitJson = {
-    asset: string;
-    amount: string;
-    period: Period;
-    maxPerTap?: string;
-};
-
-// @public (undocumented)
-export type MintCap = {
-    mint: Address;
-    cap: SpendCap;
-};
-
-// @public (undocumented)
-export type MintCapArgs = {
-    mint: Address;
-    cap: SpendCapArgs;
-};
-
-// @public
-export function networkFeeLamports(input: {
-    signatures: number;
-    precompileSignatures?: number;
-    priorityFeeLamports?: bigint;
-}): bigint;
-
-// @public (undocumented)
-export enum NumericWidth {
-    // (undocumented)
-    U16 = 1,
-    // (undocumented)
-    U32 = 2,
-    // (undocumented)
-    U64 = 3,
-    // (undocumented)
-    U8 = 0
-}
-
-// @public (undocumented)
-export type NumericWidthArgs = NumericWidth;
-
-// @public (undocumented)
 export function parseAssignMintInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedAssignMintInstruction<TProgram, TAccountMetas>;
 
 // @public (undocumented)
 export function parseClosePhygitalTokenInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedClosePhygitalTokenInstruction<TProgram, TAccountMetas>;
-
-// @public (undocumented)
-export function parseClosePolicyInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedClosePolicyInstruction<TProgram, TAccountMetas>;
 
 // @public (undocumented)
 export function parseCreateConfigInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedCreateConfigInstruction<TProgram, TAccountMetas>;
@@ -1379,21 +607,8 @@ export type ParsedClosePhygitalTokenInstruction<TProgram extends string = typeof
         rentRecipient: TAccountMetas[1];
         adminConfig: TAccountMetas[2];
         phygitalToken: TAccountMetas[3];
-        policy: TAccountMetas[4];
     };
     data: ClosePhygitalTokenInstructionData;
-};
-
-// @public (undocumented)
-export type ParsedClosePolicyInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
-    programAddress: Address<TProgram>;
-    accounts: {
-        owner: TAccountMetas[0];
-        phygitalToken: TAccountMetas[1];
-        policy: TAccountMetas[2];
-        wallet: TAccountMetas[3];
-    };
-    data: ClosePolicyInstructionData;
 };
 
 // @public (undocumented)
@@ -1405,31 +620,6 @@ export type ParsedCreateConfigInstruction<TProgram extends string = typeof PHYGI
         systemProgram: TAccountMetas[2];
     };
     data: CreateConfigInstructionData;
-};
-
-// @public (undocumented)
-export type ParsedExecuteWithAccessoryInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
-    programAddress: Address<TProgram>;
-    accounts: {
-        phygitalToken: TAccountMetas[0];
-        policy: TAccountMetas[1];
-        wallet: TAccountMetas[2];
-        slotHashes: TAccountMetas[3];
-        instructionsSysvar: TAccountMetas[4];
-    };
-    data: ExecuteWithAccessoryInstructionData;
-};
-
-// @public (undocumented)
-export type ParsedExecuteWithOwnerInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
-    programAddress: Address<TProgram>;
-    accounts: {
-        owner: TAccountMetas[0];
-        phygitalToken: TAccountMetas[1];
-        wallet: TAccountMetas[2];
-        instructionsSysvar: TAccountMetas[3];
-    };
-    data: ExecuteWithOwnerInstructionData;
 };
 
 // @public (undocumented)
@@ -1450,18 +640,10 @@ export type ParsedPhygitalTokenInstruction<TProgram extends string = "phygix8byC
 } & ParsedAssignMintInstruction<TProgram>) | ({
     instructionType: PhygitalTokenInstruction.ClosePhygitalToken;
 } & ParsedClosePhygitalTokenInstruction<TProgram>) | ({
-    instructionType: PhygitalTokenInstruction.ClosePolicy;
-} & ParsedClosePolicyInstruction<TProgram>) | ({
     instructionType: PhygitalTokenInstruction.CreateConfig;
 } & ParsedCreateConfigInstruction<TProgram>) | ({
-    instructionType: PhygitalTokenInstruction.ExecuteWithAccessory;
-} & ParsedExecuteWithAccessoryInstruction<TProgram>) | ({
-    instructionType: PhygitalTokenInstruction.ExecuteWithOwner;
-} & ParsedExecuteWithOwnerInstruction<TProgram>) | ({
     instructionType: PhygitalTokenInstruction.Initialize;
 } & ParsedInitializeInstruction<TProgram>) | ({
-    instructionType: PhygitalTokenInstruction.PreviewExecute;
-} & ParsedPreviewExecuteInstruction<TProgram>) | ({
     instructionType: PhygitalTokenInstruction.RemoveOwner;
 } & ParsedRemoveOwnerInstruction<TProgram>) | ({
     instructionType: PhygitalTokenInstruction.SetAdmin;
@@ -1471,21 +653,7 @@ export type ParsedPhygitalTokenInstruction<TProgram extends string = "phygix8byC
     instructionType: PhygitalTokenInstruction.SetMinter;
 } & ParsedSetMinterInstruction<TProgram>) | ({
     instructionType: PhygitalTokenInstruction.SetOwner;
-} & ParsedSetOwnerInstruction<TProgram>) | ({
-    instructionType: PhygitalTokenInstruction.UpdatePolicy;
-} & ParsedUpdatePolicyInstruction<TProgram>);
-
-// @public (undocumented)
-export type ParsedPreviewExecuteInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
-    programAddress: Address<TProgram>;
-    accounts: {
-        phygitalToken: TAccountMetas[0];
-        policy: TAccountMetas[1];
-        wallet: TAccountMetas[2];
-        instructionsSysvar: TAccountMetas[3];
-    };
-    data: PreviewExecuteInstructionData;
-};
+} & ParsedSetOwnerInstruction<TProgram>);
 
 // @public (undocumented)
 export type ParsedRemoveOwnerInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
@@ -1493,8 +661,6 @@ export type ParsedRemoveOwnerInstruction<TProgram extends string = typeof PHYGIT
     accounts: {
         owner: TAccountMetas[0];
         phygitalToken: TAccountMetas[1];
-        policy: TAccountMetas[2];
-        wallet: TAccountMetas[3];
     };
     data: RemoveOwnerInstructionData;
 };
@@ -1537,48 +703,18 @@ export type ParsedSetOwnerInstruction<TProgram extends string = typeof PHYGITAL_
         phygitalToken: TAccountMetas[1];
         slotHashes: TAccountMetas[2];
         instructionsSysvar: TAccountMetas[3];
-        policy: TAccountMetas[4];
-        wallet: TAccountMetas[5];
     };
     data: SetOwnerInstructionData;
 };
 
 // @public (undocumented)
-export type ParsedUpdatePolicyInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
-    programAddress: Address<TProgram>;
-    accounts: {
-        owner: TAccountMetas[0];
-        payer: TAccountMetas[1];
-        phygitalToken: TAccountMetas[2];
-        policy: TAccountMetas[3];
-        systemProgram: TAccountMetas[4];
-    };
-    data: UpdatePolicyInstructionData;
-};
-
-// @public (undocumented)
-export function parseExecuteWithAccessoryInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedExecuteWithAccessoryInstruction<TProgram, TAccountMetas>;
-
-// @public (undocumented)
-export function parseExecuteWithOwnerInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedExecuteWithOwnerInstruction<TProgram, TAccountMetas>;
-
-// @public (undocumented)
 export function parseInitializeInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedInitializeInstruction<TProgram, TAccountMetas>;
-
-// @public
-export function parsePermissionSet(v: unknown): PermissionSet;
 
 // @public (undocumented)
 export function parsePhygitalTokenInstruction<TProgram extends string>(instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>): ParsedPhygitalTokenInstruction<TProgram>;
 
 // @public (undocumented)
-export function parsePreviewExecuteInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedPreviewExecuteInstruction<TProgram, TAccountMetas>;
-
-// @public (undocumented)
 export function parseRemoveOwnerInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedRemoveOwnerInstruction<TProgram, TAccountMetas>;
-
-// @public
-export function parseRule(v: unknown, path?: string): RuleJson;
 
 // @public
 export function parseSecp256r1Pubkey(input: Base64URLString_2): Secp256r1Pubkey;
@@ -1594,51 +730,6 @@ export function parseSetMinterInstruction<TProgram extends string, TAccountMetas
 
 // @public (undocumented)
 export function parseSetOwnerInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedSetOwnerInstruction<TProgram, TAccountMetas>;
-
-// @public
-export function parseSolTransfer(instruction: Pick<Instruction, "programAddress" | "accounts" | "data">): {
-    from: Address;
-    to: Address;
-    lamports: bigint;
-} | null;
-
-// @public (undocumented)
-export function parseUpdatePolicyInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedUpdatePolicyInstruction<TProgram, TAccountMetas>;
-
-// @public
-export type Period = "day" | "week" | "month" | "lifetime" | number;
-
-// @public
-export function periodFromSeconds(seconds: bigint): Period;
-
-// @public
-export function periodSeconds(period: Period): bigint;
-
-// @public
-export const PERMISSION_LIMITS: {
-    readonly programs: 64;
-    readonly rulesPerProgram: 32;
-    readonly limits: 16;
-    readonly origins: 16;
-    readonly textLength: 280;
-};
-
-// @public
-export class PermissionFormatError extends Error {
-    constructor(path: string, message: string);
-    // (undocumented)
-    readonly path: string;
-}
-
-// @public
-export type PermissionSet = {
-    v: 1;
-    name?: string;
-    reason?: string;
-    programs: ProgramJson[];
-    limits: LimitJson[];
-    origins?: string[];
-};
 
 // @public (undocumented)
 export const PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array;
@@ -1763,9 +854,6 @@ export const PHYGITAL_TOKEN_ERROR__WALLET_INVARIANT_VIOLATED = 6027;
 // @public (undocumented)
 export const PHYGITAL_TOKEN_PROGRAM_ADDRESS: Address<"phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz">;
 
-// @public
-export const PHYGITAL_WALLET_CHAINS: readonly ["solana:mainnet"];
-
 // @public (undocumented)
 export type PhygitalToken = {
     discriminator: ReadonlyUint8Array;
@@ -1773,7 +861,7 @@ export type PhygitalToken = {
     mint: Address;
     lastSignCount: number;
     tokenType: number;
-    walletBump: number;
+    reserved: number;
     publicKey: Secp256r1Pubkey;
     identifier: Secp256r1Pubkey;
 };
@@ -1781,11 +869,9 @@ export type PhygitalToken = {
 // @public (undocumented)
 export enum PhygitalTokenAccount {
     // (undocumented)
-    AccessoryPolicy = 0,
+    AdminConfig = 0,
     // (undocumented)
-    AdminConfig = 1,
-    // (undocumented)
-    PhygitalToken = 2
+    PhygitalToken = 1
 }
 
 // @public (undocumented)
@@ -1794,7 +880,7 @@ export type PhygitalTokenArgs = {
     mint: Address;
     lastSignCount: number;
     tokenType: number;
-    walletBump: number;
+    reserved: number;
     publicKey: Secp256r1PubkeyArgs;
     identifier: Secp256r1PubkeyArgs;
 };
@@ -1809,7 +895,7 @@ export class PhygitalTokenError extends Error {
 }
 
 // @public
-export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "RP_ID_REQUIRED" | "RECOVERY_SOURCE_REQUIRED" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_CREDENTIAL_ID" | "PASSKEY_RECOVERY_FAILED" | "PASSKEY_NOT_RECOGNIZED" | "PASSKEY_AMBIGUOUS" | "INVALID_ASSERTION" | "MESSAGE_MISMATCH" | "ORIGIN_MISMATCH" | "RP_ID_MISMATCH" | "SLOT_HASH_UNAVAILABLE" | "RECIPIENT_MISMATCH";
+export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "RP_ID_REQUIRED" | "RECOVERY_SOURCE_REQUIRED" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_CREDENTIAL_ID" | "PASSKEY_RECOVERY_FAILED" | "PASSKEY_NOT_RECOGNIZED" | "PASSKEY_AMBIGUOUS" | "INVALID_ASSERTION" | "MESSAGE_MISMATCH" | "ORIGIN_MISMATCH" | "RP_ID_MISMATCH" | "SLOT_HASH_UNAVAILABLE";
 
 // @public (undocumented)
 export enum PhygitalTokenInstruction {
@@ -1818,29 +904,19 @@ export enum PhygitalTokenInstruction {
     // (undocumented)
     ClosePhygitalToken = 1,
     // (undocumented)
-    ClosePolicy = 2,
+    CreateConfig = 2,
     // (undocumented)
-    CreateConfig = 3,
+    Initialize = 3,
     // (undocumented)
-    ExecuteWithAccessory = 4,
+    RemoveOwner = 4,
     // (undocumented)
-    ExecuteWithOwner = 5,
+    SetAdmin = 5,
     // (undocumented)
-    Initialize = 6,
+    SetIssuer = 6,
     // (undocumented)
-    PreviewExecute = 7,
+    SetMinter = 7,
     // (undocumented)
-    RemoveOwner = 8,
-    // (undocumented)
-    SetAdmin = 9,
-    // (undocumented)
-    SetIssuer = 10,
-    // (undocumented)
-    SetMinter = 11,
-    // (undocumented)
-    SetOwner = 12,
-    // (undocumented)
-    UpdatePolicy = 13
+    SetOwner = 8
 }
 
 // @public (undocumented)
@@ -1855,7 +931,6 @@ export type PhygitalTokenPlugin = {
 
 // @public (undocumented)
 export type PhygitalTokenPluginAccounts = {
-    accessoryPolicy: ReturnType<typeof getAccessoryPolicyCodec> & SelfFetchFunctions<AccessoryPolicyArgs, AccessoryPolicy>;
     adminConfig: ReturnType<typeof getAdminConfigCodec> & SelfFetchFunctions<AdminConfigArgs, AdminConfig>;
     phygitalToken: ReturnType<typeof getPhygitalTokenCodec> & SelfFetchFunctions<PhygitalTokenArgs, PhygitalToken>;
 };
@@ -1864,29 +939,22 @@ export type PhygitalTokenPluginAccounts = {
 export type PhygitalTokenPluginInstructions = {
     assignMint: (input: AssignMintAsyncInput) => ReturnType<typeof getAssignMintInstructionAsync> & SelfPlanAndSendFunctions;
     closePhygitalToken: (input: ClosePhygitalTokenAsyncInput) => ReturnType<typeof getClosePhygitalTokenInstructionAsync> & SelfPlanAndSendFunctions;
-    closePolicy: (input: ClosePolicyInput) => ReturnType<typeof getClosePolicyInstruction> & SelfPlanAndSendFunctions;
     createConfig: (input: CreateConfigAsyncInput) => ReturnType<typeof getCreateConfigInstructionAsync> & SelfPlanAndSendFunctions;
-    executeWithAccessory: (input: ExecuteWithAccessoryInput) => ReturnType<typeof getExecuteWithAccessoryInstruction> & SelfPlanAndSendFunctions;
-    executeWithOwner: (input: ExecuteWithOwnerAsyncInput) => ReturnType<typeof getExecuteWithOwnerInstructionAsync> & SelfPlanAndSendFunctions;
     initialize: (input: InitializeAsyncInput) => ReturnType<typeof getInitializeInstructionAsync> & SelfPlanAndSendFunctions;
-    previewExecute: (input: PreviewExecuteInput) => ReturnType<typeof getPreviewExecuteInstruction> & SelfPlanAndSendFunctions;
-    removeOwner: (input: RemoveOwnerAsyncInput) => ReturnType<typeof getRemoveOwnerInstructionAsync> & SelfPlanAndSendFunctions;
+    removeOwner: (input: RemoveOwnerInput) => ReturnType<typeof getRemoveOwnerInstruction> & SelfPlanAndSendFunctions;
     setAdmin: (input: SetAdminAsyncInput) => ReturnType<typeof getSetAdminInstructionAsync> & SelfPlanAndSendFunctions;
     setIssuer: (input: SetIssuerAsyncInput) => ReturnType<typeof getSetIssuerInstructionAsync> & SelfPlanAndSendFunctions;
     setMinter: (input: SetMinterAsyncInput) => ReturnType<typeof getSetMinterInstructionAsync> & SelfPlanAndSendFunctions;
-    setOwner: (input: SetOwnerAsyncInput) => ReturnType<typeof getSetOwnerInstructionAsync> & SelfPlanAndSendFunctions;
-    updatePolicy: (input: MakeOptional<UpdatePolicyAsyncInput, "payer">) => ReturnType<typeof getUpdatePolicyInstructionAsync> & SelfPlanAndSendFunctions;
+    setOwner: (input: SetOwnerInput) => ReturnType<typeof getSetOwnerInstruction> & SelfPlanAndSendFunctions;
 };
 
 // @public (undocumented)
 export type PhygitalTokenPluginPdas = {
     adminConfig: typeof findAdminConfigPda;
-    policy: typeof findPolicyPda;
-    wallet: typeof findWalletPda;
 };
 
 // @public (undocumented)
-export type PhygitalTokenPluginRequirements = ClientWithRpc<GetAccountInfoApi & GetMultipleAccountsApi> & ClientWithPayer & ClientWithTransactionPlanning & ClientWithTransactionSending;
+export type PhygitalTokenPluginRequirements = ClientWithRpc<GetAccountInfoApi & GetMultipleAccountsApi> & ClientWithTransactionPlanning & ClientWithTransactionSending;
 
 // @public (undocumented)
 export function phygitalTokenProgram(): <T extends PhygitalTokenPluginRequirements>(client: T) => ExtendedClient<T, {
@@ -1906,261 +974,19 @@ export enum PhygitalTokenType {
 // @public (undocumented)
 export type PhygitalTokenTypeArgs = PhygitalTokenType;
 
-// @public
-export type PhygitalWalletOptions = {
-    rpc: Rpc<SolanaRpcApi>;
-    chains?: readonly SolanaChain[];
-    fetch?: typeof fetch;
-    feePayer?: PhygitalWalletSignerConfig["feePayer"];
-    feeEndpoint?: string;
-    onPhaseChange?: PhygitalWalletSignerCallbacks["onPhaseChange"];
-    onFeePlan?: PhygitalWalletSignerCallbacks["onFeePlan"];
-};
-
-// @public
-export type PhygitalWalletSession = {
-    phygitalTokenPda: Address;
-    walletPda: Address;
-    owner: Address;
-};
-
-// @public
-export type PhygitalWalletSignerCallbacks = {
-    onPhaseChange?: (phase: PhygitalWalletSignPhase) => void;
-    onFeePlan?: (plan: FeePlan) => void;
-};
-
-// @public
-export type PhygitalWalletSignerConfig = PhygitalWalletSignerCallbacks & {
-    fetch?: typeof fetch;
-    feePayer?: TransactionPartialSigner | readonly TransactionPartialSigner[];
-    feeEndpoint?: string;
-};
-
-// @public
-export type PhygitalWalletSignPhase = "preparing" | "previewing" | "awaitingPasskey" | "building" | "feePaying" | "complete";
-
-// @public
-export function pickFeePayer<T>(feePayers: readonly T[]): T;
-
-// @public
-export function planFee(input: {
-    balance: bigint;
-    prepaid: bigint;
-    cost: bigint;
-}): {
-    refill: bigint;
-};
-
-// @public
-export const POLICY_DENIAL_CODES: ReadonlySet<string>;
-
-// @public
-export type PolicyAction = {
-    __kind: "SetSolCap";
-    fields: readonly [Option_2<CapArg>];
-} | {
-    __kind: "SetMintCap";
-    fields: readonly [Address, CapArg];
-} | {
-    __kind: "RemoveMintCap";
-    fields: readonly [Address];
-} | {
-    __kind: "SetAllowedOrigins";
-    fields: readonly [Array<string>];
-} | {
-    __kind: "SetProgramPermission";
-    fields: readonly [ProgramPermission];
-} | {
-    __kind: "RemoveProgramPermission";
-    fields: readonly [Address];
-};
-
-// @public (undocumented)
-export function policyAction(kind: "SetSolCap", data: GetDiscriminatedUnionVariantContent<PolicyActionArgs, "__kind", "SetSolCap">["fields"]): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "SetSolCap">;
-
-// @public (undocumented)
-export function policyAction(kind: "SetMintCap", data: GetDiscriminatedUnionVariantContent<PolicyActionArgs, "__kind", "SetMintCap">["fields"]): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "SetMintCap">;
-
-// @public (undocumented)
-export function policyAction(kind: "RemoveMintCap", data: GetDiscriminatedUnionVariantContent<PolicyActionArgs, "__kind", "RemoveMintCap">["fields"]): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "RemoveMintCap">;
-
-// @public (undocumented)
-export function policyAction(kind: "SetAllowedOrigins", data: GetDiscriminatedUnionVariantContent<PolicyActionArgs, "__kind", "SetAllowedOrigins">["fields"]): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "SetAllowedOrigins">;
-
-// @public (undocumented)
-export function policyAction(kind: "SetProgramPermission", data: GetDiscriminatedUnionVariantContent<PolicyActionArgs, "__kind", "SetProgramPermission">["fields"]): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "SetProgramPermission">;
-
-// @public (undocumented)
-export function policyAction(kind: "RemoveProgramPermission", data: GetDiscriminatedUnionVariantContent<PolicyActionArgs, "__kind", "RemoveProgramPermission">["fields"]): GetDiscriminatedUnionVariant<PolicyActionArgs, "__kind", "RemoveProgramPermission">;
-
-// @public (undocumented)
-export type PolicyActionArgs = {
-    __kind: "SetSolCap";
-    fields: readonly [OptionOrNullable<CapArgArgs>];
-} | {
-    __kind: "SetMintCap";
-    fields: readonly [Address, CapArgArgs];
-} | {
-    __kind: "RemoveMintCap";
-    fields: readonly [Address];
-} | {
-    __kind: "SetAllowedOrigins";
-    fields: readonly [Array<string>];
-} | {
-    __kind: "SetProgramPermission";
-    fields: readonly [ProgramPermissionArgs];
-} | {
-    __kind: "RemoveProgramPermission";
-    fields: readonly [Address];
-};
-
-// @public
-export class PolicyDeniedError extends Error {
-    constructor(args: {
-        code: string;
-        error: string;
-        soft?: boolean;
-        details?: Record<string, unknown>;
-        programs?: readonly Address[];
-        manageUrl?: string;
-    });
-    // (undocumented)
-    readonly code: string;
-    // (undocumented)
-    readonly details?: Record<string, unknown>;
-    readonly manageUrl?: string;
-    readonly programs?: readonly Address[];
-    // (undocumented)
-    readonly soft: boolean;
-}
-
-// @public
-export function policyDeniedErrorFromSolanaError(error: unknown, logs?: readonly string[] | null): PolicyDeniedError | null;
-
-// @public (undocumented)
-export type PolicySeeds = {
-    phygitalToken: Address;
-};
-
-// @public (undocumented)
-export const PREVIEW_EXECUTE_DISCRIMINATOR: ReadonlyUint8Array;
-
-// @public
-export const PREVIEW_EXECUTE_NAMED_ACCOUNT_COUNT = 4;
-
-// @public (undocumented)
-export type PreviewExecuteInput<TAccountPhygitalToken extends string = string, TAccountPolicy extends string = string, TAccountWallet extends string = string, TAccountInstructionsSysvar extends string = string> = {
-    phygitalToken: Address<TAccountPhygitalToken>;
-    policy: Address<TAccountPolicy>;
-    wallet: Address<TAccountWallet>;
-    instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-    compactInstructions: PreviewExecuteInstructionDataArgs["compactInstructions"];
-    origin: PreviewExecuteInstructionDataArgs["origin"];
-};
-
-// @public (undocumented)
-export type PreviewExecuteInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountPolicy extends string | AccountMeta<string> = string, TAccountWallet extends string | AccountMeta<string> = string, TAccountInstructionsSysvar extends string | AccountMeta<string> = "Sysvar1nstructions1111111111111111111111111", TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
-TAccountPhygitalToken extends string ? ReadonlyAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
-TAccountPolicy extends string ? ReadonlyAccount<TAccountPolicy> : TAccountPolicy,
-TAccountWallet extends string ? ReadonlyAccount<TAccountWallet> : TAccountWallet,
-TAccountInstructionsSysvar extends string ? ReadonlyAccount<TAccountInstructionsSysvar> : TAccountInstructionsSysvar,
-...TRemainingAccounts
-]>;
-
-// @public (undocumented)
-export type PreviewExecuteInstructionData = {
-    discriminator: ReadonlyUint8Array;
-    compactInstructions: Array<CompactInstruction>;
-    origin: Option_2<string>;
-};
-
-// @public (undocumented)
-export type PreviewExecuteInstructionDataArgs = {
-    compactInstructions: Array<CompactInstructionArgs>;
-    origin: OptionOrNullable<string>;
-};
-
-// @public (undocumented)
-export type ProgramAccess = {
-    __kind: "AllInstructions";
-} | {
-    __kind: "Restricted";
-    fields: readonly [Array<InstructionRule>];
-};
-
-// @public (undocumented)
-export function programAccess(kind: "AllInstructions"): GetDiscriminatedUnionVariant<ProgramAccessArgs, "__kind", "AllInstructions">;
-
-// @public (undocumented)
-export function programAccess(kind: "Restricted", data: GetDiscriminatedUnionVariantContent<ProgramAccessArgs, "__kind", "Restricted">["fields"]): GetDiscriminatedUnionVariant<ProgramAccessArgs, "__kind", "Restricted">;
-
-// @public (undocumented)
-export type ProgramAccessArgs = {
-    __kind: "AllInstructions";
-} | {
-    __kind: "Restricted";
-    fields: readonly [Array<InstructionRuleArgs>];
-};
-
-// @public
-export type ProgramJson = {
-    id: string;
-    access: "all" | {
-        only: RuleJson[];
-    };
-    reason?: string;
-};
-
-// @public (undocumented)
-export type ProgramPermission = {
-    programId: Address;
-    access: ProgramAccess;
-};
-
-// @public (undocumented)
-export type ProgramPermissionArgs = {
-    programId: Address;
-    access: ProgramAccessArgs;
-};
-
-// @public
-export class RefillBlockedByTapLimit extends Error {
-    constructor(neededLamports: bigint, manageUrl: string);
-    // (undocumented)
-    readonly manageUrl: string;
-    // (undocumented)
-    readonly neededLamports: bigint;
-}
-
-// @public
-export function registerPhygitalWallet(options: PhygitalWalletOptions): void;
-
 // @public (undocumented)
 export const REMOVE_OWNER_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
-export type RemoveOwnerAsyncInput<TAccountOwner extends string = string, TAccountPhygitalToken extends string = string, TAccountPolicy extends string = string, TAccountWallet extends string = string> = {
+export type RemoveOwnerInput<TAccountOwner extends string = string, TAccountPhygitalToken extends string = string> = {
     owner: TransactionSigner<TAccountOwner>;
     phygitalToken: Address<TAccountPhygitalToken>;
-    policy?: Address<TAccountPolicy>;
-    wallet?: Address<TAccountWallet>;
 };
 
 // @public (undocumented)
-export type RemoveOwnerInput<TAccountOwner extends string = string, TAccountPhygitalToken extends string = string, TAccountPolicy extends string = string, TAccountWallet extends string = string> = {
-    owner: TransactionSigner<TAccountOwner>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    policy: Address<TAccountPolicy>;
-    wallet: Address<TAccountWallet>;
-};
-
-// @public (undocumented)
-export type RemoveOwnerInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountOwner extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountPolicy extends string | AccountMeta<string> = string, TAccountWallet extends string | AccountMeta<string> = string, TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
+export type RemoveOwnerInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountOwner extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
 TAccountOwner extends string ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner> : TAccountOwner,
 TAccountPhygitalToken extends string ? WritableAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
-TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
-TAccountWallet extends string ? WritableAccount<TAccountWallet> : TAccountWallet,
 ...TRemainingAccounts
 ]>;
 
@@ -2172,68 +998,11 @@ export type RemoveOwnerInstructionData = {
 // @public (undocumented)
 export type RemoveOwnerInstructionDataArgs = {};
 
-// @public
-export function resolveWalletSession(rpc: Rpc<SolanaRpcApi>, phygitalTokenPda: Address): Promise<PhygitalWalletSession>;
-
-// @public
-export const REVIBASE_WALLET_NAME: "Revibase";
-
-// @public
-export const RevibaseAccessory = "revibase:accessory";
-
-// @public
-export type RevibaseAccessoryFeature = {
-    [RevibaseAccessory]: {
-        version: "1.0.0";
-        getSession(options?: RevibaseAccessoryGetSessionOptions): Promise<PhygitalWalletSession | null>;
-    };
-};
-
-// @public
-export type RevibaseAccessoryGetSessionOptions = {
-    refresh?: boolean;
-};
-
-// @public
-export function ruleFromProgram(rule: InstructionRule | InstructionRuleArgs): RuleJson;
-
-// @public
-export type RuleJson = {
-    selector: string;
-    dataLength?: number;
-    accountCount?: number;
-    accounts?: AccountCheckJson[];
-    args?: DataCheckJson[];
-};
-
-// @public
-export function ruleToArgs(rule: RuleJson): InstructionRuleArgs;
-
-// @public
-export function sameRule(a: RuleJson, b: RuleJson): boolean;
-
 // @public (undocumented)
 export type Secp256r1Pubkey = readonly [ReadonlyUint8Array];
 
 // @public (undocumented)
 export type Secp256r1PubkeyArgs = Secp256r1Pubkey;
-
-// @public
-export type Secp256r1VerifyArgs = {
-    verifyArgsRelativeIndex: bigint;
-    signedMessageIndex: number;
-    clientDataJson: ReadonlyUint8Array;
-};
-
-// @public (undocumented)
-export type Secp256r1VerifyArgsArgs = {
-    verifyArgsRelativeIndex: number | bigint;
-    signedMessageIndex: number;
-    clientDataJson: ReadonlyUint8Array;
-};
-
-// @public
-export function selectorsOverlap(a: string, b: string): boolean;
 
 // @public (undocumented)
 export const SET_ADMIN_DISCRIMINATOR: ReadonlyUint8Array;
@@ -2344,95 +1113,45 @@ export type SetMinterInstructionDataArgs = {
 };
 
 // @public (undocumented)
-export type SetOwnerAsyncInput<TAccountRecipient extends string = string, TAccountPhygitalToken extends string = string, TAccountSlotHashes extends string = string, TAccountInstructionsSysvar extends string = string, TAccountPolicy extends string = string, TAccountWallet extends string = string> = {
+export type SetOwnerInput<TAccountRecipient extends string = string, TAccountPhygitalToken extends string = string, TAccountSlotHashes extends string = string, TAccountInstructionsSysvar extends string = string> = {
     recipient: TransactionSigner<TAccountRecipient>;
     phygitalToken: Address<TAccountPhygitalToken>;
     slotHashes?: Address<TAccountSlotHashes>;
     instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-    policy?: Address<TAccountPolicy>;
-    wallet?: Address<TAccountWallet>;
-    secp256r1VerifyArgs: SetOwnerInstructionDataArgs["secp256r1VerifyArgs"];
+    verifyArgsRelativeIndex: SetOwnerInstructionDataArgs["verifyArgsRelativeIndex"];
+    signedMessageIndex: SetOwnerInstructionDataArgs["signedMessageIndex"];
+    clientDataJson: SetOwnerInstructionDataArgs["clientDataJson"];
     slotNumber: SetOwnerInstructionDataArgs["slotNumber"];
 };
 
 // @public (undocumented)
-export type SetOwnerInput<TAccountRecipient extends string = string, TAccountPhygitalToken extends string = string, TAccountSlotHashes extends string = string, TAccountInstructionsSysvar extends string = string, TAccountPolicy extends string = string, TAccountWallet extends string = string> = {
-    recipient: TransactionSigner<TAccountRecipient>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    slotHashes?: Address<TAccountSlotHashes>;
-    instructionsSysvar?: Address<TAccountInstructionsSysvar>;
-    policy: Address<TAccountPolicy>;
-    wallet: Address<TAccountWallet>;
-    secp256r1VerifyArgs: SetOwnerInstructionDataArgs["secp256r1VerifyArgs"];
-    slotNumber: SetOwnerInstructionDataArgs["slotNumber"];
-};
-
-// @public (undocumented)
-export type SetOwnerInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountRecipient extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountSlotHashes extends string | AccountMeta<string> = "SysvarS1otHashes111111111111111111111111111", TAccountInstructionsSysvar extends string | AccountMeta<string> = "Sysvar1nstructions1111111111111111111111111", TAccountPolicy extends string | AccountMeta<string> = string, TAccountWallet extends string | AccountMeta<string> = string, TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
+export type SetOwnerInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountRecipient extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountSlotHashes extends string | AccountMeta<string> = "SysvarS1otHashes111111111111111111111111111", TAccountInstructionsSysvar extends string | AccountMeta<string> = "Sysvar1nstructions1111111111111111111111111", TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
 TAccountRecipient extends string ? ReadonlySignerAccount<TAccountRecipient> & AccountSignerMeta<TAccountRecipient> : TAccountRecipient,
 TAccountPhygitalToken extends string ? WritableAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
 TAccountSlotHashes extends string ? ReadonlyAccount<TAccountSlotHashes> : TAccountSlotHashes,
 TAccountInstructionsSysvar extends string ? ReadonlyAccount<TAccountInstructionsSysvar> : TAccountInstructionsSysvar,
-TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
-TAccountWallet extends string ? WritableAccount<TAccountWallet> : TAccountWallet,
 ...TRemainingAccounts
 ]>;
 
 // @public (undocumented)
 export type SetOwnerInstructionData = {
     discriminator: ReadonlyUint8Array;
-    secp256r1VerifyArgs: Secp256r1VerifyArgs;
+    verifyArgsRelativeIndex: bigint;
+    signedMessageIndex: number;
+    clientDataJson: ReadonlyUint8Array;
     slotNumber: bigint;
 };
 
 // @public (undocumented)
 export type SetOwnerInstructionDataArgs = {
-    secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
+    verifyArgsRelativeIndex: number | bigint;
+    signedMessageIndex: number;
+    clientDataJson: ReadonlyUint8Array;
     slotNumber: number | bigint;
-};
-
-// @public (undocumented)
-export type SpendCap = {
-    cap: bigint;
-    remaining: bigint;
-    lastReset: bigint;
-    windowSeconds: bigint;
-    maxPerTx: bigint;
-};
-
-// @public (undocumented)
-export type SpendCapArgs = {
-    cap: number | bigint;
-    remaining: number | bigint;
-    lastReset: number | bigint;
-    windowSeconds: number | bigint;
-    maxPerTx: number | bigint;
-};
-
-// @public
-export type SponsorConfig = {
-    endpoint?: string;
-    fetch?: typeof fetch;
-};
-
-// @public
-export type SponsorInfo = {
-    feePayers: Address[];
-    limits?: {
-        maxComputeUnitLimit: number;
-        maxComputeUnitPriceMicroLamports: bigint;
-    };
-    prepaid?: {
-        balanceLamports: bigint;
-        prepaidLamports: bigint;
-    };
 };
 
 // @public
 export function startAuthentication(message: string, options?: AuthenticatePasskeyOptions): Promise<AuthenticationResponseJSON>;
-
-// @public
-export function topUpNeeded(balance: bigint, amount: bigint): bigint;
 
 // @public
 export type TransferSession = {
@@ -2441,53 +1160,8 @@ export type TransferSession = {
     secp256r1Pubkey: string;
     slotHash: Uint8Array;
     slotNumber: bigint;
-    recipient: Address;
     challenge: Uint8Array;
     rpId: string;
-};
-
-// @public (undocumented)
-export const UPDATE_POLICY_DISCRIMINATOR: ReadonlyUint8Array;
-
-// @public (undocumented)
-export type UpdatePolicyAsyncInput<TAccountOwner extends string = string, TAccountPayer extends string = string, TAccountPhygitalToken extends string = string, TAccountPolicy extends string = string, TAccountSystemProgram extends string = string> = {
-    owner: TransactionSigner<TAccountOwner>;
-    payer: TransactionSigner<TAccountPayer>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    policy?: Address<TAccountPolicy>;
-    systemProgram?: Address<TAccountSystemProgram>;
-    actions: UpdatePolicyInstructionDataArgs["actions"];
-};
-
-// @public (undocumented)
-export type UpdatePolicyInput<TAccountOwner extends string = string, TAccountPayer extends string = string, TAccountPhygitalToken extends string = string, TAccountPolicy extends string = string, TAccountSystemProgram extends string = string> = {
-    owner: TransactionSigner<TAccountOwner>;
-    payer: TransactionSigner<TAccountPayer>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    policy: Address<TAccountPolicy>;
-    systemProgram?: Address<TAccountSystemProgram>;
-    actions: UpdatePolicyInstructionDataArgs["actions"];
-};
-
-// @public (undocumented)
-export type UpdatePolicyInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountOwner extends string | AccountMeta<string> = string, TAccountPayer extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountPolicy extends string | AccountMeta<string> = string, TAccountSystemProgram extends string | AccountMeta<string> = "11111111111111111111111111111111", TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
-TAccountOwner extends string ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner> : TAccountOwner,
-TAccountPayer extends string ? WritableSignerAccount<TAccountPayer> & AccountSignerMeta<TAccountPayer> : TAccountPayer,
-TAccountPhygitalToken extends string ? ReadonlyAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
-TAccountPolicy extends string ? WritableAccount<TAccountPolicy> : TAccountPolicy,
-TAccountSystemProgram extends string ? ReadonlyAccount<TAccountSystemProgram> : TAccountSystemProgram,
-...TRemainingAccounts
-]>;
-
-// @public (undocumented)
-export type UpdatePolicyInstructionData = {
-    discriminator: ReadonlyUint8Array;
-    actions: Array<PolicyAction>;
-};
-
-// @public (undocumented)
-export type UpdatePolicyInstructionDataArgs = {
-    actions: Array<PolicyActionArgs>;
 };
 
 // @public
@@ -2504,19 +1178,7 @@ export function verifyResponse(input: {
 })): Promise<{
     isVerified: boolean;
     secp256r1PublicKey: string;
-    accessoryWallet: Address | null;
 }>;
-
-// @public
-export const WALLET_RENT_EXEMPT_LAMPORTS = 890880n;
-
-// @public (undocumented)
-export type WalletSeeds = {
-    phygitalToken: Address;
-};
-
-// @public
-export function withRemainingAccounts(instruction: Instruction, remainingAccounts: readonly AccountMeta[]): Instruction;
 
 // (No @packageDocumentation comment for this package)
 

@@ -60,24 +60,24 @@ Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_
 
 | Export | Purpose |
 |--------|---------|
-| `beginTransfer({ rpc, secp256r1Pubkey, recipient, rpId? })` | Derives token PDA from passkey; slot-bound challenge; `rpId` defaults to hostname |
+| `beginTransfer({ rpc, secp256r1Pubkey, rpId? })` | Derives token PDA from passkey; slot-bound challenge; `rpId` defaults to hostname |
 | `authenticatePasskeyForTransfer(session)` | NFC tap |
 | `completeTransfer` | Kit `TransactionSigner` recipient; `response.id` as passkey; builds secp + set_owner |
 
-`set_owner` requires an unlocked token (`isPhygitalTokenLocked`): Controlled and Permanent tokens are locked whenever they have an owner, so Permanent always fails with `TokenIsCurrentlyLocked` and a claimed Controlled token must `remove_owner` first. Linking a new owner closes the previous owner's accessory policy (`completeTransfer` passes the accounts).
+`set_owner` requires an unlocked token (`isPhygitalTokenLocked`): Controlled and Permanent tokens are locked whenever they have an owner, so Permanent always fails with `TokenIsCurrentlyLocked` and a claimed Controlled token must `remove_owner` first.
 
 ## Remove owner
 
 | Export | Purpose |
 |--------|---------|
-| `getRemoveOwnerInstruction` | Wallet-signed forfeiture — reset `phygital_token.owner` to default; pass `getPolicyCloseAccounts(token)` |
+| `getRemoveOwnerInstruction` | Wallet-signed forfeiture — reset `phygital_token.owner` to default |
 
 ## Verification (off-chain only)
 
 | Export | Purpose |
 |--------|---------|
 | `startAuthentication(message, { rpc, allowList? })` | NFC tap; `rpc` recovers a placeholder id, `allowList` gates the tapped id (and is the no-RPC fallback) |
-| `verifyResponse({ expectedMessage, expectedOrigin, response })` | asynchronous secp256r1 check; rejects taps from other origins (`ORIGIN_MISMATCH`); returns `{ isVerified, secp256r1PublicKey, accessoryWallet }` |
+| `verifyResponse({ expectedMessage, expectedOrigin, response })` | asynchronous secp256r1 check; rejects taps from other origins (`ORIGIN_MISMATCH`); returns `{ isVerified, secp256r1PublicKey }` |
 
 Issue any short-lived message string — no `generateAuthenticationOptions`. Then create your normal session.
 
@@ -111,4 +111,4 @@ On-chain: instruction builders, CPI helpers (`AssignMintCpiBuilder`, `SetOwnerCp
 
 Off-chain (`fetch` feature): RPC account fetching helpers.
 
-`verifyResponse` derives the accessory-wallet PDA locally without RPC. Invalid signatures return `accessoryWallet: null`. Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.
+Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.

@@ -123,7 +123,7 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
 
   return {
     flow: [
-      "1. beginTransfer({ rpc, secp256r1Pubkey, recipient, rpId? }) — derives token PDA from passkey; fetch slot hash, build challenge; rpId defaults to hostname",
+      "1. beginTransfer({ rpc, secp256r1Pubkey, rpId? }) — derives token PDA from passkey; fetch slot hash, build challenge; rpId defaults to hostname",
       "2. authenticatePasskeyForTransfer(session) — browser WebAuthn tap",
       "3. completeTransfer(session, webAuthnResponse, recipientSigner) — passkey from response.id; builds secp256r1_verify + set_owner",
     ],
@@ -133,7 +133,7 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
       complete: "completeTransfer",
     },
     challenge: {
-      formula: "SHA256('transfer' || tokenPda || slotHash || recipient)",
+      formula: "SHA256('transfer' || tokenPda || slotHash)",
       fetchedAt: "beginTransfer reads slot_hashes sysvar (~512 slot window)",
       note: "Run beginTransfer with a live rpc to get challengeBase64 and slotNumber.",
     },
@@ -155,7 +155,9 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
       },
     ],
     setOwnerArgs: {
-      secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
+      verifyArgsRelativeIndex: "i64 — position of the secp256r1 precompile instruction (usually -1)",
+      signedMessageIndex: "u8 — which signature inside the precompile instruction",
+      clientDataJson: "bytes — the exact clientDataJSON the authenticator signed",
       slotNumber: "u64 — separate instruction arg; used to fetch slot hash for transfer challenge",
     },
     instructions: ["secp256r1_verify", "set_owner"],
@@ -163,10 +165,9 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
       "No SPL token transfer — set_owner only updates phygital_token.owner.",
       "Requires an unlocked token: Bearer always; Controlled only with no owner. Permanent tokens are always locked (owner set at init).",
       "A claimed Controlled token is locked until remove_owner.",
-      "Linking a new owner closes the previous owner's accessory policy and returns its rent to the accessory wallet; completeTransfer passes the policy and wallet accounts (getPolicyCloseAccounts).",
       "Permanent tokens remain locked (cannot forfeit), so set_owner always fails with TokenIsCurrentlyLocked.",
-      "beginTransfer takes Kit Rpc, base64url secp256r1Pubkey and the recipient address; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
-      "The challenge names the recipient: choose the wallet before the tap. completeTransfer refuses any other signer (RECIPIENT_MISMATCH).",
+      "beginTransfer takes Kit Rpc and base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
+      "The challenge does not name the recipient, so the tap can happen before the wallet is chosen (handoffs). Anyone who sees the assertion before it lands could submit it for their own wallet: send it promptly.",
       "Browser tap: pass rpc to recover a 16-byte placeholder on-chain; allowList gates the tapped credential id and is the no-RPC recovery fallback.",
       "completeTransfer takes a Kit TransactionSigner for recipient.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",
@@ -182,7 +183,7 @@ export async function planRemoveOwner(input: { secp256r1PublicKey: string; owner
     sdk: "getRemoveOwnerInstruction",
     flow: [
       "1. Confirm the connected wallet is phygital_token.owner on-chain",
-      "2. Build remove_owner with getRemoveOwnerInstruction, passing getPolicyCloseAccounts(tokenPda)",
+      "2. Build remove_owner with getRemoveOwnerInstruction({ owner, phygitalToken: tokenPda })",
       "3. Owner signs and submits the transaction (no passkey tap required)",
     ],
     derivedAccounts: {
@@ -200,7 +201,6 @@ export async function planRemoveOwner(input: { secp256r1PublicKey: string; owner
     onChainEffects: [
       "Sets phygital_token.owner to the default (zero) pubkey",
       "Unlocks a Controlled token (locked is derived from having an owner)",
-      "Closes the token's accessory policy, if any, sending its rent to rent_recipient",
       "Preserves phygital_token.last_sign_count",
     ],
     notes: [

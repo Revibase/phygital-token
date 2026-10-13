@@ -52,4 +52,10 @@ fn transfer_challenge_golden_vector() {
 
     let hash = build_set_owner_challenge(&phygital_token, slot_hash);
     assert_eq!(hash, expected);
+    // Shared with the SDK's buildTransferChallenge test.
+    let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
+    assert_eq!(
+        hex,
+        "8fd09e40a624648512d2a9307debc39c1aa1125ace30757203dd252c8f07b9b0"
+    );
 }

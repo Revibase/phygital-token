@@ -68,7 +68,7 @@ export function listVerificationUseCases(): Array<{
 export const VERIFICATION_DECISION_TREE = `
 Authentication (live NFC tap required)
 ├── Need on-chain owner change?
-│   YES → beginTransfer({ rpc, secp256r1Pubkey, recipient })
+│   YES → beginTransfer({ rpc, secp256r1Pubkey })
 │         → authenticatePasskeyForTransfer(session)
 │         → completeTransfer (set_owner; requires an unlocked token)
 │   NO  → startAuthentication(message, { rpc, allowList? }) → verifyResponse({ expectedMessage, expectedOrigin, response })

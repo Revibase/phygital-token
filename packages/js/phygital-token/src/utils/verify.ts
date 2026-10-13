@@ -11,10 +11,6 @@
  * });
  * ```
  */
-import { type Address } from "@solana/kit";
-import { findWalletPda } from "../generated/pdas/wallet.js";
-import { findPhygitalTokenPda } from "./pdas/token.js";
-
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { equalBytes } from "@noble/curves/utils.js";
@@ -61,8 +57,7 @@ export async function startAuthentication(
  * Throws `MESSAGE_MISMATCH` when the signed challenge differs from
  * `expectedMessage`, `ORIGIN_MISMATCH` when the tap came from another origin,
  * and `INVALID_ASSERTION` for a malformed response; a bad signature returns
- * `isVerified: false`. The accessory wallet address is derived
- * locally for a verified response; no RPC or permissions lookup is performed.
+ * `isVerified: false`. No RPC lookup is performed.
  */
 export async function verifyResponse(
   input: {
@@ -74,7 +69,7 @@ export async function verifyResponse(
     | { expectedMessage: string; expectedChallenge?: never }
     | { expectedChallenge: string; expectedMessage?: never }
   ),
-): Promise<{ isVerified: boolean; secp256r1PublicKey: string; accessoryWallet: Address | null }> {
+): Promise<{ isVerified: boolean; secp256r1PublicKey: string }> {
   const expectedChallenge = input.expectedChallenge ?? utf8ToBase64URLString(input.expectedMessage);
 
   const clientData = parseWebAuthnClientData(input.response.response.clientDataJSON);
@@ -123,8 +118,5 @@ export async function verifyResponse(
   return {
     isVerified,
     secp256r1PublicKey: input.response.id,
-    accessoryWallet: isVerified
-      ? (await findWalletPda({ phygitalToken: await findPhygitalTokenPda(input.response.id) }))[0]
-      : null,
   };
 }

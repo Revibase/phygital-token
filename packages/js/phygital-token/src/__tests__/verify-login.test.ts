@@ -116,15 +116,7 @@ describe("startAuthentication / verifyResponse", async () => {
     const result = await verifyResponse({ expectedMessage: message, expectedOrigin, response });
     expect(result.isVerified).toBe(true);
     expect(result.secp256r1PublicKey).toBe(response.id);
-    const { findWalletPda, findPhygitalTokenPda } = await import("../index.js");
-    expect(result.accessoryWallet).toBe(
-      (await findWalletPda({ phygitalToken: await findPhygitalTokenPda(response.id) }))[0],
-    );
-    expect(Object.keys(result).sort()).toEqual([
-      "accessoryWallet",
-      "isVerified",
-      "secp256r1PublicKey",
-    ]);
+    expect(Object.keys(result).sort()).toEqual(["isVerified", "secp256r1PublicKey"]);
   });
 
   it("verifies against a raw base64url expectedChallenge", async () => {
@@ -168,7 +160,6 @@ describe("startAuthentication / verifyResponse", async () => {
 
     const result = await verifyResponse({ expectedMessage: message, expectedOrigin, response });
     expect(result.isVerified).toBe(false);
-    expect(result.accessoryWallet).toBeNull();
   });
 
   it("rejects a tap made on another origin", async () => {

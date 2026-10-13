@@ -7,7 +7,7 @@ export const SDK_SURFACE = {
     recovery:
       "When multiple keys verify, picks the initialized PhygitalToken PDA on-chain (rpc), or the one in allowList when no rpc is given",
     authenticatePasskey:
-      "Shared browser WebAuthn helper. Used by startAuthentication, authenticatePasskeyForTransfer and the accessory wallet.",
+      "Shared browser WebAuthn helper. Used by startAuthentication and authenticatePasskeyForTransfer.",
   },
   admin: [
     "getCreateConfigInstruction",
@@ -25,7 +25,7 @@ export const SDK_SURFACE = {
   ],
   assignMint: ["getAssignMintInstruction", "findPhygitalTokenPda", "findAdminConfigPda"],
   transfer: [
-    "beginTransfer({ rpc, secp256r1Pubkey, recipient, rpId? })",
+    "beginTransfer({ rpc, secp256r1Pubkey, rpId? })",
     "authenticatePasskeyForTransfer(session)",
     "completeTransfer",
   ],
@@ -77,7 +77,7 @@ export const SDK_SURFACE = {
       "SetMinterCpi",
       "SetMinterCpiBuilder",
     ],
-    types: ["PhygitalToken", "AdminConfig", "Secp256r1VerifyArgs", "PhygitalTokenType"],
+    types: ["PhygitalToken", "AdminConfig", "PhygitalTokenType"],
     roles: {
       admin:
         "sole AdminConfig.admin — create_config signer; set_admin / set_issuer / set_minter / close_phygital_token",

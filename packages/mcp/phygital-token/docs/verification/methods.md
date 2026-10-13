@@ -29,7 +29,7 @@ No `generateAuthenticationOptions`.
 | | |
 |--|--|
 | `startAuthentication(message, { rpc, allowList? })` | browser tap + placeholder recovery |
-| `verifyResponse({ expectedMessage, expectedOrigin, response })` | asynchronous secp256r1 and origin check; returns `{ isVerified, secp256r1PublicKey, accessoryWallet }` |
+| `verifyResponse({ expectedMessage, expectedOrigin, response })` | asynchronous secp256r1 and origin check; returns `{ isVerified, secp256r1PublicKey }` |
 
 ## When to use what
 
@@ -39,4 +39,4 @@ No `generateAuthenticationOptions`.
 | Load on-chain state after a tap | `verifyResponse` → `findPhygitalTokenPda` + `fetchPhygitalToken` |
 | Set owner | `beginTransfer` → `completeTransfer` |
 
-`verifyResponse` derives the accessory-wallet PDA locally without RPC. Invalid signatures return `accessoryWallet: null`. Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.
+Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.

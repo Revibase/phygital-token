@@ -117,7 +117,7 @@ export function registerPlanTools(server: McpServer) {
     "plan_remove_owner",
     {
       description:
-        "Plan a wallet-signed forfeiture (offline): reset phygital_token.owner to the default pubkey, which unlocks a Controlled token and closes its accessory policy.",
+        "Plan a wallet-signed forfeiture (offline): reset phygital_token.owner to the default pubkey, which unlocks a Controlled token.",
       inputSchema: {
         secp256r1PublicKey: z
           .string()

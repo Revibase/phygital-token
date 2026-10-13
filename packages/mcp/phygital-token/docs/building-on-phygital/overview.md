@@ -3,7 +3,7 @@
 Third-party developers can:
 
 - **Authenticate off-chain** (Web2 passkey login) → `startAuthentication(message, { rpc, allowList? })` / `verifyResponse` → your session
-- **Set owner on-chain** → `beginTransfer({ rpc, secp256r1Pubkey, recipient })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_owner`)
+- **Set owner on-chain** → `beginTransfer({ rpc, secp256r1Pubkey })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_owner`)
 - **Bootstrap roles** → `getCreateConfigInstruction` → `getSetIssuerInstruction` / `getSetMinterInstruction`
 - **Initialize tokens** → `findPhygitalTokenPda` + `getInitializeInstruction` (issuer-only; passkey seeds PDA; chip `identifier` stored for binding)
 - **Bind an SPL mint** → `getAssignMintInstruction` (`assign_mint`; minter-only)
@@ -37,7 +37,7 @@ Does **not** write to chain and does **not** set a cookie for you. `verifyRespon
 ## On-chain owner
 
 ```
-beginTransfer({ rpc, secp256r1Pubkey, recipient, rpId? })
+beginTransfer({ rpc, secp256r1Pubkey, rpId? })
         ↓
 authenticatePasskeyForTransfer(session)
         ↓
@@ -52,7 +52,7 @@ send [secp256r1_verify, set_owner]
 
 - Locked is derived, not stored: Controlled and Permanent tokens are locked whenever they have an owner.
 - **Permanent** — always locked; `set_owner` always fails with `TokenIsCurrentlyLocked`; `remove_owner` rejected (`PermanentOwnerImmutable`).
-- **Bearer** — never locked; re-linking closes the previous owner's accessory policy.
+- **Bearer** — never locked; anyone who taps it can claim it.
 - **Controlled** — locked once claimed; forfeit via `remove_owner` to unlock.
 
 ## Message design checklist

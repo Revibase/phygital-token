@@ -21,7 +21,7 @@ describe("PhygitalToken memcmp offsets", () => {
       mint: MINT,
       lastSignCount: 7,
       tokenType: 1,
-      walletBump: 255,
+      reserved: 255,
       publicKey,
       identifier,
     });

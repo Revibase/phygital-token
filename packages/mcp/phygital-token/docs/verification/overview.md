@@ -27,4 +27,4 @@ See [Verification methods](./methods.md) for the full contract.
 
 - [Verification methods](./methods.md)
 
-`verifyResponse` derives the accessory-wallet PDA locally without RPC. Invalid signatures return `accessoryWallet: null`. Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.
+Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.
