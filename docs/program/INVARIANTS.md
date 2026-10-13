@@ -102,6 +102,15 @@ argument and account constraints fit the declared data length and account count.
 
 ## Failure behavior
 
-**F1. Byte parsers fail with an error rather than panicking.** The crate denies
+**F1. Malformed input fails with a typed error.** The crate denies
 `unwrap`, `expect` and `panic` outside tests, and contains no `unsafe` blocks.
+
+**F2. Arithmetic and indexing fail closed.** The release profile sets
+`overflow-checks = true`, so an overflowing operation aborts the transaction
+instead of wrapping, and an out-of-range slice index aborts it too. Clippy's
+`arithmetic_side_effects` and `indexing_slicing` lints flag 77 such sites; each
+was reviewed and is bounded by a check just before it (a length check, a
+`checked_*` offset, a fixed-size layout or a loop bound), so none is reachable
+in practice. They are left as plain operations rather than converted to new
+error variants, which would change the program's error codes.
 — `src/lib.rs`; property tests in `webauthn/`, `sysvar/`, `wallet/token_account.rs`, `policy/view.rs`.
