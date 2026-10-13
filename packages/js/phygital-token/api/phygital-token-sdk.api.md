@@ -2019,7 +2019,7 @@ export function planFee(input: {
 // @public
 export const POLICY_DENIAL_CODES: ReadonlySet<string>;
 
-// @public (undocumented)
+// @public
 export type PolicyAction = {
     __kind: "SetSolCap";
     fields: readonly [Option_2<CapArg>];
@@ -2278,7 +2278,7 @@ export type Secp256r1Pubkey = readonly [ReadonlyUint8Array];
 // @public (undocumented)
 export type Secp256r1PubkeyArgs = Secp256r1Pubkey;
 
-// @public (undocumented)
+// @public
 export type Secp256r1VerifyArgs = {
     verifyArgsRelativeIndex: bigint;
     signedMessageIndex: number;

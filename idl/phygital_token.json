@@ -10,6 +10,9 @@
   "instructions": [
     {
       "name": "assign_mint",
+      "docs": [
+        "Minter: records the mint that represents the token."
+      ],
       "discriminator": [
         68,
         110,
@@ -56,6 +59,10 @@
     },
     {
       "name": "close_phygital_token",
+      "docs": [
+        "Admin: deletes a token and its policy. The wallet PDA and its assets",
+        "remain and return if the same passkey is initialized again."
+      ],
       "discriminator": [
         254,
         245,
@@ -127,6 +134,9 @@
     },
     {
       "name": "close_policy",
+      "docs": [
+        "Owner: deletes the policy, blocking taps from using the wallet."
+      ],
       "discriminator": [
         55,
         42,
@@ -171,6 +181,9 @@
     },
     {
       "name": "create_config",
+      "docs": [
+        "Creates the role registry and makes the signer its admin. Once only."
+      ],
       "discriminator": [
         201,
         207,
@@ -217,6 +230,9 @@
     },
     {
       "name": "execute_with_accessory",
+      "docs": [
+        "Tap: runs instructions as the wallet PDA, within the owner's policy."
+      ],
       "discriminator": [
         159,
         174,
@@ -281,6 +297,9 @@
     },
     {
       "name": "execute_with_owner",
+      "docs": [
+        "Owner: runs instructions as the wallet PDA."
+      ],
       "discriminator": [
         9,
         237,
@@ -347,6 +366,9 @@
     },
     {
       "name": "initialize",
+      "docs": [
+        "Issuer: registers an accessory's passkey as a new token."
+      ],
       "discriminator": [
         175,
         175,
@@ -451,6 +473,9 @@
     },
     {
       "name": "remove_owner",
+      "docs": [
+        "Owner: gives up the token (not Permanent ones) and closes its policy."
+      ],
       "discriminator": [
         153,
         251,
@@ -524,6 +549,9 @@
     },
     {
       "name": "set_admin",
+      "docs": [
+        "Admin: replaces the admin key."
+      ],
       "discriminator": [
         251,
         163,
@@ -567,6 +595,9 @@
     },
     {
       "name": "set_issuer",
+      "docs": [
+        "Admin: sets the key allowed to `initialize` tokens."
+      ],
       "discriminator": [
         122,
         240,
@@ -610,6 +641,9 @@
     },
     {
       "name": "set_minter",
+      "docs": [
+        "Admin: sets the key allowed to `assign_mint`."
+      ],
       "discriminator": [
         13,
         170,
@@ -653,6 +687,9 @@
     },
     {
       "name": "set_owner",
+      "docs": [
+        "Tap: makes the signing `recipient` the owner, unless the token is locked."
+      ],
       "discriminator": [
         72,
         202,
@@ -744,6 +781,9 @@
     },
     {
       "name": "update_policy",
+      "docs": [
+        "Owner: creates or edits the policy that lets a tap use the wallet."
+      ],
       "discriminator": [
         212,
         245,
@@ -817,6 +857,7 @@
     {
       "name": "verify",
       "docs": [
+        "Tap: proves the accessory signed `message_hash` and records its sign count.",
         "`expected_rp_id` / `expected_origins` are optional WebAuthn bindings.",
         "`None` skips the check. When `expected_origins` is `Some`, the signed",
         "origin must match one listed origin."
@@ -1839,6 +1880,10 @@
     },
     {
       "name": "PolicyAction",
+      "docs": [
+        "One edit to a policy. Edits apply in order; the resulting program",
+        "permissions are validated once at the end."
+      ],
       "type": {
         "kind": "enum",
         "variants": [
@@ -1988,19 +2033,32 @@
     },
     {
       "name": "Secp256r1VerifyArgs",
+      "docs": [
+        "Instruction argument locating and completing a tap's assertion."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "verify_args_relative_index",
+            "docs": [
+              "Position of the secp256r1 precompile instruction relative to the",
+              "current top-level instruction (usually `-1`: immediately before)."
+            ],
             "type": "i64"
           },
           {
             "name": "signed_message_index",
+            "docs": [
+              "Which signature inside the precompile instruction to use."
+            ],
             "type": "u8"
           },
           {
             "name": "client_data_json",
+            "docs": [
+              "The exact bytes whose SHA-256 the authenticator signed."
+            ],
             "type": "bytes"
           }
         ]
@@ -2127,11 +2185,18 @@
   "constants": [
     {
       "name": "POLICY_SEED",
+      "docs": [
+        "`AccessoryPolicy`: `[POLICY_SEED, phygital_token]`."
+      ],
       "type": "bytes",
       "value": "[112, 111, 108, 105, 99, 121]"
     },
     {
       "name": "WALLET_SEED",
+      "docs": [
+        "The token's wallet: `[WALLET_SEED, phygital_token]`. Holds no data; the",
+        "program signs for it in `execute_with_owner` / `execute_with_accessory`."
+      ],
       "type": "bytes",
       "value": "[119, 97, 108, 108, 101, 116]"
     }

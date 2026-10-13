@@ -1,44 +1,14 @@
+//! One account per physical accessory, a PDA at
+//! `[PHYGITAL_TOKEN_SEED, x(passkey public key)]`.
+//!
+//! Records the accessory's passkey, its owner (if any), its type and the last
+//! accepted WebAuthn sign count. The sign count strictly increases with every
+//! accepted tap, which is what makes each assertion single-use.
+
 use anchor_lang::prelude::*;
 
 use crate::error::PhygitalError;
 use crate::webauthn::Secp256r1Pubkey;
-
-#[account(zero_copy(unsafe))]
-#[repr(C)]
-pub struct AdminConfig {
-    pub bump: u8,
-    pub admin: Pubkey,
-    pub issuer: Pubkey,
-    pub minter: Pubkey,
-}
-
-impl AdminConfig {
-    pub const LEN: usize = 8 + core::mem::size_of::<Self>();
-
-    pub fn is_admin(&self, key: &Pubkey) -> bool {
-        self.admin == *key
-    }
-
-    pub fn is_issuer(&self, key: &Pubkey) -> bool {
-        self.issuer == *key
-    }
-
-    pub fn is_minter(&self, key: &Pubkey) -> bool {
-        self.minter == *key
-    }
-
-    pub fn require_unique_role_key(&self, key: &Pubkey) -> Result<()> {
-        require!(
-            key != &Pubkey::default(),
-            PhygitalError::UnauthorizedAuthority
-        );
-        require!(
-            !self.is_admin(key) && !self.is_issuer(key) && !self.is_minter(key),
-            PhygitalError::KeyAlreadyExists
-        );
-        Ok(())
-    }
-}
 
 #[repr(u8)]
 #[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone, Copy)]
@@ -113,3 +83,7 @@ impl PhygitalToken {
         Ok(())
     }
 }
+
+// Zero-copy layout: owner 32 + mint 32 + sign count 4 + type 1 + bump 1 +
+// public key 33 + identifier 33, with no padding (alignment 4 from the u32).
+const _: () = assert!(core::mem::size_of::<PhygitalToken>() == 136);

@@ -1,224 +1,24 @@
-use crate::error::PhygitalError;
-use crate::wallet::CompactInstruction;
+//! Matching an inner instruction against the stored program permissions.
+//!
+//! [`check_instruction`] walks the Borsh encoding of `Vec<ProgramPermission>`
+//! (see [`super::permissions`]) directly. The enum tags it matches are the Borsh
+//! variant indexes of those types, in declaration order:
+//!
+//! - `ProgramAccess`: 0 `AllInstructions`, 1 `Restricted`
+//! - `AccountKeyConstraint`: 0 `Any`, 1 `Address`, 2 `Wallet`
+//! - `DataPredicate`: 0 `BytesEqual`, 1 `Unsigned`
+//! - `NumericWidth`: 0 `U8`, 1 `U16`, 2 `U32`, 3 `U64`
+//! - `Comparison`: 0 `Equal` ... 5 `GreaterThanOrEqual`
+//!
+//! Each matcher consumes its whole encoding even after a mismatch, so the
+//! cursor stays aligned for the next rule. The wallet PDA counts as a signer,
+//! since the CPI grants it that privilege.
+
 use anchor_lang::prelude::*;
 
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub struct ProgramPermission {
-    pub program_id: Pubkey,
-    pub access: ProgramAccess,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub enum ProgramAccess {
-    AllInstructions,
-    Restricted(Vec<InstructionRule>),
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub struct InstructionRule {
-    pub selector: Vec<u8>,
-    pub data_length: Option<u16>,
-    pub account_count: Option<u8>,
-    pub accounts: Vec<AccountConstraint>,
-    pub arguments: Vec<DataConstraint>,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub enum AccountKeyConstraint {
-    Any,
-    Address(Pubkey),
-    Wallet,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub struct AccountConstraint {
-    pub index: u8,
-    pub key: AccountKeyConstraint,
-    /// The program owning the account. A token account's owner field is data:
-    /// match it with `data` (offset 32).
-    pub owner: Option<Pubkey>,
-    pub is_signer: Option<bool>,
-    pub is_writable: Option<bool>,
-    pub data: Vec<DataConstraint>,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Comparison {
-    Equal,
-    NotEqual,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NumericWidth {
-    U8,
-    U16,
-    U32,
-    U64,
-}
-
-impl NumericWidth {
-    fn bytes(self) -> usize {
-        match self {
-            Self::U8 => 1,
-            Self::U16 => 2,
-            Self::U32 => 4,
-            Self::U64 => 8,
-        }
-    }
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub enum DataPredicate {
-    BytesEqual(Vec<u8>),
-    Unsigned {
-        width: NumericWidth,
-        comparison: Comparison,
-        value: u64,
-    },
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
-pub struct DataConstraint {
-    pub offset: u16,
-    pub predicate: DataPredicate,
-}
-
-impl DataConstraint {
-    fn width(&self) -> usize {
-        match &self.predicate {
-            DataPredicate::BytesEqual(bytes) => bytes.len(),
-            DataPredicate::Unsigned { width, .. } => width.bytes(),
-        }
-    }
-    fn validate(&self) -> Result<()> {
-        match &self.predicate {
-            DataPredicate::BytesEqual(bytes) => {
-                require!(!bytes.is_empty(), PhygitalError::InvalidPolicyArgs)
-            }
-            DataPredicate::Unsigned { width, value, .. } => {
-                let bits = width.bytes() * 8;
-                require!(
-                    bits == 64 || *value < (1u64 << bits),
-                    PhygitalError::InvalidPolicyArgs
-                );
-            }
-        }
-        Ok(())
-    }
-}
-
-pub(crate) fn validate_permissions(permissions: &[ProgramPermission]) -> Result<()> {
-    for (i, permission) in permissions.iter().enumerate() {
-        // System program id is all-zero and must be configurable.
-        require!(
-            !permissions[..i]
-                .iter()
-                .any(|p| p.program_id == permission.program_id),
-            PhygitalError::InvalidPolicyArgs
-        );
-        require!(
-            permission.program_id != crate::ID,
-            PhygitalError::InvalidPolicyArgs
-        );
-        let ProgramAccess::Restricted(rules) = &permission.access else {
-            continue;
-        };
-        require!(!rules.is_empty(), PhygitalError::InvalidPolicyArgs);
-        for (j, rule) in rules.iter().enumerate() {
-            require!(!rule.selector.is_empty(), PhygitalError::InvalidPolicyArgs);
-            // One rule per instruction: rules match by selector prefix, so no selector may prefix another.
-            require!(
-                !rules[..j]
-                    .iter()
-                    .any(|other| other.selector.starts_with(&rule.selector)
-                        || rule.selector.starts_with(&other.selector)),
-                PhygitalError::InvalidPolicyArgs
-            );
-            if let Some(length) = rule.data_length {
-                require!(
-                    usize::from(length) >= rule.selector.len(),
-                    PhygitalError::InvalidPolicyArgs
-                );
-            }
-            for argument in &rule.arguments {
-                argument.validate()?;
-                if let Some(length) = rule.data_length {
-                    require!(
-                        usize::from(argument.offset) + argument.width() <= usize::from(length),
-                        PhygitalError::InvalidPolicyArgs
-                    );
-                }
-            }
-            for account in &rule.accounts {
-                if let Some(count) = rule.account_count {
-                    require!(account.index < count, PhygitalError::InvalidPolicyArgs);
-                }
-                require!(
-                    account.data.is_empty() || account.owner.is_some(),
-                    PhygitalError::InvalidPolicyArgs
-                );
-                for predicate in &account.data {
-                    predicate.validate()?;
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
-/// Reads the stored policy bytes in place.
-pub(crate) struct Reader<'a> {
-    data: &'a [u8],
-    pub(crate) pos: usize,
-}
-
-impl<'a> Reader<'a> {
-    pub(crate) fn new(data: &'a [u8], pos: usize) -> Self {
-        Self { data, pos }
-    }
-
-    pub(crate) fn take(&mut self, len: usize) -> Result<&'a [u8]> {
-        let bytes = self
-            .pos
-            .checked_add(len)
-            .and_then(|end| self.data.get(self.pos..end))
-            .ok_or_else(|| error!(ErrorCode::AccountDidNotDeserialize))?;
-        self.pos += len;
-        Ok(bytes)
-    }
-
-    fn array<const N: usize>(&mut self) -> Result<[u8; N]> {
-        <[u8; N]>::try_from(self.take(N)?).map_err(|_| error!(ErrorCode::AccountDidNotDeserialize))
-    }
-
-    pub(crate) fn u8(&mut self) -> Result<u8> {
-        Ok(self.take(1)?[0])
-    }
-
-    pub(crate) fn u32(&mut self) -> Result<u32> {
-        self.array().map(u32::from_le_bytes)
-    }
-
-    pub(crate) fn bytes(&mut self) -> Result<&'a [u8]> {
-        let len = self.u32()? as usize;
-        self.take(len)
-    }
-
-    pub(crate) fn option<T>(
-        &mut self,
-        read: impl FnOnce(&mut Self) -> Result<T>,
-    ) -> Result<Option<T>> {
-        match self.u8()? {
-            0 => Ok(None),
-            1 => read(self).map(Some),
-            _ => err!(ErrorCode::AccountDidNotDeserialize),
-        }
-    }
-}
+use super::reader::Reader;
+use crate::error::PhygitalError;
+use crate::wallet::CompactInstruction;
 
 struct Target<'a, 'info> {
     ix: &'a CompactInstruction,
@@ -260,8 +60,6 @@ pub(crate) fn check_instruction(
     }
     err!(PhygitalError::ProgramNotAllowed)
 }
-
-// Each matcher consumes its whole encoding and evaluates only with a target.
 
 fn rule_matches(r: &mut Reader, target: Option<&Target>) -> Result<bool> {
     let selector = r.bytes()?;
@@ -353,6 +151,7 @@ fn data_matches(r: &mut Reader, data: Option<&[u8]>) -> Result<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::policy::permissions::*;
 
     fn encode(value: &impl AnchorSerialize) -> Vec<u8> {
         let mut bytes = Vec::new();
@@ -471,42 +270,5 @@ mod tests {
             ..ix
         };
         assert!(!rule_ok(&rule, &invalid, &remaining, &key));
-    }
-
-    #[test]
-    fn one_rule_per_instruction() {
-        let rule = |selector: &[u8]| InstructionRule {
-            selector: selector.to_vec(),
-            data_length: None,
-            account_count: None,
-            accounts: vec![],
-            arguments: vec![],
-        };
-        let program = |selectors: &[&[u8]]| {
-            vec![ProgramPermission {
-                program_id: Pubkey::new_unique(),
-                access: ProgramAccess::Restricted(selectors.iter().map(|s| rule(s)).collect()),
-            }]
-        };
-        assert!(validate_permissions(&program(&[&[2, 0, 0, 0], &[3, 0, 0, 0]])).is_ok());
-        assert!(validate_permissions(&program(&[&[2, 0, 0, 0], &[2, 0, 0, 0]])).is_err());
-        // A shorter selector would match the same instructions as a longer one.
-        assert!(validate_permissions(&program(&[&[26, 1], &[26]])).is_err());
-        assert!(validate_permissions(&program(&[&[26], &[26, 1]])).is_err());
-    }
-
-    #[test]
-    fn one_entry_per_program() {
-        let id = Pubkey::new_unique();
-        let entry = |program_id| ProgramPermission {
-            program_id,
-            access: ProgramAccess::AllInstructions,
-        };
-        assert!(validate_permissions(&[entry(id), entry(Pubkey::new_unique())]).is_ok());
-        assert!(validate_permissions(&[entry(id), entry(id)]).is_err());
-        // The system program's all-zero id is an ordinary entry.
-        assert!(
-            validate_permissions(&[entry(Pubkey::default()), entry(Pubkey::default())]).is_err()
-        );
     }
 }

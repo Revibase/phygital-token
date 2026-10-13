@@ -11,6 +11,8 @@ use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 use solana_address::Address;
 
+/// One edit to a policy. Edits apply in order; the resulting program
+/// permissions are validated once at the end.
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub enum PolicyAction {
     SetSolCap(Option<CapArg>),

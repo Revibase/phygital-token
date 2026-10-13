@@ -26,15 +26,28 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 
+/** Instruction argument locating and completing a tap's assertion. */
 export type Secp256r1VerifyArgs = {
+  /**
+   * Position of the secp256r1 precompile instruction relative to the
+   * current top-level instruction (usually `-1`: immediately before).
+   */
   verifyArgsRelativeIndex: bigint;
+  /** Which signature inside the precompile instruction to use. */
   signedMessageIndex: number;
+  /** The exact bytes whose SHA-256 the authenticator signed. */
   clientDataJson: ReadonlyUint8Array;
 };
 
 export type Secp256r1VerifyArgsArgs = {
+  /**
+   * Position of the secp256r1 precompile instruction relative to the
+   * current top-level instruction (usually `-1`: immediately before).
+   */
   verifyArgsRelativeIndex: number | bigint;
+  /** Which signature inside the precompile instruction to use. */
   signedMessageIndex: number;
+  /** The exact bytes whose SHA-256 the authenticator signed. */
   clientDataJson: ReadonlyUint8Array;
 };
 

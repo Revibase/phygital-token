@@ -46,6 +46,10 @@ import {
   type ProgramPermissionArgs,
 } from "./index.js";
 
+/**
+ * One edit to a policy. Edits apply in order; the resulting program
+ * permissions are validated once at the end.
+ */
 export type PolicyAction =
   | { __kind: "SetSolCap"; fields: readonly [Option<CapArg>] }
   | { __kind: "SetMintCap"; fields: readonly [Address, CapArg] }

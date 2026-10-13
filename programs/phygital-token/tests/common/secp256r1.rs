@@ -5,7 +5,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use phygital_token::{
-    build_transfer_challenge, Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE,
+    build_set_owner_challenge, Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE,
     SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
 };
 use rand::rngs::OsRng;
@@ -59,7 +59,7 @@ impl TestPasskey {
         sign_count: u32,
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let challenge = build_transfer_challenge(&phygital_token, slot_hash);
+        let challenge = build_set_owner_challenge(&phygital_token, slot_hash);
         self.build_secp256r1_verify_instruction(challenge, sign_count, signature_override, None)
     }
 
@@ -70,7 +70,7 @@ impl TestPasskey {
         sign_count: u32,
         auth_flags: u8,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let challenge = build_transfer_challenge(&phygital_token, slot_hash);
+        let challenge = build_set_owner_challenge(&phygital_token, slot_hash);
         self.build_secp256r1_verify_instruction(challenge, sign_count, None, Some(auth_flags))
     }
 

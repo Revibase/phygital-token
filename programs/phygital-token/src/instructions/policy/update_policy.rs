@@ -1,10 +1,15 @@
+//! `update_policy`: the owner creates or edits the accessory policy.
+//!
+//! The account is created on first use at its PDA (funded by `payer`, assigned
+//! to this program) and resized to fit after every edit.
+
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{assign, transfer, Assign, Transfer};
 
 use crate::constants::{POLICY_SEED, WALLET_SEED};
 use crate::error::PhygitalError;
-use crate::policy::{AccessoryPolicy, PolicyAction};
-use crate::state::PhygitalToken;
+use crate::policy::PolicyAction;
+use crate::state::{AccessoryPolicy, PhygitalToken};
 
 #[derive(Accounts)]
 pub struct UpdatePolicy<'info> {
@@ -77,26 +82,4 @@ impl UpdatePolicy<'_> {
         info.try_borrow_mut_data()?.copy_from_slice(&bytes);
         Ok(())
     }
-}
-
-#[derive(Accounts)]
-pub struct ClosePolicy<'info> {
-    pub owner: Signer<'info>,
-
-    #[account(has_one = owner @ PhygitalError::OwnerMismatch)]
-    pub phygital_token: AccountLoader<'info, PhygitalToken>,
-
-    /// The one instruction taking the typed account, which keeps
-    /// `AccessoryPolicy` in the IDL.
-    #[account(
-        mut,
-        close = wallet,
-        has_one = phygital_token @ ErrorCode::ConstraintHasOne,
-        has_one = wallet @ ErrorCode::ConstraintHasOne,
-    )]
-    pub policy: Account<'info, AccessoryPolicy>,
-
-    /// CHECK: the policy's wallet PDA; its rent always returns there.
-    #[account(mut)]
-    pub wallet: UncheckedAccount<'info>,
 }
