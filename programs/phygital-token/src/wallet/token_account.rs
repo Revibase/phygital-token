@@ -32,6 +32,9 @@ const ACCOUNT_TYPE: usize = BASE_LEN;
 const ACCOUNT_TYPE_ACCOUNT: u8 = 2;
 const STATE_INITIALIZED: u8 = 1;
 const STATE_FROZEN: u8 = 2;
+/// SPL Token and Token-2022 multisig accounts are exactly this long. Token-2022
+/// never sizes a token account to it, so the length alone tells them apart.
+const MULTISIG_LEN: usize = 355;
 /// `COption::Some` tag (a little-endian `u32`).
 const COPTION_SOME: [u8; 4] = [1, 0, 0, 0];
 
@@ -53,6 +56,7 @@ pub(super) struct TokenView {
 /// with [`is_token_program`].
 pub(super) fn token_account_view(data: &[u8]) -> Option<TokenView> {
     if data.len() < BASE_LEN
+        || data.len() == MULTISIG_LEN
         || (data.len() > BASE_LEN && data[ACCOUNT_TYPE] != ACCOUNT_TYPE_ACCOUNT)
         || !matches!(data[STATE], STATE_INITIALIZED | STATE_FROZEN)
     {
@@ -111,6 +115,18 @@ mod tests {
         uninitialized[STATE] = 0;
         assert!(token_account_view(&uninitialized).is_none());
         assert!(token_account_view(&account(BASE_LEN)[..BASE_LEN - 1]).is_none());
+    }
+
+    /// A multisig's signer list is chosen freely, so its bytes can be arranged to
+    /// read like a wallet-owned token account with no close authority. Spend
+    /// accounting would then count lamports sent to it (which no one can ever
+    /// withdraw) as still held by the wallet.
+    #[test]
+    fn rejects_a_multisig_shaped_like_a_token_account() {
+        let mut multisig = account(MULTISIG_LEN);
+        multisig[CLOSE_AUTHORITY..CLOSE_AUTHORITY + 4].copy_from_slice(&[0; 4]);
+        multisig[ACCOUNT_TYPE] = ACCOUNT_TYPE_ACCOUNT;
+        assert!(token_account_view(&multisig).is_none());
     }
 
     proptest! {
