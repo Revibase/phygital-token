@@ -83,7 +83,7 @@ export async function verifyResponse(
     throw new PhygitalTokenError("INVALID_ASSERTION", "This response is not a tap (webauthn.get).");
   }
   const authenticatorData = base64URLStringToBuffer(input.response.response.authenticatorData);
-  if (authenticatorData.length < 37 || (authenticatorData[32]! & 0x01) === 0) {
+  if (authenticatorData.length < 37 || (authenticatorData[32] & 0x01) === 0) {
     throw new PhygitalTokenError(
       "INVALID_ASSERTION",
       "The accessory didn't report the user was present.",

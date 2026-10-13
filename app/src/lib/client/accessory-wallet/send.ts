@@ -3,17 +3,12 @@ import {
 	createNoopSigner,
 	getAddressDecoder,
 	type Instruction,
-	type TransactionSigner,
 	type Address
 } from '@solana/kit';
 
 import { findWalletPda, buildExecuteWithOwnerInstruction } from 'phygital-token-sdk';
 
-import {
-	transferRestriction,
-	isProgrammableNft,
-	type WalletHoldings
-} from '$lib/shared/wallet-holdings';
+import { isProgrammableNft, type WalletHoldings } from '$lib/shared/wallet-holdings';
 import {
 	solSendAmount,
 	buildSendInstructions,
@@ -134,7 +129,7 @@ async function prepareSweep(
 		Promise.all(tokens.map((t) => recipientTokenAccount(ownerAddress, t))),
 		Promise.all(
 			collectibles.map((a) =>
-				a.kind === 'token' ? recipientTokenAccount(ownerAddress, a.token) : null
+				a.kind === 'token' ? recipientTokenAccount(ownerAddress, a.token) : Promise.resolve(null)
 			)
 		)
 	]);
@@ -143,11 +138,11 @@ async function prepareSweep(
 		...collectibleAtas.filter((a): a is Address => !!a)
 	]);
 	const missing = new Set(
-		tokens.filter((_, i) => missingAtas.has(tokenAtas[i]!)).map((t) => t.mint)
+		tokens.filter((_, i) => missingAtas.has(tokenAtas[i])).map((t) => t.mint)
 	);
 	const opensAccount = new Set(
 		collectibles
-			.filter((_, i) => collectibleAtas[i] && missingAtas.has(collectibleAtas[i]!))
+			.filter((_, i) => collectibleAtas[i] && missingAtas.has(collectibleAtas[i]))
 			.map(collectibleKey)
 	);
 

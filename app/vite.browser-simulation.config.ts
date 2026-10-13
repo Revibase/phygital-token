@@ -5,12 +5,12 @@ import { readFileSync } from 'node:fs';
 import madlads from './test/browser/madlads.json' with { type: 'json' };
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { project, accessory, OWNER } from './test/browser/fixtures.ts';
+import { project, accessory } from './test/browser/fixtures.ts';
 
 export default async function (env: any) {
 	if (env.command !== 'serve')
 		throw new Error('Browser simulation is restricted to the local dev server');
-	const config = typeof base === 'function' ? await base(env) : base;
+	const config = typeof base === 'function' ? base(env) : base;
 	const root = fileURLToPath(new URL('.', import.meta.url));
 	const fixtures = JSON.stringify(root + 'test/browser/fixtures.ts');
 	const plugin = {
@@ -138,7 +138,7 @@ export default async function (env: any) {
 					return next();
 				let raw = '';
 				for await (const chunk of req) raw += chunk;
-				const body = raw ? JSON.parse(raw) : {};
+				const _body = raw ? JSON.parse(raw) : {};
 				const send = (value: any, status = 200) => {
 					res.statusCode = status;
 					res.setHeader('content-type', 'application/json');

@@ -56,7 +56,9 @@ function remember(address: string | null) {
 	try {
 		if (address) localStorage.setItem(REMEMBERED, address);
 		else localStorage.removeItem(REMEMBERED);
-	} catch {}
+	} catch {
+		// Storage can be unavailable (private mode, quota); remembering is best-effort.
+	}
 }
 
 type Prompts = {

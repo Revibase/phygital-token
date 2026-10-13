@@ -52,7 +52,8 @@
 			rememberWallet(accessory.pda, null);
 			toast.success('Accessory released');
 			open = false;
-			onreleased ? onreleased() : await invalidateAll();
+			if (onreleased) onreleased();
+			else await invalidateAll();
 		} catch (err) {
 			failure = describeError(err);
 		} finally {

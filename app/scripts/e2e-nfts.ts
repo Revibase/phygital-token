@@ -19,8 +19,8 @@ import {
 	setTransactionMessageFeePayerSigner,
 	setTransactionMessageLifetimeUsingBlockhash,
 	signTransactionMessageWithSigners,
+	type AccountSignerMeta,
 	type Address,
-	type Blockhash,
 	type Instruction,
 	type KeyPairSigner
 } from '@solana/kit';
@@ -66,6 +66,11 @@ const manifest = JSON.parse(readFileSync(resolve(fixtureDir, 'manifest.json'), '
 	programs: { id: string; file: string; sha256: string; group: string }[];
 };
 const svm = new LiteSVM().withPrecompiles();
+function accountData(account: Address): Uint8Array {
+	const info = svm.getAccount(account);
+	assert(info.exists, `account ${account} does not exist`);
+	return info.data;
+}
 for (const p of manifest.programs.filter((p) => p.group === 'metaplex')) {
 	const file = resolve(fixtureDir, p.file);
 	assert.equal(createHash('sha256').update(readFileSync(file)).digest('hex'), p.sha256);
@@ -97,7 +102,7 @@ svm.setAccount({
 	programAddress: PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 	data,
 	executable: false,
-	lamports: svm.minimumBalanceForRentExemption(BigInt(data.length)),
+	lamports: lamports(svm.minimumBalanceForRentExemption(BigInt(data.length))),
 	space: BigInt(data.length)
 });
 const rpc = {
@@ -126,7 +131,7 @@ async function execute(instructions: Instruction[], payer: KeyPairSigner = owner
 			(m) => setTransactionMessageFeePayerSigner(payer, m),
 			(m) =>
 				setTransactionMessageLifetimeUsingBlockhash(
-					{ blockhash: svm.latestBlockhash() as Blockhash, lastValidBlockHeight: 999999n },
+					{ blockhash: svm.latestBlockhash(), lastValidBlockHeight: 999999n },
 					m
 				),
 			(m) =>
@@ -181,7 +186,11 @@ async function createRules(name: string, operation: string) {
 		{
 			programAddress: AUTH_RULES,
 			accounts: [
-				{ address: owner.address, role: AccountRole.WRITABLE_SIGNER, signer: owner },
+				{
+					address: owner.address,
+					role: AccountRole.WRITABLE_SIGNER,
+					signer: owner
+				} as AccountSignerMeta,
 				{ address: ruleSet, role: AccountRole.WRITABLE },
 				{ address: address('11111111111111111111111111111111'), role: AccountRole.READONLY },
 				{ address: AUTH_RULES, role: AccountRole.READONLY }
@@ -263,7 +272,7 @@ const [dest] = await findAssociatedTokenPda({
 	owner: receiver.address,
 	tokenProgram: TOKEN_PROGRAM_ADDRESS
 });
-assert.equal(new DataView(svm.getAccount(dest).data.buffer).getBigUint64(64, true), 1n);
+assert.equal(new DataView(accountData(dest).buffer).getBigUint64(64, true), 1n);
 assert.equal(await programmableRecordRent(rpc as never, sourceHolding, receiver.address), 0n);
 assert(svm.getAccount((await findTokenRecordPda({ mint: mint.address, token: dest }))[0]).exists);
 console.log('PASS pNFT: frozen source transfers through owner CPI; recipient token record created');
@@ -321,7 +330,7 @@ await assert.rejects(
 	),
 	/auth9Sig.*failed/
 );
-assert.equal(new DataView(svm.getAccount(deniedSource).data.buffer).getBigUint64(64, true), 1n);
+assert.equal(new DataView(accountData(deniedSource).buffer).getBigUint64(64, true), 1n);
 console.log('PASS pNFT restrictions: rejected rule-set transfer leaves source NFT unchanged');
 
 const collection = await generateKeyPairSigner(),
@@ -355,7 +364,7 @@ await send({
 	kind: 'nft',
 	nft: { id: core.address, kind: 'core', name: 'Local Core', icon: null, frozen: false }
 });
-assert.equal(getAssetV1Decoder().decode(svm.getAccount(core.address).data).owner, receiver.address);
+assert.equal(getAssetV1Decoder().decode(accountData(core.address)).owner, receiver.address);
 await assert.rejects(
 	send({
 		kind: 'nft',
@@ -423,7 +432,7 @@ const [id] = await findAssetIdPda({ merkleTree: tree.address, nonce: 0n });
 const zeros = [new Uint8Array(32)];
 for (let i = 1; i < depth; i++) zeros.push(keccak_256(cat(zeros[i - 1], zeros[i - 1])));
 function root() {
-	const a = svm.getAccount(tree.address).data;
+	const a = accountData(tree.address);
 	const active = Number(new DataView(a.buffer, a.byteOffset).getBigUint64(64, true));
 	return a.slice(80 + active * change, 112 + active * change);
 }

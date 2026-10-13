@@ -67,7 +67,7 @@ export async function verifyAssertion(opts: {
 			expectedRPID: opts.rpId,
 			credential: {
 				id: opts.assertion.id,
-				publicKey: new Uint8Array(opts.cosePublicKey) as Uint8Array<ArrayBuffer>,
+				publicKey: new Uint8Array(opts.cosePublicKey),
 				counter: 0
 			},
 			requireUserVerification: true

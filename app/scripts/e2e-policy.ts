@@ -93,6 +93,7 @@ await send(issuer, [
 	})
 ]);
 const draft: PolicyDraft = {
+	origins: [],
 	limits: new Map([[SOL, { cap: 500_000_000n, windowSeconds: 604_800n, maxPerTx: 100_000_000n }]]),
 	programs: new Map([
 		[

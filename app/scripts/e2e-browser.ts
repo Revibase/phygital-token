@@ -187,7 +187,7 @@ async function test(
 		console.log(`PASS ${name}`);
 	} catch (e) {
 		outcomes.push({ name, status: 'failed', error: String(e) });
-		console.error(`FAIL ${name}: ${e}`);
+		console.error(`FAIL ${name}: ${String(e)}`);
 		await s.page
 			.screenshot({ path: new URL(`fail-${name.replace(/\W+/g, '-')}.png`, results).pathname })
 			.catch(() => {});
@@ -765,7 +765,7 @@ try {
 					break;
 				if (i > 60)
 					throw new Error(
-						`allowed sites never became ${want}: ${policy.exists ? policy.data.allowedOrigins : 'no policy'}`
+						`allowed sites never became ${want.join(',')}: ${policy.exists ? policy.data.allowedOrigins.join(',') : 'no policy'}`
 					);
 				await new Promise((r) => setTimeout(r, 500));
 			}
@@ -824,9 +824,9 @@ try {
 		const wallet = (await passkeyAddress(s.page))! as Address;
 		// Script on the app origin (an XSS) posting straight to the signer frame.
 		const ask = (message: Record<string, unknown>, opts: { stamp?: boolean } = {}) =>
-			s.page.evaluate(
+			s.page.evaluate<{ type: string; code?: string }>(
 				`(${ASK_SIGNER})(${JSON.stringify([message, SIGNER, opts.stamp ?? true])})`
-			) as Promise<{ type: string; code?: string }>;
+			);
 		const code = async (message: Record<string, unknown>, opts?: { stamp?: boolean }) => {
 			const reply = await ask(message, opts);
 			return reply.type === 'ERROR' ? reply.code : reply.type;

@@ -269,7 +269,7 @@ describe('explaining and warning', () => {
 			ctx({ upgradeable: () => true })
 		);
 		expect(unknownOnly.map((r) => r.level)).toEqual(['caution', 'caution']);
-		expect(unknownOnly[1]!.message).toMatch(/can change what it does/);
+		expect(unknownOnly[1].message).toMatch(/can change what it does/);
 	});
 
 	it('warns about limits above what the wallet holds, and links from unverified sources', () => {
@@ -278,9 +278,9 @@ describe('explaining and warning', () => {
 			changeRisks(
 				{ kind: 'addLimit', asset: SOL, cap: { cap: 10n, windowSeconds: 0n, maxPerTx: 0n } },
 				held
-			)[0]!.level
+			)[0].level
 		).toBe('danger');
-		expect(changeRisks({ kind: 'addLimit', asset: SOL, cap: day(10n) }, held)[0]!.level).toBe(
+		expect(changeRisks({ kind: 'addLimit', asset: SOL, cap: day(10n) }, held)[0].level).toBe(
 			'caution'
 		);
 		expect(changeRisks({ kind: 'addLimit', asset: SOL, cap: day(1n) }, held)).toEqual([]);
@@ -333,10 +333,10 @@ describe('allowed sites', () => {
 		);
 		expect(limited.draft.origins).toEqual(['https://a.example', 'https://game.example']);
 		expect(limited.changes).toEqual([{ kind: 'addOrigins', origins: ['https://game.example'] }]);
-		expect(explainChange(limited.changes[0]!, () => SOL_INFO).title).toBe(
+		expect(explainChange(limited.changes[0], () => SOL_INFO).title).toBe(
 			'Also accept taps from https://game.example'
 		);
-		expect(changeRisks(limited.changes[0]!, {} as RiskContext)[0]!.level).toBe('caution');
+		expect(changeRisks(limited.changes[0], {} as RiskContext)[0].level).toBe('caution');
 	});
 });
 

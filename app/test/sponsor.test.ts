@@ -320,7 +320,7 @@ describe('signSponsored', () => {
 		const bytes = await build([await removeOwner()]);
 		const encoded = Buffer.from(bytes).toString('base64');
 		const { signatures } = await signSponsored(env(db), rpc(), [encoded]);
-		const signature = base64ToBytes(signatures[0]!);
+		const signature = base64ToBytes(signatures[0]);
 		const message = bytes.subarray(1 + 64 * 2);
 		expect(
 			ed25519.verify(

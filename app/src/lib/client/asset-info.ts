@@ -30,9 +30,9 @@ export async function assetInfos(
 				)
 				.send();
 			missing.forEach((mint, i) => {
-				const data = value[i] ? new Uint8Array(getBase64Encoder().encode(value[i]!.data[0])) : null;
+				const data = value[i] ? new Uint8Array(getBase64Encoder().encode(value[i].data[0])) : null;
 				if (data?.length === 82 && data[45] === 1 && TOKEN_PROGRAMS.has(String(value[i]!.owner)))
-					out.set(mint, { symbol: shortAddress(mint), decimals: data[MINT_DECIMALS_OFFSET]! });
+					out.set(mint, { symbol: shortAddress(mint), decimals: data[MINT_DECIMALS_OFFSET] });
 			});
 		} catch {
 			// Shown in raw units below.

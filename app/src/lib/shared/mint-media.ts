@@ -132,7 +132,7 @@ export async function fetchAsset(
 		signal: AbortSignal.timeout(TIMEOUT_MS)
 	});
 	if (!res.ok) throw new Error(`getAsset ${res.status}`);
-	const body = (await res.json()) as { result?: GetAssetResult; error?: { message?: string } };
+	const body = await res.json<{ result?: GetAssetResult; error?: { message?: string } }>();
 	if (body.error) throw new Error(body.error.message ?? 'getAsset error');
 	return body.result;
 }

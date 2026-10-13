@@ -50,7 +50,7 @@ export function toLatin1(bytes: Uint8Array): string {
 }
 
 export function utf8(s: string): Uint8Array<ArrayBuffer> {
-  return new TextEncoder().encode(s) as Uint8Array<ArrayBuffer>;
+  return new TextEncoder().encode(s);
 }
 
 /** A standalone ArrayBuffer copy (never a view onto a larger pool buffer). */

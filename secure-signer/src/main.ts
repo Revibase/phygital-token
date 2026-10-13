@@ -11,7 +11,7 @@ import * as ui from "./ui/ui.js";
 import { BrowserPrfProvider, currentRpId } from "./webauthn.js";
 
 function post(message: Record<string, unknown>): void {
-  (window.parent as Window).postMessage(message, EXPECTED_PARENT_ORIGIN);
+  window.parent.postMessage(message, EXPECTED_PARENT_ORIGIN);
 }
 
 const dispatcher = createSignerDispatcher({

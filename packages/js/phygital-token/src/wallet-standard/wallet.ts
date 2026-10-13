@@ -21,7 +21,6 @@ import {
 } from "@solana/wallet-standard-features";
 import type {
   IdentifierArray,
-  IdentifierString,
   Wallet,
   WalletAccount,
   WalletIcon,
@@ -140,14 +139,12 @@ export class PhygitalWallet implements Wallet {
       },
       [SolanaSignTransaction]: {
         version: "1.0.0",
-        supportedTransactionVersions:
-          SUPPORTED_TRANSACTION_VERSIONS as SolanaSignTransactionFeature[typeof SolanaSignTransaction]["supportedTransactionVersions"],
+        supportedTransactionVersions: SUPPORTED_TRANSACTION_VERSIONS,
         signTransaction: this.#signTransaction,
       },
       [SolanaSignAndSendTransaction]: {
         version: "1.0.0",
-        supportedTransactionVersions:
-          SUPPORTED_TRANSACTION_VERSIONS as SolanaSignAndSendTransactionFeature[typeof SolanaSignAndSendTransaction]["supportedTransactionVersions"],
+        supportedTransactionVersions: SUPPORTED_TRANSACTION_VERSIONS,
         signAndSendTransaction: this.#signAndSendTransaction,
       },
       [RevibaseAccessory]: {
@@ -166,9 +163,7 @@ export class PhygitalWallet implements Wallet {
       Object.freeze(this);
     }
     this.#rpc = options.rpc;
-    this.#chains = Object.freeze([
-      ...(options.chains ?? PHYGITAL_WALLET_CHAINS),
-    ]) as IdentifierArray;
+    this.#chains = Object.freeze([...(options.chains ?? PHYGITAL_WALLET_CHAINS)]);
     this.#fetch = options.fetch;
     this.#feePayer = options.feePayer;
     this.#feeEndpoint = options.feeEndpoint;
@@ -338,19 +333,17 @@ export class PhygitalWallet implements Wallet {
   async #modifyAndSignWire(
     transactionBytes: Uint8Array,
   ): Promise<Transaction & TransactionWithLifetime> {
-    const decoded = transactionDecoder.decode(transactionBytes) as Transaction;
+    const decoded = transactionDecoder.decode(transactionBytes);
     if (!("lifetimeConstraint" in decoded)) {
       throw new Error("Revibase wallet requires transactions with a lifetime constraint");
     }
 
     const signer = await this.#ensureSigner();
-    const [signed] = await signer.modifyAndSignTransactions([
-      decoded as Transaction & TransactionWithLifetime,
-    ]);
+    const [signed] = await signer.modifyAndSignTransactions([decoded]);
     if (!signed || !("lifetimeConstraint" in signed)) {
       throw new Error("Revibase wallet failed to sign transaction");
     }
-    return signed as Transaction & TransactionWithLifetime;
+    return signed;
   }
 
   #signTransaction: SolanaSignTransactionMethod = async (...inputs) => {
@@ -374,7 +367,7 @@ export class PhygitalWallet implements Wallet {
 
     for (const input of inputs) {
       this.#requireAccount(input.account);
-      if (!this.#chains.includes(input.chain as IdentifierString)) {
+      if (!this.#chains.includes(input.chain)) {
         throw new Error(`Unsupported chain: ${input.chain}`);
       }
       const signed = await this.#modifyAndSignWire(input.transaction);

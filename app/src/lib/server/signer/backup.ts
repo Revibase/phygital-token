@@ -226,7 +226,7 @@ export function signerRoute(
 		try {
 			const text = await request.text();
 			if (text.length > MAX_SIGNER_BODY_BYTES) return tooLarge();
-			const parsed = text ? JSON.parse(text) : {};
+			const parsed: unknown = text ? JSON.parse(text) : {};
 			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
 				body = parsed as Record<string, unknown>;
 		} catch {

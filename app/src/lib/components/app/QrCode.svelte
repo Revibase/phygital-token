@@ -39,6 +39,7 @@
 	>
 		{#if svg}
 			<!-- Safe to inject: generated locally by `qrcode` from our own URL. -->
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 			<div class="animate-rise size-full [&_svg]:size-full">{@html svg}</div>
 		{/if}
 	</div>

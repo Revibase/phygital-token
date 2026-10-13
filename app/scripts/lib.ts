@@ -13,6 +13,7 @@ import {
 	getSignatureFromTransaction,
 	getU32Encoder,
 	lamports,
+	assertIsTransactionWithinSizeLimit,
 	partiallySignTransaction,
 	pipe,
 	sendAndConfirmTransactionFactory,
@@ -82,7 +83,9 @@ export async function send(payer: KeyPairSigner, ixs: Instruction[]) {
 			(m) => appendTransactionMessageInstructions(ixs, m)
 		)
 	);
-	await sendAndConfirm(tx as Parameters<typeof sendAndConfirm>[0], { commitment: 'confirmed' });
+	await sendAndConfirm(tx as unknown as Parameters<typeof sendAndConfirm>[0], {
+		commitment: 'confirmed'
+	});
 }
 
 export async function funded(privateKey?: Uint8Array) {
@@ -312,10 +315,13 @@ export async function sendSponsored(
 		)
 	);
 	const ownerSigned = await partiallySignTransaction([owner.keyPair], unsigned);
+	assertIsTransactionWithinSizeLimit(ownerSigned);
 	const [sponsorSignature] = await sponsor.signTransactions([ownerSigned]);
 	const tx = { ...ownerSigned, signatures: { ...ownerSigned.signatures, ...sponsorSignature } };
-	await sendAndConfirm(tx as Parameters<typeof sendAndConfirm>[0], { commitment: 'confirmed' });
-	return { feePayer: sponsor.address, signature: getSignatureFromTransaction(tx as never) };
+	await sendAndConfirm(tx as unknown as Parameters<typeof sendAndConfirm>[0], {
+		commitment: 'confirmed'
+	});
+	return { feePayer: sponsor.address, signature: getSignatureFromTransaction(tx) };
 }
 
 /** `link`, for a recipient with no SOL: a Revibase fee payer pays for it. */

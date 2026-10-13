@@ -284,7 +284,7 @@ export async function submitAsOwner(ctx: SigningContext, action: OwnerAction): P
 	]);
 
 	// Simulate as whoever can afford to: the owner, else a pool key (funded).
-	const simulateAs = ownerLamports >= 10_000_000n || !sponsor ? owner : sponsor.feePayers[0]!;
+	const simulateAs = ownerLamports >= 10_000_000n || !sponsor ? owner : sponsor.feePayers[0];
 	const measured =
 		action.computeUnits === undefined
 			? await action.build(createNoopSigner(owner), createNoopSigner(simulateAs), 0n)

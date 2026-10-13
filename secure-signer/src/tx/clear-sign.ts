@@ -122,7 +122,7 @@ function accessLabel(access: ProgramAccess): string {
 
 function optionSome<T>(opt: Option<T>): T | null {
   if (opt && typeof opt === "object" && "__option" in opt) {
-    return opt.__option === "Some" ? (opt.value as T) : null;
+    return opt.__option === "Some" ? opt.value : null;
   }
   return null;
 }

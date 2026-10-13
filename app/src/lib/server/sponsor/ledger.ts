@@ -51,7 +51,7 @@ export async function settlePending(
 			rpc.isBlockhashValid(blockhash as never, { commitment: 'processed' }).send()
 		)
 	);
-	const expired = new Set(unseen.filter((_, i) => !valid[i]!.value));
+	const expired = new Set(unseen.filter((_, i) => !valid[i].value));
 	const updates = results.flatMap((row, i) => {
 		const status = value[i];
 		const landed =

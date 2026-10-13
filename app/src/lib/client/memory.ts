@@ -15,7 +15,9 @@ export function rememberWallet(pda: string, wallet: string | null) {
 	try {
 		if (wallet) localStorage.setItem(key(pda), wallet);
 		else localStorage.removeItem(key(pda));
-	} catch {}
+	} catch {
+		// Storage can be unavailable (private mode, quota); remembering is best-effort.
+	}
 }
 
 const RECENT_WALLET = 'revibase:recent-wallet';
@@ -32,7 +34,9 @@ export function hasSeenWalletIntro(): boolean {
 export function rememberWalletIntro() {
 	try {
 		localStorage.setItem(WALLET_INTRO, 'seen');
-	} catch {}
+	} catch {
+		// Storage can be unavailable (private mode, quota); remembering is best-effort.
+	}
 }
 
 /** The wallet app last connected in this browser (shown first, marked "Recent"). */
@@ -47,7 +51,9 @@ export function recentWallet(): string | null {
 export function rememberRecentWallet(name: string | null | undefined) {
 	try {
 		if (name) localStorage.setItem(RECENT_WALLET, name);
-	} catch {}
+	} catch {
+		// Storage can be unavailable (private mode, quota); remembering is best-effort.
+	}
 }
 
 const SAVED_IDLS = 'revibase:program-idls';
@@ -55,8 +61,10 @@ const SAVED_IDLS = 'revibase:program-idls';
 /** Program descriptions uploaded this session, already parsed, by program address. */
 export function savedIdls(): Record<string, ProgramIdl> {
 	try {
-		const value = JSON.parse(sessionStorage.getItem(SAVED_IDLS) ?? '{}');
-		return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+		const value: unknown = JSON.parse(sessionStorage.getItem(SAVED_IDLS) ?? '{}');
+		return value && typeof value === 'object' && !Array.isArray(value)
+			? (value as Record<string, ProgramIdl>)
+			: {};
 	} catch {
 		return {};
 	}
@@ -65,5 +73,7 @@ export function savedIdls(): Record<string, ProgramIdl> {
 export function rememberIdl(idl: ProgramIdl) {
 	try {
 		sessionStorage.setItem(SAVED_IDLS, JSON.stringify({ ...savedIdls(), [idl.address]: idl }));
-	} catch {}
+	} catch {
+		// Storage can be unavailable (private mode, quota); remembering is best-effort.
+	}
 }

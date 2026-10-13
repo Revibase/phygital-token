@@ -30,7 +30,7 @@
 			class="z-50 max-h-[min(20rem,var(--bits-select-content-available-height))] overflow-y-auto min-w-[var(--bits-select-anchor-width)] rounded-xl border bg-popover p-1 text-popover-foreground shadow-md"
 			sideOffset={4}
 			><Primitive.Viewport
-				>{#each options as option}<Primitive.Item
+				>{#each options as option (option.value)}<Primitive.Item
 						value={option.value}
 						label={option.label}
 						class="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm outline-none data-highlighted:bg-accent"

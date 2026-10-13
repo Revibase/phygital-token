@@ -300,7 +300,7 @@ async function main() {
 async function prepaidFees(issuer: KeyPairSigner, adminConfig: Address) {
 	console.log('\nPrepaid network fees: an owner with no SOL');
 	const probe = await fetch(SPONSOR);
-	const pool = probe.ok ? ((await probe.json()) as { feePayers: Address[] }).feePayers : [];
+	const pool = probe.ok ? (await probe.json<{ feePayers: Address[] }>()).feePayers : [];
 	if (pool.length === 0) {
 		console.log(
 			'  – skipped: the fee service has no funded keys (set SPONSOR_KEYS in app/.dev.vars)'
@@ -389,7 +389,7 @@ async function prepaidFees(issuer: KeyPairSigner, adminConfig: Address) {
 		phygitalToken: pda,
 		instructions: [
 			getTransferSolInstruction({
-				source: createNoopSigner(pool[0]!),
+				source: createNoopSigner(pool[0]),
 				destination: owner.address,
 				amount: 1_000_000n
 			})

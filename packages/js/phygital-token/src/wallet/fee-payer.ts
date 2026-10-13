@@ -140,7 +140,7 @@ export async function createSponsorFeePayers(
 
 export function pickFeePayer<T>(feePayers: readonly T[]): T {
   if (feePayers.length === 0) throw new Error("No fee payers to pick from");
-  return feePayers[Math.floor(Math.random() * feePayers.length)]!;
+  return feePayers[Math.floor(Math.random() * feePayers.length)];
 }
 
 /** A random key from the Revibase pool. */

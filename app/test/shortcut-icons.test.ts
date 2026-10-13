@@ -87,8 +87,7 @@ describe('fetchIconImage', () => {
 		globalThis.fetch = realFetch;
 	});
 	const serve = (body: Uint8Array, headers: Record<string, string> = {}, status = 200) => {
-		globalThis.fetch = (async () =>
-			new Response(body.slice(), { status, headers })) as typeof fetch;
+		globalThis.fetch = async () => new Response(body.slice(), { status, headers });
 	};
 
 	it('returns supported images with the type read from their bytes', async () => {
@@ -107,9 +106,9 @@ describe('fetchIconImage', () => {
 		expect(await fetchIconImage(URL_)).toBeNull();
 		serve(PNG, {}, 404);
 		expect(await fetchIconImage(URL_)).toBeNull();
-		globalThis.fetch = (async () => {
+		globalThis.fetch = async () => {
 			throw new Error('timeout');
-		}) as typeof fetch;
+		};
 		expect(await fetchIconImage(URL_)).toBeNull();
 	});
 });

@@ -16,7 +16,7 @@ export async function fetchShortcutsFile(fileUrl: string): Promise<unknown> {
 			headers: { accept: 'application/json' },
 			signal: AbortSignal.timeout(TIMEOUT_MS),
 			cf: { cacheTtl: CACHE_TTL_S, cacheEverything: true }
-		} as RequestInit);
+		});
 		if (!res.ok) return null;
 		if (Number(res.headers.get('content-length') ?? 0) > MAX_BYTES) return null;
 		const text = await res.text();

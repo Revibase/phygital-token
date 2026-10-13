@@ -56,7 +56,6 @@ async function withPolicy(owner: Address): Promise<Map<Address, Uint8Array>> {
       policy,
       new Uint8Array(
         getAccessoryPolicyEncoder().encode({
-          payer: OWNER,
           phygitalToken: TOKEN,
           wallet: WALLET,
           solCap: null,

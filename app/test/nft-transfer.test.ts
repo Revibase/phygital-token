@@ -42,7 +42,7 @@ describe('NFT discovery and proofs', () => {
 		try {
 			const inventory = await fetchOwnerAssets('https://example.test/rpc', OWNER);
 			expect(inventory).toMatchObject({ assets: [{ id: ID }], status: 'complete' });
-			expect(externalNftHolding(inventory.assets[0]!, OWNER)).toMatchObject({ id: ID });
+			expect(externalNftHolding(inventory.assets[0], OWNER)).toMatchObject({ id: ID });
 			expect(mocked).toHaveBeenCalledTimes(2);
 		} finally {
 			mocked.mockRestore();

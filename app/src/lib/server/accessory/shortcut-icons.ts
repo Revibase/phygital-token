@@ -79,7 +79,7 @@ export async function fetchIconImage(url: string): Promise<IconImage | null> {
 			headers: { accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif' },
 			signal: AbortSignal.timeout(TIMEOUT_MS),
 			cf: { cacheTtl: CACHE_TTL_S, cacheEverything: true }
-		} as RequestInit);
+		});
 		if (!res.ok) return null;
 		if (Number(res.headers.get('content-length') ?? 0) > MAX_ICON_BYTES) return null;
 		const bytes = new Uint8Array(await res.arrayBuffer());

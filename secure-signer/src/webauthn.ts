@@ -102,7 +102,7 @@ export class BrowserPrfProvider implements PrfProvider {
         },
         extensions: {
           prf: { eval: { first: buf(PRF_SALT) } },
-        } as AuthenticationExtensionsClientInputs,
+        },
       },
     })) as PublicKeyCredential | null;
     if (!cred) throw new WebAuthnUnsupported("credential creation returned null");
@@ -135,7 +135,7 @@ export class BrowserPrfProvider implements PrfProvider {
       userVerification: "required",
       extensions: {
         prf: { eval: { first: buf(PRF_SALT) } },
-      } as AuthenticationExtensionsClientInputs,
+      },
     });
     if (!assertion) throw new WebAuthnUnsupported("assertion returned null");
     return { prfOutput: extractPrf(assertion) };
@@ -149,7 +149,7 @@ export class BrowserPrfProvider implements PrfProvider {
       userVerification: "required",
       extensions: {
         prf: { eval: { first: buf(PRF_SALT) } },
-      } as AuthenticationExtensionsClientInputs,
+      },
     });
     if (!assertion) throw new WebAuthnUnsupported("assertion returned null");
     return {

@@ -3,7 +3,7 @@ import type { LinkErrorCode } from '$lib/shared/types';
 export class ApiClientError extends Error {
 	constructor(
 		readonly status: number,
-		readonly code: LinkErrorCode | string,
+		readonly code: LinkErrorCode | (string & {}),
 		message: string
 	) {
 		super(message);

@@ -37,7 +37,8 @@
     "build": "tsc -p tsconfig.json && node scripts/add-shebang.mjs",
     "dev": "tsc -p tsconfig.json --watch",
     "prepublishOnly": "pnpm build",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "engines": {
     "node": ">=20.18.0"

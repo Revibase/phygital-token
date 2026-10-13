@@ -223,7 +223,7 @@ export function walletSigner(
 						transaction: wire,
 						chain: ctx.chain
 					});
-					const signedBytes = new Uint8Array(result!.signedTransaction);
+					const signedBytes = new Uint8Array(result.signedTransaction);
 					verify(signedBytes);
 					return {
 						...getTransactionDecoder().decode(signedBytes),

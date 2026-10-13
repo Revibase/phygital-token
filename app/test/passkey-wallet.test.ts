@@ -196,10 +196,10 @@ describe('PasskeyWallet (Wallet Standard)', () => {
 		const wallet = new PasskeyWallet(fakeClient(), prompts);
 		const [account] = (await wallet.features[StandardConnect].connect()).accounts;
 		const [out] = await wallet.features[SolanaSignTransaction].signTransaction({
-			account: account!,
+			account: account,
 			transaction: wire(ADDRESS)
 		});
-		const signed = getTransactionDecoder().decode(out!.signedTransaction);
+		const signed = getTransactionDecoder().decode(out.signedTransaction);
 		expect([...(signed.signatures[ADDRESS as never] ?? [])]).toEqual(Array(64).fill(9));
 	});
 
@@ -216,14 +216,14 @@ describe('PasskeyWallet (Wallet Standard)', () => {
 		const [account] = (await wallet.features[StandardConnect].connect()).accounts;
 		await expect(
 			wallet.features[SolanaSignTransaction].signTransaction({
-				account: account!,
+				account: account,
 				transaction: wire(ADDRESS)
 			})
 		).rejects.toThrow();
 		const honest = new PasskeyWallet(fakeClient(), prompts);
 		await expect(
 			honest.features[SolanaSignTransaction].signTransaction({
-				account: account!,
+				account: account,
 				transaction: wire(OTHER)
 			})
 		).rejects.toThrow(/not a signer/);
@@ -234,7 +234,7 @@ describe('PasskeyWallet (Wallet Standard)', () => {
 		const [account] = (await wallet.features[StandardConnect].connect()).accounts;
 		const message = new TextEncoder().encode('hello');
 		const [out] = await wallet.features[SolanaSignMessage].signMessage({
-			account: account!,
+			account: account,
 			message
 		});
 		expect(out).toEqual({ signedMessage: message, signature: new Uint8Array(64).fill(4) });

@@ -241,7 +241,7 @@ export function sameInstruction(a: Instruction, b: Instruction): boolean {
 		a.programAddress === b.programAddress &&
 		bytesEqual(new Uint8Array(a.data ?? []), new Uint8Array(b.data ?? [])) &&
 		(a.accounts ?? []).length === (b.accounts ?? []).length &&
-		(a.accounts ?? []).every((meta, i) => meta.address === b.accounts![i]!.address)
+		(a.accounts ?? []).every((meta, i) => meta.address === b.accounts![i].address)
 	);
 }
 

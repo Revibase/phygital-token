@@ -222,8 +222,6 @@ export function getSecp256r1VerifyInstruction<
   return {
     accounts: [],
     programAddress,
-    data: getSecp256r1VerifyInstructionDataEncoder().encode(
-      args as Secp256r1VerifyInstructionDataArgs,
-    ),
+    data: getSecp256r1VerifyInstructionDataEncoder().encode(args),
   } as Secp256r1VerifyInstruction<TProgramAddress>;
 }

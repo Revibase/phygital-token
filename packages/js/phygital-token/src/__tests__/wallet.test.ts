@@ -4,6 +4,7 @@ import {
   getAddressDecoder,
   getSolanaErrorFromTransactionError,
   type AccountMeta,
+  type Address,
   type Instruction,
 } from "@solana/kit";
 import { describe, expect, it } from "vitest";
@@ -32,7 +33,7 @@ const SYSTEM_PROGRAM = address("11111111111111111111111111111111");
 
 const filled = (byte: number) => getAddressDecoder().decode(new Uint8Array(32).fill(byte));
 
-function ix(programAddress: typeof SYSTEM_PROGRAM, accounts: AccountMeta[]): Instruction {
+function ix(programAddress: Address, accounts: AccountMeta[]): Instruction {
   return { programAddress, accounts, data: new Uint8Array([2, 0, 0, 0]) };
 }
 

@@ -192,12 +192,12 @@ describe('loading a project file', () => {
 	const accessory = { pda: 'pda', mint: MINT, owner: OWNER } as AccessoryView;
 
 	function stub(routes: Record<string, () => Response>, seen: string[] = []) {
-		globalThis.fetch = (async (input: unknown, init?: RequestInit) => {
+		globalThis.fetch = async (input: unknown, init?: RequestInit) => {
 			const url = String(input);
 			seen.push(init?.method === 'POST' ? `DAS ${JSON.parse(String(init.body)).method}` : url);
 			const route = routes[init?.method === 'POST' ? 'das' : url];
 			return route ? route() : new Response('nope', { status: 404 });
-		}) as typeof fetch;
+		};
 		return seen;
 	}
 	const das = (result: unknown) => () => Response.json({ jsonrpc: '2.0', id: 1, result });

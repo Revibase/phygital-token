@@ -47,7 +47,7 @@ export function decodeTransaction(bytes: Uint8Array): DecodedTransaction {
     if ("addressTableLookups" in compiled && (compiled.addressTableLookups?.length ?? 0) > 0) {
       throw new TxError("address lookup tables");
     }
-    const message = decompileTransactionMessage(compiled) as DecodedTransaction["message"];
+    const message = decompileTransactionMessage(compiled);
     return {
       version: compiled.version,
       messageBytes: new Uint8Array(transaction.messageBytes),

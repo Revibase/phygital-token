@@ -87,7 +87,7 @@ export function setLayoutReporter(fn: ((height: number) => void) | null): void {
 }
 
 function contentHeight(): number {
-  const sheet = app().querySelector(".sheet") as HTMLElement | null;
+  const sheet = app().querySelector<HTMLElement>(".sheet");
   if (!sheet) return 0;
   const sheetStyles = getComputedStyle(sheet);
   let h = (parseFloat(sheetStyles.paddingTop) || 0) + (parseFloat(sheetStyles.paddingBottom) || 0);

@@ -21,7 +21,7 @@ export async function programUpgradeability(
 			if (account.owner !== LOADER) return;
 			const bytes = new Uint8Array(getBase64Encoder().encode(account.data[0]));
 			if (bytes.length !== 36 || new DataView(bytes.buffer).getUint32(0, true) !== 2) return;
-			pending.push({ id: ids[i]!, data: getAddressDecoder().decode(bytes.slice(4, 36)) });
+			pending.push({ id: ids[i], data: getAddressDecoder().decode(bytes.slice(4, 36)) });
 		});
 		if (pending.length) {
 			const accounts = await browserRpc()
@@ -34,8 +34,8 @@ export async function programUpgradeability(
 				if (!account || account.owner !== LOADER) return;
 				const bytes = new Uint8Array(getBase64Encoder().encode(account.data[0]));
 				if (bytes.length < 13 || new DataView(bytes.buffer).getUint32(0, true) !== 3) return;
-				if (bytes[12] === 0) result.set(pending[i]!.id, false);
-				else if (bytes[12] === 1 && bytes.length >= 45) result.set(pending[i]!.id, true);
+				if (bytes[12] === 0) result.set(pending[i].id, false);
+				else if (bytes[12] === 1 && bytes.length >= 45) result.set(pending[i].id, true);
 			});
 		}
 	} catch {

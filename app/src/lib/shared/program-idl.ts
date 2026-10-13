@@ -15,6 +15,8 @@ export const readableName = (v: string) =>
 		.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
 		.replace(/_/g, ' ')
 		.replace(/^./, (c) => c.toUpperCase());
+const isByteArray = (v: unknown): v is number[] =>
+	Array.isArray(v) && v.every((b) => Number.isInteger(b) && b >= 0 && b <= 255);
 const name = (v: unknown) => {
 	if (typeof v !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_]{0,99}$/.test(v))
 		throw new Error('Invalid IDL name.');
@@ -46,12 +48,7 @@ export async function parseProgramIdl(text: string, suppliedAddress = ''): Promi
 				).slice(0, 8)
 			);
 		}
-		if (
-			!Array.isArray(bytes) ||
-			!bytes.length ||
-			bytes.length > 32 ||
-			!bytes.every((b) => Number.isInteger(b) && b >= 0 && b <= 255)
-		)
+		if (!isByteArray(bytes) || !bytes.length || bytes.length > 32)
 			throw new Error('Invalid instruction discriminator.');
 		const selector = bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 		if (instructions.some((i) => i.selector === selector || i.name === readableName(ixName)))
@@ -156,9 +153,9 @@ function parseCodamaIdl(idl: Record<string, unknown>, suppliedAddress: string): 
 		const discriminators = ix.discriminators;
 		if (!Array.isArray(discriminators) || !discriminators.length)
 			throw new Error('Missing instruction discriminator.');
+		const entries = (discriminators as unknown[]).map(object);
 		const bytes: number[] = [];
-		for (const raw of [...discriminators].sort((a, b) => Number(a.offset) - Number(b.offset))) {
-			const d = object(raw);
+		for (const d of [...entries].sort((a, b) => Number(a.offset) - Number(b.offset))) {
 			const field = fields.find((f) => f.name === d.name);
 			if (d.kind !== 'fieldDiscriminatorNode' || d.offset !== bytes.length || !field)
 				throw new Error('Unsupported discriminator layout.');
@@ -200,7 +197,7 @@ function parseCodamaIdl(idl: Record<string, unknown>, suppliedAddress: string): 
 			const n = size(type);
 			const at = offset;
 			offset = offset !== undefined && n !== undefined ? offset + n : undefined;
-			if (discriminators.some((d) => d.name === field.name)) continue;
+			if (entries.some((d) => d.name === field.name)) continue;
 			args.push({
 				name: readableName(name(field.name)),
 				type:

@@ -34,7 +34,7 @@ describe("authenticatePasskey", () => {
 
     expect(result.id).toBe(CRED);
     expect(authenticateWithWebauthn).toHaveBeenCalledTimes(1);
-    const [options] = vi.mocked(authenticateWithWebauthn).mock.calls[0]!;
+    const [options] = vi.mocked(authenticateWithWebauthn).mock.calls[0];
     expect(options.challenge).toBe(challenge);
     expect(options.rpId).toBe("app.example");
     expect(options.allowCredentials?.[0]?.id).toBe("cred");

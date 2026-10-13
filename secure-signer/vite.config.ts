@@ -1,33 +1,37 @@
 import { readFileSync } from "node:fs";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import type { TLSSocket } from "node:tls";
 import { defineConfig, type Plugin } from "vite";
 import { handleVault, VAULT_PATH } from "./src/vault.js";
 
 /** Serves `/vault` in dev with the same handler the Worker runs in production. */
+async function serveVault(req: IncomingMessage, res: ServerResponse, next: () => void) {
+  if (req.url?.split("?")[0] !== VAULT_PATH) return next();
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(chunk as Buffer);
+  const headers = new Headers();
+  // HTTP/2 (the HTTPS dev server) adds pseudo-headers like ":method", which Headers rejects.
+  for (const [k, v] of Object.entries(req.headers))
+    if (typeof v === "string" && !k.startsWith(":")) headers.set(k, v);
+  const host = req.headers.host ?? (req.headers[":authority"] as string | undefined) ?? "localhost";
+  const scheme = (req.socket as TLSSocket).encrypted ? "https" : "http";
+  const response = await handleVault(
+    new Request(`${scheme}://${host}${req.url}`, {
+      method: req.method ?? "GET",
+      headers,
+      ...(chunks.length ? { body: new Uint8Array(Buffer.concat(chunks)) } : {}),
+    }),
+  );
+  res.statusCode = response.status;
+  response.headers.forEach((v, k) => res.setHeader(k, v));
+  res.end(Buffer.from(await response.arrayBuffer()));
+}
+
 const vault: Plugin = {
   name: "signer-vault",
   configureServer(server) {
-    server.middlewares.use(async (req, res, next) => {
-      if (req.url?.split("?")[0] !== VAULT_PATH) return next();
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) chunks.push(chunk as Buffer);
-      const headers = new Headers();
-      // HTTP/2 (the HTTPS dev server) adds pseudo-headers like ":method", which Headers rejects.
-      for (const [k, v] of Object.entries(req.headers))
-        if (typeof v === "string" && !k.startsWith(":")) headers.set(k, v);
-      const host =
-        req.headers.host ?? (req.headers[":authority"] as string | undefined) ?? "localhost";
-      const scheme = (req.socket as TLSSocket).encrypted ? "https" : "http";
-      const response = await handleVault(
-        new Request(`${scheme}://${host}${req.url}`, {
-          method: req.method ?? "GET",
-          headers,
-          ...(chunks.length ? { body: new Uint8Array(Buffer.concat(chunks)) } : {}),
-        }),
-      );
-      res.statusCode = response.status;
-      response.headers.forEach((v, k) => res.setHeader(k, v));
-      res.end(Buffer.from(await response.arrayBuffer()));
+    server.middlewares.use((req, res, next) => {
+      serveVault(req, res, next).catch(next);
     });
   },
 };

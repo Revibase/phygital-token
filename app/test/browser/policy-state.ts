@@ -111,5 +111,5 @@ export function savePolicy(ctx: unknown, pda: string, actions: PolicyActionArgs[
 		build: async (owner, payer) => [
 			await buildPolicyInstruction(owner, address(pda), actions, payer)
 		]
-	} as OwnerAction);
+	});
 }

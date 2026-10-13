@@ -26,7 +26,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			}
 		: fromSigner
 			? {
-					'Access-Control-Allow-Origin': signerOrigin!,
+					'Access-Control-Allow-Origin': signerOrigin,
 					'Access-Control-Allow-Methods': 'POST, PUT',
 					'Access-Control-Allow-Headers': 'content-type',
 					Vary: 'Origin'

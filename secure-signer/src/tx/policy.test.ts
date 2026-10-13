@@ -175,7 +175,7 @@ describe("evaluatePolicy", () => {
     };
     const [unlink] = decodeTransaction(removeOwnerWire({ owner, feePayer: owner })).message
       .instructions;
-    const wire = encodeWire({ feePayer: owner, instructions: [verify, unlink!] });
+    const wire = encodeWire({ feePayer: owner, instructions: [verify, unlink] });
     expect(evaluatePolicy(decodeTransaction(wire), pubkey(owner))).toEqual({
       ok: false,
       code: "POLICY_REJECTED",
@@ -195,7 +195,7 @@ describe("evaluatePolicy", () => {
       instructions: [
         budget([2, 0x40, 0x0d, 0x03, 0]),
         budget([3, 0x50, 0xc3, 0, 0, 0, 0, 0, 0]),
-        unlink!,
+        unlink,
       ],
     });
     const result = previewPolicy(decodeTransaction(wire));

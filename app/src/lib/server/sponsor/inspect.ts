@@ -103,11 +103,11 @@ function refillsIn(
 		const program = remaining[inner.programIdIndex]?.address;
 		const accounts = Array.from(inner.accountIndexes, (i) => remaining[i]);
 		if (!program || accounts.some((a) => !a)) reject('Execute references a missing account');
-		const touchesPool = accounts.some((a) => pool.has(a!.address)) || pool.has(program!);
+		const touchesPool = accounts.some((a) => pool.has(a.address)) || pool.has(program);
 		if (!touchesPool) continue;
 		const transfer = parseSolTransfer({
-			programAddress: program!,
-			accounts: accounts.map((a) => ({ address: a!.address, role: a!.role })),
+			programAddress: program,
+			accounts: accounts.map((a) => ({ address: a.address, role: a.role })),
 			data: new Uint8Array(inner.data)
 		});
 		if (!transfer || transfer.from !== wallet || transfer.to !== feePayer)
@@ -261,7 +261,7 @@ export function inspectSponsored(
 			return reject('Malformed phygital-token instruction');
 		}
 		if (!main) return reject('This phygital-token instruction is not sponsored');
-		return { ...p, main: { ...main!, index: p.index } };
+		return { ...p, main: { ...main, index: p.index } };
 	});
 	let action = parsed[0];
 	let refillIx: (typeof parsed)[number] | undefined;
@@ -282,30 +282,30 @@ export function inspectSponsored(
 			).only;
 		};
 		const [a, b] = parsed;
-		[action, refillIx] = isRefillOnly(b!)
-			? [a!, b!]
-			: isRefillOnly(a!)
-				? [b!, a!]
+		[action, refillIx] = isRefillOnly(b)
+			? [a, b]
+			: isRefillOnly(a)
+				? [b, a]
 				: reject('Only one action per transaction is sponsored');
-		if (action!.main.accessory !== refillIx!.main.accessory)
+		if (action.main.accessory !== refillIx.main.accessory)
 			reject('The refill is for a different accessory');
 		const signer =
-			action!.main.owner ??
-			(action!.kind === PhygitalTokenInstruction.SetOwner
-				? parseSetOwnerInstruction(action!.ix as Parameters<typeof parseSetOwnerInstruction>[0])
+			action.main.owner ??
+			(action.kind === PhygitalTokenInstruction.SetOwner
+				? parseSetOwnerInstruction(action.ix as Parameters<typeof parseSetOwnerInstruction>[0])
 						.accounts.recipient.address
 				: null);
-		if (refillIx!.main.owner !== signer) reject('The refill must be signed by the owner');
-		if (action!.kind === PhygitalTokenInstruction.SetOwner && refillIx!.index < action!.index)
+		if (refillIx.main.owner !== signer) reject('The refill must be signed by the owner');
+		if (action.kind === PhygitalTokenInstruction.SetOwner && refillIx.index < action.index)
 			reject('Refill after linking, once the owner is set');
-		if (action!.kind === PhygitalTokenInstruction.RemoveOwner && refillIx!.index > action!.index)
+		if (action.kind === PhygitalTokenInstruction.RemoveOwner && refillIx.index > action.index)
 			reject('Refill before unlinking, while the owner is set');
-		if (action!.kind === PhygitalTokenInstruction.ExecuteWithAccessory)
+		if (action.kind === PhygitalTokenInstruction.ExecuteWithAccessory)
 			reject('Taps refill inside their own execute');
 	} else if (parsed.length !== 1) {
 		reject('Exactly one phygital-token action is sponsored');
 	}
-	const main = action!.main;
+	const main = action.main;
 
 	// 3. Pool keys: only the fee payer, only as policy payer or refill destination.
 	let fundsPolicy = false;
@@ -315,7 +315,7 @@ export function inspectSponsored(
 			ix.programAddress === PHYGITAL_TOKEN_PROGRAM_ADDRESS &&
 			(index === main.index || index === refillIx?.index);
 		const kind =
-			index === main.index ? action!.kind : index === refillIx?.index ? refillIx.kind : null;
+			index === main.index ? action.kind : index === refillIx?.index ? refillIx.kind : null;
 		(ix.accounts ?? []).forEach((meta, position) => {
 			if (!pool.has(meta.address)) return;
 			if (meta.address !== feePayer) reject('Only the fee payer may appear from our pool');
@@ -333,15 +333,15 @@ export function inspectSponsored(
 			reject('The fee payer may only pay fees, fund tap payments, or receive the refill');
 		});
 	});
-	if (action!.kind === PhygitalTokenInstruction.UpdatePolicy) {
+	if (action.kind === PhygitalTokenInstruction.UpdatePolicy) {
 		const { accounts } = parseUpdatePolicyInstruction(
-			action!.ix as Parameters<typeof parseUpdatePolicyInstruction>[0]
+			action.ix as Parameters<typeof parseUpdatePolicyInstruction>[0]
 		);
 		policy = accounts.policy.address;
 		if (accounts.payer.address !== feePayer && fundsPolicy)
 			reject('Only the fee payer may fund tap payments');
 	}
-	for (const p of [action!, refillIx].filter((p): p is NonNullable<typeof p> => !!p)) {
+	for (const p of [action, refillIx].filter((p): p is NonNullable<typeof p> => !!p)) {
 		if (p.kind === PhygitalTokenInstruction.ExecuteWithOwner) {
 			const { data } = parseExecuteWithOwnerInstruction(
 				p.ix as Parameters<typeof parseExecuteWithOwnerInstruction>[0]

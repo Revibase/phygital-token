@@ -478,7 +478,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
     try {
       restored = await api.restoreWalletBlob({
         challengeId: restore.challengeId,
-        assertion: disc.assertion as unknown as Record<string, unknown>,
+        assertion: disc.assertion,
       });
     } catch {
       disc.prfOutput.fill(0);
@@ -616,7 +616,7 @@ export function createSignerDispatcher(deps: SignerDeps): {
       try {
         restored = await api.restoreWalletBlob({
           challengeId: opts.restore.challengeId,
-          assertion: disc.assertion as unknown as Record<string, unknown>,
+          assertion: disc.assertion,
         });
       } catch {
         disc.prfOutput.fill(0);

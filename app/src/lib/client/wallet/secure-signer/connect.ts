@@ -92,7 +92,7 @@ export async function createPasskey(rpId: string): Promise<CreatedPasskey> {
 				{ type: 'public-key', alg: -257 }
 			],
 			authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-			extensions: { prf: {} } as AuthenticationExtensionsClientInputs
+			extensions: { prf: {} }
 		}
 	})) as PublicKeyCredential | null;
 	if (!cred) throw new DOMException('Passkey creation was cancelled', 'NotAllowedError');

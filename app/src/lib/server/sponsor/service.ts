@@ -208,7 +208,7 @@ export const sponsorSign: RequestHandler = async ({ request, platform }) => {
 	const env = getEnv(platform);
 	let body: { transactions?: unknown };
 	try {
-		body = (await request.json()) as typeof body;
+		body = await request.json<typeof body>();
 	} catch {
 		return json({ error: 'Invalid JSON body', code: 'bad_request' }, { status: 400 });
 	}

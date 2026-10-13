@@ -127,13 +127,13 @@ describe('fetchMintMedia (straight from DAS)', () => {
 	const MINT = 'So11111111111111111111111111111111111111112';
 
 	function stubFetch(result: unknown, calls: { n: number; body?: unknown }) {
-		globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+		globalThis.fetch = async (_url: unknown, init?: RequestInit) => {
 			calls.n++;
 			calls.body = JSON.parse(String(init?.body));
 			return new Response(JSON.stringify({ jsonrpc: '2.0', id: 1, result }), {
 				headers: { 'content-type': 'application/json' }
 			});
-		}) as typeof fetch;
+		};
 	}
 
 	it('asks DAS for the asset with collection metadata, on every call (no cache)', async () => {
@@ -157,7 +157,7 @@ describe('fetchMintMedia (straight from DAS)', () => {
 	});
 
 	it('fetches collection artwork when DAS only provides a collection address', async () => {
-		globalThis.fetch = (async (_url, init) => {
+		globalThis.fetch = async (_url, init) => {
 			const id = JSON.parse(String(init?.body)).params.id;
 			return Response.json({
 				result:
@@ -173,7 +173,7 @@ describe('fetchMintMedia (straight from DAS)', () => {
 								}
 							}
 			});
-		}) as typeof fetch;
+		};
 		expect(await fetchMintMedia('https://rpc.test', MINT)).toMatchObject({
 			name: 'NFT',
 			collection: 'Collection',
@@ -181,7 +181,7 @@ describe('fetchMintMedia (straight from DAS)', () => {
 		});
 	});
 	it('throws when DAS is unreachable, so a failure is never mistaken for "no metadata"', async () => {
-		globalThis.fetch = (async () => new Response('down', { status: 503 })) as typeof fetch;
+		globalThis.fetch = async () => new Response('down', { status: 503 });
 		await expect(fetchMintMedia('https://rpc.test', MINT)).rejects.toThrow(/503/);
 	});
 });

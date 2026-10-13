@@ -20,8 +20,8 @@ export function createPhygitalWalletAccount(
   return Object.freeze({
     address: String(walletPda),
     publicKey,
-    chains: Object.freeze([...chains]) as IdentifierArray,
-    features: Object.freeze([...ACCOUNT_FEATURES]) as IdentifierArray,
+    chains: Object.freeze<IdentifierArray>([...chains]),
+    features: Object.freeze([...ACCOUNT_FEATURES]),
     label: "Revibase Accessory",
     icon: REVIBASE_WALLET_ICON,
   });

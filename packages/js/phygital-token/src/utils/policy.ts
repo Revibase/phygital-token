@@ -13,7 +13,8 @@ const DEFAULT_PUBKEY = "11111111111111111111111111111111";
  * locked whenever they have an owner; Bearer tokens never are.
  */
 export function isPhygitalTokenLocked(token: Pick<PhygitalToken, "tokenType" | "owner">): boolean {
-  return token.tokenType !== PhygitalTokenType.Bearer && token.owner !== DEFAULT_PUBKEY;
+  const bearer: number = PhygitalTokenType.Bearer;
+  return token.tokenType !== bearer && token.owner !== DEFAULT_PUBKEY;
 }
 
 /**

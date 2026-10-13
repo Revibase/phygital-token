@@ -185,7 +185,7 @@ function pickPriorityFeeMicroLamports(
   }
 
   const index = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.5));
-  return sorted[index]!;
+  return sorted[index];
 }
 
 function withMargin(unitsConsumed: number): number {
@@ -240,10 +240,10 @@ function applyPlaceholderResourceLimits(message: DecompiledMessage): V1Decompile
   const withoutBudget = stripBudgetAndEnsureV1(message);
   let next = setTransactionMessageComputeUnitLimit(PREVIEW_COMPUTE_UNIT_LIMIT, withoutBudget);
   next = setTransactionMessagePriorityFeeLamports(0n, next);
-  return setTransactionMessageLoadedAccountsDataSizeLimit(
+  return setTransactionMessageLoadedAccountsDataSizeLimit<V1DecompiledMessage>(
     PREVIEW_LOADED_ACCOUNTS_DATA_SIZE_LIMIT,
     next,
-  ) as V1DecompiledMessage;
+  );
 }
 
 /**
@@ -264,10 +264,10 @@ function applyResourceLimits(
     next,
   );
   const dataSize = loadedAccountsDataSizeLimit ?? LOADED_ACCOUNTS_PAGE_BYTES;
-  return setTransactionMessageLoadedAccountsDataSizeLimit(
+  return setTransactionMessageLoadedAccountsDataSizeLimit<V1DecompiledMessage>(
     roundUpLoadedAccountsDataSize(dataSize),
     next,
-  ) as V1DecompiledMessage;
+  );
 }
 
 function applyBlockhashIfNeeded<T extends DecompiledMessage>(message: T, block: BlockContext): T {
@@ -500,7 +500,7 @@ async function prepareWrappedWalletTransaction(input: {
   const memoInstructions: Instruction[] = [];
 
   for (let i = 0; i < instructions.length; i++) {
-    const instruction = instructions[i]!;
+    const instruction = instructions[i];
     if (instruction.programAddress === COMPUTE_BUDGET_PROGRAM_ADDRESS) continue;
     if (instruction.programAddress === MEMO_PROGRAM_ADDRESS) {
       memoInstructions.push(instruction);

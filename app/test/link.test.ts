@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-	address,
 	appendTransactionMessageInstruction,
 	setTransactionMessageFeePayer,
 	blockhash,
@@ -165,7 +164,7 @@ describe('link transaction (SDK completeTransfer) + validator', () => {
 		const [secp, link] = message.instructions.slice(-2);
 		expect(() =>
 			validateLinkTransaction(
-				sponsored([...message.instructions.slice(0, -2), refill, secp!, link!]),
+				sponsored([...message.instructions.slice(0, -2), refill, secp, link]),
 				exp
 			)
 		).toThrow(LinkTransactionRejected);

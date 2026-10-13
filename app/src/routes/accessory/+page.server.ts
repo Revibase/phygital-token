@@ -15,7 +15,7 @@ import type { PageServerLoad } from './$types';
  * raw signed parameters are never rendered, cached, or kept as a history entry.
  */
 async function processTap(
-	{ url, request, cookies, platform }: Parameters<PageServerLoad>[0],
+	{ url, request, cookies }: Parameters<PageServerLoad>[0],
 	env: ReturnType<typeof getEnv>
 ): Promise<void> {
 	// Link previewers / speculative prefetch must not burn a single-use counter.

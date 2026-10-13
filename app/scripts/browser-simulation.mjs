@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { deflateRawSync } from 'node:zlib';
 const requestLink = (set) =>
 	BASE + '/permissions#r=' + deflateRawSync(JSON.stringify(set)).toString('base64url');

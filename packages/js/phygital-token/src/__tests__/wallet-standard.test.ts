@@ -7,12 +7,12 @@ import {
 import { StandardConnect, StandardDisconnect, StandardEvents } from "@wallet-standard/features";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const startAuthentication = vi.fn(async () => ({ id: "test-passkey-id" }));
-const verifyResponse = vi.fn(() => ({
+const startAuthentication = vi.fn(async (..._args: unknown[]) => ({ id: "test-passkey-id" }));
+const verifyResponse = vi.fn((..._args: unknown[]) => ({
   isVerified: true,
   secp256r1PublicKey: "test-secp256r1-key",
 }));
-const findPhygitalTokenPda = vi.fn(async () =>
+const findPhygitalTokenPda = vi.fn(async (..._args: unknown[]) =>
   address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
 );
 const session = () => ({
@@ -20,8 +20,8 @@ const session = () => ({
   walletPda: address("So11111111111111111111111111111111111111112"),
   owner: address("SysvarC1ock11111111111111111111111111111111"),
 });
-const resolveWalletSession = vi.fn(async () => session());
-const getPhygitalWalletSigner = vi.fn(async () => ({
+const resolveWalletSession = vi.fn(async (..._args: unknown[]) => session());
+const getPhygitalWalletSigner = vi.fn(async (..._args: unknown[]) => ({
   address: address("So11111111111111111111111111111111111111112"),
   modifyAndSignTransactions: vi.fn(async (txs) => txs),
 }));

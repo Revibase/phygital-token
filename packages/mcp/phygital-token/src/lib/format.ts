@@ -1,7 +1,7 @@
 export function jsonStringify(value: unknown): string {
   return JSON.stringify(
     value,
-    (_key, current) => (typeof current === "bigint" ? current.toString() : current),
+    (_key, current: unknown) => (typeof current === "bigint" ? current.toString() : current),
     2,
   );
 }

@@ -5,7 +5,6 @@ import type {
   Transaction,
   TransactionModifyingSigner,
   TransactionPartialSigner,
-  TransactionWithLifetime,
 } from "@solana/kit";
 import { isTransactionWithDurableNonceLifetime } from "@solana/kit";
 import { authenticatePasskeyForSecp256r1Verify } from "../instructions/verify.js";
@@ -108,7 +107,7 @@ export async function getPhygitalWalletSigner(
       };
       const wrapped = await modifyAndWrapWalletTransaction({
         rpc,
-        transaction: transaction as Transaction & TransactionWithLifetime,
+        transaction: transaction,
         walletPda: executeAccounts.wallet,
         executeAccounts,
         prepaidFees: sponsor?.prepaid

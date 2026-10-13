@@ -78,7 +78,9 @@ export function loadPhygitalWalletSession(): PhygitalWalletSession | null {
   } catch {
     try {
       store.removeItem(STORAGE_KEY);
-    } catch {}
+    } catch {
+      // Storage unavailable: nothing to clear.
+    }
     return null;
   }
 }
@@ -103,7 +105,9 @@ export function clearPhygitalWalletSession(): void {
   if (!store) return;
   try {
     store.removeItem(STORAGE_KEY);
-  } catch {}
+  } catch {
+    // Storage unavailable: nothing to clear.
+  }
 }
 
 /** @internal test helper */

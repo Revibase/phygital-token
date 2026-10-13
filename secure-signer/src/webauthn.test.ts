@@ -82,7 +82,7 @@ describe("restore request", () => {
 
     await restoreWalletBlob({
       challengeId: "c1",
-      assertion: disc.assertion as unknown as Record<string, unknown>,
+      assertion: disc.assertion,
     });
 
     expect(bodies).toHaveLength(1);

@@ -134,7 +134,7 @@
 				<section class="space-y-2">
 					<h3 class="text-sm font-medium">Attributes</h3>
 					<dl class="grid grid-cols-2 min-[360px]:grid-cols-3 gap-2">
-						{#each media.attributes as trait}
+						{#each media.attributes as trait, i (i)}
 							<div class="min-w-0 rounded-xl bg-muted px-3 py-3">
 								<dt class="break-words text-xs text-muted-foreground">{trait.label}</dt>
 								<dd class="break-words text-sm font-medium">{trait.value}</dd>

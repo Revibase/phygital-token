@@ -59,7 +59,7 @@ export async function dasRequest<T>(
 		signal: AbortSignal.timeout(10_000)
 	});
 	if (!response.ok) throw new Error(`Couldn’t load asset data (${response.status}).`);
-	const body = (await response.json()) as { result?: T; error?: { message?: string } };
+	const body = await response.json<{ result?: T; error?: { message?: string } }>();
 	if (body.error || !body.result) throw new Error(body.error?.message ?? 'Asset data unavailable.');
 	return body.result;
 }
