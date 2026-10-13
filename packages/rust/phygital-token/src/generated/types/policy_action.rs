@@ -6,19 +6,17 @@
 //!
 
 use crate::generated::types::CapArg;
-use solana_address::Address;
 use crate::generated::types::ProgramPermission;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
+use solana_address::Address;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub enum PolicyAction {
-SetSolCap(Option<CapArg>),
-SetMintCap(Address, CapArg),
-RemoveMintCap(Address),
-SetAllowedOrigins(Vec<String>),
-SetProgramPermission(ProgramPermission),
-RemoveProgramPermission(Address),
+    SetSolCap(Option<CapArg>),
+    SetMintCap(Address, CapArg),
+    RemoveMintCap(Address),
+    SetAllowedOrigins(Vec<String>),
+    SetProgramPermission(ProgramPermission),
+    RemoveProgramPermission(Address),
 }
-
-

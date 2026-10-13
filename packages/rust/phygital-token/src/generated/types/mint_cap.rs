@@ -5,15 +5,13 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use solana_address::Address;
 use crate::generated::types::SpendCap;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
+use solana_address::Address;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct MintCap {
-pub mint: Address,
-pub cap: SpendCap,
+    pub mint: Address,
+    pub cap: SpendCap,
 }
-
-

@@ -5,14 +5,12 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct Secp256r1VerifyArgs {
-pub verify_args_relative_index: i64,
-pub signed_message_index: u8,
-pub client_data_json: Vec<u8>,
+    pub verify_args_relative_index: i64,
+    pub signed_message_index: u8,
+    pub client_data_json: Vec<u8>,
 }
-
-

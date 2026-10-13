@@ -5,18 +5,16 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct SpendCap {
-pub cap: u64,
-pub remaining: u64,
-pub last_reset: i64,
-/// `0` = a lifetime cap.
-pub window_seconds: i64,
-/// `0` = no per-execute limit.
-pub max_per_tx: u64,
+    pub cap: u64,
+    pub remaining: u64,
+    pub last_reset: i64,
+    /// `0` = a lifetime cap.
+    pub window_seconds: i64,
+    /// `0` = no per-execute limit.
+    pub max_per_tx: u64,
 }
-
-

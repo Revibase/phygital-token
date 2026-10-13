@@ -5,7 +5,6 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-      pub(crate) mod phygital_token;
-  
-      pub use self::phygital_token::PhygitalTokenError;
-  
+pub(crate) mod phygital_token;
+
+pub use self::phygital_token::PhygitalTokenError;

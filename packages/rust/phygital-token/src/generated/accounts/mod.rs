@@ -5,11 +5,10 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-  pub(crate) mod r#accessory_policy;
-  pub(crate) mod r#admin_config;
-  pub(crate) mod r#phygital_token;
+pub(crate) mod r#accessory_policy;
+pub(crate) mod r#admin_config;
+pub(crate) mod r#phygital_token;
 
-  pub use self::r#accessory_policy::*;
-  pub use self::r#admin_config::*;
-  pub use self::r#phygital_token::*;
-
+pub use self::r#accessory_policy::*;
+pub use self::r#admin_config::*;
+pub use self::r#phygital_token::*;

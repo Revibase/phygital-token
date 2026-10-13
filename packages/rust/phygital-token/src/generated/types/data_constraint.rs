@@ -6,13 +6,11 @@
 //!
 
 use crate::generated::types::DataPredicate;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct DataConstraint {
-pub offset: u16,
-pub predicate: DataPredicate,
+    pub offset: u16,
+    pub predicate: DataPredicate,
 }
-
-

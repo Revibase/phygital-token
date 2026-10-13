@@ -7,483 +7,538 @@
 
 use crate::generated::types::CompactInstruction;
 use crate::generated::types::Secp256r1VerifyArgs;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 pub const EXECUTE_WITH_ACCESSORY_DISCRIMINATOR: [u8; 8] = [159, 174, 167, 140, 51, 210, 101, 10];
 
 /// Accounts.
 #[derive(Debug)]
 pub struct ExecuteWithAccessory {
-      
-              
-          pub phygital_token: solana_address::Address,
-                /// Missing = accessory blocked.
+    pub phygital_token: solana_address::Address,
+    /// Missing = accessory blocked.
+    pub policy: solana_address::Address,
+    /// Mark writable in remaining accounts if needed.
+    pub wallet: solana_address::Address,
 
-    
-              
-          pub policy: solana_address::Address,
-                /// Mark writable in remaining accounts if needed.
+    pub slot_hashes: solana_address::Address,
 
-    
-              
-          pub wallet: solana_address::Address,
-          
-              
-          pub slot_hashes: solana_address::Address,
-          
-              
-          pub instructions_sysvar: solana_address::Address,
-      }
+    pub instructions_sysvar: solana_address::Address,
+}
 
 impl ExecuteWithAccessory {
-  pub fn instruction(&self, args: ExecuteWithAccessoryInstructionArgs) -> solana_instruction::Instruction {
-    self.instruction_with_remaining_accounts(args, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: ExecuteWithAccessoryInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(5+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new(
-            self.phygital_token,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.policy,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.wallet,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.slot_hashes,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.instructions_sysvar,
-            false
-          ));
-                      accounts.extend_from_slice(remaining_accounts);
-    let mut data = ExecuteWithAccessoryInstructionData::new().try_to_vec().unwrap();
-          let mut args = args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
+    pub fn instruction(
+        &self,
+        args: ExecuteWithAccessoryInstructionArgs,
+    ) -> solana_instruction::Instruction {
+        self.instruction_with_remaining_accounts(args, &[])
     }
-  }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn instruction_with_remaining_accounts(
+        &self,
+        args: ExecuteWithAccessoryInstructionArgs,
+        remaining_accounts: &[solana_instruction::AccountMeta],
+    ) -> solana_instruction::Instruction {
+        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new(
+            self.phygital_token,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new(self.policy, false));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.wallet,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.slot_hashes,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.instructions_sysvar,
+            false,
+        ));
+        accounts.extend_from_slice(remaining_accounts);
+        let mut data = ExecuteWithAccessoryInstructionData::new()
+            .try_to_vec()
+            .unwrap();
+        let mut args = args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        }
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct ExecuteWithAccessoryInstructionData {
-            discriminator: [u8; 8],
-                        }
+pub struct ExecuteWithAccessoryInstructionData {
+    discriminator: [u8; 8],
+}
 
 impl ExecuteWithAccessoryInstructionData {
-  pub fn new() -> Self {
-    Self {
-                        discriminator: [159, 174, 167, 140, 51, 210, 101, 10],
-                                                            }
-  }
+    pub fn new() -> Self {
+        Self {
+            discriminator: [159, 174, 167, 140, 51, 210, 101, 10],
+        }
+    }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
-  }
+        borsh::to_vec(self)
+    }
+}
 
 impl Default for ExecuteWithAccessoryInstructionData {
-  fn default() -> Self {
-    Self::new()
-  }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct ExecuteWithAccessoryInstructionArgs {
-                  pub compact_instructions: Vec<CompactInstruction>,
-                pub secp256r1_verify_args: Secp256r1VerifyArgs,
-                pub slot_number: u64,
-      }
-
-impl ExecuteWithAccessoryInstructionArgs {
-  pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
+pub struct ExecuteWithAccessoryInstructionArgs {
+    pub compact_instructions: Vec<CompactInstruction>,
+    pub secp256r1_verify_args: Secp256r1VerifyArgs,
+    pub slot_number: u64,
 }
 
+impl ExecuteWithAccessoryInstructionArgs {
+    pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
+        borsh::to_vec(self)
+    }
+}
 
 /// Instruction builder for `ExecuteWithAccessory`.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` phygital_token
-                ///   1. `[writable]` policy
-          ///   2. `[]` wallet
-                ///   3. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
-                ///   4. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
+///   0. `[writable]` phygital_token
+///   1. `[writable]` policy
+///   2. `[]` wallet
+///   3. `[optional]` slot_hashes (default to `SysvarS1otHashes111111111111111111111111111`)
+///   4. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct ExecuteWithAccessoryBuilder {
-            phygital_token: Option<solana_address::Address>,
-                policy: Option<solana_address::Address>,
-                wallet: Option<solana_address::Address>,
-                slot_hashes: Option<solana_address::Address>,
-                instructions_sysvar: Option<solana_address::Address>,
-                        compact_instructions: Option<Vec<CompactInstruction>>,
-                secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
-                slot_number: Option<u64>,
-        __remaining_accounts: Vec<solana_instruction::AccountMeta>,
+    phygital_token: Option<solana_address::Address>,
+    policy: Option<solana_address::Address>,
+    wallet: Option<solana_address::Address>,
+    slot_hashes: Option<solana_address::Address>,
+    instructions_sysvar: Option<solana_address::Address>,
+    compact_instructions: Option<Vec<CompactInstruction>>,
+    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+    slot_number: Option<u64>,
+    __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl ExecuteWithAccessoryBuilder {
-  pub fn new() -> Self {
-    Self::default()
-  }
-            #[inline(always)]
+    pub fn new() -> Self {
+        Self::default()
+    }
+    #[inline(always)]
     pub fn phygital_token(&mut self, phygital_token: solana_address::Address) -> &mut Self {
-                        self.phygital_token = Some(phygital_token);
-                    self
+        self.phygital_token = Some(phygital_token);
+        self
     }
-            /// Missing = accessory blocked.
-#[inline(always)]
+    /// Missing = accessory blocked.
+    #[inline(always)]
     pub fn policy(&mut self, policy: solana_address::Address) -> &mut Self {
-                        self.policy = Some(policy);
-                    self
+        self.policy = Some(policy);
+        self
     }
-            /// Mark writable in remaining accounts if needed.
-#[inline(always)]
+    /// Mark writable in remaining accounts if needed.
+    #[inline(always)]
     pub fn wallet(&mut self, wallet: solana_address::Address) -> &mut Self {
-                        self.wallet = Some(wallet);
-                    self
+        self.wallet = Some(wallet);
+        self
     }
-            /// `[optional account, default to 'SysvarS1otHashes111111111111111111111111111']`
-#[inline(always)]
+    /// `[optional account, default to 'SysvarS1otHashes111111111111111111111111111']`
+    #[inline(always)]
     pub fn slot_hashes(&mut self, slot_hashes: solana_address::Address) -> &mut Self {
-                        self.slot_hashes = Some(slot_hashes);
-                    self
+        self.slot_hashes = Some(slot_hashes);
+        self
     }
-            /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
-#[inline(always)]
-    pub fn instructions_sysvar(&mut self, instructions_sysvar: solana_address::Address) -> &mut Self {
-                        self.instructions_sysvar = Some(instructions_sysvar);
-                    self
+    /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
+    #[inline(always)]
+    pub fn instructions_sysvar(
+        &mut self,
+        instructions_sysvar: solana_address::Address,
+    ) -> &mut Self {
+        self.instructions_sysvar = Some(instructions_sysvar);
+        self
     }
-                    #[inline(always)]
-      pub fn compact_instructions(&mut self, compact_instructions: Vec<CompactInstruction>) -> &mut Self {
+    #[inline(always)]
+    pub fn compact_instructions(
+        &mut self,
+        compact_instructions: Vec<CompactInstruction>,
+    ) -> &mut Self {
         self.compact_instructions = Some(compact_instructions);
         self
-      }
-                #[inline(always)]
-      pub fn secp256r1_verify_args(&mut self, secp256r1_verify_args: Secp256r1VerifyArgs) -> &mut Self {
+    }
+    #[inline(always)]
+    pub fn secp256r1_verify_args(
+        &mut self,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> &mut Self {
         self.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
-      }
-                #[inline(always)]
-      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+    }
+    #[inline(always)]
+    pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
         self.slot_number = Some(slot_number);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
-    self.__remaining_accounts.push(account);
-    self
-  }
-  /// Add additional accounts to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[solana_instruction::AccountMeta]) -> &mut Self {
-    self.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[allow(clippy::clone_on_copy)]
-  pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = ExecuteWithAccessory {
-                              phygital_token: self.phygital_token.expect("phygital_token is not set"),
-                                        policy: self.policy.expect("policy is not set"),
-                                        wallet: self.wallet.expect("wallet is not set"),
-                                        slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!("SysvarS1otHashes111111111111111111111111111")),
-                                        instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
-                      };
-          let args = ExecuteWithAccessoryInstructionArgs {
-                                                              compact_instructions: self.compact_instructions.clone().expect("compact_instructions is not set"),
-                                                                  secp256r1_verify_args: self.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
-                                                                  slot_number: self.slot_number.clone().expect("slot_number is not set"),
-                                    };
-    
-    accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
-  }
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
+        self.__remaining_accounts.push(account);
+        self
+    }
+    /// Add additional accounts to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> &mut Self {
+        self.__remaining_accounts.extend_from_slice(accounts);
+        self
+    }
+    #[allow(clippy::clone_on_copy)]
+    pub fn instruction(&self) -> solana_instruction::Instruction {
+        let accounts = ExecuteWithAccessory {
+            phygital_token: self.phygital_token.expect("phygital_token is not set"),
+            policy: self.policy.expect("policy is not set"),
+            wallet: self.wallet.expect("wallet is not set"),
+            slot_hashes: self.slot_hashes.unwrap_or(solana_address::address!(
+                "SysvarS1otHashes111111111111111111111111111"
+            )),
+            instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!(
+                "Sysvar1nstructions1111111111111111111111111"
+            )),
+        };
+        let args = ExecuteWithAccessoryInstructionArgs {
+            compact_instructions: self
+                .compact_instructions
+                .clone()
+                .expect("compact_instructions is not set"),
+            secp256r1_verify_args: self
+                .secp256r1_verify_args
+                .clone()
+                .expect("secp256r1_verify_args is not set"),
+            slot_number: self.slot_number.clone().expect("slot_number is not set"),
+        };
+
+        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
+    }
 }
 
-  /// `execute_with_accessory` CPI accounts.
-  pub struct ExecuteWithAccessoryCpiAccounts<'a, 'b> {
-          
-                    
-              pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
-                        /// Missing = accessory blocked.
+/// `execute_with_accessory` CPI accounts.
+pub struct ExecuteWithAccessoryCpiAccounts<'a, 'b> {
+    pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
+    /// Missing = accessory blocked.
+    pub policy: &'b solana_account_info::AccountInfo<'a>,
+    /// Mark writable in remaining accounts if needed.
+    pub wallet: &'b solana_account_info::AccountInfo<'a>,
 
-      
-                    
-              pub policy: &'b solana_account_info::AccountInfo<'a>,
-                        /// Mark writable in remaining accounts if needed.
+    pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
 
-      
-                    
-              pub wallet: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-            }
+    pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+}
 
 /// `execute_with_accessory` CPI instruction.
 pub struct ExecuteWithAccessoryCpi<'a, 'b> {
-  /// The program to invoke.
-  pub __program: &'b solana_account_info::AccountInfo<'a>,
-      
-              
-          pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
-                /// Missing = accessory blocked.
+    /// The program to invoke.
+    pub __program: &'b solana_account_info::AccountInfo<'a>,
 
-    
-              
-          pub policy: &'b solana_account_info::AccountInfo<'a>,
-                /// Mark writable in remaining accounts if needed.
+    pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
+    /// Missing = accessory blocked.
+    pub policy: &'b solana_account_info::AccountInfo<'a>,
+    /// Mark writable in remaining accounts if needed.
+    pub wallet: &'b solana_account_info::AccountInfo<'a>,
 
-    
-              
-          pub wallet: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-            /// The arguments for the instruction.
+    pub slot_hashes: &'b solana_account_info::AccountInfo<'a>,
+
+    pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+    /// The arguments for the instruction.
     pub __args: ExecuteWithAccessoryInstructionArgs,
-  }
+}
 
 impl<'a, 'b> ExecuteWithAccessoryCpi<'a, 'b> {
-  pub fn new(
-    program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: ExecuteWithAccessoryCpiAccounts<'a, 'b>,
-              args: ExecuteWithAccessoryInstructionArgs,
-      ) -> Self {
-    Self {
-      __program: program,
-              phygital_token: accounts.phygital_token,
-              policy: accounts.policy,
-              wallet: accounts.wallet,
-              slot_hashes: accounts.slot_hashes,
-              instructions_sysvar: accounts.instructions_sysvar,
-                    __args: args,
-          }
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], &[])
-  }
-  #[inline(always)]
-  pub fn invoke_with_remaining_accounts(&self, remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
-  }
-  #[inline(always)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed_with_remaining_accounts(
-    &self,
-    signers_seeds: &[&[&[u8]]],
-    remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
-  ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(5+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new(
-            *self.phygital_token.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.policy.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.wallet.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.slot_hashes.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.instructions_sysvar.key,
-            false
-          ));
-                      remaining_accounts.iter().for_each(|remaining_account| {
-      accounts.push(solana_instruction::AccountMeta {
-          pubkey: *remaining_account.0.key,
-          is_signer: remaining_account.1,
-          is_writable: remaining_account.2,
-      })
-    });
-    let mut data = ExecuteWithAccessoryInstructionData::new().try_to_vec().unwrap();
-          let mut args = self.__args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    let instruction = solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
-    };
-    let mut account_infos = Vec::with_capacity(6 + remaining_accounts.len());
-    account_infos.push(self.__program.clone());
-                  account_infos.push(self.phygital_token.clone());
-                        account_infos.push(self.policy.clone());
-                        account_infos.push(self.wallet.clone());
-                        account_infos.push(self.slot_hashes.clone());
-                        account_infos.push(self.instructions_sysvar.clone());
-              remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
-
-    if signers_seeds.is_empty() {
-      solana_cpi::invoke(&instruction, &account_infos)
-    } else {
-      solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+    pub fn new(
+        program: &'b solana_account_info::AccountInfo<'a>,
+        accounts: ExecuteWithAccessoryCpiAccounts<'a, 'b>,
+        args: ExecuteWithAccessoryInstructionArgs,
+    ) -> Self {
+        Self {
+            __program: program,
+            phygital_token: accounts.phygital_token,
+            policy: accounts.policy,
+            wallet: accounts.wallet,
+            slot_hashes: accounts.slot_hashes,
+            instructions_sysvar: accounts.instructions_sysvar,
+            __args: args,
+        }
     }
-  }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], &[])
+    }
+    #[inline(always)]
+    pub fn invoke_with_remaining_accounts(
+        &self,
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
+    }
+    #[inline(always)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
+    }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed_with_remaining_accounts(
+        &self,
+        signers_seeds: &[&[&[u8]]],
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        let mut accounts = Vec::with_capacity(5 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new(
+            *self.phygital_token.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new(
+            *self.policy.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.wallet.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.slot_hashes.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.instructions_sysvar.key,
+            false,
+        ));
+        remaining_accounts.iter().for_each(|remaining_account| {
+            accounts.push(solana_instruction::AccountMeta {
+                pubkey: *remaining_account.0.key,
+                is_signer: remaining_account.1,
+                is_writable: remaining_account.2,
+            })
+        });
+        let mut data = ExecuteWithAccessoryInstructionData::new()
+            .try_to_vec()
+            .unwrap();
+        let mut args = self.__args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        let instruction = solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        };
+        let mut account_infos = Vec::with_capacity(6 + remaining_accounts.len());
+        account_infos.push(self.__program.clone());
+        account_infos.push(self.phygital_token.clone());
+        account_infos.push(self.policy.clone());
+        account_infos.push(self.wallet.clone());
+        account_infos.push(self.slot_hashes.clone());
+        account_infos.push(self.instructions_sysvar.clone());
+        remaining_accounts
+            .iter()
+            .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
+
+        if signers_seeds.is_empty() {
+            solana_cpi::invoke(&instruction, &account_infos)
+        } else {
+            solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+        }
+    }
 }
 
 /// Instruction builder for `ExecuteWithAccessory` via CPI.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[writable]` phygital_token
-                ///   1. `[writable]` policy
-          ///   2. `[]` wallet
-          ///   3. `[]` slot_hashes
-          ///   4. `[]` instructions_sysvar
+///   0. `[writable]` phygital_token
+///   1. `[writable]` policy
+///   2. `[]` wallet
+///   3. `[]` slot_hashes
+///   4. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
 pub struct ExecuteWithAccessoryCpiBuilder<'a, 'b> {
-  instruction: Box<ExecuteWithAccessoryCpiBuilderInstruction<'a, 'b>>,
+    instruction: Box<ExecuteWithAccessoryCpiBuilderInstruction<'a, 'b>>,
 }
 
 impl<'a, 'b> ExecuteWithAccessoryCpiBuilder<'a, 'b> {
-  pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(ExecuteWithAccessoryCpiBuilderInstruction {
-      __program: program,
-              phygital_token: None,
-              policy: None,
-              wallet: None,
-              slot_hashes: None,
-              instructions_sysvar: None,
-                                            compact_instructions: None,
-                                secp256r1_verify_args: None,
-                                slot_number: None,
-                    __remaining_accounts: Vec::new(),
-    });
-    Self { instruction }
-  }
-      #[inline(always)]
-    pub fn phygital_token(&mut self, phygital_token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.phygital_token = Some(phygital_token);
-                    self
+    pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
+        let instruction = Box::new(ExecuteWithAccessoryCpiBuilderInstruction {
+            __program: program,
+            phygital_token: None,
+            policy: None,
+            wallet: None,
+            slot_hashes: None,
+            instructions_sysvar: None,
+            compact_instructions: None,
+            secp256r1_verify_args: None,
+            slot_number: None,
+            __remaining_accounts: Vec::new(),
+        });
+        Self { instruction }
     }
-      /// Missing = accessory blocked.
-#[inline(always)]
+    #[inline(always)]
+    pub fn phygital_token(
+        &mut self,
+        phygital_token: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.phygital_token = Some(phygital_token);
+        self
+    }
+    /// Missing = accessory blocked.
+    #[inline(always)]
     pub fn policy(&mut self, policy: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.policy = Some(policy);
-                    self
+        self.instruction.policy = Some(policy);
+        self
     }
-      /// Mark writable in remaining accounts if needed.
-#[inline(always)]
+    /// Mark writable in remaining accounts if needed.
+    #[inline(always)]
     pub fn wallet(&mut self, wallet: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.wallet = Some(wallet);
-                    self
+        self.instruction.wallet = Some(wallet);
+        self
     }
-      #[inline(always)]
-    pub fn slot_hashes(&mut self, slot_hashes: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.slot_hashes = Some(slot_hashes);
-                    self
+    #[inline(always)]
+    pub fn slot_hashes(
+        &mut self,
+        slot_hashes: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.slot_hashes = Some(slot_hashes);
+        self
     }
-      #[inline(always)]
-    pub fn instructions_sysvar(&mut self, instructions_sysvar: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.instructions_sysvar = Some(instructions_sysvar);
-                    self
+    #[inline(always)]
+    pub fn instructions_sysvar(
+        &mut self,
+        instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.instructions_sysvar = Some(instructions_sysvar);
+        self
     }
-                    #[inline(always)]
-      pub fn compact_instructions(&mut self, compact_instructions: Vec<CompactInstruction>) -> &mut Self {
+    #[inline(always)]
+    pub fn compact_instructions(
+        &mut self,
+        compact_instructions: Vec<CompactInstruction>,
+    ) -> &mut Self {
         self.instruction.compact_instructions = Some(compact_instructions);
         self
-      }
-                #[inline(always)]
-      pub fn secp256r1_verify_args(&mut self, secp256r1_verify_args: Secp256r1VerifyArgs) -> &mut Self {
+    }
+    #[inline(always)]
+    pub fn secp256r1_verify_args(
+        &mut self,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> &mut Self {
         self.instruction.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
-      }
-                #[inline(always)]
-      pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
+    }
+    #[inline(always)]
+    pub fn slot_number(&mut self, slot_number: u64) -> &mut Self {
         self.instruction.slot_number = Some(slot_number);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
-    self.instruction.__remaining_accounts.push((account, is_writable, is_signer));
-    self
-  }
-  /// Add additional accounts to the instruction.
-  ///
-  /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
-  /// and a `bool` indicating whether the account is a signer or not.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> &mut Self {
-    self.instruction.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed(&[])
-  }
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = ExecuteWithAccessoryInstructionArgs {
-                                                              compact_instructions: self.instruction.compact_instructions.clone().expect("compact_instructions is not set"),
-                                                                  secp256r1_verify_args: self.instruction.secp256r1_verify_args.clone().expect("secp256r1_verify_args is not set"),
-                                                                  slot_number: self.instruction.slot_number.clone().expect("slot_number is not set"),
-                                    };
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(
+        &mut self,
+        account: &'b solana_account_info::AccountInfo<'a>,
+        is_writable: bool,
+        is_signer: bool,
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .push((account, is_writable, is_signer));
+        self
+    }
+    /// Add additional accounts to the instruction.
+    ///
+    /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
+    /// and a `bool` indicating whether the account is a signer or not.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .extend_from_slice(accounts);
+        self
+    }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed(&[])
+    }
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        let args = ExecuteWithAccessoryInstructionArgs {
+            compact_instructions: self
+                .instruction
+                .compact_instructions
+                .clone()
+                .expect("compact_instructions is not set"),
+            secp256r1_verify_args: self
+                .instruction
+                .secp256r1_verify_args
+                .clone()
+                .expect("secp256r1_verify_args is not set"),
+            slot_number: self
+                .instruction
+                .slot_number
+                .clone()
+                .expect("slot_number is not set"),
+        };
         let instruction = ExecuteWithAccessoryCpi {
-        __program: self.instruction.__program,
-                  
-          phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
-                  
-          policy: self.instruction.policy.expect("policy is not set"),
-                  
-          wallet: self.instruction.wallet.expect("wallet is not set"),
-                  
-          slot_hashes: self.instruction.slot_hashes.expect("slot_hashes is not set"),
-                  
-          instructions_sysvar: self.instruction.instructions_sysvar.expect("instructions_sysvar is not set"),
-                          __args: args,
-            };
-    instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
-  }
+            __program: self.instruction.__program,
+
+            phygital_token: self
+                .instruction
+                .phygital_token
+                .expect("phygital_token is not set"),
+
+            policy: self.instruction.policy.expect("policy is not set"),
+
+            wallet: self.instruction.wallet.expect("wallet is not set"),
+
+            slot_hashes: self
+                .instruction
+                .slot_hashes
+                .expect("slot_hashes is not set"),
+
+            instructions_sysvar: self
+                .instruction
+                .instructions_sysvar
+                .expect("instructions_sysvar is not set"),
+            __args: args,
+        };
+        instruction.invoke_signed_with_remaining_accounts(
+            signers_seeds,
+            &self.instruction.__remaining_accounts,
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
 struct ExecuteWithAccessoryCpiBuilderInstruction<'a, 'b> {
-  __program: &'b solana_account_info::AccountInfo<'a>,
-            phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
-                policy: Option<&'b solana_account_info::AccountInfo<'a>>,
-                wallet: Option<&'b solana_account_info::AccountInfo<'a>>,
-                slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
-                instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
-                        compact_instructions: Option<Vec<CompactInstruction>>,
-                secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
-                slot_number: Option<u64>,
-        /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
-  __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
+    __program: &'b solana_account_info::AccountInfo<'a>,
+    phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
+    policy: Option<&'b solana_account_info::AccountInfo<'a>>,
+    wallet: Option<&'b solana_account_info::AccountInfo<'a>>,
+    slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
+    instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
+    compact_instructions: Option<Vec<CompactInstruction>>,
+    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
+    slot_number: Option<u64>,
+    /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
+    __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }
-

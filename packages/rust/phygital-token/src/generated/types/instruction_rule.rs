@@ -7,16 +7,14 @@
 
 use crate::generated::types::AccountConstraint;
 use crate::generated::types::DataConstraint;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct InstructionRule {
-pub selector: Vec<u8>,
-pub data_length: Option<u16>,
-pub account_count: Option<u8>,
-pub accounts: Vec<AccountConstraint>,
-pub arguments: Vec<DataConstraint>,
+    pub selector: Vec<u8>,
+    pub data_length: Option<u16>,
+    pub account_count: Option<u8>,
+    pub accounts: Vec<AccountConstraint>,
+    pub arguments: Vec<DataConstraint>,
 }
-
-

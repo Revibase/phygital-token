@@ -1,9 +1,12 @@
+// Codama's JS renderer emits extensionless relative imports, which NodeNext
+// module resolution rejects. Rewrite them to `.js` / `/index.js` after
+// `codama run js`. Only the generated folder is touched.
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
-const srcRoot = join(packageRoot, "src");
+const generatedRoot = join(packageRoot, "src", "generated");
 
 function walk(dir) {
   const files = [];
@@ -51,6 +54,6 @@ function fixFile(file) {
   }
 }
 
-for (const file of walk(srcRoot)) {
+for (const file of walk(generatedRoot)) {
   fixFile(file);
 }

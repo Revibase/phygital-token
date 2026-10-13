@@ -5,323 +5,349 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use solana_address::Address;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
+use solana_address::Address;
 
 pub const SET_ADMIN_DISCRIMINATOR: [u8; 8] = [251, 163, 0, 52, 91, 194, 187, 92];
 
 /// Accounts.
 #[derive(Debug)]
 pub struct SetAdmin {
-      
-              
-          pub admin: solana_address::Address,
-          
-              
-          pub admin_config: solana_address::Address,
-      }
+    pub admin: solana_address::Address,
+
+    pub admin_config: solana_address::Address,
+}
 
 impl SetAdmin {
-  pub fn instruction(&self, args: SetAdminInstructionArgs) -> solana_instruction::Instruction {
-    self.instruction_with_remaining_accounts(args, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: SetAdminInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.admin,
-            true
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            self.admin_config,
-            false
-          ));
-                      accounts.extend_from_slice(remaining_accounts);
-    let mut data = SetAdminInstructionData::new().try_to_vec().unwrap();
-          let mut args = args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
+    pub fn instruction(&self, args: SetAdminInstructionArgs) -> solana_instruction::Instruction {
+        self.instruction_with_remaining_accounts(args, &[])
     }
-  }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn instruction_with_remaining_accounts(
+        &self,
+        args: SetAdminInstructionArgs,
+        remaining_accounts: &[solana_instruction::AccountMeta],
+    ) -> solana_instruction::Instruction {
+        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.admin, true,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new(
+            self.admin_config,
+            false,
+        ));
+        accounts.extend_from_slice(remaining_accounts);
+        let mut data = SetAdminInstructionData::new().try_to_vec().unwrap();
+        let mut args = args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        }
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct SetAdminInstructionData {
-            discriminator: [u8; 8],
-            }
+pub struct SetAdminInstructionData {
+    discriminator: [u8; 8],
+}
 
 impl SetAdminInstructionData {
-  pub fn new() -> Self {
-    Self {
-                        discriminator: [251, 163, 0, 52, 91, 194, 187, 92],
-                                }
-  }
+    pub fn new() -> Self {
+        Self {
+            discriminator: [251, 163, 0, 52, 91, 194, 187, 92],
+        }
+    }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
-  }
+        borsh::to_vec(self)
+    }
+}
 
 impl Default for SetAdminInstructionData {
-  fn default() -> Self {
-    Self::new()
-  }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct SetAdminInstructionArgs {
-                  pub new_admin: Address,
-      }
-
-impl SetAdminInstructionArgs {
-  pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
+pub struct SetAdminInstructionArgs {
+    pub new_admin: Address,
 }
 
+impl SetAdminInstructionArgs {
+    pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
+        borsh::to_vec(self)
+    }
+}
 
 /// Instruction builder for `SetAdmin`.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` admin
-                ///   1. `[writable]` admin_config
+///   0. `[signer]` admin
+///   1. `[writable]` admin_config
 #[derive(Clone, Debug, Default)]
 pub struct SetAdminBuilder {
-            admin: Option<solana_address::Address>,
-                admin_config: Option<solana_address::Address>,
-                        new_admin: Option<Address>,
-        __remaining_accounts: Vec<solana_instruction::AccountMeta>,
+    admin: Option<solana_address::Address>,
+    admin_config: Option<solana_address::Address>,
+    new_admin: Option<Address>,
+    __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl SetAdminBuilder {
-  pub fn new() -> Self {
-    Self::default()
-  }
-            #[inline(always)]
+    pub fn new() -> Self {
+        Self::default()
+    }
+    #[inline(always)]
     pub fn admin(&mut self, admin: solana_address::Address) -> &mut Self {
-                        self.admin = Some(admin);
-                    self
+        self.admin = Some(admin);
+        self
     }
-            #[inline(always)]
+    #[inline(always)]
     pub fn admin_config(&mut self, admin_config: solana_address::Address) -> &mut Self {
-                        self.admin_config = Some(admin_config);
-                    self
+        self.admin_config = Some(admin_config);
+        self
     }
-                    #[inline(always)]
-      pub fn new_admin(&mut self, new_admin: Address) -> &mut Self {
+    #[inline(always)]
+    pub fn new_admin(&mut self, new_admin: Address) -> &mut Self {
         self.new_admin = Some(new_admin);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
-    self.__remaining_accounts.push(account);
-    self
-  }
-  /// Add additional accounts to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[solana_instruction::AccountMeta]) -> &mut Self {
-    self.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[allow(clippy::clone_on_copy)]
-  pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = SetAdmin {
-                              admin: self.admin.expect("admin is not set"),
-                                        admin_config: self.admin_config.expect("admin_config is not set"),
-                      };
-          let args = SetAdminInstructionArgs {
-                                                              new_admin: self.new_admin.clone().expect("new_admin is not set"),
-                                    };
-    
-    accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
-  }
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
+        self.__remaining_accounts.push(account);
+        self
+    }
+    /// Add additional accounts to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> &mut Self {
+        self.__remaining_accounts.extend_from_slice(accounts);
+        self
+    }
+    #[allow(clippy::clone_on_copy)]
+    pub fn instruction(&self) -> solana_instruction::Instruction {
+        let accounts = SetAdmin {
+            admin: self.admin.expect("admin is not set"),
+            admin_config: self.admin_config.expect("admin_config is not set"),
+        };
+        let args = SetAdminInstructionArgs {
+            new_admin: self.new_admin.clone().expect("new_admin is not set"),
+        };
+
+        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
+    }
 }
 
-  /// `set_admin` CPI accounts.
-  pub struct SetAdminCpiAccounts<'a, 'b> {
-          
-                    
-              pub admin: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub admin_config: &'b solana_account_info::AccountInfo<'a>,
-            }
+/// `set_admin` CPI accounts.
+pub struct SetAdminCpiAccounts<'a, 'b> {
+    pub admin: &'b solana_account_info::AccountInfo<'a>,
+
+    pub admin_config: &'b solana_account_info::AccountInfo<'a>,
+}
 
 /// `set_admin` CPI instruction.
 pub struct SetAdminCpi<'a, 'b> {
-  /// The program to invoke.
-  pub __program: &'b solana_account_info::AccountInfo<'a>,
-      
-              
-          pub admin: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub admin_config: &'b solana_account_info::AccountInfo<'a>,
-            /// The arguments for the instruction.
+    /// The program to invoke.
+    pub __program: &'b solana_account_info::AccountInfo<'a>,
+
+    pub admin: &'b solana_account_info::AccountInfo<'a>,
+
+    pub admin_config: &'b solana_account_info::AccountInfo<'a>,
+    /// The arguments for the instruction.
     pub __args: SetAdminInstructionArgs,
-  }
+}
 
 impl<'a, 'b> SetAdminCpi<'a, 'b> {
-  pub fn new(
-    program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: SetAdminCpiAccounts<'a, 'b>,
-              args: SetAdminInstructionArgs,
-      ) -> Self {
-    Self {
-      __program: program,
-              admin: accounts.admin,
-              admin_config: accounts.admin_config,
-                    __args: args,
-          }
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], &[])
-  }
-  #[inline(always)]
-  pub fn invoke_with_remaining_accounts(&self, remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
-  }
-  #[inline(always)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed_with_remaining_accounts(
-    &self,
-    signers_seeds: &[&[&[u8]]],
-    remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
-  ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(2+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.admin.key,
-            true
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new(
-            *self.admin_config.key,
-            false
-          ));
-                      remaining_accounts.iter().for_each(|remaining_account| {
-      accounts.push(solana_instruction::AccountMeta {
-          pubkey: *remaining_account.0.key,
-          is_signer: remaining_account.1,
-          is_writable: remaining_account.2,
-      })
-    });
-    let mut data = SetAdminInstructionData::new().try_to_vec().unwrap();
-          let mut args = self.__args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    let instruction = solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
-    };
-    let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
-    account_infos.push(self.__program.clone());
-                  account_infos.push(self.admin.clone());
-                        account_infos.push(self.admin_config.clone());
-              remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
-
-    if signers_seeds.is_empty() {
-      solana_cpi::invoke(&instruction, &account_infos)
-    } else {
-      solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+    pub fn new(
+        program: &'b solana_account_info::AccountInfo<'a>,
+        accounts: SetAdminCpiAccounts<'a, 'b>,
+        args: SetAdminInstructionArgs,
+    ) -> Self {
+        Self {
+            __program: program,
+            admin: accounts.admin,
+            admin_config: accounts.admin_config,
+            __args: args,
+        }
     }
-  }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], &[])
+    }
+    #[inline(always)]
+    pub fn invoke_with_remaining_accounts(
+        &self,
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
+    }
+    #[inline(always)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
+    }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed_with_remaining_accounts(
+        &self,
+        signers_seeds: &[&[&[u8]]],
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.admin.key,
+            true,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new(
+            *self.admin_config.key,
+            false,
+        ));
+        remaining_accounts.iter().for_each(|remaining_account| {
+            accounts.push(solana_instruction::AccountMeta {
+                pubkey: *remaining_account.0.key,
+                is_signer: remaining_account.1,
+                is_writable: remaining_account.2,
+            })
+        });
+        let mut data = SetAdminInstructionData::new().try_to_vec().unwrap();
+        let mut args = self.__args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        let instruction = solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        };
+        let mut account_infos = Vec::with_capacity(3 + remaining_accounts.len());
+        account_infos.push(self.__program.clone());
+        account_infos.push(self.admin.clone());
+        account_infos.push(self.admin_config.clone());
+        remaining_accounts
+            .iter()
+            .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
+
+        if signers_seeds.is_empty() {
+            solana_cpi::invoke(&instruction, &account_infos)
+        } else {
+            solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+        }
+    }
 }
 
 /// Instruction builder for `SetAdmin` via CPI.
 ///
 /// ### Accounts:
 ///
-                ///   0. `[signer]` admin
-                ///   1. `[writable]` admin_config
+///   0. `[signer]` admin
+///   1. `[writable]` admin_config
 #[derive(Clone, Debug)]
 pub struct SetAdminCpiBuilder<'a, 'b> {
-  instruction: Box<SetAdminCpiBuilderInstruction<'a, 'b>>,
+    instruction: Box<SetAdminCpiBuilderInstruction<'a, 'b>>,
 }
 
 impl<'a, 'b> SetAdminCpiBuilder<'a, 'b> {
-  pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(SetAdminCpiBuilderInstruction {
-      __program: program,
-              admin: None,
-              admin_config: None,
-                                            new_admin: None,
-                    __remaining_accounts: Vec::new(),
-    });
-    Self { instruction }
-  }
-      #[inline(always)]
+    pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
+        let instruction = Box::new(SetAdminCpiBuilderInstruction {
+            __program: program,
+            admin: None,
+            admin_config: None,
+            new_admin: None,
+            __remaining_accounts: Vec::new(),
+        });
+        Self { instruction }
+    }
+    #[inline(always)]
     pub fn admin(&mut self, admin: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.admin = Some(admin);
-                    self
+        self.instruction.admin = Some(admin);
+        self
     }
-      #[inline(always)]
-    pub fn admin_config(&mut self, admin_config: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.admin_config = Some(admin_config);
-                    self
+    #[inline(always)]
+    pub fn admin_config(
+        &mut self,
+        admin_config: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.admin_config = Some(admin_config);
+        self
     }
-                    #[inline(always)]
-      pub fn new_admin(&mut self, new_admin: Address) -> &mut Self {
+    #[inline(always)]
+    pub fn new_admin(&mut self, new_admin: Address) -> &mut Self {
         self.instruction.new_admin = Some(new_admin);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
-    self.instruction.__remaining_accounts.push((account, is_writable, is_signer));
-    self
-  }
-  /// Add additional accounts to the instruction.
-  ///
-  /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
-  /// and a `bool` indicating whether the account is a signer or not.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> &mut Self {
-    self.instruction.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed(&[])
-  }
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = SetAdminInstructionArgs {
-                                                              new_admin: self.instruction.new_admin.clone().expect("new_admin is not set"),
-                                    };
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(
+        &mut self,
+        account: &'b solana_account_info::AccountInfo<'a>,
+        is_writable: bool,
+        is_signer: bool,
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .push((account, is_writable, is_signer));
+        self
+    }
+    /// Add additional accounts to the instruction.
+    ///
+    /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
+    /// and a `bool` indicating whether the account is a signer or not.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .extend_from_slice(accounts);
+        self
+    }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed(&[])
+    }
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        let args = SetAdminInstructionArgs {
+            new_admin: self
+                .instruction
+                .new_admin
+                .clone()
+                .expect("new_admin is not set"),
+        };
         let instruction = SetAdminCpi {
-        __program: self.instruction.__program,
-                  
-          admin: self.instruction.admin.expect("admin is not set"),
-                  
-          admin_config: self.instruction.admin_config.expect("admin_config is not set"),
-                          __args: args,
-            };
-    instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
-  }
+            __program: self.instruction.__program,
+
+            admin: self.instruction.admin.expect("admin is not set"),
+
+            admin_config: self
+                .instruction
+                .admin_config
+                .expect("admin_config is not set"),
+            __args: args,
+        };
+        instruction.invoke_signed_with_remaining_accounts(
+            signers_seeds,
+            &self.instruction.__remaining_accounts,
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
 struct SetAdminCpiBuilderInstruction<'a, 'b> {
-  __program: &'b solana_account_info::AccountInfo<'a>,
-            admin: Option<&'b solana_account_info::AccountInfo<'a>>,
-                admin_config: Option<&'b solana_account_info::AccountInfo<'a>>,
-                        new_admin: Option<Address>,
-        /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
-  __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
+    __program: &'b solana_account_info::AccountInfo<'a>,
+    admin: Option<&'b solana_account_info::AccountInfo<'a>>,
+    admin_config: Option<&'b solana_account_info::AccountInfo<'a>>,
+    new_admin: Option<Address>,
+    /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
+    __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }
-

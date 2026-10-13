@@ -5,15 +5,13 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 /// Indexes are into the execute instruction's remaining accounts.
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct CompactInstruction {
-pub program_id_index: u8,
-pub account_indexes: Vec<u8>,
-pub data: Vec<u8>,
+    pub program_id_index: u8,
+    pub account_indexes: Vec<u8>,
+    pub data: Vec<u8>,
 }
-
-

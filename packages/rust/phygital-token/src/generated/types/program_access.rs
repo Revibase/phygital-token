@@ -6,13 +6,11 @@
 //!
 
 use crate::generated::types::InstructionRule;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub enum ProgramAccess {
-AllInstructions,
-Restricted(Vec<InstructionRule>),
+    AllInstructions,
+    Restricted(Vec<InstructionRule>),
 }
-
-

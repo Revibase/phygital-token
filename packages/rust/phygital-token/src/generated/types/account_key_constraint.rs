@@ -5,15 +5,13 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use solana_address::Address;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
+use solana_address::Address;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub enum AccountKeyConstraint {
-Any,
-Address(Address),
-Wallet,
+    Any,
+    Address(Address),
+    Wallet,
 }
-
-

@@ -21,7 +21,8 @@
       "args": [
         "packages/rust/phygital-token",
         {
-          "generatedFolder": "src/generated"
+          "generatedFolder": "src/generated",
+          "formatCode": true
         }
       ]
     }

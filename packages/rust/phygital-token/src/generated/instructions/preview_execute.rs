@@ -6,415 +6,459 @@
 //!
 
 use crate::generated::types::CompactInstruction;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 pub const PREVIEW_EXECUTE_DISCRIMINATOR: [u8; 8] = [245, 77, 199, 240, 123, 2, 3, 18];
 
 /// Accounts.
 #[derive(Debug)]
 pub struct PreviewExecute {
-      
-              
-          pub phygital_token: solana_address::Address,
-          
-              
-          pub policy: solana_address::Address,
-          
-              
-          pub wallet: solana_address::Address,
-          
-              
-          pub instructions_sysvar: solana_address::Address,
-      }
+    pub phygital_token: solana_address::Address,
+
+    pub policy: solana_address::Address,
+
+    pub wallet: solana_address::Address,
+
+    pub instructions_sysvar: solana_address::Address,
+}
 
 impl PreviewExecute {
-  pub fn instruction(&self, args: PreviewExecuteInstructionArgs) -> solana_instruction::Instruction {
-    self.instruction_with_remaining_accounts(args, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn instruction_with_remaining_accounts(&self, args: PreviewExecuteInstructionArgs, remaining_accounts: &[solana_instruction::AccountMeta]) -> solana_instruction::Instruction {
-    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.phygital_token,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.policy,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.wallet,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.instructions_sysvar,
-            false
-          ));
-                      accounts.extend_from_slice(remaining_accounts);
-    let mut data = PreviewExecuteInstructionData::new().try_to_vec().unwrap();
-          let mut args = args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
+    pub fn instruction(
+        &self,
+        args: PreviewExecuteInstructionArgs,
+    ) -> solana_instruction::Instruction {
+        self.instruction_with_remaining_accounts(args, &[])
     }
-  }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn instruction_with_remaining_accounts(
+        &self,
+        args: PreviewExecuteInstructionArgs,
+        remaining_accounts: &[solana_instruction::AccountMeta],
+    ) -> solana_instruction::Instruction {
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.phygital_token,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.policy,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.wallet,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            self.instructions_sysvar,
+            false,
+        ));
+        accounts.extend_from_slice(remaining_accounts);
+        let mut data = PreviewExecuteInstructionData::new().try_to_vec().unwrap();
+        let mut args = args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        }
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct PreviewExecuteInstructionData {
-            discriminator: [u8; 8],
-                  }
+pub struct PreviewExecuteInstructionData {
+    discriminator: [u8; 8],
+}
 
 impl PreviewExecuteInstructionData {
-  pub fn new() -> Self {
-    Self {
-                        discriminator: [245, 77, 199, 240, 123, 2, 3, 18],
-                                              }
-  }
+    pub fn new() -> Self {
+        Self {
+            discriminator: [245, 77, 199, 240, 123, 2, 3, 18],
+        }
+    }
 
     pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
-  }
+        borsh::to_vec(self)
+    }
+}
 
 impl Default for PreviewExecuteInstructionData {
-  fn default() -> Self {
-    Self::new()
-  }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
- pub struct PreviewExecuteInstructionArgs {
-                  pub compact_instructions: Vec<CompactInstruction>,
-                pub origin: Option<String>,
-      }
-
-impl PreviewExecuteInstructionArgs {
-  pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
-    borsh::to_vec(self)
-  }
+pub struct PreviewExecuteInstructionArgs {
+    pub compact_instructions: Vec<CompactInstruction>,
+    pub origin: Option<String>,
 }
 
+impl PreviewExecuteInstructionArgs {
+    pub(crate) fn try_to_vec(&self) -> Result<Vec<u8>, std::io::Error> {
+        borsh::to_vec(self)
+    }
+}
 
 /// Instruction builder for `PreviewExecute`.
 ///
 /// ### Accounts:
 ///
-          ///   0. `[]` phygital_token
-          ///   1. `[]` policy
-          ///   2. `[]` wallet
-                ///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
+///   0. `[]` phygital_token
+///   1. `[]` policy
+///   2. `[]` wallet
+///   3. `[optional]` instructions_sysvar (default to `Sysvar1nstructions1111111111111111111111111`)
 #[derive(Clone, Debug, Default)]
 pub struct PreviewExecuteBuilder {
-            phygital_token: Option<solana_address::Address>,
-                policy: Option<solana_address::Address>,
-                wallet: Option<solana_address::Address>,
-                instructions_sysvar: Option<solana_address::Address>,
-                        compact_instructions: Option<Vec<CompactInstruction>>,
-                origin: Option<String>,
-        __remaining_accounts: Vec<solana_instruction::AccountMeta>,
+    phygital_token: Option<solana_address::Address>,
+    policy: Option<solana_address::Address>,
+    wallet: Option<solana_address::Address>,
+    instructions_sysvar: Option<solana_address::Address>,
+    compact_instructions: Option<Vec<CompactInstruction>>,
+    origin: Option<String>,
+    __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
 
 impl PreviewExecuteBuilder {
-  pub fn new() -> Self {
-    Self::default()
-  }
-            #[inline(always)]
+    pub fn new() -> Self {
+        Self::default()
+    }
+    #[inline(always)]
     pub fn phygital_token(&mut self, phygital_token: solana_address::Address) -> &mut Self {
-                        self.phygital_token = Some(phygital_token);
-                    self
+        self.phygital_token = Some(phygital_token);
+        self
     }
-            #[inline(always)]
+    #[inline(always)]
     pub fn policy(&mut self, policy: solana_address::Address) -> &mut Self {
-                        self.policy = Some(policy);
-                    self
+        self.policy = Some(policy);
+        self
     }
-            #[inline(always)]
+    #[inline(always)]
     pub fn wallet(&mut self, wallet: solana_address::Address) -> &mut Self {
-                        self.wallet = Some(wallet);
-                    self
+        self.wallet = Some(wallet);
+        self
     }
-            /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
-#[inline(always)]
-    pub fn instructions_sysvar(&mut self, instructions_sysvar: solana_address::Address) -> &mut Self {
-                        self.instructions_sysvar = Some(instructions_sysvar);
-                    self
+    /// `[optional account, default to 'Sysvar1nstructions1111111111111111111111111']`
+    #[inline(always)]
+    pub fn instructions_sysvar(
+        &mut self,
+        instructions_sysvar: solana_address::Address,
+    ) -> &mut Self {
+        self.instructions_sysvar = Some(instructions_sysvar);
+        self
     }
-                    #[inline(always)]
-      pub fn compact_instructions(&mut self, compact_instructions: Vec<CompactInstruction>) -> &mut Self {
+    #[inline(always)]
+    pub fn compact_instructions(
+        &mut self,
+        compact_instructions: Vec<CompactInstruction>,
+    ) -> &mut Self {
         self.compact_instructions = Some(compact_instructions);
         self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn origin(&mut self, origin: String) -> &mut Self {
+    }
+    /// `[optional argument]`
+    #[inline(always)]
+    pub fn origin(&mut self, origin: String) -> &mut Self {
         self.origin = Some(origin);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
-    self.__remaining_accounts.push(account);
-    self
-  }
-  /// Add additional accounts to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[solana_instruction::AccountMeta]) -> &mut Self {
-    self.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[allow(clippy::clone_on_copy)]
-  pub fn instruction(&self) -> solana_instruction::Instruction {
-    let accounts = PreviewExecute {
-                              phygital_token: self.phygital_token.expect("phygital_token is not set"),
-                                        policy: self.policy.expect("policy is not set"),
-                                        wallet: self.wallet.expect("wallet is not set"),
-                                        instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!("Sysvar1nstructions1111111111111111111111111")),
-                      };
-          let args = PreviewExecuteInstructionArgs {
-                                                              compact_instructions: self.compact_instructions.clone().expect("compact_instructions is not set"),
-                                                                  origin: self.origin.clone(),
-                                    };
-    
-    accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
-  }
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(&mut self, account: solana_instruction::AccountMeta) -> &mut Self {
+        self.__remaining_accounts.push(account);
+        self
+    }
+    /// Add additional accounts to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[solana_instruction::AccountMeta],
+    ) -> &mut Self {
+        self.__remaining_accounts.extend_from_slice(accounts);
+        self
+    }
+    #[allow(clippy::clone_on_copy)]
+    pub fn instruction(&self) -> solana_instruction::Instruction {
+        let accounts = PreviewExecute {
+            phygital_token: self.phygital_token.expect("phygital_token is not set"),
+            policy: self.policy.expect("policy is not set"),
+            wallet: self.wallet.expect("wallet is not set"),
+            instructions_sysvar: self.instructions_sysvar.unwrap_or(solana_address::address!(
+                "Sysvar1nstructions1111111111111111111111111"
+            )),
+        };
+        let args = PreviewExecuteInstructionArgs {
+            compact_instructions: self
+                .compact_instructions
+                .clone()
+                .expect("compact_instructions is not set"),
+            origin: self.origin.clone(),
+        };
+
+        accounts.instruction_with_remaining_accounts(args, &self.__remaining_accounts)
+    }
 }
 
-  /// `preview_execute` CPI accounts.
-  pub struct PreviewExecuteCpiAccounts<'a, 'b> {
-          
-                    
-              pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub policy: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub wallet: &'b solana_account_info::AccountInfo<'a>,
-                
-                    
-              pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-            }
+/// `preview_execute` CPI accounts.
+pub struct PreviewExecuteCpiAccounts<'a, 'b> {
+    pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
+
+    pub policy: &'b solana_account_info::AccountInfo<'a>,
+
+    pub wallet: &'b solana_account_info::AccountInfo<'a>,
+
+    pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+}
 
 /// `preview_execute` CPI instruction.
 pub struct PreviewExecuteCpi<'a, 'b> {
-  /// The program to invoke.
-  pub __program: &'b solana_account_info::AccountInfo<'a>,
-      
-              
-          pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub policy: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub wallet: &'b solana_account_info::AccountInfo<'a>,
-          
-              
-          pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
-            /// The arguments for the instruction.
+    /// The program to invoke.
+    pub __program: &'b solana_account_info::AccountInfo<'a>,
+
+    pub phygital_token: &'b solana_account_info::AccountInfo<'a>,
+
+    pub policy: &'b solana_account_info::AccountInfo<'a>,
+
+    pub wallet: &'b solana_account_info::AccountInfo<'a>,
+
+    pub instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+    /// The arguments for the instruction.
     pub __args: PreviewExecuteInstructionArgs,
-  }
+}
 
 impl<'a, 'b> PreviewExecuteCpi<'a, 'b> {
-  pub fn new(
-    program: &'b solana_account_info::AccountInfo<'a>,
-          accounts: PreviewExecuteCpiAccounts<'a, 'b>,
-              args: PreviewExecuteInstructionArgs,
-      ) -> Self {
-    Self {
-      __program: program,
-              phygital_token: accounts.phygital_token,
-              policy: accounts.policy,
-              wallet: accounts.wallet,
-              instructions_sysvar: accounts.instructions_sysvar,
-                    __args: args,
-          }
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], &[])
-  }
-  #[inline(always)]
-  pub fn invoke_with_remaining_accounts(&self, remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
-  }
-  #[inline(always)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-    self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
-  }
-  #[allow(clippy::arithmetic_side_effects)]
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed_with_remaining_accounts(
-    &self,
-    signers_seeds: &[&[&[u8]]],
-    remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]
-  ) -> solana_program_error::ProgramResult {
-    let mut accounts = Vec::with_capacity(4+ remaining_accounts.len());
-                            accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.phygital_token.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.policy.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.wallet.key,
-            false
-          ));
-                                          accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.instructions_sysvar.key,
-            false
-          ));
-                      remaining_accounts.iter().for_each(|remaining_account| {
-      accounts.push(solana_instruction::AccountMeta {
-          pubkey: *remaining_account.0.key,
-          is_signer: remaining_account.1,
-          is_writable: remaining_account.2,
-      })
-    });
-    let mut data = PreviewExecuteInstructionData::new().try_to_vec().unwrap();
-          let mut args = self.__args.try_to_vec().unwrap();
-      data.append(&mut args);
-    
-    let instruction = solana_instruction::Instruction {
-      program_id: crate::PHYGITAL_TOKEN_ID,
-      accounts,
-      data,
-    };
-    let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
-    account_infos.push(self.__program.clone());
-                  account_infos.push(self.phygital_token.clone());
-                        account_infos.push(self.policy.clone());
-                        account_infos.push(self.wallet.clone());
-                        account_infos.push(self.instructions_sysvar.clone());
-              remaining_accounts.iter().for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
-
-    if signers_seeds.is_empty() {
-      solana_cpi::invoke(&instruction, &account_infos)
-    } else {
-      solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+    pub fn new(
+        program: &'b solana_account_info::AccountInfo<'a>,
+        accounts: PreviewExecuteCpiAccounts<'a, 'b>,
+        args: PreviewExecuteInstructionArgs,
+    ) -> Self {
+        Self {
+            __program: program,
+            phygital_token: accounts.phygital_token,
+            policy: accounts.policy,
+            wallet: accounts.wallet,
+            instructions_sysvar: accounts.instructions_sysvar,
+            __args: args,
+        }
     }
-  }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], &[])
+    }
+    #[inline(always)]
+    pub fn invoke_with_remaining_accounts(
+        &self,
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(&[], remaining_accounts)
+    }
+    #[inline(always)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        self.invoke_signed_with_remaining_accounts(signers_seeds, &[])
+    }
+    #[allow(clippy::arithmetic_side_effects)]
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed_with_remaining_accounts(
+        &self,
+        signers_seeds: &[&[&[u8]]],
+        remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> solana_program_error::ProgramResult {
+        let mut accounts = Vec::with_capacity(4 + remaining_accounts.len());
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.phygital_token.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.policy.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.wallet.key,
+            false,
+        ));
+        accounts.push(solana_instruction::AccountMeta::new_readonly(
+            *self.instructions_sysvar.key,
+            false,
+        ));
+        remaining_accounts.iter().for_each(|remaining_account| {
+            accounts.push(solana_instruction::AccountMeta {
+                pubkey: *remaining_account.0.key,
+                is_signer: remaining_account.1,
+                is_writable: remaining_account.2,
+            })
+        });
+        let mut data = PreviewExecuteInstructionData::new().try_to_vec().unwrap();
+        let mut args = self.__args.try_to_vec().unwrap();
+        data.append(&mut args);
+
+        let instruction = solana_instruction::Instruction {
+            program_id: crate::PHYGITAL_TOKEN_ID,
+            accounts,
+            data,
+        };
+        let mut account_infos = Vec::with_capacity(5 + remaining_accounts.len());
+        account_infos.push(self.__program.clone());
+        account_infos.push(self.phygital_token.clone());
+        account_infos.push(self.policy.clone());
+        account_infos.push(self.wallet.clone());
+        account_infos.push(self.instructions_sysvar.clone());
+        remaining_accounts
+            .iter()
+            .for_each(|remaining_account| account_infos.push(remaining_account.0.clone()));
+
+        if signers_seeds.is_empty() {
+            solana_cpi::invoke(&instruction, &account_infos)
+        } else {
+            solana_cpi::invoke_signed(&instruction, &account_infos, signers_seeds)
+        }
+    }
 }
 
 /// Instruction builder for `PreviewExecute` via CPI.
 ///
 /// ### Accounts:
 ///
-          ///   0. `[]` phygital_token
-          ///   1. `[]` policy
-          ///   2. `[]` wallet
-          ///   3. `[]` instructions_sysvar
+///   0. `[]` phygital_token
+///   1. `[]` policy
+///   2. `[]` wallet
+///   3. `[]` instructions_sysvar
 #[derive(Clone, Debug)]
 pub struct PreviewExecuteCpiBuilder<'a, 'b> {
-  instruction: Box<PreviewExecuteCpiBuilderInstruction<'a, 'b>>,
+    instruction: Box<PreviewExecuteCpiBuilderInstruction<'a, 'b>>,
 }
 
 impl<'a, 'b> PreviewExecuteCpiBuilder<'a, 'b> {
-  pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
-    let instruction = Box::new(PreviewExecuteCpiBuilderInstruction {
-      __program: program,
-              phygital_token: None,
-              policy: None,
-              wallet: None,
-              instructions_sysvar: None,
-                                            compact_instructions: None,
-                                origin: None,
-                    __remaining_accounts: Vec::new(),
-    });
-    Self { instruction }
-  }
-      #[inline(always)]
-    pub fn phygital_token(&mut self, phygital_token: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.phygital_token = Some(phygital_token);
-                    self
+    pub fn new(program: &'b solana_account_info::AccountInfo<'a>) -> Self {
+        let instruction = Box::new(PreviewExecuteCpiBuilderInstruction {
+            __program: program,
+            phygital_token: None,
+            policy: None,
+            wallet: None,
+            instructions_sysvar: None,
+            compact_instructions: None,
+            origin: None,
+            __remaining_accounts: Vec::new(),
+        });
+        Self { instruction }
     }
-      #[inline(always)]
+    #[inline(always)]
+    pub fn phygital_token(
+        &mut self,
+        phygital_token: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.phygital_token = Some(phygital_token);
+        self
+    }
+    #[inline(always)]
     pub fn policy(&mut self, policy: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.policy = Some(policy);
-                    self
+        self.instruction.policy = Some(policy);
+        self
     }
-      #[inline(always)]
+    #[inline(always)]
     pub fn wallet(&mut self, wallet: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.wallet = Some(wallet);
-                    self
+        self.instruction.wallet = Some(wallet);
+        self
     }
-      #[inline(always)]
-    pub fn instructions_sysvar(&mut self, instructions_sysvar: &'b solana_account_info::AccountInfo<'a>) -> &mut Self {
-                        self.instruction.instructions_sysvar = Some(instructions_sysvar);
-                    self
+    #[inline(always)]
+    pub fn instructions_sysvar(
+        &mut self,
+        instructions_sysvar: &'b solana_account_info::AccountInfo<'a>,
+    ) -> &mut Self {
+        self.instruction.instructions_sysvar = Some(instructions_sysvar);
+        self
     }
-                    #[inline(always)]
-      pub fn compact_instructions(&mut self, compact_instructions: Vec<CompactInstruction>) -> &mut Self {
+    #[inline(always)]
+    pub fn compact_instructions(
+        &mut self,
+        compact_instructions: Vec<CompactInstruction>,
+    ) -> &mut Self {
         self.instruction.compact_instructions = Some(compact_instructions);
         self
-      }
-                /// `[optional argument]`
-#[inline(always)]
-      pub fn origin(&mut self, origin: String) -> &mut Self {
+    }
+    /// `[optional argument]`
+    #[inline(always)]
+    pub fn origin(&mut self, origin: String) -> &mut Self {
         self.instruction.origin = Some(origin);
         self
-      }
-        /// Add an additional account to the instruction.
-  #[inline(always)]
-  pub fn add_remaining_account(&mut self, account: &'b solana_account_info::AccountInfo<'a>, is_writable: bool, is_signer: bool) -> &mut Self {
-    self.instruction.__remaining_accounts.push((account, is_writable, is_signer));
-    self
-  }
-  /// Add additional accounts to the instruction.
-  ///
-  /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
-  /// and a `bool` indicating whether the account is a signer or not.
-  #[inline(always)]
-  pub fn add_remaining_accounts(&mut self, accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)]) -> &mut Self {
-    self.instruction.__remaining_accounts.extend_from_slice(accounts);
-    self
-  }
-  #[inline(always)]
-  pub fn invoke(&self) -> solana_program_error::ProgramResult {
-    self.invoke_signed(&[])
-  }
-  #[allow(clippy::clone_on_copy)]
-  #[allow(clippy::vec_init_then_push)]
-  pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
-          let args = PreviewExecuteInstructionArgs {
-                                                              compact_instructions: self.instruction.compact_instructions.clone().expect("compact_instructions is not set"),
-                                                                  origin: self.instruction.origin.clone(),
-                                    };
+    }
+    /// Add an additional account to the instruction.
+    #[inline(always)]
+    pub fn add_remaining_account(
+        &mut self,
+        account: &'b solana_account_info::AccountInfo<'a>,
+        is_writable: bool,
+        is_signer: bool,
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .push((account, is_writable, is_signer));
+        self
+    }
+    /// Add additional accounts to the instruction.
+    ///
+    /// Each account is represented by a tuple of the `AccountInfo`, a `bool` indicating whether the account is writable or not,
+    /// and a `bool` indicating whether the account is a signer or not.
+    #[inline(always)]
+    pub fn add_remaining_accounts(
+        &mut self,
+        accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
+    ) -> &mut Self {
+        self.instruction
+            .__remaining_accounts
+            .extend_from_slice(accounts);
+        self
+    }
+    #[inline(always)]
+    pub fn invoke(&self) -> solana_program_error::ProgramResult {
+        self.invoke_signed(&[])
+    }
+    #[allow(clippy::clone_on_copy)]
+    #[allow(clippy::vec_init_then_push)]
+    pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
+        let args = PreviewExecuteInstructionArgs {
+            compact_instructions: self
+                .instruction
+                .compact_instructions
+                .clone()
+                .expect("compact_instructions is not set"),
+            origin: self.instruction.origin.clone(),
+        };
         let instruction = PreviewExecuteCpi {
-        __program: self.instruction.__program,
-                  
-          phygital_token: self.instruction.phygital_token.expect("phygital_token is not set"),
-                  
-          policy: self.instruction.policy.expect("policy is not set"),
-                  
-          wallet: self.instruction.wallet.expect("wallet is not set"),
-                  
-          instructions_sysvar: self.instruction.instructions_sysvar.expect("instructions_sysvar is not set"),
-                          __args: args,
-            };
-    instruction.invoke_signed_with_remaining_accounts(signers_seeds, &self.instruction.__remaining_accounts)
-  }
+            __program: self.instruction.__program,
+
+            phygital_token: self
+                .instruction
+                .phygital_token
+                .expect("phygital_token is not set"),
+
+            policy: self.instruction.policy.expect("policy is not set"),
+
+            wallet: self.instruction.wallet.expect("wallet is not set"),
+
+            instructions_sysvar: self
+                .instruction
+                .instructions_sysvar
+                .expect("instructions_sysvar is not set"),
+            __args: args,
+        };
+        instruction.invoke_signed_with_remaining_accounts(
+            signers_seeds,
+            &self.instruction.__remaining_accounts,
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
 struct PreviewExecuteCpiBuilderInstruction<'a, 'b> {
-  __program: &'b solana_account_info::AccountInfo<'a>,
-            phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
-                policy: Option<&'b solana_account_info::AccountInfo<'a>>,
-                wallet: Option<&'b solana_account_info::AccountInfo<'a>>,
-                instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
-                        compact_instructions: Option<Vec<CompactInstruction>>,
-                origin: Option<String>,
-        /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
-  __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
+    __program: &'b solana_account_info::AccountInfo<'a>,
+    phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
+    policy: Option<&'b solana_account_info::AccountInfo<'a>>,
+    wallet: Option<&'b solana_account_info::AccountInfo<'a>>,
+    instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
+    compact_instructions: Option<Vec<CompactInstruction>>,
+    origin: Option<String>,
+    /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
+    __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,
 }
-

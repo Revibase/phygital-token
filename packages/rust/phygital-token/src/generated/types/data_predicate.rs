@@ -5,19 +5,17 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
-use crate::generated::types::NumericWidth;
 use crate::generated::types::Comparison;
-use borsh::BorshSerialize;
+use crate::generated::types::NumericWidth;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub enum DataPredicate {
-BytesEqual(Vec<u8>),
-Unsigned {
-width: NumericWidth,
-comparison: Comparison,
-value: u64,
-},
+    BytesEqual(Vec<u8>),
+    Unsigned {
+        width: NumericWidth,
+        comparison: Comparison,
+        value: u64,
+    },
 }
-
-

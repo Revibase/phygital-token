@@ -6,21 +6,19 @@
 //!
 
 use crate::generated::types::AccountKeyConstraint;
-use solana_address::Address;
 use crate::generated::types::DataConstraint;
-use borsh::BorshSerialize;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
+use solana_address::Address;
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct AccountConstraint {
-pub index: u8,
-pub key: AccountKeyConstraint,
-/// The program owning the account. A token account's owner field is data:
-/// match it with `data` (offset 32).
-pub owner: Option<Address>,
-pub is_signer: Option<bool>,
-pub is_writable: Option<bool>,
-pub data: Vec<DataConstraint>,
+    pub index: u8,
+    pub key: AccountKeyConstraint,
+    /// The program owning the account. A token account's owner field is data:
+    /// match it with `data` (offset 32).
+    pub owner: Option<Address>,
+    pub is_signer: Option<bool>,
+    pub is_writable: Option<bool>,
+    pub data: Vec<DataConstraint>,
 }
-
-
