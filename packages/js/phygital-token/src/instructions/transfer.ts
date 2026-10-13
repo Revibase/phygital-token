@@ -24,7 +24,7 @@ import { findPhygitalTokenPda } from "../utils/pdas/token.js";
 
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
-  /** Phygital token PDA derived from {@link secp256r1Pubkey}. */
+  /** Phygital token PDA derived from {@link TransferSession.secp256r1Pubkey}. */
   phygitalToken: Address;
   /** Base64url compressed secp256r1 passkey public key for the physical token. */
   secp256r1Pubkey: string;

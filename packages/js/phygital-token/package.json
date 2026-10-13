@@ -45,12 +45,15 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "prepublishOnly": "pnpm build",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "api:check": "pnpm build && api-extractor run",
+    "api:update": "pnpm build && api-extractor run --local"
   },
   "peerDependencies": {
     "@solana/kit": "^8.3.0"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "7.59.4",
     "@solana/kit": "^8.3.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
