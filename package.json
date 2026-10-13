@@ -21,7 +21,10 @@
     "@codama/renderers-rust": "^3.1.0",
     "codama": "^1.7.0",
     "prettier": "^2.6.2",
-    "typescript": "^5.7.3"
+    "typescript": "catalog:"
   },
-  "packageManager": "pnpm@11.9.0"
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=22.12.0"
+  }
 }

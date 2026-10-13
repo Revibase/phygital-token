@@ -23,12 +23,15 @@
     "phygital-token-sdk": "workspace:*"
   },
   "devDependencies": {
-    "@noble/curves": "^2.3.0",
-    "@noble/hashes": "^2.4.0",
-    "@types/node": "^22",
-    "typescript": "^6.0.3",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.8",
-    "wrangler": "^4.97.0"
+    "@noble/curves": "catalog:",
+    "@noble/hashes": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }
