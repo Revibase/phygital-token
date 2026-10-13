@@ -15,8 +15,8 @@ import {
   getTransactionDecoder,
   type Address,
 } from "@solana/kit";
-import { LeakScanner } from "./testing/kit/leaks.js";
-import { VirtualAuthenticator, navigatorFor } from "./testing/kit/index.js";
+import { LeakScanner } from "../testing/kit/leaks.js";
+import { VirtualAuthenticator, navigatorFor } from "../testing/kit/index.js";
 
 import {
   MAX_BLOB_BYTES,
@@ -24,10 +24,10 @@ import {
   REQUEST_FRESHNESS_WINDOW_MS,
   SEEN_REQUEST_IDS_LIMIT,
 } from "./constants.js";
-import { ed25519Verify } from "./crypto.js";
+import { ed25519Verify } from "./keys/crypto.js";
 import { base64ToBytes, bytesToBase64 } from "./encoding.js";
-import { decodeWalletBlob } from "./wallet-format.js";
-import { parseBlob, unwrapWallet } from "./wallet-service.js";
+import { decodeWalletBlob } from "./keys/wallet-format.js";
+import { parseBlob, unwrapWallet } from "./keys/wallet-service.js";
 import {
   createSignerHarness,
   PARENT_ORIGIN,
@@ -35,9 +35,9 @@ import {
   SIGNER_ORIGIN,
   type Posted,
   type SignerHarness,
-} from "./testing/harness.js";
-import { FakeBackupApi } from "./testing/fake-backup-api.js";
-import { MemoryBlobStore } from "./testing/memory-store.js";
+} from "../testing/harness.js";
+import { FakeBackupApi } from "../testing/fake-backup-api.js";
+import { MemoryBlobStore } from "../testing/memory-store.js";
 import {
   removeOwnerWire,
   executeWithOwnerWire,
@@ -45,7 +45,7 @@ import {
   randomAddress,
   foreignProgramWire,
   toB64,
-} from "./testing/tx-fixtures.js";
+} from "../testing/tx-fixtures.js";
 
 const addr = getAddressDecoder();
 const addrEnc = getAddressEncoder();

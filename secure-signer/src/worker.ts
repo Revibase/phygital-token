@@ -2,7 +2,7 @@
  * The signer origin's Worker: `/vault` (the partitioned-cookie blob store);
  * everything else is the static app, served with `deploy/_headers`.
  */
-import { handleVault, VAULT_PATH } from "./vault.js";
+import { handleVault, VAULT_PATH } from "./storage/vault.js";
 
 type Env = { ASSETS: { fetch(request: Request): Promise<Response> } };
 

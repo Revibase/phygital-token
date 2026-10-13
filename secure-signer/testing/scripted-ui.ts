@@ -4,9 +4,9 @@
  * assert what the user was shown (clear-sign summary, derived export key).
  */
 
-import type { SignerUi } from "../dispatcher.js";
-import type { TransactionSummary } from "../tx/policy.js";
-import type { GestureStart } from "../ui/ui.js";
+import type { SignerUi } from "../src/dispatcher.js";
+import type { TransactionSummary } from "../src/tx/policy.js";
+import type { GestureStart } from "../src/ui/ui.js";
 
 /**
  * - confirm: press the primary button

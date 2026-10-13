@@ -17,5 +17,5 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src", "scripts", "vite.config.ts", "vitest.config.ts"]
+  "include": ["src", "testing", "scripts", "vite.config.ts", "vitest.config.ts"]
 }

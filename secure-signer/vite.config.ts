@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { TLSSocket } from "node:tls";
 import { defineConfig, type Plugin } from "vite";
-import { handleVault, VAULT_PATH } from "./src/vault.js";
+import { handleVault, VAULT_PATH } from "./src/storage/vault.js";
 
 /** Serves `/vault` in dev with the same handler the Worker runs in production. */
 async function serveVault(req: IncomingMessage, res: ServerResponse, next: () => void) {

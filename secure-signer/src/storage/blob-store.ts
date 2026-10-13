@@ -7,11 +7,11 @@
  * partitioned storage can accept a write and then drop it.
  */
 
-import { MAX_BLOB_BYTES } from "./constants.js";
-import { base64ToBytes, bytesToBase64 } from "./encoding.js";
+import { MAX_BLOB_BYTES } from "../constants.js";
+import { base64ToBytes, bytesToBase64 } from "../encoding.js";
 import { VAULT_PATH } from "./vault.js";
-import { parseBlob } from "./wallet-service.js";
-import type { ParsedWalletBlob } from "./wallet-format.js";
+import { parseBlob } from "../keys/wallet-service.js";
+import type { ParsedWalletBlob } from "../keys/wallet-format.js";
 
 export interface BlobStore {
   get(): Promise<Uint8Array | null>;

@@ -10,24 +10,33 @@
 
 import type { ResultPayload } from "./shared/protocol.js";
 import { getAddressDecoder, getBase58Decoder } from "@solana/kit";
-import type * as BackupApiModule from "./api-backup.js";
-import { CookieVaultStore, readLocalBlob, writeLocalBlob, type BlobStore } from "./blob-store.js";
+import type * as BackupApiModule from "./storage/api-backup.js";
+import {
+  CookieVaultStore,
+  readLocalBlob,
+  writeLocalBlob,
+  type BlobStore,
+} from "./storage/blob-store.js";
 import { MAX_CREDENTIAL_ID_BYTES, MAX_TX_BYTES, PUT_CHALLENGE_PREFIX } from "./constants.js";
 import { MAX_SIGN_MESSAGE_BYTES } from "./shared/protocol.js";
 import { base64ToBytes, bytesEqual, bytesToBase64, utf8ToBytes } from "./encoding.js";
-import { ed25519Sign } from "./crypto.js";
+import { ed25519Sign } from "./keys/crypto.js";
 import {
   errorResponse,
   RESULT_TYPE,
   validateInbound,
   type ErrorCode,
   type InboundRequest,
-} from "./protocol.js";
-import { digestHex, SignerState } from "./state.js";
+} from "./messaging/protocol.js";
+import { digestHex, SignerState } from "./messaging/state.js";
 import { decodeTransaction } from "./tx/decode.js";
 import { evaluatePolicy, previewPolicy, type TransactionSummary } from "./tx/policy.js";
 import type * as UiModule from "./ui/ui.js";
-import { PrfUnsupported, WebAuthnUnsupported, type DiscoverablePrfResult } from "./webauthn.js";
+import {
+  PrfUnsupported,
+  WebAuthnUnsupported,
+  type DiscoverablePrfResult,
+} from "./keys/webauthn.js";
 import {
   decryptWallet,
   enrollExistingCredential,
@@ -36,8 +45,8 @@ import {
   signAndScrub,
   unwrapWallet,
   type PrfProvider,
-} from "./wallet-service.js";
-import type { ParsedWalletBlob } from "./wallet-format.js";
+} from "./keys/wallet-service.js";
+import type { ParsedWalletBlob } from "./keys/wallet-format.js";
 
 /** The trusted in-iframe UI (ui/ui.ts) as used by the dispatcher. */
 export type SignerUi = Pick<

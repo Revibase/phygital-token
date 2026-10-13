@@ -14,7 +14,7 @@ import {
   decodeBase64UrlCapped,
   MAX_BLOB_BYTES,
   parseWalletBlobHeader,
-} from "./shared/wallet-blob.js";
+} from "../shared/wallet-blob.js";
 
 export const VAULT_PATH = "/vault";
 export const VAULT_COOKIE = "__Host-vault_blob";

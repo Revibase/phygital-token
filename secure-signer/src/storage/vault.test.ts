@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { createWallet, type PrfProvider } from "./wallet-service.js";
-import { bytesToBase64, utf8ToBytes } from "./encoding.js";
-import { sha256 } from "./crypto.js";
+import { createWallet, type PrfProvider } from "../keys/wallet-service.js";
+import { bytesToBase64, utf8ToBytes } from "../encoding.js";
+import { sha256 } from "../keys/crypto.js";
 import { handleVault, VAULT_COOKIE } from "./vault.js";
 
 const ORIGIN = "https://signer.revibase.test";

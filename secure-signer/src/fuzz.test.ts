@@ -5,9 +5,9 @@
  */
 import { describe, expect, it } from "vitest";
 import { base64ToBytes, DecodeError } from "./encoding.js";
-import { BlobError, decodeWalletBlob } from "./wallet-format.js";
+import { BlobError, decodeWalletBlob } from "./keys/wallet-format.js";
 import { decodeTransaction, TxError } from "./tx/decode.js";
-import { validateInbound } from "./protocol.js";
+import { validateInbound } from "./messaging/protocol.js";
 
 function randomBytes(maxLen: number): Uint8Array {
   const n = Math.floor(Math.random() * maxLen);

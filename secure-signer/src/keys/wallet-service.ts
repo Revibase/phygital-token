@@ -8,15 +8,15 @@ import {
   randomBytes,
   scrub,
 } from "./crypto.js";
-import { AES_GCM_IV_BYTES, KDF_SALT_BYTES } from "./constants.js";
-import { bytesEqual } from "./encoding.js";
+import { AES_GCM_IV_BYTES, KDF_SALT_BYTES } from "../constants.js";
+import { bytesEqual } from "../encoding.js";
 import {
   buildAad,
   decodeWalletBlob,
   encodeWalletBlob,
   type ParsedWalletBlob,
 } from "./wallet-format.js";
-import type { ErrorCode } from "./protocol.js";
+import type { ErrorCode } from "../messaging/protocol.js";
 import { PrfUnsupported } from "./webauthn.js";
 
 export class ServiceError extends Error {

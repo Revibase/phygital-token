@@ -7,8 +7,8 @@ import {
   EXPECTED_CIPHERTEXT_BYTES,
   type WalletBlobFields,
 } from "./wallet-format.js";
-import { bytesEqual } from "./encoding.js";
-import { MAX_BLOB_BYTES, MAX_CREDENTIAL_ID_BYTES } from "./constants.js";
+import { bytesEqual } from "../encoding.js";
+import { MAX_BLOB_BYTES, MAX_CREDENTIAL_ID_BYTES } from "../constants.js";
 
 function sample(): WalletBlobFields {
   return {

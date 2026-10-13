@@ -24,8 +24,8 @@ import {
   KDF_SALT_BYTES,
   MAX_BLOB_BYTES,
   MAX_CREDENTIAL_ID_BYTES,
-} from "./constants.js";
-import { bytesEqual, utf8ToBytes } from "./encoding.js";
+} from "../constants.js";
+import { bytesEqual, utf8ToBytes } from "../encoding.js";
 
 /** seed(32) + GCM tag(16) = fixed 48. Attacker-chosen sizes are rejected. */
 export const EXPECTED_CIPHERTEXT_BYTES = 48;

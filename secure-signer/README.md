@@ -25,24 +25,29 @@ secure-signer/
   src/
     shared/               # wire contract shared with the app (protocol, blob, challenges, API, RP ID)
     constants.ts          # parent origin, caps, fixed KDF params
-    protocol.ts           # postMessage schema validation
     encoding.ts           # bounded base64/base64url + constant-time compare
-    wallet-format.ts      # deterministic binary blob + AES-GCM AAD
-    crypto.ts             # WebCrypto HKDF/AES-GCM + @solana/kit Ed25519
-    wallet-service.ts     # PRF→HKDF→AES-GCM pipeline
-    state.ts              # state machine, replay/freshness, digest auth
-    webauthn.ts           # BrowserPrfProvider
-    api-backup.ts         # app worker backup client (/api/signer/*)
-    blob-store.ts         # local ciphertext via /vault
-    vault.ts              # /vault: partitioned HttpOnly cookie (Worker + dev server)
-    worker.ts             # signer Worker: /vault, then static assets
-    dispatcher.ts         # every flow: create, unlock, restore, sign, sign-in, export
-    tx/decode.ts          # @solana/kit legacy/v0/v1 decode + decompile
-    tx/policy.ts          # program allowlist + signer binding
-    tx/parser.ts          # phygital-token instruction decode
-    tx/clear-sign.ts      # human-readable summaries
+    messaging/            # the trust boundary with the parent page
+      protocol.ts         #   postMessage schema validation
+      state.ts            #   state machine, replay/freshness, digest auth
+    keys/                 # key material; nothing here leaves the signer origin
+      webauthn.ts         #   BrowserPrfProvider (PRF output from the passkey)
+      wallet-service.ts   #   PRF -> HKDF -> AES-GCM pipeline
+      wallet-format.ts    #   deterministic binary blob + AES-GCM AAD
+      crypto.ts           #   WebCrypto HKDF/AES-GCM + @solana/kit Ed25519
+    storage/              # where ciphertext lives
+      blob-store.ts       #   local ciphertext via /vault
+      vault.ts            #   /vault: partitioned HttpOnly cookie (Worker + dev server)
+      api-backup.ts       #   app worker backup client (/api/signer/*)
+    tx/                   # what is being signed
+      decode.ts           #   @solana/kit legacy/v0/v1 decode + decompile
+      policy.ts           #   program allowlist + signer binding
+      parser.ts           #   phygital-token instruction decode
+      clear-sign.ts       #   human-readable summaries
     ui/ui.ts              # trusted confirm/create/unlock/export screens
+    dispatcher.ts         # every flow: create, unlock, restore, sign, sign-in, export
+    worker.ts             # signer Worker: /vault, then static assets
     main.ts               # wiring
+  testing/                # test-only harness and fixtures (never bundled)
   deploy/_headers
   THREAT_MODEL.md
 ```

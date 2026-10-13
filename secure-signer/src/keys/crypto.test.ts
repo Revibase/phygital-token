@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HKDF_INFO, HKDF_INFO_LABEL, PRF_INPUT_LABEL, PRF_SALT } from "./constants.js";
+import { HKDF_INFO, HKDF_INFO_LABEL, PRF_INPUT_LABEL, PRF_SALT } from "../constants.js";
 import {
   aesGcmDecrypt,
   aesGcmEncrypt,
@@ -11,7 +11,7 @@ import {
   randomBytes,
   sha256,
 } from "./crypto.js";
-import { utf8ToBytes } from "./encoding.js";
+import { utf8ToBytes } from "../encoding.js";
 
 describe("crypto", () => {
   it("HKDF -> AES-GCM wraps and unwraps a seed with AAD binding", async () => {

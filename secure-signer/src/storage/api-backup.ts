@@ -10,8 +10,8 @@ import {
   type WalletBlobPutRequest,
   type WalletBlobRestoreRequest,
   type WalletBlobRestoreResponse,
-} from "./shared/api.js";
-import { MAX_BLOB_BYTES } from "./constants.js";
+} from "../shared/api.js";
+import { MAX_BLOB_BYTES } from "../constants.js";
 
 export const API_BASE_URL: string = (() => {
   const fromEnv = (import.meta.env?.VITE_API_BASE_URL as string | undefined)?.trim();

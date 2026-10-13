@@ -1,6 +1,6 @@
-import { PRF_SALT, RP_ID } from "./constants.js";
+import { PRF_SALT, RP_ID } from "../constants.js";
 import { randomBytes } from "./crypto.js";
-import { bytesToBase64 } from "./encoding.js";
+import { bytesToBase64 } from "../encoding.js";
 import type { PrfProvider, PrfResult } from "./wallet-service.js";
 
 export class WebAuthnUnsupported extends Error {}

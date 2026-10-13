@@ -21,7 +21,7 @@ import {
   getTransactionMessageComputeUnitLimit,
   getTransactionMessagePriorityFeeLamports,
 } from "@solana/kit";
-import type { ErrorCode } from "../protocol.js";
+import type { ErrorCode } from "../messaging/protocol.js";
 import type { DecodedTransaction } from "./decode.js";
 import {
   COMPUTE_BUDGET_PROGRAM,

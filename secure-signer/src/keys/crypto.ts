@@ -7,8 +7,8 @@ import {
   verifySignature,
 } from "@solana/kit";
 
-import { AES_GCM_TAG_BITS, AES_KEY_BITS, ED25519_PUBKEY_BYTES, HKDF_INFO } from "./constants.js";
-import { base64ToBytes } from "./encoding.js";
+import { AES_GCM_TAG_BITS, AES_KEY_BITS, ED25519_PUBKEY_BYTES, HKDF_INFO } from "../constants.js";
+import { base64ToBytes } from "../encoding.js";
 
 const subtle = globalThis.crypto.subtle;
 const ED25519_SEED_BYTES = 32;

@@ -11,7 +11,7 @@ import type { Address } from "@solana/kit";
 import { VirtualAuthenticator, navigatorFor } from "./kit/index.js";
 import { vi } from "vitest";
 
-import { base64ToBytes, bytesToBase64 } from "../encoding.js";
+import { base64ToBytes, bytesToBase64 } from "../src/encoding.js";
 import {
   createSignerHarness,
   PARENT_ORIGIN,

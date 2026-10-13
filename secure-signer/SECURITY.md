@@ -6,16 +6,16 @@ that hold it.
 
 | Guarantee | Where | Tests |
 |---|---|---|
-| Key material (PRF output, seed, plaintext key) never leaves the signer origin | `dispatcher.ts`, `wallet-service.ts` | leak scan on every posted message and API body in `src/dispatcher.test.ts` |
-| Only the parent frame on the configured origin is heard | `dispatcher.ts` (origin + `event.source`), `protocol.ts` (schema) | `dispatcher.test.ts` › message gate (origin, `event.source`, schema) |
-| Replay and staleness refused | `state.ts` | `state.test.ts`; `dispatcher.test.ts` › freshness and replay edges |
-| The exact bytes shown are the bytes signed, once | `state.ts`, `tx/decode.ts`, `tx/policy.ts` | `dispatcher.test.ts` › sign; `tx/policy.test.ts`, `fuzz.test.ts` |
+| Key material (PRF output, seed, plaintext key) never leaves the signer origin | `dispatcher.ts`, `keys/wallet-service.ts` | leak scan on every posted message and API body in `src/dispatcher.test.ts` |
+| Only the parent frame on the configured origin is heard | `dispatcher.ts` (origin + `event.source`), `messaging/protocol.ts` (schema) | `dispatcher.test.ts` › message gate (origin, `event.source`, schema) |
+| Replay and staleness refused | `messaging/state.ts` | `messaging/state.test.ts`; `dispatcher.test.ts` › freshness and replay edges |
+| The exact bytes shown are the bytes signed, once | `messaging/state.ts`, `tx/decode.ts`, `tx/policy.ts` | `dispatcher.test.ts` › sign; `tx/policy.test.ts`, `fuzz.test.ts` |
 | Signs only owner actions for its own address | `tx/policy.ts`, `tx/parser.ts` | `tx/policy.test.ts`; `dispatcher.test.ts` › WALLET_MISMATCH / POLICY_REJECTED |
 | Sign-in messages only for the parent site and this address | `dispatcher.ts` (`signInMessageProblem`) | `dispatcher.test.ts` › sign message |
-| Blob substitution fails | `wallet-format.ts` (AAD binds pubkey, credentialId, salt, rpId) | `wallet-format.test.ts`; `dispatcher.test.ts` › tampered blob, other-credential blob |
-| Decrypt failures don't leak which step failed | `wallet-service.ts` | `wallet-service.test.ts`; `dispatcher.test.ts` |
+| Blob substitution fails | `keys/wallet-format.ts` (AAD binds pubkey, credentialId, salt, rpId) | `keys/wallet-format.test.ts`; `dispatcher.test.ts` › tampered blob, other-credential blob |
+| Decrypt failures don't leak which step failed | `keys/wallet-service.ts` | `keys/wallet-service.test.ts`; `dispatcher.test.ts` |
 | No inline script can run on the signer origin | `deploy/_headers` CSP, `scripts/assert-no-inline.mjs` | build guard in `pnpm build` |
-| The local ciphertext is readable only by the signer's own same-origin requests | `vault.ts` (`__Host-`, HttpOnly, Partitioned cookie; same-origin checks, no CORS) | `vault.test.ts`, `blob-store.test.ts` |
+| The local ciphertext is readable only by the signer's own same-origin requests | `storage/vault.ts` (`__Host-`, HttpOnly, Partitioned cookie; same-origin checks, no CORS) | `storage/vault.test.ts`, `storage/blob-store.test.ts` |
 | The backup API only trusts the passkey and the wallet key | `app/src/lib/server/signer/backup.ts` | `app/test/signer-backup.test.ts` |
 | A backup belongs to the passkey key that registered it, not to whoever names its credential id first | `app/src/lib/server/signer/backup.ts`, migration `revibase_0011` | `app/test/signer-backup.test.ts` › squatter, cap |
 | Every confirm screen says what moves, how much and to whom, in words a person can check | `src/ui/confirm-model.ts`, `src/tx/clear-sign.ts`, `src/tx/parser.ts` | `src/ui/confirm-model.test.ts` (golden screens in `src/ui/__screens__/` + readability lint) |

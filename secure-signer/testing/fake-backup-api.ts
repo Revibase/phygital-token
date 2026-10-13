@@ -9,11 +9,11 @@
  * in the integration suites, not re-implemented here.
  */
 
-import type { BackupApi } from "../dispatcher.js";
-import { MAX_BLOB_BYTES, PUT_CHALLENGE_PREFIX } from "../constants.js";
-import { ed25519Verify, randomBytes } from "../crypto.js";
-import { base64ToBytes, bytesToBase64, utf8ToBytes } from "../encoding.js";
-import { decodeWalletBlob } from "../wallet-format.js";
+import type { BackupApi } from "../src/dispatcher.js";
+import { MAX_BLOB_BYTES, PUT_CHALLENGE_PREFIX } from "../src/constants.js";
+import { ed25519Verify, randomBytes } from "../src/keys/crypto.js";
+import { base64ToBytes, bytesToBase64, utf8ToBytes } from "../src/encoding.js";
+import { decodeWalletBlob } from "../src/keys/wallet-format.js";
 
 type Challenge = { challengeId: string; challenge: string };
 type PutParams = Parameters<BackupApi["backupWalletBlob"]>[0];

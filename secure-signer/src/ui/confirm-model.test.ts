@@ -11,7 +11,7 @@
 import { getAddressEncoder } from "@solana/kit";
 import { describe, expect, it } from "vitest";
 
-import { CATALOG, confirmScreenCatalog } from "../testing/tx-fixtures.js";
+import { CATALOG, confirmScreenCatalog } from "../../testing/tx-fixtures.js";
 import { decodeTransaction } from "../tx/decode.js";
 import { evaluatePolicy, type TransactionSummary } from "../tx/policy.js";
 import { confirmModel, isAddress, type ConfirmModel } from "./confirm-model.js";

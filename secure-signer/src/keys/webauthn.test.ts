@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { restoreWalletBlob } from "./api-backup.js";
-import { bytesToBase64 } from "./encoding.js";
+import { restoreWalletBlob } from "../storage/api-backup.js";
+import { bytesToBase64 } from "../encoding.js";
 import { BrowserPrfProvider, assertionToJSON } from "./webauthn.js";
 
 /**

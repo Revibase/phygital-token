@@ -1,4 +1,4 @@
-import type { BlobStore } from "../blob-store.js";
+import type { BlobStore } from "../src/storage/blob-store.js";
 
 /**
  * In-memory `BlobStore`. `mode` reproduces storage failures:

@@ -29,8 +29,8 @@ import {
   withRemainingAccounts,
 } from "phygital-token-sdk";
 
-import { randomBytes } from "../crypto.js";
-import { bytesToBase64 } from "../encoding.js";
+import { randomBytes } from "../src/keys/crypto.js";
+import { bytesToBase64 } from "../src/encoding.js";
 
 const addr = getAddressDecoder();
 const SYSTEM = "11111111111111111111111111111111" as Address;

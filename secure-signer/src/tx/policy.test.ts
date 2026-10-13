@@ -22,7 +22,7 @@ import {
   removeOwnerWire,
   setOwnerWire,
   updatePolicyWire,
-} from "../testing/tx-fixtures.js";
+} from "../../testing/tx-fixtures.js";
 import { decodeTransaction, TxError } from "./decode.js";
 import { evaluatePolicy, previewPolicy } from "./policy.js";
 

@@ -8,7 +8,7 @@ import {
   MAX_MESSAGE_BYTES,
   MAX_TX_BYTES,
   PROTOCOL_VERSION,
-} from "./constants.js";
+} from "../constants.js";
 import {
   MAX_SIGN_MESSAGE_BYTES,
   REQUEST_ID_PATTERN,
@@ -17,7 +17,7 @@ import {
   type RequestType,
   type SignerErrorCode,
   type SignerRequest,
-} from "./shared/protocol.js";
+} from "../shared/protocol.js";
 
 /**
  * Shared protocol definitions (message types, request/result shapes, error
@@ -26,7 +26,7 @@ import {
  */
 export type ErrorCode = SignerErrorCode;
 export type InboundRequest = SignerRequest;
-export { REQUEST_TYPES, RESULT_TYPE, type RequestType } from "./shared/protocol.js";
+export { REQUEST_TYPES, RESULT_TYPE, type RequestType } from "../shared/protocol.js";
 
 type Common = Pick<SignerRequest, "protocolVersion" | "requestId" | "timestamp">;
 

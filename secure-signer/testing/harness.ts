@@ -7,9 +7,9 @@
  * install a virtual `navigator` (phygital-test-kit/webauthn) before sending.
  */
 
-import type { BlobStore } from "../blob-store.js";
-import { createSignerDispatcher, type BackupApi, type SignerPrf } from "../dispatcher.js";
-import { BrowserPrfProvider } from "../webauthn.js";
+import type { BlobStore } from "../src/storage/blob-store.js";
+import { createSignerDispatcher, type BackupApi, type SignerPrf } from "../src/dispatcher.js";
+import { BrowserPrfProvider } from "../src/keys/webauthn.js";
 import { FakeBackupApi } from "./fake-backup-api.js";
 import { MemoryBlobStore } from "./memory-store.js";
 import { ScriptedUi } from "./scripted-ui.js";

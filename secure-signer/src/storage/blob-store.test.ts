@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CookieVaultStore, readLocalBlob, writeLocalBlob } from "./blob-store.js";
 import { handleVault, VAULT_COOKIE } from "./vault.js";
-import { MemoryBlobStore } from "./testing/memory-store.js";
-import { createWallet, type PrfProvider, type PrfResult } from "./wallet-service.js";
-import { randomBytes, sha256 } from "./crypto.js";
+import { MemoryBlobStore } from "../../testing/memory-store.js";
+import { createWallet, type PrfProvider, type PrfResult } from "../keys/wallet-service.js";
+import { randomBytes, sha256 } from "../keys/crypto.js";
 
 const utf8 = (s: string) => new TextEncoder().encode(s);
 

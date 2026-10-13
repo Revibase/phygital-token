@@ -107,7 +107,7 @@ describe("SignerState hardening (mutation-driven)", () => {
   });
 
   it("fixes finding #5: a full cache of fresh ids refuses new requests instead of evicting one", async () => {
-    const { SEEN_REQUEST_IDS_LIMIT } = await import("./constants.js");
+    const { SEEN_REQUEST_IDS_LIMIT } = await import("../constants.js");
     const now = 1_000_000;
     const s = new SignerState(() => now);
     for (let i = 0; i < SEEN_REQUEST_IDS_LIMIT - 1; i++) s.remember(`id-${i}`, now);
@@ -120,7 +120,7 @@ describe("SignerState hardening (mutation-driven)", () => {
   });
 
   it("forgets an id only once its timestamp is past the freshness window", async () => {
-    const { REQUEST_FRESHNESS_WINDOW_MS, SEEN_REQUEST_IDS_LIMIT } = await import("./constants.js");
+    const { REQUEST_FRESHNESS_WINDOW_MS, SEEN_REQUEST_IDS_LIMIT } = await import("../constants.js");
     let now = 1_000_000;
     const s = new SignerState(() => now);
     for (let i = 0; i < SEEN_REQUEST_IDS_LIMIT; i++) s.remember(`id-${i}`, now);
@@ -137,7 +137,7 @@ describe("SignerState hardening (mutation-driven)", () => {
   });
 
   it("holds a future-dated id until its own timestamp leaves the window", async () => {
-    const { REQUEST_FRESHNESS_WINDOW_MS } = await import("./constants.js");
+    const { REQUEST_FRESHNESS_WINDOW_MS } = await import("../constants.js");
     let now = 1_000_000;
     const s = new SignerState(() => now);
     const ts = now + REQUEST_FRESHNESS_WINDOW_MS;
@@ -147,7 +147,7 @@ describe("SignerState hardening (mutation-driven)", () => {
   });
 
   it("remembering the same id twice does not consume an extra cache slot", async () => {
-    const { SEEN_REQUEST_IDS_LIMIT } = await import("./constants.js");
+    const { SEEN_REQUEST_IDS_LIMIT } = await import("../constants.js");
     const now = 1_000_000;
     const s = new SignerState(() => now);
     s.remember("dup", now);

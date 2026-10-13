@@ -6,8 +6,8 @@
   "description": "Revibase passkey wallet: a non-custodial Solana signing iframe on its own origin. Assumes the parent is XSS-compromised.",
   "exports": {
     "./shared": "./src/shared/index.ts",
-    "./testing/kit": "./src/testing/kit/index.ts",
-    "./testing/tx-fixtures": "./src/testing/tx-fixtures.ts"
+    "./testing/kit": "./testing/kit/index.ts",
+    "./testing/tx-fixtures": "./testing/tx-fixtures.ts"
   },
   "scripts": {
     "dev": "vite",
