@@ -18,6 +18,21 @@ import {
 import { resolveWebAuthnRpId } from "./shared/webauthn.js";
 import { MAX_MESSAGE_BYTES, MAX_TX_BYTES, PROTOCOL_VERSION } from "./shared/protocol.js";
 
+/**
+ * A build-time setting the trust boundary depends on. Missing outside the test
+ * runner, the signer refuses to start instead of trusting a default (the
+ * build also fails first; see vite.config.ts).
+ */
+export function requiredBuildEnv(
+  name: "VITE_PARENT_ORIGIN" | "VITE_API_BASE_URL",
+  testDefault: string,
+): string {
+  const value = (import.meta.env?.[name] as string | undefined)?.trim();
+  if (value) return value;
+  if (import.meta.env?.MODE === "test") return testDefault;
+  throw new Error(`${name} must be set when building the signer`);
+}
+
 /** postMessage protocol version. Requests with any other value fail closed. */
 export { PROTOCOL_VERSION };
 
@@ -29,8 +44,10 @@ export { PROTOCOL_VERSION };
  * attacker running on the legitimate parent has the legitimate origin. It is a
  * necessary filter, not the authorization mechanism.
  */
-export const EXPECTED_PARENT_ORIGIN: string =
-  (import.meta.env?.VITE_PARENT_ORIGIN as string | undefined) ?? "http://localhost:5173";
+export const EXPECTED_PARENT_ORIGIN: string = requiredBuildEnv(
+  "VITE_PARENT_ORIGIN",
+  "http://localhost:5173",
+);
 
 /** WebAuthn RP ID shared with the app: create runs there, get + PRF here. */
 export const resolveRpId: (hostname: string, envRpId?: string) => string = resolveWebAuthnRpId;

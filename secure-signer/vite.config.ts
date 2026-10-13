@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { TLSSocket } from "node:tls";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import { handleVault, VAULT_PATH } from "./src/storage/vault.js";
 
 /** Serves `/vault` in dev with the same handler the Worker runs in production. */
@@ -53,9 +53,40 @@ const e2eTls = () => ({
   key: readFileSync(new URL("../app/.wrangler/e2e/tls/key.pem", import.meta.url)),
 });
 
+/**
+ * Build-time origins the signer trusts. A production build must name them
+ * explicitly: there is no default to fall back to.
+ */
+function buildOrigins(mode: string): { parent: string; api: string } {
+  const env = loadEnv(mode, process.cwd(), "VITE_");
+  const origin = (name: string): string => {
+    const value = env[name]?.trim();
+    if (!value) throw new Error(`${name} must be set for \`vite build --mode ${mode}\``);
+    return new URL(value).origin;
+  };
+  return { parent: origin("VITE_PARENT_ORIGIN"), api: origin("VITE_API_BASE_URL") };
+}
+
+/** Writes dist/_headers from deploy/_headers.template with the same origins. */
+const headers = (mode: string): Plugin => ({
+  name: "signer-headers",
+  apply: "build",
+  configResolved() {
+    buildOrigins(mode);
+  },
+  closeBundle() {
+    const { parent, api } = buildOrigins(mode);
+    const template = readFileSync(new URL("deploy/_headers.template", import.meta.url), "utf8");
+    writeFileSync(
+      new URL("dist/_headers", import.meta.url),
+      template.replaceAll("{{PARENT_ORIGIN}}", parent).replaceAll("{{API_ORIGIN}}", api),
+    );
+  },
+});
+
 export default defineConfig(({ mode }) => ({
   root: ".",
-  plugins: [vault],
+  plugins: [vault, headers(mode)],
   // phygital-token-sdk (Codama-generated) reads `process.env["NODE_ENV"]` at
   // module load. Vite's built-in define only substitutes the dot form, so we
   // replace `process.env` wholesale to keep the browser bundle from throwing

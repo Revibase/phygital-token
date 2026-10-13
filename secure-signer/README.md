@@ -52,7 +52,7 @@ secure-signer/
     worker.ts             # signer Worker: /vault, then static assets
     main.ts               # wiring
   testing/                # test-only harness and fixtures (never bundled)
-  deploy/_headers
+  deploy/_headers.template  # CSP and headers; build fills in the origins
   THREAT_MODEL.md
 ```
 
@@ -103,7 +103,7 @@ signer posts `{ type: "SIGNER_READY" }` on load and `SIGNER_HEIGHT` for sizing.
 ## Deployment
 
 ```bash
-pnpm --filter secure-signer deploy      # build, copy _headers, wrangler deploy
+pnpm --filter secure-signer deploy      # build (writes dist/_headers), wrangler deploy
 ```
 
 Serve `dist/` from a **separate origin** with the headers in `deploy/` (strict

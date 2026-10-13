@@ -1,5 +1,7 @@
 # Cloudflare Workers Assets `_headers` for the signer origin.
-# Copied into dist/ on deploy (`pnpm --filter secure-signer deploy`).
+# Template: `vite build` writes dist/_headers with {{PARENT_ORIGIN}} and
+# {{API_ORIGIN}} filled from VITE_PARENT_ORIGIN and VITE_API_BASE_URL, the same
+# values the signer's code trusts, so the CSP cannot drift from them.
 #
 # IMPORTANT: Workers merges matching rules. Do NOT put Cache-Control on `/*`
 # or it gets concatenated onto `/assets/*` as
@@ -7,7 +9,7 @@
 # and browsers treat that as no-store (defeating the CDN/browser cache).
 
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' https://portal.revibase.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors https://portal.revibase.com
+  Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' {{API_ORIGIN}}; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors {{PARENT_ORIGIN}}
   Permissions-Policy: publickey-credentials-get=(self), clipboard-write=(self)
   Referrer-Policy: no-referrer
   X-Content-Type-Options: nosniff

@@ -14,7 +14,7 @@ that hold it.
 | Sign-in messages only for the parent site and this address | `flows/sign-message.ts` (`signInMessageProblem`) | `dispatcher.test.ts` › sign message |
 | Blob substitution fails | `keys/wallet-format.ts` (AAD binds pubkey, credentialId, salt, rpId) | `keys/wallet-format.test.ts`; `dispatcher.test.ts` › tampered blob, other-credential blob |
 | Decrypt failures don't leak which step failed | `keys/wallet-service.ts` | `keys/wallet-service.test.ts`; `dispatcher.test.ts` |
-| No inline script can run on the signer origin | `deploy/_headers` CSP, `scripts/assert-no-inline.mjs` | build guard in `pnpm build` |
+| No inline script can run on the signer origin | `deploy/_headers.template` CSP (written to `dist/_headers` at build), `scripts/assert-no-inline.mjs` | build guard in `pnpm build` |
 | The local ciphertext is readable only by the signer's own same-origin requests | `storage/vault.ts` (`__Host-`, HttpOnly, Partitioned cookie; same-origin checks, no CORS) | `storage/vault.test.ts`, `storage/blob-store.test.ts` |
 | The backup API only trusts the passkey and the wallet key | `app/src/lib/server/signer/backup.ts` | `app/test/signer-backup.test.ts` |
 | A backup belongs to the passkey key that registered it, not to whoever names its credential id first | `app/src/lib/server/signer/backup.ts`, migration `revibase_0011` | `app/test/signer-backup.test.ts` › squatter, cap |

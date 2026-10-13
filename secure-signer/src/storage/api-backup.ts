@@ -11,20 +11,13 @@ import {
   type WalletBlobRestoreRequest,
   type WalletBlobRestoreResponse,
 } from "../shared/api.js";
-import { MAX_BLOB_BYTES } from "../constants.js";
+import { MAX_BLOB_BYTES, requiredBuildEnv } from "../constants.js";
 
-export const API_BASE_URL: string = (() => {
-  const fromEnv = (import.meta.env?.VITE_API_BASE_URL as string | undefined)?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-  const host =
-    typeof globalThis !== "undefined" && "location" in globalThis
-      ? (globalThis as { location?: { hostname: string } }).location?.hostname
-      : undefined;
-  if (host === "localhost" || host === "127.0.0.1") {
-    return "http://localhost:5173";
-  }
-  return "https://portal.revibase.com";
-})();
+/** The app worker's origin, which serves `/api/signer/*`. */
+export const API_BASE_URL: string = requiredBuildEnv(
+  "VITE_API_BASE_URL",
+  "http://localhost:5173",
+).replace(/\/$/, "");
 
 type Challenge = ChallengeResponse;
 
