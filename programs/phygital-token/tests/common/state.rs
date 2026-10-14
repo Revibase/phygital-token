@@ -12,6 +12,16 @@ impl TestContext {
             .expect("deserialize phygital_token")
     }
 
+    /// The token's owner, or `fallback` if it has none (or does not exist).
+    pub fn owner_or(&self, phygital_token: Pubkey, fallback: Pubkey) -> Pubkey {
+        self.svm
+            .get_account(&phygital_token)
+            .and_then(|account| PhygitalToken::try_deserialize(&mut account.data.as_ref()).ok())
+            .map(|token| token.owner)
+            .filter(|owner| *owner != Pubkey::default())
+            .unwrap_or(fallback)
+    }
+
     pub fn phygital_token_owner(&self, phygital_token: Pubkey) -> Pubkey {
         self.load_phygital_token(phygital_token).owner
     }

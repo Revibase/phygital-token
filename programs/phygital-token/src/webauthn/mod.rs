@@ -80,6 +80,12 @@ pub struct Secp256r1VerifyArgs {
 }
 
 impl Secp256r1VerifyArgs {
+    /// The raw `clientDataJSON.origin` value. Browsers set it; a client talking
+    /// CTAP2 to the authenticator can write anything, so treat it as a hint.
+    pub fn origin(&self) -> Result<&[u8]> {
+        json_quoted_value(&self.client_data_json, JSON_ORIGIN_KEY)
+    }
+
     /// Verifies the assertion against `expected_challenge` and returns the
     /// signing public key and the authenticator's sign count. The caller must
     /// still check the key belongs to the token and the count has advanced.

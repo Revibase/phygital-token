@@ -15,6 +15,8 @@ impl TestContext {
             accounts: phygital_token::accounts::SetOwner {
                 recipient,
                 phygital_token,
+                spend_policy: self.spend_policy_pda(phygital_token),
+                previous_owner: self.owner_or(phygital_token, recipient),
                 slot_hashes: SLOT_HASHES_SYSVAR_ID,
                 instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
             }

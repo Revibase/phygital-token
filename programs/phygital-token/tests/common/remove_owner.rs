@@ -9,6 +9,7 @@ impl TestContext {
             accounts: phygital_token::accounts::RemoveOwner {
                 owner,
                 phygital_token,
+                spend_policy: self.spend_policy_pda(phygital_token),
             }
             .to_account_metas(None),
             data: phygital_token::instruction::RemoveOwner {}.data(),

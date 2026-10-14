@@ -329,7 +329,7 @@ fn verify_rejects_a_registration_client_data_type() {
     let sign_count = ctx.next_sign_count(token.phygital_token);
     let (secp_ix, args) = passkey.secp256r1_instruction_for_challenge_with_type(
         "webauthn.create",
-        message_hash,
+        phygital_token::build_verify_challenge(&message_hash),
         sign_count,
     );
     let verify_ix = ctx.verify_ix(token.phygital_token, args, message_hash, None, None);
@@ -337,4 +337,21 @@ fn verify_rejects_a_registration_client_data_type() {
     let payer = ctx.payer.insecure_clone();
     let result = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[&payer]);
     assert_phygital_token_program_error(result, "ClientDataTypeMismatch");
+}
+
+/// The tap signs `message_hash` under the `verify` domain tag; the bare hash
+/// (which another instruction's challenge could equal) is refused.
+#[test]
+fn verify_rejects_an_untagged_message_hash() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let token = ctx.init_phygital_token(&passkey);
+    let message_hash = [8u8; 32];
+    let sign_count = ctx.next_sign_count(token.phygital_token);
+    let (secp_ix, args) = passkey.secp256r1_instruction_for_challenge(message_hash, sign_count);
+    let verify_ix = ctx.verify_ix(token.phygital_token, args, message_hash, None, None);
+
+    let payer = ctx.payer.insecure_clone();
+    let result = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[&payer]);
+    assert_phygital_token_program_error(result, "ChallengeHashMismatch");
 }

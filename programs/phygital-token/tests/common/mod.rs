@@ -8,10 +8,13 @@ mod admin;
 mod assertions;
 mod assign_mint;
 mod initialize;
+mod merchant;
 mod remove_owner;
 mod secp256r1;
 mod set_owner;
 mod slots;
+mod spend;
+mod spl;
 mod state;
 mod tx;
 mod verify;
@@ -35,6 +38,8 @@ use solana_signer::Signer;
 use solana_transaction::versioned::VersionedTransaction;
 
 pub use secp256r1::{current_slot_entry, TestPasskey};
+pub use spend::{daily_limit, PaySetup, Payment};
+pub use spl::{DECIMALS, SPL_TOKEN, TOKEN_2022};
 
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 pub const TEST_RP_ID: &str = "localhost";
@@ -123,6 +128,11 @@ impl TestContext {
         svm.airdrop(&payer.pubkey(), 10 * LAMPORTS_PER_SOL)
             .expect("airdrop payer");
 
+        // A realistic wall clock (2026-10-14T01:00:00Z) for expiry and daily limits.
+        let mut clock: Clock = svm.get_sysvar();
+        clock.unix_timestamp = 1_791_939_600;
+        svm.set_sysvar(&clock);
+
         let mut ctx = Self {
             svm,
             payer,
@@ -168,5 +178,13 @@ impl TestContext {
 
     pub fn admin_config_pda(&self) -> Pubkey {
         Pubkey::find_program_address(&[ADMIN_CONFIG_SEED], &self.program_id).0
+    }
+
+    pub fn spend_policy_pda(&self, phygital_token: Pubkey) -> Pubkey {
+        Pubkey::find_program_address(
+            &[phygital_token::SPEND_POLICY_SEED, phygital_token.as_ref()],
+            &self.program_id,
+        )
+        .0
     }
 }

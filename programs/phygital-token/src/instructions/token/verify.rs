@@ -1,13 +1,16 @@
 //! `verify`: proves a live tap of the accessory over a caller-chosen 32-byte
 //! message, and records the sign count so the assertion cannot be reused.
 //!
-//! Callable through CPI: an integrating program passes its own challenge as
-//! `message_hash` and is responsible for binding freshness into it.
+//! Callable through CPI: an integrating program passes its own 32-byte
+//! `message_hash` and is responsible for binding freshness into it. The tap
+//! signs [`build_verify_challenge`] (`message_hash` under a `verify` domain
+//! tag), so it can never be accepted by another instruction, nor theirs here.
 
 use anchor_lang::prelude::*;
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
 
 use crate::state::PhygitalToken;
+use crate::webauthn::challenge::build_verify_challenge;
 use crate::webauthn::Secp256r1VerifyArgs;
 
 #[derive(Accounts)]
@@ -28,8 +31,6 @@ impl Verify<'_> {
         expected_rp_id: Option<String>,
         expected_origins: Option<Vec<String>>,
     ) -> Result<()> {
-        // `message_hash` is the challenge as-is: callers wanting slot freshness
-        // must fold it in themselves.
         let origin_allowed = |origin: &[u8]| {
             Ok(expected_origins
                 .iter()
@@ -38,7 +39,7 @@ impl Verify<'_> {
         };
         let assertion = secp256r1_verify_args.verify_webauthn_assertion(
             &ctx.accounts.instructions_sysvar,
-            message_hash,
+            build_verify_challenge(&message_hash),
             expected_rp_id.as_deref(),
             expected_origins.is_some().then_some(&origin_allowed as _),
         )?;

@@ -95,8 +95,10 @@ pub enum PhygitalError {
     #[msg("Permanent phygital token owner cannot be transferred or removed.")]
     PermanentOwnerImmutable,
 
-    // 6022-6037: no longer raised. They belonged to the removed accessory
-    // wallet and are kept so `ClientDataTypeMismatch` keeps its number.
+    // 6022-6037 belonged to the removed accessory wallet. Those that mean the
+    // same thing for tap payments are raised again; the rest are kept, unused,
+    // so `ClientDataTypeMismatch` keeps its number.
+    /// A tap payment on a token without an owner.
     #[msg("The token has no owner.")]
     OwnerRequired,
 
@@ -106,9 +108,11 @@ pub enum PhygitalError {
     #[msg("Compact instructions may not call the phygital-token program.")]
     SelfReentrancyNotAllowed,
 
-    #[msg("Execute must be a top-level instruction.")]
+    /// `pay_with_accessory` was invoked through CPI.
+    #[msg("Tap payments must be a top-level instruction.")]
     ExecuteViaCpiNotAllowed,
 
+    /// `pay_with_accessory` in a durable-nonce transaction.
     #[msg("Durable-nonce transactions are not allowed.")]
     DurableNonceNotAllowed,
 
@@ -118,7 +122,8 @@ pub enum PhygitalError {
     #[msg("Protected account may not be a signer or writable in inner instructions.")]
     ProtectedAccountPrivilege,
 
-    #[msg("Policy arguments are invalid.")]
+    /// A spend-policy edit is invalid.
+    #[msg("Spend policy arguments are invalid.")]
     InvalidPolicyArgs,
 
     #[msg("Program is not allowed: the policy lists every program the accessory may call.")]
@@ -127,13 +132,16 @@ pub enum PhygitalError {
     #[msg("Instruction does not satisfy the configured program rules.")]
     InstructionNotAllowed,
 
-    #[msg("No spend cap covers this SOL or token transfer.")]
+    /// The spend policy has no daily limit for the mint.
+    #[msg("Tap payments are not enabled for this token.")]
     SpendNotAllowed,
 
-    #[msg("Transfer exceeds the configured spending limit.")]
+    /// The payment would exceed what is left of today's limit.
+    #[msg("Payment exceeds the daily limit.")]
     SpendLimitExceeded,
 
-    #[msg("Transfer exceeds the configured max per transaction.")]
+    /// The payment exceeds the mint's max per tap.
+    #[msg("Payment exceeds the max per tap.")]
     MaxPerTxExceeded,
 
     #[msg("Execute may not leave a standing delegate on a wallet-owned token account.")]
@@ -148,4 +156,36 @@ pub enum PhygitalError {
     /// `clientDataJSON.type` is not `webauthn.get`.
     #[msg("clientDataJSON type must be webauthn.get.")]
     ClientDataTypeMismatch,
+
+    /// The owner paused tap payments for this accessory.
+    #[msg("Tap payments are paused for this accessory.")]
+    TapPaymentsPaused,
+
+    /// `source`, `destination` or `mint` is not a valid account of the token program.
+    #[msg("Token account is invalid for this payment.")]
+    InvalidTokenAccount,
+
+    /// `source` is not delegated to the owner's delegate PDA (or its allowance is used up).
+    #[msg("Token account is not delegated for tap payments.")]
+    DelegateMismatch,
+
+    /// A tap payment of zero.
+    #[msg("Payment amount must be greater than zero.")]
+    ZeroAmount,
+
+    /// The payee is neither a verified merchant's payee nor allowed by the owner.
+    #[msg("Payee is not a verified merchant or an allowed payee.")]
+    MerchantNotVerified,
+
+    /// The merchant's registration is suspended.
+    #[msg("Merchant is suspended.")]
+    MerchantSuspended,
+
+    /// A merchant registration is invalid.
+    #[msg("Merchant arguments are invalid.")]
+    InvalidMerchantArgs,
+
+    /// The signer is not the registrar.
+    #[msg("Only the registrar can perform this action.")]
+    UnauthorizedRegistrar,
 }
