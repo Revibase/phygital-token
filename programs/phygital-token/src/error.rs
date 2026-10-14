@@ -67,12 +67,11 @@ pub enum PhygitalError {
     #[msg("WebAuthn user presence flag (UP) was not set by the authenticator.")]
     UserPresenceNotVerified,
 
-    /// No longer raised: only the removed `verify` instruction checked the rpId.
-    /// Kept so the codes after it keep their numbers.
+    /// The authenticator data's rpId hash differs from `expected_rp_id`.
     #[msg("WebAuthn rpId hash does not match the expected relying party id.")]
     RpIdMismatch,
 
-    /// No longer raised: only the removed accessory wallet checked the origin.
+    /// `clientDataJSON.origin` is not in `expected_origins`.
     #[msg("WebAuthn origin does not match any expected origin.")]
     OriginMismatch,
 

@@ -9,7 +9,7 @@ added this file.
 
 | Priority | Component | Path | Lines | Start at |
 |----------|-----------|------|-------|----------|
-| 1 | On-chain program | `programs/phygital-token/src` | ~1,600 (incl. inline unit tests) | [`src/lib.rs`](../../programs/phygital-token/src/lib.rs), [INVARIANTS](../program/INVARIANTS.md), [THREAT_MODEL](../program/THREAT_MODEL.md) |
+| 1 | On-chain program | `programs/phygital-token/src` | ~1,700 (incl. inline unit tests) | [`src/lib.rs`](../../programs/phygital-token/src/lib.rs), [INVARIANTS](../program/INVARIANTS.md), [THREAT_MODEL](../program/THREAT_MODEL.md) |
 | 2 | App server (Cloudflare Worker) | `app/src/lib/server`, `app/src/hooks.server.ts`, `app/src/routes/**/+server.ts`, `+page.server.ts` | ~2,300 | [app/ARCHITECTURE.md](../../app/ARCHITECTURE.md) |
 | 3 | TypeScript SDK | `packages/js/phygital-token/src` (excluding `generated/`) | ~1,400 | [README](../../packages/js/phygital-token/README.md), [API report](../../packages/js/phygital-token/api/phygital-token-sdk.api.md) |
 | 4 | App shared and client code that builds or checks transactions | `app/src/lib/shared`, `app/src/lib/client/link` | ~1,300 | [app/ARCHITECTURE.md](../../app/ARCHITECTURE.md) |
@@ -17,8 +17,9 @@ added this file.
 Highest-value questions:
 
 1. **Program:** can a tap be forged, replayed or used for another token
-   (T1–T5)? Can a locked token change owner (O1–O2)? Note the accepted
-   limitation that a tap does not name its recipient (threat model).
+   (T1–T5)? Can a locked token change owner (O1–O2)? Does `verify` honour its
+   optional rpId and origin checks? Note the accepted limitation that a tap does
+   not name its recipient (threat model).
 2. **App server:** can a request obtain a session, a counter, or control of a
    link ceremony (the handoff and pairing capabilities) it should not?
 3. **SDK:** does the `set_owner` challenge encoding match the program byte for

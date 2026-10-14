@@ -14,6 +14,7 @@ pub(crate) mod r#set_admin;
 pub(crate) mod r#set_issuer;
 pub(crate) mod r#set_minter;
 pub(crate) mod r#set_owner;
+pub(crate) mod r#verify;
 
 pub use self::r#assign_mint::*;
 pub use self::r#close_phygital_token::*;
@@ -24,3 +25,4 @@ pub use self::r#set_admin::*;
 pub use self::r#set_issuer::*;
 pub use self::r#set_minter::*;
 pub use self::r#set_owner::*;
+pub use self::r#verify::*;

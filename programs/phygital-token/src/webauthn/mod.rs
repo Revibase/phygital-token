@@ -8,11 +8,12 @@
 //!
 //! 1. checks `clientDataJSON.type` is `webauthn.get` and its `challenge` is the
 //!    one the instruction expects (built in [`challenge`]);
-//! 2. finds the precompile instruction and reads the verified public key and
+//! 2. optionally checks `clientDataJSON.origin`;
+//! 3. finds the precompile instruction and reads the verified public key and
 //!    message from it ([`secp256r1`]);
-//! 3. checks the user-present flag and that the message ends with
-//!    `SHA256(clientDataJSON)`;
-//! 4. returns the public key and sign count for the caller to compare with the
+//! 4. checks the user-present flag, that the message ends with
+//!    `SHA256(clientDataJSON)`, and optionally the rpId hash;
+//! 5. returns the public key and sign count for the caller to compare with the
 //!    token ([`crate::state::PhygitalToken::accept_assertion`]).
 
 pub mod challenge;
@@ -20,11 +21,13 @@ mod client_data;
 pub mod secp256r1;
 
 use anchor_lang::prelude::*;
-use solana_sha256_hasher::hash;
+use solana_sha256_hasher::{hash, hashv};
 
 use crate::error::PhygitalError;
 use crate::sysvar::relative_instruction_parts;
-use client_data::{extract_challenge_from_client_data_json, json_quoted_value, JSON_TYPE_KEY};
+use client_data::{
+    extract_challenge_from_client_data_json, json_quoted_value, JSON_ORIGIN_KEY, JSON_TYPE_KEY,
+};
 use secp256r1::{
     signed_public_key_and_message, COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID,
 };
@@ -61,6 +64,9 @@ const CLIENT_DATA_HASH_LEN: usize = 32;
 const FLAG_USER_PRESENT: u8 = 0x01;
 const MIN_SIGNED_MESSAGE_LEN: usize = AUTH_DATA_MIN_LEN + CLIENT_DATA_HASH_LEN;
 
+/// Whether a `clientDataJSON.origin` is allowed.
+pub type OriginCheck<'a> = &'a dyn Fn(&[u8]) -> Result<bool>;
+
 /// Instruction argument locating and completing a tap's assertion.
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Debug, Clone)]
 pub struct Secp256r1VerifyArgs {
@@ -78,13 +84,13 @@ impl Secp256r1VerifyArgs {
     /// signing public key and the authenticator's sign count. The caller must
     /// still check the key belongs to the token and the count has advanced.
     ///
-    /// Neither the origin nor the rpId is checked: a credential's key is
-    /// scoped to one rpId on standard authenticators, and the challenge binds
-    /// the action. Off-chain verifiers check the origin.
+    /// `expected_rp_id` and `origin_allowed` are skipped when `None`.
     pub fn verify_webauthn_assertion(
         &self,
         instructions_sysvar: &UncheckedAccount,
         expected_challenge: [u8; 32],
+        expected_rp_id: Option<&str>,
+        origin_allowed: Option<OriginCheck>,
     ) -> Result<(Secp256r1Pubkey, u32)> {
         require!(
             json_quoted_value(&self.client_data_json, JSON_TYPE_KEY)? == b"webauthn.get",
@@ -95,6 +101,11 @@ impl Secp256r1VerifyArgs {
             extracted_challenge == expected_challenge,
             PhygitalError::ChallengeHashMismatch
         );
+
+        if let Some(origin_allowed) = origin_allowed {
+            let origin = json_quoted_value(&self.client_data_json, JSON_ORIGIN_KEY)?;
+            require!(origin_allowed(origin)?, PhygitalError::OriginMismatch);
+        }
 
         let sysvar = instructions_sysvar.try_borrow_data()?;
         let (program_id, data) =
@@ -134,6 +145,14 @@ impl Secp256r1VerifyArgs {
             client_data_hash == hash(&self.client_data_json).to_bytes(),
             PhygitalError::ClientDataHashMismatch
         );
+
+        if let Some(rp_id) = expected_rp_id {
+            let expected_hash = hashv(&[rp_id.as_bytes()]).to_bytes();
+            let actual_hash: [u8; 32] = message[..32]
+                .try_into()
+                .map_err(|_| PhygitalError::InvalidAuthenticatorData)?;
+            require!(expected_hash == actual_hash, PhygitalError::RpIdMismatch);
+        }
 
         Ok((Secp256r1Pubkey(extracted_pubkey), sign_count))
     }

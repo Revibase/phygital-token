@@ -9,6 +9,8 @@ Guarantees are listed in [INVARIANTS.md](INVARIANTS.md).
 - **Token ownership.** Who owns each accessory's token, and whether it is locked.
 - **Token records.** Integrators that check a tap off-chain look the token up
   by the tapped key and trust its type and owner.
+- **Authentication results.** Integrators trust `verify` (directly or by CPI) to
+  mean "this accessory was tapped for this message".
 
 ## Actors and trust
 
@@ -57,11 +59,16 @@ These are trust assumptions, not bugs:
   hash), and the real owner can tap again if the token is not locked.
 - **Authenticators that always report a sign count of 0 cannot be used.** The
   count must increase.
-- **No rpId or origin check.** `set_owner` never checks the rpId hash or
-  `clientDataJSON.origin`. With a standard authenticator a credential's key is
-  scoped to one rpId, so the key match implies it. If the accessory's chip
-  signs for any rpId with the same key, the challenge and sign count are the
-  remaining protections.
+- **`verify` does not choose freshness.** The caller's `message_hash` is the
+  challenge; integrators must include a nonce or slot hash themselves. It is
+  not domain-tagged, so a pending `set_owner` assertion can be submitted to
+  `verify` to use up its sign count and make the claim fail; anyone able to do
+  that could claim the token instead (see above).
+- **Optional rpId and origin checks.** Only `verify` can check the rpId hash or
+  `clientDataJSON.origin`, and only when asked; `set_owner` never does. With a
+  standard authenticator a credential's key is scoped to one rpId, so the key
+  match implies it. If the accessory's chip signs for any rpId with the same
+  key, the challenge and sign count are the remaining protections.
 
 ## Deployment
 

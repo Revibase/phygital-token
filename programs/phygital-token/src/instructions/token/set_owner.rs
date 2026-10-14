@@ -51,10 +51,12 @@ impl SetOwner<'_> {
         let slot_hash = fetch_slot_hash(&ctx.accounts.slot_hashes, slot_number)?;
         let recipient = ctx.accounts.recipient.key();
         let challenge = build_set_owner_challenge(&ctx.accounts.phygital_token.key(), slot_hash);
-        token.accept_assertion(
-            secp256r1_verify_args
-                .verify_webauthn_assertion(&ctx.accounts.instructions_sysvar, challenge)?,
-        )?;
+        token.accept_assertion(secp256r1_verify_args.verify_webauthn_assertion(
+            &ctx.accounts.instructions_sysvar,
+            challenge,
+            None,
+            None,
+        )?)?;
 
         emit!(SetOwnerEvent {
             owner: token.owner,

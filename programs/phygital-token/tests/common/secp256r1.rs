@@ -83,6 +83,15 @@ impl TestPasskey {
         self.build_secp256r1_verify_instruction(challenge, sign_count, None, None)
     }
 
+    pub fn verify_secp256r1_instruction(
+        &self,
+        message_hash: [u8; 32],
+        sign_count: u32,
+    ) -> (Instruction, Secp256r1VerifyArgs) {
+        // `verify` uses message_hash as the WebAuthn challenge directly.
+        self.build_secp256r1_verify_instruction(message_hash, sign_count, None, None)
+    }
+
     fn build_secp256r1_verify_instruction(
         &self,
         expected_challenge: [u8; 32],

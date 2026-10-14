@@ -16,19 +16,21 @@ in another instruction, could vouch for bytes the passkey never signed.
 **T2. The assertion answers this instruction's challenge.** `clientDataJSON.type`
 is `webauthn.get`, `clientDataJSON.challenge` equals the expected 32 bytes, and
 the signed message ends with `SHA256(clientDataJSON)`.
-— `src/webauthn/mod.rs`; `tests/set_owner_webauthn_coverage.rs`.
+— `src/webauthn/mod.rs`; `tests/set_owner_webauthn_coverage.rs`, `tests/verify_flow.rs`.
 
 **T3. The user was present.** The authenticator data's UP flag is set.
 — `src/webauthn/mod.rs`; `tests/set_owner_webauthn_coverage.rs`.
 
 **T4. Each assertion is accepted at most once per token.** The authenticator's sign
 count must exceed `last_sign_count`, which is then updated.
-— `PhygitalToken::accept_assertion` in `src/state/phygital_token.rs`; `tests/set_owner_flow.rs`, `tests/e2e_scenarios.rs`.
+— `PhygitalToken::accept_assertion` in `src/state/phygital_token.rs`; `tests/set_owner_flow.rs`, `tests/verify_flow.rs`, `tests/e2e_scenarios.rs`.
 
 **T5. Challenges cannot be reused for other tokens or for long.** `set_owner` signs
 a domain-tagged challenge ("transfer") that includes the token and a slot hash
 that must still be in the SlotHashes sysvar (the latest 512 slots). It does not
 name the recipient: see the accepted limitation in the threat model.
+`verify` takes the caller's `message_hash` as the challenge; freshness and domain
+separation are the caller's responsibility.
 — `src/webauthn/challenge.rs`, `src/sysvar/slot_hashes.rs`; `tests/set_owner_challenge.rs`, `tests/set_owner_security.rs`.
 
 ## Ownership

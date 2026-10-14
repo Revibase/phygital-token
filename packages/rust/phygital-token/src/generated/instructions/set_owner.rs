@@ -5,6 +5,7 @@
 //! <https://github.com/codama-idl/codama>
 //!
 
+use crate::generated::types::Secp256r1VerifyArgs;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 
@@ -88,9 +89,7 @@ impl Default for SetOwnerInstructionData {
 
 #[derive(BorshSerialize, BorshDeserialize, Clone, Debug, Eq, PartialEq)]
 pub struct SetOwnerInstructionArgs {
-    pub verify_args_relative_index: i64,
-    pub signed_message_index: u8,
-    pub client_data_json: Vec<u8>,
+    pub secp256r1_verify_args: Secp256r1VerifyArgs,
     pub slot_number: u64,
 }
 
@@ -114,9 +113,7 @@ pub struct SetOwnerBuilder {
     phygital_token: Option<solana_address::Address>,
     slot_hashes: Option<solana_address::Address>,
     instructions_sysvar: Option<solana_address::Address>,
-    verify_args_relative_index: Option<i64>,
-    signed_message_index: Option<u8>,
-    client_data_json: Option<Vec<u8>>,
+    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
     slot_number: Option<u64>,
     __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
@@ -151,18 +148,11 @@ impl SetOwnerBuilder {
         self
     }
     #[inline(always)]
-    pub fn verify_args_relative_index(&mut self, verify_args_relative_index: i64) -> &mut Self {
-        self.verify_args_relative_index = Some(verify_args_relative_index);
-        self
-    }
-    #[inline(always)]
-    pub fn signed_message_index(&mut self, signed_message_index: u8) -> &mut Self {
-        self.signed_message_index = Some(signed_message_index);
-        self
-    }
-    #[inline(always)]
-    pub fn client_data_json(&mut self, client_data_json: Vec<u8>) -> &mut Self {
-        self.client_data_json = Some(client_data_json);
+    pub fn secp256r1_verify_args(
+        &mut self,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> &mut Self {
+        self.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
     }
     #[inline(always)]
@@ -198,18 +188,10 @@ impl SetOwnerBuilder {
             )),
         };
         let args = SetOwnerInstructionArgs {
-            verify_args_relative_index: self
-                .verify_args_relative_index
+            secp256r1_verify_args: self
+                .secp256r1_verify_args
                 .clone()
-                .expect("verify_args_relative_index is not set"),
-            signed_message_index: self
-                .signed_message_index
-                .clone()
-                .expect("signed_message_index is not set"),
-            client_data_json: self
-                .client_data_json
-                .clone()
-                .expect("client_data_json is not set"),
+                .expect("secp256r1_verify_args is not set"),
             slot_number: self.slot_number.clone().expect("slot_number is not set"),
         };
 
@@ -354,9 +336,7 @@ impl<'a, 'b> SetOwnerCpiBuilder<'a, 'b> {
             phygital_token: None,
             slot_hashes: None,
             instructions_sysvar: None,
-            verify_args_relative_index: None,
-            signed_message_index: None,
-            client_data_json: None,
+            secp256r1_verify_args: None,
             slot_number: None,
             __remaining_accounts: Vec::new(),
         });
@@ -392,18 +372,11 @@ impl<'a, 'b> SetOwnerCpiBuilder<'a, 'b> {
         self
     }
     #[inline(always)]
-    pub fn verify_args_relative_index(&mut self, verify_args_relative_index: i64) -> &mut Self {
-        self.instruction.verify_args_relative_index = Some(verify_args_relative_index);
-        self
-    }
-    #[inline(always)]
-    pub fn signed_message_index(&mut self, signed_message_index: u8) -> &mut Self {
-        self.instruction.signed_message_index = Some(signed_message_index);
-        self
-    }
-    #[inline(always)]
-    pub fn client_data_json(&mut self, client_data_json: Vec<u8>) -> &mut Self {
-        self.instruction.client_data_json = Some(client_data_json);
+    pub fn secp256r1_verify_args(
+        &mut self,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+    ) -> &mut Self {
+        self.instruction.secp256r1_verify_args = Some(secp256r1_verify_args);
         self
     }
     #[inline(always)]
@@ -446,21 +419,11 @@ impl<'a, 'b> SetOwnerCpiBuilder<'a, 'b> {
     #[allow(clippy::vec_init_then_push)]
     pub fn invoke_signed(&self, signers_seeds: &[&[&[u8]]]) -> solana_program_error::ProgramResult {
         let args = SetOwnerInstructionArgs {
-            verify_args_relative_index: self
+            secp256r1_verify_args: self
                 .instruction
-                .verify_args_relative_index
+                .secp256r1_verify_args
                 .clone()
-                .expect("verify_args_relative_index is not set"),
-            signed_message_index: self
-                .instruction
-                .signed_message_index
-                .clone()
-                .expect("signed_message_index is not set"),
-            client_data_json: self
-                .instruction
-                .client_data_json
-                .clone()
-                .expect("client_data_json is not set"),
+                .expect("secp256r1_verify_args is not set"),
             slot_number: self
                 .instruction
                 .slot_number
@@ -502,9 +465,7 @@ struct SetOwnerCpiBuilderInstruction<'a, 'b> {
     phygital_token: Option<&'b solana_account_info::AccountInfo<'a>>,
     slot_hashes: Option<&'b solana_account_info::AccountInfo<'a>>,
     instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
-    verify_args_relative_index: Option<i64>,
-    signed_message_index: Option<u8>,
-    client_data_json: Option<Vec<u8>>,
+    secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
     slot_number: Option<u64>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,

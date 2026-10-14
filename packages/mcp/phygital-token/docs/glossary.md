@@ -30,6 +30,8 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 | **Owner** | `phygital_token.owner` | Wallet currently associated with the token. Set at `initialize`. Updated by `set_owner` / cleared by `remove_owner` for Bearer and Controlled; immutable for Permanent. |
 | **Lock** | `PhygitalToken::is_locked()` (derived, not stored) | Controlled and Permanent tokens are locked whenever they have an owner; Bearer tokens never are. While locked, `set_owner` fails with `TokenIsCurrentlyLocked`, so a Controlled owner must `remove_owner` first and a Permanent owner can never change. |
 | **Mint** | `phygital_token.mint` | Optional SPL mint binding. Starts as the default pubkey until `assign_mint`. |
+| **Expected rpId** | `verify.expected_rp_id` | Optional `Option<String>`. When set, `SHA256(rpId)` must match authenticatorData\[0..32\]. Omit / `None` skips. |
+| **Expected origins** | `verify.expected_origins` | Optional `Option<Vec<String>>` allow-list. When set, signed `clientDataJSON.origin` must match one entry. Omit / `None` skips. |
 | **Token type** | `phygital_token.token_type` | `Permanent` (discriminant 0 — owner required at initialize; stays locked; never transferable or forfeitable), `Bearer` (freely re-transferable when unlocked), or `Controlled` (auto-locks after claim; must forfeit via `remove_owner` before next set). |
 
 ## Instruction map
@@ -44,6 +46,7 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 | `initialize` | Creates a **phygital_token** PDA seeded by `secp256r1_pubkey`, stores `identifier`, `token_type`, and `owner`. Permanent requires a non-default `owner`. Restricted to **AdminConfig.issuer**. |
 | `assign_mint` | Binds an SPL mint pubkey onto `phygital_token.mint`. Restricted to **AdminConfig.minter**. |
 | `set_owner` | Passkey-authorized owner update to `recipient` (no SPL token). Requires the token to be unlocked (Bearer, or no owner). Permanent is always locked → always `TokenIsCurrentlyLocked`. Controlled is locked again once it has an owner. The challenge does not name `recipient`, which must sign. |
+| `verify` | Passkey-authorized message proof; optional `expected_rp_id` / `expected_origins` (`Option`); updates `last_sign_count`. |
 | `remove_owner` | Wallet-signed forfeiture — resets `phygital_token.owner` to default, which unlocks a Controlled token. Rejected for Permanent. |
 
 ## Client naming
@@ -56,7 +59,8 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 | `initialize` | `getInitializeInstruction` |
 | `assign_mint` | `getAssignMintInstruction` |
 | `set_owner` | `beginTransfer` / `authenticatePasskeyForTransfer` / `completeTransfer` |
+| `verify` | `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify` / `buildSecp256r1VerifyInstruction` |
 | `phygital_token` PDA | `findPhygitalTokenPda(secp256r1Pubkey)`, `fetchPhygitalTokenByIdentifier` |
 | off-chain auth | `startAuthentication(message, { rpc })` + `verifyResponse({ expectedMessage, expectedOrigin, response })` → your session |
 
-Test helpers mirror on-chain instruction names (`initialize`, `assign_mint`, `set_owner`, etc.).
+Test helpers mirror on-chain instruction names (`initialize`, `assign_mint`, `set_owner`, `verify`, etc.).

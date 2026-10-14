@@ -13,12 +13,7 @@ All notable changes to this artifact are documented here. The format follows
   and the wallet PDA. `set_owner`, `remove_owner` and `close_phygital_token` no
   longer take `policy` or `wallet` accounts. `PhygitalToken.wallet_bump` is now
   an unused `reserved` byte, so the layout and field offsets are unchanged.
-  Errors 6016 (`OriginMismatch`) and 6022–6037 are no longer raised; the other
-  codes are unchanged.
-- The `verify` instruction. Taps are authenticated off-chain; no program used
-  it by CPI, and anyone could replay a pending tap's assertion through it to
-  advance the sign count and make the real `set_owner` fail. Error 6015
-  (`RpIdMismatch`) is no longer raised.
+  Errors 6022–6037 are no longer raised; the other codes are unchanged.
 
 ### Changed
 

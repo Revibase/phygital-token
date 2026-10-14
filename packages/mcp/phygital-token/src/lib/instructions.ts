@@ -176,6 +176,77 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
   };
 }
 
+function buildVerifyChallengeDescription(): string {
+  return "messageHash (32 bytes) used directly as the WebAuthn challenge";
+}
+
+export async function planVerify(input: { message: string; secp256r1PublicKey?: string }) {
+  const messageBytes = new TextEncoder().encode(input.message);
+  const messageHash =
+    "SHA256(message) — 32-byte hash passed to verify and used as WebAuthn challenge";
+
+  let tokenPda: string | undefined;
+  if (input.secp256r1PublicKey) {
+    [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
+  }
+
+  return {
+    flow: [
+      "buildMessageHash(message) — 32-byte digest",
+      "authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash, rpId? }) — browser WebAuthn tap",
+      "buildSecp256r1VerifyInstruction(tap) — { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs }",
+      "sendTransaction([secp256r1VerifyInstruction, yourProgramInstruction]) — your instruction carries phygitalTokenPda + secp256r1VerifyArgs; message_hash and instructions sysvar are yours",
+    ],
+    sdk: {
+      hash: "buildMessageHash",
+      authenticate: "authenticatePasskeyForSecp256r1Verify",
+      build: "buildSecp256r1VerifyInstruction",
+      offChainAuthOnly:
+        "startAuthentication + verifyResponse → your session; does NOT submit verify",
+    },
+    message: {
+      utf8: input.message,
+      byteLength: messageBytes.length,
+      onChainHash: messageHash,
+    },
+    challenge: {
+      formula: buildVerifyChallengeDescription(),
+      note: "Hash with buildMessageHash, then pass { rpc, allowList?, messageHash } to authenticatePasskeyForSecp256r1Verify. Use the same digest as VerifyCpiBuilder.message_hash.",
+    },
+    derived: tokenPda ? { tokenPda, secp256r1PublicKey: input.secp256r1PublicKey } : undefined,
+    transactionLayout: {
+      order: ["secp256r1_verify", "your_program_instruction"],
+      verifyAccounts: {
+        phygital_token: "writable PDA seeded by passkey public key — from phygitalTokenPda",
+        instructions_sysvar: "Sysvar1nstructions1111111111111111111111111",
+      },
+      verifyArgs: {
+        secp256r1VerifyArgs: "{ verifyArgsRelativeIndex, signedMessageIndex, clientDataJson }",
+        messageHash: "32-byte WebAuthn challenge — from your instruction",
+        expectedRpId:
+          "Option<string> — omit/None skips; when set, SHA256(rpId) must match authenticatorData[0..32]",
+        expectedOrigins:
+          "Option<string[]> — omit/None skips; when set, clientDataJSON.origin must match one entry",
+      },
+    },
+    programSide: "Your Rust program CPIs verify via VerifyCpiBuilder (phygital-token-client)",
+    buildSecp256r1VerifyInstructionReturns: {
+      secp256r1VerifyInstruction:
+        "Instruction to prepend immediately before your program instruction",
+      phygitalTokenPda: "Phygital token PDA — VerifyCpiBuilder.phygital_token",
+      secp256r1VerifyArgs: "VerifyCpiBuilder.secp256r1_verify_args (relative index -1)",
+    },
+    notes: [
+      "Off-chain login (startAuthentication + verifyResponse) does not submit verify.",
+      "On-chain tap helpers (authenticatePasskeyForTransfer, authenticatePasskeyForSecp256r1Verify) share authenticatePasskey (browser WebAuthn).",
+      "Browser WebAuthn: rpc recovers a rawId-length-16 placeholder on-chain; allowList gates the tapped id and is the no-RPC recovery fallback.",
+      "Do not pass a token PDA up front — it is derived after the NFC tap from response.id.",
+      "Your program CPIs verify. Do not include a client-side verify instruction.",
+      "verify updates phygital_token.last_sign_count; it does not change owner.",
+    ],
+  };
+}
+
 export async function planRemoveOwner(input: { secp256r1PublicKey: string; owner: string }) {
   const [tokenPda] = await findPhygitalTokenPda(input.secp256r1PublicKey);
 

@@ -51,6 +51,7 @@ import {
   getSetIssuerInstructionAsync,
   getSetMinterInstructionAsync,
   getSetOwnerInstruction,
+  getVerifyInstruction,
   parseAssignMintInstruction,
   parseClosePhygitalTokenInstruction,
   parseCreateConfigInstruction,
@@ -60,6 +61,7 @@ import {
   parseSetIssuerInstruction,
   parseSetMinterInstruction,
   parseSetOwnerInstruction,
+  parseVerifyInstruction,
   type AssignMintAsyncInput,
   type ClosePhygitalTokenAsyncInput,
   type CreateConfigAsyncInput,
@@ -73,11 +75,13 @@ import {
   type ParsedSetIssuerInstruction,
   type ParsedSetMinterInstruction,
   type ParsedSetOwnerInstruction,
+  type ParsedVerifyInstruction,
   type RemoveOwnerInput,
   type SetAdminAsyncInput,
   type SetIssuerAsyncInput,
   type SetMinterAsyncInput,
   type SetOwnerInput,
+  type VerifyInput,
 } from "../instructions/index.js";
 import { findAdminConfigPda } from "../pdas/index.js";
 
@@ -131,6 +135,7 @@ export enum PhygitalTokenInstruction {
   SetIssuer,
   SetMinter,
   SetOwner,
+  Verify,
 }
 
 export function identifyPhygitalTokenInstruction(
@@ -236,6 +241,17 @@ export function identifyPhygitalTokenInstruction(
   ) {
     return PhygitalTokenInstruction.SetOwner;
   }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([133, 161, 141, 48, 120, 198, 88, 150]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenInstruction.Verify;
+  }
   throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__FAILED_TO_IDENTIFY_INSTRUCTION, {
     instructionData: data,
     programName: "phygitalToken",
@@ -263,7 +279,8 @@ export type ParsedPhygitalTokenInstruction<
   | ({ instructionType: PhygitalTokenInstruction.SetAdmin } & ParsedSetAdminInstruction<TProgram>)
   | ({ instructionType: PhygitalTokenInstruction.SetIssuer } & ParsedSetIssuerInstruction<TProgram>)
   | ({ instructionType: PhygitalTokenInstruction.SetMinter } & ParsedSetMinterInstruction<TProgram>)
-  | ({ instructionType: PhygitalTokenInstruction.SetOwner } & ParsedSetOwnerInstruction<TProgram>);
+  | ({ instructionType: PhygitalTokenInstruction.SetOwner } & ParsedSetOwnerInstruction<TProgram>)
+  | ({ instructionType: PhygitalTokenInstruction.Verify } & ParsedVerifyInstruction<TProgram>);
 
 export function parsePhygitalTokenInstruction<TProgram extends string>(
   instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>,
@@ -333,6 +350,13 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseSetOwnerInstruction(instruction),
       };
     }
+    case PhygitalTokenInstruction.Verify: {
+      assertIsInstructionWithAccounts(instruction);
+      return {
+        instructionType: PhygitalTokenInstruction.Verify,
+        ...parseVerifyInstruction(instruction),
+      };
+    }
     default:
       throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__UNRECOGNIZED_INSTRUCTION_TYPE, {
         instructionType: instructionType as string,
@@ -385,6 +409,9 @@ export type PhygitalTokenPluginInstructions = {
   setOwner: (
     input: SetOwnerInput,
   ) => ReturnType<typeof getSetOwnerInstruction> & SelfPlanAndSendFunctions;
+  verify: (
+    input: VerifyInput,
+  ) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
 };
 
 export type PhygitalTokenPluginPdas = { adminConfig: typeof findAdminConfigPda };
@@ -423,6 +450,7 @@ export function phygitalTokenProgram() {
           setMinter: (input) =>
             addSelfPlanAndSendFunctions(client, getSetMinterInstructionAsync(input)),
           setOwner: (input) => addSelfPlanAndSendFunctions(client, getSetOwnerInstruction(input)),
+          verify: (input) => addSelfPlanAndSendFunctions(client, getVerifyInstruction(input)),
         },
         pdas: { adminConfig: findAdminConfigPda },
         identifyAccount: identifyPhygitalTokenAccount,

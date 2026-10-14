@@ -19,15 +19,8 @@ All notable changes to this artifact are documented here. The format follows
   instructions, accounts and types. `verifyResponse` no longer returns
   `accessoryWallet`. The `@wallet-standard/*` dependencies are gone.
 
-- The generated `getSetOwnerInstruction` no longer takes `policy` or `wallet`,
-  and takes `verifyArgsRelativeIndex`, `signedMessageIndex` and
-  `clientDataJson` directly instead of a `secp256r1VerifyArgs` object.
+- The generated `getSetOwnerInstruction` no longer takes `policy` or `wallet`.
   `PhygitalToken.walletBump` is now `reserved`.
-
-- Removed `buildMessageHash`, `authenticatePasskeyForSecp256r1Verify`,
-  `buildSecp256r1VerifyInstruction` and the generated `getVerifyInstruction`
-  family: the program no longer has a `verify` instruction. Authenticate taps
-  with `startAuthentication` and `verifyResponse`.
 
 ### Changed
 

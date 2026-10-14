@@ -38,5 +38,6 @@ No `generateAuthenticationOptions`.
 | UI login / vault gate | `startAuthentication` + `verifyResponse` → your session |
 | Load on-chain state after a tap | `verifyResponse` → `findPhygitalTokenPda` + `fetchPhygitalToken` |
 | Set owner | `beginTransfer` → `completeTransfer` |
+| On-chain possession proof / CPI | `buildMessageHash` → `authenticatePasskeyForSecp256r1Verify` → `buildSecp256r1VerifyInstruction` |
 
 Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.

@@ -123,9 +123,11 @@ export async function completeTransfer(
     recipient,
     phygitalToken: session.phygitalToken,
     slotNumber: session.slotNumber,
-    verifyArgsRelativeIndex: -1,
-    signedMessageIndex,
-    clientDataJson,
+    secp256r1VerifyArgs: {
+      verifyArgsRelativeIndex: -1,
+      signedMessageIndex,
+      clientDataJson,
+    },
   });
 
   return [secp256r1VerifyInstruction, setOwner];

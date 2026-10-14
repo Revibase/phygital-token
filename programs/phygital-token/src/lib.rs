@@ -1,11 +1,11 @@
 //! # phygital-token
 //!
 //! A Solana program that binds a physical accessory (an NFC chip holding a
-//! P-256 passkey) to an on-chain token.
+//! P-256 passkey) to an on-chain token, so that a live tap can be verified
+//! on-chain.
 //!
-//! - **Look up** (`initialize`): the token lives at a PDA derived from the
-//!   accessory's public key, so whoever checks a tap off-chain can find the
-//!   token, its type and its owner. Authenticating needs no instruction.
+//! - **Authenticate** (`verify`): prove a tap over a caller-chosen message, or
+//!   through CPI from another program. Needs no owner.
 //! - **Own** (`set_owner`, `remove_owner`): a tap assigns the token to a wallet
 //!   key; Controlled and Permanent tokens stay locked while owned.
 //!
@@ -116,6 +116,26 @@ pub mod phygital_token {
         slot_number: u64,
     ) -> Result<()> {
         SetOwner::handler(ctx, secp256r1_verify_args, slot_number)
+    }
+
+    /// Tap: proves the accessory signed `message_hash` and records its sign count.
+    /// `expected_rp_id` / `expected_origins` are optional WebAuthn bindings.
+    /// `None` skips the check. When `expected_origins` is `Some`, the signed
+    /// origin must match one listed origin.
+    pub fn verify(
+        ctx: Context<Verify>,
+        secp256r1_verify_args: Secp256r1VerifyArgs,
+        message_hash: [u8; 32],
+        expected_rp_id: Option<String>,
+        expected_origins: Option<Vec<String>>,
+    ) -> Result<()> {
+        Verify::handler(
+            ctx,
+            secp256r1_verify_args,
+            message_hash,
+            expected_rp_id,
+            expected_origins,
+        )
     }
 
     /// Owner: gives up the token (not Permanent ones).

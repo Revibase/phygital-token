@@ -14,6 +14,7 @@ mod set_owner;
 mod slots;
 mod state;
 mod tx;
+mod verify;
 
 pub use assertions::{assert_phygital_token_program_error, assert_transaction_failed};
 

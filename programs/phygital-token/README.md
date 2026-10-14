@@ -5,9 +5,9 @@ Program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz`, built with Anchor 1.0.
 Each physical accessory carries a P-256 passkey. The program records that key
 in a token account and accepts a **tap** (a WebAuthn assertion verified by the
 secp256r1 precompile) as proof that the accessory was present. On that basis it
-offers ownership (`set_owner`, `remove_owner`). Authenticating a tap happens
-off-chain: the token's address is derived from the passkey, so a verifier can
-read its type and owner.
+offers authentication (`verify`) and ownership (`set_owner`, `remove_owner`).
+Taps can also be authenticated off-chain: the token's address is derived from
+the passkey, so a verifier can read its type and owner.
 
 - Start at [`src/lib.rs`](src/lib.rs) for the module map.
 - Invariants: [`docs/program/INVARIANTS.md`](../../docs/program/INVARIANTS.md).
@@ -38,6 +38,7 @@ listed. Every accepted tap must carry a higher sign count than the last.
 | `close_phygital_token` | admin | token PDA matches its key | closes the token |
 | `set_owner` | `recipient` | not locked; tap over `SHA256("transfer" ‖ token ‖ slot_hash)`; slot in SlotHashes | owner = `recipient` |
 | `remove_owner` | owner | not Permanent | owner cleared |
+| `verify` | — | tap over the caller's `message_hash`; optional rpId and origin list | sign count recorded |
 
 The challenge does not name the recipient, so a tap can be made before the
 wallet that finishes the claim is known (the handoff flows). The recipient must

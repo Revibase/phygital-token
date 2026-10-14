@@ -16,10 +16,11 @@ accessories. See [program threat model](../program/THREAT_MODEL.md#trusted-roles
 [BUILD.md](BUILD.md#deploying) rather than in code; a front-run is recoverable by
 the upgrade authority.
 
-**No rpId or origin check on-chain.** `set_owner` checks neither. A
-credential's key is scoped to one rpId on standard authenticators, and the
-challenge plus sign count bind the action. The app checks both off-chain before
-it stores a tap; a native client writes its own `clientDataJSON` anyway.
+**Optional rpId and origin checks.** `verify` checks them only when the caller
+asks, and `set_owner` checks neither. A credential's key is scoped to one rpId
+on standard authenticators, and the challenge plus sign count bind the action.
+The app checks both off-chain before it stores a tap; a native client writes its
+own `clientDataJSON` anyway.
 
 **The `set_owner` challenge does not name the recipient.** It is
 `SHA256("transfer" ‖ token ‖ slot_hash)`, so a phone can tap before the wallet
@@ -39,13 +40,14 @@ challenge must still match.
 bytes are compared to the expected challenge, so two spellings of the same bytes
 authorize the same thing.
 
-**No on-chain authentication instruction.** Integrators check taps off-chain
-(`verifyResponse` in the SDK) and read the token account. An earlier `verify`
-instruction let other programs check a tap by CPI over a message they chose; it
-was removed because nothing used it, and because anyone could replay a pending
-tap's assertion through it to advance the sign count and make the real
-`set_owner` fail. Adding an instruction later does not change
-existing discriminators.
+**`verify` is CPI-callable and takes the caller's challenge.** Freshness and
+domain separation of `message_hash` are the integrating program's job. Most
+integrators check taps off-chain instead (`verifyResponse` in the SDK) and read
+the token account. Because `message_hash` is not domain-tagged, anyone holding a
+pending `set_owner` assertion can submit it to `verify` with that challenge,
+advancing the sign count so the claim fails. Whoever can do that can already
+claim the token with it (the challenge does not name the recipient), so this
+adds no new attacker.
 
 **Strictly increasing sign count.** Authenticators that always report 0 cannot
 be used as accessories.

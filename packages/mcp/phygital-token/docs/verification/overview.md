@@ -3,10 +3,14 @@
 Choose the right possession check for your product surface.
 
 ```
-Need to change the owner on-chain?
+Need on-chain state change / CPI?
     │
     YES → transfer (set_owner)
     │       → beginTransfer → authenticatePasskeyForTransfer → completeTransfer
+    │
+    │     OR composable verify CPI
+    │       → buildMessageHash → authenticatePasskeyForSecp256r1Verify
+    │         → buildSecp256r1VerifyInstruction → your program CPIs verify
     │
     NO  → Web2 passkey login (no chain tx)
           → startAuthentication(message, { rpc, allowList? })
@@ -26,5 +30,6 @@ See [Verification methods](./methods.md) for the full contract.
 ## Related
 
 - [Verification methods](./methods.md)
+- [Composable verify](./verify-composable.md)
 
 Check `isVerified` before issuing a session; freshness, single-use challenge consumption and session policy remain your responsibility.

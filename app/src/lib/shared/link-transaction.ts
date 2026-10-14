@@ -201,8 +201,10 @@ export function validateLinkTransaction(
 
 	const args = getSetOwnerInstructionDataDecoder().decode(data);
 	if (args.slotNumber !== expected.slotNumber) reject('slot number mismatch');
-	if (args.verifyArgsRelativeIndex !== -1n) reject('unexpected verify index');
-	if (!bytesEqual(new Uint8Array(args.clientDataJson), expected.clientDataJson)) {
+	if (args.secp256r1VerifyArgs.verifyArgsRelativeIndex !== -1n) reject('unexpected verify index');
+	if (
+		!bytesEqual(new Uint8Array(args.secp256r1VerifyArgs.clientDataJson), expected.clientDataJson)
+	) {
 		reject('tap data mismatch');
 	}
 

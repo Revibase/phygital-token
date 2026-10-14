@@ -15,3 +15,4 @@ export * from "./setAdmin.js";
 export * from "./setIssuer.js";
 export * from "./setMinter.js";
 export * from "./setOwner.js";
+export * from "./verify.js";

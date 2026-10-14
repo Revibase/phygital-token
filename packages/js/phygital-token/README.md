@@ -47,6 +47,27 @@ It rejects anything that isn't a tap (`INVALID_ASSERTION`: a registration respon
 
 Reject expired/reused challenges and unlinked tokens before creating a session. The owner is delegated identity, not proof of wallet-key control or NFT ownership.
 
+## On-chain `verify` (CPI)
+
+To check a tap inside your own program, have it CPI `verify` (see the Rust
+client's `VerifyCpiBuilder`). The client signs over a 32-byte `message_hash`
+your program also derives; include a nonce or recent slot hash in it, since
+`verify` adds no freshness of its own.
+
+```ts
+import {
+  buildMessageHash,
+  authenticatePasskeyForSecp256r1Verify,
+  buildSecp256r1VerifyInstruction,
+} from "phygital-token-sdk";
+
+const messageHash = buildMessageHash(message);
+const tap = await authenticatePasskeyForSecp256r1Verify({ rpc, messageHash });
+const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
+  await buildSecp256r1VerifyInstruction(tap);
+// Prepend secp256r1VerifyInstruction to your program's instruction.
+```
+
 ## Claim ownership
 
 A tap makes a wallet the token's owner (`set_owner`). The wallet must sign the

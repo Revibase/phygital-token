@@ -15,10 +15,10 @@ export function registerVerificationTools(server: McpServer) {
     "recommend_verification",
     {
       description:
-        "Pick the right SDK auth path (off-chain tap, transfer, or token lookup). Omit useCase to get the decision tree and all use cases.",
+        "Pick the right SDK auth path (off-chain tap, transfer, or on-chain verify). Omit useCase to get the decision tree and all use cases.",
       inputSchema: {
         useCase: z
-          .enum(["login_ui_only", "set_owner", "lookup_after_tap"] as [
+          .enum(["login_ui_only", "set_owner", "lookup_after_tap", "onchain_cpi_verify"] as [
             VerificationUseCase,
             ...VerificationUseCase[],
           ])
