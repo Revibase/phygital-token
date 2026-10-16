@@ -29,9 +29,7 @@ impl RemoveOwner {
         remaining_accounts: &[solana_instruction::AccountMeta],
     ) -> solana_instruction::Instruction {
         let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
-        accounts.push(solana_instruction::AccountMeta::new_readonly(
-            self.owner, true,
-        ));
+        accounts.push(solana_instruction::AccountMeta::new(self.owner, true));
         accounts.push(solana_instruction::AccountMeta::new(
             self.phygital_token,
             false,
@@ -74,7 +72,7 @@ impl Default for RemoveOwnerInstructionData {
 ///
 /// ### Accounts:
 ///
-///   0. `[signer]` owner
+///   0. `[writable, signer]` owner
 ///   1. `[writable]` phygital_token
 #[derive(Clone, Debug, Default)]
 pub struct RemoveOwnerBuilder {
@@ -175,10 +173,7 @@ impl<'a, 'b> RemoveOwnerCpi<'a, 'b> {
         remaining_accounts: &[(&'b solana_account_info::AccountInfo<'a>, bool, bool)],
     ) -> solana_program_error::ProgramResult {
         let mut accounts = Vec::with_capacity(2 + remaining_accounts.len());
-        accounts.push(solana_instruction::AccountMeta::new_readonly(
-            *self.owner.key,
-            true,
-        ));
+        accounts.push(solana_instruction::AccountMeta::new(*self.owner.key, true));
         accounts.push(solana_instruction::AccountMeta::new(
             *self.phygital_token.key,
             false,
@@ -217,7 +212,7 @@ impl<'a, 'b> RemoveOwnerCpi<'a, 'b> {
 ///
 /// ### Accounts:
 ///
-///   0. `[signer]` owner
+///   0. `[writable, signer]` owner
 ///   1. `[writable]` phygital_token
 #[derive(Clone, Debug)]
 pub struct RemoveOwnerCpiBuilder<'a, 'b> {

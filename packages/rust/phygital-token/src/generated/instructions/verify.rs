@@ -79,7 +79,7 @@ impl Default for VerifyInstructionData {
 pub struct VerifyInstructionArgs {
     pub secp256r1_verify_args: Secp256r1VerifyArgs,
     pub message_hash: [u8; 32],
-    pub expected_rp_id: Option<String>,
+    pub expected_rp_id_hash: Option<[u8; 32]>,
     pub expected_origins: Option<Vec<String>>,
 }
 
@@ -101,7 +101,7 @@ pub struct VerifyBuilder {
     instructions_sysvar: Option<solana_address::Address>,
     secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
     message_hash: Option<[u8; 32]>,
-    expected_rp_id: Option<String>,
+    expected_rp_id_hash: Option<[u8; 32]>,
     expected_origins: Option<Vec<String>>,
     __remaining_accounts: Vec<solana_instruction::AccountMeta>,
 }
@@ -139,8 +139,8 @@ impl VerifyBuilder {
     }
     /// `[optional argument]`
     #[inline(always)]
-    pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
-        self.expected_rp_id = Some(expected_rp_id);
+    pub fn expected_rp_id_hash(&mut self, expected_rp_id_hash: [u8; 32]) -> &mut Self {
+        self.expected_rp_id_hash = Some(expected_rp_id_hash);
         self
     }
     /// `[optional argument]`
@@ -178,7 +178,7 @@ impl VerifyBuilder {
                 .clone()
                 .expect("secp256r1_verify_args is not set"),
             message_hash: self.message_hash.clone().expect("message_hash is not set"),
-            expected_rp_id: self.expected_rp_id.clone(),
+            expected_rp_id_hash: self.expected_rp_id_hash.clone(),
             expected_origins: self.expected_origins.clone(),
         };
 
@@ -301,7 +301,7 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
             instructions_sysvar: None,
             secp256r1_verify_args: None,
             message_hash: None,
-            expected_rp_id: None,
+            expected_rp_id_hash: None,
             expected_origins: None,
             __remaining_accounts: Vec::new(),
         });
@@ -338,8 +338,8 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
     }
     /// `[optional argument]`
     #[inline(always)]
-    pub fn expected_rp_id(&mut self, expected_rp_id: String) -> &mut Self {
-        self.instruction.expected_rp_id = Some(expected_rp_id);
+    pub fn expected_rp_id_hash(&mut self, expected_rp_id_hash: [u8; 32]) -> &mut Self {
+        self.instruction.expected_rp_id_hash = Some(expected_rp_id_hash);
         self
     }
     /// `[optional argument]`
@@ -393,7 +393,7 @@ impl<'a, 'b> VerifyCpiBuilder<'a, 'b> {
                 .message_hash
                 .clone()
                 .expect("message_hash is not set"),
-            expected_rp_id: self.instruction.expected_rp_id.clone(),
+            expected_rp_id_hash: self.instruction.expected_rp_id_hash.clone(),
             expected_origins: self.instruction.expected_origins.clone(),
         };
         let instruction = VerifyCpi {
@@ -424,7 +424,7 @@ struct VerifyCpiBuilderInstruction<'a, 'b> {
     instructions_sysvar: Option<&'b solana_account_info::AccountInfo<'a>>,
     secp256r1_verify_args: Option<Secp256r1VerifyArgs>,
     message_hash: Option<[u8; 32]>,
-    expected_rp_id: Option<String>,
+    expected_rp_id_hash: Option<[u8; 32]>,
     expected_origins: Option<Vec<String>>,
     /// Additional instruction accounts `(AccountInfo, is_writable, is_signer)`.
     __remaining_accounts: Vec<(&'b solana_account_info::AccountInfo<'a>, bool, bool)>,

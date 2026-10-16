@@ -26,10 +26,10 @@ import {
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
-  type ReadonlySignerAccount,
   type ReadonlyUint8Array,
   type TransactionSigner,
   type WritableAccount,
+  type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
@@ -55,7 +55,7 @@ export type RemoveOwnerInstruction<
   InstructionWithAccounts<
     [
       TAccountOwner extends string
-        ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner>
+        ? WritableSignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
       TAccountPhygitalToken extends string
         ? WritableAccount<TAccountPhygitalToken>
@@ -110,7 +110,7 @@ export function getRemoveOwnerInstruction<
 
   // Original accounts.
   const originalAccounts = {
-    owner: { value: input.owner ?? null, isWritable: false },
+    owner: { value: input.owner ?? null, isWritable: true },
     phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
   };
   const accounts = originalAccounts as Record<

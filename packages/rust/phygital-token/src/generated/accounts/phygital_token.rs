@@ -17,8 +17,7 @@ pub struct PhygitalToken {
     pub mint: Address,
     pub last_sign_count: u32,
     pub token_type: u8,
-    /// Unused; keeps the layout and every field offset stable.
-    pub reserved: u8,
+    pub bump: u8,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
 }

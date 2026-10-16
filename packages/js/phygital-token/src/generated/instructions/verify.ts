@@ -85,14 +85,14 @@ export type VerifyInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
   messageHash: ReadonlyUint8Array;
-  expectedRpId: Option<string>;
+  expectedRpIdHash: Option<ReadonlyUint8Array>;
   expectedOrigins: Option<Array<string>>;
 };
 
 export type VerifyInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
   messageHash: ReadonlyUint8Array;
-  expectedRpId: OptionOrNullable<string>;
+  expectedRpIdHash: OptionOrNullable<ReadonlyUint8Array>;
   expectedOrigins: OptionOrNullable<Array<string>>;
 };
 
@@ -102,7 +102,7 @@ export function getVerifyInstructionDataEncoder(): Encoder<VerifyInstructionData
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
       ["messageHash", fixEncoderSize(getBytesEncoder(), 32)],
-      ["expectedRpId", getOptionEncoder(addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()))],
+      ["expectedRpIdHash", getOptionEncoder(fixEncoderSize(getBytesEncoder(), 32))],
       [
         "expectedOrigins",
         getOptionEncoder(getArrayEncoder(addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()))),
@@ -117,7 +117,7 @@ export function getVerifyInstructionDataDecoder(): Decoder<VerifyInstructionData
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
     ["messageHash", fixDecoderSize(getBytesDecoder(), 32)],
-    ["expectedRpId", getOptionDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder()))],
+    ["expectedRpIdHash", getOptionDecoder(fixDecoderSize(getBytesDecoder(), 32))],
     [
       "expectedOrigins",
       getOptionDecoder(getArrayDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder()))),
@@ -140,7 +140,7 @@ export type VerifyInput<
   instructionsSysvar?: Address<TAccountInstructionsSysvar>;
   secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
   messageHash: VerifyInstructionDataArgs["messageHash"];
-  expectedRpId: VerifyInstructionDataArgs["expectedRpId"];
+  expectedRpIdHash: VerifyInstructionDataArgs["expectedRpIdHash"];
   expectedOrigins: VerifyInstructionDataArgs["expectedOrigins"];
 };
 

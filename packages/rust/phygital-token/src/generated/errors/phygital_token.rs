@@ -76,57 +76,9 @@ pub enum PhygitalTokenError {
     /// 6021 - Permanent phygital token owner cannot be transferred or removed.
     #[error("Permanent phygital token owner cannot be transferred or removed.")]
     PermanentOwnerImmutable = 0x1785,
-    /// 6022 - The token has no owner.
-    #[error("The token has no owner.")]
-    OwnerRequired = 0x1786,
-    /// 6023 - Compact instruction account index out of bounds.
-    #[error("Compact instruction account index out of bounds.")]
-    InvalidAccountIndex = 0x1787,
-    /// 6024 - Compact instructions may not call the phygital-token program.
-    #[error("Compact instructions may not call the phygital-token program.")]
-    SelfReentrancyNotAllowed = 0x1788,
-    /// 6025 - Execute must be a top-level instruction.
-    #[error("Execute must be a top-level instruction.")]
-    ExecuteViaCpiNotAllowed = 0x1789,
-    /// 6026 - Durable-nonce transactions are not allowed.
-    #[error("Durable-nonce transactions are not allowed.")]
-    DurableNonceNotAllowed = 0x178A,
-    /// 6027 - Wallet PDA owner or data length changed during inner CPI.
-    #[error("Wallet PDA owner or data length changed during inner CPI.")]
-    WalletInvariantViolated = 0x178B,
-    /// 6028 - Protected account may not be a signer or writable in inner instructions.
-    #[error("Protected account may not be a signer or writable in inner instructions.")]
-    ProtectedAccountPrivilege = 0x178C,
-    /// 6029 - Policy arguments are invalid.
-    #[error("Policy arguments are invalid.")]
-    InvalidPolicyArgs = 0x178D,
-    /// 6030 - Program is not allowed: the policy lists every program the accessory may call.
-    #[error("Program is not allowed: the policy lists every program the accessory may call.")]
-    ProgramNotAllowed = 0x178E,
-    /// 6031 - Instruction does not satisfy the configured program rules.
-    #[error("Instruction does not satisfy the configured program rules.")]
-    InstructionNotAllowed = 0x178F,
-    /// 6032 - No spend cap covers this SOL or token transfer.
-    #[error("No spend cap covers this SOL or token transfer.")]
-    SpendNotAllowed = 0x1790,
-    /// 6033 - Transfer exceeds the configured spending limit.
-    #[error("Transfer exceeds the configured spending limit.")]
-    SpendLimitExceeded = 0x1791,
-    /// 6034 - Transfer exceeds the configured max per transaction.
-    #[error("Transfer exceeds the configured max per transaction.")]
-    MaxPerTxExceeded = 0x1792,
-    /// 6035 - Execute may not leave a standing delegate on a wallet-owned token account.
-    #[error("Execute may not leave a standing delegate on a wallet-owned token account.")]
-    DelegationNotAllowed = 0x1793,
-    /// 6036 - Wallet-owned token account control changed during execute.
-    #[error("Wallet-owned token account control changed during execute.")]
-    TokenAuthorityChanged = 0x1794,
-    /// 6037 - Preview passed: an accessory tap would be allowed (preview_execute never lands).
-    #[error("Preview passed: an accessory tap would be allowed (preview_execute never lands).")]
-    PreviewPassed = 0x1795,
-    /// 6038 - clientDataJSON type must be webauthn.get.
+    /// 6022 - clientDataJSON type must be webauthn.get.
     #[error("clientDataJSON type must be webauthn.get.")]
-    ClientDataTypeMismatch = 0x1796,
+    ClientDataTypeMismatch = 0x1786,
 }
 
 impl From<PhygitalTokenError> for solana_program_error::ProgramError {
