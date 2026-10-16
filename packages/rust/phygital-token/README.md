@@ -55,7 +55,7 @@ VerifyCpiBuilder::new(phygital_token_program)
 
 `expected_rp_id` and `expected_origins` are `Option` args. Omit the builder methods to skip those checks. When `expected_origins` is set, the signed `clientDataJSON.origin` must match one entry.
 
-Regenerate from the program IDL with `pnpm generate:rust-client` at the monorepo root.
+Regenerate from the program IDL with `pnpm generate:rust-sdk` at the monorepo root.
 
 ## License
 

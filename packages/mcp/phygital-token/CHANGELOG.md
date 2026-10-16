@@ -8,6 +8,7 @@ All notable changes to this artifact are documented here. The format follows
 
 ### Changed
 
+- `list_sdk_exports` and SDK docs include the Rust CPI builders.
 - `plan_transfer`, `plan_remove_owner` and the docs drop the accessory wallet
   and policy, and describe the `set_owner` challenge without the recipient
   (`beginTransfer({ rpc, secp256r1Pubkey })`).

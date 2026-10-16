@@ -7,9 +7,14 @@ export {
 
 export {
   buildMessageHash,
+  buildVerifyChallenge,
   authenticatePasskeyForSecp256r1Verify,
   buildSecp256r1VerifyInstruction,
 } from "./instructions/verify.js";
+
+export { buildSecp256r1VerifyInstructionFromWebAuthnResponse } from "./utils/passkey/secp256r1.js";
+export { bufferToBase64URLString } from "./utils/passkey/webauthn.js";
+export { decodeBase64AccountData, getLatestSlotHash } from "./utils/slotHash.js";
 
 export { parseSecp256r1Pubkey } from "./utils/parseSecp256r1Pubkey.js";
 

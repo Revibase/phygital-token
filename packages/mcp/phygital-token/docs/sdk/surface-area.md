@@ -108,15 +108,15 @@ Issue any short-lived message string — no `generateAuthenticationOptions`. The
 
 Re-exported from `./generated/index.js`:
 
-- Instructions: `getInitializeInstruction`, `getAssignMintInstruction`, `getSetOwnerInstruction`, `getVerifyInstruction`, `getRemoveOwnerInstruction`, `getCreateConfigInstruction`, `getSetAdminInstruction`, `getSetIssuerInstruction`, `getSetMinterInstruction`, `getClosePhygitalTokenInstruction`, …
-- Accounts: `fetchPhygitalToken`, `fetchAdminConfig`, `findAdminConfigPda`, `PhygitalToken`, `AdminConfig`, …
+- Instructions: `getInitializeInstruction`, `getAssignMintInstruction`, `getSetOwnerInstruction`, `getVerifyInstruction`, `getRemoveOwnerInstruction`, …
+- Accounts: `fetchPhygitalToken`, `fetchAdminConfig`, `PhygitalToken`, `AdminConfig`, …
 - Types: `PhygitalTokenType` (`Permanent` | `Bearer` | `Controlled`), `Secp256r1Pubkey`, …
 
 ## Rust client
 
 Crate: `phygital-token-client` at `packages/rust/phygital-token`.
 
-On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, `AssignMintCpiBuilder`, `SetOwnerCpiBuilder`, `CreateConfigCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
+On-chain: instruction builders, CPI helpers (`VerifyCpiBuilder`, …), account layouts, errors. `VerifyCpiBuilder.expected_rp_id` / `.expected_origins` are optional (`Option`); omit them to skip those checks.
 
 `PhygitalTokenType`: `Permanent` (0, immutable owner, stays locked), `Bearer` (1), `Controlled` (2, lock/forfeit).
 

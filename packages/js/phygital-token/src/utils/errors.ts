@@ -13,7 +13,8 @@ export type PhygitalTokenErrorCode =
   | "MESSAGE_MISMATCH"
   | "ORIGIN_MISMATCH"
   | "RP_ID_MISMATCH"
-  | "SLOT_HASH_UNAVAILABLE";
+  | "SLOT_HASH_UNAVAILABLE"
+  | "INVALID_ARGUMENT";
 
 /**
  * Error thrown for failures a caller or end user can act on. Branch on

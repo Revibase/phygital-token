@@ -148,6 +148,9 @@ export function beginTransfer(input: {
     rpId?: string;
 }): Promise<TransferSession>;
 
+// @public (undocumented)
+export function bufferToBase64URLString(buffer: ArrayBuffer | ArrayBufferView): Base64URLString_2;
+
 // @public
 export function buildMessageHash(message: Uint8Array): Uint8Array;
 
@@ -157,6 +160,20 @@ export function buildSecp256r1VerifyInstruction(response: AuthenticationResponse
     phygitalTokenPda: Address;
     secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
 }>;
+
+// @public (undocumented)
+export function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input: {
+    secp256r1PublicKey: Secp256r1Pubkey;
+    response: AuthenticationResponseJSON;
+    existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[];
+}): {
+    signedMessageIndex: number;
+    secp256r1VerifyInstruction: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
+    clientDataJson: Uint8Array;
+};
+
+// @public
+export function buildVerifyChallenge(messageHash: Uint8Array): Uint8Array;
 
 // @public (undocumented)
 export const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array;
@@ -235,6 +252,9 @@ export function decodeAdminConfig<TAddress extends string = string>(encodedAccou
 
 // @public (undocumented)
 export function decodeAdminConfig<TAddress extends string = string>(encodedAccount: MaybeEncodedAccount<TAddress>): MaybeAccount<AdminConfig, TAddress>;
+
+// @public (undocumented)
+export function decodeBase64AccountData(data: string | [string, string] | Uint8Array): Uint8Array;
 
 // @public (undocumented)
 export function decodePhygitalToken<TAddress extends string = string>(encodedAccount: EncodedAccount<TAddress>): Account<PhygitalToken, TAddress>;
@@ -385,6 +405,12 @@ export function getInitializeInstructionDataDecoder(): FixedSizeDecoder<Initiali
 
 // @public (undocumented)
 export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<InitializeInstructionDataArgs>;
+
+// @public (undocumented)
+export function getLatestSlotHash(rpc: Rpc<SolanaRpcApi>): Promise<{
+    slotHash: Uint8Array<ArrayBufferLike>;
+    slotNumber: bigint;
+}>;
 
 // @public
 export function getPhygitalTokenCodec(): FixedSizeCodec<PhygitalTokenArgs, PhygitalToken>;
@@ -802,28 +828,10 @@ export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 6012;
 export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH = 6008;
 
 // @public
-export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH = 6038;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__DELEGATION_NOT_ALLOWED = 6035;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__DURABLE_NONCE_NOT_ALLOWED = 6026;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__EXECUTE_VIA_CPI_NOT_ALLOWED = 6025;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__INSTRUCTION_NOT_ALLOWED = 6031;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__INVALID_ACCOUNT_INDEX = 6023;
+export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH = 6022;
 
 // @public
 export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 6013;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__INVALID_POLICY_ARGS = 6029;
 
 // @public
 export const PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION = 6000;
@@ -844,16 +852,10 @@ export const PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT = 6009;
 export const PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS = 6019;
 
 // @public
-export const PHYGITAL_TOKEN_ERROR__MAX_PER_TX_EXCEEDED = 6034;
-
-// @public
 export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 6016;
 
 // @public
 export const PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH = 6005;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__OWNER_REQUIRED = 6022;
 
 // @public
 export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE = 6021;
@@ -862,37 +864,16 @@ export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE = 6021;
 export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED = 6020;
 
 // @public
-export const PHYGITAL_TOKEN_ERROR__PREVIEW_PASSED = 6037;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__PROGRAM_NOT_ALLOWED = 6030;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__PROTECTED_ACCOUNT_PRIVILEGE = 6028;
-
-// @public
 export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 6015;
 
 // @public
 export const PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH = 6004;
 
 // @public
-export const PHYGITAL_TOKEN_ERROR__SELF_REENTRANCY_NOT_ALLOWED = 6024;
-
-// @public
 export const PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS = 6001;
 
 // @public
-export const PHYGITAL_TOKEN_ERROR__SPEND_LIMIT_EXCEEDED = 6033;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__SPEND_NOT_ALLOWED = 6032;
-
-// @public
 export const PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT = 6007;
-
-// @public
-export const PHYGITAL_TOKEN_ERROR__TOKEN_AUTHORITY_CHANGED = 6036;
 
 // @public
 export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED = 6010;
@@ -909,9 +890,6 @@ export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 6017;
 // @public
 export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 6014;
 
-// @public
-export const PHYGITAL_TOKEN_ERROR__WALLET_INVARIANT_VIOLATED = 6027;
-
 // @public (undocumented)
 export const PHYGITAL_TOKEN_PROGRAM_ADDRESS: Address<"phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz">;
 
@@ -922,7 +900,7 @@ export type PhygitalToken = {
     mint: Address;
     lastSignCount: number;
     tokenType: number;
-    reserved: number;
+    bump: number;
     publicKey: Secp256r1Pubkey;
     identifier: Secp256r1Pubkey;
 };
@@ -941,7 +919,7 @@ export type PhygitalTokenArgs = {
     mint: Address;
     lastSignCount: number;
     tokenType: number;
-    reserved: number;
+    bump: number;
     publicKey: Secp256r1PubkeyArgs;
     identifier: Secp256r1PubkeyArgs;
 };
@@ -956,7 +934,7 @@ export class PhygitalTokenError extends Error {
 }
 
 // @public
-export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "RP_ID_REQUIRED" | "RECOVERY_SOURCE_REQUIRED" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_CREDENTIAL_ID" | "PASSKEY_RECOVERY_FAILED" | "PASSKEY_NOT_RECOGNIZED" | "PASSKEY_AMBIGUOUS" | "INVALID_ASSERTION" | "MESSAGE_MISMATCH" | "ORIGIN_MISMATCH" | "RP_ID_MISMATCH" | "SLOT_HASH_UNAVAILABLE";
+export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "RP_ID_REQUIRED" | "RECOVERY_SOURCE_REQUIRED" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_CREDENTIAL_ID" | "PASSKEY_RECOVERY_FAILED" | "PASSKEY_NOT_RECOGNIZED" | "PASSKEY_AMBIGUOUS" | "INVALID_ASSERTION" | "MESSAGE_MISMATCH" | "ORIGIN_MISMATCH" | "RP_ID_MISMATCH" | "SLOT_HASH_UNAVAILABLE" | "INVALID_ARGUMENT";
 
 // @public (undocumented)
 export enum PhygitalTokenInstruction {
@@ -1049,7 +1027,7 @@ export type RemoveOwnerInput<TAccountOwner extends string = string, TAccountPhyg
 
 // @public (undocumented)
 export type RemoveOwnerInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountOwner extends string | AccountMeta<string> = string, TAccountPhygitalToken extends string | AccountMeta<string> = string, TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
-TAccountOwner extends string ? ReadonlySignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner> : TAccountOwner,
+TAccountOwner extends string ? WritableSignerAccount<TAccountOwner> & AccountSignerMeta<TAccountOwner> : TAccountOwner,
 TAccountPhygitalToken extends string ? WritableAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
 ...TRemainingAccounts
 ]>;
@@ -1234,6 +1212,7 @@ export type TransferSession = {
     slotNumber: bigint;
     challenge: Uint8Array;
     rpId: string;
+    owner: Address | null;
 };
 
 // @public (undocumented)
@@ -1245,7 +1224,7 @@ export type VerifyInput<TAccountPhygitalToken extends string = string, TAccountI
     instructionsSysvar?: Address<TAccountInstructionsSysvar>;
     secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
     messageHash: VerifyInstructionDataArgs["messageHash"];
-    expectedRpId: VerifyInstructionDataArgs["expectedRpId"];
+    expectedRpIdHash: VerifyInstructionDataArgs["expectedRpIdHash"];
     expectedOrigins: VerifyInstructionDataArgs["expectedOrigins"];
 };
 
@@ -1261,7 +1240,7 @@ export type VerifyInstructionData = {
     discriminator: ReadonlyUint8Array;
     secp256r1VerifyArgs: Secp256r1VerifyArgs;
     messageHash: ReadonlyUint8Array;
-    expectedRpId: Option_2<string>;
+    expectedRpIdHash: Option_2<ReadonlyUint8Array>;
     expectedOrigins: Option_2<Array<string>>;
 };
 
@@ -1269,7 +1248,7 @@ export type VerifyInstructionData = {
 export type VerifyInstructionDataArgs = {
     secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
     messageHash: ReadonlyUint8Array;
-    expectedRpId: OptionOrNullable<string>;
+    expectedRpIdHash: OptionOrNullable<ReadonlyUint8Array>;
     expectedOrigins: OptionOrNullable<Array<string>>;
 };
 

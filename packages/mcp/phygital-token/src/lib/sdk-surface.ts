@@ -101,7 +101,12 @@ export const SDK_SURFACE = {
       "SetMinterCpi",
       "SetMinterCpiBuilder",
     ],
-    types: ["PhygitalToken", "AdminConfig", "Secp256r1VerifyArgs", "PhygitalTokenType"],
+    types: [
+      "PhygitalToken",
+      "AdminConfig",
+      "Secp256r1VerifyArgs",
+      "PhygitalTokenType",
+    ],
     roles: {
       admin:
         "sole AdminConfig.admin — create_config signer; set_admin / set_issuer / set_minter / close_phygital_token",

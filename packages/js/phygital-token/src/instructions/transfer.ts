@@ -16,7 +16,10 @@ import {
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
-import { getSetOwnerInstruction } from "../generated/index.js";
+import {
+  fetchMaybePhygitalToken,
+  getSetOwnerInstruction,
+} from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 import { PhygitalTokenError } from "../utils/errors.js";
 import { findPhygitalTokenPda } from "../utils/pdas/token.js";
@@ -32,7 +35,14 @@ export type TransferSession = {
   slotNumber: bigint;
   challenge: Uint8Array;
   rpId: string;
+  /**
+   * The token's owner when the session began, or `null` if it had none.
+   */
+  owner: Address | null;
 };
+
+/** The default (all-zero) address the program stores for "no owner". */
+const NO_OWNER = "11111111111111111111111111111111" as Address;
 
 /**
  * Prepares a transfer session with slot-bound challenge data.
@@ -53,7 +63,11 @@ export async function beginTransfer(input: {
 }): Promise<TransferSession> {
   const rpId = resolveTransferRpId(input.rpId);
   const phygitalToken = await findPhygitalTokenPda(input.secp256r1Pubkey);
-  const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
+  const [{ slotHash, slotNumber }, token] = await Promise.all([
+    getLatestSlotHash(input.rpc),
+    fetchMaybePhygitalToken(input.rpc, phygitalToken),
+  ]);
+  const owner = token.exists && token.data.owner !== NO_OWNER ? token.data.owner : null;
   const challenge = await buildTransferChallenge({
     phygitalToken,
     slotHash,
@@ -67,6 +81,7 @@ export async function beginTransfer(input: {
     slotNumber,
     challenge,
     rpId,
+    owner,
   };
 }
 

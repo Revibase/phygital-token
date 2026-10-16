@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { address, getAddressEncoder } from "@solana/kit";
-import { getPhygitalTokenEncoder, getPhygitalTokenSize } from "../generated/index.js";
+import {
+  getPhygitalTokenEncoder,
+  getPhygitalTokenSize,
+} from "../generated/index.js";
 
 const OWNER = address("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF");
 const MINT = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const OWNER_OFFSET = 8;
 const MINT_OFFSET = 40;
+const BUMP_OFFSET = 77;
 const IDENTIFIER_OFFSET = 111;
 
 function filledKey(fill: number): readonly [Uint8Array] {
@@ -21,7 +25,7 @@ describe("PhygitalToken memcmp offsets", () => {
       mint: MINT,
       lastSignCount: 7,
       tokenType: 1,
-      reserved: 255,
+      bump: 255,
       publicKey,
       identifier,
     });
@@ -31,6 +35,7 @@ describe("PhygitalToken memcmp offsets", () => {
     const addressBytes = getAddressEncoder();
     expect(encoded.subarray(OWNER_OFFSET, OWNER_OFFSET + 32)).toEqual(addressBytes.encode(OWNER));
     expect(encoded.subarray(MINT_OFFSET, MINT_OFFSET + 32)).toEqual(addressBytes.encode(MINT));
+    expect(encoded[BUMP_OFFSET]).toBe(255);
     expect(encoded.subarray(IDENTIFIER_OFFSET, IDENTIFIER_OFFSET + 33)).toEqual(identifier[0]);
   });
 });
