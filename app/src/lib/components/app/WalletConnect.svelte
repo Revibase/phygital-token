@@ -21,7 +21,6 @@
 		disabled = false,
 		description = 'Choose a wallet to continue.',
 		requireAddress = null,
-		browseTarget = null,
 		afterConnect,
 		onconnected
 	}: {
@@ -30,8 +29,6 @@
 		disabled?: boolean;
 		description?: string;
 		requireAddress?: string | null;
-		/** On phones without a detected wallet, offer to open this page of ours in a wallet app. */
-		browseTarget?: string | null;
 		afterConnect?: () => Promise<void>;
 		onconnected?: () => void;
 	} = $props();
@@ -85,7 +82,6 @@
 			options={walletStore.options}
 			{connecting}
 			onpick={pick}
-			{browseTarget}
 		/>
 	</div>
 </ResponsiveSheet>

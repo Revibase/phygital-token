@@ -29,5 +29,6 @@ clash with another service's.
 | `0003` | Deleted from the repository (`revibase_0003_mint_media`). `0005` drops its table on any database that applied it and is a no-op elsewhere. |
 | `0008`, `0011` | Passkey wallet backups (removed); dropped in `0013`. |
 | `0009` | Fee-sponsor ledger (removed); dropped in `0013`. |
-| `0012` | Link intents again, for the restored in-app wallet and desktop handoffs (the columns of `0001`, `0004`, `0006` and `0007`). |
+| `0012` | Link intents for the in-app wallet and desktop handoffs. |
 | `0013` | Drops the passkey wallet and fee-sponsor tables. |
+| `0014` | Drops link intents; accessory claims are now built and submitted directly in the browser. |

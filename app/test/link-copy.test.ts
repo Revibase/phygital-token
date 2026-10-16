@@ -8,12 +8,10 @@ describe('neutral wallet linking copy', () => {
 			const c = linkCopy(kind);
 			expect(c).toMatchObject({
 				pageTitle: 'Claim accessory',
-				action: 'Claim accessory',
-				cancelled: 'Claim cancelled'
+				action: 'Claim accessory'
 			});
 			expect(c.confirm.title).toBe('Claim with this wallet?');
 			expect(c.done.title).toBe('Accessory claimed');
-			expect(c.progress('wallet')).toBe('Claiming with wallet…');
 			const text = [
 				c.choose.body,
 				c.confirm.body,

@@ -10,7 +10,6 @@
 
 <svelte:head><title>Release accessory · Revibase</title></svelte:head>
 
-<!-- Opened inside the owner's wallet app (a release handoff from a phone browser). -->
 <PageShell>
 	<section class="flex flex-1 flex-col justify-center gap-6 pt-4">
 		<PageHeader

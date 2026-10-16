@@ -4,7 +4,6 @@ const root = '.svelte-kit/cloudflare';
 const forbidden = [
 	'__simulation/',
 	'simulation_session',
-	'simulation-intent-0001',
 	'isolated-browser-simulation',
 	'LADS POKER',
 	'Simulation NFT',

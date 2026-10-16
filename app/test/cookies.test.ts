@@ -66,7 +66,7 @@ describe('session tokens', () => {
 		);
 		expect(await verifyToken(SECRET, `${forged}.${mac}`, 'bu')).toBeNull();
 		expect(await verifyToken('y'.repeat(48), token, 'bu')).toBeNull();
-		expect(await verifyToken(SECRET, token, 'hof')).toBeNull();
+		expect(await verifyToken(SECRET, token, 'os')).toBeNull();
 		expect(await verifyToken(SECRET, token, 'bu', browse.exp + 1)).toBeNull();
 		expect(await verifyToken(SECRET, `${body}.${mac}.x`, 'bu')).toBeNull();
 		expect(await verifyToken(SECRET, undefined, 'bu')).toBeNull();

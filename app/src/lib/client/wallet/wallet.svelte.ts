@@ -11,7 +11,6 @@ import {
 
 import { platform } from '../capability';
 import { bytesToBase64Url } from '$lib/shared/encoding';
-import { FEATURED_WALLET_NAMES } from './catalog';
 
 export type Cluster = 'mainnet' | 'devnet' | 'testnet' | 'localnet';
 
@@ -38,19 +37,32 @@ export type SigningContext = {
  */
 class WalletStore {
 	#client: ConnectorClient | null = null;
+	#initializing = false;
 	#cluster: Cluster = 'devnet';
 	state = $state<ConnectorState | null>(null);
 
 	init(cluster: Cluster) {
-		if (this.#client || typeof window === 'undefined') return;
+		if (this.#client || this.#initializing || typeof window === 'undefined') return;
+		this.#initializing = true;
 		this.#cluster = cluster;
+		void this.#initialize(cluster);
+	}
+
+	async #initialize(cluster: Cluster) {
+		if (import.meta.env.DEV) {
+			try {
+				const { registerDevMockWallet } = await import('./mock-wallet');
+				await registerDevMockWallet();
+			} catch (err) {
+				console.error('Could not register the development mock wallet', err);
+			}
+		}
 		const client = new ConnectorClient(
 			getDefaultConfig({
 				appName: 'Revibase',
 				appUrl: window.location.origin,
 				autoConnect: true,
-				network: cluster,
-				wallets: { featured: FEATURED_WALLET_NAMES }
+				network: cluster
 			})
 		);
 		(client as unknown as { initialize?: () => void }).initialize?.();

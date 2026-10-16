@@ -7,7 +7,7 @@ const IOS =
 	'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1';
 const ANDROID =
 	'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36';
-const readiness = await fetch(BASE + '/__simulation/status');
+const readiness = await fetch(BASE + '/accessory/link');
 assert.equal(
 	readiness.status,
 	200,
@@ -513,127 +513,33 @@ try {
 		assert.ok(q.url().startsWith('https://project.example/about'));
 		assert.equal(p.url(), BASE + '/accessory');
 	});
-	await test('Safari handoff survives reload, remote completion and visibility return', async () => {
-		await fetch(BASE + '/__simulation/reset', { method: 'POST' });
-		const safari = await context();
-		await safari.p.goto(BASE + '/accessory/link');
-		await safari.p.getByRole('button', { name: 'Approve', exact: true }).click();
-		await safari.p.getByRole('link', { name: 'Open in Phantom' }).waitFor();
-		assert.ok(safari.p.url().includes('link=simulation-intent-0001'));
-		await safari.p.reload();
-		await safari.p.getByRole('link', { name: 'Open in Phantom' }).waitFor();
-		const href = await safari.p.getByRole('link', { name: 'Open in Phantom' }).getAttribute('href');
-		const target = decodeURIComponent(new URL(href).pathname.split('/browse/')[1]);
-		assert.ok(target.includes('#h=simulation-handoff'));
-		let background = true;
-		await safari.c.route('**/api/link/simulation-intent-0001', (r) =>
-			background
-				? r.fulfill({ status: 503, contentType: 'application/json', body: '{}' })
-				: r.continue()
-		);
-		await safari.p.evaluate(() => {
-			Object.defineProperty(document, 'visibilityState', {
-				configurable: true,
-				get: () => 'hidden'
-			});
-			document.dispatchEvent(new Event('visibilitychange'));
+	await test('accessory claim connects a detected wallet and uses no linking API', async () => {
+		const { c, p } = await context(IOS + ' Phantom');
+		const appRequests = [];
+		p.on('request', (request) => {
+			if (new URL(request.url()).pathname.startsWith('/api/')) appRequests.push(request.url());
 		});
-		const wallet = await context(IOS + ' Phantom');
-		await wallet.p.goto(target);
-		await wallet.p.getByRole('button', { name: 'Phantom', exact: true }).click();
-		await wallet.p.reload();
-		await wallet.p.getByRole('button', { name: 'Phantom', exact: true }).click();
-		await wallet.p.getByRole('button', { name: 'Claim accessory', exact: true }).click();
-		await visible(wallet.p, 'Accessory claimed');
-		assert.equal(
-			await wallet.p.evaluate(() => localStorage.getItem('revibase:recent-wallet')),
-			'Phantom'
-		);
-		assert.equal(
-			await wallet.p.evaluate(() => localStorage.getItem('revibase:connection-method')),
-			'wallet'
-		);
-		assert.equal(
-			await wallet.p.evaluate(
-				() =>
-					JSON.parse(
-						localStorage.getItem(
-							'revibase:link-context:So11111111111111111111111111111111111111112'
-						)
-					).source
-			),
-			'wallet'
-		);
-		background = false;
-		await safari.p.evaluate(() => {
-			Object.defineProperty(document, 'visibilityState', {
-				configurable: true,
-				get: () => 'visible'
-			});
-			document.dispatchEvent(new Event('visibilitychange'));
-		});
-		await visible(safari.p, 'Done');
-		assert.equal(
-			await safari.p.evaluate(() => localStorage.getItem('revibase:recent-wallet')),
-			'Phantom'
-		);
-		assert.equal(
-			await safari.p.evaluate(() =>
-				sessionStorage.getItem('revibase:handoff:simulation-intent-0001')
-			),
-			null
-		);
-		await safari.p.reload();
-		await visible(safari.p, 'Done');
-		await safari.p.getByRole('link', { name: 'Done', exact: true }).click();
-		await safari.p.getByRole('link', { name: 'Stake NFT', exact: true }).waitFor();
-		const stranger = await context();
-		assert.equal(
-			(await stranger.c.request.get(BASE + '/api/link/simulation-intent-0001')).status(),
-			403
-		);
-	});
-	await test('detected Phantom connects in the regular browser and preserves that method after reload', async () => {
-		await fetch(BASE + '/__simulation/reset', { method: 'POST' });
-		const { c, p } = await context(ANDROID);
-		await c.addInitScript(() => localStorage.setItem('simulation:browser-wallet', 'true'));
 		await p.goto(BASE + '/accessory/link');
 		await p.getByRole('button', { name: 'Approve', exact: true }).click();
 		await p.getByRole('button', { name: 'Phantom', exact: true }).click();
 		await p.getByRole('button', { name: 'Claim accessory', exact: true }).click();
-		await visible(p, 'Done');
-		assert.equal(
-			await p.evaluate(() => localStorage.getItem('revibase:connection-method')),
-			'browser'
-		);
-		await p.reload();
-		await visible(p, 'Done');
-		assert.equal(
-			await p.evaluate(() => localStorage.getItem('revibase:connection-method')),
-			'browser'
-		);
-		await p.getByRole('link', { name: 'Done', exact: true }).click();
-		await visible(p, 'Stake NFT');
-		assert.equal(
-			await p.getByRole('link', { name: 'Stake NFT', exact: true }).getAttribute('target'),
-			'_blank'
-		);
+		await visible(p, 'Accessory claimed');
+		assert.deepEqual(appRequests, []);
+		assert.equal(await p.evaluate(() => localStorage.getItem('revibase:recent-wallet')), 'Phantom');
+		assert.equal(c.pages().length, 1);
 	});
-	await test('linking rejection is recoverable without completing the link', async () => {
-		await fetch(BASE + '/__simulation/reset', { method: 'POST' });
-		const safari = await context();
-		await safari.p.goto(BASE + '/accessory/link');
-		await safari.p.getByRole('button', { name: 'Approve', exact: true }).click();
-		await safari.p.getByRole('link', { name: 'Open in Phantom' }).waitFor();
-		const wallet = await context(IOS + ' Phantom');
-		await wallet.p.goto(BASE + '/continue#h=simulation-handoff');
-		await wallet.p.getByRole('button', { name: 'Phantom', exact: true }).click();
-		await wallet.p.evaluate(() => sessionStorage.setItem('simulation:reject', 'true'));
-		await wallet.p.getByRole('button', { name: 'Claim accessory', exact: true }).click();
-		assert.equal((await (await fetch(BASE + '/__simulation/status')).json()).state, 'claimed');
-		await wallet.p.evaluate(() => sessionStorage.removeItem('simulation:reject'));
-		await wallet.p.getByRole('button', { name: 'Claim accessory', exact: true }).click();
-		await visible(wallet.p, 'Accessory claimed');
+	await test('direct claim rejection can be retried without a handoff session', async () => {
+		const { p } = await context(IOS + ' Phantom');
+		await p.goto(BASE + '/accessory/link');
+		await p.getByRole('button', { name: 'Approve', exact: true }).click();
+		await p.getByRole('button', { name: 'Phantom', exact: true }).click();
+		await p.evaluate(() => sessionStorage.setItem('simulation:reject', 'true'));
+		await p.getByRole('button', { name: 'Claim accessory', exact: true }).click();
+		await visible(p, 'Cancelled in your wallet');
+		assert.equal(await p.getByText('Accessory claimed', { exact: true }).count(), 0);
+		await p.evaluate(() => sessionStorage.removeItem('simulation:reject'));
+		await p.getByRole('button', { name: 'Claim accessory', exact: true }).click();
+		await visible(p, 'Accessory claimed');
 	});
 	await test('unavailable wallet allows returning, copying the URL and choosing Solflare', async () => {
 		const { c, p } = await context();

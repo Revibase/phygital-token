@@ -13,6 +13,6 @@ Preview token types with `/accessory?kind=bearer|controlled|permanent`. Add `sav
 
 Add `mockup=madlads` to preview Mad Lads #7256 using its [original metadata](https://madlads.s3.us-west-2.amazonaws.com/json/7256.json) and hosted artwork. Wallet ownership and project shortcuts remain simulated.
 
-Scenarios cover claiming and handoff recovery, shortcut routing, wallet selection/preferences, release authorization and its wallet-app handoff, NFT ownership badges, modal focus, responsive layouts and failed-request recovery. Rendered UI, storage and navigation are real; wallet signatures, OS app launches and NFC are simulated. Physical-device checks remain necessary. Use `e2e:local` for program-backed ceremonies.
+Scenarios cover direct accessory claiming, shortcut routing, wallet selection/preferences, release authorization and its wallet-app handoff, NFT ownership badges, modal focus, responsive layouts and failed-request recovery. Rendered UI, storage and navigation are real; wallet signatures, OS app launches and NFC are simulated. Physical-device checks remain necessary. Use `e2e:local` for program-backed claim transactions.
 
 The simulation config rejects builds and is never used for deployment. Nonlocal requests are blocked or served by fixtures.

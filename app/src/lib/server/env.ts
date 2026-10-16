@@ -6,7 +6,7 @@ export type ServerEnv = {
 	rpcUrl: string;
 	sessionSecret: string;
 	rpId: string;
-	/** Base URL for handoff (`/continue`) and pairing (`/pair`) links. */
+	/** Public application origin used for tap assertion validation. */
 	origin: string;
 	cluster: string;
 };

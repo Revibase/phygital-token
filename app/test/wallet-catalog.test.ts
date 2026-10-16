@@ -4,7 +4,7 @@ import { walletChoices } from '$lib/client/wallet/catalog';
 import type { WalletOption } from '$lib/client/wallet/wallet.svelte';
 
 const ORIGIN = 'https://accessory.test';
-const TARGET = `${ORIGIN}/continue#h=abc`;
+const TARGET = `${ORIGIN}/accessory`;
 const opt = (name: string): WalletOption => ({
 	id: name.toLowerCase(),
 	name,
@@ -80,7 +80,7 @@ describe('walletChoices', () => {
 		expect(walletChoices([], { browseTarget: null, platform: 'ios', origin: ORIGIN })).toEqual([]);
 		expect(
 			walletChoices([], {
-				browseTarget: 'https://evil.example/continue',
+				browseTarget: 'https://evil.example/accessory',
 				platform: 'ios',
 				origin: ORIGIN
 			})

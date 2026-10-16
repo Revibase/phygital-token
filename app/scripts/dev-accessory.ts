@@ -5,8 +5,7 @@
  *   pnpm dev:accessory init                          # AdminConfig + issuer (fresh validator)
  *   pnpm dev:accessory add <name> [bearer|controlled|permanent]
  *   pnpm dev:accessory tap <name>                    # print a fresh NFC tap URL
- *   pnpm dev:accessory link <name>                   # full link ceremony via the API to a new funded wallet
- *   pnpm dev:accessory handoff <name>                # tap + approve on a scripted phone; print the /continue link
+ *   pnpm dev:accessory link <name>                   # claim directly through the SDK on the local validator
  *   pnpm dev:accessory mint <name> [mintAddress]     # bind a mint (assign_mint) — random address if omitted
  *
  * Keys live in scripts/.dev-accessory.json (gitignored, local validator only).
@@ -25,8 +24,7 @@ import {
 } from 'phygital-token-sdk';
 
 import { base64UrlToBytes, bytesToBase64Url } from '../src/lib/shared/encoding';
-import type { LinkStatusView, TransferChallenge } from '../src/lib/shared/types';
-import { Browser, fakeAccessory, finish, funded, rpc, send, type AccessoryKeys } from './lib';
+import { fakeAccessory, finishDirectly, funded, rpc, send, type AccessoryKeys } from './lib';
 
 const STATE = new URL('./.dev-accessory.json', import.meta.url);
 type State = {
@@ -107,18 +105,6 @@ function withAccessory<T>(name: string, fn: (acc: ReturnType<typeof fakeAccessor
 	};
 }
 
-async function tapThenApprove(acc: ReturnType<typeof fakeAccessory>) {
-	const phone = new Browser('phone');
-	await phone.open(acc.tapUrl());
-	const start = await phone.post<LinkStatusView & { error?: string }>('/api/link');
-	if (start.status !== 200) throw new Error(`cannot link: ${start.body.error}`);
-	const ch = await phone.post<TransferChallenge>(`/api/link/${start.body.id}/challenge`);
-	const res = await phone.post<{ handoffUrl: string }>(`/api/link/${start.body.id}/assertion`, {
-		response: acc.webauthn(ch.body.challenge)
-	});
-	return { linkId: start.body.id, handoffUrl: res.body.handoffUrl };
-}
-
 async function bindMint(name: string, mintArg?: string) {
 	const s = load();
 	const entry = s.accessories[name];
@@ -142,20 +128,16 @@ const commands: Record<string, () => Promise<unknown>> = {
 	add: () => add(name, arg),
 	mint: () => bindMint(name, arg),
 	tap: withAccessory(name, async (acc) => console.log(acc.tapUrl())),
-	handoff: withAccessory(name, async (acc) => console.log((await tapThenApprove(acc)).handoffUrl)),
 	link: withAccessory(name, async (acc) => {
-		const { handoffUrl, linkId } = await tapThenApprove(acc);
-		const wallet = new Browser('wallet');
-		await wallet.post('/api/handoff/claim', { h: new URL(handoffUrl).hash.replace('#h=', '') });
 		const owner = await funded();
-		await finish(wallet, linkId, owner);
+		await finishDirectly(acc, owner);
 		console.log(`linked to ${owner.address}`);
 	})
 };
 const run = commands[cmd];
 if (!run || (cmd !== 'init' && !name)) {
 	console.log(
-		'usage: dev-accessory init | add <name> [bearer|controlled|permanent] | tap <name> | link <name> | handoff <name> | mint <name> [mint]'
+		'usage: dev-accessory init | add <name> [bearer|controlled|permanent] | tap <name> | link <name> | mint <name> [mint]'
 	);
 	process.exit(1);
 }

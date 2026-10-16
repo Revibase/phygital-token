@@ -6,9 +6,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import AccessoryRow from '$lib/components/app/AccessoryRow.svelte';
 	import List from '$lib/components/app/List.svelte';
-	import ListRow from '$lib/components/app/ListRow.svelte';
-	import PairSheet from '$lib/components/app/PairSheet.svelte';
-	import PlusIcon from '@lucide/svelte/icons/plus';
+	import QrCode from '$lib/components/app/QrCode.svelte';
 	import Notice from '$lib/components/app/Notice.svelte';
 	import PageHeader from '$lib/components/app/PageHeader.svelte';
 	import PageShell from '$lib/components/app/PageShell.svelte';
@@ -25,9 +23,7 @@
 	let { data } = $props();
 	let failure = $state<FriendlyError | null>(null);
 	let opening = $state<string | null>(null);
-	// A computer can't tap: it claims by pairing with a phone (PairSheet).
 	let onDesktop = $state(false);
-	let pairOpen = $state(false);
 
 	onMount(() => {
 		walletStore.init(data.cluster);
@@ -84,6 +80,17 @@
 			title={walletStore.address ? 'Your accessories' : 'Connect your wallet'}
 			body={summary}
 		/>
+		{#if onDesktop}
+			<div class="space-y-4 rounded-2xl border bg-card px-5 py-6 text-center">
+				<div class="space-y-1">
+					<h2 class="text-[17px] font-semibold">Continue on your phone</h2>
+					<p class="text-[14px] leading-relaxed text-muted-foreground">
+						Scan to open Revibase, then tap your accessory to claim it.
+					</p>
+				</div>
+				<QrCode value={page.url.origin} label="Scan with your phone’s camera" />
+			</div>
+		{/if}
 
 		<Notice
 			error={failure ?? listFailure}
@@ -92,7 +99,7 @@
 		/>
 
 		{#if !walletStore.address}
-			<WalletConnect afterConnect={login} browseTarget={`${page.url.origin}/`} />
+			<WalletConnect afterConnect={login} />
 			<p class="-mt-4 px-1 text-[13px] leading-snug text-muted-foreground">
 				Approve a sign-in message to view your linked accessories.
 			</p>
@@ -112,14 +119,7 @@
 				</List>
 			{:else if accessories?.length === 0 && !onDesktop}
 				<EmptyState title="No accessories yet" body="Tap an accessory to view it and claim it." />
-			{:else if accessories?.length === 0}
-				<List
-					label="Accessories"
-					footer="You’ll scan a code with your phone and tap the accessory to it."
-				>
-					{@render claimRow()}
-				</List>
-			{:else if accessories}
+			{:else if accessories?.length}
 				<List label="Accessories">
 					{#each accessories as acc (acc.pda)}
 						<AccessoryRow
@@ -128,7 +128,6 @@
 							onclick={() => openAccessory(acc)}
 						/>
 					{/each}
-					{#if onDesktop}{@render claimRow()}{/if}
 				</List>
 			{/if}
 		{/if}
@@ -146,17 +145,3 @@
 		{/if}
 	{/snippet}
 </PageShell>
-
-{#snippet claimRow()}
-	<ListRow label="Claim an accessory" onclick={() => (pairOpen = true)} chevron>
-		{#snippet leading()}
-			<span class="grid size-12 place-items-center rounded-[26%] bg-muted text-muted-foreground"
-				><PlusIcon class="size-5" /></span
-			>
-		{/snippet}
-	</ListRow>
-{/snippet}
-
-{#if onDesktop && walletStore.address}
-	<PairSheet bind:open={pairOpen} onlinked={reload} />
-{/if}

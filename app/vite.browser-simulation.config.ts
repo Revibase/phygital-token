@@ -11,22 +11,6 @@ export default async function (env: any) {
 	const config = typeof base === 'function' ? base(env) : base;
 	const root = fileURLToPath(new URL('.', import.meta.url));
 	const fixtures = JSON.stringify(root + 'test/browser/fixtures.ts');
-	const state: any = {
-		id: 'simulation-intent-0001',
-		kind: 'phone',
-		state: 'created',
-		accessory: { pda: accessory.pda, tag: 'TEST', kind: 'bearer' },
-		recipient: null,
-		pairingCode: null,
-		claimConflict: false,
-		tapExpiresAt: null,
-		tapWindowMs: null,
-		expiresAt: Date.now() + 600_000,
-		txSignature: null,
-		walletApp: null,
-		errorCode: null
-	};
-	const challenge = { linkId: state.id, challenge: 'simulated-hardware-challenge' };
 	const plugin = {
 		name: 'isolated-browser-simulation',
 		enforce: 'pre' as const,
@@ -57,73 +41,18 @@ export default async function (env: any) {
 			if (path.endsWith('/routes/unlink/[pda]/+page.server.ts'))
 				return `import { accessory } from ${fixtures}; export const load=()=>({accessory:{...accessory,kind:'controlled',canLink:false,canRelease:true}});`;
 			if (path.endsWith('/routes/accessory/link/+page.server.ts'))
-				return `import { accessory } from ${fixtures}; export const load=({url})=>({accessory,pairedLinkId:url.searchParams.get('link')});`;
+				return `import { accessory } from ${fixtures}; export const load=()=>({accessory,rpId:'localhost'});`;
 		},
 		configureServer(server: any) {
 			server.middlewares.use(async (req: any, res: any, next: any) => {
 				const path = new URL(req.url, 'http://localhost').pathname;
-				if (
-					!path.startsWith('/__simulation/') &&
-					path !== '/api/link' &&
-					!path.startsWith(`/api/link/${state.id}`) &&
-					path !== '/api/handoff/claim' &&
-					path !== '/api/accessory/shortcuts'
-				)
-					return next();
-				let raw = '';
-				for await (const chunk of req) raw += chunk;
-				const body = raw ? JSON.parse(raw) : {};
+				if (path !== '/api/accessory/shortcuts') return next();
 				const send = (value: any, status = 200) => {
 					res.statusCode = status;
 					res.setHeader('content-type', 'application/json');
 					res.end(JSON.stringify(value));
 				};
-				if (path === '/__simulation/reset') {
-					Object.assign(state, {
-						state: 'created',
-						recipient: null,
-						walletApp: null,
-						txSignature: null,
-						errorCode: null
-					});
-					return send(state);
-				}
-				if (path === '/__simulation/status') return send(state);
 				if (path === '/api/accessory/shortcuts') return send({ shortcuts: project.shortcuts });
-				if (path === '/api/link' && req.method === 'POST') {
-					res.setHeader('set-cookie', 'simulation_origin=1; Path=/; SameSite=Lax');
-					return send({ ...state, challenge });
-				}
-				if (path === '/api/handoff/claim') {
-					if (body.h !== 'simulation-handoff')
-						return send({ error: 'Invalid handoff', code: 'bad_request' }, 400);
-					state.state = 'claimed';
-					res.setHeader('set-cookie', 'simulation_finisher=1; Path=/; SameSite=Lax');
-					return send(state);
-				}
-				if (!/simulation_(origin|finisher)=1/.test(req.headers.cookie ?? ''))
-					return send({ error: 'Forbidden', code: 'forbidden' }, 403);
-				if (path.endsWith('/challenge')) return send(challenge);
-				if (path.endsWith('/assertion')) {
-					state.state = 'tapped';
-					return send({
-						status: state,
-						handoffUrl: 'http://localhost:4187/continue#h=simulation-handoff'
-					});
-				}
-				if (path.endsWith('/recipient')) {
-					state.recipient = body.address;
-					state.state = 'finishing';
-					return send({});
-				}
-				if (path.endsWith('/submitted')) {
-					state.state = 'linked';
-					state.walletApp = body.app;
-					state.txSignature = body.signature;
-					return send(state);
-				}
-				if (path.endsWith('/cancel')) state.state = 'cancelled';
-				return send(state);
 			});
 		}
 	};

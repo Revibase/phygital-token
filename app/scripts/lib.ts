@@ -9,28 +9,20 @@ import {
 	Endian,
 	createKeyPairSignerFromPrivateKeyBytes,
 	generateKeyPairSigner,
-	getSignatureFromTransaction,
 	getU32Encoder,
 	lamports,
-	partiallySignTransaction,
 	pipe,
 	sendAndConfirmTransactionFactory,
 	setTransactionMessageFeePayerSigner,
 	setTransactionMessageLifetimeUsingBlockhash,
 	signTransactionMessageWithSigners,
-	getBase64EncodedWireTransaction,
 	createNoopSigner,
 	type Instruction,
 	type KeyPairSigner
 } from '@solana/kit';
 
 import { base64UrlToBytes, bytesToBase64Url } from '../src/lib/shared/encoding';
-import {
-	buildLinkTransaction,
-	expectationFromPayload,
-	validateLinkTransaction
-} from '../src/lib/shared/link-transaction';
-import type { LinkStatusView, TransferPayload } from '../src/lib/shared/types';
+import { beginTransfer, completeTransfer } from 'phygital-token-sdk';
 
 export const APP = process.env.APP_URL ?? 'http://localhost:5173';
 export const RP_ID = new URL(APP).hostname;
@@ -128,7 +120,7 @@ export function fakeAccessory(keys?: AccessoryKeys) {
 			return {
 				id,
 				rawId: id,
-				type: 'public-key',
+				type: 'public-key' as const,
 				clientExtensionResults: {},
 				response: {
 					clientDataJSON: bytesToBase64Url(clientData),
@@ -163,53 +155,19 @@ export class Browser {
 		this.absorb(res);
 		return { status: res.status, location: res.headers.get('location') };
 	}
-	async post<T>(path: string, body: unknown = {}): Promise<{ status: number; body: T }> {
-		const res = await fetch(`${APP}${path}`, {
-			method: 'POST',
-			headers: this.headers({ 'content-type': 'application/json' }),
-			body: JSON.stringify(body)
-		});
-		this.absorb(res);
-		return { status: res.status, body: (await res.json()) as T };
-	}
 	async get<T>(path: string): Promise<{ status: number; body: T }> {
 		const res = await fetch(`${APP}${path}`, { headers: this.headers() });
 		return { status: res.status, body: (await res.json()) as T };
 	}
 }
 
-export async function finish(browser: Browser, linkId: string, wallet: KeyPairSigner) {
-	const rec = await browser.post<{ payload: TransferPayload; error?: string }>(
-		`/api/link/${linkId}/recipient`,
-		{
-			address: wallet.address
-		}
-	);
-	check(
-		`${browser.name}: server simulated and released the tap to the finisher`,
-		rec.status === 200,
-		rec.body
-	);
-	if (rec.status !== 200) return;
-	const { value: blockhash } = await rpc.getLatestBlockhash().send();
-	const { transaction, wireBytes } = await buildLinkTransaction({
-		payload: rec.body.payload,
+export async function finishDirectly(acc: ReturnType<typeof fakeAccessory>, wallet: KeyPairSigner) {
+	const session = await beginTransfer({
 		rpc,
-		recipient: createNoopSigner(wallet.address),
-		blockhash
+		secp256r1Pubkey: bytesToBase64Url(acc.passkey),
+		rpId: RP_ID
 	});
-	validateLinkTransaction(wireBytes, expectationFromPayload(rec.body.payload, wallet.address));
-	const signed = await partiallySignTransaction([wallet.keyPair], transaction);
-	const sig = await rpc
-		.sendTransaction(getBase64EncodedWireTransaction(signed), { encoding: 'base64' })
-		.send();
-	await browser.post(`/api/link/${linkId}/submitted`, { signature: sig });
-	let status: LinkStatusView | null = null;
-	for (let i = 0; i < 30; i++) {
-		status = (await browser.get<LinkStatusView>(`/api/link/${linkId}`)).body;
-		if (status.state === 'linked' || status.state === 'failed') break;
-		await new Promise((r) => setTimeout(r, 500));
-	}
-	check(`${browser.name}: ceremony reached "linked"`, status?.state === 'linked', status);
-	return getSignatureFromTransaction(signed);
+	const response = acc.webauthn(bytesToBase64Url(session.challenge));
+	const instructions = await completeTransfer(session, response, createNoopSigner(wallet.address));
+	await send(wallet, instructions);
 }

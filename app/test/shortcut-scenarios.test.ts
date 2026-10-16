@@ -119,20 +119,9 @@ describe('claiming device versus clicking browser', () => {
 	});
 });
 
-describe('shared wallet action routing', () => {
-	const url = origin + '/unlink/card';
-	it('routes release to the remembered wallet app', () => {
-		expect(
-			walletDestinationLaunch(url, {
-				platform: 'ios',
-				inWallet: false,
-				recent: 'Phantom',
-				method: 'wallet',
-				origin
-			})
-		).toEqual({ kind: 'link', href: KNOWN_WALLETS[0].browse(url, origin), newTab: false });
-	});
-	it('keeps browser connections and wallet browsers on direct URLs', () => {
+describe('wallet shortcut destination routing', () => {
+	const url = origin + '/project-app';
+	it('opens a wallet destination directly from an already connected browser', () => {
 		expect(
 			walletDestinationLaunch(url, {
 				platform: 'android',
@@ -142,11 +131,8 @@ describe('shared wallet action routing', () => {
 				origin
 			})
 		).toEqual({ kind: 'link', href: url, newTab: true });
-		expect(
-			walletDestinationLaunch(url, { platform: 'ios', inWallet: true, recent: 'Backpack', origin })
-		).toEqual({ kind: 'link', href: url, newTab: false });
 	});
-	it('asks for a wallet on a new device', () => {
+	it('asks the user to choose a wallet when a wallet shortcut has no remembered target', () => {
 		expect(
 			walletDestinationLaunch(url, { platform: 'ios', inWallet: false, recent: null, origin })
 		).toEqual({ kind: 'pick' });

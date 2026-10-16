@@ -61,6 +61,7 @@
 		"@tanstack/svelte-query": "^6.3.0",
 		"@tanstack/svelte-query-persist-client": "^6.3.0",
 		"@wallet-standard/base": "^1.1.1",
+		"@wallet-standard/app": "^1.1.1",
 		"@wallet-standard/features": "^1.1.0",
 		"phygital-token-sdk": "workspace:*",
 		"qrcode": "^1.5.4"

@@ -178,16 +178,17 @@
 		}));
 	});
 
-	let picking = $state<Launchable | null>(null);
+	type WalletTarget = { href: string; label: string; shortcut?: Shortcut };
+	let picking = $state<WalletTarget | null>(null);
 	let pickOpen = $state(false);
 	function pickWallet(item: Launchable) {
-		picking = item;
+		picking = { href: item.s.href, label: item.s.label, shortcut: item.s };
 		pickOpen = true;
 	}
 	const pickHref = $derived.by(() => {
 		const p = picking;
 		const origin = device?.origin;
-		return p && origin ? (w: KnownWallet) => w.browse(p.s.href, origin) : null;
+		return p && origin ? (w: KnownWallet) => w.browse(p.href, origin) : null;
 	});
 
 	async function retry() {
@@ -376,15 +377,15 @@
 {/if}
 
 <OpenInWalletSheet
-	browserHref={picking?.s.href ?? null}
+	browserHref={picking?.href ?? null}
 	onbrowser={() => {
 		rememberRecentWallet(device?.recent ?? 'Browser', 'browser');
 		if (a) rememberAccessoryWalletApp(a.pda, a.owner, device?.recent ?? 'Browser', 'browser');
 		if (device) device = { ...device, method: 'browser', chooseWallet: false };
 	}}
-	destination={picking?.s.href ?? null}
+	destination={picking?.href ?? null}
 	hrefFor={pickHref}
-	label={picking?.s.label ?? ''}
+	label={picking?.label ?? ''}
 	onchoose={(w) => {
 		rememberRecentWallet(w.name);
 		if (a) rememberAccessoryWalletApp(a.pda, a.owner, w.name);

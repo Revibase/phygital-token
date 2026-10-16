@@ -18,6 +18,9 @@ export const GET: RequestHandler = async ({ cookies, platform }) => {
 		const resolved = await fetchAccessory(getRpc(env), session.pda);
 		if (!resolved)
 			return json({ error: 'Accessory not found', code: 'not_found' }, { status: 404 });
+		// The local test validator has no DAS metadata endpoint, so its minted test NFT
+		// cannot provide project shortcut metadata. Treat that as an empty project grid.
+		if (env.cluster === 'localnet') return json({ shortcuts: [] });
 		const accessory = toAccessoryView(resolved.pda, resolved.account);
 		const project = await loadShortcuts(env.rpcUrl, accessory);
 		return json({ shortcuts: await withIconProxy(project.shortcuts, env.sessionSecret) });

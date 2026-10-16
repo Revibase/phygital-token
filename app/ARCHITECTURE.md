@@ -18,26 +18,22 @@ The URL’s `pk` is the chip identifier, not its WebAuthn passkey. Resolve it to
 ## Security invariants
 
 - Verify signed tap URLs before atomically consuming the shared `tap_counters` high-water mark. Ignore speculative prefetch. Redirect to a clean URL with `no-store` and `no-referrer`.
-- Accessory taps the server accepts (tap resume and link assertions) must be signed on this origin for this rpId: `verifyResponse` checks `clientDataJSON.origin` against the request URL’s origin, so another site can’t pass a challenge to a user and replay their tap here.
+- Accessory taps accepted by the server for resume must be signed on this origin for this rpId: `verifyResponse` checks `clientDataJSON.origin` against the request URL’s origin. The browser builds the claim challenge and submits the verified transaction directly to Solana RPC.
 - Shared `auth_challenges` are single-use; consume them atomically. Session cookies are HMAC-signed, HttpOnly, Secure and SameSite=Lax (`__Host-` in production).
-- `browse_unlock` permits claiming; `owner_browse` does not. Authorize every ceremony API against its originating session or claimed finisher.
-- Handoff and pairing capabilities are random, single-use and fragment-only. Store only their hashes; exchange them for a finisher cookie (`hof`, `dsk`, `pair`) and scrub the fragment. An undetected wallet must not consume its capability.
+- `browse_unlock` permits claiming; `owner_browse` does not. The claim page requires the fresh tap session before reading the accessory.
 - Claiming uses SDK `beginTransfer` → `authenticatePasskeyForTransfer` → `completeTransfer`. The program checks the recent slot hash, token passkey, user-presence flag, increasing sign count, lock state and recipient signer.
-- The transfer challenge does not name a recipient (`SHA256("transfer" ‖ token ‖ slot_hash)`): the authorized finisher chooses it. Show that recipient on the originating page and permit cancellation before submission. Anyone who obtains the assertion before it lands could submit it for their own wallet, so it is stored only on the intent, released only to the finisher, and deleted when the ceremony ends.
+- The transfer challenge does not name a recipient (`SHA256("transfer" ‖ token ‖ slot_hash)`); the connected wallet supplies the recipient when it builds the transaction. The assertion stays in browser memory and is never sent to an app API.
 - Validate exact transaction bytes before and after signing. Preserve the approved programs, accounts, recipient, slot and assertion; reject unexpected signers or lookup tables.
 - Claiming does not enforce origin/rpId on-chain; the app checks both before it stores a tap. Chip identifier/passkey binding also depends on the issuer.
-- JSON mutations require same-origin requests. Wallet handoffs use fixed templates around app-created URLs, never arbitrary return URLs.
+- Stateful app APIs require same-origin requests. Claim transaction construction, wallet signing and submission use the browser's configured Solana RPC directly.
 
 ## Claiming and recovery
 
-Phone: accessory approval → wallet selection or handoff to a wallet app → wallet approval → confirmation.
-Desktop: phone pairing (QR) → accessory tap and matching-code confirmation → approval tap → wallet approval on the computer → confirmation.
+Accessory approval → connector wallet selection when needed → wallet signature → confirmation. No link-intent API, pairing session or handoff capability is involved.
 
-D1 `revibase_link_intents` uses compare-and-set transitions (`src/lib/server/link`). New ceremonies cancel previous ones for the accessory. Terminal states remove stored assertions. Expired slot windows return to the tap step while keeping the finisher.
+Prepare challenges before a click: iOS WebAuthn requires a user gesture without awaiting a network request. The countdown uses a conservative SlotHashes expiry estimate (`TAP_WINDOW_MS`); the program remains authoritative. If the assertion expires or the page reloads, the user taps again.
 
-Prepare challenges before a click: iOS WebAuthn requires a user gesture without awaiting a network request. The countdown uses a conservative stored SlotHashes expiry estimate (`TAP_WINDOW_MS`); the program remains authoritative. Reloads resume by intent ID plus the finisher cookie; origins refresh status on visibility return.
-
-Link transactions are v0 with explicit compute-budget instructions, which wallets in in-app browsers accept. Detected connectors, including MWA, record browser connections. Hardcoded Phantom/Backpack/Solflare browse choices record wallet-app handoffs. A browse link cannot select an account or share another browser’s wallet connection.
+Link transactions are v0 with explicit compute-budget instructions. Wallet discovery and signing use `@solana/connector`, including MWA.
 
 ## Shortcuts and local state
 
@@ -55,11 +51,10 @@ Only NFT media queries persist locally. Shortcut caches include the owner's addr
 | --- | --- |
 | `src/lib/server/tap`, `session` | Tap verification, replay counters, cookies. |
 | `src/lib/server/accessory` | Resolve tokens, enforce view/claim rules, load shortcuts. |
-| `src/lib/server/link` | Ceremony authorization, state transitions, capabilities and confirmation. |
 | `src/lib/shared/link-transaction.ts` | SDK transaction construction and byte validation. |
-| `src/lib/client/link`, `wallet` | Polling, approvals, error copy, connector discovery and signing. |
+| `src/lib/client/link`, `wallet` | Direct claim preparation, approval, error copy, connector discovery and signing. |
 | `src/lib/client/memory.ts`, `shortcuts.ts`, `queries.ts` | Local preferences, launch routing and cache policy. |
-| `src/lib/components/app`, `src/routes` | Shared UI and entry flows (`/accessory/link`, `/continue`, `/pair`, `/unlink/[pda]`). |
+| `src/lib/components/app`, `src/routes` | Shared UI and entry flows (`/accessory/link`, `/unlink/[pda]`). |
 
 Wallet Standard signs kit-8 transaction bytes directly because the connector uses kit 7. Discovery and MWA still use the connector. Never expose an RPC URL containing private credentials to the browser.
 
@@ -71,7 +66,7 @@ Each pane has one emphasized primary action (`xl`); a second, equal choice uses 
 
 ## Shared client and UI boundaries
 
-`WalletConnect` is a Connect wallet button and the picker sheet, with its own connecting and error state, remembering the recent wallet. Callers add `requireAddress` (owner only), `afterConnect` (e.g. the login signature), `browseTarget` or `onconnected`. The claim, handoff and release flows use `WalletPicker` directly, so they can offer "Open in …" wallet-app links.
+`WalletConnect` is a Connect wallet button and the picker sheet, with its own connecting and error state, remembering the recent wallet. Claim and release use `WalletPicker` directly and connect to detected wallet-standard connectors.
 
 Layout primitives in `src/lib/components/app`: `List`/`ListRow` for rows, `Section` for labelled groups, `Panel` for the one muted surface, `Notice` (with `error` for a `FriendlyError` and `onretry` for the standard Try again), `EmptyState` and `ListRowSkeleton`. Every sheet is a `ResponsiveSheet` (a drawer on phones, nesting inside another sheet automatically).
 

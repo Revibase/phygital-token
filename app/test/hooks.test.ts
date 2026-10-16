@@ -19,16 +19,15 @@ async function call(path: string, init: { method?: string; origin?: string } = {
 describe('hooks', () => {
 	it('keeps every state-changing API same-origin', async () => {
 		expect((await call('/api/tap/resume', { origin: 'https://evil.example' })).status).toBe(403);
-		expect((await call('/api/link', { origin: 'https://evil.example' })).status).toBe(403);
-		expect((await call('/api/pair')).status).toBe(403);
+		expect((await call('/api/tap/challenge', { origin: 'https://evil.example' })).status).toBe(403);
 		expect((await call('/api/tap/resume', { origin: APP })).status).toBe(200);
 		expect(
-			(await call('/api/link', { method: 'GET', origin: 'https://evil.example' })).status
+			(await call('/api/tap/challenge', { method: 'GET', origin: 'https://evil.example' })).status
 		).toBe(200);
 	});
 
 	it('sends no CORS headers and frames nothing', async () => {
-		const res = await call('/api/link', { origin: APP });
+		const res = await call('/api/tap/resume', { origin: APP });
 		expect(res.headers.get('access-control-allow-origin')).toBeNull();
 		expect(res.headers.get('cache-control')).toBe('no-store');
 		const page = await call('/', { method: 'GET' });

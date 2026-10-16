@@ -7,8 +7,8 @@ import {
 	createTransactionMessage,
 	decompileTransactionMessage,
 	getBase58Decoder,
-	getCompiledTransactionMessageDecoder,
 	getBase64EncodedWireTransaction,
+	getCompiledTransactionMessageDecoder,
 	getTransactionDecoder,
 	getTransactionEncoder,
 	pipe,
@@ -18,129 +18,85 @@ import {
 import { getSetComputeUnitPriceInstruction } from '@solana-program/compute-budget';
 import {
 	authenticatePasskeyForTransfer,
+	beginTransfer,
 	getRemoveOwnerInstruction,
 	PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-	REMOVE_OWNER_DISCRIMINATOR
+	REMOVE_OWNER_DISCRIMINATOR,
+	type AuthenticationResponseJSON,
+	type TransferSession
 } from 'phygital-token-sdk';
-
 import { bytesEqual } from '$lib/shared/encoding';
 import { LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS } from '$lib/shared/fee-policy';
 import {
-	buildLinkTransaction,
-	expectationFromPayload,
+	buildLinkTransactionFromTap,
+	expectationFromTap,
 	LinkTransactionRejected,
-	toTransferSession,
+	type LinkTap,
 	validateLinkTransaction
 } from '$lib/shared/link-transaction';
-import type { LinkStatusView, TransferChallenge, TransferPayload } from '$lib/shared/types';
-import { getJson, postJson } from '../api';
+import { TAP_WINDOW_MS } from '$lib/shared/link-transaction';
 import { browserRpc } from '../rpc';
 import { forgetWalletAccessories } from '../cache';
 import { waitForConfirmation } from '../tx';
 import { signWithWallet, type SigningContext } from '../wallet/wallet.svelte';
 
-/** Creates the ceremony and returns its first slot-bound challenge in one round trip. */
-export function startPhoneLink(): Promise<LinkStatusView & { challenge: TransferChallenge }> {
-	return postJson('/api/link');
-}
-
-/**
- * Prefetch before the click: iOS WebAuthn requires a user gesture without a network await.
- */
-export function prepareTap(linkId: string): Promise<TransferChallenge> {
-	return postJson<TransferChallenge>(`/api/link/${linkId}/challenge`);
-}
-
-export async function tapWithChallenge(fields: TransferChallenge, opts: { finishHere: boolean }) {
-	const session = toTransferSession(fields, browserRpc());
-	const response = await authenticatePasskeyForTransfer(session);
-	return postJson<{ status: LinkStatusView; handoffUrl: string | null }>(
-		`/api/link/${fields.linkId}/assertion`,
-		{
-			response,
-			finishHere: opts.finishHere
-		}
-	);
-}
-
-export function claimHandoff(h: string): Promise<LinkStatusView> {
-	return postJson('/api/handoff/claim', { h });
-}
-
-export function linkStatus(linkId: string): Promise<LinkStatusView> {
-	return getJson(`/api/link/${linkId}`);
-}
-
-export function cancelLink(linkId: string): Promise<LinkStatusView> {
-	return postJson(`/api/link/${linkId}/cancel`);
-}
-
-export async function pollLink(
-	linkId: string,
-	onUpdate: (s: LinkStatusView) => boolean | void,
-	signal: AbortSignal,
-	intervalMs = 1500
-) {
-	while (!signal.aborted) {
-		try {
-			if (onUpdate(await linkStatus(linkId)) === true) return;
-		} catch {
-			// Transient: keep polling until aborted.
-		}
-		await new Promise((r) => setTimeout(r, intervalMs));
-	}
-}
-
+export type PreparedTap = { session: TransferSession; expiresAt: number };
+export type TappedAccessory = PreparedTap & { response: AuthenticationResponseJSON };
 export type FinishPhase = 'preparing' | 'approve' | 'confirming';
 
-export async function finishInWallet(
-	linkId: string,
-	ctx: SigningContext,
-	onPhase: (p: FinishPhase) => void = () => {}
-): Promise<LinkStatusView> {
-	onPhase('preparing');
-	const { payload } = await postJson<{ payload: TransferPayload }>(
-		`/api/link/${linkId}/recipient`,
-		{
-			address: ctx.address
-		}
-	);
+/** Fetch the slot-bound challenge before the user taps Approve. */
+export async function prepareTap(secp256r1Pubkey: string, rpId: string): Promise<PreparedTap> {
+	const fetchedAt = Date.now();
+	const session = await beginTransfer({ rpc: browserRpc(), secp256r1Pubkey, rpId });
+	return { session, expiresAt: fetchedAt + TAP_WINDOW_MS };
+}
 
+/** WebAuthn must be called directly from the Approve click on iOS. */
+export async function tapAccessory(prepared: PreparedTap): Promise<TappedAccessory> {
+	return {
+		...prepared,
+		response: await authenticatePasskeyForTransfer(prepared.session)
+	};
+}
+
+/** Build, validate, sign and submit the claim directly through the wallet and Solana RPC. */
+export async function finishLink(
+	tap: LinkTap & { expiresAt: number },
+	ctx: SigningContext,
+	onPhase: (phase: FinishPhase) => void = () => {}
+): Promise<string> {
+	onPhase('preparing');
 	const rpc = browserRpc();
+	const recipient = createNoopSigner(address(ctx.address));
 	const blockhash = (await rpc.getLatestBlockhash({ commitment: 'confirmed' }).send()).value;
-	const { wireBytes } = await buildLinkTransaction({
-		payload,
-		rpc,
-		recipient: createNoopSigner(address(ctx.address)),
-		blockhash
-	});
-	const expectation = expectationFromPayload(payload, ctx.address);
+	const [{ wireBytes }, expectation] = await Promise.all([
+		buildLinkTransactionFromTap({ tap, recipient, blockhash }),
+		expectationFromTap(tap, ctx.address)
+	]);
 	validateLinkTransaction(wireBytes, expectation);
 
 	onPhase('approve');
 	const outcome = await signWithWallet(ctx, wireBytes);
-
-	let sig: string;
+	let signature: string;
 	if (outcome.kind === 'signed') {
 		validateLinkTransaction(outcome.signedBytes, expectation, { allowWalletAdditions: true });
 		const signed = getTransactionDecoder().decode(outcome.signedBytes);
 		if (!signed.signatures[address(ctx.address)])
 			throw new LinkTransactionRejected('wallet did not sign');
-		sig = await rpc
+		signature = await rpc
 			.sendTransaction(getBase64EncodedWireTransaction(signed), {
 				encoding: 'base64',
 				preflightCommitment: 'confirmed'
 			})
 			.send();
 	} else {
-		sig = getBase58Decoder().decode(outcome.signature);
+		signature = getBase58Decoder().decode(outcome.signature);
 	}
 
 	onPhase('confirming');
-	return postJson<LinkStatusView>(`/api/link/${linkId}/submitted`, {
-		signature: sig,
-		app: ctx.wallet.name
-	});
+	await waitForConfirmation(signature);
+	forgetWalletAccessories();
+	return signature;
 }
 
 export async function releaseAccessory(ctx: SigningContext, pda: string): Promise<string> {
@@ -165,23 +121,22 @@ export async function releaseAccessory(ctx: SigningContext, pda: string): Promis
 	const wireBytes = new Uint8Array(getTransactionEncoder().encode(compileTransaction(message)));
 	const outcome = await signWithWallet(ctx, wireBytes);
 
-	let sig: string;
+	let signature: string;
 	if (outcome.kind === 'signed') {
 		const signed = getTransactionDecoder().decode(outcome.signedBytes);
 		assertReleaseIntact(outcome.signedBytes, pda, ctx.address);
-		sig = await rpc
+		signature = await rpc
 			.sendTransaction(getBase64EncodedWireTransaction(signed), {
 				encoding: 'base64',
 				preflightCommitment: 'confirmed'
 			})
 			.send();
 	} else {
-		sig = getBase58Decoder().decode(outcome.signature);
+		signature = getBase58Decoder().decode(outcome.signature);
 	}
-	await waitForConfirmation(sig);
-	// The wallet's accessory list is now wrong: drop it so no stale list flashes.
+	await waitForConfirmation(signature);
 	forgetWalletAccessories();
-	return sig;
+	return signature;
 }
 
 function assertReleaseIntact(bytes: Uint8Array, pda: string, owner: string) {
@@ -204,7 +159,12 @@ function assertReleaseIntact(bytes: Uint8Array, pda: string, owner: string) {
 			)
 	);
 	const accounts = removes[0]?.accounts ?? [];
-	if (removes.length !== 1 || accounts[0]?.address !== owner || accounts[1]?.address !== pda) {
+	if (
+		removes.length !== 1 ||
+		accounts.length !== 2 ||
+		accounts[0]?.address !== owner ||
+		accounts[1]?.address !== pda
+	) {
 		throw new LinkTransactionRejected('release instruction altered');
 	}
 	for (const ix of message.instructions) {

@@ -10,11 +10,8 @@ import {
 	pipe,
 	setTransactionMessageFeePayer,
 	setTransactionMessageLifetimeUsingBlockhash,
-	address,
 	type Address,
 	type Blockhash,
-	type Rpc,
-	type SolanaRpcApi,
 	type TransactionSigner
 } from '@solana/kit';
 import {
@@ -27,11 +24,11 @@ import {
 	getSetOwnerInstructionDataDecoder,
 	PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 	SET_OWNER_DISCRIMINATOR,
+	type AuthenticationResponseJSON,
 	type TransferSession
 } from 'phygital-token-sdk';
 
-import { base64ToBytes, base64UrlToBytes, bytesEqual } from './encoding';
-import type { TransferChallenge, TransferPayload } from './types';
+import { base64UrlToBytes, bytesEqual } from './encoding';
 import {
 	INSTRUCTIONS_SYSVAR,
 	LIGHTHOUSE_PROGRAM_ADDRESS,
@@ -51,38 +48,19 @@ import { LINK_COMPUTE_UNIT_LIMIT, LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS } from '
  */
 export const TAP_WINDOW_MS = (511 - 20) * 200;
 
-/** The server-issued challenge fields as the SDK's transfer session. */
-export function toTransferSession(
-	fields: TransferChallenge,
-	rpc: Rpc<SolanaRpcApi>
-): TransferSession {
-	return {
-		rpc,
-		phygitalToken: address(fields.phygitalToken),
-		secp256r1Pubkey: fields.secp256r1Pubkey,
-		slotHash: base64ToBytes(fields.slotHash),
-		slotNumber: BigInt(fields.slotNumber),
-		challenge: base64UrlToBytes(fields.challenge),
-		rpId: fields.rpId
-	};
-}
+export type LinkTap = { session: TransferSession; response: AuthenticationResponseJSON };
 
-/**
- * The secp256r1 verify and `set_owner` that link this tap's accessory to
- * `recipient`, as a v0 transaction (wallets in in-app browsers may not accept
- * v1) with explicit compute-budget instructions.
- */
-export async function buildLinkTransaction(input: {
-	payload: TransferPayload;
-	rpc: Rpc<SolanaRpcApi>;
+/** The WebAuthn proof is collected in the browser; no server-issued challenge payload is used. */
+export async function buildLinkTransactionFromTap(input: {
+	tap: LinkTap;
 	recipient: TransactionSigner;
 	blockhash: { blockhash: Blockhash; lastValidBlockHeight: bigint };
 }) {
-	const session = toTransferSession(input.payload, input.rpc);
-	// TransferPayload['response'] is structurally the SDK's AuthenticationResponseJSON.
-	const response = input.payload.response as Parameters<typeof completeTransfer>[1];
-	const instructions = await completeTransfer(session, response, input.recipient);
-
+	const instructions = await completeTransfer(
+		input.tap.session,
+		input.tap.response,
+		input.recipient
+	);
 	const message = pipe(
 		createTransactionMessage({ version: 0 }),
 		(m) => setTransactionMessageFeePayer(input.recipient.address, m),
@@ -229,15 +207,17 @@ export function validateLinkTransaction(
 	}
 }
 
-export function expectationFromPayload(
-	payload: TransferPayload,
+export async function expectationFromTap(
+	tap: LinkTap,
 	recipient: string
-): LinkExpectation {
+): Promise<LinkExpectation> {
 	return {
-		phygitalToken: payload.phygitalToken,
+		phygitalToken: tap.session.phygitalToken,
 		recipient,
-		secp256r1Pubkey: base64UrlToBytes(payload.secp256r1Pubkey),
-		slotNumber: BigInt(payload.slotNumber),
-		clientDataJson: base64UrlToBytes(payload.response.response.clientDataJSON)
+		secp256r1Pubkey: base64UrlToBytes(tap.session.secp256r1Pubkey),
+		slotNumber: tap.session.slotNumber,
+		clientDataJson: base64UrlToBytes(tap.response.response.clientDataJSON)
 	};
 }
+
+/** Compatibility expectation for the local API-driven end-to-end harness. */
