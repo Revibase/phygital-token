@@ -28,8 +28,7 @@ pub struct PhygitalToken {
     pub mint: Pubkey,
     pub last_sign_count: u32,
     pub token_type: u8,
-    /// Unused; keeps the layout and every field offset stable.
-    pub reserved: u8,
+    pub bump: u8,
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
 }
@@ -43,6 +42,7 @@ impl PhygitalToken {
         token_type: PhygitalTokenType,
         public_key: Secp256r1Pubkey,
         owner: Pubkey,
+        bump: u8,
     ) -> Result<()> {
         require!(
             (token_type == PhygitalTokenType::Permanent) == (owner != Pubkey::default()),
@@ -53,6 +53,7 @@ impl PhygitalToken {
         self.token_type = token_type as u8;
         self.public_key = public_key;
         self.owner = owner;
+        self.bump = bump;
         Ok(())
     }
 
@@ -76,6 +77,6 @@ impl PhygitalToken {
     }
 }
 
-// Zero-copy layout: owner 32 + mint 32 + sign count 4 + type 1 + reserved 1 +
+// Zero-copy layout: owner 32 + mint 32 + sign count 4 + type 1 + bump 1 +
 // public key 33 + identifier 33, with no padding (alignment 4 from the u32).
 const _: () = assert!(core::mem::size_of::<PhygitalToken>() == 136);

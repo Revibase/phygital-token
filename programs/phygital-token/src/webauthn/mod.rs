@@ -21,7 +21,7 @@ mod client_data;
 pub mod secp256r1;
 
 use anchor_lang::prelude::*;
-use solana_sha256_hasher::{hash, hashv};
+use solana_sha256_hasher::hash;
 
 use crate::error::PhygitalError;
 use crate::sysvar::relative_instruction_parts;
@@ -90,12 +90,12 @@ impl Secp256r1VerifyArgs {
     /// signing public key and the authenticator's sign count. The caller must
     /// still check the key belongs to the token and the count has advanced.
     ///
-    /// `expected_rp_id` and `origin_allowed` are skipped when `None`.
+    /// `expected_rp_id_hash` and `origin_allowed` are skipped when `None`.
     pub fn verify_webauthn_assertion(
         &self,
         instructions_sysvar: &UncheckedAccount,
         expected_challenge: [u8; 32],
-        expected_rp_id: Option<&str>,
+        expected_rp_id_hash: Option<&[u8; 32]>,
         origin_allowed: Option<OriginCheck>,
     ) -> Result<(Secp256r1Pubkey, u32)> {
         require!(
@@ -152,12 +152,11 @@ impl Secp256r1VerifyArgs {
             PhygitalError::ClientDataHashMismatch
         );
 
-        if let Some(rp_id) = expected_rp_id {
-            let expected_hash = hashv(&[rp_id.as_bytes()]).to_bytes();
+        if let Some(rp_id_hash) = expected_rp_id_hash {
             let actual_hash: [u8; 32] = message[..32]
                 .try_into()
                 .map_err(|_| PhygitalError::InvalidAuthenticatorData)?;
-            require!(expected_hash == actual_hash, PhygitalError::RpIdMismatch);
+            require!(rp_id_hash == &actual_hash, PhygitalError::RpIdMismatch);
         }
 
         Ok((Secp256r1Pubkey(extracted_pubkey), sign_count))

@@ -4,10 +4,9 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::solana_program::program_pack::Pack;
 use anchor_lang::solana_program::system_instruction;
+use anchor_spl::token_2022::spl_token_2022::extension::account_len::try_calculate_account_len_from_mint_data;
 use anchor_spl::token_2022::spl_token_2022::extension::transfer_fee::instruction::initialize_transfer_fee_config;
-use anchor_spl::token_2022::spl_token_2022::extension::{
-    BaseStateWithExtensions, ExtensionType, StateWithExtensions,
-};
+use anchor_spl::token_2022::spl_token_2022::extension::{ExtensionType, StateWithExtensions};
 use anchor_spl::token_2022::spl_token_2022::instruction::{
     approve_checked, freeze_account, initialize_account3, initialize_mint2, mint_to, revoke,
 };
@@ -82,12 +81,7 @@ impl TestContext {
         let program = self.svm.get_account(&mint).expect("mint").owner;
         let mint_data = self.svm.get_account(&mint).expect("mint").data;
         let len = if program == TOKEN_2022 {
-            let mint_state = StateWithExtensions::<Mint>::unpack(&mint_data).expect("mint");
-            let mint_extensions = mint_state.get_extension_types().expect("extensions");
-            let account_extensions =
-                ExtensionType::get_required_init_account_extensions(&mint_extensions);
-            ExtensionType::try_calculate_account_len::<TokenAccountState>(&account_extensions)
-                .expect("account len")
+            try_calculate_account_len_from_mint_data(&mint_data, &[]).expect("account len")
         } else {
             TokenAccountState::LEN
         };

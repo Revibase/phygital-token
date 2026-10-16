@@ -21,7 +21,10 @@ impl TestContext {
             data: phygital_token::instruction::Verify {
                 secp256r1_verify_args,
                 message_hash,
-                expected_rp_id,
+                expected_rp_id_hash: expected_rp_id.map(|rp_id| {
+                    use sha2::{Digest, Sha256};
+                    Sha256::digest(rp_id.as_bytes()).into()
+                }),
                 expected_origins,
             }
             .data(),

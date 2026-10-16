@@ -60,6 +60,7 @@ impl Initialize<'_> {
             args.token_type,
             args.secp256r1_pubkey,
             args.owner,
+            ctx.bumps.phygital_token,
         )?;
 
         emit!(InitializeEvent {

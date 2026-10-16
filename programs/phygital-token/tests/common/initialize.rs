@@ -74,6 +74,11 @@ impl TestContext {
         let ix = self.initialize_ix(self.issuer.pubkey(), phygital_token, args);
         let issuer = self.issuer.insecure_clone();
         Self::send_instruction(&mut self.svm, ix, &[&issuer]).expect("initialize phygital_token");
+        let (_, expected_bump) = Pubkey::find_program_address(
+            &[PHYGITAL_TOKEN_SEED, secp256r1_pda_seed(&secp256r1_pubkey)],
+            &self.program_id,
+        );
+        assert_eq!(self.load_phygital_token(phygital_token).bump, expected_bump);
 
         MintedPhygitalToken {
             phygital_token,

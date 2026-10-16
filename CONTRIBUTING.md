@@ -8,8 +8,8 @@ issues or pull requests.
 | Tool | Version | Pinned in |
 |------|---------|-----------|
 | Rust (host) | 1.98.1 | `rust-toolchain.toml` |
-| Solana CLI | 3.1.10 | `Anchor.toml` |
-| Anchor CLI | 1.0.2 | `Anchor.toml` |
+| Solana CLI | 4.3.2 | `Anchor.toml` |
+| Anchor CLI | 1.2.1 | `Anchor.toml` |
 | Node.js | 24 (≥ 22.12) | `.nvmrc` |
 | pnpm | 11.9.0 | `package.json` `packageManager` |
 

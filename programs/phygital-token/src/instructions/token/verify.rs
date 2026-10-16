@@ -28,7 +28,7 @@ impl Verify<'_> {
         ctx: Context<Self>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         message_hash: [u8; 32],
-        expected_rp_id: Option<String>,
+        expected_rp_id_hash: Option<[u8; 32]>,
         expected_origins: Option<Vec<String>>,
     ) -> Result<()> {
         let origin_allowed = |origin: &[u8]| {
@@ -40,7 +40,7 @@ impl Verify<'_> {
         let assertion = secp256r1_verify_args.verify_webauthn_assertion(
             &ctx.accounts.instructions_sysvar,
             build_verify_challenge(&message_hash),
-            expected_rp_id.as_deref(),
+            expected_rp_id_hash.as_ref(),
             expected_origins.is_some().then_some(&origin_allowed as _),
         )?;
         ctx.accounts

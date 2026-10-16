@@ -88,8 +88,6 @@ impl TestContext {
                 rent_recipient,
                 admin_config: self.admin_config_pda(),
                 phygital_token,
-                spend_policy: self.spend_policy_pda(phygital_token),
-                owner: self.owner_or(phygital_token, rent_recipient),
             }
             .to_account_metas(None),
             data: phygital_token::instruction::ClosePhygitalToken {}.data(),

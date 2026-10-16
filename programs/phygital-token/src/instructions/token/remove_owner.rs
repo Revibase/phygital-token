@@ -1,11 +1,9 @@
 //! `remove_owner`: the owner gives up the token (not allowed for Permanent
-//! tokens). Closes the accessory's spend policy, rent to the owner.
+//! tokens).
 
 use anchor_lang::prelude::*;
 
-use crate::constants::SPEND_POLICY_SEED;
 use crate::error::PhygitalError;
-use crate::spend::close_spend_policy_if_exists;
 use crate::state::{PhygitalToken, PhygitalTokenType};
 use crate::webauthn::Secp256r1Pubkey;
 
@@ -23,11 +21,6 @@ pub struct RemoveOwner<'info> {
 
     #[account(mut, has_one = owner @ PhygitalError::OwnerMismatch)]
     pub phygital_token: AccountLoader<'info, PhygitalToken>,
-
-    /// Closed if it exists.
-    /// CHECK: seeds-checked; only closed.
-    #[account(mut, seeds = [SPEND_POLICY_SEED, phygital_token.key().as_ref()], bump)]
-    pub spend_policy: UncheckedAccount<'info>,
 }
 
 impl RemoveOwner<'_> {
@@ -38,10 +31,6 @@ impl RemoveOwner<'_> {
             PhygitalError::PermanentOwnerImmutable
         );
         token.owner = Pubkey::default();
-        close_spend_policy_if_exists(
-            &ctx.accounts.spend_policy.to_account_info(),
-            &ctx.accounts.owner.to_account_info(),
-        )?;
 
         emit!(RemoveOwnerEvent {
             owner: ctx.accounts.owner.key(),

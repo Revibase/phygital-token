@@ -8,20 +8,12 @@
 //!   through CPI from another program. Needs no owner.
 //! - **Own** (`set_owner`, `remove_owner`): a tap assigns the token to a wallet
 //!   key; Controlled and Permanent tokens stay locked while owned.
-//! - **Pay** (`update_spend_policy`, `pay_with_accessory`): the owner delegates
-//!   SPL tokens to their delegate PDA and sets the accessory's daily limits; one
-//!   tap then pays a verified merchant (or a payee the owner allowed), co-signed
-//!   by the merchant. A change of owner closes the limits.
-//! - **Merchants** (`set_registrar`, `register_merchant`, ...): the registrar
-//!   records which keys belong to which verified merchants and wallets.
-//!
 //! ## Where to start reading
 //!
 //! | Module | Responsibility |
 //! |--------|----------------|
 //! | [`instructions`] | One file per instruction: account constraints and handler. |
 //! | [`webauthn`] | Verifying a tap's WebAuthn assertion; the signed challenges. |
-//! | [`spend`] | Spend-policy edits, daily limits and the delegated transfer. |
 //! | [`state`] | Account layouts. |
 //! | [`sysvar`] | In-place readers for the Instructions and SlotHashes sysvars. |
 //!
@@ -44,7 +36,6 @@
 pub mod constants;
 pub mod error;
 pub mod instructions;
-pub mod spend;
 pub mod state;
 pub(crate) mod sysvar;
 pub mod webauthn;
@@ -55,14 +46,8 @@ pub use instructions::*;
 
 pub use constants::*;
 pub use error::PhygitalError;
-pub use spend::SpendPolicyAction;
-pub use state::{
-    AdminConfig, AllowedPayee, DailyLimit, Merchant, MerchantArgs, MerchantStatus, PhygitalToken,
-    PhygitalTokenType, RegistrarConfig, SpendPolicy,
-};
-pub use webauthn::challenge::{
-    build_pay_challenge, build_set_owner_challenge, build_verify_challenge,
-};
+pub use state::{AdminConfig, PhygitalToken, PhygitalTokenType};
+pub use webauthn::challenge::{build_set_owner_challenge, build_verify_challenge};
 pub use webauthn::secp256r1::{
     COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
     SIGNATURE_OFFSETS_START,
@@ -141,74 +126,20 @@ pub mod phygital_token {
         ctx: Context<Verify>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         message_hash: [u8; 32],
-        expected_rp_id: Option<String>,
+        expected_rp_id_hash: Option<[u8; 32]>,
         expected_origins: Option<Vec<String>>,
     ) -> Result<()> {
         Verify::handler(
             ctx,
             secp256r1_verify_args,
             message_hash,
-            expected_rp_id,
+            expected_rp_id_hash,
             expected_origins,
         )
     }
 
-    /// Owner: gives up the token (not Permanent ones) and closes its spend policy.
+    /// Owner: gives up the token (not Permanent ones).
     pub fn remove_owner(ctx: Context<RemoveOwner>) -> Result<()> {
         RemoveOwner::handler(ctx)
-    }
-
-    // Tap payments.
-
-    /// Owner: creates or edits the accessory's daily limits and allowed payees.
-    pub fn update_spend_policy(
-        ctx: Context<UpdateSpendPolicy>,
-        actions: Vec<SpendPolicyAction>,
-    ) -> Result<()> {
-        UpdateSpendPolicy::handler(ctx, actions)
-    }
-
-    /// Owner: turns tap payments off for the accessory and takes back the rent.
-    pub fn close_spend_policy(_ctx: Context<CloseSpendPolicy>) -> Result<()> {
-        Ok(())
-    }
-
-    /// Tap, co-signed by the merchant: pays from the owner's delegated token
-    /// account within the accessory's daily limit.
-    pub fn pay_with_accessory(
-        ctx: Context<PayWithAccessory>,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-        slot_number: u64,
-        amount: u64,
-        decimals: u8,
-    ) -> Result<()> {
-        PayWithAccessory::handler(ctx, secp256r1_verify_args, slot_number, amount, decimals)
-    }
-
-    // Merchant registry.
-
-    /// Admin: sets the merchant registrar.
-    pub fn set_registrar(ctx: Context<SetRegistrar>, registrar: Pubkey) -> Result<()> {
-        SetRegistrar::handler(ctx, registrar)
-    }
-
-    /// Registrar, with the merchant's consent: records a verified merchant.
-    pub fn register_merchant(ctx: Context<RegisterMerchant>, args: MerchantArgs) -> Result<()> {
-        RegisterMerchant::handler(ctx, args)
-    }
-
-    /// Registrar: changes a merchant's payees, domain and name.
-    pub fn update_merchant(ctx: Context<UpdateMerchant>, args: MerchantArgs) -> Result<()> {
-        UpdateMerchant::update(ctx, args)
-    }
-
-    /// Registrar: suspends or reinstates a merchant.
-    pub fn set_merchant_status(ctx: Context<UpdateMerchant>, status: MerchantStatus) -> Result<()> {
-        UpdateMerchant::set_status(ctx, status)
-    }
-
-    /// Registrar: removes a merchant; the rent goes to the merchant key.
-    pub fn close_merchant(ctx: Context<CloseMerchant>) -> Result<()> {
-        CloseMerchant::handler(ctx)
     }
 }
