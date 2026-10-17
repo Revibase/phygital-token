@@ -2,7 +2,7 @@
 
 Solana program, TypeScript SDK, Rust CPI client, and MCP server for phygital tokens authenticated with a live NFC / WebAuthn tap.
 
-A tap proves the accessory is genuine and present: authentication needs no wallet or SOL. A tap can also make a wallet the token's owner (`set_owner`), which the app finishes in a wallet app's browser or on a computer (handoffs). See [GLOSSARY.md](./GLOSSARY.md).
+A tap proves the accessory is genuine and present: authentication needs no wallet or SOL. A tap can also make a wallet the token's owner (`set_owner`). The app does that in the browser: the accessory signs, the connected wallet signs, and the browser submits the transaction. See [GLOSSARY.md](./GLOSSARY.md).
 
 ## Packages
 

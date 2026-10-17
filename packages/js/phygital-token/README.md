@@ -71,9 +71,8 @@ const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
 ## Claim ownership
 
 A tap makes a wallet the token's owner (`set_owner`). The wallet must sign the
-transaction; the tap itself does not name it, so the tap can happen on a phone
-before the wallet that finishes the claim (in a wallet app's browser or on a
-computer) is chosen.
+transaction. The tap does not name that wallet, so send the assertion promptly:
+anyone who sees it first can submit it for their own wallet.
 
 ```ts
 import {

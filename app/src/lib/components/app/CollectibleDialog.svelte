@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { shortAddress } from '$lib/shared/encoding';
 	import ResponsiveSheet from './ResponsiveSheet.svelte';
-	import type { AccessoryMedia } from '$lib/client/media';
+	import type { MintMedia } from '$lib/shared/mint-media';
 	import CopyButton from './CopyButton.svelte';
 	import ExplorerLink from './ExplorerLink.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton';
@@ -15,7 +15,7 @@
 	}: {
 		open?: boolean;
 		mint: string;
-		media: AccessoryMedia | null;
+		media: MintMedia | null;
 		cluster: string;
 		loading?: boolean;
 	} = $props();

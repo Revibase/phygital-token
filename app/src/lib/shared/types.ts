@@ -12,7 +12,6 @@ export type AccessoryStatus =
 
 export type AccessoryView = {
 	pda: string;
-	identifier: string;
 	/** Short human handle, e.g. `A1B2`. */
 	tag: string;
 	publicKey: string;
@@ -21,7 +20,6 @@ export type AccessoryView = {
 	owner: string | null;
 	isLocked: boolean;
 	mint: string | null;
-	lastSignCount: number;
 	canLink: boolean;
 	canRelease: boolean;
 };

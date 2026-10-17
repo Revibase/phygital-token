@@ -53,7 +53,7 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 |-------------|--------------|
 | `initialize` | Creates a **phygital_token** PDA seeded by `secp256r1_pubkey`, stores `identifier`, `token_type`, and `owner`. Permanent requires a non-default `owner`. Restricted to **AdminConfig.issuer**. |
 | `assign_mint` | Binds an SPL mint pubkey onto `phygital_token.mint`. Restricted to **AdminConfig.minter**. |
-| `set_owner` | Passkey-authorized owner update to `recipient` (no SPL token). Requires the token to be unlocked (Bearer, or no owner). Permanent is always locked → always `TokenIsCurrentlyLocked`. Controlled is locked again once it has an owner. The tap's challenge does not name `recipient`, so it can be finished in another browser or on a computer (handoff); `recipient` must sign. |
+| `set_owner` | Passkey-authorized owner update to `recipient` (no SPL token). Requires the token to be unlocked (Bearer, or no owner). Permanent is always locked → always `TokenIsCurrentlyLocked`. Controlled is locked again once it has an owner. The tap's challenge does not name `recipient`; the signing wallet is the recipient. |
 | `verify` | Passkey-authorized proof over a caller-chosen `message_hash`, directly or by CPI; optional `expected_rp_id` / `expected_origins` (`Option`); updates `last_sign_count`. |
 | `remove_owner` | Wallet-signed forfeiture — resets `phygital_token.owner` to default, which unlocks a Controlled token. Rejected for Permanent. |
 

@@ -4,7 +4,6 @@ export const OWNER = '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU';
 export const MINT = 'So11111111111111111111111111111111111111112';
 export const accessory: AccessoryView = {
 	pda: MINT,
-	identifier: 'simulation',
 	tag: 'TEST',
 	publicKey: 'simulation',
 	kind: 'bearer',
@@ -12,7 +11,6 @@ export const accessory: AccessoryView = {
 	owner: OWNER,
 	isLocked: false,
 	mint: MINT,
-	lastSignCount: 1,
 	canLink: true,
 	canRelease: true
 };
@@ -24,20 +22,18 @@ export const project = {
 				{
 					label: 'Play',
 					uri: 'https://project.example/play',
-					icon: 'gaming',
-					revibase: { launch: 'embed' }
+					icon: 'gaming'
 				},
 				{
 					label: 'Stake NFT',
-					uri: 'https://staking.example/stake',
-					icon: 'stake',
-					revibase: { launch: 'wallet' }
+					uri: 'https://staking.project.example/stake',
+					icon: 'stake'
 				},
 				{
 					label: 'Visit website',
 					uri: 'https://project.example/about',
 					icon: 'view',
-					revibase: { launch: 'browser' }
+					prefersExternalTarget: true
 				}
 			]
 		},

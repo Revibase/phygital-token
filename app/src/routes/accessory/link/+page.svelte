@@ -23,12 +23,7 @@
 	} from '$lib/client/link/flow';
 	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
 	import { linkCopy } from '$lib/client/accessory/link-copy';
-	import {
-		rememberAccessoryLink,
-		rememberAccessoryWalletApp,
-		rememberRecentWallet,
-		rememberWallet
-	} from '$lib/client/memory';
+	import { rememberAccessoryLink, rememberRecentWallet, rememberWallet } from '$lib/client/memory';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import { shortAddress } from '$lib/shared/encoding';
 	import { explorerUrl } from '$lib/shared/explorer';
@@ -114,13 +109,11 @@
 			const signature = await finishLink(tapped, context, (next) => (phase = next));
 			linked = { recipient: context.address, signature };
 			rememberWallet(accessory.pda, context.address);
-			const method = isLikelyWalletBrowser() ? 'wallet' : 'browser';
-			rememberRecentWallet(context.wallet.name, method);
-			rememberAccessoryWalletApp(accessory.pda, context.address, context.wallet.name, method);
+			rememberRecentWallet(context.wallet.name);
 			rememberAccessoryLink(accessory.pda, {
 				wallet: context.address,
 				app: context.wallet.name,
-				source: method === 'wallet' ? 'wallet' : 'mobile'
+				source: isLikelyWalletBrowser() ? 'wallet' : 'mobile'
 			});
 		} catch (err) {
 			failure = describeError(err);
@@ -134,7 +127,7 @@
 		failure = null;
 		try {
 			await walletStore.connect(id);
-			rememberRecentWallet(walletStore.walletName, isLikelyWalletBrowser() ? 'wallet' : 'browser');
+			rememberRecentWallet(walletStore.walletName);
 		} catch (err) {
 			failure = describeError(err);
 		} finally {

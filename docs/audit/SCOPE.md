@@ -20,8 +20,7 @@ Highest-value questions:
    (T1–T5)? Can a locked token change owner (O1–O2)? Does `verify` honour its
    optional rpId and origin checks? Note the accepted limitation that a tap does
    not name its recipient (threat model).
-2. **App server:** can a request obtain a session, a counter, or control of a
-   link ceremony (the handoff and pairing capabilities) it should not?
+2. **App server:** can a request obtain a session or a tap counter it should not?
 3. **SDK:** does the `set_owner` challenge encoding match the program byte for
    byte (shared test vector in both test suites), and does `verifyResponse`
    check what its docs say?

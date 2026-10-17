@@ -14,7 +14,6 @@ function accessory(
 	const rules = accessoryRules(kind, owner, isLocked);
 	return {
 		pda: 'pda',
-		identifier: 'id',
 		tag: 'A1B2',
 		publicKey: 'pk',
 		kind,
@@ -28,7 +27,6 @@ function accessory(
 		owner,
 		isLocked,
 		mint: null,
-		lastSignCount: 0,
 		...rules
 	};
 }
@@ -37,14 +35,13 @@ describe('tapScreen: Bearer wallet linkage', () => {
 	it('unclaimed: anyone can make it theirs', () => {
 		expect(tapScreen(accessory('bearer', null), false)).toMatchObject({
 			title: 'Ready to claim',
-			claim: true,
-			walletLabel: null
+			claim: true
 		});
 	});
 
 	it('owner: in their collection, can move it, not pitched as a wallet key', () => {
 		const s = tapScreen(accessory('bearer', W), true);
-		expect(s).toMatchObject({ title: 'Claimed', walletLabel: 'Owner', claim: false, move: true });
+		expect(s).toMatchObject({ title: 'Claimed', claim: false });
 		expect(s.body).not.toMatch(/prove/i);
 	});
 
@@ -64,9 +61,7 @@ describe('tapScreen: Bearer wallet linkage', () => {
 	it('someone else: shows the owner and offers "Make it yours"', () => {
 		expect(tapScreen(accessory('bearer', W), false)).toMatchObject({
 			title: 'Claimed',
-			walletLabel: 'Owner',
-			claim: true,
-			move: false
+			claim: true
 		});
 	});
 
@@ -75,7 +70,7 @@ describe('tapScreen: Bearer wallet linkage', () => {
 			claim: false,
 			body: ''
 		});
-		expect(tapScreen(accessory('bearer', W, true), true)).toMatchObject({ move: false, body: '' });
+		expect(tapScreen(accessory('bearer', W, true), true)).toMatchObject({ claim: false, body: '' });
 	});
 });
 
@@ -90,15 +85,11 @@ describe('tapScreen: Controlled and Permanent wallet linkage', () => {
 	it('Controlled linked: never claimable, framed around authentication', () => {
 		expect(tapScreen(accessory('controlled', W), true)).toMatchObject({
 			title: 'Claimed',
-			walletLabel: 'Owner',
-			claim: false,
-			move: false
+			claim: false
 		});
 		expect(tapScreen(accessory('controlled', W), false)).toMatchObject({
 			title: 'Claimed',
-			walletLabel: 'Owner',
-			claim: false,
-			move: false
+			claim: false
 		});
 	});
 
@@ -135,7 +126,6 @@ describe('trading a card does not change its link rules', () => {
 			const a = { ...accessory(kind, W), mint: W };
 			const screen = tapScreen(a, false);
 			expect(screen.claim).toBe(false);
-			expect(screen.walletLabel).toBe('Owner');
 			expect(screen.body).not.toMatch(/card|trad(e|ing)|collection/i);
 			expect(screen.body).not.toMatch(/proves.*wallet/);
 		}

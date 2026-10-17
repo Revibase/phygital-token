@@ -3,7 +3,6 @@
 	import { describeError, type FriendlyError } from '$lib/client/link/messages';
 	import { ApiClientError } from '$lib/client/api';
 	import { rememberRecentWallet } from '$lib/client/memory';
-	import { isLikelyWalletBrowser } from '$lib/client/capability';
 	import { shortAddress } from '$lib/shared/encoding';
 	import { Button } from '$lib/components/ui/button';
 	import ResponsiveSheet from './ResponsiveSheet.svelte';
@@ -46,9 +45,7 @@
 				await walletStore.disconnect();
 				failure = {
 					title: 'That’s not the owner’s wallet',
-					body: `Choose the wallet that owns this accessory (${shortAddress(requireAddress)}).`,
-					recovery: 'none',
-					code: 'owner_required'
+					body: `Choose the wallet that owns this accessory (${shortAddress(requireAddress)}).`
 				};
 				return;
 			}
@@ -61,7 +58,7 @@
 				if (!dropped) await walletStore.disconnect().catch(() => {});
 				throw err;
 			}
-			rememberRecentWallet(walletStore.walletName, isLikelyWalletBrowser() ? 'wallet' : 'browser');
+			rememberRecentWallet(walletStore.walletName);
 			open = false;
 			onconnected?.();
 		} catch (err) {

@@ -23,13 +23,11 @@ The app checks both off-chain before it stores a tap; a native client writes its
 own `clientDataJSON` anyway.
 
 **The `set_owner` challenge does not name the recipient.** It is
-`SHA256("transfer" ‖ token ‖ slot_hash)`, so a phone can tap before the wallet
-that finishes the claim is chosen: in a wallet app's browser (in-app handoff)
-or on a computer (desktop pairing). Anyone who sees the assertion before it
-lands can submit it with themselves as recipient and take a Bearer or unowned
-Controlled token. Accepted for the handoff flows; the assertion is single-use,
-expires with its slot hash, and the app keeps it only on the link intent that
-the claiming finisher can read.
+`SHA256("transfer" ‖ token ‖ slot_hash)`. The wallet that signs the transaction
+is the recipient. Anyone who sees the assertion before it lands can submit it
+with themselves as recipient and take a Bearer or unowned Controlled token.
+The assertion is single-use, expires with its slot hash, and stays in the
+browser that collected the tap.
 
 **`clientDataJSON` is scanned, not parsed.** The first `"type"`, `"challenge"`
 and `"origin"` keys are taken as the fields, which is what browsers serialize
@@ -56,11 +54,11 @@ be used as accessories.
 
 ## App server
 
-**No in-app rate limiting.** The public endpoints (`/api/tap/challenge`,
-`/api/owner/challenge`, `/api/pair` and `/api/link`) are rate-limited in the
-Cloudflare dashboard, not in code. Until that is configured,
-a flood can grow the shared `auth_challenges` table, which is pruned per
-namespace on the next insert.
+**No in-app rate limiting.** The public challenge endpoints
+(`/api/tap/challenge`, `/api/tap/resume`, `/api/owner/challenge`) are
+rate-limited in the Cloudflare dashboard, not in code. Until that is
+configured, a flood can grow the shared `auth_challenges` table, which is
+pruned per namespace on the next insert.
 
 **`noUncheckedIndexedAccess` is not enabled in the app.** It is on in the SDK
 and MCP server. In the app it flags many sites, almost all in tests; the link

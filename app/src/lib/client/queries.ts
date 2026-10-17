@@ -5,8 +5,6 @@ import { fetchAccessoryShortcuts } from './shortcuts';
 import { fetchWalletAccessories } from './wallet-accessories';
 import { queryKeys } from './cache';
 
-export { queryKeys };
-
 // Persist NFT media only; shortcuts and wallet lists must follow current linkage.
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;

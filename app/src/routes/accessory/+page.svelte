@@ -23,12 +23,9 @@
 		reconcileAccessoryWallet,
 		accessoryLinkContext,
 		type OwnerContext,
-		rememberedWallet,
-		accessoryWalletApp
+		rememberedWallet
 	} from '$lib/client/memory';
 	import { platform } from '$lib/client/capability';
-	import { shortcutLaunch, type ShortcutLaunch } from '$lib/client/shortcuts';
-	import { KNOWN_WALLETS } from '$lib/client/wallet/catalog';
 	import { shortcutsFor, type Shortcut } from '$lib/shared/shortcuts';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import {
@@ -96,12 +93,11 @@
 	const collectibleLoading = $derived(namedCollectible && mediaQuery.isPending);
 	const collectibleName = $derived(namedCollectible ? media?.name : null);
 
-	// Which wallet app this device claimed with. Shortcuts no longer open there.
+	// Which wallet app this device claimed with. Shown on the owner row.
 	let linkedContext = $state<OwnerContext | null>(null);
 	const linkedApp = $derived(linkedContext?.app ?? (owned ? walletStore.walletName : null));
 	const linkedIcon = $derived(
-		KNOWN_WALLETS.find((w) => linkedApp && w.match.test(linkedApp))?.icon ??
-			(owned && walletStore.walletName === linkedApp ? walletStore.walletIcon : null)
+		owned && walletStore.walletName === linkedApp ? walletStore.walletIcon : null
 	);
 	const linkedDetail = $derived(
 		[
@@ -127,7 +123,7 @@
 		linkedContext = a ? accessoryLinkContext(a.pda, a.owner) : null;
 		formFactor = platform() === 'desktop' ? 'desktop' : 'mobile';
 	});
-	// The owner changed since this device last saw it: its wallet-app hints no longer apply.
+	// The owner changed since this device last saw it: the saved claim no longer applies.
 	$effect(() => {
 		const current = a;
 		untrack(() => {
@@ -141,7 +137,6 @@
 		linkedContext = null;
 	}
 
-	type Launchable = { s: Shortcut; launch: ShortcutLaunch };
 	const payHref = $derived.by(() => {
 		if (!data.payAppOrigin || !a) return null;
 		const url = new URL(data.payAppOrigin);
@@ -149,10 +144,9 @@
 		url.searchParams.set('cluster', data.cluster);
 		return url.href;
 	});
-	const shortcuts = $derived.by((): Launchable[] => {
+	const shortcuts = $derived.by((): Shortcut[] => {
 		const project = formFactor ? shortcutsFor(shortcutsQuery.data ?? [], formFactor) : [];
-		const items = project.map((s) => ({ s, launch: shortcutLaunch(s) }));
-		if (!payHref) return items;
+		if (!payHref) return project;
 		const pay: Shortcut = {
 			label: 'Pay',
 			href: payHref,
@@ -161,12 +155,12 @@
 			open: 'embed',
 			platform: 'all'
 		};
-		return [{ s: pay, launch: shortcutLaunch(pay) }, ...items];
+		return [pay, ...project];
 	});
 
 	let embedded = $state<{ href: string; label: string } | null>(null);
-	function openEmbed(item: Launchable) {
-		embedded = { href: item.s.href, label: item.s.label };
+	function openEmbed(shortcut: Shortcut) {
+		embedded = { href: shortcut.href, label: shortcut.label };
 	}
 
 	async function retry() {
@@ -264,9 +258,7 @@
 							icon={linkedIcon}
 							context={linkedDetail ?? 'Manages this accessory'}
 							nftOwnership={media?.owner ? (media.owner === a.owner ? 'same' : 'different') : null}
-							onforget={linkedContext?.app || (a && accessoryWalletApp(a.pda, a.owner))
-								? forgetApps
-								: undefined}
+							onforget={linkedContext?.app ? forgetApps : undefined}
 							cluster={data.cluster}
 						/></List
 					>{/if}

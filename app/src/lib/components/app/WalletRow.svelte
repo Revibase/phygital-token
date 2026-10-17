@@ -27,7 +27,7 @@
 		icon?: string | null;
 		context?: string | null;
 		cluster?: string | null;
-		/** Forget which wallet app this accessory opens in (shortcuts, release handoff). */
+		/** Clears the wallet name shown for this accessory. */
 		onforget?: () => void;
 		nftOwnership?: 'same' | 'different' | null;
 		/** Opens this wallet's own page instead of the options menu. */

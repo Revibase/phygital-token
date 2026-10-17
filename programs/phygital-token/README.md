@@ -1,6 +1,6 @@
 # phygital-token (on-chain program)
 
-Program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz`, built with Anchor 1.0.2.
+Program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz`, built with Anchor 1.2.1.
 
 Each physical accessory carries a P-256 passkey. The program records that key
 in a token account and accepts a **tap** (a WebAuthn assertion verified by the
@@ -40,9 +40,9 @@ listed. Every accepted tap must carry a higher sign count than the last.
 | `remove_owner` | owner | not Permanent | owner cleared |
 | `verify` | — | tap over the caller's `message_hash`; optional rpId and origin list | sign count recorded |
 
-The challenge does not name the recipient, so a tap can be made before the
-wallet that finishes the claim is known (the handoff flows). The recipient must
-still sign; see the accepted limitation in the threat model.
+The challenge does not name the recipient. The wallet that signs the
+transaction becomes the owner. Anyone who sees the assertion before it lands
+can submit it for their own wallet, so send it promptly. See the threat model.
 
 ## Build and test
 

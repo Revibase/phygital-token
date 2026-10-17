@@ -50,10 +50,4 @@ There is **one** D1 binding, `DB`. In production it can be shared with other ser
   - Resume and owner-login challenges are stored in `auth_challenges` under their own namespaces (message string → `startAuthentication` / `verifyResponse`).
 - **This app's tables:** `revibase_identifier_cache`. Migration `0014` drops the unused legacy `revibase_link_intents` table.
 - **Migrations:** apply the app's own with `wrangler d1 migrations apply DB --remote`. The files are prefixed `revibase_` so they never clash with another service's migration history in a shared database. `revibase_0000_shared_tables_mirror.sql` only mirrors the shared tables for local dev; it uses `IF NOT EXISTS` and is a no-op remotely. `revibase_0014` removes the legacy link-intent table.
-- Set `SESSION_SECRET` with `wrangler secret put`. `SOLANA_RPC_URL` is sent to the browser, which calls it directly (reads, DAS and sending), so it must be your public RPC proxy Worker, not a URL with an API key. Set it as a plain var.
-
-## UI and implementation guide
-
-Use the shared shadcn components in `src/lib/components/ui` and the app primitives in `src/lib/components/app` (see “Shared client and UI boundaries” in ARCHITECTURE.md) rather than restyling controls. `WalletConnect` and `WalletPicker` connect to wallets detected by `@solana/connector`.
-
-Shared client utilities own clipboard feedback (`clipboard.ts`) and JSON requests (`api.ts`). QR generation loads on demand and discards outdated results.
+- Set `SESSION_SECRET` with `wrangler secret put`. `SOLANA_RPC_URL` is sent to the browser, which calls it directly (reads, DAS, and sending), so it must be your public RPC proxy, not a URL with an API key. Set it as a plain var.

@@ -168,7 +168,7 @@ export async function planTransfer(input: { secp256r1PublicKey: string; recipien
       "A claimed Controlled token is locked until remove_owner.",
       "Permanent tokens remain locked (cannot forfeit), so set_owner always fails with TokenIsCurrentlyLocked.",
       "beginTransfer takes Kit Rpc and base64url secp256r1Pubkey; derives phygital token PDA internally. Optional rpId defaults to window.location.hostname.",
-      "The challenge does not name the recipient, so the tap can happen before the wallet is chosen (handoffs). Anyone who sees the assertion before it lands could submit it for their own wallet: send it promptly.",
+      "The challenge does not name the recipient. The signing wallet becomes the owner. Anyone who sees the assertion before it lands could submit it for their own wallet: send it promptly.",
       "Browser tap: pass rpc to recover a 16-byte placeholder on-chain; allowList gates the tapped credential id and is the no-RPC recovery fallback.",
       "completeTransfer takes a Kit TransactionSigner for recipient.",
       "Challenge is slot-bound; complete the flow promptly (~512 slots).",

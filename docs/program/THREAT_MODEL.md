@@ -50,13 +50,13 @@ These are trust assumptions, not bugs:
 ## Accepted limitations
 
 - **A tap does not name its recipient.** The `set_owner` challenge is
-  `SHA256("transfer" ‖ token ‖ slot_hash)`, so the tap can happen before the
-  wallet that finishes the claim is known (the in-app wallet and desktop
-  handoffs). Anyone who sees a valid assertion before it lands (an RPC node,
-  the slot leader, a relayer, or the page that asked for the tap) can submit it
-  with themselves as recipient and take a Bearer or unowned Controlled token.
-  The window is short (the assertion is single-use and expires with its slot
-  hash), and the real owner can tap again if the token is not locked.
+  `SHA256("transfer" ‖ token ‖ slot_hash)`. The wallet that signs the
+  transaction chooses the recipient. Anyone who sees a valid assertion before
+  it lands (an RPC node, the slot leader, a relayer, or the page that asked for
+  the tap) can submit it with themselves as recipient and take a Bearer or
+  unowned Controlled token. The window is short (the assertion is single-use
+  and expires with its slot hash), and the real owner can tap again if the
+  token is not locked.
 - **Authenticators that always report a sign count of 0 cannot be used.** The
   count must increase.
 - **`verify` does not choose freshness.** The caller's `message_hash` is the

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Section from './Section.svelte';
-	import type { ShortcutLaunch } from '$lib/client/shortcuts';
 	import {
 		shortcutDestination,
 		type Shortcut,
@@ -12,14 +11,15 @@
 	let payment = $state<{ href: string; label: string } | null>(null);
 	let paymentOpen = $state(false);
 
-	type Item = { s: Shortcut; launch: ShortcutLaunch };
-
 	/**
 	 * Project shortcuts: `solana:` requests open the Solana Pay sheet, `embed`
 	 * opens in the in-app browser, and the rest open in a new tab.
 	 */
-	let { label, items, onembed }: { label: string; items: Item[]; onembed: (item: Item) => void } =
-		$props();
+	let {
+		label,
+		items,
+		onembed
+	}: { label: string; items: Shortcut[]; onembed: (item: Shortcut) => void } = $props();
 
 	const tile =
 		'group flex w-full flex-col items-center gap-1.5 rounded-[14px] px-1 pt-1 pb-0.5 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring/60';
@@ -54,8 +54,7 @@
 
 <Section {label}>
 	<ul class="grid grid-cols-4 gap-x-2 gap-y-4">
-		{#each items as item (item.s.label + item.s.href)}
-			{@const { s, launch } = item}
+		{#each items as s (s.label + s.href)}
 			{@const title = `${s.label} · ${shortcutDestination(s)}`}
 			<li>
 				{#snippet body()}
@@ -89,12 +88,12 @@
 							paymentOpen = true;
 						}}>{@render body()}</button
 					>
-				{:else if launch.kind === 'embed'}
-					<button type="button" class={tile} {title} onclick={() => onembed(item)}
+				{:else if s.open === 'embed'}
+					<button type="button" class={tile} {title} onclick={() => onembed(s)}
 						>{@render body()}</button
 					>
 				{:else}
-					<a href={launch.href} target="_blank" rel="noopener noreferrer" class={tile} {title}
+					<a href={s.href} target="_blank" rel="noopener noreferrer" class={tile} {title}
 						>{@render body()}</a
 					>
 				{/if}

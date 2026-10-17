@@ -98,10 +98,6 @@ class WalletStore {
 			.map((c) => ({ id: c.id, name: c.name, icon: c.icon, ready: c.ready }));
 	}
 
-	get status() {
-		return this.state?.wallet.status ?? 'disconnected';
-	}
-
 	get address(): string | null {
 		const w = this.state?.wallet;
 		return w?.status === 'connected' ? String(w.session.selectedAccount.address) : null;
@@ -122,11 +118,6 @@ class WalletStore {
 		const w = this.state?.wallet;
 		if (w?.status !== 'connected') return null;
 		return this.state?.connectors.find((c) => c.id === w.session.connectorId)?.icon ?? null;
-	}
-
-	get error(): Error | null {
-		const w = this.state?.wallet;
-		return w?.status === 'error' ? w.error : null;
 	}
 
 	async connect(id: string) {

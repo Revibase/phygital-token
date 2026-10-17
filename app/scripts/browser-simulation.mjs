@@ -75,16 +75,9 @@ async function openRelease(p) {
 	await p.getByRole('button', { name: 'Manage accessory', exact: true }).click();
 	await p.getByRole('button', { name: /^Release accessory/ }).click();
 }
-async function walletRoute(c, cb) {
-	const handle = (url) => {
-		const u = new URL(url);
-		cb?.({ wallet: u.host, target: decodeURIComponent(u.pathname.split('/browse/')[1]) });
-	};
-	for (const host of ['phantom.app', 'backpack.app', 'solflare.com'])
-		await c.route(`https://${host}/**`, (r) => {
-			handle(r.request().url());
-			return r.fulfill({ contentType: 'text/html', body: '<h1>Simulated wallet handoff</h1>' });
-		});
+async function openEmbed(p, name) {
+	await p.getByRole('button', { name, exact: true }).click();
+	await p.getByRole('button', { name: 'Back', exact: true }).waitFor();
 }
 try {
 	for (const kind of ['controlled', 'permanent']) {
@@ -138,9 +131,8 @@ try {
 				.waitFor();
 			await p.keyboard.press('Escape');
 			await details.waitFor({ state: 'hidden' });
-			// No wallet app remembered on this phone yet: the shortcut asks where to open.
-			await p.getByRole('button', { name: 'Stake NFT', exact: true }).click();
-			await p.getByRole('link', { name: 'Open in browser', exact: true }).waitFor();
+			await openEmbed(p, 'Stake NFT');
+			await visible(p, 'staking.project.example');
 		});
 	}
 	await test('small phone and landscape layouts keep actions reachable without horizontal overflow', async () => {
@@ -225,37 +217,27 @@ try {
 					'revibase:link-context:' + pda,
 					JSON.stringify({ wallet, app: 'Phantom', source: 'desktop' })
 				);
-				localStorage.setItem(
-					'revibase:wallet-app:' + pda,
-					JSON.stringify({ wallet, app: 'Phantom', method: 'wallet' })
-				);
 			},
 			{ wallet: OWNER, pda: 'So11111111111111111111111111111111111111112' }
 		);
 		await navigate(p);
 		await p.getByText('Phantom · Claimed from a computer', { exact: true }).waitFor();
-		assert.equal(await p.locator('img[src="/wallets/phantom.svg"]').count(), 1);
 		await p.screenshot({ path: '/private/tmp/revibase-saved-owner-page.png', fullPage: true });
 	});
-	await test('forget owner details preserves other accessories and requires selection for shortcuts and unlink', async () => {
+	await test('forget owner details clears this accessory and leaves shortcuts and release alone', async () => {
 		const { c, p } = await context();
 		const pda = 'So11111111111111111111111111111111111111112';
 		await c.addCookies([{ name: 'simulation_kind', value: 'controlled', url: BASE }]);
 		await c.addInitScript(
 			({ wallet, pda }) => {
-				if (localStorage.getItem('revibase:choose-wallet:' + pda)) return;
 				localStorage.setItem('revibase:linked:' + pda, wallet);
-				localStorage.setItem(
-					'revibase:wallet-app:' + pda,
-					JSON.stringify({ pda, wallet, app: 'Phantom', method: 'wallet' })
-				);
 				localStorage.setItem(
 					'revibase:link-context:' + pda,
 					JSON.stringify({ pda, wallet, app: 'Phantom', source: 'wallet' })
 				);
 				localStorage.setItem(
-					'revibase:wallet-app:another',
-					JSON.stringify({ wallet: 'another', app: 'Backpack' })
+					'revibase:link-context:another',
+					JSON.stringify({ wallet: 'another', app: 'Backpack', source: 'desktop' })
 				);
 			},
 			{ wallet: OWNER, pda }
@@ -268,22 +250,22 @@ try {
 			.getByRole('menuitem', { name: 'Forget wallet preference', exact: true })
 			.waitFor({ state: 'hidden' });
 		assert.notEqual(
-			await p.evaluate(() => localStorage.getItem('revibase:wallet-app:another')),
+			await p.evaluate(() => localStorage.getItem('revibase:link-context:another')),
+			null
+		);
+		assert.equal(
+			await p.evaluate((pda) => localStorage.getItem('revibase:link-context:' + pda), pda),
 			null
 		);
 		assert.equal(
 			await p.evaluate((pda) => localStorage.getItem('revibase:linked:' + pda), pda),
 			OWNER
 		);
-		await p.getByRole('button', { name: 'Stake NFT', exact: true }).click();
-		await p.getByRole('link', { name: 'Open in browser', exact: true }).waitFor();
-		await p.keyboard.press('Escape');
+		await openEmbed(p, 'Stake NFT');
+		await visible(p, 'staking.project.example');
+		await p.getByRole('button', { name: 'Back', exact: true }).click();
 		await openRelease(p);
-		await p.getByRole('link', { name: 'Open in Backpack', exact: true }).waitFor();
-		assert.equal(
-			await p.getByRole('link', { name: 'Open in Phantom to release', exact: true }).count(),
-			0
-		);
+		await p.getByText('No wallet found', { exact: true }).waitFor();
 		await p.keyboard.press('Escape');
 		await p.reload();
 		await p.getByRole('button', { name: 'Stake NFT', exact: true }).waitFor();
@@ -295,31 +277,14 @@ try {
 		await p.getByRole('menuitem', { name: 'Copy wallet address', exact: true }).waitFor();
 		await p.keyboard.press('Escape');
 	});
-	await test('unlink routes to saved wallet and reconnects without the original tap session', async () => {
-		const { c, p } = await context();
-		await c.addCookies([{ name: 'simulation_kind', value: 'controlled', url: BASE }]);
-		await c.addInitScript(
-			({ wallet, pda }) =>
-				localStorage.setItem(
-					'revibase:link-context:' + pda,
-					JSON.stringify({ wallet, app: 'Phantom', source: 'wallet' })
-				),
-			{ wallet: OWNER, pda: 'So11111111111111111111111111111111111111112' }
-		);
-		await navigate(p);
-		await openRelease(p);
-		await p.screenshot({ path: '/private/tmp/revibase-unlink-saved-wallet.png' });
-		const href = await p
-			.getByRole('link', { name: 'Open in Phantom to release', exact: true })
-			.getAttribute('href');
-		const target = decodeURIComponent(new URL(href).pathname.split('/browse/')[1]);
-		assert.equal(target, BASE + '/unlink/So11111111111111111111111111111111111111112');
-		await p.getByRole('button', { name: 'Use a different wallet', exact: true }).click();
-		await p.getByRole('link', { name: 'Open in Backpack', exact: true }).waitFor();
-		await p.screenshot({ path: '/private/tmp/revibase-unlink-manual-wallet.png' });
+	await test('release connects the owner wallet without the original tap session', async () => {
 		const wallet = await context(IOS + ' Phantom');
 		await wallet.c.clearCookies();
-		await wallet.p.goto(target);
+		await wallet.c.addCookies([
+			{ name: 'simulation_session', value: 'tap', url: BASE },
+			{ name: 'simulation_kind', value: 'controlled', url: BASE }
+		]);
+		await wallet.p.goto(BASE + '/unlink/So11111111111111111111111111111111111111112');
 		await wallet.p.getByRole('button', { name: 'Phantom', exact: true }).click();
 		await wallet.p
 			.getByRole('dialog')
@@ -355,15 +320,10 @@ try {
 			({ wallet, pda }) => {
 				localStorage.setItem('revibase:linked:' + pda, wallet);
 				localStorage.setItem(
-					'revibase:wallet-app:' + pda,
-					JSON.stringify({ pda, wallet, app: 'Phantom', method: 'wallet' })
-				);
-				localStorage.setItem(
 					'revibase:link-context:' + pda,
 					JSON.stringify({ pda, wallet, app: 'Phantom', source: 'desktop' })
 				);
 				localStorage.setItem('revibase:recent-wallet', 'Phantom');
-				localStorage.setItem('revibase:connection-method', 'wallet');
 			},
 			{ wallet: OWNER, pda }
 		);
@@ -375,16 +335,12 @@ try {
 		assert.deepEqual(
 			await p.evaluate(
 				(pda) =>
-					[
-						'revibase:linked:' + pda,
-						'revibase:wallet-app:' + pda,
-						'revibase:link-context:' + pda,
-						'revibase:recent-wallet',
-						'revibase:connection-method'
-					].map((k) => localStorage.getItem(k)),
+					['revibase:linked:' + pda, 'revibase:link-context:' + pda, 'revibase:recent-wallet'].map(
+						(k) => localStorage.getItem(k)
+					),
 				pda
 			),
-			[null, null, null, null, null]
+			[null, null, null]
 		);
 		assert.equal(
 			await p.getByText('Phantom · Claimed from a computer', { exact: true }).count(),
@@ -411,99 +367,24 @@ try {
 		['iOS Safari', IOS],
 		['Android Chrome', ANDROID]
 	])
-		await test(name + ': picker persistence, wallet change, same versus new browser', async () => {
-			const { c, p } = await context(ua);
-			let opened;
-			await walletRoute(c, (v) => (opened = v));
+		await test(name + ': an embed shortcut stays on the accessory page', async () => {
+			const { p } = await context(ua);
 			await navigate(p);
-			await p.getByRole('button', { name: 'Stake NFT', exact: true }).click();
-			await p.getByRole('link', { name: 'Open in Phantom' }).click();
-			await visible(p, 'Simulated wallet handoff');
-			assert.equal(opened.wallet, 'phantom.app');
-			assert.equal(opened.target, 'https://staking.example/stake');
-			await navigate(p);
-			await p.getByRole('link', { name: 'Stake NFT', exact: true }).waitFor();
-			await p.getByRole('button', { name: 'Owner options', exact: true }).click();
-			await p.getByRole('menuitem', { name: 'Forget wallet preference', exact: true }).click();
-			await p.getByRole('button', { name: 'Stake NFT', exact: true }).click();
-			await p.getByRole('link', { name: 'Open in Backpack' }).click();
-			await visible(p, 'Simulated wallet handoff');
-			assert.equal(opened.wallet, 'backpack.app');
-			await navigate(p);
-			await p.getByRole('link', { name: 'Stake NFT', exact: true }).waitFor();
-			await p.screenshot({ path: new URL(name.split(' ')[0] + '-shortcuts.png', output).pathname });
-			const reused = await context(ua, await c.storageState());
-			await navigate(reused.p);
-			await reused.p.getByRole('link', { name: 'Stake NFT', exact: true }).waitFor();
-			const fresh = await context(ua);
-			await navigate(fresh.p);
-			assert.equal(
-				await fresh.p.getByRole('button', { name: 'Stake NFT', exact: true }).count(),
-				1
-			);
+			await openEmbed(p, 'Stake NFT');
+			await visible(p, 'staking.project.example');
+			assert.ok(p.url().startsWith(BASE + '/accessory'));
+			await p.getByRole('button', { name: 'Back', exact: true }).click();
+			await p.getByRole('button', { name: 'Stake NFT', exact: true }).waitFor();
 		});
-	for (const ua of [IOS, ANDROID]) {
-		await test(
-			(ua === IOS ? 'iOS' : 'Android') + ': browser connection opens wallet shortcut in browser',
-			async () => {
-				const { c, p } = await context(ua);
-				await c.route('https://staking.example/**', (r) =>
-					r.fulfill({ contentType: 'text/html', body: '<h1>Staking site</h1>' })
-				);
-				await c.addInitScript(() => {
-					localStorage.setItem('revibase:recent-wallet', 'Phantom');
-					localStorage.setItem('revibase:connection-method', 'browser');
-				});
-				await navigate(p);
-				assert.equal(
-					await p.getByRole('link', { name: 'Stake NFT', exact: true }).getAttribute('target'),
-					'_blank'
-				);
-				const popup = p.waitForEvent('popup');
-				await p.getByRole('link', { name: 'Stake NFT', exact: true }).click();
-				const next = await popup;
-				await next.waitForURL('https://staking.example/**');
-			}
-		);
-	}
-	await test('fresh mobile browser can choose browser and reuse the choice', async () => {
-		const { c, p } = await context();
-		await c.route('https://staking.example/**', (r) =>
-			r.fulfill({ contentType: 'text/html', body: '<h1>Staking site</h1>' })
-		);
-		await navigate(p);
-		await p.getByRole('button', { name: 'Stake NFT', exact: true }).click();
-		const popup = p.waitForEvent('popup');
-		await p.getByRole('link', { name: 'Open in browser', exact: true }).click();
-		await (await popup).waitForURL('https://staking.example/**');
-		assert.equal(
-			await p.evaluate(() => localStorage.getItem('revibase:connection-method')),
-			'browser'
-		);
-		await p.reload();
-		await visible(p, 'Stake NFT');
-		assert.equal(
-			await p.getByRole('link', { name: 'Stake NFT', exact: true }).getAttribute('target'),
-			'_blank'
-		);
-	});
-	await test('wallet browser stays in place despite another remembered wallet', async () => {
+	await test('an embed shortcut does not leave the accessory page', async () => {
 		const { c, p } = await context(IOS + ' Phantom');
-		await c.addInitScript(() => {
-			if (location.hostname === 'localhost')
-				localStorage.setItem('revibase:recent-wallet', 'Backpack');
-		});
-		await c.route('https://staking.example/**', (r) =>
-			r.fulfill({ contentType: 'text/html', body: '<h1>Staking site</h1>' })
-		);
 		await navigate(p);
-		assert.equal(await p.getByRole('button', { name: 'Change wallet', exact: true }).count(), 0);
-		await p.getByRole('link', { name: 'Stake NFT', exact: true }).click();
-		await visible(p, 'Staking site');
-		assert.ok(p.url().startsWith('https://staking.example/'));
+		await openEmbed(p, 'Stake NFT');
+		await visible(p, 'staking.project.example');
+		assert.ok(p.url().startsWith(BASE + '/accessory'));
 		assert.equal(c.pages().length, 1);
 	});
-	await test('browser shortcut opens external tab without wallet handoff', async () => {
+	await test('a browser shortcut opens a new tab', async () => {
 		const { c, p } = await context();
 		await navigate(p);
 		const next = c.waitForEvent('page');
@@ -528,7 +409,7 @@ try {
 		assert.equal(await p.evaluate(() => localStorage.getItem('revibase:recent-wallet')), 'Phantom');
 		assert.equal(c.pages().length, 1);
 	});
-	await test('direct claim rejection can be retried without a handoff session', async () => {
+	await test('a rejected claim can be retried', async () => {
 		const { p } = await context(IOS + ' Phantom');
 		await p.goto(BASE + '/accessory/link');
 		await p.getByRole('button', { name: 'Approve', exact: true }).click();
@@ -541,42 +422,6 @@ try {
 		await p.getByRole('button', { name: 'Claim accessory', exact: true }).click();
 		await visible(p, 'Accessory claimed');
 	});
-	await test('unavailable wallet allows returning, copying the URL and choosing Solflare', async () => {
-		const { c, p } = await context();
-		await c.addInitScript(() => {
-			Object.defineProperty(navigator, 'clipboard', {
-				configurable: true,
-				value: {
-					async writeText(value) {
-						window.__copiedWebsite = value;
-					}
-				}
-			});
-		});
-		await c.route('https://phantom.app/**', (r) =>
-			r.fulfill({ contentType: 'text/html', status: 200, body: '<h1>Wallet unavailable</h1>' })
-		);
-		await navigate(p);
-		await p.getByRole('button', { name: 'Stake NFT', exact: true }).click();
-		await p.getByRole('link', { name: 'Open in Phantom' }).click();
-		await visible(p, 'Wallet unavailable');
-		await p.goBack();
-		await p.getByRole('link', { name: 'Stake NFT', exact: true }).waitFor();
-		await p.getByRole('button', { name: 'Owner options', exact: true }).click();
-		await p.getByRole('menuitem', { name: 'Forget wallet preference', exact: true }).click();
-		await p.getByRole('button', { name: 'Stake NFT', exact: true }).click();
-		await p.getByRole('button', { name: 'Copy website link' }).click();
-		assert.equal(await p.evaluate(() => window.__copiedWebsite), 'https://staking.example/stake');
-		await c.unroute('https://phantom.app/**');
-		let target;
-		await walletRoute(c, (v) => (target = v));
-		await p.getByRole('link', { name: 'Open in Solflare' }).click();
-		await visible(p, 'Simulated wallet handoff');
-		assert.equal(target.wallet, 'solflare.com');
-		await navigate(p);
-		await p.getByRole('link', { name: 'Stake NFT', exact: true }).waitFor();
-	});
-
 	for (const ua of [IOS, 'Mozilla/5.0 Desktop']) {
 		await test('Solana Pay fallback on ' + (ua === IOS ? 'mobile' : 'desktop'), async () => {
 			const { c, p } = await context(ua);
@@ -595,7 +440,7 @@ try {
 					contentType: 'application/json',
 					body: JSON.stringify({
 						shortcuts: [
-							{ label: 'Pay', href, icon: 'tip', image: null, external: true, platform: 'all' }
+							{ label: 'Pay', href, icon: 'tip', image: null, open: 'tab', platform: 'all' }
 						]
 					})
 				})
