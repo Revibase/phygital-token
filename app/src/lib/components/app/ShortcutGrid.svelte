@@ -15,11 +15,10 @@
 	type Item = { s: Shortcut; launch: ShortcutLaunch };
 
 	/**
-	 * Project shortcuts: `solana:` requests open the Solana Pay sheet; the rest
-	 * open as `launch` says (a plain link, a wallet app's browser), or ask which
-	 * wallet app to use (`onpick`).
+	 * Project shortcuts: `solana:` requests open the Solana Pay sheet, `embed`
+	 * opens in the in-app browser, and the rest open in a new tab.
 	 */
-	let { label, items, onpick }: { label: string; items: Item[]; onpick: (item: Item) => void } =
+	let { label, items, onembed }: { label: string; items: Item[]; onembed: (item: Item) => void } =
 		$props();
 
 	const tile =
@@ -90,17 +89,13 @@
 							paymentOpen = true;
 						}}>{@render body()}</button
 					>
-				{:else if launch.kind === 'link'}
-					<a
-						href={launch.href}
-						target={launch.newTab ? '_blank' : undefined}
-						rel="noopener noreferrer"
-						class={tile}
-						{title}>{@render body()}</a
+				{:else if launch.kind === 'embed'}
+					<button type="button" class={tile} {title} onclick={() => onembed(item)}
+						>{@render body()}</button
 					>
 				{:else}
-					<button type="button" class={tile} {title} onclick={() => onpick(item)}
-						>{@render body()}</button
+					<a href={launch.href} target="_blank" rel="noopener noreferrer" class={tile} {title}
+						>{@render body()}</a
 					>
 				{/if}
 			</li>

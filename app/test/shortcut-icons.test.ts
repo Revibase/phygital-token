@@ -66,7 +66,7 @@ describe('signed proxy links', () => {
 			label: 'Play',
 			href: 'https://game.xyz',
 			icon: 'generic-link',
-			external: false,
+			open: 'embed',
 			platform: 'all'
 		} as const;
 		const [withImage, glyph] = await withIconProxy(

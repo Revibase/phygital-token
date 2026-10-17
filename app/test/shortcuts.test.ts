@@ -50,7 +50,7 @@ describe('resolveShortcuts (Phantom shortcuts.json)', () => {
 				href: 'https://game.xyz/stake',
 				icon: 'stake',
 				image: null,
-				external: false,
+				open: 'embed',
 				platform: 'all'
 			}
 		]);
@@ -85,9 +85,8 @@ describe('resolveShortcuts (Phantom shortcuts.json)', () => {
 		expect(one({ label: 'Evil', uri: 'https://evil.test/stake' })).toEqual([]);
 		expect(one({ label: 'Evil', uri: 'https://game.xyz.evil.test/stake' })).toEqual([]);
 		expect(
-			one({ label: 'Chat', uri: 'https://discord.gg/game', prefersExternalTarget: true })[0]
-				.external
-		).toBe(true);
+			one({ label: 'Chat', uri: 'https://discord.gg/game', prefersExternalTarget: true })[0].open
+		).toBe('tab');
 	});
 
 	it('allows https and, for external shortcuts only, Solana Pay', () => {
@@ -260,7 +259,7 @@ describe('loading a project file', () => {
 });
 
 describe('Revibase launch modes', () => {
-	it('opens the wallet launch mode inside a wallet, even when the file prefers external', () => {
+	it('opens a legacy wallet launch in the iframe, even when the file prefers a new tab', () => {
 		expect(
 			one({
 				label: 'Stake',
@@ -268,24 +267,24 @@ describe('Revibase launch modes', () => {
 				prefersExternalTarget: true,
 				revibase: { launch: 'wallet' }
 			})[0]
-		).toMatchObject({ external: false });
+		).toMatchObject({ open: 'embed' });
 	});
 
-	it('opens legacy embed and browser preferences on any HTTPS domain', () => {
+	it('opens embed and browser launches on any HTTPS domain', () => {
 		expect(
 			one({
 				label: 'Play',
 				uri: 'https://other.test',
 				revibase: { launch: 'embed' }
 			})[0]
-		).toMatchObject({ external: false });
+		).toMatchObject({ open: 'embed' });
 		expect(
 			one({
 				label: 'Visit',
 				uri: 'https://other.test',
 				revibase: { launch: 'browser' }
 			})[0]
-		).toMatchObject({ external: true });
+		).toMatchObject({ open: 'tab' });
 	});
 	it('rejects malformed launch settings and refuses Solana URIs except browser launches', () => {
 		for (const revibase of [null, [], 'wallet', {}, { launch: 'invalid' }])

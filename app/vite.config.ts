@@ -56,6 +56,10 @@ export default defineConfig(({ mode }) => ({
 						'ws://127.0.0.1:*',
 						'wss:'
 					],
+					'frame-src':
+						mode === 'production'
+							? ['https:']
+							: ['https:', 'http://localhost:*', 'http://127.0.0.1:*'],
 					'frame-ancestors': ['none'],
 					'base-uri': ['self'],
 					'form-action': ['self'],

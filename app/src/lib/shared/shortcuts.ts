@@ -1,5 +1,5 @@
 /**
- * Phantom-compatible descriptive fields plus HTTPS image icons and explicit Revibase launch modes. Pure: the server fetches the file, the client decides how each link opens.
+ * Phantom-compatible descriptive fields plus HTTPS image icons and Revibase launch modes. Pure: the server fetches the file, the client decides how each link opens. `embed` (and a legacy `wallet` value) opens in the in-app browser. `browser` opens a new tab.
  * The rules and why they exist: ARCHITECTURE.md, "Project shortcuts".
  */
 
@@ -36,8 +36,8 @@ export type Shortcut = {
 	icon: ShortcutIcon;
 	/** The project's https icon URL; the server swaps it for a same-origin proxy path. */
 	image: string | null;
-	/** `prefersExternalTarget` (or `launch: 'browser'`): open as a plain link rather than inside a wallet. */
-	external: boolean;
+	/** `embed` fills the in-app browser. `tab` opens a new browser tab. */
+	open: 'embed' | 'tab';
 	platform: ShortcutPlatform;
 };
 
@@ -105,7 +105,7 @@ export function withinProject(url: URL, externalUrl: string): boolean {
 
 function resolveUri(
 	raw: unknown,
-	external: boolean,
+	tab: boolean,
 	ctx: ShortcutContext,
 	explicit = false
 ): string | null {
@@ -118,9 +118,9 @@ function resolveUri(
 	} catch {
 		return null;
 	}
-	if (url.protocol === 'solana:') return external ? url.href : null; // Solana Pay hands off to the wallet itself
+	if (url.protocol === 'solana:') return tab ? url.href : null; // Solana Pay hands off to the wallet itself
 	if (url.protocol !== 'https:' || url.username || url.password) return null;
-	if (!explicit && !external && !withinProject(url, ctx.externalUrl)) return null;
+	if (!explicit && !tab && !withinProject(url, ctx.externalUrl)) return null;
 	return url.href;
 }
 
@@ -150,17 +150,17 @@ export function resolveShortcuts(file: unknown, ctx: ShortcutContext): Shortcut[
 		if (config !== undefined && (!config || typeof config !== 'object' || Array.isArray(config)))
 			continue;
 		const launch = (config as { launch?: unknown } | undefined)?.launch;
+		// `wallet` is no longer a mode. A file that still says it opens in the iframe.
 		if (config !== undefined && launch !== 'embed' && launch !== 'wallet' && launch !== 'browser')
 			continue;
-		const external = launch ? launch === 'browser' : s.prefersExternalTarget === true;
-		const href = resolveUri(s.uri, external, ctx, launch !== undefined);
+		const tab = launch ? launch === 'browser' : s.prefersExternalTarget === true;
+		const href = resolveUri(s.uri, tab, ctx, launch !== undefined);
 		if (!href) continue;
 
 		const named = SHORTCUT_ICONS.includes(s.icon as ShortcutIcon);
 		const icon = named ? (s.icon as ShortcutIcon) : 'generic-link';
 		const image = named ? null : iconImageUrl(s.icon);
-		// `embed` / `immerse` are read but not framed: such links open like `wallet` ones.
-		out.push({ label, href, icon, image, external, platform });
+		out.push({ label, href, icon, image, open: tab ? 'tab' : 'embed', platform });
 	}
 	return out;
 }

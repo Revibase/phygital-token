@@ -5,7 +5,7 @@ import { json, type Handle } from '@sveltejs/kit';
  *   this check closes CSRF; SvelteKit's own check only covers form posts).
  * - Security headers everywhere; CSP itself is configured in vite.config.ts
  *   (`kit.csp`) so SvelteKit can hash/nonce its inline bootstrap script.
- *   Nothing is framed, so there is no `frame-src`.
+ *   `frame-src` allows embed shortcuts. This app still cannot be framed.
  */
 export const handle: Handle = async ({ event, resolve }) => {
 	const { request, url } = event;

@@ -7,7 +7,7 @@
 	import List from '$lib/components/app/List.svelte';
 	import ListRow from '$lib/components/app/ListRow.svelte';
 	import Notice from '$lib/components/app/Notice.svelte';
-	import OpenInWalletSheet from '$lib/components/app/OpenInWalletSheet.svelte';
+	import EmbedBrowser from '$lib/components/app/EmbedBrowser.svelte';
 	import PageHeader from '$lib/components/app/PageHeader.svelte';
 	import PageShell from '$lib/components/app/PageShell.svelte';
 	import ReleaseSheet from '$lib/components/app/ReleaseSheet.svelte';
@@ -20,25 +20,15 @@
 	import { accessoryMediaQuery, accessoryShortcutsQuery } from '$lib/client/queries';
 	import {
 		forgetOwnerDetails,
-		shouldChooseWallet,
 		reconcileAccessoryWallet,
 		accessoryLinkContext,
 		type OwnerContext,
-		recentConnectionMethod,
-		accessoryConnectionMethod,
-		recentWallet,
 		rememberedWallet,
-		accessoryWalletApp,
-		rememberAccessoryWalletApp,
-		rememberRecentWallet
+		accessoryWalletApp
 	} from '$lib/client/memory';
-	import { isLikelyWalletBrowser, platform } from '$lib/client/capability';
-	import {
-		shortcutLaunch,
-		type ShortcutLaunch,
-		type WalletLaunchOptions
-	} from '$lib/client/shortcuts';
-	import { KNOWN_WALLETS, type KnownWallet } from '$lib/client/wallet/catalog';
+	import { platform } from '$lib/client/capability';
+	import { shortcutLaunch, type ShortcutLaunch } from '$lib/client/shortcuts';
+	import { KNOWN_WALLETS } from '$lib/client/wallet/catalog';
 	import { shortcutsFor, type Shortcut } from '$lib/shared/shortcuts';
 	import { walletStore } from '$lib/client/wallet/wallet.svelte';
 	import {
@@ -106,7 +96,7 @@
 	const collectibleLoading = $derived(namedCollectible && mediaQuery.isPending);
 	const collectibleName = $derived(namedCollectible ? media?.name : null);
 
-	// Which wallet app this device claimed with, so shortcuts and release open in it.
+	// Which wallet app this device claimed with. Shortcuts no longer open there.
 	let linkedContext = $state<OwnerContext | null>(null);
 	const linkedApp = $derived(linkedContext?.app ?? (owned ? walletStore.walletName : null));
 	const linkedIcon = $derived(
@@ -132,64 +122,52 @@
 		...accessoryShortcutsQuery(a?.pda ?? '', a?.owner ?? null),
 		enabled: !!a?.mint
 	}));
-	let device = $state<WalletLaunchOptions | null>(null);
+	let formFactor = $state<'desktop' | 'mobile' | null>(null);
 	onMount(() => {
 		linkedContext = a ? accessoryLinkContext(a.pda, a.owner) : null;
-		device = {
-			chooseWallet: shouldChooseWallet(a?.pda ?? ''),
-			method: (a ? accessoryConnectionMethod(a.pda, a.owner) : null) ?? recentConnectionMethod(),
-			platform: platform(),
-			inWallet: isLikelyWalletBrowser(),
-			recent: (a ? accessoryWalletApp(a.pda, a.owner) : null) ?? recentWallet(),
-			origin: window.location.origin
-		};
+		formFactor = platform() === 'desktop' ? 'desktop' : 'mobile';
 	});
 	// The owner changed since this device last saw it: its wallet-app hints no longer apply.
 	$effect(() => {
 		const current = a;
 		untrack(() => {
-			if (!device || !current) return;
-			const stale = reconcileAccessoryWallet(current.pda, current.owner);
+			if (!current) return;
+			reconcileAccessoryWallet(current.pda, current.owner);
 			linkedContext = accessoryLinkContext(current.pda, current.owner);
-			device = {
-				...device,
-				chooseWallet: shouldChooseWallet(current.pda),
-				recent: accessoryWalletApp(current.pda, current.owner) ?? (stale ? null : recentWallet()),
-				method:
-					accessoryConnectionMethod(current.pda, current.owner) ??
-					(stale ? null : recentConnectionMethod())
-			};
 		});
 	});
 	function forgetApps() {
 		if (a) forgetOwnerDetails(a.pda);
 		linkedContext = null;
-		if (device) device = { ...device, recent: null, method: null, chooseWallet: true };
 	}
 
 	type Launchable = { s: Shortcut; launch: ShortcutLaunch };
+	const payHref = $derived.by(() => {
+		if (!data.payAppOrigin || !a) return null;
+		const url = new URL(data.payAppOrigin);
+		url.searchParams.set('token', a.pda);
+		url.searchParams.set('cluster', data.cluster);
+		return url.href;
+	});
 	const shortcuts = $derived.by((): Launchable[] => {
-		const d = device;
-		const all = shortcutsQuery.data;
-		if (!d || !all) return [];
-		return shortcutsFor(all, d.platform === 'desktop' ? 'desktop' : 'mobile').map((s) => ({
-			s,
-			launch: shortcutLaunch(s, d)
-		}));
+		const project = formFactor ? shortcutsFor(shortcutsQuery.data ?? [], formFactor) : [];
+		const items = project.map((s) => ({ s, launch: shortcutLaunch(s) }));
+		if (!payHref) return items;
+		const pay: Shortcut = {
+			label: 'Pay',
+			href: payHref,
+			icon: 'tip',
+			image: null,
+			open: 'embed',
+			platform: 'all'
+		};
+		return [{ s: pay, launch: shortcutLaunch(pay) }, ...items];
 	});
 
-	type WalletTarget = { href: string; label: string; shortcut?: Shortcut };
-	let picking = $state<WalletTarget | null>(null);
-	let pickOpen = $state(false);
-	function pickWallet(item: Launchable) {
-		picking = { href: item.s.href, label: item.s.label, shortcut: item.s };
-		pickOpen = true;
+	let embedded = $state<{ href: string; label: string } | null>(null);
+	function openEmbed(item: Launchable) {
+		embedded = { href: item.s.href, label: item.s.label };
 	}
-	const pickHref = $derived.by(() => {
-		const p = picking;
-		const origin = device?.origin;
-		return p && origin ? (w: KnownWallet) => w.browse(p.href, origin) : null;
-	});
 
 	async function retry() {
 		refreshing = true;
@@ -295,9 +273,9 @@
 
 				{#if shortcuts.length}
 					<ShortcutGrid
-						label={`From ${media?.collection ?? 'the project'}`}
+						label={media?.collection ? `From ${media.collection}` : 'Apps'}
 						items={shortcuts}
-						onpick={pickWallet}
+						onembed={openEmbed}
 					/>
 				{:else if a.mint && shortcutsQuery.isError}
 					<Notice
@@ -376,23 +354,9 @@
 		/>{/if}
 {/if}
 
-<OpenInWalletSheet
-	browserHref={picking?.href ?? null}
-	onbrowser={() => {
-		rememberRecentWallet(device?.recent ?? 'Browser', 'browser');
-		if (a) rememberAccessoryWalletApp(a.pda, a.owner, device?.recent ?? 'Browser', 'browser');
-		if (device) device = { ...device, method: 'browser', chooseWallet: false };
-	}}
-	destination={picking?.href ?? null}
-	hrefFor={pickHref}
-	label={picking?.label ?? ''}
-	onchoose={(w) => {
-		rememberRecentWallet(w.name);
-		if (a) rememberAccessoryWalletApp(a.pda, a.owner, w.name);
-		if (device) device = { ...device, recent: w.name, method: 'wallet', chooseWallet: false };
-	}}
-	bind:open={pickOpen}
-/>
+{#if embedded}
+	<EmbedBrowser href={embedded.href} label={embedded.label} onclose={() => (embedded = null)} />
+{/if}
 
 {#if a?.mint}
 	<CollectibleDialog

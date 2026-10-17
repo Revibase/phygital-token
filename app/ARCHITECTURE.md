@@ -37,9 +37,9 @@ Link transactions are v0 with explicit compute-budget instructions. Wallet disco
 
 ## Shortcuts and local state
 
-Project `shortcuts.json` comes from the mint’s HTTPS `external_url`. `revibase.launch` may be `wallet` (open inside a wallet app's browser), `browser` (a plain tab) or `embed` (treated like `wallet`; nothing is framed). Legacy Phantom fields remain compatible. The integrator contract is documented on the Revibase developer site.
+Project `shortcuts.json` comes from the mint’s HTTPS `external_url`. `revibase.launch` is `embed` (the in-app browser) or `browser` (a new tab). A file that still says `wallet` opens in the iframe. Legacy `prefersExternalTarget` opens a new tab. Embed dApps allow `https://portal.revibase.com` in `frame-ancestors` and call `registerIframeWallet({ parent })` before starting a wallet connector. The wallet is registered only inside an iframe whose parent origin is that URL, and only after this shell sends a hello that names the wallet. A normal visit or any other parent is unchanged. Connect is approved once per origin and account in the shell. Signing uses the wallet already connected here.
 
-Shortcuts carry no session proofs or authentication credentials. Destinations handle their own sign-in and wallet connection. On a phone, a wallet shortcut opens in the wallet app this accessory was claimed with (or the most recent one), or asks which to use; inside a wallet browser it stays in place.
+Shortcuts carry no session proofs or authentication credentials. The bridge forwards public keys and the bytes a dApp asks to sign. It does not send cookies or key material.
 
 Wallet app preferences and claim provenance are browser-local and accessory/address-bound. Changed ownership removes stale hints. “Forget wallet preference” clears only that accessory’s app/context hints and requires selection until a new choice is saved; it does not release the accessory or affect other accessories. Releasing from a phone hands off to `/unlink/[pda]` in the owner's wallet app when that wallet isn't connected here.
 
