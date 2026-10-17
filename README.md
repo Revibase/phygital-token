@@ -12,7 +12,7 @@ A tap proves the accessory is genuine and present: authentication needs no walle
 | **phygital-token-client** | [`packages/rust/phygital-token`](./packages/rust/phygital-token) | `phygital-token-client` |
 | **phygital-token-mcp** | [`packages/mcp/phygital-token`](./packages/mcp/phygital-token) | `npx -y phygital-token-mcp` |
 | **revibase** | [`app`](./app) | tap-to-claim web app (SvelteKit on Cloudflare) |
-| **phygital-token** (on-chain) | [`programs/phygital-token`](./programs/phygital-token) | program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz` |
+| **phygital-token** (on-chain) | [`programs/phygital-token`](./programs/phygital-token) | program id `DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ` |
 
 ## Documentation
 

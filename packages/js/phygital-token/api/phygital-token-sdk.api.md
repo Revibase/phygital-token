@@ -707,7 +707,7 @@ export type ParsedInitializeInstruction<TProgram extends string = typeof PHYGITA
 };
 
 // @public (undocumented)
-export type ParsedPhygitalTokenInstruction<TProgram extends string = "phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz"> = ({
+export type ParsedPhygitalTokenInstruction<TProgram extends string = "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ"> = ({
     instructionType: PhygitalTokenInstruction.AssignMint;
 } & ParsedAssignMintInstruction<TProgram>) | ({
     instructionType: PhygitalTokenInstruction.ClosePhygitalToken;
@@ -891,7 +891,7 @@ export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 6017;
 export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 6014;
 
 // @public (undocumented)
-export const PHYGITAL_TOKEN_PROGRAM_ADDRESS: Address<"phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz">;
+export const PHYGITAL_TOKEN_PROGRAM_ADDRESS: Address<"DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ">;
 
 // @public (undocumented)
 export type PhygitalToken = {

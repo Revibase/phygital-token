@@ -15,7 +15,7 @@ once a fix is ready.
 
 | Component | Path | Notes |
 |-----------|------|-------|
-| On-chain program | [`programs/phygital-token`](programs/phygital-token) | Highest priority. Program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz`. |
+| On-chain program | [`programs/phygital-token`](programs/phygital-token) | Highest priority. Program id `DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ`. |
 | Web app and its server routes | [`app`](app) | Sessions, tap verification, and claiming. See [ARCHITECTURE.md](app/ARCHITECTURE.md). |
 | TypeScript SDK | [`packages/js/phygital-token`](packages/js/phygital-token) | Transaction building, passkey verification helpers. |
 | Rust CPI client | [`packages/rust/phygital-token`](packages/rust/phygital-token) | Generated from the IDL. |

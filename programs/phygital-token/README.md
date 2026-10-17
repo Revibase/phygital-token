@@ -1,6 +1,6 @@
 # phygital-token (on-chain program)
 
-Program id `phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz`, built with Anchor 1.2.1.
+Program id `DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ`, built with Anchor 1.2.1.
 
 Each physical accessory carries a P-256 passkey. The program records that key
 in a token account and accepts a **tap** (a WebAuthn assertion verified by the

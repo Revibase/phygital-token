@@ -55,7 +55,7 @@ pub use webauthn::secp256r1::{
 pub use webauthn::{secp256r1_pda_seed, Secp256r1Pubkey, Secp256r1VerifyArgs, AUTH_DATA_MIN_LEN};
 
 use anchor_lang::prelude::*;
-declare_id!("phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz");
+declare_id!("DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ");
 
 // Embedded in the program binary so anyone holding only the program id can
 // find how to report a vulnerability (`solana-verify`/explorers display it).

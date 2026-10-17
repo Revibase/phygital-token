@@ -48,7 +48,7 @@ prints the hash.
 ### Checking a deployed program
 
 ```bash
-solana-verify get-program-hash -u mainnet-beta phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz
+solana-verify get-program-hash -u mainnet-beta DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ
 ```
 
 The two hashes must match. The deployed binary also embeds `security.txt`

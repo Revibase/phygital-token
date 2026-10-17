@@ -8,4 +8,4 @@
 use solana_address::{address, Address};
 
 /// `phygital_token` program ID.
-pub const PHYGITAL_TOKEN_ID: Address = address!("phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz");
+pub const PHYGITAL_TOKEN_ID: Address = address!("DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ");

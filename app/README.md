@@ -20,7 +20,7 @@ pnpm --filter revibase dev
 ### Without hardware: local validator + software accessory
 
 ```bash
-solana-test-validator --reset --bpf-program phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz target/deploy/phygital_token.so
+solana-test-validator --reset --bpf-program DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ target/deploy/phygital_token.so
 # app/.dev.vars: SOLANA_RPC_URL=http://127.0.0.1:8899  SOLANA_CLUSTER=localnet
 
 pnpm --filter revibase dev:accessory init

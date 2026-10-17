@@ -86,7 +86,7 @@ import {
 import { findAdminConfigPda } from "../pdas/index.js";
 
 export const PHYGITAL_TOKEN_PROGRAM_ADDRESS =
-  "phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz" as Address<"phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz">;
+  "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ" as Address<"DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ">;
 
 export enum PhygitalTokenAccount {
   AdminConfig,
@@ -259,7 +259,7 @@ export function identifyPhygitalTokenInstruction(
 }
 
 export type ParsedPhygitalTokenInstruction<
-  TProgram extends string = "phygix8byCfX2KH1PF7swvwwWTPzf3KmDD7vhAKkNiz",
+  TProgram extends string = "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
 > =
   | ({
       instructionType: PhygitalTokenInstruction.AssignMint;
