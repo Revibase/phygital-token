@@ -32,6 +32,11 @@ receive security fixes.
 
 ## Verifying the deployed program
 
-The program is built reproducibly with `solana-verify`; see
-[docs/audit/BUILD.md](docs/audit/BUILD.md) for how to compare a local build with
-the deployed bytecode.
+```bash
+cargo install solana-verify --version 0.5.2 --locked
+solana-verify build --library-name phygital_token
+solana-verify get-executable-hash target/deploy/phygital_token.so
+solana-verify get-program-hash -u mainnet-beta DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ
+```
+
+The local hash and the deployed hash must match. The `.github/workflows/verify.yml` workflow runs the same build on `program-v*` tags.

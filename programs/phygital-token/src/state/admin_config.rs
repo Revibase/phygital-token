@@ -6,7 +6,7 @@
 //! - `minter`: assigns a token's `mint` (`assign_mint`).
 //!
 //! The three keys are always distinct and never the default key. These roles
-//! are trusted; see `docs/audit/DESIGN_DECISIONS.md`.
+//! are trusted; see `docs/program/THREAT_MODEL.md`.
 
 use anchor_lang::prelude::*;
 

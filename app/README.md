@@ -45,7 +45,7 @@ Run `pnpm --filter revibase deploy` to build, check the production output for te
 
 There is **one** D1 binding, `DB`. In production it can be shared with other services that accept the same tap URLs. Replace the placeholder `database_id` in `wrangler.jsonc` with your database's before deploying (`wrangler d1 create phygital-token`), and set `ORIGIN` to the app's public URL.
 
-- **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned outside this app; see [migrations/README.md](migrations/README.md).
+- **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned outside this app. D1 records applied migrations by file name, so never rename or edit one that has already been applied.
   - `tap_counters` must be shared so there is one tap-counter high-water mark per chip across every service.
   - Resume and owner-login challenges are stored in `auth_challenges` under their own namespaces (message string → `startAuthentication` / `verifyResponse`).
 - **This app's tables:** `revibase_identifier_cache`. Migration `0014` drops the unused legacy `revibase_link_intents` table.

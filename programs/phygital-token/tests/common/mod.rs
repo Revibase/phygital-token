@@ -42,7 +42,7 @@ pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 pub const TEST_RP_ID: &str = "localhost";
 pub const TEST_ORIGIN: &str = "http://localhost:3000";
 
-// Domain vocabulary (see GLOSSARY.md at repo root):
+// Domain vocabulary:
 //   Token      = PhygitalToken PDA created by `initialize` (1:1 with a passkey)
 //   Owner = phygital_token.owner (current custodian; `Pubkey::default()` when unowned)
 //   Mint       = optional SPL mint pubkey, set later via `assign_mint` (default until then)

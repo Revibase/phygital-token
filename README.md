@@ -2,7 +2,7 @@
 
 Solana program, TypeScript SDK, Rust CPI client, and MCP server for phygital tokens authenticated with a live NFC / WebAuthn tap.
 
-A tap proves the accessory is genuine and present: authentication needs no wallet or SOL. A tap can also make a wallet the token's owner (`set_owner`). The app does that in the browser: the accessory signs, the connected wallet signs, and the browser submits the transaction. See [GLOSSARY.md](./GLOSSARY.md).
+A tap proves the accessory is genuine and present: authentication needs no wallet or SOL. A tap can also make a wallet the token's owner (`set_owner`). The app does that in the browser: the accessory signs, the connected wallet signs, and the browser submits the transaction.
 
 ## Packages
 
@@ -16,20 +16,14 @@ A tap proves the accessory is genuine and present: authentication needs no walle
 
 ## Documentation
 
-Integrator guides (authenticate, check access, claim ownership) are published on the Revibase developer site.
-
-**Security review:** start with [docs/audit/SCOPE.md](docs/audit/SCOPE.md), then
-[ARCHITECTURE](docs/audit/ARCHITECTURE.md) (trust boundaries),
-[DESIGN_DECISIONS](docs/audit/DESIGN_DECISIONS.md) (accepted risks) and
-[BUILD](docs/audit/BUILD.md) (reproducible builds and deployment).
-Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+Integrator guides are published on the Revibase developer site. Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 | Topic | Read |
 |-------|------|
-| On-chain program | [README](programs/phygital-token/README.md) (every instruction), [invariants](docs/program/INVARIANTS.md), [threat model](docs/program/THREAT_MODEL.md) |
-| App | [setup and testing](app/README.md), [architecture and security boundaries](app/ARCHITECTURE.md) |
+| On-chain program | [README](programs/phygital-token/README.md), [invariants](docs/program/INVARIANTS.md), [threat model](docs/program/THREAT_MODEL.md) |
+| App | [setup](app/README.md), [trust boundaries](app/ARCHITECTURE.md) |
 | Packages | [TypeScript SDK](packages/js/phygital-token/README.md), [Rust CPI client](packages/rust/phygital-token/README.md), [MCP server](packages/mcp/phygital-token/README.md) |
-| Contributing | [CONTRIBUTING.md](CONTRIBUTING.md), [code of conduct](CODE_OF_CONDUCT.md) |
+| Contributing | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
 ## License
 

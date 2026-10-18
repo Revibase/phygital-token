@@ -4,7 +4,7 @@
 //! whoever produced the assertion. Browsers serialize `type` first, then
 //! `challenge`, then `origin` (WebAuthn §5.8.1.1), so the first occurrence of
 //! each key is the real field. A client talking CTAP2 to the authenticator
-//! directly writes its own `clientDataJSON`; see `docs/audit/DESIGN_DECISIONS.md`.
+//! directly writes its own `clientDataJSON`; see `docs/program/THREAT_MODEL.md`.
 
 use anchor_lang::prelude::*;
 

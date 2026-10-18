@@ -2,7 +2,7 @@ name: Verifiable build
 
 # Reproducible program build in solana-verify's pinned Docker image. Compare the
 # printed hash with `solana-verify get-program-hash <PROGRAM_ID>` for a deployed
-# program. See docs/audit/BUILD.md.
+# program. See SECURITY.md.
 on:
   workflow_dispatch:
   push:
