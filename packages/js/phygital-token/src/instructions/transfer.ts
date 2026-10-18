@@ -35,6 +35,8 @@ export type TransferSession = {
   slotNumber: bigint;
   challenge: Uint8Array;
   rpId: string;
+  /** Wallet named by the tap. {@link completeTransfer} must use this signer. */
+  recipient: Address;
   /**
    * The token's owner when the session began, or `null` if it had none.
    */
@@ -46,7 +48,7 @@ const NO_OWNER = "11111111111111111111111111111111" as Address;
 
 /**
  * Prepares a transfer session with slot-bound challenge data.
- * Recipient is chosen at wallet confirmation and must sign the transfer transaction.
+ * The tap names `recipient`, who must sign the transaction.
  * Must be followed promptly by {@link authenticatePasskeyForTransfer} and
  * {@link completeTransfer}.
  *
@@ -54,11 +56,13 @@ const NO_OWNER = "11111111111111111111111111111111" as Address;
  * @param input.secp256r1Pubkey - Base64url compressed secp256r1 public key for the
  *   physical token (same shape as a phygital `response.id` / compressed passkey). The phygital
  *   token PDA is derived via {@link findPhygitalTokenPda}.
+ * @param input.recipient - Wallet that will become the owner. It is part of the signed challenge.
  * @param input.rpId - Relying party ID for the NFC tap. Defaults to `window.location.hostname`.
  */
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
   secp256r1Pubkey: string;
+  recipient: Address;
   rpId?: string;
 }): Promise<TransferSession> {
   const rpId = resolveTransferRpId(input.rpId);
@@ -70,6 +74,7 @@ export async function beginTransfer(input: {
   const owner = token.exists && token.data.owner !== NO_OWNER ? token.data.owner : null;
   const challenge = await buildTransferChallenge({
     phygitalToken,
+    recipient: input.recipient,
     slotHash,
   });
 
@@ -81,6 +86,7 @@ export async function beginTransfer(input: {
     slotNumber,
     challenge,
     rpId,
+    recipient: input.recipient,
     owner,
   };
 }
@@ -119,7 +125,7 @@ export async function authenticatePasskeyForTransfer(
  * Builds the two on-chain instructions after passkey authentication.
  * Owner is updated on the phygital token PDA only — no SPL token transfer.
  *
- * @param recipient - Kit `TransactionSigner` for the wallet that will be linked.
+ * @param recipient - Kit `TransactionSigner` for the wallet named by the tap.
  */
 export async function completeTransfer(
   session: TransferSession,
@@ -127,6 +133,12 @@ export async function completeTransfer(
   recipient: TransactionSigner,
   existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
+  if (recipient.address !== session.recipient) {
+    throw new PhygitalTokenError(
+      "INVALID_ARGUMENT",
+      "The signing wallet must be the recipient named by the tap.",
+    );
+  }
   const { secp256r1VerifyInstruction, signedMessageIndex, clientDataJson } =
     buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       response,

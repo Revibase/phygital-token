@@ -24,9 +24,8 @@ All notable changes to this artifact are documented here. The format follows
 
 ### Changed
 
-- `beginTransfer` does not take a `recipient`: the `set_owner` challenge no
-  longer names the new owner (matches the program), so the tap can come before
-  the wallet is chosen.
+- `beginTransfer` takes `recipient`. The `set_owner` challenge names that wallet,
+  and `completeTransfer` requires the same signer.
 
 ## [1.10.0]
 

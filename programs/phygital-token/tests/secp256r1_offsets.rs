@@ -44,9 +44,10 @@ impl Claim {
         let recipient = Keypair::new();
         ctx.svm.airdrop(&recipient.pubkey(), 1_000_000_000).unwrap();
         let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
+        let challenge = build_set_owner_challenge(&token, &recipient.pubkey(), slot_hash);
         Self {
             token,
-            challenge: build_set_owner_challenge(&token, slot_hash),
+            challenge,
             recipient,
             slot_number,
             sign_count: ctx.next_sign_count(token),

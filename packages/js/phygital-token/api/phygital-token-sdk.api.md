@@ -145,6 +145,7 @@ export type AuthenticationResponseJSON = {
 export function beginTransfer(input: {
     rpc: Rpc<SolanaRpcApi>;
     secp256r1Pubkey: string;
+    recipient: Address;
     rpId?: string;
 }): Promise<TransferSession>;
 
@@ -1212,6 +1213,7 @@ export type TransferSession = {
     slotNumber: bigint;
     challenge: Uint8Array;
     rpId: string;
+    recipient: Address;
     owner: Address | null;
 };
 

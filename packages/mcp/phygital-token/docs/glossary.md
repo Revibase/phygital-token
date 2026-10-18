@@ -45,7 +45,7 @@ PhygitalToken (phygital_token PDA)  ← created by `initialize`
 | `close_phygital_token` | Admin closes a **phygital_token** PDA and sends its rent lamports to `rent_recipient`. Irreversible; the same passkey can be re-`initialize`d later. |
 | `initialize` | Creates a **phygital_token** PDA seeded by `secp256r1_pubkey`, stores `identifier`, `token_type`, and `owner`. Permanent requires a non-default `owner`. Restricted to **AdminConfig.issuer**. |
 | `assign_mint` | Binds an SPL mint pubkey onto `phygital_token.mint`. Restricted to **AdminConfig.minter**. |
-| `set_owner` | Passkey-authorized owner update to `recipient` (no SPL token). Requires the token to be unlocked (Bearer, or no owner). Permanent is always locked → always `TokenIsCurrentlyLocked`. Controlled is locked again once it has an owner. The challenge does not name `recipient`, which must sign. |
+| `set_owner` | Passkey-authorized owner update to `recipient` (no SPL token). Requires the token to be unlocked (Bearer, or no owner). Permanent is always locked → always `TokenIsCurrentlyLocked`. Controlled is locked again once it has an owner. The challenge is `SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`, and `recipient` must sign. |
 | `verify` | Passkey-authorized message proof; optional `expected_rp_id` / `expected_origins` (`Option`); updates `last_sign_count`. |
 | `remove_owner` | Wallet-signed forfeiture — resets `phygital_token.owner` to default, which unlocks a Controlled token. Rejected for Permanent. |
 

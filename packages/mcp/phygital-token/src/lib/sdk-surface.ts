@@ -25,7 +25,7 @@ export const SDK_SURFACE = {
   ],
   assignMint: ["getAssignMintInstruction", "findPhygitalTokenPda", "findAdminConfigPda"],
   transfer: [
-    "beginTransfer({ rpc, secp256r1Pubkey, rpId? })",
+    "beginTransfer({ rpc, secp256r1Pubkey, recipient, rpId? })",
     "authenticatePasskeyForTransfer(session)",
     "completeTransfer",
   ],

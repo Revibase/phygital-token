@@ -70,9 +70,10 @@ const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
 
 ## Claim ownership
 
-A tap makes a wallet the token's owner (`set_owner`). The wallet must sign the
-transaction. The tap does not name that wallet, so send the assertion promptly:
-anyone who sees it first can submit it for their own wallet.
+A tap makes one wallet the token's owner (`set_owner`). Pass that wallet to
+`beginTransfer` before the tap: the challenge is
+`SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`, and the same wallet must
+sign the transaction.
 
 ```ts
 import {
@@ -81,7 +82,7 @@ import {
   completeTransfer,
 } from "phygital-token-sdk";
 
-const session = await beginTransfer({ rpc, secp256r1Pubkey }); // reads a recent slot hash
+const session = await beginTransfer({ rpc, secp256r1Pubkey, recipient: recipientSigner.address });
 const response = await authenticatePasskeyForTransfer(session); // NFC tap
 const instructions = await completeTransfer(session, response, recipientSigner);
 // Send `instructions` in one transaction signed by `recipientSigner` before the
@@ -89,6 +90,4 @@ const instructions = await completeTransfer(session, response, recipientSigner);
 ```
 
 `set_owner` refuses Controlled and Permanent tokens that already have an owner
-(`isPhygitalTokenLocked`). An assertion is single-use, but anyone who sees it
-before it lands could submit it for their own wallet, so send it promptly and
-only to a trusted RPC.
+(`isPhygitalTokenLocked`). Send the assertion before its slot hash expires.

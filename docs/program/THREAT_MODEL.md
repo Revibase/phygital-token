@@ -42,38 +42,25 @@ These are trust assumptions, not bugs:
 |--------|------------|-----------|
 | Forge a tap without the chip | precompile signature, key read from the verified bytes only, key match | T1 |
 | Replay a captured tap | strictly increasing sign count; slot-hash expiry | T4, T5 |
-| Reuse a tap made for another token | domain-tagged challenge binding the token | T5 |
+| Reuse a tap made for another token or wallet | domain-tagged challenge binding the token and recipient | T5 |
 | Take a locked token by tap | `set_owner` refuses locked tokens | O1 |
 | Change a Permanent token's owner | owner fixed at `initialize`; `remove_owner` refuses | O2 |
 | Malformed account or sysvar bytes crash the program | bounds-checked readers, no panics, no `unsafe` | F1 |
 
 ## Accepted limitations
 
-- **A tap does not name its recipient.** The `set_owner` challenge is
-  `SHA256("transfer" ‖ token ‖ slot_hash)`. The wallet that signs the
-  transaction chooses the recipient. Anyone who sees a valid assertion before
-  it lands (an RPC node, the slot leader, a relayer, or the page that asked for
-  the tap) can submit it with themselves as recipient and take a Bearer or
-  unowned Controlled token. The window is short (the assertion is single-use
-  and expires with its slot hash), and the real owner can tap again if the
-  token is not locked.
 - **Authenticators that always report a sign count of 0 cannot be used.** The
   count must increase.
-- **`verify` does not choose freshness.** The caller's `message_hash` is the
-  challenge; integrators must include a nonce or slot hash themselves. It is
-  not domain-tagged, so a pending `set_owner` assertion can be submitted to
-  `verify` to use up its sign count and make the claim fail; anyone able to do
-  that could claim the token instead (see above).
+- **`verify` does not choose freshness.** Integrators must include a nonce or
+  slot hash in `message_hash`. The tap is domain-tagged, so a `set_owner`
+  assertion cannot be spent as `verify`.
 - **Optional rpId and origin checks.** Only `verify` can check the rpId hash or
   `clientDataJSON.origin`, and only when asked; `set_owner` never does. With a
   standard authenticator a credential's key is scoped to one rpId, so the key
   match implies it. If the accessory's chip signs for any rpId with the same
   key, the challenge and sign count are the remaining protections.
+- **`clientDataJSON` is scanned, not parsed.** The first `type`, `challenge`, and `origin` keys are the fields browsers serialize first. A client that writes its own `clientDataJSON` still has to produce a signature over those bytes, and the challenge must match.
 
 ## Deployment
 
-`create_config` makes its first caller the admin, so it must be called in the
-same transaction as the program deployment, or immediately after it, with the
-resulting admin checked before the program is announced. See
-[docs/audit/BUILD.md](../audit/BUILD.md#deploying). This was chosen over
-restricting `create_config` to the upgrade authority in the program.
+`create_config` makes its first caller the admin. Call it immediately after deploy and confirm `AdminConfig.admin` before announcing the program id. A front-run is recoverable by upgrading the program. This was chosen over restricting `create_config` to the upgrade authority.

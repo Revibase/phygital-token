@@ -4,7 +4,7 @@ Third-party developers can:
 
 - **Authenticate off-chain** (Web2 passkey login) → `startAuthentication(message, { rpc, allowList? })` / `verifyResponse` → your session
 - **Prove possession on-chain** (composable) → `buildMessageHash` / `authenticatePasskeyForSecp256r1Verify({ rpc, allowList?, messageHash })` / `buildSecp256r1VerifyInstruction` (`verify` CPI)
-- **Set owner on-chain** → `beginTransfer({ rpc, secp256r1Pubkey })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_owner`)
+- **Set owner on-chain** → `beginTransfer({ rpc, secp256r1Pubkey, recipient })` / `authenticatePasskeyForTransfer` / `completeTransfer` (`set_owner`)
 - **Bootstrap roles** → `getCreateConfigInstruction` → `getSetIssuerInstruction` / `getSetMinterInstruction`
 - **Initialize tokens** → `findPhygitalTokenPda` + `getInitializeInstruction` (issuer-only; passkey seeds PDA; chip `identifier` stored for binding)
 - **Bind an SPL mint** → `getAssignMintInstruction` (`assign_mint`; minter-only)
@@ -54,7 +54,7 @@ Hash with `buildMessageHash`, then tap. Pass the same digest to `VerifyCpiBuilde
 ## On-chain owner
 
 ```
-beginTransfer({ rpc, secp256r1Pubkey, rpId? })
+beginTransfer({ rpc, secp256r1Pubkey, recipient, rpId? })
         ↓
 authenticatePasskeyForTransfer(session)
         ↓
@@ -63,7 +63,7 @@ completeTransfer(session, response, recipient)  // passkey from response.id
 send [secp256r1_verify, set_owner]
 ```
 
-`beginTransfer` takes Kit `Rpc` and base64url `secp256r1Pubkey`; it derives the phygital token PDA internally. Optional `rpId` defaults to `window.location.hostname`. The passkey is taken from `response.id` in `completeTransfer`. `set_owner` updates `phygital_token.owner` only — there is no SPL token / Token-2022 linkage.
+`beginTransfer` takes Kit `Rpc`, base64url `secp256r1Pubkey`, and the recipient address. The challenge names that wallet. It derives the phygital token PDA internally. Optional `rpId` defaults to `window.location.hostname`. The passkey is taken from `response.id` in `completeTransfer`, which must use the same recipient. `set_owner` updates `phygital_token.owner` only — there is no SPL token / Token-2022 linkage.
 
 **Lock rules** (`set_owner` needs an unlocked token; check with `isPhygitalTokenLocked`):
 

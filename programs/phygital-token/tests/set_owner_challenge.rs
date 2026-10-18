@@ -11,8 +11,9 @@ fn transfer_challenge_is_deterministic() {
     let phygital_token = Keypair::new().pubkey();
     let slot_hash = [7u8; 32];
 
-    let hash = build_set_owner_challenge(&phygital_token, slot_hash);
-    let hash_again = build_set_owner_challenge(&phygital_token, slot_hash);
+    let recipient = Keypair::new().pubkey();
+    let hash = build_set_owner_challenge(&phygital_token, &recipient, slot_hash);
+    let hash_again = build_set_owner_challenge(&phygital_token, &recipient, slot_hash);
 
     assert_eq!(hash, hash_again);
 }
@@ -23,8 +24,9 @@ fn transfer_challenge_changes_when_token_changes() {
     let phygital_token_b = Keypair::new().pubkey();
     let slot_hash = [7u8; 32];
 
-    let hash_a = build_set_owner_challenge(&phygital_token_a, slot_hash);
-    let hash_b = build_set_owner_challenge(&phygital_token_b, slot_hash);
+    let recipient = Keypair::new().pubkey();
+    let hash_a = build_set_owner_challenge(&phygital_token_a, &recipient, slot_hash);
+    let hash_b = build_set_owner_challenge(&phygital_token_b, &recipient, slot_hash);
 
     assert_ne!(hash_a, hash_b);
 }
@@ -33,8 +35,22 @@ fn transfer_challenge_changes_when_token_changes() {
 fn transfer_challenge_changes_when_slot_hash_changes() {
     let phygital_token = Keypair::new().pubkey();
 
-    let hash_a = build_set_owner_challenge(&phygital_token, [1u8; 32]);
-    let hash_b = build_set_owner_challenge(&phygital_token, [2u8; 32]);
+    let recipient = Keypair::new().pubkey();
+    let hash_a = build_set_owner_challenge(&phygital_token, &recipient, [1u8; 32]);
+    let hash_b = build_set_owner_challenge(&phygital_token, &recipient, [2u8; 32]);
+
+    assert_ne!(hash_a, hash_b);
+}
+
+#[test]
+fn transfer_challenge_changes_when_recipient_changes() {
+    let phygital_token = Keypair::new().pubkey();
+    let slot_hash = [7u8; 32];
+    let recipient_a = Keypair::new().pubkey();
+    let recipient_b = Keypair::new().pubkey();
+
+    let hash_a = build_set_owner_challenge(&phygital_token, &recipient_a, slot_hash);
+    let hash_b = build_set_owner_challenge(&phygital_token, &recipient_b, slot_hash);
 
     assert_ne!(hash_a, hash_b);
 }
@@ -42,20 +58,22 @@ fn transfer_challenge_changes_when_slot_hash_changes() {
 #[test]
 fn transfer_challenge_golden_vector() {
     let phygital_token = Pubkey::new_from_array([2u8; 32]);
+    let recipient = Pubkey::new_from_array([4u8; 32]);
     let slot_hash = [3u8; 32];
 
     let mut preimage = Vec::new();
     preimage.extend_from_slice(b"transfer");
     preimage.extend_from_slice(phygital_token.as_ref());
+    preimage.extend_from_slice(recipient.as_ref());
     preimage.extend_from_slice(&slot_hash);
     let expected: [u8; 32] = Sha256::digest(&preimage).into();
 
-    let hash = build_set_owner_challenge(&phygital_token, slot_hash);
+    let hash = build_set_owner_challenge(&phygital_token, &recipient, slot_hash);
     assert_eq!(hash, expected);
     // Shared with the SDK's buildTransferChallenge test.
     let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
     assert_eq!(
         hex,
-        "8fd09e40a624648512d2a9307debc39c1aa1125ace30757203dd252c8f07b9b0"
+        "eea8483ed6f4ff7a77be95ef7b2bb9f27b9a720e30afb1774afc1f5ccea1328b"
     );
 }

@@ -76,6 +76,7 @@ export function fakeAccessory() {
 export async function fakeTap(acc = fakeAccessory()) {
 	const slotHash = crypto.getRandomValues(new Uint8Array(32));
 	const challenge = crypto.getRandomValues(new Uint8Array(32));
+	const recipient = await generateKeyPairSigner();
 	const session: TransferSession = {
 		rpc: {} as Rpc<SolanaRpcApi>,
 		phygitalToken: address(await acc.pda()),
@@ -84,8 +85,9 @@ export async function fakeTap(acc = fakeAccessory()) {
 		slotNumber: 123456n,
 		slotHash,
 		challenge,
-		rpId: RP_ID
+		rpId: RP_ID,
+		recipient: recipient.address
 	};
 	const tap: LinkTap = { session, response: acc.assert(challenge) };
-	return { acc, tap, recipient: await generateKeyPairSigner() };
+	return { acc, tap, recipient };
 }

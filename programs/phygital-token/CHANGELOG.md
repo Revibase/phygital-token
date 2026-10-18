@@ -17,11 +17,8 @@ All notable changes to this artifact are documented here. The format follows
 
 ### Changed
 
-- `set_owner`'s challenge is `SHA256("transfer" ‖ token ‖ slot_hash)` again,
-  without the recipient, so a tap can come before the wallet that finishes the
-  claim is chosen (in-app wallet and desktop handoffs). Anyone who sees an
-  assertion before it lands can submit it for themselves; this is an accepted
-  limitation (see `docs/program/THREAT_MODEL.md`).
+- `set_owner`'s challenge is `SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`.
+  The tap names the wallet that must sign.
 
 ### Security
 

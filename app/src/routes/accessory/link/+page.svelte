@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { onDestroy, onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Spinner } from '$lib/components/ui/spinner';
@@ -10,9 +11,10 @@
 	import Notice from '$lib/components/app/Notice.svelte';
 	import PageHeader from '$lib/components/app/PageHeader.svelte';
 	import PageShell from '$lib/components/app/PageShell.svelte';
+	import QrCode from '$lib/components/app/QrCode.svelte';
 	import WalletPicker from '$lib/components/app/WalletPicker.svelte';
 	import WalletRow from '$lib/components/app/WalletRow.svelte';
-	import { canTapHere, isLikelyWalletBrowser, tapHint } from '$lib/client/capability';
+	import { canTapHere, isLikelyWalletBrowser, platform, tapHint } from '$lib/client/capability';
 	import {
 		finishLink,
 		prepareTap,
@@ -41,40 +43,62 @@
 	let phase = $state<FinishPhase | null>(null);
 	let hint = $state('Tap Approve, then hold your accessory to your phone.');
 	let webauthnOk = $state(true);
+	let device = $state<'pending' | 'desktop' | 'mobile'>('pending');
 
-	type View = 'tap' | 'choose' | 'confirm' | 'done';
+	type View = 'pending' | 'phone' | 'choose' | 'tap' | 'confirm' | 'done';
 	const view = $derived.by((): View => {
+		if (device === 'desktop') return 'phone';
 		if (linked) return 'done';
+		if (device === 'pending') return 'pending';
+		if (!walletStore.address) return 'choose';
 		if (!tapped) return 'tap';
-		return walletStore.address ? 'confirm' : 'choose';
+		return 'confirm';
 	});
 	const ownedResult = $derived(!!linked && walletStore.address === linked.recipient);
 
 	const STALE_MS = 45_000;
 	let staleTimer: ReturnType<typeof setTimeout> | undefined;
-	let preparing = false;
 	let prepareFailures = 0;
+	let challengeEpoch = 0;
 	async function refreshChallenge() {
-		if (tapped || tapping || preparing) return;
-		preparing = true;
+		const recipient = walletStore.address;
+		if (!recipient || tapped || tapping) return;
+		const epoch = ++challengeEpoch;
 		try {
-			prepared = await prepareTap(accessory.publicKey, data.rpId);
+			const next = await prepareTap(accessory.publicKey, data.rpId, recipient);
+			if (epoch !== challengeEpoch || walletStore.address !== recipient || tapped) return;
+			prepared = next;
 			prepareFailures = 0;
 			clearTimeout(staleTimer);
 			staleTimer = setTimeout(() => void refreshChallenge(), STALE_MS);
 		} catch (err) {
-			if (++prepareFailures >= 2) failure = describeError(err);
-		} finally {
-			preparing = false;
+			if (epoch === challengeEpoch && ++prepareFailures >= 2) failure = describeError(err);
 		}
 	}
 	onDestroy(() => clearTimeout(staleTimer));
 
+	// The challenge names the connected wallet, so it is fetched only after connect.
+	let watching: string | null = null;
+	$effect(() => {
+		const recipient = walletStore.address;
+		if (tapping || phase || linked) return;
+		if (recipient === watching) return;
+		watching = recipient;
+		if (tapped) tapped = null;
+		prepared = null;
+		clearTimeout(staleTimer);
+		if (recipient) void refreshChallenge();
+	});
+
 	onMount(() => {
+		if (platform() === 'desktop') {
+			device = 'desktop';
+			return;
+		}
+		device = 'mobile';
 		hint = `Tap Approve, then ${tapHint().charAt(0).toLowerCase()}${tapHint().slice(1)}`;
 		webauthnOk = canTapHere();
 		walletStore.init(data.cluster);
-		void refreshChallenge();
 	});
 
 	function tapExpired() {
@@ -146,7 +170,18 @@
 	<section class="flex flex-1 flex-col pt-4" aria-live="polite">
 		{#key view}
 			<div class="animate-rise flex flex-1 flex-col gap-7">
-				{#if view === 'done' && linked}
+				{#if view === 'phone'}
+					<div class="flex flex-1 flex-col justify-center gap-8">
+						<PageHeader
+							align="center"
+							title="Continue on your phone"
+							body="Claiming needs a tap, so it only works on a phone with NFC. Scan this code, then hold your accessory to your phone."
+						/>
+						<QrCode value={page.url.origin} label="Scan with your phone’s camera" />
+					</div>
+				{:else if view === 'pending'}
+					<div class="flex-1"></div>
+				{:else if view === 'done' && linked}
 					<div class="flex flex-1 flex-col justify-center gap-8">
 						<BondVisual
 							wallet={linked.recipient}
@@ -169,21 +204,21 @@
 						</List>
 					</div>
 				{:else}
-					{#if view === 'tap'}
+					{#if view === 'choose'}
 						<PageHeader
-							step={{ current: 1, total: 2 }}
-							title="Approve with your accessory"
-							body={hint}
-						/>
-					{:else if view === 'choose'}
-						<PageHeader
-							step={{ current: 2, total: 2 }}
+							step={{ current: 1, total: 3 }}
 							title={copy.choose.title}
 							body={copy.choose.body}
 						/>
+					{:else if view === 'tap'}
+						<PageHeader
+							step={{ current: 2, total: 3 }}
+							title="Approve with your accessory"
+							body={hint}
+						/>
 					{:else}
 						<PageHeader
-							step={{ current: 2, total: 2 }}
+							step={{ current: 3, total: 3 }}
 							title={copy.confirm.title}
 							body={copy.confirm.body}
 						/>
@@ -191,7 +226,14 @@
 
 					<Notice error={failure} />
 
-					{#if view === 'tap'}
+					{#if view === 'choose'}
+						<WalletPicker
+							options={walletStore.options}
+							{connecting}
+							onpick={connectWallet}
+							emptyHint="Open Revibase in a Solana wallet browser to connect."
+						/>
+					{:else if view === 'tap'}
 						<div class="grid flex-1 place-items-center py-6">
 							<AccessoryMark
 								state={tapping ? 'waiting' : 'idle'}
@@ -199,19 +241,28 @@
 								hasMint={!!accessory.mint}
 							/>
 						</div>
+						{#if walletStore.address}
+							<List>
+								<WalletRow
+									address={walletStore.address}
+									label={walletStore.walletName ?? 'Owner'}
+									icon={walletStore.walletIcon}
+									cluster={data.cluster}
+								/>
+							</List>
+							<Button
+								variant="quiet"
+								class="w-full"
+								disabled={tapping}
+								onclick={() => void walletStore.disconnect()}>Use a different wallet</Button
+							>
+						{/if}
 						{#if !webauthnOk}
 							<Notice
 								title="Open this page in Safari or Chrome"
 								body="This browser can’t read your accessory."
 							/>
 						{/if}
-					{:else if view === 'choose'}
-						<WalletPicker
-							options={walletStore.options}
-							{connecting}
-							onpick={connectWallet}
-							emptyHint="Open Revibase in a Solana wallet browser, then tap your accessory again."
-						/>
 					{:else if view === 'confirm' && walletStore.address}
 						<List>
 							<WalletRow

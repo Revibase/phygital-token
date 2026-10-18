@@ -21,15 +21,16 @@ The URL’s `pk` is the chip identifier, not its WebAuthn passkey. Resolve it to
 - A tap the server accepts must be signed on this origin for this rpId. `verifyResponse` checks `clientDataJSON.origin` against the request origin. The browser builds the claim and submits it to Solana RPC.
 - Shared `auth_challenges` are single-use. Session cookies are HMAC-signed, HttpOnly, Secure, and SameSite=Lax (`__Host-` in production).
 - `browse_unlock` can claim. `owner_browse` cannot. The claim page requires the fresh tap session.
-- Claiming uses `beginTransfer`, `authenticatePasskeyForTransfer`, and `completeTransfer`. The program checks the recent slot hash, the token passkey, user presence, an increasing sign count, the lock, and the recipient signer.
-- The transfer challenge is `SHA256("transfer" ‖ token ‖ slot_hash)`. It does not name a recipient. The connected wallet is the recipient. The assertion stays in browser memory.
+- Claiming connects a wallet, then uses `beginTransfer`, `authenticatePasskeyForTransfer`, and `completeTransfer`. The program checks the recent slot hash, the token passkey, user presence, an increasing sign count, the lock, and that the tap names the recipient signer.
+- The transfer challenge is `SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`. The assertion stays in browser memory.
 - Validate the transaction bytes before and after signing. Keep the approved programs, accounts, recipient, slot, and assertion. Reject unexpected signers or lookup tables.
 - The program does not check origin or rpId on `set_owner`. The app checks both before it keeps a tap. Chip and passkey binding also depends on the issuer.
 - Stateful APIs require same-origin requests. Claim construction, signing, and submission use the browser’s Solana RPC.
+- `/api/tap/challenge`, `/api/tap/resume`, and `/api/owner/challenge` are rate-limited at the Cloudflare edge, not in the worker.
 
 ## Claim
 
-Prepare the challenge before the tap. iOS WebAuthn needs a user gesture that does not wait on the network. The countdown estimates SlotHashes expiry (`TAP_WINDOW_MS`). The program is authoritative. If the assertion expires, the user taps again.
+On a phone, connect the wallet first, then prepare the challenge for that wallet before the tap. A desktop visit only shows a handoff to the phone, because the tap needs NFC. iOS WebAuthn needs a user gesture that does not wait on the network. The countdown estimates SlotHashes expiry (`TAP_WINDOW_MS`). The program is authoritative. If the assertion expires, the user taps again.
 
 Claim transactions are v0 with compute-budget instructions. Wallet discovery and signing use `@solana/connector`. Wallet Standard signs kit 8 transaction bytes directly, because the connector uses kit 7.
 

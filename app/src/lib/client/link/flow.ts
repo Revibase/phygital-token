@@ -44,10 +44,19 @@ export type PreparedTap = { session: TransferSession; expiresAt: number };
 export type TappedAccessory = PreparedTap & { response: AuthenticationResponseJSON };
 export type FinishPhase = 'preparing' | 'approve' | 'confirming';
 
-/** Fetch the slot-bound challenge before the user taps Approve. */
-export async function prepareTap(secp256r1Pubkey: string, rpId: string): Promise<PreparedTap> {
+/** Fetch the slot-bound challenge, naming the connected wallet, before the user taps Approve. */
+export async function prepareTap(
+	secp256r1Pubkey: string,
+	rpId: string,
+	recipient: string
+): Promise<PreparedTap> {
 	const fetchedAt = Date.now();
-	const session = await beginTransfer({ rpc: browserRpc(), secp256r1Pubkey, rpId });
+	const session = await beginTransfer({
+		rpc: browserRpc(),
+		secp256r1Pubkey,
+		rpId,
+		recipient: address(recipient)
+	});
 	return { session, expiresAt: fetchedAt + TAP_WINDOW_MS };
 }
 

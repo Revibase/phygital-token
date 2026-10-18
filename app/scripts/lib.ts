@@ -165,7 +165,8 @@ export async function finishDirectly(acc: ReturnType<typeof fakeAccessory>, wall
 	const session = await beginTransfer({
 		rpc,
 		secp256r1Pubkey: bytesToBase64Url(acc.passkey),
-		rpId: RP_ID
+		rpId: RP_ID,
+		recipient: wallet.address
 	});
 	const response = acc.webauthn(bytesToBase64Url(session.challenge));
 	const instructions = await completeTransfer(session, response, createNoopSigner(wallet.address));

@@ -60,7 +60,7 @@ Authority must be `AdminConfig.issuer`. Bootstrap with `create_config` → `set_
 
 | Export | Purpose |
 |--------|---------|
-| `beginTransfer({ rpc, secp256r1Pubkey, rpId? })` | Derives token PDA from passkey; slot-bound challenge; `rpId` defaults to hostname |
+| `beginTransfer({ rpc, secp256r1Pubkey, recipient, rpId? })` | Derives token PDA from passkey; challenge names `recipient`; `rpId` defaults to hostname |
 | `authenticatePasskeyForTransfer(session)` | NFC tap |
 | `completeTransfer` | Kit `TransactionSigner` recipient; `response.id` as passkey; builds secp + set_owner |
 

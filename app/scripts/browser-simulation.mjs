@@ -394,15 +394,23 @@ try {
 		assert.ok(q.url().startsWith('https://project.example/about'));
 		assert.equal(p.url(), BASE + '/accessory');
 	});
+	await test('desktop claim asks for a phone instead of a wallet', async () => {
+		const { p } = await context('Mozilla/5.0 Desktop');
+		await p.goto(BASE + '/accessory/link');
+		await visible(p, 'Continue on your phone');
+		assert.equal(await p.getByRole('button', { name: 'Phantom', exact: true }).count(), 0);
+		assert.equal(await p.getByText('Choose a wallet', { exact: true }).count(), 0);
+	});
 	await test('accessory claim connects a detected wallet and uses no linking API', async () => {
-		const { c, p } = await context(IOS + ' Phantom');
+		const { c, p } = await context(IOS);
+		await c.addInitScript(() => localStorage.setItem('simulation:browser-wallet', 'true'));
 		const appRequests = [];
 		p.on('request', (request) => {
 			if (new URL(request.url()).pathname.startsWith('/api/')) appRequests.push(request.url());
 		});
 		await p.goto(BASE + '/accessory/link');
-		await p.getByRole('button', { name: 'Approve', exact: true }).click();
 		await p.getByRole('button', { name: 'Phantom', exact: true }).click();
+		await p.getByRole('button', { name: 'Approve', exact: true }).click();
 		await p.getByRole('button', { name: 'Claim accessory', exact: true }).click();
 		await visible(p, 'Accessory claimed');
 		assert.deepEqual(appRequests, []);
@@ -410,10 +418,11 @@ try {
 		assert.equal(c.pages().length, 1);
 	});
 	await test('a rejected claim can be retried', async () => {
-		const { p } = await context(IOS + ' Phantom');
+		const { c, p } = await context(IOS);
+		await c.addInitScript(() => localStorage.setItem('simulation:browser-wallet', 'true'));
 		await p.goto(BASE + '/accessory/link');
-		await p.getByRole('button', { name: 'Approve', exact: true }).click();
 		await p.getByRole('button', { name: 'Phantom', exact: true }).click();
+		await p.getByRole('button', { name: 'Approve', exact: true }).click();
 		await p.evaluate(() => sessionStorage.setItem('simulation:reject', 'true'));
 		await p.getByRole('button', { name: 'Claim accessory', exact: true }).click();
 		await visible(p, 'Cancelled in your wallet');

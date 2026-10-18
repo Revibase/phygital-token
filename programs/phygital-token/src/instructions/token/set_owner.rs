@@ -2,8 +2,8 @@
 //!
 //! Refused while the token is locked (Controlled or Permanent with an owner).
 //! The tap signs [`crate::webauthn::challenge::build_set_owner_challenge`],
-//! which does not name the recipient: see the accepted limitation in
-//! `docs/program/THREAT_MODEL.md`.
+//! which names this `recipient`, so the assertion cannot be submitted for a
+//! different wallet.
 
 use anchor_lang::prelude::*;
 use solana_sdk_ids::sysvar::instructions::ID as INSTRUCTIONS_SYSVAR_ID;
@@ -50,7 +50,8 @@ impl SetOwner<'_> {
 
         let slot_hash = fetch_slot_hash(&ctx.accounts.slot_hashes, slot_number)?;
         let recipient = ctx.accounts.recipient.key();
-        let challenge = build_set_owner_challenge(&ctx.accounts.phygital_token.key(), slot_hash);
+        let challenge =
+            build_set_owner_challenge(&ctx.accounts.phygital_token.key(), &recipient, slot_hash);
         token.accept_assertion(secp256r1_verify_args.verify_webauthn_assertion(
             &ctx.accounts.instructions_sysvar,
             challenge,

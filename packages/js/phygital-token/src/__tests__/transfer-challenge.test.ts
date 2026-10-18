@@ -10,8 +10,9 @@ describe("set_owner challenge", () => {
   it("matches the program's vector (programs/phygital-token/tests/set_owner_challenge.rs)", async () => {
     const challenge = await buildTransferChallenge({
       phygitalToken: addr(2),
+      recipient: addr(4),
       slotHash: new Uint8Array(32).fill(3),
     });
-    expect(hex(challenge)).toBe("8fd09e40a624648512d2a9307debc39c1aa1125ace30757203dd252c8f07b9b0");
+    expect(hex(challenge)).toBe("eea8483ed6f4ff7a77be95ef7b2bb9f27b9a720e30afb1774afc1f5ccea1328b");
   });
 });

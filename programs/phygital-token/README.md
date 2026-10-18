@@ -12,7 +12,6 @@ the passkey, so a verifier can read its type and owner.
 - Start at [`src/lib.rs`](src/lib.rs) for the module map.
 - Invariants: [`docs/program/INVARIANTS.md`](../../docs/program/INVARIANTS.md).
 - Threat model: [`docs/program/THREAT_MODEL.md`](../../docs/program/THREAT_MODEL.md).
-- Terms: [`GLOSSARY.md`](../../GLOSSARY.md).
 
 ## Accounts
 
@@ -36,13 +35,11 @@ listed. Every accepted tap must carry a higher sign count than the last.
 | `initialize` | issuer | Permanent ⇔ an owner is given | creates the token; sign count 0 |
 | `assign_mint` | minter | — | sets `mint` (informational) |
 | `close_phygital_token` | admin | token PDA matches its key | closes the token |
-| `set_owner` | `recipient` | not locked; tap over `SHA256("transfer" ‖ token ‖ slot_hash)`; slot in SlotHashes | owner = `recipient` |
+| `set_owner` | `recipient` | not locked; tap over `SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`; slot in SlotHashes | owner = `recipient` |
 | `remove_owner` | owner | not Permanent | owner cleared |
 | `verify` | — | tap over the caller's `message_hash`; optional rpId and origin list | sign count recorded |
 
-The challenge does not name the recipient. The wallet that signs the
-transaction becomes the owner. Anyone who sees the assertion before it lands
-can submit it for their own wallet, so send it promptly. See the threat model.
+The challenge names the recipient, so the assertion can only make that wallet the owner. Send it before the slot hash leaves SlotHashes.
 
 ## Build and test
 
@@ -52,5 +49,5 @@ cargo test              # unit tests and LiteSVM integration tests (load target/
 ```
 
 From the repository root, `pnpm build:program` also regenerates the TypeScript
-and Rust clients from the IDL. Reproducible builds: see
-[`docs/audit/BUILD.md`](../../docs/audit/BUILD.md).
+and Rust clients from the IDL. Comparing a build with the deployed program is
+described in [`SECURITY.md`](../../SECURITY.md).

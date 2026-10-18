@@ -16,7 +16,7 @@ const COMMON: LinkCopy = {
 	pageTitle: 'Claim accessory',
 	choose: {
 		title: 'Choose a wallet',
-		body: 'Choose a wallet to become the owner. You’ll use it to manage this accessory.'
+		body: 'Connect the wallet that will own this accessory. You’ll tap it next, then sign with this wallet.'
 	},
 	confirm: { title: 'Claim with this wallet?', body: '' },
 	action: 'Claim accessory',

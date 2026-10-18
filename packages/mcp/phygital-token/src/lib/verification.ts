@@ -32,7 +32,7 @@ const RECOMMENDATIONS: Record<VerificationUseCase, VerificationRecommendation> =
     requiresTap: true,
     onChain: true,
     rationale:
-      "Owner claim uses set_owner (updates phygital_token.owner; no SPL token). Requires an unlocked token. beginTransfer takes secp256r1Pubkey and derives the token PDA.",
+      "Owner claim uses set_owner (updates phygital_token.owner; no SPL token). Requires an unlocked token. beginTransfer takes secp256r1Pubkey and recipient; the tap names that wallet.",
     docIds: ["verification:overview", "sdk:surface-area"],
     cautions: [
       "Do not use off-chain login (verifyResponse) for transfers — it does not change phygital_token.owner.",
@@ -87,7 +87,7 @@ export function listVerificationUseCases(): Array<{
 export const VERIFICATION_DECISION_TREE = `
 Authentication (live NFC tap required)
 ├── Need on-chain owner change?
-│   YES → beginTransfer({ rpc, secp256r1Pubkey })
+│   YES → beginTransfer({ rpc, secp256r1Pubkey, recipient })
 │         → authenticatePasskeyForTransfer(session)
 │         → completeTransfer (set_owner; requires an unlocked token)
 │   NO  → Need on-chain possession proof for your program?
