@@ -1,7 +1,7 @@
 import { Endian, getU32Encoder } from '@solana/kit';
 import { p256 } from '@noble/curves/nist.js';
 
-import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
+import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
 
 /**
  * Verifies the chip-signed dynamic tap URL (the same scheme phygital-token-sdk

@@ -6,7 +6,7 @@ import {
 	type BrowseUnlockSession,
 	type OwnerBrowseSession,
 	type OwnerSession
-} from '$lib/server/session/cookies';
+} from '#lib/server/session/cookies.ts';
 
 const SECRET = 'x'.repeat(48);
 const browse: BrowseUnlockSession = {

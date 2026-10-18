@@ -2,16 +2,20 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { startAuthentication } from 'phygital-token-sdk';
-	import { Button } from '$lib/components/ui/button';
-	import { Spinner } from '$lib/components/ui/spinner';
-	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
-	import Notice from '$lib/components/app/Notice.svelte';
-	import PageHeader from '$lib/components/app/PageHeader.svelte';
-	import PageShell from '$lib/components/app/PageShell.svelte';
-	import { postJson } from '$lib/client/api';
-	import { canTapHere, tapHint } from '$lib/client/capability';
-	import { describeError, TAP_FAILURE_COPY, type FriendlyError } from '$lib/client/link/messages';
-	import { browserRpc } from '$lib/client/rpc';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Spinner } from '#lib/components/ui/spinner/index.ts';
+	import AccessoryMark from '#lib/components/app/AccessoryMark.svelte';
+	import Notice from '#lib/components/app/Notice.svelte';
+	import PageHeader from '#lib/components/app/PageHeader.svelte';
+	import PageShell from '#lib/components/app/PageShell.svelte';
+	import { postJson } from '#lib/client/api.ts';
+	import { canTapHere, tapHint } from '#lib/client/capability.ts';
+	import {
+		describeError,
+		TAP_FAILURE_COPY,
+		type FriendlyError
+	} from '#lib/client/link/messages.ts';
+	import { browserRpc } from '#lib/client/rpc.ts';
 
 	let { data } = $props();
 	const copy = $derived(TAP_FAILURE_COPY[data.reason]);
@@ -66,7 +70,7 @@
 				challengeId: c.challengeId,
 				response
 			});
-			await goto(next, { replaceState: true, invalidateAll: true });
+			await goto(next, { replace: true, refreshAll: true });
 		} catch (err) {
 			failure = describeError(err, 'tap');
 			void prepare();

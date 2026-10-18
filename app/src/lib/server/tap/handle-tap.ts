@@ -1,6 +1,6 @@
 import type { Rpc, SolanaRpcApi } from '@solana/kit';
 
-import type { TapFailureReason } from '$lib/shared/types';
+import type { TapFailureReason } from '#lib/shared/types.ts';
 import { resolveAccessoryByIdentifier } from '../accessory/resolve';
 import { consumeTapCounter } from './counter-store';
 import { TapParamError, verifyDynamicUrlWithoutCounterCheck } from './verify-dynamic-url';

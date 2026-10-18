@@ -1,13 +1,13 @@
 import { json } from '@sveltejs/kit';
 
-import { getEnv, getRpc } from '$lib/server/env';
-import { readJsonObject } from '$lib/server/http/read-json';
-import { setBrowseUnlock } from '$lib/server/session/cookies';
-import { verifyResume } from '$lib/server/tap/resume';
+import { getEnv, getRpc } from '#lib/server/env.ts';
+import { readJsonObject } from '#lib/server/http/read-json.ts';
+import { setBrowseUnlock } from '#lib/server/session/cookies.ts';
+import { verifyResume } from '#lib/server/tap/resume.ts';
 import type { RequestHandler } from './$types';
 
-export const POST: RequestHandler = async ({ request, url, cookies, platform }) => {
-	const env = getEnv(platform);
+export const POST: RequestHandler = async ({ request, url, cookies }) => {
+	const env = getEnv();
 	const read = await readJsonObject(request);
 	if (!read.ok) return read.response;
 	const body = read.body as { challengeId?: unknown; response?: unknown };

@@ -25,16 +25,16 @@ import {
 	type AuthenticationResponseJSON,
 	type TransferSession
 } from 'phygital-token-sdk';
-import { bytesEqual } from '$lib/shared/encoding';
-import { LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS } from '$lib/shared/fee-policy';
+import { bytesEqual } from '#lib/shared/encoding.ts';
+import { LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS } from '#lib/shared/fee-policy.ts';
 import {
 	buildLinkTransactionFromTap,
 	expectationFromTap,
 	LinkTransactionRejected,
 	type LinkTap,
 	validateLinkTransaction
-} from '$lib/shared/link-transaction';
-import { TAP_WINDOW_MS } from '$lib/shared/link-transaction';
+} from '#lib/shared/link-transaction.ts';
+import { TAP_WINDOW_MS } from '#lib/shared/link-transaction.ts';
 import { browserRpc } from '../rpc';
 import { forgetWalletAccessories } from '../cache';
 import { waitForConfirmation } from '../tx';

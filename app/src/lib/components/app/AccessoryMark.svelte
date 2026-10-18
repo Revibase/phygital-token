@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { cn } from '$lib/utils';
-	import RevibaseMark from '$lib/brand/RevibaseMark.svelte';
+	import { cn } from '#lib/utils.ts';
+	import RevibaseMark from '#lib/brand/RevibaseMark.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { accessoryMediaQuery } from '$lib/client/queries';
+	import { accessoryMediaQuery } from '#lib/client/queries.ts';
 
 	type MarkState = 'idle' | 'waiting' | 'verified';
 	let {

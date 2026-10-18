@@ -16,10 +16,7 @@ import {
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
-import {
-  fetchMaybePhygitalToken,
-  getSetOwnerInstruction,
-} from "../generated/index.js";
+import { fetchMaybePhygitalToken, getSetOwnerInstruction } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 import { PhygitalTokenError } from "../utils/errors.js";
 import { findPhygitalTokenPda } from "../utils/pdas/token.js";

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { walletStore } from '$lib/client/wallet/wallet.svelte';
-	import { describeError, type FriendlyError } from '$lib/client/link/messages';
-	import { ApiClientError } from '$lib/client/api';
-	import { rememberRecentWallet } from '$lib/client/memory';
-	import { shortAddress } from '$lib/shared/encoding';
-	import { Button } from '$lib/components/ui/button';
+	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
+	import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
+	import { ApiClientError } from '#lib/client/api.ts';
+	import { rememberRecentWallet } from '#lib/client/memory.ts';
+	import { shortAddress } from '#lib/shared/encoding.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import ResponsiveSheet from './ResponsiveSheet.svelte';
 	import WalletPicker from './WalletPicker.svelte';
 	import Notice from './Notice.svelte';

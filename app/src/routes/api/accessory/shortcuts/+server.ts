@@ -1,16 +1,16 @@
 import { json } from '@sveltejs/kit';
 
-import { fetchAccessory } from '$lib/server/accessory/resolve';
-import { loadShortcuts } from '$lib/server/accessory/shortcuts';
-import { withIconProxy } from '$lib/server/accessory/shortcut-icons';
-import { toAccessoryView } from '$lib/shared/accessory-view';
-import { getEnv, getRpc } from '$lib/server/env';
-import { readAdmitSession } from '$lib/server/session/cookies';
+import { fetchAccessory } from '#lib/server/accessory/resolve.ts';
+import { loadShortcuts } from '#lib/server/accessory/shortcuts.ts';
+import { withIconProxy } from '#lib/server/accessory/shortcut-icons.ts';
+import { toAccessoryView } from '#lib/shared/accessory-view.ts';
+import { getEnv, getRpc } from '#lib/server/env.ts';
+import { readAdmitSession } from '#lib/server/session/cookies.ts';
 import type { RequestHandler } from './$types';
 
 /** Authenticated accessory shortcuts, opened directly by the client. */
-export const GET: RequestHandler = async ({ cookies, platform }) => {
-	const env = getEnv(platform);
+export const GET: RequestHandler = async ({ cookies }) => {
+	const env = getEnv();
 	const session = await readAdmitSession(cookies, env.sessionSecret);
 	if (!session)
 		return json({ error: 'Tap your accessory again.', code: 'expired' }, { status: 401 });

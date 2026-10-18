@@ -1,14 +1,14 @@
 import { json } from '@sveltejs/kit';
 
-import { verifyOwnerBrowse } from '$lib/server/accessory/owner-browse';
-import { getEnv, getRpc } from '$lib/server/env';
-import { readJsonObject } from '$lib/server/http/read-json';
-import { readOwnerSession, setOwnerBrowse } from '$lib/server/session/cookies';
+import { verifyOwnerBrowse } from '#lib/server/accessory/owner-browse.ts';
+import { getEnv, getRpc } from '#lib/server/env.ts';
+import { readJsonObject } from '#lib/server/http/read-json.ts';
+import { readOwnerSession, setOwnerBrowse } from '#lib/server/session/cookies.ts';
 import type { RequestHandler } from './$types';
 
 /** Open an accessory from Home using the wallet login (`os`); no signature needed. */
-export const POST: RequestHandler = async ({ request, cookies, platform }) => {
-	const env = getEnv(platform);
+export const POST: RequestHandler = async ({ request, cookies }) => {
+	const env = getEnv();
 	const read = await readJsonObject(request);
 	if (!read.ok) return read.response;
 	const body = read.body as { pda?: unknown; address?: unknown };

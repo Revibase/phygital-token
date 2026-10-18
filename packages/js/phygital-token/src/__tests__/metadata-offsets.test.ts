@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { address, getAddressEncoder } from "@solana/kit";
-import {
-  getPhygitalTokenEncoder,
-  getPhygitalTokenSize,
-} from "../generated/index.js";
+import { getPhygitalTokenEncoder, getPhygitalTokenSize } from "../generated/index.js";
 
 const OWNER = address("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF");
 const MINT = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");

@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { startEmbedHost, type EmbedAccount, type EmbedSigner } from '$lib/client/wallet/embed-host';
+import {
+	startEmbedHost,
+	type EmbedAccount,
+	type EmbedSigner
+} from '#lib/client/wallet/embed-host.ts';
 import {
 	BRIDGE_SOURCE_DAPP,
 	BRIDGE_SOURCE_SHELL,
@@ -7,7 +11,7 @@ import {
 	embedFrameOrigin,
 	readDappRequest,
 	transactionBytes
-} from '$lib/shared/wallet-bridge';
+} from '#lib/shared/wallet-bridge.ts';
 
 const ZEROS = new Uint8Array(32);
 
@@ -19,7 +23,9 @@ describe('embed frame origin', () => {
 		expect(embedFrameOrigin('http://localhost:5174', 'http://localhost:5173')).toBe(
 			'http://localhost:5174'
 		);
-		expect(embedFrameOrigin('https://portal.revibase.com/x', 'https://portal.revibase.com')).toBeNull();
+		expect(
+			embedFrameOrigin('https://portal.revibase.com/x', 'https://portal.revibase.com')
+		).toBeNull();
 		expect(embedFrameOrigin('http://evil.test', 'https://portal.revibase.com')).toBeNull();
 		expect(embedFrameOrigin('javascript:alert(1)', 'https://portal.revibase.com')).toBeNull();
 	});
@@ -35,18 +41,21 @@ describe('embed host', () => {
 	it('rejects a different origin and accepts a transaction of any length', () => {
 		expect(readDappRequest({ source: 'other', version: 1, id: 'a', method: 'connect' })).toBeNull();
 		expect(transactionBytes({ transaction: new Uint8Array(0), chain: 'solana:devnet' })).toBeNull();
-		expect(transactionBytes({ transaction: new Uint8Array(2000), chain: 'solana:devnet' })?.bytes.byteLength).toBe(
-			2000
-		);
-		expect(transactionBytes({ transaction: new Uint8Array([1]), chain: 'solana:devnet' })?.chain).toBe(
-			'solana:devnet'
-		);
+		expect(
+			transactionBytes({ transaction: new Uint8Array(2000), chain: 'solana:devnet' })?.bytes
+				.byteLength
+		).toBe(2000);
+		expect(
+			transactionBytes({ transaction: new Uint8Array([1]), chain: 'solana:devnet' })?.chain
+		).toBe('solana:devnet');
 	});
 
 	it('asks once, then signs on the parent cluster only', async () => {
 		const contentWindow = { postMessage: vi.fn() };
-		const listeners = new Set<(event: { source: unknown; origin: string; data: unknown }) => void>();
-		let current = account;
+		const listeners = new Set<
+			(event: { source: unknown; origin: string; data: unknown }) => void
+		>();
+		const current = account;
 		const signer: EmbedSigner = {
 			account: () => current,
 			signTransaction: vi.fn(async (bytes: Uint8Array) => bytes),
@@ -56,8 +65,10 @@ describe('embed host', () => {
 		const approve = vi.fn(async () => true);
 		startEmbedHost({
 			target: {
-				addEventListener: (_t: string, fn: (event: { source: unknown; origin: string; data: unknown }) => void) =>
-					listeners.add(fn),
+				addEventListener: (
+					_t: string,
+					fn: (event: { source: unknown; origin: string; data: unknown }) => void
+				) => listeners.add(fn),
 				removeEventListener: () => {}
 			} as unknown as EventTarget,
 			iframe: { contentWindow },
@@ -66,7 +77,11 @@ describe('embed host', () => {
 			signer,
 			storage: { getItem: () => null, setItem: () => {} }
 		});
-		const deliver = (data: unknown, origin = 'https://pay.test', source: unknown = contentWindow) => {
+		const deliver = (
+			data: unknown,
+			origin = 'https://pay.test',
+			source: unknown = contentWindow
+		) => {
 			for (const fn of listeners) fn({ source, origin, data });
 		};
 		deliver({

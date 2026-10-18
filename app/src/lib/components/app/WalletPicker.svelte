@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { recentWallet } from '$lib/client/memory';
-	import type { WalletOption } from '$lib/client/wallet/wallet.svelte';
+	import { recentWallet } from '#lib/client/memory.ts';
+	import type { WalletOption } from '#lib/client/wallet/wallet.svelte.ts';
 	import EmptyState from './EmptyState.svelte';
 	import List from './List.svelte';
 	import ListRow from './ListRow.svelte';

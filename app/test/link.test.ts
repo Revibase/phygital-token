@@ -13,14 +13,14 @@ import {
 import { getTransferSolInstruction } from '@solana-program/system';
 import { getSetComputeUnitLimitInstruction } from '@solana-program/compute-budget';
 
-import { base64UrlToBytes } from '$lib/shared/encoding';
+import { base64UrlToBytes } from '#lib/shared/encoding.ts';
 import {
 	buildLinkTransactionFromTap,
 	expectationFromTap,
 	LinkTransactionRejected,
 	validateLinkTransaction
-} from '$lib/shared/link-transaction';
-import { LIGHTHOUSE_PROGRAM_ADDRESS } from '$lib/shared/addresses';
+} from '#lib/shared/link-transaction.ts';
+import { LIGHTHOUSE_PROGRAM_ADDRESS } from '#lib/shared/addresses.ts';
 import { fakeAccessory, fakeTap } from './support/fixtures';
 
 const BLOCKHASH = {

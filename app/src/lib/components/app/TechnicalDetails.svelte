@@ -1,20 +1,20 @@
 <script lang="ts">
 	import ResponsiveSheet from './ResponsiveSheet.svelte';
-	import type { AccessoryView } from '$lib/shared/types';
-	import { shortAddress } from '$lib/shared/encoding';
+	import type { AccessoryView } from '#lib/shared/types.ts';
+	import { shortAddress } from '#lib/shared/encoding.ts';
 	import List from './List.svelte';
 	import ListRow from './ListRow.svelte';
 	import CopyButton from './CopyButton.svelte';
 	import ExplorerLink from './ExplorerLink.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { accessoryMediaQuery } from '$lib/client/queries';
+	import { accessoryMediaQuery } from '#lib/client/queries.ts';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import { startAuthentication, verifyResponse, findPhygitalTokenPda } from 'phygital-token-sdk';
 	import Notice from './Notice.svelte';
-	import { canTapHere, tapHint } from '$lib/client/capability';
-	import { describeError, type FriendlyError } from '$lib/client/link/messages';
-	import { browserRpc } from '$lib/client/rpc';
+	import { canTapHere, tapHint } from '#lib/client/capability.ts';
+	import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
+	import { browserRpc } from '#lib/client/rpc.ts';
 
 	let {
 		accessory,

@@ -28,13 +28,16 @@ import {
   type InstructionWithData,
   type ReadonlyAccount,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
   type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
+  type InstructionSignerInput,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { findAdminConfigPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -96,40 +99,54 @@ export function getCreateConfigInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type CreateConfigAsyncInput<
-  TAccountAuthority extends string = string,
-  TAccountAdminConfig extends string = string,
-  TAccountSystemProgram extends string = string,
+  TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
+  TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   /** Becomes the sole admin on the singleton config. Callable once. */
-  authority: TransactionSigner<TAccountAuthority>;
-  adminConfig?: Address<TAccountAdminConfig>;
-  systemProgram?: Address<TAccountSystemProgram>;
+  authority: TAccountAuthority;
+  adminConfig?: TAccountAdminConfig;
+  systemProgram?: TAccountSystemProgram;
 };
 
 export async function getCreateConfigInstructionAsync<
-  TAccountAuthority extends string,
-  TAccountAdminConfig extends string,
-  TAccountSystemProgram extends string,
+  TAccountAuthority extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
+  TAccountSystemProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: CreateConfigAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): Promise<
   CreateConfigInstruction<
     TProgramAddress,
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountSystemProgram
+    ResolvedInstructionAccountMeta<
+      TAccountAuthority,
+      InstructionAccountInputAddress<TAccountAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountSystemProgram,
+      InstructionAccountInputAddress<TAccountSystemProgram>
+    >
   >
 > {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: true },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    authority: { value: input.authority ?? null, isSigner: true, isWritable: true },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: true },
+    systemProgram: { value: input.systemProgram ?? null, isSigner: false, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -138,14 +155,13 @@ export async function getCreateConfigInstructionAsync<
 
   // Resolve default values.
   if (!accounts.adminConfig.value) {
-    accounts.adminConfig.value = await findAdminConfigPda();
+    accounts.adminConfig.value = await findAdminConfigPda({ programAddress });
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
@@ -156,45 +172,68 @@ export async function getCreateConfigInstructionAsync<
     programAddress,
   } as CreateConfigInstruction<
     TProgramAddress,
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountSystemProgram
+    ResolvedInstructionAccountMeta<
+      TAccountAuthority,
+      InstructionAccountInputAddress<TAccountAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountSystemProgram,
+      InstructionAccountInputAddress<TAccountSystemProgram>
+    >
   >);
 }
 
 export type CreateConfigInput<
-  TAccountAuthority extends string = string,
-  TAccountAdminConfig extends string = string,
-  TAccountSystemProgram extends string = string,
+  TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
+  TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
   /** Becomes the sole admin on the singleton config. Callable once. */
-  authority: TransactionSigner<TAccountAuthority>;
-  adminConfig: Address<TAccountAdminConfig>;
-  systemProgram?: Address<TAccountSystemProgram>;
+  authority: TAccountAuthority;
+  adminConfig: TAccountAdminConfig;
+  systemProgram?: TAccountSystemProgram;
 };
 
 export function getCreateConfigInstruction<
-  TAccountAuthority extends string,
-  TAccountAdminConfig extends string,
-  TAccountSystemProgram extends string,
+  TAccountAuthority extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
+  TAccountSystemProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: CreateConfigInput<TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): CreateConfigInstruction<
   TProgramAddress,
-  TAccountAuthority,
-  TAccountAdminConfig,
-  TAccountSystemProgram
+  ResolvedInstructionAccountMeta<
+    TAccountAuthority,
+    InstructionAccountInputAddress<TAccountAuthority>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountAdminConfig,
+    InstructionAccountInputAddress<TAccountAdminConfig>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountSystemProgram,
+    InstructionAccountInputAddress<TAccountSystemProgram>
+  >
 > {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: true },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    authority: { value: input.authority ?? null, isSigner: true, isWritable: true },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: true },
+    systemProgram: { value: input.systemProgram ?? null, isSigner: false, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -207,7 +246,6 @@ export function getCreateConfigInstruction<
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
@@ -218,9 +256,18 @@ export function getCreateConfigInstruction<
     programAddress,
   } as CreateConfigInstruction<
     TProgramAddress,
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountSystemProgram
+    ResolvedInstructionAccountMeta<
+      TAccountAuthority,
+      InstructionAccountInputAddress<TAccountAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountSystemProgram,
+      InstructionAccountInputAddress<TAccountSystemProgram>
+    >
   >);
 }
 

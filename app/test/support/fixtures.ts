@@ -8,8 +8,8 @@ import {
 	type TransferSession
 } from 'phygital-token-sdk';
 
-import { bytesToBase64Url } from '$lib/shared/encoding';
-import type { LinkTap } from '$lib/shared/link-transaction';
+import { bytesToBase64Url } from '#lib/shared/encoding.ts';
+import type { LinkTap } from '#lib/shared/link-transaction.ts';
 
 export const RP_ID = 'accessory.test';
 export const ORIGIN = 'https://accessory.test';

@@ -1,4 +1,4 @@
-import type { LinkErrorCode } from '$lib/shared/types';
+import type { LinkErrorCode } from '#lib/shared/types.ts';
 
 export class ApiClientError extends Error {
 	constructor(

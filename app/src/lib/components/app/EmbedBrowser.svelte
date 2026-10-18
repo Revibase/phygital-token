@@ -11,17 +11,21 @@
 		getBase64EncodedWireTransaction,
 		getTransactionDecoder
 	} from '@solana/kit';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import WalletConnect from './WalletConnect.svelte';
 	import {
 		type EmbedHost,
 		startEmbedHost,
 		type EmbedAccount
-	} from '$lib/client/wallet/embed-host';
-	import { embedFrameOrigin } from '$lib/shared/wallet-bridge';
-	import { browserRpc } from '$lib/client/rpc';
-	import { shortAddress } from '$lib/shared/encoding';
-	import { signWithWallet, walletStore, type SigningContext } from '$lib/client/wallet/wallet.svelte';
+	} from '#lib/client/wallet/embed-host.ts';
+	import { embedFrameOrigin } from '#lib/shared/wallet-bridge.ts';
+	import { browserRpc } from '#lib/client/rpc.ts';
+	import { shortAddress } from '#lib/shared/encoding.ts';
+	import {
+		signWithWallet,
+		walletStore,
+		type SigningContext
+	} from '#lib/client/wallet/wallet.svelte.ts';
 
 	let { href, label, onclose }: { href: string; label: string; onclose: () => void } = $props();
 
@@ -177,7 +181,7 @@
 			<WalletConnect description="Connect the wallet this app can use." />
 		{/if}
 		<a
-			href={href}
+			{href}
 			target="_blank"
 			rel="noopener noreferrer"
 			class="shrink-0 rounded-lg px-2 py-2 text-[13px] font-medium text-muted-foreground hover:text-foreground"
@@ -213,8 +217,8 @@
 			<h2 id="embed-connect-title" class="text-[17px] font-semibold">Connect to this app?</h2>
 			<p class="mt-2 text-[14px] leading-relaxed text-muted-foreground">
 				<span class="font-medium text-foreground">{approval.origin}</span> wants to use
-				{walletStore.address ? shortAddress(walletStore.address) : 'your wallet'}. Revibase will still
-				ask you to approve each transaction.
+				{walletStore.address ? shortAddress(walletStore.address) : 'your wallet'}. Revibase will
+				still ask you to approve each transaction.
 			</p>
 			<div class="mt-5 grid gap-2">
 				<Button size="xl" onclick={() => decide(true)}>Connect</Button>

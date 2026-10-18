@@ -1,8 +1,8 @@
 import { PhygitalTokenError, type PhygitalTokenErrorCode } from 'phygital-token-sdk';
 import { ApiClientError } from '../api';
-import { LinkTransactionRejected } from '$lib/shared/link-transaction';
-import { fromSendError } from '$lib/shared/link-errors';
-import type { LinkErrorCode, TapFailureReason } from '$lib/shared/types';
+import { LinkTransactionRejected } from '#lib/shared/link-transaction.ts';
+import { fromSendError } from '#lib/shared/link-errors.ts';
+import type { LinkErrorCode, TapFailureReason } from '#lib/shared/types.ts';
 
 export type FriendlyError = {
 	title: string;

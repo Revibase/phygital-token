@@ -1,7 +1,7 @@
 import { isPhygitalTokenLocked, type PhygitalToken } from 'phygital-token-sdk';
 
-import { accessoryTag, bytesToBase64Url } from '$lib/shared/encoding';
-import type { AccessoryStatus, AccessoryView, TokenKind } from '$lib/shared/types';
+import { accessoryTag, bytesToBase64Url } from '#lib/shared/encoding.ts';
+import type { AccessoryStatus, AccessoryView, TokenKind } from '#lib/shared/types.ts';
 
 /** `11111111111111111111111111111111` — the program's "unset" pubkey. */
 export const DEFAULT_PUBKEY = '11111111111111111111111111111111';

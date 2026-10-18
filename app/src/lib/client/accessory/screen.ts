@@ -1,4 +1,4 @@
-import type { AccessoryView } from '$lib/shared/types';
+import type { AccessoryView } from '#lib/shared/types.ts';
 
 /** Link policy is independent of physical tradability. `owned` means the owner is connected. */
 export type TapScreen = {

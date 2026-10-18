@@ -25,18 +25,22 @@ import {
   type FixedSizeCodec,
   type FixedSizeDecoder,
   type FixedSizeEncoder,
+  type HasAddress,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
   type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
+  type InstructionSignerInput,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { findAdminConfigPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -98,7 +102,7 @@ export type InitializeInstructionDataArgs = {
   identifier: Secp256r1PubkeyArgs;
   secp256r1Pubkey: Secp256r1PubkeyArgs;
   tokenType: PhygitalTokenTypeArgs;
-  owner: Address;
+  owner: Address | HasAddress;
 };
 
 export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<InitializeInstructionDataArgs> {
@@ -132,15 +136,15 @@ export function getInitializeInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type InitializeAsyncInput<
-  TAccountAuthority extends string = string,
-  TAccountAdminConfig extends string = string,
-  TAccountPhygitalToken extends string = string,
-  TAccountSystemProgram extends string = string,
+  TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
+  TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  authority: TransactionSigner<TAccountAuthority>;
-  adminConfig?: Address<TAccountAdminConfig>;
-  phygitalToken: Address<TAccountPhygitalToken>;
-  systemProgram?: Address<TAccountSystemProgram>;
+  authority: TAccountAuthority;
+  adminConfig?: TAccountAdminConfig;
+  phygitalToken: TAccountPhygitalToken;
+  systemProgram?: TAccountSystemProgram;
   identifier: InitializeInstructionDataArgs["identifier"];
   secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
   tokenType: InitializeInstructionDataArgs["tokenType"];
@@ -148,10 +152,10 @@ export type InitializeAsyncInput<
 };
 
 export async function getInitializeInstructionAsync<
-  TAccountAuthority extends string,
-  TAccountAdminConfig extends string,
-  TAccountPhygitalToken extends string,
-  TAccountSystemProgram extends string,
+  TAccountAuthority extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput,
+  TAccountSystemProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: InitializeAsyncInput<
@@ -160,25 +164,42 @@ export async function getInitializeInstructionAsync<
     TAccountPhygitalToken,
     TAccountSystemProgram
   >,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): Promise<
   InitializeInstruction<
     TProgramAddress,
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountPhygitalToken,
-    TAccountSystemProgram
+    ResolvedInstructionAccountMeta<
+      TAccountAuthority,
+      InstructionAccountInputAddress<TAccountAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountSystemProgram,
+      InstructionAccountInputAddress<TAccountSystemProgram>
+    >
   >
 > {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: true },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: false },
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    authority: { value: input.authority ?? null, isSigner: true, isWritable: true },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
+    systemProgram: { value: input.systemProgram ?? null, isSigner: false, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -190,14 +211,13 @@ export async function getInitializeInstructionAsync<
 
   // Resolve default values.
   if (!accounts.adminConfig.value) {
-    accounts.adminConfig.value = await findAdminConfigPda();
+    accounts.adminConfig.value = await findAdminConfigPda({ programAddress });
   }
   if (!accounts.systemProgram.value) {
     accounts.systemProgram.value =
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
@@ -209,23 +229,35 @@ export async function getInitializeInstructionAsync<
     programAddress,
   } as InitializeInstruction<
     TProgramAddress,
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountPhygitalToken,
-    TAccountSystemProgram
+    ResolvedInstructionAccountMeta<
+      TAccountAuthority,
+      InstructionAccountInputAddress<TAccountAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountSystemProgram,
+      InstructionAccountInputAddress<TAccountSystemProgram>
+    >
   >);
 }
 
 export type InitializeInput<
-  TAccountAuthority extends string = string,
-  TAccountAdminConfig extends string = string,
-  TAccountPhygitalToken extends string = string,
-  TAccountSystemProgram extends string = string,
+  TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
+  TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  authority: TransactionSigner<TAccountAuthority>;
-  adminConfig: Address<TAccountAdminConfig>;
-  phygitalToken: Address<TAccountPhygitalToken>;
-  systemProgram?: Address<TAccountSystemProgram>;
+  authority: TAccountAuthority;
+  adminConfig: TAccountAdminConfig;
+  phygitalToken: TAccountPhygitalToken;
+  systemProgram?: TAccountSystemProgram;
   identifier: InitializeInstructionDataArgs["identifier"];
   secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
   tokenType: InitializeInstructionDataArgs["tokenType"];
@@ -233,10 +265,10 @@ export type InitializeInput<
 };
 
 export function getInitializeInstruction<
-  TAccountAuthority extends string,
-  TAccountAdminConfig extends string,
-  TAccountPhygitalToken extends string,
-  TAccountSystemProgram extends string,
+  TAccountAuthority extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput,
+  TAccountSystemProgram extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: InitializeInput<
@@ -245,23 +277,40 @@ export function getInitializeInstruction<
     TAccountPhygitalToken,
     TAccountSystemProgram
   >,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): InitializeInstruction<
   TProgramAddress,
-  TAccountAuthority,
-  TAccountAdminConfig,
-  TAccountPhygitalToken,
-  TAccountSystemProgram
+  ResolvedInstructionAccountMeta<
+    TAccountAuthority,
+    InstructionAccountInputAddress<TAccountAuthority>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountAdminConfig,
+    InstructionAccountInputAddress<TAccountAdminConfig>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountPhygitalToken,
+    InstructionAccountInputAddress<TAccountPhygitalToken>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountSystemProgram,
+    InstructionAccountInputAddress<TAccountSystemProgram>
+  >
 > {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: true },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: false },
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
-    systemProgram: { value: input.systemProgram ?? null, isWritable: false },
+    authority: { value: input.authority ?? null, isSigner: true, isWritable: true },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
+    systemProgram: { value: input.systemProgram ?? null, isSigner: false, isWritable: false },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -277,7 +326,6 @@ export function getInitializeInstruction<
       "11111111111111111111111111111111" as Address<"11111111111111111111111111111111">;
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
@@ -289,10 +337,22 @@ export function getInitializeInstruction<
     programAddress,
   } as InitializeInstruction<
     TProgramAddress,
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountPhygitalToken,
-    TAccountSystemProgram
+    ResolvedInstructionAccountMeta<
+      TAccountAuthority,
+      InstructionAccountInputAddress<TAccountAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountSystemProgram,
+      InstructionAccountInputAddress<TAccountSystemProgram>
+    >
   >);
 }
 

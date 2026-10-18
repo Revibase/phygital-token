@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { getContext, setContext, type Snippet } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import X from '@lucide/svelte/icons/x';
 	import { MediaQuery } from 'svelte/reactivity';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import * as Drawer from '$lib/components/ui/drawer';
-	import { cn } from '$lib/utils';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
+	import * as Drawer from '#lib/components/ui/drawer/index.ts';
+	import { cn } from '#lib/utils.ts';
 
 	let {
 		open = $bindable(false),

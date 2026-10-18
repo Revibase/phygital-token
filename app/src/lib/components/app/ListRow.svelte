@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/utils';
+	import { cn } from '#lib/utils.ts';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
-	import { Spinner } from '$lib/components/ui/spinner';
+	import { Spinner } from '#lib/components/ui/spinner/index.ts';
 
 	let {
 		label,

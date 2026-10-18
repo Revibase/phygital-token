@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mediaFromAsset, normalizeMediaUrl, fetchMintMedia } from '$lib/shared/mint-media';
+import { mediaFromAsset, normalizeMediaUrl, fetchMintMedia } from '#lib/shared/mint-media.ts';
 
 describe('mediaFromAsset (Helius getAsset)', () => {
 	it('prefers the Helius CDN image, then links.image, then the raw file uri', () => {

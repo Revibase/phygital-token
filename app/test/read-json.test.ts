@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readJsonObject } from '$lib/server/http/read-json';
+import { readJsonObject } from '#lib/server/http/read-json.ts';
 
 const post = (body: string, headers: Record<string, string> = {}) =>
 	new Request('https://example.test/api/x', { method: 'POST', body, headers });

@@ -1,9 +1,9 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { getBase58Encoder, type Rpc, type SolanaRpcApi } from '@solana/kit';
 
-import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
+import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
 import { fetchAccessory } from '../accessory/resolve';
-import { DEFAULT_PUBKEY } from '$lib/shared/accessory-view';
+import { DEFAULT_PUBKEY } from '#lib/shared/accessory-view.ts';
 import { CHALLENGE_TTL_MS, consumeChallenge, isChallengeId, issueChallenge } from '../challenges';
 
 export const OWNER_LOGIN_NAMESPACE = 'revibase-owner-login';

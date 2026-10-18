@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/utils';
+	import { cn } from '#lib/utils.ts';
 	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
 	import InfoIcon from '@lucide/svelte/icons/info';
-	import { Button } from '$lib/components/ui/button';
-	import type { FriendlyError } from '$lib/client/link/messages';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import type { FriendlyError } from '#lib/client/link/messages.ts';
 
 	/** Pass `error` to show a FriendlyError (nothing renders while it's null), or `title`/`body` directly. */
 	let {

@@ -43,7 +43,10 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
@@ -133,11 +136,11 @@ export function getVerifyInstructionDataCodec(): Codec<
 }
 
 export type VerifyInput<
-  TAccountPhygitalToken extends string = string,
-  TAccountInstructionsSysvar extends string = string,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
+  TAccountInstructionsSysvar extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  phygitalToken: Address<TAccountPhygitalToken>;
-  instructionsSysvar?: Address<TAccountInstructionsSysvar>;
+  phygitalToken: TAccountPhygitalToken;
+  instructionsSysvar?: TAccountInstructionsSysvar;
   secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
   messageHash: VerifyInstructionDataArgs["messageHash"];
   expectedRpIdHash: VerifyInstructionDataArgs["expectedRpIdHash"];
@@ -145,20 +148,39 @@ export type VerifyInput<
 };
 
 export function getVerifyInstruction<
-  TAccountPhygitalToken extends string,
-  TAccountInstructionsSysvar extends string,
+  TAccountPhygitalToken extends InstructionAccountInput,
+  TAccountInstructionsSysvar extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: VerifyInput<TAccountPhygitalToken, TAccountInstructionsSysvar>,
-  config?: { programAddress?: TProgramAddress },
-): VerifyInstruction<TProgramAddress, TAccountPhygitalToken, TAccountInstructionsSysvar> {
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
+): VerifyInstruction<
+  TProgramAddress,
+  ResolvedInstructionAccountMeta<
+    TAccountPhygitalToken,
+    InstructionAccountInputAddress<TAccountPhygitalToken>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountInstructionsSysvar,
+    InstructionAccountInputAddress<TAccountInstructionsSysvar>
+  >
+> {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
-    instructionsSysvar: { value: input.instructionsSysvar ?? null, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
+    instructionsSysvar: {
+      value: input.instructionsSysvar ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -174,7 +196,6 @@ export function getVerifyInstruction<
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("phygitalToken", accounts.phygitalToken),
@@ -182,7 +203,17 @@ export function getVerifyInstruction<
     ],
     data: getVerifyInstructionDataEncoder().encode(args as VerifyInstructionDataArgs),
     programAddress,
-  } as VerifyInstruction<TProgramAddress, TAccountPhygitalToken, TAccountInstructionsSysvar>);
+  } as VerifyInstruction<
+    TProgramAddress,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountInstructionsSysvar,
+      InstructionAccountInputAddress<TAccountInstructionsSysvar>
+    >
+  >);
 }
 
 export type ParsedVerifyInstruction<

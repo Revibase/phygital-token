@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { linkCopy } from '$lib/client/accessory/link-copy';
+import { linkCopy } from '#lib/client/accessory/link-copy.ts';
 
 describe('neutral wallet linking copy', () => {
 	it.each(['bearer', 'controlled', 'unknown'] as const)(

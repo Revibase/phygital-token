@@ -1,5 +1,5 @@
-import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
-import type { Shortcut } from '$lib/shared/shortcuts';
+import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
+import type { Shortcut } from '#lib/shared/shortcuts.ts';
 
 /**
  * Project icons are proxied so the project never sees who's looking. The HMAC keeps this from being an open

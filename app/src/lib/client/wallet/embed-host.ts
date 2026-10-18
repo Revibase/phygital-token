@@ -6,7 +6,7 @@ import {
 	readDappRequest,
 	transactionBytes,
 	type BridgeRequest
-} from '$lib/shared/wallet-bridge';
+} from '#lib/shared/wallet-bridge.ts';
 
 const APPROVALS = 'revibase:embed-approval';
 
@@ -91,11 +91,14 @@ export function startEmbedHost(input: {
 			};
 		}
 		const parsed =
-			request.method === 'signMessage' ? messageBytes(request.payload) : transactionBytes(request.payload);
+			request.method === 'signMessage'
+				? messageBytes(request.payload)
+				: transactionBytes(request.payload);
 		if (!parsed) throw new Error('Revibase could not read that request.');
 		const account = input.signer.account();
 		if (!account) throw new Error('Connect a wallet in Revibase first.');
-		if (parsed.chain !== account.chain) throw new Error('This app asked for a different Solana network.');
+		if (parsed.chain !== account.chain)
+			throw new Error('This app asked for a different Solana network.');
 		if (request.method === 'signMessage') {
 			return { signature: await input.signer.signMessage(parsed.bytes, parsed.chain) };
 		}
@@ -118,16 +121,18 @@ export function startEmbedHost(input: {
 			post({
 				id: request.id,
 				ok: false,
-				error: err instanceof Error && err.message ? err.message : 'Revibase could not complete that.'
+				error:
+					err instanceof Error && err.message ? err.message : 'Revibase could not complete that.'
 			});
 		}
 	}
 
-	input.target.addEventListener('message', onMessage);
+	const listener = (event: Event) => void onMessage(event);
+	input.target.addEventListener('message', listener);
 	return {
 		stop: () => {
 			stopped = true;
-			input.target.removeEventListener('message', onMessage);
+			input.target.removeEventListener('message', listener);
 		},
 		hello,
 		pushAccounts

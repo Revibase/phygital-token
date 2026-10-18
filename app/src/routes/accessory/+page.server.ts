@@ -1,10 +1,14 @@
 import { error, redirect } from '@sveltejs/kit';
 
-import { fetchAccessory } from '$lib/server/accessory/resolve';
-import { toAccessoryView } from '$lib/shared/accessory-view';
-import { getEnv, getRpc } from '$lib/server/env';
-import { readAdmitSession, readBrowseUnlock, setBrowseUnlock } from '$lib/server/session/cookies';
-import { handleTap, hasTapParams } from '$lib/server/tap/handle-tap';
+import { fetchAccessory } from '#lib/server/accessory/resolve.ts';
+import { toAccessoryView } from '#lib/shared/accessory-view.ts';
+import { getEnv, getRpc } from '#lib/server/env.ts';
+import {
+	readAdmitSession,
+	readBrowseUnlock,
+	setBrowseUnlock
+} from '#lib/server/session/cookies.ts';
+import { handleTap, hasTapParams } from '#lib/server/tap/handle-tap.ts';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -43,9 +47,9 @@ async function processTap(
 }
 
 export const load: PageServerLoad = async (event) => {
-	const { cookies, platform, setHeaders, url } = event;
+	const { cookies, setHeaders, url } = event;
 	setHeaders({ 'cache-control': 'no-store' });
-	const env = getEnv(platform);
+	const env = getEnv();
 	if (hasTapParams(url.searchParams)) await processTap(event, env);
 	const session = await readAdmitSession(cookies, env.sessionSecret);
 	if (!session) redirect(303, '/tap/expired');

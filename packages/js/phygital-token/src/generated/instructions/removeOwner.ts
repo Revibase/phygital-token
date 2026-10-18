@@ -27,13 +27,16 @@ import {
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
   type WritableSignerAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
+  type InstructionSignerInput,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
@@ -90,35 +93,46 @@ export function getRemoveOwnerInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type RemoveOwnerInput<
-  TAccountOwner extends string = string,
-  TAccountPhygitalToken extends string = string,
+  TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  owner: TransactionSigner<TAccountOwner>;
-  phygitalToken: Address<TAccountPhygitalToken>;
+  owner: TAccountOwner;
+  phygitalToken: TAccountPhygitalToken;
 };
 
 export function getRemoveOwnerInstruction<
-  TAccountOwner extends string,
-  TAccountPhygitalToken extends string,
+  TAccountOwner extends InstructionSignerInput,
+  TAccountPhygitalToken extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: RemoveOwnerInput<TAccountOwner, TAccountPhygitalToken>,
-  config?: { programAddress?: TProgramAddress },
-): RemoveOwnerInstruction<TProgramAddress, TAccountOwner, TAccountPhygitalToken> {
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
+): RemoveOwnerInstruction<
+  TProgramAddress,
+  ResolvedInstructionAccountMeta<TAccountOwner, InstructionAccountInputAddress<TAccountOwner>>,
+  ResolvedInstructionAccountMeta<
+    TAccountPhygitalToken,
+    InstructionAccountInputAddress<TAccountPhygitalToken>
+  >
+> {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    owner: { value: input.owner ?? null, isWritable: true },
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    owner: { value: input.owner ?? null, isSigner: true, isWritable: true },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("owner", accounts.owner),
@@ -126,7 +140,14 @@ export function getRemoveOwnerInstruction<
     ],
     data: getRemoveOwnerInstructionDataEncoder().encode({}),
     programAddress,
-  } as RemoveOwnerInstruction<TProgramAddress, TAccountOwner, TAccountPhygitalToken>);
+  } as RemoveOwnerInstruction<
+    TProgramAddress,
+    ResolvedInstructionAccountMeta<TAccountOwner, InstructionAccountInputAddress<TAccountOwner>>,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >
+  >);
 }
 
 export type ParsedRemoveOwnerInstruction<

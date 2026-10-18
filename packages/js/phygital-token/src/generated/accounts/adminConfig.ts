@@ -32,6 +32,7 @@ import {
   type FixedSizeCodec,
   type FixedSizeDecoder,
   type FixedSizeEncoder,
+  type HasAddress,
   type MaybeAccount,
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
@@ -53,7 +54,12 @@ export type AdminConfig = {
   minter: Address;
 };
 
-export type AdminConfigArgs = { bump: number; admin: Address; issuer: Address; minter: Address };
+export type AdminConfigArgs = {
+  bump: number;
+  admin: Address | HasAddress;
+  issuer: Address | HasAddress;
+  minter: Address | HasAddress;
+};
 
 /** Gets the encoder for {@link AdminConfigArgs} account data. */
 export function getAdminConfigEncoder(): FixedSizeEncoder<AdminConfigArgs> {
@@ -99,7 +105,7 @@ export function decodeAdminConfig<TAddress extends string = string>(
 
 export async function fetchAdminConfig<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
-  address: Address<TAddress>,
+  address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
 ): Promise<Account<AdminConfig, TAddress>> {
   const maybeAccount = await fetchMaybeAdminConfig(rpc, address, config);
@@ -109,16 +115,20 @@ export async function fetchAdminConfig<TAddress extends string = string>(
 
 export async function fetchMaybeAdminConfig<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
-  address: Address<TAddress>,
+  address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
 ): Promise<MaybeAccount<AdminConfig, TAddress>> {
-  const maybeAccount = await fetchEncodedAccount(rpc, address, config);
+  const maybeAccount = await fetchEncodedAccount(
+    rpc,
+    typeof address === "string" ? address : address.address,
+    config,
+  );
   return decodeAdminConfig(maybeAccount);
 }
 
 export async function fetchAllAdminConfig(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
-  addresses: Array<Address>,
+  addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
 ): Promise<Account<AdminConfig>[]> {
   const maybeAccounts = await fetchAllMaybeAdminConfig(rpc, addresses, config);
@@ -128,10 +138,14 @@ export async function fetchAllAdminConfig(
 
 export async function fetchAllMaybeAdminConfig(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
-  addresses: Array<Address>,
+  addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
 ): Promise<MaybeAccount<AdminConfig>[]> {
-  const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
+  const maybeAccounts = await fetchEncodedAccounts(
+    rpc,
+    addresses.map((a) => (typeof a === "string" ? a : a.address)),
+    config,
+  );
   return maybeAccounts.map((maybeAccount) => decodeAdminConfig(maybeAccount));
 }
 

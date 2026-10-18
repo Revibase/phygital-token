@@ -2,19 +2,19 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onDestroy, onMount } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Spinner } from '$lib/components/ui/spinner';
-	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
-	import BondVisual from '$lib/components/app/BondVisual.svelte';
-	import Countdown from '$lib/components/app/Countdown.svelte';
-	import List from '$lib/components/app/List.svelte';
-	import Notice from '$lib/components/app/Notice.svelte';
-	import PageHeader from '$lib/components/app/PageHeader.svelte';
-	import PageShell from '$lib/components/app/PageShell.svelte';
-	import QrCode from '$lib/components/app/QrCode.svelte';
-	import WalletPicker from '$lib/components/app/WalletPicker.svelte';
-	import WalletRow from '$lib/components/app/WalletRow.svelte';
-	import { canTapHere, isLikelyWalletBrowser, platform, tapHint } from '$lib/client/capability';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Spinner } from '#lib/components/ui/spinner/index.ts';
+	import AccessoryMark from '#lib/components/app/AccessoryMark.svelte';
+	import BondVisual from '#lib/components/app/BondVisual.svelte';
+	import Countdown from '#lib/components/app/Countdown.svelte';
+	import List from '#lib/components/app/List.svelte';
+	import Notice from '#lib/components/app/Notice.svelte';
+	import PageHeader from '#lib/components/app/PageHeader.svelte';
+	import PageShell from '#lib/components/app/PageShell.svelte';
+	import QrCode from '#lib/components/app/QrCode.svelte';
+	import WalletPicker from '#lib/components/app/WalletPicker.svelte';
+	import WalletRow from '#lib/components/app/WalletRow.svelte';
+	import { canTapHere, isLikelyWalletBrowser, platform, tapHint } from '#lib/client/capability.ts';
 	import {
 		finishLink,
 		prepareTap,
@@ -22,13 +22,17 @@
 		type FinishPhase,
 		type PreparedTap,
 		type TappedAccessory
-	} from '$lib/client/link/flow';
-	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
-	import { linkCopy } from '$lib/client/accessory/link-copy';
-	import { rememberAccessoryLink, rememberRecentWallet, rememberWallet } from '$lib/client/memory';
-	import { walletStore } from '$lib/client/wallet/wallet.svelte';
-	import { shortAddress } from '$lib/shared/encoding';
-	import { explorerUrl } from '$lib/shared/explorer';
+	} from '#lib/client/link/flow.ts';
+	import { describeError, linkErrorCopy, type FriendlyError } from '#lib/client/link/messages.ts';
+	import { linkCopy } from '#lib/client/accessory/link-copy.ts';
+	import {
+		rememberAccessoryLink,
+		rememberRecentWallet,
+		rememberWallet
+	} from '#lib/client/memory.ts';
+	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
+	import { shortAddress } from '#lib/shared/encoding.ts';
+	import { explorerUrl } from '#lib/shared/explorer.ts';
 
 	let { data } = $props();
 	const accessory = $derived(data.accessory);

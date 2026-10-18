@@ -4,7 +4,7 @@
 		shortcutDestination,
 		type Shortcut,
 		type ShortcutIcon as IconName
-	} from '$lib/shared/shortcuts';
+	} from '#lib/shared/shortcuts.ts';
 	import { SvelteSet } from 'svelte/reactivity';
 	import ShortcutIcon from './ShortcutIcon.svelte';
 	import SolanaPaySheet from './SolanaPaySheet.svelte';

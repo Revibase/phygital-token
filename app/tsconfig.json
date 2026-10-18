@@ -1,7 +1,8 @@
 {
-	"extends": "./.svelte-kit/tsconfig.json",
+	"extends": "$app/tsconfig",
+	"include": ["src", "test", "*"],
+	"exclude": ["src/service-worker"],
 	"compilerOptions": {
-		"rewriteRelativeImportExtensions": true,
 		"allowJs": true,
 		"checkJs": false,
 		"esModuleInterop": true,
@@ -11,6 +12,6 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "bundler",
-		"types": ["./worker-configuration.d.ts"]
+		"types": ["$app/types", "./worker-configuration.d.ts"]
 	}
 }

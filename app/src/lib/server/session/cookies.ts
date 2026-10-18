@@ -1,7 +1,7 @@
 import type { Cookies } from '@sveltejs/kit';
-import { dev } from '$app/environment';
+import { dev } from '$app/env';
 
-import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
+import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
 
 /**
  * Stateless, HMAC-SHA256-signed session cookies.

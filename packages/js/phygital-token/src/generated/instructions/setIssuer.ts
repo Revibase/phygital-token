@@ -25,17 +25,21 @@ import {
   type FixedSizeCodec,
   type FixedSizeDecoder,
   type FixedSizeEncoder,
+  type HasAddress,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
+  type InstructionSignerInput,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { findAdminConfigPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -69,7 +73,7 @@ export type SetIssuerInstruction<
 
 export type SetIssuerInstructionData = { discriminator: ReadonlyUint8Array; issuer: Address };
 
-export type SetIssuerInstructionDataArgs = { issuer: Address };
+export type SetIssuerInstructionDataArgs = { issuer: Address | HasAddress };
 
 export function getSetIssuerInstructionDataEncoder(): FixedSizeEncoder<SetIssuerInstructionDataArgs> {
   return transformEncoder(
@@ -96,29 +100,43 @@ export function getSetIssuerInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type SetIssuerAsyncInput<
-  TAccountAdmin extends string = string,
-  TAccountAdminConfig extends string = string,
+  TAccountAdmin extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  adminConfig?: Address<TAccountAdminConfig>;
+  admin: TAccountAdmin;
+  adminConfig?: TAccountAdminConfig;
   issuer: SetIssuerInstructionDataArgs["issuer"];
 };
 
 export async function getSetIssuerInstructionAsync<
-  TAccountAdmin extends string,
-  TAccountAdminConfig extends string,
+  TAccountAdmin extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: SetIssuerAsyncInput<TAccountAdmin, TAccountAdminConfig>,
-  config?: { programAddress?: TProgramAddress },
-): Promise<SetIssuerInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>> {
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
+): Promise<
+  SetIssuerInstruction<
+    TProgramAddress,
+    ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >
+  >
+> {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: false },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: true },
+    admin: { value: input.admin ?? null, isSigner: true, isWritable: false },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -130,10 +148,9 @@ export async function getSetIssuerInstructionAsync<
 
   // Resolve default values.
   if (!accounts.adminConfig.value) {
-    accounts.adminConfig.value = await findAdminConfigPda();
+    accounts.adminConfig.value = await findAdminConfigPda({ programAddress });
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("admin", accounts.admin),
@@ -141,33 +158,52 @@ export async function getSetIssuerInstructionAsync<
     ],
     data: getSetIssuerInstructionDataEncoder().encode(args as SetIssuerInstructionDataArgs),
     programAddress,
-  } as SetIssuerInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>);
+  } as SetIssuerInstruction<
+    TProgramAddress,
+    ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >
+  >);
 }
 
 export type SetIssuerInput<
-  TAccountAdmin extends string = string,
-  TAccountAdminConfig extends string = string,
+  TAccountAdmin extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  adminConfig: Address<TAccountAdminConfig>;
+  admin: TAccountAdmin;
+  adminConfig: TAccountAdminConfig;
   issuer: SetIssuerInstructionDataArgs["issuer"];
 };
 
 export function getSetIssuerInstruction<
-  TAccountAdmin extends string,
-  TAccountAdminConfig extends string,
+  TAccountAdmin extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: SetIssuerInput<TAccountAdmin, TAccountAdminConfig>,
-  config?: { programAddress?: TProgramAddress },
-): SetIssuerInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig> {
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
+): SetIssuerInstruction<
+  TProgramAddress,
+  ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+  ResolvedInstructionAccountMeta<
+    TAccountAdminConfig,
+    InstructionAccountInputAddress<TAccountAdminConfig>
+  >
+> {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: false },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: true },
+    admin: { value: input.admin ?? null, isSigner: true, isWritable: false },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -177,7 +213,6 @@ export function getSetIssuerInstruction<
   // Original args.
   const args = { ...input };
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("admin", accounts.admin),
@@ -185,7 +220,14 @@ export function getSetIssuerInstruction<
     ],
     data: getSetIssuerInstructionDataEncoder().encode(args as SetIssuerInstructionDataArgs),
     programAddress,
-  } as SetIssuerInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>);
+  } as SetIssuerInstruction<
+    TProgramAddress,
+    ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >
+  >);
 }
 
 export type ParsedSetIssuerInstruction<

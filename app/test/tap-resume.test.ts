@@ -3,8 +3,8 @@ import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import type { Rpc, SolanaRpcApi } from '@solana/kit';
 
-import { issueResumeChallenge, verifyResume } from '$lib/server/tap/resume';
-import { bytesToBase64Url } from '$lib/shared/encoding';
+import { issueResumeChallenge, verifyResume } from '#lib/server/tap/resume.ts';
+import { bytesToBase64Url } from '#lib/shared/encoding.ts';
 import { createTestD1, MIGRATIONS } from './support/d1-sqlite';
 
 const APP = 'https://portal.revibase.test';

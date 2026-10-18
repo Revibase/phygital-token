@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { shortAddress } from '$lib/shared/encoding';
+	import { shortAddress } from '#lib/shared/encoding.ts';
 	import ResponsiveSheet from './ResponsiveSheet.svelte';
-	import type { MintMedia } from '$lib/shared/mint-media';
+	import type { MintMedia } from '#lib/shared/mint-media.ts';
 	import CopyButton from './CopyButton.svelte';
 	import ExplorerLink from './ExplorerLink.svelte';
-	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { Skeleton } from '#lib/components/ui/skeleton/index.ts';
 
 	let {
 		open = $bindable(false),

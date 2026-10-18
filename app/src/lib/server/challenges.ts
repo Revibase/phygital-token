@@ -1,4 +1,4 @@
-import { bytesToBase64Url } from '$lib/shared/encoding';
+import { bytesToBase64Url } from '#lib/shared/encoding.ts';
 
 /** Single-use challenges; each purpose uses its own namespace. */
 export const CHALLENGE_TTL_MS = 2 * 60 * 1000;

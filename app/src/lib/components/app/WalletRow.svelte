@@ -1,16 +1,16 @@
 <script lang="ts">
-	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { buttonVariants } from '$lib/components/ui/button';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.ts';
+	import { buttonVariants } from '#lib/components/ui/button/index.ts';
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import EllipsisVertical from '@lucide/svelte/icons/ellipsis-vertical';
 	import Copy from '@lucide/svelte/icons/copy';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
-	import { explorerUrl } from '$lib/shared/explorer';
-	import { copyText } from '$lib/client/clipboard';
+	import { explorerUrl } from '#lib/shared/explorer.ts';
+	import { copyText } from '#lib/client/clipboard.ts';
 	import ListRow from './ListRow.svelte';
 	import WalletAvatar from './WalletAvatar.svelte';
-	import { shortAddress } from '$lib/shared/encoding';
+	import { shortAddress } from '#lib/shared/encoding.ts';
 
 	let {
 		address,

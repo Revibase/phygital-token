@@ -7,9 +7,9 @@ import {
 	shortcutDestination,
 	MAX_SHORTCUTS,
 	type ShortcutContext
-} from '$lib/shared/shortcuts';
-import { fetchShortcutsFile, loadShortcuts } from '$lib/server/accessory/shortcuts';
-import type { AccessoryView } from '$lib/shared/types';
+} from '#lib/shared/shortcuts.ts';
+import { fetchShortcutsFile, loadShortcuts } from '#lib/server/accessory/shortcuts.ts';
+import type { AccessoryView } from '#lib/shared/types.ts';
 
 const MINT = 'So11111111111111111111111111111111111111112';
 const COLLECTION = 'J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w';
@@ -257,4 +257,3 @@ describe('loading a project file', () => {
 		await expect(loadShortcuts('https://rpc.test', accessory)).rejects.toThrow();
 	});
 });
-

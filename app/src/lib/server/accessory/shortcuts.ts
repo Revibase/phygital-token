@@ -1,6 +1,6 @@
-import { fetchAsset, type GetAssetResult } from '$lib/shared/mint-media';
-import { resolveShortcuts, shortcutsFileUrl, type Shortcut } from '$lib/shared/shortcuts';
-import type { AccessoryView } from '$lib/shared/types';
+import { fetchAsset, type GetAssetResult } from '#lib/shared/mint-media.ts';
+import { resolveShortcuts, shortcutsFileUrl, type Shortcut } from '#lib/shared/shortcuts.ts';
+import type { AccessoryView } from '#lib/shared/types.ts';
 
 const TIMEOUT_MS = 3_000;
 const MAX_BYTES = 64 * 1024;

@@ -8,7 +8,7 @@ import {
 	accessoryLinkContext,
 	recentWallet,
 	rememberRecentWallet
-} from '$lib/client/memory';
+} from '#lib/client/memory.ts';
 
 const claimed = (
 	wallet: string,

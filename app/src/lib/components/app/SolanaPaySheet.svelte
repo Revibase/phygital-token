@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { copyText } from '$lib/client/clipboard';
-	import { Button } from '$lib/components/ui/button';
+	import { copyText } from '#lib/client/clipboard.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import Copy from '@lucide/svelte/icons/copy';
 	import Wallet from '@lucide/svelte/icons/wallet';
 	import ResponsiveSheet from './ResponsiveSheet.svelte';

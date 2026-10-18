@@ -1,4 +1,4 @@
-import type { TokenKind } from '$lib/shared/types';
+import type { TokenKind } from '#lib/shared/types.ts';
 
 /**
  * Explain the wallet-link rules without implying physical ownership.

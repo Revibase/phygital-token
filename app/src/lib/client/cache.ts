@@ -1,6 +1,6 @@
 import { QueryClient } from '@tanstack/svelte-query';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 /** The app's query cache: its keys, the client, what persists, and what a link or release makes stale. */
 const DAY = 24 * 60 * 60 * 1000;

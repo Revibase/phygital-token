@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { networkLabel } from '$lib/shared/explorer';
+	import { networkLabel } from '#lib/shared/explorer.ts';
 	import { page } from '$app/state';
-	import RevibaseMark from '$lib/brand/RevibaseMark.svelte';
+	import RevibaseMark from '#lib/brand/RevibaseMark.svelte';
 
 	let {
 		children,

@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import type { LayoutServerLoad } from './$types';
 
 function payAppOrigin(raw: string | undefined): string | null {
@@ -12,9 +13,8 @@ function payAppOrigin(raw: string | undefined): string | null {
 	}
 }
 
-export const load: LayoutServerLoad = ({ platform }) => ({
-	cluster: (platform?.env?.SOLANA_CLUSTER ?? 'devnet') as
-		'mainnet' | 'devnet' | 'testnet' | 'localnet',
-	rpcUrl: platform?.env?.SOLANA_RPC_URL ?? '',
-	payAppOrigin: payAppOrigin(platform?.env?.PAY_APP_ORIGIN)
+export const load: LayoutServerLoad = () => ({
+	cluster: (env.SOLANA_CLUSTER ?? 'devnet') as 'mainnet' | 'devnet' | 'testnet' | 'localnet',
+	rpcUrl: env.SOLANA_RPC_URL ?? '',
+	payAppOrigin: payAppOrigin(env.PAY_APP_ORIGIN)
 });

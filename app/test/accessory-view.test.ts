@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { address } from '@solana/kit';
 
 import { fakeAccessory } from './support/fixtures';
-import { accessoryRules, toAccessoryView } from '$lib/shared/accessory-view';
+import { accessoryRules, toAccessoryView } from '#lib/shared/accessory-view.ts';
 
 const W = '7Yu3oPKm7hSbcX3u7ke1HMuiKeuuSJo4iQ8PYP6VGkCN';
 const UNSET = null;

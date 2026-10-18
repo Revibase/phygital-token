@@ -1,38 +1,38 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { invalidateAll } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
-	import CollectibleDialog from '$lib/components/app/CollectibleDialog.svelte';
-	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
-	import List from '$lib/components/app/List.svelte';
-	import ListRow from '$lib/components/app/ListRow.svelte';
-	import Notice from '$lib/components/app/Notice.svelte';
-	import EmbedBrowser from '$lib/components/app/EmbedBrowser.svelte';
-	import PageHeader from '$lib/components/app/PageHeader.svelte';
-	import PageShell from '$lib/components/app/PageShell.svelte';
-	import ReleaseSheet from '$lib/components/app/ReleaseSheet.svelte';
-	import ResponsiveSheet from '$lib/components/app/ResponsiveSheet.svelte';
-	import WalletRow from '$lib/components/app/WalletRow.svelte';
-	import ShortcutGrid from '$lib/components/app/ShortcutGrid.svelte';
-	import TechnicalDetails from '$lib/components/app/TechnicalDetails.svelte';
-	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { refreshAll } from '$app/navigation';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import CollectibleDialog from '#lib/components/app/CollectibleDialog.svelte';
+	import AccessoryMark from '#lib/components/app/AccessoryMark.svelte';
+	import List from '#lib/components/app/List.svelte';
+	import ListRow from '#lib/components/app/ListRow.svelte';
+	import Notice from '#lib/components/app/Notice.svelte';
+	import EmbedBrowser from '#lib/components/app/EmbedBrowser.svelte';
+	import PageHeader from '#lib/components/app/PageHeader.svelte';
+	import PageShell from '#lib/components/app/PageShell.svelte';
+	import ReleaseSheet from '#lib/components/app/ReleaseSheet.svelte';
+	import ResponsiveSheet from '#lib/components/app/ResponsiveSheet.svelte';
+	import WalletRow from '#lib/components/app/WalletRow.svelte';
+	import ShortcutGrid from '#lib/components/app/ShortcutGrid.svelte';
+	import TechnicalDetails from '#lib/components/app/TechnicalDetails.svelte';
+	import { Skeleton } from '#lib/components/ui/skeleton/index.ts';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { accessoryMediaQuery, accessoryShortcutsQuery } from '$lib/client/queries';
+	import { accessoryMediaQuery, accessoryShortcutsQuery } from '#lib/client/queries.ts';
 	import {
 		forgetOwnerDetails,
 		reconcileAccessoryWallet,
 		accessoryLinkContext,
 		type OwnerContext,
 		rememberedWallet
-	} from '$lib/client/memory';
-	import { platform } from '$lib/client/capability';
-	import { shortcutsFor, type Shortcut } from '$lib/shared/shortcuts';
-	import { walletStore } from '$lib/client/wallet/wallet.svelte';
+	} from '#lib/client/memory.ts';
+	import { platform } from '#lib/client/capability.ts';
+	import { shortcutsFor, type Shortcut } from '#lib/shared/shortcuts.ts';
+	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
 	import {
 		changedElsewhereNotice,
 		tapScreen,
 		managementActions
-	} from '$lib/client/accessory/screen';
+	} from '#lib/client/accessory/screen.ts';
 
 	let { data } = $props();
 	const a = $derived(data.accessory);
@@ -51,7 +51,7 @@
 			if (document.visibilityState !== 'visible' || checking) return;
 			checking = true;
 			try {
-				await invalidateAll();
+				await refreshAll();
 			} catch {
 				/* Keep the current screen usable while offline. */
 			} finally {
@@ -166,7 +166,7 @@
 	async function retry() {
 		refreshing = true;
 		try {
-			await invalidateAll();
+			await refreshAll();
 		} finally {
 			refreshing = false;
 		}

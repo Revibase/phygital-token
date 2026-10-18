@@ -8,8 +8,8 @@ import {
 	imageType,
 	verifyIconUrl,
 	withIconProxy
-} from '$lib/server/accessory/shortcut-icons';
-import type { Shortcut } from '$lib/shared/shortcuts';
+} from '#lib/server/accessory/shortcut-icons.ts';
+import type { Shortcut } from '#lib/shared/shortcuts.ts';
 
 const SECRET = 'x'.repeat(32);
 const URL_ = 'https://cdn.game.xyz/icons/play.png';

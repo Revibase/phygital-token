@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import type { AccessoryView, TokenKind } from '$lib/shared/types';
-import { accessoryRules } from '$lib/shared/accessory-view';
-import { changedElsewhereNotice, tapScreen, managementActions } from '$lib/client/accessory/screen';
+import type { AccessoryView, TokenKind } from '#lib/shared/types.ts';
+import { accessoryRules } from '#lib/shared/accessory-view.ts';
+import {
+	changedElsewhereNotice,
+	tapScreen,
+	managementActions
+} from '#lib/client/accessory/screen.ts';
 
 const W = '7Yu3oPKm7hSbcX3u7ke1HMuiKeuuSJo4iQ8PYP6VGkCN';
 

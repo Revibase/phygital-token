@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import ResponsiveSheet from './ResponsiveSheet.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Spinner } from '$lib/components/ui/spinner';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Spinner } from '#lib/components/ui/spinner/index.ts';
 	import List from './List.svelte';
 	import Notice from './Notice.svelte';
 	import WalletPicker from './WalletPicker.svelte';
 	import WalletRow from './WalletRow.svelte';
-	import { walletStore, type Cluster } from '$lib/client/wallet/wallet.svelte';
-	import { isConnectedAccessoryOwner } from '$lib/client/accessory/ownership';
-	import { releaseAccessory } from '$lib/client/link/flow';
-	import { describeError, type FriendlyError } from '$lib/client/link/messages';
+	import { walletStore, type Cluster } from '#lib/client/wallet/wallet.svelte.ts';
+	import { isConnectedAccessoryOwner } from '#lib/client/accessory/ownership.ts';
+	import { releaseAccessory } from '#lib/client/link/flow.ts';
+	import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 	import { untrack } from 'svelte';
-	import { shortAddress } from '$lib/shared/encoding';
-	import type { AccessoryView } from '$lib/shared/types';
+	import { shortAddress } from '#lib/shared/encoding.ts';
+	import type { AccessoryView } from '#lib/shared/types.ts';
 	import { toast } from 'svelte-sonner';
 
 	let {
@@ -27,7 +27,6 @@
 		open?: boolean;
 		onreleased?: () => void;
 	} = $props();
-
 
 	let connecting = $state<string | null>(null);
 	let busy = $state(false);
@@ -71,7 +70,7 @@
 			toast.success('Accessory released');
 			open = false;
 			if (onreleased) onreleased();
-			else await invalidateAll();
+			else await refreshAll();
 		} catch (err) {
 			failure = describeError(err);
 		} finally {

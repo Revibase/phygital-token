@@ -31,12 +31,15 @@ import {
   type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
+  type InstructionSignerInput,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
@@ -119,24 +122,24 @@ export function getSetOwnerInstructionDataCodec(): Codec<
 }
 
 export type SetOwnerInput<
-  TAccountRecipient extends string = string,
-  TAccountPhygitalToken extends string = string,
-  TAccountSlotHashes extends string = string,
-  TAccountInstructionsSysvar extends string = string,
+  TAccountRecipient extends InstructionSignerInput = InstructionSignerInput,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
+  TAccountSlotHashes extends InstructionAccountInput = InstructionAccountInput,
+  TAccountInstructionsSysvar extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  recipient: TransactionSigner<TAccountRecipient>;
-  phygitalToken: Address<TAccountPhygitalToken>;
-  slotHashes?: Address<TAccountSlotHashes>;
-  instructionsSysvar?: Address<TAccountInstructionsSysvar>;
+  recipient: TAccountRecipient;
+  phygitalToken: TAccountPhygitalToken;
+  slotHashes?: TAccountSlotHashes;
+  instructionsSysvar?: TAccountInstructionsSysvar;
   secp256r1VerifyArgs: SetOwnerInstructionDataArgs["secp256r1VerifyArgs"];
   slotNumber: SetOwnerInstructionDataArgs["slotNumber"];
 };
 
 export function getSetOwnerInstruction<
-  TAccountRecipient extends string,
-  TAccountPhygitalToken extends string,
-  TAccountSlotHashes extends string,
-  TAccountInstructionsSysvar extends string,
+  TAccountRecipient extends InstructionSignerInput,
+  TAccountPhygitalToken extends InstructionAccountInput,
+  TAccountSlotHashes extends InstructionAccountInput,
+  TAccountInstructionsSysvar extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: SetOwnerInput<
@@ -145,23 +148,44 @@ export function getSetOwnerInstruction<
     TAccountSlotHashes,
     TAccountInstructionsSysvar
   >,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): SetOwnerInstruction<
   TProgramAddress,
-  TAccountRecipient,
-  TAccountPhygitalToken,
-  TAccountSlotHashes,
-  TAccountInstructionsSysvar
+  ResolvedInstructionAccountMeta<
+    TAccountRecipient,
+    InstructionAccountInputAddress<TAccountRecipient>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountPhygitalToken,
+    InstructionAccountInputAddress<TAccountPhygitalToken>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountSlotHashes,
+    InstructionAccountInputAddress<TAccountSlotHashes>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountInstructionsSysvar,
+    InstructionAccountInputAddress<TAccountInstructionsSysvar>
+  >
 > {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    recipient: { value: input.recipient ?? null, isWritable: false },
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
-    slotHashes: { value: input.slotHashes ?? null, isWritable: false },
-    instructionsSysvar: { value: input.instructionsSysvar ?? null, isWritable: false },
+    recipient: { value: input.recipient ?? null, isSigner: true, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
+    slotHashes: { value: input.slotHashes ?? null, isSigner: false, isWritable: false },
+    instructionsSysvar: {
+      value: input.instructionsSysvar ?? null,
+      isSigner: false,
+      isWritable: false,
+    },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -181,7 +205,6 @@ export function getSetOwnerInstruction<
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("recipient", accounts.recipient),
@@ -193,10 +216,22 @@ export function getSetOwnerInstruction<
     programAddress,
   } as SetOwnerInstruction<
     TProgramAddress,
-    TAccountRecipient,
-    TAccountPhygitalToken,
-    TAccountSlotHashes,
-    TAccountInstructionsSysvar
+    ResolvedInstructionAccountMeta<
+      TAccountRecipient,
+      InstructionAccountInputAddress<TAccountRecipient>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountSlotHashes,
+      InstructionAccountInputAddress<TAccountSlotHashes>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountInstructionsSysvar,
+      InstructionAccountInputAddress<TAccountInstructionsSysvar>
+    >
   >);
 }
 

@@ -2,9 +2,9 @@
 	import type { Snippet } from 'svelte';
 	import AccessoryMark from './AccessoryMark.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { accessoryMediaQuery } from '$lib/client/queries';
-	import type { AccessoryView } from '$lib/shared/types';
-	import { cn } from '$lib/utils';
+	import { accessoryMediaQuery } from '#lib/client/queries.ts';
+	import type { AccessoryView } from '#lib/shared/types.ts';
+	import { cn } from '#lib/utils.ts';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 
 	let {

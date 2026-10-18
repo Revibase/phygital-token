@@ -25,17 +25,21 @@ import {
   type FixedSizeCodec,
   type FixedSizeDecoder,
   type FixedSizeEncoder,
+  type HasAddress,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
+  type InstructionSignerInput,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { findAdminConfigPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -69,7 +73,7 @@ export type SetMinterInstruction<
 
 export type SetMinterInstructionData = { discriminator: ReadonlyUint8Array; minter: Address };
 
-export type SetMinterInstructionDataArgs = { minter: Address };
+export type SetMinterInstructionDataArgs = { minter: Address | HasAddress };
 
 export function getSetMinterInstructionDataEncoder(): FixedSizeEncoder<SetMinterInstructionDataArgs> {
   return transformEncoder(
@@ -96,29 +100,43 @@ export function getSetMinterInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type SetMinterAsyncInput<
-  TAccountAdmin extends string = string,
-  TAccountAdminConfig extends string = string,
+  TAccountAdmin extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  adminConfig?: Address<TAccountAdminConfig>;
+  admin: TAccountAdmin;
+  adminConfig?: TAccountAdminConfig;
   minter: SetMinterInstructionDataArgs["minter"];
 };
 
 export async function getSetMinterInstructionAsync<
-  TAccountAdmin extends string,
-  TAccountAdminConfig extends string,
+  TAccountAdmin extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: SetMinterAsyncInput<TAccountAdmin, TAccountAdminConfig>,
-  config?: { programAddress?: TProgramAddress },
-): Promise<SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>> {
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
+): Promise<
+  SetMinterInstruction<
+    TProgramAddress,
+    ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >
+  >
+> {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: false },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: true },
+    admin: { value: input.admin ?? null, isSigner: true, isWritable: false },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -130,10 +148,9 @@ export async function getSetMinterInstructionAsync<
 
   // Resolve default values.
   if (!accounts.adminConfig.value) {
-    accounts.adminConfig.value = await findAdminConfigPda();
+    accounts.adminConfig.value = await findAdminConfigPda({ programAddress });
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("admin", accounts.admin),
@@ -141,33 +158,52 @@ export async function getSetMinterInstructionAsync<
     ],
     data: getSetMinterInstructionDataEncoder().encode(args as SetMinterInstructionDataArgs),
     programAddress,
-  } as SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>);
+  } as SetMinterInstruction<
+    TProgramAddress,
+    ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >
+  >);
 }
 
 export type SetMinterInput<
-  TAccountAdmin extends string = string,
-  TAccountAdminConfig extends string = string,
+  TAccountAdmin extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  adminConfig: Address<TAccountAdminConfig>;
+  admin: TAccountAdmin;
+  adminConfig: TAccountAdminConfig;
   minter: SetMinterInstructionDataArgs["minter"];
 };
 
 export function getSetMinterInstruction<
-  TAccountAdmin extends string,
-  TAccountAdminConfig extends string,
+  TAccountAdmin extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: SetMinterInput<TAccountAdmin, TAccountAdminConfig>,
-  config?: { programAddress?: TProgramAddress },
-): SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig> {
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
+): SetMinterInstruction<
+  TProgramAddress,
+  ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+  ResolvedInstructionAccountMeta<
+    TAccountAdminConfig,
+    InstructionAccountInputAddress<TAccountAdminConfig>
+  >
+> {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: false },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: true },
+    admin: { value: input.admin ?? null, isSigner: true, isWritable: false },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -177,7 +213,6 @@ export function getSetMinterInstruction<
   // Original args.
   const args = { ...input };
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("admin", accounts.admin),
@@ -185,7 +220,14 @@ export function getSetMinterInstruction<
     ],
     data: getSetMinterInstructionDataEncoder().encode(args as SetMinterInstructionDataArgs),
     programAddress,
-  } as SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>);
+  } as SetMinterInstruction<
+    TProgramAddress,
+    ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >
+  >);
 }
 
 export type ParsedSetMinterInstruction<

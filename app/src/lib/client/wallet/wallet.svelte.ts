@@ -10,7 +10,7 @@ import {
 } from '@solana/wallet-standard-features';
 
 import { platform } from '../capability';
-import { bytesToBase64Url } from '$lib/shared/encoding';
+import { bytesToBase64Url } from '#lib/shared/encoding.ts';
 
 export type Cluster = 'mainnet' | 'devnet' | 'testnet' | 'localnet';
 

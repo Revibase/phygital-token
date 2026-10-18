@@ -24,5 +24,5 @@ export async function openOwnedAccessory(pda: string): Promise<void> {
 		await loginOwner(ctx);
 		await open();
 	}
-	await goto('/accessory', { invalidateAll: true });
+	await goto('/accessory', { refreshAll: true });
 }

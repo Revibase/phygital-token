@@ -1,10 +1,10 @@
 <script lang="ts">
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
-	import { Toaster } from '$lib/components/ui/sonner';
-	import { configureRpc } from '$lib/client/rpc';
+	import favicon from '#lib/assets/favicon.svg';
+	import { Toaster } from '#lib/components/ui/sonner/index.ts';
+	import { configureRpc } from '#lib/client/rpc.ts';
 	import { PersistQueryClientProvider } from '@tanstack/svelte-query-persist-client';
-	import { queryClient, persistOptions } from '$lib/client/cache';
+	import { queryClient, persistOptions } from '#lib/client/cache.ts';
 
 	let { data, children } = $props();
 	$effect.pre(() => {

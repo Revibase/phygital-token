@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { env } from 'cloudflare:workers';
 import { createSolanaRpc, type Rpc, type SolanaRpcApi } from '@solana/kit';
 
 export type ServerEnv = {
@@ -11,9 +12,7 @@ export type ServerEnv = {
 	cluster: string;
 };
 
-export function getEnv(platform: App.Platform | undefined): ServerEnv {
-	const env = platform?.env;
-	if (!env) error(500, 'Platform bindings unavailable');
+export function getEnv(): ServerEnv {
 	const secret = env.SESSION_SECRET;
 	if (!secret || secret.length < 32) error(500, 'SESSION_SECRET is missing or too short');
 	if (!env.SOLANA_RPC_URL) error(500, 'SOLANA_RPC_URL is missing');

@@ -23,6 +23,7 @@ import {
   type ExtendedClient,
   type GetAccountInfoApi,
   type GetMultipleAccountsApi,
+  type HasAddress,
   type Instruction,
   type InstructionWithData,
   type ReadonlyUint8Array,
@@ -123,6 +124,124 @@ export function identifyPhygitalTokenAccount(
     accountData: data,
     programName: "phygitalToken",
   });
+}
+
+export enum PhygitalTokenEvent {
+  AssignMintEvent,
+  ClosePhygitalTokenEvent,
+  CreateConfigEvent,
+  InitializeEvent,
+  RemoveOwnerEvent,
+  SetAdminEvent,
+  SetIssuerEvent,
+  SetMinterEvent,
+  SetOwnerEvent,
+}
+
+export function identifyPhygitalTokenEvent(
+  event: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
+): PhygitalTokenEvent {
+  const data = "data" in event ? event.data : event;
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([232, 80, 198, 243, 228, 74, 254, 97]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenEvent.AssignMintEvent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([185, 239, 243, 121, 34, 202, 10, 99]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenEvent.ClosePhygitalTokenEvent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([107, 52, 89, 129, 55, 226, 81, 22]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenEvent.CreateConfigEvent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([206, 175, 169, 208, 241, 210, 35, 221]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenEvent.InitializeEvent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([246, 26, 190, 2, 53, 42, 12, 235]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenEvent.RemoveOwnerEvent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([240, 117, 204, 254, 89, 150, 132, 94]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenEvent.SetAdminEvent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([74, 236, 181, 176, 64, 144, 67, 152]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenEvent.SetIssuerEvent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([8, 89, 210, 22, 102, 98, 240, 242]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenEvent.SetMinterEvent;
+  }
+  if (
+    containsBytes(
+      data,
+      fixEncoderSize(getBytesEncoder(), 8).encode(
+        new Uint8Array([229, 51, 193, 27, 198, 107, 153, 2]),
+      ),
+      0,
+    )
+  ) {
+    return PhygitalTokenEvent.SetOwnerEvent;
+  }
+  throw new Error("The provided event could not be identified as a phygitalToken event.");
 }
 
 export enum PhygitalTokenInstruction {
@@ -384,33 +503,43 @@ export type PhygitalTokenPluginAccounts = {
 export type PhygitalTokenPluginInstructions = {
   assignMint: (
     input: AssignMintAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getAssignMintInstructionAsync> & SelfPlanAndSendFunctions;
   closePhygitalToken: (
     input: ClosePhygitalTokenAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getClosePhygitalTokenInstructionAsync> & SelfPlanAndSendFunctions;
   createConfig: (
     input: CreateConfigAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getCreateConfigInstructionAsync> & SelfPlanAndSendFunctions;
   initialize: (
     input: InitializeAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getInitializeInstructionAsync> & SelfPlanAndSendFunctions;
   removeOwner: (
     input: RemoveOwnerInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getRemoveOwnerInstruction> & SelfPlanAndSendFunctions;
   setAdmin: (
     input: SetAdminAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetAdminInstructionAsync> & SelfPlanAndSendFunctions;
   setIssuer: (
     input: SetIssuerAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetIssuerInstructionAsync> & SelfPlanAndSendFunctions;
   setMinter: (
     input: SetMinterAsyncInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetMinterInstructionAsync> & SelfPlanAndSendFunctions;
   setOwner: (
     input: SetOwnerInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetOwnerInstruction> & SelfPlanAndSendFunctions;
   verify: (
     input: VerifyInput,
+    config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
 };
 
@@ -422,7 +551,7 @@ export type PhygitalTokenPluginRequirements = ClientWithRpc<
   ClientWithTransactionPlanning &
   ClientWithTransactionSending;
 
-export function phygitalTokenProgram() {
+export function phygitalTokenProgram(config: { programAddress?: Address | HasAddress } = {}) {
   return <T extends PhygitalTokenPluginRequirements>(
     client: T,
   ): ExtendedClient<T, { phygitalToken: PhygitalTokenPlugin }> => {
@@ -433,26 +562,83 @@ export function phygitalTokenProgram() {
           phygitalToken: addSelfFetchFunctions(client, getPhygitalTokenCodec()),
         },
         instructions: {
-          assignMint: (input) =>
-            addSelfPlanAndSendFunctions(client, getAssignMintInstructionAsync(input)),
-          closePhygitalToken: (input) =>
-            addSelfPlanAndSendFunctions(client, getClosePhygitalTokenInstructionAsync(input)),
-          createConfig: (input) =>
-            addSelfPlanAndSendFunctions(client, getCreateConfigInstructionAsync(input)),
-          initialize: (input) =>
-            addSelfPlanAndSendFunctions(client, getInitializeInstructionAsync(input)),
-          removeOwner: (input) =>
-            addSelfPlanAndSendFunctions(client, getRemoveOwnerInstruction(input)),
-          setAdmin: (input) =>
-            addSelfPlanAndSendFunctions(client, getSetAdminInstructionAsync(input)),
-          setIssuer: (input) =>
-            addSelfPlanAndSendFunctions(client, getSetIssuerInstructionAsync(input)),
-          setMinter: (input) =>
-            addSelfPlanAndSendFunctions(client, getSetMinterInstructionAsync(input)),
-          setOwner: (input) => addSelfPlanAndSendFunctions(client, getSetOwnerInstruction(input)),
-          verify: (input) => addSelfPlanAndSendFunctions(client, getVerifyInstruction(input)),
+          assignMint: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getAssignMintInstructionAsync(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          closePhygitalToken: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getClosePhygitalTokenInstructionAsync(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          createConfig: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getCreateConfigInstructionAsync(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          initialize: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getInitializeInstructionAsync(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          removeOwner: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getRemoveOwnerInstruction(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          setAdmin: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetAdminInstructionAsync(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          setIssuer: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetIssuerInstructionAsync(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          setMinter: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetMinterInstructionAsync(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          setOwner: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getSetOwnerInstruction(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
+          verify: (input, instructionConfig) =>
+            addSelfPlanAndSendFunctions(
+              client,
+              getVerifyInstruction(input, {
+                programAddress: instructionConfig?.programAddress ?? config.programAddress,
+              }),
+            ),
         },
-        pdas: { adminConfig: findAdminConfigPda },
+        pdas: {
+          adminConfig: (pdaConfig) =>
+            findAdminConfigPda({
+              programAddress: pdaConfig?.programAddress ?? config.programAddress,
+            }),
+        },
         identifyAccount: identifyPhygitalTokenAccount,
         identifyInstruction: identifyPhygitalTokenInstruction,
         parseInstruction: parsePhygitalTokenInstruction,

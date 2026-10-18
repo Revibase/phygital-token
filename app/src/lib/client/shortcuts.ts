@@ -1,4 +1,4 @@
-import type { Shortcut } from '$lib/shared/shortcuts';
+import type { Shortcut } from '#lib/shared/shortcuts.ts';
 import { getJson } from './api';
 
 export async function fetchAccessoryShortcuts(): Promise<Shortcut[]> {

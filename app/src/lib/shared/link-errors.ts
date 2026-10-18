@@ -10,7 +10,7 @@ import {
 	PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED
 } from 'phygital-token-sdk';
 
-import type { LinkErrorCode } from '$lib/shared/types';
+import type { LinkErrorCode } from '#lib/shared/types.ts';
 
 function fromProgramError(code: number): LinkErrorCode {
 	switch (code) {

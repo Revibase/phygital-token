@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { Endian, getU32Encoder } from '@solana/kit';
 import { p256 } from '@noble/curves/nist.js';
 
-import { bytesToBase64Url, base64UrlToBytes } from '$lib/shared/encoding';
+import { bytesToBase64Url, base64UrlToBytes } from '#lib/shared/encoding.ts';
 import { createTestD1, MIGRATIONS } from './support/d1-sqlite';
-import { consumeTapCounter } from '$lib/server/tap/counter-store';
-import { verifyDynamicUrlWithoutCounterCheck } from '$lib/server/tap/verify-dynamic-url';
+import { consumeTapCounter } from '#lib/server/tap/counter-store.ts';
+import { verifyDynamicUrlWithoutCounterCheck } from '#lib/server/tap/verify-dynamic-url.ts';
 
 function chip() {
 	const priv = p256.utils.randomSecretKey();

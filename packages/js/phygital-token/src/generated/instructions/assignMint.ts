@@ -25,18 +25,22 @@ import {
   type FixedSizeCodec,
   type FixedSizeDecoder,
   type FixedSizeEncoder,
+  type HasAddress,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
   type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
+  type InstructionSignerInput,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { findAdminConfigPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
@@ -74,7 +78,7 @@ export type AssignMintInstruction<
 
 export type AssignMintInstructionData = { discriminator: ReadonlyUint8Array; mint: Address };
 
-export type AssignMintInstructionDataArgs = { mint: Address };
+export type AssignMintInstructionDataArgs = { mint: Address | HasAddress };
 
 export function getAssignMintInstructionDataEncoder(): FixedSizeEncoder<AssignMintInstructionDataArgs> {
   return transformEncoder(
@@ -101,40 +105,54 @@ export function getAssignMintInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type AssignMintAsyncInput<
-  TAccountAuthority extends string = string,
-  TAccountAdminConfig extends string = string,
-  TAccountPhygitalToken extends string = string,
+  TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  authority: TransactionSigner<TAccountAuthority>;
-  adminConfig?: Address<TAccountAdminConfig>;
-  phygitalToken: Address<TAccountPhygitalToken>;
+  authority: TAccountAuthority;
+  adminConfig?: TAccountAdminConfig;
+  phygitalToken: TAccountPhygitalToken;
   mint: AssignMintInstructionDataArgs["mint"];
 };
 
 export async function getAssignMintInstructionAsync<
-  TAccountAuthority extends string,
-  TAccountAdminConfig extends string,
-  TAccountPhygitalToken extends string,
+  TAccountAuthority extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: AssignMintAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): Promise<
   AssignMintInstruction<
     TProgramAddress,
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountPhygitalToken
+    ResolvedInstructionAccountMeta<
+      TAccountAuthority,
+      InstructionAccountInputAddress<TAccountAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >
   >
 > {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: false },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: false },
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    authority: { value: input.authority ?? null, isSigner: true, isWritable: false },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -146,10 +164,9 @@ export async function getAssignMintInstructionAsync<
 
   // Resolve default values.
   if (!accounts.adminConfig.value) {
-    accounts.adminConfig.value = await findAdminConfigPda();
+    accounts.adminConfig.value = await findAdminConfigPda({ programAddress });
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
@@ -160,45 +177,68 @@ export async function getAssignMintInstructionAsync<
     programAddress,
   } as AssignMintInstruction<
     TProgramAddress,
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountPhygitalToken
+    ResolvedInstructionAccountMeta<
+      TAccountAuthority,
+      InstructionAccountInputAddress<TAccountAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >
   >);
 }
 
 export type AssignMintInput<
-  TAccountAuthority extends string = string,
-  TAccountAdminConfig extends string = string,
-  TAccountPhygitalToken extends string = string,
+  TAccountAuthority extends InstructionSignerInput = InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  authority: TransactionSigner<TAccountAuthority>;
-  adminConfig: Address<TAccountAdminConfig>;
-  phygitalToken: Address<TAccountPhygitalToken>;
+  authority: TAccountAuthority;
+  adminConfig: TAccountAdminConfig;
+  phygitalToken: TAccountPhygitalToken;
   mint: AssignMintInstructionDataArgs["mint"];
 };
 
 export function getAssignMintInstruction<
-  TAccountAuthority extends string,
-  TAccountAdminConfig extends string,
-  TAccountPhygitalToken extends string,
+  TAccountAuthority extends InstructionSignerInput,
+  TAccountAdminConfig extends InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: AssignMintInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): AssignMintInstruction<
   TProgramAddress,
-  TAccountAuthority,
-  TAccountAdminConfig,
-  TAccountPhygitalToken
+  ResolvedInstructionAccountMeta<
+    TAccountAuthority,
+    InstructionAccountInputAddress<TAccountAuthority>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountAdminConfig,
+    InstructionAccountInputAddress<TAccountAdminConfig>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountPhygitalToken,
+    InstructionAccountInputAddress<TAccountPhygitalToken>
+  >
 > {
   // Program address.
-  const programAddress = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    authority: { value: input.authority ?? null, isWritable: false },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: false },
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    authority: { value: input.authority ?? null, isSigner: true, isWritable: false },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -208,7 +248,6 @@ export function getAssignMintInstruction<
   // Original args.
   const args = { ...input };
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("authority", accounts.authority),
@@ -219,9 +258,18 @@ export function getAssignMintInstruction<
     programAddress,
   } as AssignMintInstruction<
     TProgramAddress,
-    TAccountAuthority,
-    TAccountAdminConfig,
-    TAccountPhygitalToken
+    ResolvedInstructionAccountMeta<
+      TAccountAuthority,
+      InstructionAccountInputAddress<TAccountAuthority>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >
   >);
 }
 

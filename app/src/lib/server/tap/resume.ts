@@ -5,7 +5,7 @@ import {
 	type AuthenticationResponseJSON
 } from 'phygital-token-sdk';
 
-import { bytesToBase64Url } from '$lib/shared/encoding';
+import { bytesToBase64Url } from '#lib/shared/encoding.ts';
 import { fetchAccessory } from '../accessory/resolve';
 import { consumeChallenge, isChallengeId, issueChallenge } from '../challenges';
 

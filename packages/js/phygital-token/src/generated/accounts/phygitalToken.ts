@@ -34,6 +34,7 @@ import {
   type FixedSizeCodec,
   type FixedSizeDecoder,
   type FixedSizeEncoder,
+  type HasAddress,
   type MaybeAccount,
   type MaybeEncodedAccount,
   type ReadonlyUint8Array,
@@ -65,8 +66,8 @@ export type PhygitalToken = {
 };
 
 export type PhygitalTokenArgs = {
-  owner: Address;
-  mint: Address;
+  owner: Address | HasAddress;
+  mint: Address | HasAddress;
   lastSignCount: number;
   tokenType: number;
   bump: number;
@@ -124,7 +125,7 @@ export function decodePhygitalToken<TAddress extends string = string>(
 
 export async function fetchPhygitalToken<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
-  address: Address<TAddress>,
+  address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
 ): Promise<Account<PhygitalToken, TAddress>> {
   const maybeAccount = await fetchMaybePhygitalToken(rpc, address, config);
@@ -134,16 +135,20 @@ export async function fetchPhygitalToken<TAddress extends string = string>(
 
 export async function fetchMaybePhygitalToken<TAddress extends string = string>(
   rpc: Parameters<typeof fetchEncodedAccount>[0],
-  address: Address<TAddress>,
+  address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
 ): Promise<MaybeAccount<PhygitalToken, TAddress>> {
-  const maybeAccount = await fetchEncodedAccount(rpc, address, config);
+  const maybeAccount = await fetchEncodedAccount(
+    rpc,
+    typeof address === "string" ? address : address.address,
+    config,
+  );
   return decodePhygitalToken(maybeAccount);
 }
 
 export async function fetchAllPhygitalToken(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
-  addresses: Array<Address>,
+  addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
 ): Promise<Account<PhygitalToken>[]> {
   const maybeAccounts = await fetchAllMaybePhygitalToken(rpc, addresses, config);
@@ -153,10 +158,14 @@ export async function fetchAllPhygitalToken(
 
 export async function fetchAllMaybePhygitalToken(
   rpc: Parameters<typeof fetchEncodedAccounts>[0],
-  addresses: Array<Address>,
+  addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
 ): Promise<MaybeAccount<PhygitalToken>[]> {
-  const maybeAccounts = await fetchEncodedAccounts(rpc, addresses, config);
+  const maybeAccounts = await fetchEncodedAccounts(
+    rpc,
+    addresses.map((a) => (typeof a === "string" ? a : a.address)),
+    config,
+  );
   return maybeAccounts.map((maybeAccount) => decodePhygitalToken(maybeAccount));
 }
 

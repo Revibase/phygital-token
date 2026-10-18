@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Skeleton } from '$lib/components/ui/skeleton';
+	import { Skeleton } from '#lib/components/ui/skeleton/index.ts';
 
 	/** A loading placeholder shaped like a `ListRow`. */
 	let { avatar = 'size-9 rounded-full', detail = false }: { avatar?: string; detail?: boolean } =

@@ -25,7 +25,11 @@ import { FixedSizeDecoder } from '@solana/kit';
 import { FixedSizeEncoder } from '@solana/kit';
 import { GetAccountInfoApi } from '@solana/kit';
 import { GetMultipleAccountsApi } from '@solana/kit';
+import { HasAddress } from '@solana/kit';
 import { Instruction } from '@solana/kit';
+import { InstructionAccountInput } from '@solana/kit/program-client-core';
+import { InstructionAccountInputAddress } from '@solana/kit/program-client-core';
+import { InstructionSignerInput } from '@solana/kit/program-client-core';
 import { InstructionWithAccounts } from '@solana/kit';
 import { InstructionWithData } from '@solana/kit';
 import { MaybeAccount } from '@solana/kit';
@@ -36,6 +40,7 @@ import { ProgramDerivedAddress } from '@solana/kit';
 import { ReadonlyAccount } from '@solana/kit';
 import { ReadonlySignerAccount } from '@solana/kit';
 import { ReadonlyUint8Array } from '@solana/kit';
+import { ResolvedInstructionAccountMeta } from '@solana/kit/program-client-core';
 import { Rpc } from '@solana/kit';
 import { SelfFetchFunctions } from '@solana/kit/program-client-core';
 import { SelfPlanAndSendFunctions } from '@solana/kit/program-client-core';
@@ -61,27 +66,46 @@ export type AdminConfig = {
 // @public (undocumented)
 export type AdminConfigArgs = {
     bump: number;
-    admin: Address;
-    issuer: Address;
-    minter: Address;
+    admin: Address | HasAddress;
+    issuer: Address | HasAddress;
+    minter: Address | HasAddress;
 };
 
 // @public (undocumented)
 export const ASSIGN_MINT_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
-export type AssignMintAsyncInput<TAccountAuthority extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string> = {
-    authority: TransactionSigner<TAccountAuthority>;
-    adminConfig?: Address<TAccountAdminConfig>;
-    phygitalToken: Address<TAccountPhygitalToken>;
+export const ASSIGN_MINT_EVENT_EVENT_DISCRIMINATOR: ReadonlyUint8Array;
+
+// @public (undocumented)
+export type AssignMintAsyncInput<TAccountAuthority extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput> = {
+    authority: TAccountAuthority;
+    adminConfig?: TAccountAdminConfig;
+    phygitalToken: TAccountPhygitalToken;
     mint: AssignMintInstructionDataArgs["mint"];
 };
 
 // @public (undocumented)
-export type AssignMintInput<TAccountAuthority extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string> = {
-    authority: TransactionSigner<TAccountAuthority>;
-    adminConfig: Address<TAccountAdminConfig>;
-    phygitalToken: Address<TAccountPhygitalToken>;
+export type AssignMintEventEvent = {
+    publicKey: Secp256r1Pubkey;
+    authority: Address;
+    identifier: Secp256r1Pubkey;
+    mint: Address;
+};
+
+// @public (undocumented)
+export type AssignMintEventEventArgs = {
+    publicKey: Secp256r1PubkeyArgs;
+    authority: Address | HasAddress;
+    identifier: Secp256r1PubkeyArgs;
+    mint: Address | HasAddress;
+};
+
+// @public (undocumented)
+export type AssignMintInput<TAccountAuthority extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput> = {
+    authority: TAccountAuthority;
+    adminConfig: TAccountAdminConfig;
+    phygitalToken: TAccountPhygitalToken;
     mint: AssignMintInstructionDataArgs["mint"];
 };
 
@@ -101,7 +125,7 @@ export type AssignMintInstructionData = {
 
 // @public (undocumented)
 export type AssignMintInstructionDataArgs = {
-    mint: Address;
+    mint: Address | HasAddress;
 };
 
 // @public
@@ -180,19 +204,42 @@ export function buildVerifyChallenge(messageHash: Uint8Array): Uint8Array;
 export const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
-export type ClosePhygitalTokenAsyncInput<TAccountAdmin extends string = string, TAccountRentRecipient extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string> = {
-    admin: TransactionSigner<TAccountAdmin>;
-    rentRecipient: Address<TAccountRentRecipient>;
-    adminConfig?: Address<TAccountAdminConfig>;
-    phygitalToken: Address<TAccountPhygitalToken>;
+export const CLOSE_PHYGITAL_TOKEN_EVENT_EVENT_DISCRIMINATOR: ReadonlyUint8Array;
+
+// @public (undocumented)
+export type ClosePhygitalTokenAsyncInput<TAccountAdmin extends InstructionSignerInput = InstructionSignerInput, TAccountRentRecipient extends InstructionAccountInput = InstructionAccountInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput> = {
+    admin: TAccountAdmin;
+    rentRecipient: TAccountRentRecipient;
+    adminConfig?: TAccountAdminConfig;
+    phygitalToken: TAccountPhygitalToken;
 };
 
 // @public (undocumented)
-export type ClosePhygitalTokenInput<TAccountAdmin extends string = string, TAccountRentRecipient extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string> = {
-    admin: TransactionSigner<TAccountAdmin>;
-    rentRecipient: Address<TAccountRentRecipient>;
-    adminConfig: Address<TAccountAdminConfig>;
-    phygitalToken: Address<TAccountPhygitalToken>;
+export type ClosePhygitalTokenEventEvent = {
+    admin: Address;
+    rentRecipient: Address;
+    publicKey: Secp256r1Pubkey;
+    identifier: Secp256r1Pubkey;
+    owner: Address;
+    mint: Address;
+};
+
+// @public (undocumented)
+export type ClosePhygitalTokenEventEventArgs = {
+    admin: Address | HasAddress;
+    rentRecipient: Address | HasAddress;
+    publicKey: Secp256r1PubkeyArgs;
+    identifier: Secp256r1PubkeyArgs;
+    owner: Address | HasAddress;
+    mint: Address | HasAddress;
+};
+
+// @public (undocumented)
+export type ClosePhygitalTokenInput<TAccountAdmin extends InstructionSignerInput = InstructionSignerInput, TAccountRentRecipient extends InstructionAccountInput = InstructionAccountInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput> = {
+    admin: TAccountAdmin;
+    rentRecipient: TAccountRentRecipient;
+    adminConfig: TAccountAdminConfig;
+    phygitalToken: TAccountPhygitalToken;
 };
 
 // @public (undocumented)
@@ -219,17 +266,30 @@ export function completeTransfer(session: TransferSession, response: Authenticat
 export const CREATE_CONFIG_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
-export type CreateConfigAsyncInput<TAccountAuthority extends string = string, TAccountAdminConfig extends string = string, TAccountSystemProgram extends string = string> = {
-    authority: TransactionSigner<TAccountAuthority>;
-    adminConfig?: Address<TAccountAdminConfig>;
-    systemProgram?: Address<TAccountSystemProgram>;
+export const CREATE_CONFIG_EVENT_EVENT_DISCRIMINATOR: ReadonlyUint8Array;
+
+// @public (undocumented)
+export type CreateConfigAsyncInput<TAccountAuthority extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput, TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput> = {
+    authority: TAccountAuthority;
+    adminConfig?: TAccountAdminConfig;
+    systemProgram?: TAccountSystemProgram;
 };
 
 // @public (undocumented)
-export type CreateConfigInput<TAccountAuthority extends string = string, TAccountAdminConfig extends string = string, TAccountSystemProgram extends string = string> = {
-    authority: TransactionSigner<TAccountAuthority>;
-    adminConfig: Address<TAccountAdminConfig>;
-    systemProgram?: Address<TAccountSystemProgram>;
+export type CreateConfigEventEvent = {
+    authority: Address;
+};
+
+// @public (undocumented)
+export type CreateConfigEventEventArgs = {
+    authority: Address | HasAddress;
+};
+
+// @public (undocumented)
+export type CreateConfigInput<TAccountAuthority extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput, TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput> = {
+    authority: TAccountAuthority;
+    adminConfig: TAccountAdminConfig;
+    systemProgram?: TAccountSystemProgram;
 };
 
 // @public (undocumented)
@@ -264,28 +324,28 @@ export function decodePhygitalToken<TAddress extends string = string>(encodedAcc
 export function decodePhygitalToken<TAddress extends string = string>(encodedAccount: MaybeEncodedAccount<TAddress>): MaybeAccount<PhygitalToken, TAddress>;
 
 // @public (undocumented)
-export function fetchAdminConfig<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<Account<AdminConfig, TAddress>>;
+export function fetchAdminConfig<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress> | HasAddress<TAddress>, config?: FetchAccountConfig): Promise<Account<AdminConfig, TAddress>>;
 
 // @public (undocumented)
-export function fetchAllAdminConfig(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address>, config?: FetchAccountsConfig): Promise<Account<AdminConfig>[]>;
+export function fetchAllAdminConfig(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address | HasAddress>, config?: FetchAccountsConfig): Promise<Account<AdminConfig>[]>;
 
 // @public (undocumented)
-export function fetchAllMaybeAdminConfig(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address>, config?: FetchAccountsConfig): Promise<MaybeAccount<AdminConfig>[]>;
+export function fetchAllMaybeAdminConfig(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address | HasAddress>, config?: FetchAccountsConfig): Promise<MaybeAccount<AdminConfig>[]>;
 
 // @public (undocumented)
-export function fetchAllMaybePhygitalToken(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address>, config?: FetchAccountsConfig): Promise<MaybeAccount<PhygitalToken>[]>;
+export function fetchAllMaybePhygitalToken(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address | HasAddress>, config?: FetchAccountsConfig): Promise<MaybeAccount<PhygitalToken>[]>;
 
 // @public (undocumented)
-export function fetchAllPhygitalToken(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address>, config?: FetchAccountsConfig): Promise<Account<PhygitalToken>[]>;
+export function fetchAllPhygitalToken(rpc: Parameters<typeof fetchEncodedAccounts>[0], addresses: Array<Address | HasAddress>, config?: FetchAccountsConfig): Promise<Account<PhygitalToken>[]>;
 
 // @public (undocumented)
-export function fetchMaybeAdminConfig<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<MaybeAccount<AdminConfig, TAddress>>;
+export function fetchMaybeAdminConfig<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress> | HasAddress<TAddress>, config?: FetchAccountConfig): Promise<MaybeAccount<AdminConfig, TAddress>>;
 
 // @public (undocumented)
-export function fetchMaybePhygitalToken<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<MaybeAccount<PhygitalToken, TAddress>>;
+export function fetchMaybePhygitalToken<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress> | HasAddress<TAddress>, config?: FetchAccountConfig): Promise<MaybeAccount<PhygitalToken, TAddress>>;
 
 // @public (undocumented)
-export function fetchPhygitalToken<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress>, config?: FetchAccountConfig): Promise<Account<PhygitalToken, TAddress>>;
+export function fetchPhygitalToken<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress> | HasAddress<TAddress>, config?: FetchAccountConfig): Promise<Account<PhygitalToken, TAddress>>;
 
 // @public
 export function fetchPhygitalTokenByIdentifier(rpc: Rpc<SolanaRpcApi>, identifier: string | Secp256r1Pubkey): Promise<PhygitalToken | null>;
@@ -298,7 +358,7 @@ export function fetchPhygitalTokensByOwner(rpc: Rpc<SolanaRpcApi>, owner: Addres
 
 // @public (undocumented)
 export function findAdminConfigPda(config?: {
-    programAddress?: Address | undefined;
+    programAddress?: Address | HasAddress | undefined;
 }): Promise<ProgramDerivedAddress>;
 
 // @public
@@ -322,15 +382,31 @@ export function getAdminConfigSize(): number;
 // @public (undocumented)
 export function getAssignMintDiscriminatorBytes(): ReadonlyUint8Array;
 
-// @public (undocumented)
-export function getAssignMintInstruction<TAccountAuthority extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: AssignMintInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
-    programAddress?: TProgramAddress;
-}): AssignMintInstruction<TProgramAddress, TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>;
+// @public
+export function getAssignMintEventEventCodec(): FixedSizeCodec<AssignMintEventEventArgs, AssignMintEventEvent>;
+
+// @public
+export function getAssignMintEventEventDecoder(): FixedSizeDecoder<AssignMintEventEvent>;
 
 // @public (undocumented)
-export function getAssignMintInstructionAsync<TAccountAuthority extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: AssignMintAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<AssignMintInstruction<TProgramAddress, TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>>;
+export function getAssignMintEventEventDiscriminatorBytes(): ReadonlyUint8Array;
+
+// @public
+export function getAssignMintEventEventEncoder(): FixedSizeEncoder<AssignMintEventEventArgs>;
+
+// @public (undocumented)
+export function getAssignMintInstruction<TAccountAuthority extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: AssignMintInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): AssignMintInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAuthority, InstructionAccountInputAddress<TAccountAuthority>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>>;
+
+// @public (undocumented)
+export function getAssignMintInstructionAsync<TAccountAuthority extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: AssignMintAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): Promise<AssignMintInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAuthority, InstructionAccountInputAddress<TAccountAuthority>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>>>;
 
 // @public (undocumented)
 export function getAssignMintInstructionDataCodec(): FixedSizeCodec<AssignMintInstructionDataArgs, AssignMintInstructionData>;
@@ -344,15 +420,31 @@ export function getAssignMintInstructionDataEncoder(): FixedSizeEncoder<AssignMi
 // @public (undocumented)
 export function getClosePhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array;
 
-// @public (undocumented)
-export function getClosePhygitalTokenInstruction<TAccountAdmin extends string, TAccountRentRecipient extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ClosePhygitalTokenInput<TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
-    programAddress?: TProgramAddress;
-}): ClosePhygitalTokenInstruction<TProgramAddress, TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>;
+// @public
+export function getClosePhygitalTokenEventEventCodec(): FixedSizeCodec<ClosePhygitalTokenEventEventArgs, ClosePhygitalTokenEventEvent>;
+
+// @public
+export function getClosePhygitalTokenEventEventDecoder(): FixedSizeDecoder<ClosePhygitalTokenEventEvent>;
 
 // @public (undocumented)
-export function getClosePhygitalTokenInstructionAsync<TAccountAdmin extends string, TAccountRentRecipient extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ClosePhygitalTokenAsyncInput<TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<ClosePhygitalTokenInstruction<TProgramAddress, TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>>;
+export function getClosePhygitalTokenEventEventDiscriminatorBytes(): ReadonlyUint8Array;
+
+// @public
+export function getClosePhygitalTokenEventEventEncoder(): FixedSizeEncoder<ClosePhygitalTokenEventEventArgs>;
+
+// @public (undocumented)
+export function getClosePhygitalTokenInstruction<TAccountAdmin extends InstructionSignerInput, TAccountRentRecipient extends InstructionAccountInput, TAccountAdminConfig extends InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ClosePhygitalTokenInput<TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): ClosePhygitalTokenInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>, ResolvedInstructionAccountMeta<TAccountRentRecipient, InstructionAccountInputAddress<TAccountRentRecipient>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>>;
+
+// @public (undocumented)
+export function getClosePhygitalTokenInstructionAsync<TAccountAdmin extends InstructionSignerInput, TAccountRentRecipient extends InstructionAccountInput, TAccountAdminConfig extends InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: ClosePhygitalTokenAsyncInput<TAccountAdmin, TAccountRentRecipient, TAccountAdminConfig, TAccountPhygitalToken>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): Promise<ClosePhygitalTokenInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>, ResolvedInstructionAccountMeta<TAccountRentRecipient, InstructionAccountInputAddress<TAccountRentRecipient>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>>>;
 
 // @public (undocumented)
 export function getClosePhygitalTokenInstructionDataCodec(): FixedSizeCodec<ClosePhygitalTokenInstructionDataArgs, ClosePhygitalTokenInstructionData>;
@@ -366,15 +458,31 @@ export function getClosePhygitalTokenInstructionDataEncoder(): FixedSizeEncoder<
 // @public (undocumented)
 export function getCreateConfigDiscriminatorBytes(): ReadonlyUint8Array;
 
-// @public (undocumented)
-export function getCreateConfigInstruction<TAccountAuthority extends string, TAccountAdminConfig extends string, TAccountSystemProgram extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: CreateConfigInput<TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>, config?: {
-    programAddress?: TProgramAddress;
-}): CreateConfigInstruction<TProgramAddress, TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>;
+// @public
+export function getCreateConfigEventEventCodec(): FixedSizeCodec<CreateConfigEventEventArgs, CreateConfigEventEvent>;
+
+// @public
+export function getCreateConfigEventEventDecoder(): FixedSizeDecoder<CreateConfigEventEvent>;
 
 // @public (undocumented)
-export function getCreateConfigInstructionAsync<TAccountAuthority extends string, TAccountAdminConfig extends string, TAccountSystemProgram extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: CreateConfigAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<CreateConfigInstruction<TProgramAddress, TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>>;
+export function getCreateConfigEventEventDiscriminatorBytes(): ReadonlyUint8Array;
+
+// @public
+export function getCreateConfigEventEventEncoder(): FixedSizeEncoder<CreateConfigEventEventArgs>;
+
+// @public (undocumented)
+export function getCreateConfigInstruction<TAccountAuthority extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TAccountSystemProgram extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: CreateConfigInput<TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): CreateConfigInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAuthority, InstructionAccountInputAddress<TAccountAuthority>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>, ResolvedInstructionAccountMeta<TAccountSystemProgram, InstructionAccountInputAddress<TAccountSystemProgram>>>;
+
+// @public (undocumented)
+export function getCreateConfigInstructionAsync<TAccountAuthority extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TAccountSystemProgram extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: CreateConfigAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountSystemProgram>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): Promise<CreateConfigInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAuthority, InstructionAccountInputAddress<TAccountAuthority>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>, ResolvedInstructionAccountMeta<TAccountSystemProgram, InstructionAccountInputAddress<TAccountSystemProgram>>>>;
 
 // @public (undocumented)
 export function getCreateConfigInstructionDataCodec(): FixedSizeCodec<CreateConfigInstructionDataArgs, CreateConfigInstructionData>;
@@ -388,15 +496,31 @@ export function getCreateConfigInstructionDataEncoder(): FixedSizeEncoder<Create
 // @public (undocumented)
 export function getInitializeDiscriminatorBytes(): ReadonlyUint8Array;
 
-// @public (undocumented)
-export function getInitializeInstruction<TAccountAuthority extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TAccountSystemProgram extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: InitializeInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken, TAccountSystemProgram>, config?: {
-    programAddress?: TProgramAddress;
-}): InitializeInstruction<TProgramAddress, TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken, TAccountSystemProgram>;
+// @public
+export function getInitializeEventEventCodec(): FixedSizeCodec<InitializeEventEventArgs, InitializeEventEvent>;
+
+// @public
+export function getInitializeEventEventDecoder(): FixedSizeDecoder<InitializeEventEvent>;
 
 // @public (undocumented)
-export function getInitializeInstructionAsync<TAccountAuthority extends string, TAccountAdminConfig extends string, TAccountPhygitalToken extends string, TAccountSystemProgram extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: InitializeAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken, TAccountSystemProgram>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<InitializeInstruction<TProgramAddress, TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken, TAccountSystemProgram>>;
+export function getInitializeEventEventDiscriminatorBytes(): ReadonlyUint8Array;
+
+// @public
+export function getInitializeEventEventEncoder(): FixedSizeEncoder<InitializeEventEventArgs>;
+
+// @public (undocumented)
+export function getInitializeInstruction<TAccountAuthority extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput, TAccountSystemProgram extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: InitializeInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken, TAccountSystemProgram>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): InitializeInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAuthority, InstructionAccountInputAddress<TAccountAuthority>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>, ResolvedInstructionAccountMeta<TAccountSystemProgram, InstructionAccountInputAddress<TAccountSystemProgram>>>;
+
+// @public (undocumented)
+export function getInitializeInstructionAsync<TAccountAuthority extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput, TAccountSystemProgram extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: InitializeAsyncInput<TAccountAuthority, TAccountAdminConfig, TAccountPhygitalToken, TAccountSystemProgram>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): Promise<InitializeInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAuthority, InstructionAccountInputAddress<TAccountAuthority>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>, ResolvedInstructionAccountMeta<TAccountSystemProgram, InstructionAccountInputAddress<TAccountSystemProgram>>>>;
 
 // @public (undocumented)
 export function getInitializeInstructionDataCodec(): FixedSizeCodec<InitializeInstructionDataArgs, InitializeInstructionData>;
@@ -443,10 +567,24 @@ export function getPhygitalTokenTypeEncoder(): FixedSizeEncoder<PhygitalTokenTyp
 // @public (undocumented)
 export function getRemoveOwnerDiscriminatorBytes(): ReadonlyUint8Array;
 
+// @public
+export function getRemoveOwnerEventEventCodec(): FixedSizeCodec<RemoveOwnerEventEventArgs, RemoveOwnerEventEvent>;
+
+// @public
+export function getRemoveOwnerEventEventDecoder(): FixedSizeDecoder<RemoveOwnerEventEvent>;
+
 // @public (undocumented)
-export function getRemoveOwnerInstruction<TAccountOwner extends string, TAccountPhygitalToken extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: RemoveOwnerInput<TAccountOwner, TAccountPhygitalToken>, config?: {
-    programAddress?: TProgramAddress;
-}): RemoveOwnerInstruction<TProgramAddress, TAccountOwner, TAccountPhygitalToken>;
+export function getRemoveOwnerEventEventDiscriminatorBytes(): ReadonlyUint8Array;
+
+// @public
+export function getRemoveOwnerEventEventEncoder(): FixedSizeEncoder<RemoveOwnerEventEventArgs>;
+
+// @public (undocumented)
+export function getRemoveOwnerInstruction<TAccountOwner extends InstructionSignerInput, TAccountPhygitalToken extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: RemoveOwnerInput<TAccountOwner, TAccountPhygitalToken>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): RemoveOwnerInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountOwner, InstructionAccountInputAddress<TAccountOwner>>, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>>;
 
 // @public (undocumented)
 export function getRemoveOwnerInstructionDataCodec(): FixedSizeCodec<RemoveOwnerInstructionDataArgs, RemoveOwnerInstructionData>;
@@ -478,15 +616,31 @@ export function getSecp256r1VerifyArgsEncoder(): Encoder<Secp256r1VerifyArgsArgs
 // @public (undocumented)
 export function getSetAdminDiscriminatorBytes(): ReadonlyUint8Array;
 
-// @public (undocumented)
-export function getSetAdminInstruction<TAccountAdmin extends string, TAccountAdminConfig extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetAdminInput<TAccountAdmin, TAccountAdminConfig>, config?: {
-    programAddress?: TProgramAddress;
-}): SetAdminInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>;
+// @public
+export function getSetAdminEventEventCodec(): FixedSizeCodec<SetAdminEventEventArgs, SetAdminEventEvent>;
+
+// @public
+export function getSetAdminEventEventDecoder(): FixedSizeDecoder<SetAdminEventEvent>;
 
 // @public (undocumented)
-export function getSetAdminInstructionAsync<TAccountAdmin extends string, TAccountAdminConfig extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetAdminAsyncInput<TAccountAdmin, TAccountAdminConfig>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<SetAdminInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>>;
+export function getSetAdminEventEventDiscriminatorBytes(): ReadonlyUint8Array;
+
+// @public
+export function getSetAdminEventEventEncoder(): FixedSizeEncoder<SetAdminEventEventArgs>;
+
+// @public (undocumented)
+export function getSetAdminInstruction<TAccountAdmin extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetAdminInput<TAccountAdmin, TAccountAdminConfig>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): SetAdminInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>>;
+
+// @public (undocumented)
+export function getSetAdminInstructionAsync<TAccountAdmin extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetAdminAsyncInput<TAccountAdmin, TAccountAdminConfig>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): Promise<SetAdminInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>>>;
 
 // @public (undocumented)
 export function getSetAdminInstructionDataCodec(): FixedSizeCodec<SetAdminInstructionDataArgs, SetAdminInstructionData>;
@@ -500,15 +654,31 @@ export function getSetAdminInstructionDataEncoder(): FixedSizeEncoder<SetAdminIn
 // @public (undocumented)
 export function getSetIssuerDiscriminatorBytes(): ReadonlyUint8Array;
 
-// @public (undocumented)
-export function getSetIssuerInstruction<TAccountAdmin extends string, TAccountAdminConfig extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetIssuerInput<TAccountAdmin, TAccountAdminConfig>, config?: {
-    programAddress?: TProgramAddress;
-}): SetIssuerInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>;
+// @public
+export function getSetIssuerEventEventCodec(): FixedSizeCodec<SetIssuerEventEventArgs, SetIssuerEventEvent>;
+
+// @public
+export function getSetIssuerEventEventDecoder(): FixedSizeDecoder<SetIssuerEventEvent>;
 
 // @public (undocumented)
-export function getSetIssuerInstructionAsync<TAccountAdmin extends string, TAccountAdminConfig extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetIssuerAsyncInput<TAccountAdmin, TAccountAdminConfig>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<SetIssuerInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>>;
+export function getSetIssuerEventEventDiscriminatorBytes(): ReadonlyUint8Array;
+
+// @public
+export function getSetIssuerEventEventEncoder(): FixedSizeEncoder<SetIssuerEventEventArgs>;
+
+// @public (undocumented)
+export function getSetIssuerInstruction<TAccountAdmin extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetIssuerInput<TAccountAdmin, TAccountAdminConfig>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): SetIssuerInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>>;
+
+// @public (undocumented)
+export function getSetIssuerInstructionAsync<TAccountAdmin extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetIssuerAsyncInput<TAccountAdmin, TAccountAdminConfig>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): Promise<SetIssuerInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>>>;
 
 // @public (undocumented)
 export function getSetIssuerInstructionDataCodec(): FixedSizeCodec<SetIssuerInstructionDataArgs, SetIssuerInstructionData>;
@@ -522,15 +692,31 @@ export function getSetIssuerInstructionDataEncoder(): FixedSizeEncoder<SetIssuer
 // @public (undocumented)
 export function getSetMinterDiscriminatorBytes(): ReadonlyUint8Array;
 
-// @public (undocumented)
-export function getSetMinterInstruction<TAccountAdmin extends string, TAccountAdminConfig extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetMinterInput<TAccountAdmin, TAccountAdminConfig>, config?: {
-    programAddress?: TProgramAddress;
-}): SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>;
+// @public
+export function getSetMinterEventEventCodec(): FixedSizeCodec<SetMinterEventEventArgs, SetMinterEventEvent>;
+
+// @public
+export function getSetMinterEventEventDecoder(): FixedSizeDecoder<SetMinterEventEvent>;
 
 // @public (undocumented)
-export function getSetMinterInstructionAsync<TAccountAdmin extends string, TAccountAdminConfig extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetMinterAsyncInput<TAccountAdmin, TAccountAdminConfig>, config?: {
-    programAddress?: TProgramAddress;
-}): Promise<SetMinterInstruction<TProgramAddress, TAccountAdmin, TAccountAdminConfig>>;
+export function getSetMinterEventEventDiscriminatorBytes(): ReadonlyUint8Array;
+
+// @public
+export function getSetMinterEventEventEncoder(): FixedSizeEncoder<SetMinterEventEventArgs>;
+
+// @public (undocumented)
+export function getSetMinterInstruction<TAccountAdmin extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetMinterInput<TAccountAdmin, TAccountAdminConfig>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): SetMinterInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>>;
+
+// @public (undocumented)
+export function getSetMinterInstructionAsync<TAccountAdmin extends InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetMinterAsyncInput<TAccountAdmin, TAccountAdminConfig>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): Promise<SetMinterInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>, ResolvedInstructionAccountMeta<TAccountAdminConfig, InstructionAccountInputAddress<TAccountAdminConfig>>>>;
 
 // @public (undocumented)
 export function getSetMinterInstructionDataCodec(): FixedSizeCodec<SetMinterInstructionDataArgs, SetMinterInstructionData>;
@@ -544,10 +730,24 @@ export function getSetMinterInstructionDataEncoder(): FixedSizeEncoder<SetMinter
 // @public (undocumented)
 export function getSetOwnerDiscriminatorBytes(): ReadonlyUint8Array;
 
+// @public
+export function getSetOwnerEventEventCodec(): FixedSizeCodec<SetOwnerEventEventArgs, SetOwnerEventEvent>;
+
+// @public
+export function getSetOwnerEventEventDecoder(): FixedSizeDecoder<SetOwnerEventEvent>;
+
 // @public (undocumented)
-export function getSetOwnerInstruction<TAccountRecipient extends string, TAccountPhygitalToken extends string, TAccountSlotHashes extends string, TAccountInstructionsSysvar extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetOwnerInput<TAccountRecipient, TAccountPhygitalToken, TAccountSlotHashes, TAccountInstructionsSysvar>, config?: {
-    programAddress?: TProgramAddress;
-}): SetOwnerInstruction<TProgramAddress, TAccountRecipient, TAccountPhygitalToken, TAccountSlotHashes, TAccountInstructionsSysvar>;
+export function getSetOwnerEventEventDiscriminatorBytes(): ReadonlyUint8Array;
+
+// @public
+export function getSetOwnerEventEventEncoder(): FixedSizeEncoder<SetOwnerEventEventArgs>;
+
+// @public (undocumented)
+export function getSetOwnerInstruction<TAccountRecipient extends InstructionSignerInput, TAccountPhygitalToken extends InstructionAccountInput, TAccountSlotHashes extends InstructionAccountInput, TAccountInstructionsSysvar extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: SetOwnerInput<TAccountRecipient, TAccountPhygitalToken, TAccountSlotHashes, TAccountInstructionsSysvar>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): SetOwnerInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountRecipient, InstructionAccountInputAddress<TAccountRecipient>>, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>, ResolvedInstructionAccountMeta<TAccountSlotHashes, InstructionAccountInputAddress<TAccountSlotHashes>>, ResolvedInstructionAccountMeta<TAccountInstructionsSysvar, InstructionAccountInputAddress<TAccountInstructionsSysvar>>>;
 
 // @public (undocumented)
 export function getSetOwnerInstructionDataCodec(): Codec<SetOwnerInstructionDataArgs, SetOwnerInstructionData>;
@@ -562,9 +762,11 @@ export function getSetOwnerInstructionDataEncoder(): Encoder<SetOwnerInstruction
 export function getVerifyDiscriminatorBytes(): ReadonlyUint8Array;
 
 // @public (undocumented)
-export function getVerifyInstruction<TAccountPhygitalToken extends string, TAccountInstructionsSysvar extends string, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: VerifyInput<TAccountPhygitalToken, TAccountInstructionsSysvar>, config?: {
-    programAddress?: TProgramAddress;
-}): VerifyInstruction<TProgramAddress, TAccountPhygitalToken, TAccountInstructionsSysvar>;
+export function getVerifyInstruction<TAccountPhygitalToken extends InstructionAccountInput, TAccountInstructionsSysvar extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: VerifyInput<TAccountPhygitalToken, TAccountInstructionsSysvar>, config?: {
+    programAddress?: TProgramAddress | {
+        readonly address: TProgramAddress;
+    };
+}): VerifyInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>, ResolvedInstructionAccountMeta<TAccountInstructionsSysvar, InstructionAccountInputAddress<TAccountInstructionsSysvar>>>;
 
 // @public (undocumented)
 export function getVerifyInstructionDataCodec(): Codec<VerifyInstructionDataArgs, VerifyInstructionData>;
@@ -581,6 +783,11 @@ export function identifyPhygitalTokenAccount(account: {
 } | ReadonlyUint8Array): PhygitalTokenAccount;
 
 // @public (undocumented)
+export function identifyPhygitalTokenEvent(event: {
+    data: ReadonlyUint8Array;
+} | ReadonlyUint8Array): PhygitalTokenEvent;
+
+// @public (undocumented)
 export function identifyPhygitalTokenInstruction(instruction: {
     data: ReadonlyUint8Array;
 } | ReadonlyUint8Array): PhygitalTokenInstruction;
@@ -589,11 +796,14 @@ export function identifyPhygitalTokenInstruction(instruction: {
 export const INITIALIZE_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
-export type InitializeAsyncInput<TAccountAuthority extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string, TAccountSystemProgram extends string = string> = {
-    authority: TransactionSigner<TAccountAuthority>;
-    adminConfig?: Address<TAccountAdminConfig>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    systemProgram?: Address<TAccountSystemProgram>;
+export const INITIALIZE_EVENT_EVENT_DISCRIMINATOR: ReadonlyUint8Array;
+
+// @public (undocumented)
+export type InitializeAsyncInput<TAccountAuthority extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput, TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput> = {
+    authority: TAccountAuthority;
+    adminConfig?: TAccountAdminConfig;
+    phygitalToken: TAccountPhygitalToken;
+    systemProgram?: TAccountSystemProgram;
     identifier: InitializeInstructionDataArgs["identifier"];
     secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
     tokenType: InitializeInstructionDataArgs["tokenType"];
@@ -601,11 +811,29 @@ export type InitializeAsyncInput<TAccountAuthority extends string = string, TAcc
 };
 
 // @public (undocumented)
-export type InitializeInput<TAccountAuthority extends string = string, TAccountAdminConfig extends string = string, TAccountPhygitalToken extends string = string, TAccountSystemProgram extends string = string> = {
-    authority: TransactionSigner<TAccountAuthority>;
-    adminConfig: Address<TAccountAdminConfig>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    systemProgram?: Address<TAccountSystemProgram>;
+export type InitializeEventEvent = {
+    authority: Address;
+    publicKey: Secp256r1Pubkey;
+    identifier: Secp256r1Pubkey;
+    owner: Address;
+    tokenType: PhygitalTokenType;
+};
+
+// @public (undocumented)
+export type InitializeEventEventArgs = {
+    authority: Address | HasAddress;
+    publicKey: Secp256r1PubkeyArgs;
+    identifier: Secp256r1PubkeyArgs;
+    owner: Address | HasAddress;
+    tokenType: PhygitalTokenTypeArgs;
+};
+
+// @public (undocumented)
+export type InitializeInput<TAccountAuthority extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput, TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput, TAccountSystemProgram extends InstructionAccountInput = InstructionAccountInput> = {
+    authority: TAccountAuthority;
+    adminConfig: TAccountAdminConfig;
+    phygitalToken: TAccountPhygitalToken;
+    systemProgram?: TAccountSystemProgram;
     identifier: InitializeInstructionDataArgs["identifier"];
     secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
     tokenType: InitializeInstructionDataArgs["tokenType"];
@@ -635,7 +863,7 @@ export type InitializeInstructionDataArgs = {
     identifier: Secp256r1PubkeyArgs;
     secp256r1Pubkey: Secp256r1PubkeyArgs;
     tokenType: PhygitalTokenTypeArgs;
-    owner: Address;
+    owner: Address | HasAddress;
 };
 
 // @public (undocumented)
@@ -643,7 +871,9 @@ export function isPhygitalTokenError<TProgramErrorCode extends PhygitalTokenErro
     instructions: Record<number, {
         programAddress: Address;
     }>;
-}, code?: TProgramErrorCode): error is SolanaError<typeof SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM> & Readonly<{
+}, code?: TProgramErrorCode, config?: {
+    programAddress?: Address | HasAddress;
+}): error is SolanaError<typeof SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM> & Readonly<{
     context: Readonly<{
         code: TProgramErrorCode;
     }>;
@@ -652,11 +882,20 @@ export function isPhygitalTokenError<TProgramErrorCode extends PhygitalTokenErro
 // @public
 export function isPhygitalTokenLocked(token: Pick<PhygitalToken, "tokenType" | "owner">): boolean;
 
+// @public
+export function parseAssignMintEventEvent(data: ReadonlyUint8Array | Uint8Array): AssignMintEventEvent;
+
 // @public (undocumented)
 export function parseAssignMintInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedAssignMintInstruction<TProgram, TAccountMetas>;
 
+// @public
+export function parseClosePhygitalTokenEventEvent(data: ReadonlyUint8Array | Uint8Array): ClosePhygitalTokenEventEvent;
+
 // @public (undocumented)
 export function parseClosePhygitalTokenInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedClosePhygitalTokenInstruction<TProgram, TAccountMetas>;
+
+// @public
+export function parseCreateConfigEventEvent(data: ReadonlyUint8Array | Uint8Array): CreateConfigEventEvent;
 
 // @public (undocumented)
 export function parseCreateConfigInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedCreateConfigInstruction<TProgram, TAccountMetas>;
@@ -792,11 +1031,17 @@ export type ParsedVerifyInstruction<TProgram extends string = typeof PHYGITAL_TO
     data: VerifyInstructionData;
 };
 
+// @public
+export function parseInitializeEventEvent(data: ReadonlyUint8Array | Uint8Array): InitializeEventEvent;
+
 // @public (undocumented)
 export function parseInitializeInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedInitializeInstruction<TProgram, TAccountMetas>;
 
 // @public (undocumented)
 export function parsePhygitalTokenInstruction<TProgram extends string>(instruction: Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array>): ParsedPhygitalTokenInstruction<TProgram>;
+
+// @public
+export function parseRemoveOwnerEventEvent(data: ReadonlyUint8Array | Uint8Array): RemoveOwnerEventEvent;
 
 // @public (undocumented)
 export function parseRemoveOwnerInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedRemoveOwnerInstruction<TProgram, TAccountMetas>;
@@ -804,14 +1049,26 @@ export function parseRemoveOwnerInstruction<TProgram extends string, TAccountMet
 // @public
 export function parseSecp256r1Pubkey(input: Base64URLString_2): Secp256r1Pubkey;
 
+// @public
+export function parseSetAdminEventEvent(data: ReadonlyUint8Array | Uint8Array): SetAdminEventEvent;
+
 // @public (undocumented)
 export function parseSetAdminInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedSetAdminInstruction<TProgram, TAccountMetas>;
+
+// @public
+export function parseSetIssuerEventEvent(data: ReadonlyUint8Array | Uint8Array): SetIssuerEventEvent;
 
 // @public (undocumented)
 export function parseSetIssuerInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedSetIssuerInstruction<TProgram, TAccountMetas>;
 
+// @public
+export function parseSetMinterEventEvent(data: ReadonlyUint8Array | Uint8Array): SetMinterEventEvent;
+
 // @public (undocumented)
 export function parseSetMinterInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedSetMinterInstruction<TProgram, TAccountMetas>;
+
+// @public
+export function parseSetOwnerEventEvent(data: ReadonlyUint8Array | Uint8Array): SetOwnerEventEvent;
 
 // @public (undocumented)
 export function parseSetOwnerInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedSetOwnerInstruction<TProgram, TAccountMetas>;
@@ -916,8 +1173,8 @@ export enum PhygitalTokenAccount {
 
 // @public (undocumented)
 export type PhygitalTokenArgs = {
-    owner: Address;
-    mint: Address;
+    owner: Address | HasAddress;
+    mint: Address | HasAddress;
     lastSignCount: number;
     tokenType: number;
     bump: number;
@@ -936,6 +1193,28 @@ export class PhygitalTokenError extends Error {
 
 // @public
 export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "RP_ID_REQUIRED" | "RECOVERY_SOURCE_REQUIRED" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_CREDENTIAL_ID" | "PASSKEY_RECOVERY_FAILED" | "PASSKEY_NOT_RECOGNIZED" | "PASSKEY_AMBIGUOUS" | "INVALID_ASSERTION" | "MESSAGE_MISMATCH" | "ORIGIN_MISMATCH" | "RP_ID_MISMATCH" | "SLOT_HASH_UNAVAILABLE" | "INVALID_ARGUMENT";
+
+// @public (undocumented)
+export enum PhygitalTokenEvent {
+    // (undocumented)
+    AssignMintEvent = 0,
+    // (undocumented)
+    ClosePhygitalTokenEvent = 1,
+    // (undocumented)
+    CreateConfigEvent = 2,
+    // (undocumented)
+    InitializeEvent = 3,
+    // (undocumented)
+    RemoveOwnerEvent = 4,
+    // (undocumented)
+    SetAdminEvent = 5,
+    // (undocumented)
+    SetIssuerEvent = 6,
+    // (undocumented)
+    SetMinterEvent = 7,
+    // (undocumented)
+    SetOwnerEvent = 8
+}
 
 // @public (undocumented)
 export enum PhygitalTokenInstruction {
@@ -979,16 +1258,36 @@ export type PhygitalTokenPluginAccounts = {
 
 // @public (undocumented)
 export type PhygitalTokenPluginInstructions = {
-    assignMint: (input: AssignMintAsyncInput) => ReturnType<typeof getAssignMintInstructionAsync> & SelfPlanAndSendFunctions;
-    closePhygitalToken: (input: ClosePhygitalTokenAsyncInput) => ReturnType<typeof getClosePhygitalTokenInstructionAsync> & SelfPlanAndSendFunctions;
-    createConfig: (input: CreateConfigAsyncInput) => ReturnType<typeof getCreateConfigInstructionAsync> & SelfPlanAndSendFunctions;
-    initialize: (input: InitializeAsyncInput) => ReturnType<typeof getInitializeInstructionAsync> & SelfPlanAndSendFunctions;
-    removeOwner: (input: RemoveOwnerInput) => ReturnType<typeof getRemoveOwnerInstruction> & SelfPlanAndSendFunctions;
-    setAdmin: (input: SetAdminAsyncInput) => ReturnType<typeof getSetAdminInstructionAsync> & SelfPlanAndSendFunctions;
-    setIssuer: (input: SetIssuerAsyncInput) => ReturnType<typeof getSetIssuerInstructionAsync> & SelfPlanAndSendFunctions;
-    setMinter: (input: SetMinterAsyncInput) => ReturnType<typeof getSetMinterInstructionAsync> & SelfPlanAndSendFunctions;
-    setOwner: (input: SetOwnerInput) => ReturnType<typeof getSetOwnerInstruction> & SelfPlanAndSendFunctions;
-    verify: (input: VerifyInput) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
+    assignMint: (input: AssignMintAsyncInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getAssignMintInstructionAsync> & SelfPlanAndSendFunctions;
+    closePhygitalToken: (input: ClosePhygitalTokenAsyncInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getClosePhygitalTokenInstructionAsync> & SelfPlanAndSendFunctions;
+    createConfig: (input: CreateConfigAsyncInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getCreateConfigInstructionAsync> & SelfPlanAndSendFunctions;
+    initialize: (input: InitializeAsyncInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getInitializeInstructionAsync> & SelfPlanAndSendFunctions;
+    removeOwner: (input: RemoveOwnerInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getRemoveOwnerInstruction> & SelfPlanAndSendFunctions;
+    setAdmin: (input: SetAdminAsyncInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getSetAdminInstructionAsync> & SelfPlanAndSendFunctions;
+    setIssuer: (input: SetIssuerAsyncInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getSetIssuerInstructionAsync> & SelfPlanAndSendFunctions;
+    setMinter: (input: SetMinterAsyncInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getSetMinterInstructionAsync> & SelfPlanAndSendFunctions;
+    setOwner: (input: SetOwnerInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getSetOwnerInstruction> & SelfPlanAndSendFunctions;
+    verify: (input: VerifyInput, config?: {
+        programAddress?: Address | HasAddress;
+    }) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
 };
 
 // @public (undocumented)
@@ -1000,7 +1299,9 @@ export type PhygitalTokenPluginPdas = {
 export type PhygitalTokenPluginRequirements = ClientWithRpc<GetAccountInfoApi & GetMultipleAccountsApi> & ClientWithTransactionPlanning & ClientWithTransactionSending;
 
 // @public (undocumented)
-export function phygitalTokenProgram(): <T extends PhygitalTokenPluginRequirements>(client: T) => ExtendedClient<T, {
+export function phygitalTokenProgram(config?: {
+    programAddress?: Address | HasAddress;
+}): <T extends PhygitalTokenPluginRequirements>(client: T) => ExtendedClient<T, {
     phygitalToken: PhygitalTokenPlugin;
 }>;
 
@@ -1021,9 +1322,26 @@ export type PhygitalTokenTypeArgs = PhygitalTokenType;
 export const REMOVE_OWNER_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
-export type RemoveOwnerInput<TAccountOwner extends string = string, TAccountPhygitalToken extends string = string> = {
-    owner: TransactionSigner<TAccountOwner>;
-    phygitalToken: Address<TAccountPhygitalToken>;
+export const REMOVE_OWNER_EVENT_EVENT_DISCRIMINATOR: ReadonlyUint8Array;
+
+// @public (undocumented)
+export type RemoveOwnerEventEvent = {
+    owner: Address;
+    publicKey: Secp256r1Pubkey;
+    identifier: Secp256r1Pubkey;
+};
+
+// @public (undocumented)
+export type RemoveOwnerEventEventArgs = {
+    owner: Address | HasAddress;
+    publicKey: Secp256r1PubkeyArgs;
+    identifier: Secp256r1PubkeyArgs;
+};
+
+// @public (undocumented)
+export type RemoveOwnerInput<TAccountOwner extends InstructionSignerInput = InstructionSignerInput, TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput> = {
+    owner: TAccountOwner;
+    phygitalToken: TAccountPhygitalToken;
 };
 
 // @public (undocumented)
@@ -1065,25 +1383,49 @@ export type Secp256r1VerifyArgsArgs = {
 export const SET_ADMIN_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
+export const SET_ADMIN_EVENT_EVENT_DISCRIMINATOR: ReadonlyUint8Array;
+
+// @public (undocumented)
 export const SET_ISSUER_DISCRIMINATOR: ReadonlyUint8Array;
+
+// @public (undocumented)
+export const SET_ISSUER_EVENT_EVENT_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
 export const SET_MINTER_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
+export const SET_MINTER_EVENT_EVENT_DISCRIMINATOR: ReadonlyUint8Array;
+
+// @public (undocumented)
 export const SET_OWNER_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
-export type SetAdminAsyncInput<TAccountAdmin extends string = string, TAccountAdminConfig extends string = string> = {
-    admin: TransactionSigner<TAccountAdmin>;
-    adminConfig?: Address<TAccountAdminConfig>;
+export const SET_OWNER_EVENT_EVENT_DISCRIMINATOR: ReadonlyUint8Array;
+
+// @public (undocumented)
+export type SetAdminAsyncInput<TAccountAdmin extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput> = {
+    admin: TAccountAdmin;
+    adminConfig?: TAccountAdminConfig;
     newAdmin: SetAdminInstructionDataArgs["newAdmin"];
 };
 
 // @public (undocumented)
-export type SetAdminInput<TAccountAdmin extends string = string, TAccountAdminConfig extends string = string> = {
-    admin: TransactionSigner<TAccountAdmin>;
-    adminConfig: Address<TAccountAdminConfig>;
+export type SetAdminEventEvent = {
+    previousAdmin: Address;
+    newAdmin: Address;
+};
+
+// @public (undocumented)
+export type SetAdminEventEventArgs = {
+    previousAdmin: Address | HasAddress;
+    newAdmin: Address | HasAddress;
+};
+
+// @public (undocumented)
+export type SetAdminInput<TAccountAdmin extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput> = {
+    admin: TAccountAdmin;
+    adminConfig: TAccountAdminConfig;
     newAdmin: SetAdminInstructionDataArgs["newAdmin"];
 };
 
@@ -1102,20 +1444,32 @@ export type SetAdminInstructionData = {
 
 // @public (undocumented)
 export type SetAdminInstructionDataArgs = {
-    newAdmin: Address;
+    newAdmin: Address | HasAddress;
 };
 
 // @public (undocumented)
-export type SetIssuerAsyncInput<TAccountAdmin extends string = string, TAccountAdminConfig extends string = string> = {
-    admin: TransactionSigner<TAccountAdmin>;
-    adminConfig?: Address<TAccountAdminConfig>;
+export type SetIssuerAsyncInput<TAccountAdmin extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput> = {
+    admin: TAccountAdmin;
+    adminConfig?: TAccountAdminConfig;
     issuer: SetIssuerInstructionDataArgs["issuer"];
 };
 
 // @public (undocumented)
-export type SetIssuerInput<TAccountAdmin extends string = string, TAccountAdminConfig extends string = string> = {
-    admin: TransactionSigner<TAccountAdmin>;
-    adminConfig: Address<TAccountAdminConfig>;
+export type SetIssuerEventEvent = {
+    admin: Address;
+    issuer: Address;
+};
+
+// @public (undocumented)
+export type SetIssuerEventEventArgs = {
+    admin: Address | HasAddress;
+    issuer: Address | HasAddress;
+};
+
+// @public (undocumented)
+export type SetIssuerInput<TAccountAdmin extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput> = {
+    admin: TAccountAdmin;
+    adminConfig: TAccountAdminConfig;
     issuer: SetIssuerInstructionDataArgs["issuer"];
 };
 
@@ -1134,20 +1488,32 @@ export type SetIssuerInstructionData = {
 
 // @public (undocumented)
 export type SetIssuerInstructionDataArgs = {
-    issuer: Address;
+    issuer: Address | HasAddress;
 };
 
 // @public (undocumented)
-export type SetMinterAsyncInput<TAccountAdmin extends string = string, TAccountAdminConfig extends string = string> = {
-    admin: TransactionSigner<TAccountAdmin>;
-    adminConfig?: Address<TAccountAdminConfig>;
+export type SetMinterAsyncInput<TAccountAdmin extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput> = {
+    admin: TAccountAdmin;
+    adminConfig?: TAccountAdminConfig;
     minter: SetMinterInstructionDataArgs["minter"];
 };
 
 // @public (undocumented)
-export type SetMinterInput<TAccountAdmin extends string = string, TAccountAdminConfig extends string = string> = {
-    admin: TransactionSigner<TAccountAdmin>;
-    adminConfig: Address<TAccountAdminConfig>;
+export type SetMinterEventEvent = {
+    admin: Address;
+    minter: Address;
+};
+
+// @public (undocumented)
+export type SetMinterEventEventArgs = {
+    admin: Address | HasAddress;
+    minter: Address | HasAddress;
+};
+
+// @public (undocumented)
+export type SetMinterInput<TAccountAdmin extends InstructionSignerInput = InstructionSignerInput, TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput> = {
+    admin: TAccountAdmin;
+    adminConfig: TAccountAdminConfig;
     minter: SetMinterInstructionDataArgs["minter"];
 };
 
@@ -1166,15 +1532,31 @@ export type SetMinterInstructionData = {
 
 // @public (undocumented)
 export type SetMinterInstructionDataArgs = {
-    minter: Address;
+    minter: Address | HasAddress;
 };
 
 // @public (undocumented)
-export type SetOwnerInput<TAccountRecipient extends string = string, TAccountPhygitalToken extends string = string, TAccountSlotHashes extends string = string, TAccountInstructionsSysvar extends string = string> = {
-    recipient: TransactionSigner<TAccountRecipient>;
-    phygitalToken: Address<TAccountPhygitalToken>;
-    slotHashes?: Address<TAccountSlotHashes>;
-    instructionsSysvar?: Address<TAccountInstructionsSysvar>;
+export type SetOwnerEventEvent = {
+    recipient: Address;
+    owner: Address;
+    publicKey: Secp256r1Pubkey;
+    identifier: Secp256r1Pubkey;
+};
+
+// @public (undocumented)
+export type SetOwnerEventEventArgs = {
+    recipient: Address | HasAddress;
+    owner: Address | HasAddress;
+    publicKey: Secp256r1PubkeyArgs;
+    identifier: Secp256r1PubkeyArgs;
+};
+
+// @public (undocumented)
+export type SetOwnerInput<TAccountRecipient extends InstructionSignerInput = InstructionSignerInput, TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput, TAccountSlotHashes extends InstructionAccountInput = InstructionAccountInput, TAccountInstructionsSysvar extends InstructionAccountInput = InstructionAccountInput> = {
+    recipient: TAccountRecipient;
+    phygitalToken: TAccountPhygitalToken;
+    slotHashes?: TAccountSlotHashes;
+    instructionsSysvar?: TAccountInstructionsSysvar;
     secp256r1VerifyArgs: SetOwnerInstructionDataArgs["secp256r1VerifyArgs"];
     slotNumber: SetOwnerInstructionDataArgs["slotNumber"];
 };
@@ -1221,9 +1603,9 @@ export type TransferSession = {
 export const VERIFY_DISCRIMINATOR: ReadonlyUint8Array;
 
 // @public (undocumented)
-export type VerifyInput<TAccountPhygitalToken extends string = string, TAccountInstructionsSysvar extends string = string> = {
-    phygitalToken: Address<TAccountPhygitalToken>;
-    instructionsSysvar?: Address<TAccountInstructionsSysvar>;
+export type VerifyInput<TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput, TAccountInstructionsSysvar extends InstructionAccountInput = InstructionAccountInput> = {
+    phygitalToken: TAccountPhygitalToken;
+    instructionsSysvar?: TAccountInstructionsSysvar;
     secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
     messageHash: VerifyInstructionDataArgs["messageHash"];
     expectedRpIdHash: VerifyInstructionDataArgs["expectedRpIdHash"];

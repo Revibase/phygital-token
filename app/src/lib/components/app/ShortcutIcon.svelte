@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ShortcutIcon } from '$lib/shared/shortcuts';
+	import type { ShortcutIcon } from '#lib/shared/shortcuts.ts';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import CoinsIcon from '@lucide/svelte/icons/coins';
 	import CrownIcon from '@lucide/svelte/icons/crown';

@@ -2,8 +2,8 @@
 	import CopyIcon from '@lucide/svelte/icons/copy';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import { onDestroy } from 'svelte';
-	import { copyText } from '$lib/client/clipboard';
-	import { Button } from '$lib/components/ui/button';
+	import { copyText } from '#lib/client/clipboard.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 
 	let { value, label = 'Copy' }: { value: string; label?: string } = $props();
 	let copied = $state(false);

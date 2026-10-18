@@ -28,7 +28,8 @@ export function readDappRequest(data: unknown): BridgeRequest | null {
 	if (!data || typeof data !== 'object') return null;
 	const message = data as Record<string, unknown>;
 	if (message.source !== BRIDGE_SOURCE_DAPP || message.version !== BRIDGE_VERSION) return null;
-	if (typeof message.id !== 'string' || message.id.length < 1 || message.id.length > 80) return null;
+	if (typeof message.id !== 'string' || message.id.length < 1 || message.id.length > 80)
+		return null;
 	if (typeof message.method !== 'string' || !REQUESTS.has(message.method)) return null;
 	return {
 		id: message.id,

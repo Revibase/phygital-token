@@ -3,14 +3,14 @@ import { ed25519 } from '@noble/curves/ed25519.js';
 import { address, getBase58Decoder, type Rpc, type SolanaRpcApi } from '@solana/kit';
 import { getPhygitalTokenEncoder } from 'phygital-token-sdk';
 
-import { bytesToBase64, bytesToBase64Url } from '$lib/shared/encoding';
+import { bytesToBase64, bytesToBase64Url } from '#lib/shared/encoding.ts';
 import { MIGRATIONS, createTestD1 } from './support/d1-sqlite';
 import { fakeAccessory } from './support/fixtures';
 import {
 	issueOwnerLoginChallenge,
 	verifyOwnerBrowse,
 	verifyOwnerLogin
-} from '$lib/server/accessory/owner-browse';
+} from '#lib/server/accessory/owner-browse.ts';
 
 const site = (address: string) => ({
 	domain: 'portal.revibase.com',
