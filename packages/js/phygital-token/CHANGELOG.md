@@ -4,9 +4,17 @@ All notable changes to this artifact are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.0.0]
 
 ### Breaking
+
+- Requires `@solana/kit` `^8.5.0`. The regenerated client uses types that
+  8.3 and 8.4 don't have.
+
+- Generated instruction inputs (`*Input`, `*AsyncInput`) are now generic over
+  `InstructionSignerInput` / `InstructionAccountInput` instead of address
+  strings, so code that passes explicit type arguments must update them.
+  Address fields in generated args also accept `HasAddress`.
 
 - Removed the accessory wallet: `getPhygitalWalletSigner`, the
   `buildExecute*` / `compileWalletInstructions` helpers, the fee sponsor
@@ -21,6 +29,12 @@ All notable changes to this artifact are documented here. The format follows
 
 - The generated `getSetOwnerInstruction` no longer takes `policy` or `wallet`.
   `PhygitalToken.walletBump` is now `reserved`.
+
+### Added
+
+- Codecs and parsers for every program event: `get*EventEventCodec`,
+  `parse*EventEvent`, the `*_EVENT_EVENT_DISCRIMINATOR` constants and
+  `identifyPhygitalTokenEvent`.
 
 ### Changed
 

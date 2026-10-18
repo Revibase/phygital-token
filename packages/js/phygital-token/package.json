@@ -1,6 +1,6 @@
 {
   "name": "phygital-token-sdk",
-  "version": "1.10.0",
+  "version": "2.0.0",
   "description": "TypeScript client for the Phygital Token Solana program",
   "license": "MIT",
   "author": "Revibase",
@@ -51,7 +51,7 @@
     "api:update": "pnpm build && api-extractor run --local"
   },
   "peerDependencies": {
-    "@solana/kit": "^8.3.0"
+    "@solana/kit": "^8.5.0"
   },
   "devDependencies": {
     "@microsoft/api-extractor": "7.59.4",
