@@ -97,8 +97,8 @@ export default tseslint.config(
     rules: { "@typescript-eslint/no-unnecessary-type-assertion": "off" },
   },
   {
-    // Tests, fixtures and dev scripts poke at loosely typed mocks and JSON.
-    files: ["**/__tests__/**", "**/*.test.ts", "**/test/**", "**/testing/**", "app/scripts/**"],
+    // Tests and fixtures poke at loosely typed mocks and JSON.
+    files: ["**/__tests__/**", "**/*.test.ts", "**/test/**", "**/testing/**"],
     rules: {
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",

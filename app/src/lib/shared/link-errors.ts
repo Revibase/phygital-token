@@ -12,7 +12,7 @@ import {
 
 import type { LinkErrorCode } from '$lib/shared/types';
 
-export function fromProgramError(code: number): LinkErrorCode {
+function fromProgramError(code: number): LinkErrorCode {
 	switch (code) {
 		case PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED:
 			return 'accessory_locked';
@@ -31,31 +31,6 @@ export function fromProgramError(code: number): LinkErrorCode {
 		default:
 			return 'unknown';
 	}
-}
-
-/**
- * Classify a `TransactionError` from simulate / getSignatureStatuses.
- * Shapes: `"InsufficientFundsForFee"`, `"AccountNotFound"`,
- * `{ InstructionError: [index, { Custom: n }] }`.
- */
-export function fromTransactionError(err: unknown): LinkErrorCode {
-	if (
-		err === 'InsufficientFundsForFee' ||
-		err === 'AccountNotFound' ||
-		err === 'InsufficientFundsForRent'
-	) {
-		return 'insufficient_sol';
-	}
-	if (err && typeof err === 'object' && 'InstructionError' in err) {
-		const [, inner] = (err as { InstructionError: [number, unknown] }).InstructionError;
-		if (inner && typeof inner === 'object' && 'Custom' in inner) {
-			return fromProgramError(Number((inner as { Custom: number | bigint }).Custom));
-		}
-		// The secp256r1 precompile fails with a plain instruction error.
-		return 'tap_rejected';
-	}
-	if (err === 'BlockhashNotFound') return 'too_slow';
-	return 'unknown';
 }
 
 /**

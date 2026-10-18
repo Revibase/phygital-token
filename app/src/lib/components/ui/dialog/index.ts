@@ -5,17 +5,4 @@ import Portal from './dialog-portal.svelte';
 import Title from './dialog-title.svelte';
 import Root from './dialog.svelte';
 
-export {
-	Root,
-	Title,
-	Portal,
-	Overlay,
-	Content,
-	Description,
-	Root as Dialog,
-	Title as DialogTitle,
-	Portal as DialogPortal,
-	Overlay as DialogOverlay,
-	Content as DialogContent,
-	Description as DialogDescription
-};
+export { Root, Title, Portal, Overlay, Content, Description };

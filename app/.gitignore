@@ -1,12 +1,8 @@
 node_modules
 
 # Output
-.output
-.vercel
-.netlify
 .wrangler
 /.svelte-kit
-/build
 
 # OS
 .DS_Store
@@ -24,8 +20,3 @@ vite.config.ts.timestamp-*
 
 # Wrangler secrets
 .dev.vars
-
-# Local dev accessory keys (local validator only)
-scripts/.dev-accessory.json
-
-# Browser simulation reports and screenshots

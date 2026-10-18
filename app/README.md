@@ -17,29 +17,16 @@ pnpm --filter revibase dev
 
 `.dev.vars` sets `SOLANA_RPC_URL`, `SESSION_SECRET` (32+ chars), `ORIGIN` and, optionally, `SOLANA_CLUSTER`. `RP_ID` in `wrangler.jsonc` is the WebAuthn relying party for accessory taps and must match the host the tap page is served from. `ORIGIN` is used to validate tap assertions.
 
-### Without hardware: local validator + software accessory
-
-```bash
-solana-test-validator --reset --bpf-program DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ target/deploy/phygital_token.so
-# app/.dev.vars: SOLANA_RPC_URL=http://127.0.0.1:8899  SOLANA_CLUSTER=localnet
-
-pnpm --filter revibase dev:accessory init
-pnpm --filter revibase dev:accessory add mine controlled   # bearer | controlled | permanent
-pnpm --filter revibase dev:accessory tap mine              # prints an NFC tap URL to open
-pnpm --filter revibase dev:accessory link mine             # claims it with a fresh wallet via Solana RPC
-```
-
 ## Test
 
 ```bash
 pnpm --filter revibase check      # svelte-check
 pnpm --filter revibase test       # unit tests (real SQL via node:sqlite)
-pnpm --filter revibase e2e:local  # direct claims and ownership rules against a fresh local validator
 ```
 
 ## Deploy
 
-Run `pnpm --filter revibase deploy` to build, then deploy. Production builds reject imports from test and script directories.
+Run `pnpm --filter revibase deploy` to build, then deploy. Production builds reject imports from test code.
 
 There is **one** D1 binding, `DB`. In production it can be shared with other services that accept the same tap URLs. Replace the placeholder `database_id` in `wrangler.jsonc` with your database's before deploying (`wrangler d1 create phygital-token`), and set `ORIGIN` to the app's public URL.
 

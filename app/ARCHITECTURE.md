@@ -58,6 +58,6 @@ Only NFT media queries persist locally. Shortcut caches include the owner addres
 | `src/lib/shared/link-transaction.ts` | Transaction construction and byte validation. |
 | `src/lib/client/link`, `wallet` | Claim, release, connector discovery, and signing. |
 | `src/lib/client/wallet/embed-host.ts`, `src/lib/shared/wallet-bridge.ts` | In-app browser and the wallet injected into it. |
-| `src/lib/components/app`, `src/routes` | UI, including `/accessory/link` and `/unlink/[pda]`. |
+| `src/lib/components/app`, `src/routes` | UI, including `/accessory/link`. |
 
 Never expose an RPC URL that contains a secret to the browser.
