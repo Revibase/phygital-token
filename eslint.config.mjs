@@ -33,7 +33,7 @@ export default tseslint.config(
       parserOptions: {
         projectService: {
           // Root-level config files that no package tsconfig includes.
-          allowDefaultProject: ["app/vite.browser-simulation.config.ts", "eslint.config.mjs"],
+          allowDefaultProject: ["eslint.config.mjs"],
         },
         tsconfigRootDir: import.meta.dirname,
         extraFileExtensions: [".svelte"],
@@ -98,14 +98,7 @@ export default tseslint.config(
   },
   {
     // Tests, fixtures and dev scripts poke at loosely typed mocks and JSON.
-    files: [
-      "**/__tests__/**",
-      "**/*.test.ts",
-      "**/test/**",
-      "**/testing/**",
-      "app/scripts/**",
-      "app/vite.browser-simulation.config.ts",
-    ],
+    files: ["**/__tests__/**", "**/*.test.ts", "**/test/**", "**/testing/**", "app/scripts/**"],
     rules: {
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/no-unsafe-assignment": "off",

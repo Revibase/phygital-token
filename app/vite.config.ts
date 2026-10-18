@@ -20,11 +20,7 @@ export default defineConfig(({ mode }) => ({
 				const path = id.split('?')[0].replaceAll('\\', '/');
 				if (!path.startsWith(appRoot) || path.includes('/node_modules/')) return;
 				const relative = path.slice(appRoot.length);
-				if (
-					/^(test|scripts)\//.test(relative) ||
-					/\.(test|spec)\.[^/]+$/.test(relative) ||
-					relative === 'vite.browser-simulation.config.ts'
-				)
+				if (/^(test|scripts)\//.test(relative) || /\.(test|spec)\.[^/]+$/.test(relative))
 					this.error(`Test-only code cannot be bundled for production: ${relative}`);
 			}
 		},

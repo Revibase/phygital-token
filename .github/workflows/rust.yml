@@ -60,4 +60,4 @@ jobs:
       - name: Generated IDL and clients are up to date
         run: |
           pnpm generate
-          git diff --exit-code -- idl packages/js/phygital-token/src/generated packages/rust/phygital-token
+          git diff --exit-code -- idl packages/js/phygital-token/src/generated

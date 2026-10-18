@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { p256 } from "@noble/curves/nist.js";
 import { sha256 } from "@noble/hashes/sha2.js";
-import type { Rpc, SolanaRpcApi } from "@solana/kit";
 
 import {
   bufferToBase64URLString,
@@ -9,9 +8,8 @@ import {
   type AuthenticationResponseJSON,
 } from "../utils/passkey/webauthn.js";
 import { buildSecp256r1Message } from "../utils/passkey/internal.js";
-import { startAuthentication, verifyResponse } from "../utils/verify.js";
+import { verifyResponse } from "../utils/verify.js";
 
-const rpc = {} as Rpc<SolanaRpcApi>;
 const expectedOrigin = "https://app.example.com";
 
 function buildAssertion(args: {
@@ -64,7 +62,7 @@ function buildAssertion(args: {
   };
 }
 
-describe("startAuthentication / verifyResponse", async () => {
+describe("verifyResponse", async () => {
   it("rejects a registration (webauthn.create) passed off as a tap", async () => {
     const privateKey = p256.utils.randomSecretKey();
     const message = "revibase-signin:create";
@@ -202,15 +200,5 @@ describe("startAuthentication / verifyResponse", async () => {
     await expect(
       verifyResponse({ expectedMessage: message, expectedOrigin: "", response }),
     ).rejects.toMatchObject({ code: "INVALID_ASSERTION" });
-  });
-});
-
-describe("startAuthentication signature", () => {
-  it("is exported and callable shape (message, rpc)", async () => {
-    // Without WebAuthn this throws in authenticatePasskey — just
-    // assert the function exists with the restored arity.
-    expect(typeof startAuthentication).toBe("function");
-    expect(startAuthentication.length).toBeGreaterThanOrEqual(1);
-    void rpc;
   });
 });

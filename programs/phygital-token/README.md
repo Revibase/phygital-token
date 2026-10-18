@@ -49,5 +49,5 @@ cargo test              # unit tests and LiteSVM integration tests (load target/
 ```
 
 From the repository root, `pnpm build:program` also regenerates the TypeScript
-and Rust clients from the IDL. Comparing a build with the deployed program is
+client from the IDL. Comparing a build with the deployed program is
 described in [`SECURITY.md`](../../SECURITY.md).

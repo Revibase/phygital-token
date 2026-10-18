@@ -15,16 +15,6 @@
           }
         }
       ]
-    },
-    "rust": {
-      "from": "@codama/renderers-rust",
-      "args": [
-        "packages/rust/phygital-token",
-        {
-          "generatedFolder": "src/generated",
-          "formatCode": true
-        }
-      ]
     }
   }
 }

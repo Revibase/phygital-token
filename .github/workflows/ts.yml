@@ -33,9 +33,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm --filter revibase exec wrangler types --check
       - run: pnpm test
-      - name: Build packages
-        run: |
-          pnpm --filter phygital-token-mcp build
-          pnpm --filter revibase build
+      - name: Build app
+        run: pnpm --filter revibase build
       - name: SDK public API report is up to date
         run: pnpm --filter phygital-token-sdk exec api-extractor run

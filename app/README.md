@@ -35,13 +35,11 @@ pnpm --filter revibase dev:accessory link mine             # claims it with a fr
 pnpm --filter revibase check      # svelte-check
 pnpm --filter revibase test       # unit tests (real SQL via node:sqlite)
 pnpm --filter revibase e2e:local  # direct claims and ownership rules against a fresh local validator
-pnpm --filter revibase dev:simulation  # UI preview without hardware, localhost:4187
-pnpm --filter revibase test:browser    # run with the simulation server active
 ```
 
 ## Deploy
 
-Run `pnpm --filter revibase deploy` to build, check the production output for test fixtures, then deploy. Production builds reject imports from test and script directories; the simulation configuration cannot build. Mockups are served only by the simulation server.
+Run `pnpm --filter revibase deploy` to build, then deploy. Production builds reject imports from test and script directories.
 
 There is **one** D1 binding, `DB`. In production it can be shared with other services that accept the same tap URLs. Replace the placeholder `database_id` in `wrangler.jsonc` with your database's before deploying (`wrangler d1 create phygital-token`), and set `ORIGIN` to the app's public URL.
 

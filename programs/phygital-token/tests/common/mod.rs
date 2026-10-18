@@ -12,7 +12,6 @@ mod remove_owner;
 mod secp256r1;
 mod set_owner;
 mod slots;
-mod spl;
 mod state;
 mod tx;
 mod verify;
@@ -36,7 +35,6 @@ use solana_signer::Signer;
 use solana_transaction::versioned::VersionedTransaction;
 
 pub use secp256r1::{current_slot_entry, TestPasskey};
-pub use spl::{DECIMALS, SPL_TOKEN, TOKEN_2022};
 
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 pub const TEST_RP_ID: &str = "localhost";

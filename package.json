@@ -14,15 +14,13 @@
     "test": "pnpm -r run test",
     "idl:sync": "cp target/idl/phygital_token.json idl/phygital_token.json",
     "generate:sdk": "codama run js && node packages/js/phygital-token/scripts/add-import-extensions.mjs",
-    "generate:rust-sdk": "codama run rust",
-    "generate": "pnpm idl:sync && pnpm generate:sdk && pnpm generate:rust-sdk",
+    "generate": "pnpm idl:sync && pnpm generate:sdk",
     "build:sdk": "pnpm --filter phygital-token-sdk build",
     "build:program": "NO_DNA=1 anchor build && pnpm generate && pnpm build:sdk"
   },
   "devDependencies": {
     "@codama/nodes-from-anchor": "^1.5.0",
     "@codama/renderers-js": "^2.2.0",
-    "@codama/renderers-rust": "^3.1.0",
     "@eslint/js": "10.0.1",
     "codama": "^1.7.0",
     "eslint": "10.12.0",

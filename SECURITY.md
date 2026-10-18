@@ -18,8 +18,6 @@ once a fix is ready.
 | On-chain program | [`programs/phygital-token`](programs/phygital-token) | Highest priority. Program id `DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ`. |
 | Web app and its server routes | [`app`](app) | Sessions, tap verification, and claiming. See [ARCHITECTURE.md](app/ARCHITECTURE.md). |
 | TypeScript SDK | [`packages/js/phygital-token`](packages/js/phygital-token) | Transaction building, passkey verification helpers. |
-| Rust CPI client | [`packages/rust/phygital-token`](packages/rust/phygital-token) | Generated from the IDL. |
-| MCP server | [`packages/mcp/phygital-token`](packages/mcp/phygital-token) | Read-only documentation and instruction planning. |
 
 Out of scope: denial of service through volume alone (rate limiting is handled
 at the edge), findings that require a compromised device or authenticator,

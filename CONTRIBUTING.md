@@ -41,9 +41,9 @@ pnpm --filter phygital-token-sdk api:check
   error codes are its public interface. Error variants are append-only: never
   reorder or remove one, because clients match on the numeric code.
 - After changing the program, run `pnpm build:program`. It rebuilds the program,
-  copies the IDL to `idl/` and regenerates the TypeScript and Rust clients.
+  copies the IDL to `idl/` and regenerates the TypeScript client.
   Commit the regenerated files; CI fails if they drift from the source.
-- Never edit `packages/*/*/src/generated/` by hand.
+- Never edit `packages/js/phygital-token/src/generated/` by hand.
 - Add a LiteSVM test in `programs/phygital-token/tests/` for every new check,
   including the failure path.
 
@@ -63,8 +63,6 @@ and has its own `CHANGELOG.md`:
 |----------|----------------|
 | On-chain program | `programs/phygital-token/Cargo.toml` (also in the IDL metadata) |
 | `phygital-token-sdk` | `packages/js/phygital-token/package.json` |
-| `phygital-token-client` | `packages/rust/phygital-token/Cargo.toml` |
-| `phygital-token-mcp` | `packages/mcp/phygital-token/package.json` |
 
 A program release that changes the IDL requires a new client release.
 

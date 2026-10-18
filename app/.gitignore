@@ -29,4 +29,3 @@ vite.config.ts.timestamp-*
 scripts/.dev-accessory.json
 
 # Browser simulation reports and screenshots
-/test/browser/results/
