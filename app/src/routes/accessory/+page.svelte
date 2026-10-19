@@ -197,9 +197,8 @@
 				{#if a.owner}<List label="Owner"
 						><WalletRow
 							address={a.owner}
-							label={owned ? 'Your wallet' : 'Another wallet'}
+							label={owned ? 'Your wallet' : undefined}
 							nftOwnership={media?.owner ? (media.owner === a.owner ? 'same' : 'different') : null}
-							cluster={data.cluster}
 							href={owned ? '/wallet' : undefined}
 						/></List
 					>{/if}
@@ -295,8 +294,8 @@
 	<CollectibleDialog
 		mint={a.mint}
 		{media}
-		cluster={data.cluster}
 		loading={mediaQuery.isPending}
+		cluster={data.cluster}
 		bind:open={nftOpen}
 	/>
 {/if}

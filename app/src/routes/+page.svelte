@@ -124,7 +124,6 @@
 				<WalletRow
 					address={walletStore.address}
 					label="Your wallet"
-					cluster={data.cluster}
 					href="/wallet"
 					value={balance}
 				/>

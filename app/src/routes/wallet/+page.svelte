@@ -80,7 +80,6 @@
 				<WalletAccount
 					address={walletStore.address}
 					label={walletStore.walletName ?? 'Your wallet'}
-					cluster={data.cluster}
 				/>
 				{#if total}<p
 						class="text-center text-[40px] leading-none font-semibold tracking-tight tabular-nums"

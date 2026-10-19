@@ -91,7 +91,7 @@
 		/>
 	{:else}
 		<List>
-			<WalletRow address={walletStore.address} label="Your wallet" {cluster} />
+			<WalletRow address={walletStore.address} label="Your wallet" />
 		</List>
 		{#if isOwner}
 			<Button variant="destructive" size="xl" class="w-full" disabled={busy} onclick={release}>

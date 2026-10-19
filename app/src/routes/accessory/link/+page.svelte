@@ -222,8 +222,7 @@
 						<List>
 							<WalletRow
 								address={linked.recipient}
-								label={ownedResult ? 'Your wallet' : 'Another wallet'}
-								cluster={data.cluster}
+								label={ownedResult ? 'Your wallet' : undefined}
 							/>
 						</List>
 					</div>
@@ -267,11 +266,7 @@
 						</div>
 						{#if walletStore.address}
 							<List>
-								<WalletRow
-									address={walletStore.address}
-									label="Your wallet"
-									cluster={data.cluster}
-								/>
+								<WalletRow address={walletStore.address} label="Your wallet" />
 							</List>
 							<Button
 								variant="quiet"
@@ -299,7 +294,7 @@
 						{/if}
 					{:else if view === 'confirm' && walletStore.address}
 						<List>
-							<WalletRow address={walletStore.address} label="Your wallet" cluster={data.cluster} />
+							<WalletRow address={walletStore.address} label="Your wallet" />
 						</List>
 					{/if}
 
