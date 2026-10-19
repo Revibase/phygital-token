@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import {
-	address,
 	appendTransactionMessageInstructions,
 	blockhash,
 	compileTransaction,
@@ -270,11 +269,7 @@ describe('Revibase fee payer relay', () => {
 		const send = await sendSol(w);
 		const signed = decodeTransaction(await relayed(w, [send])).message;
 		const recompile = (m: object) =>
-			new Uint8Array(
-				getTransactionEncoder().encode(
-					compileTransaction({ ...signed, ...m } as Parameters<typeof compileTransaction>[0])
-				)
-			);
+			new Uint8Array(getTransactionEncoder().encode(compileTransaction({ ...signed, ...m })));
 		expect(await inspectRelayedTransaction(recompile({ version: 0 }), ctx(w))).toEqual({
 			ok: false,
 			reason: 'only version 1 transactions are relayed'

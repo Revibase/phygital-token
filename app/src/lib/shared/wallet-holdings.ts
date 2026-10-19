@@ -104,9 +104,9 @@ async function fetchDasInventory(
 			signal: AbortSignal.timeout(10_000)
 		});
 		if (!response.ok) return null;
-		const body = (await response.json()) as {
+		const body = await response.json<{
 			result?: { items?: DasAsset[]; nativeBalance?: { price_per_sol?: number } };
-		};
+		}>();
 		if (!Array.isArray(body.result?.items)) return null;
 		const price = body.result.nativeBalance?.price_per_sol;
 		return {
