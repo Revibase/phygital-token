@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { cn } from '#lib/utils.ts';
-	import RevibaseMark from '#lib/brand/RevibaseMark.svelte';
+	import Nfc from '@lucide/svelte/icons/nfc';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { accessoryMediaQuery } from '#lib/client/queries.ts';
 
@@ -21,7 +21,8 @@
 	} = $props();
 
 	const box = { sm: 'size-12', md: 'size-20', lg: 'size-28', xl: 'size-28 lg:size-64' };
-	const mark = { sm: 'w-6', md: 'w-10', lg: 'w-14', xl: 'w-14 lg:w-28' };
+	// A tag glyph, not the Revibase logo: the header already carries the brand.
+	const mark = { sm: 'size-6', md: 'size-9', lg: 'size-12', xl: 'size-12 lg:size-24' };
 
 	const wantsMedia = $derived(!!pda && hasMint !== false);
 	const media = createQuery(() => ({ ...accessoryMediaQuery(pda ?? ''), enabled: wantsMedia }));
@@ -52,12 +53,15 @@
 				? 'bg-muted'
 				: mode === 'unverified'
 					? 'bg-muted text-muted-foreground/60'
-					: 'bg-brand bg-[linear-gradient(160deg,rgb(255_255_255/0.16),transparent_55%)] text-brand-cream',
+					: 'bg-accent bg-[linear-gradient(160deg,rgb(255_255_255/0.5),transparent_55%)] text-accent-foreground',
 			'shadow-[0_1px_1px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(14_26_26/0.35),inset_0_1px_0_rgb(255_255_255/0.28)]'
 		)}
 	>
 		{#if !showPlaceholder && !(showArtwork && loaded)}
-			<RevibaseMark class={cn(mark[size], resolved && hasMint === true && 'animate-rise')} />
+			<Nfc
+				strokeWidth={1.75}
+				class={cn(mark[size], resolved && hasMint === true && 'animate-rise')}
+			/>
 		{/if}
 		{#if showArtwork}
 			<img

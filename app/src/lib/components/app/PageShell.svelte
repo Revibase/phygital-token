@@ -4,7 +4,6 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
-	import RevibaseMark from '#lib/brand/RevibaseMark.svelte';
 	import WalletButton from './WalletButton.svelte';
 	import type { Cluster } from '#lib/client/wallet/wallet.svelte.ts';
 
@@ -54,19 +53,8 @@
 				>
 					<ChevronLeft class="-ml-1 size-5" />Back
 				</button>
-			{:else}
-				<a
-					href="/"
-					class="-mx-2 inline-flex h-11 items-center gap-2 rounded-lg px-2 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
-					aria-label="Revibase home"
-				>
-					<span class="grid size-6 place-items-center rounded-[26%] bg-brand text-brand-cream">
-						<RevibaseMark class="w-3.5" />
-					</span>
-					<span class="text-[15px] font-semibold tracking-[-0.01em]">Revibase</span>
-				</a>
 			{/if}
-			<div class="flex items-center gap-2">
+			<div class="ml-auto flex items-center gap-2">
 				{#if network}
 					<span
 						class="rounded-full bg-muted px-2.5 py-1 text-[12px] font-medium text-muted-foreground"
