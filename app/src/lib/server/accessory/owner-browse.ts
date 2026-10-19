@@ -1,7 +1,14 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { getBase58Encoder, type Rpc, type SolanaRpcApi } from '@solana/kit';
+import {
+	findVaultPda,
+	findWalletPda,
+	parsePasskeyMessageProof,
+	verifyPasskeyMessage,
+	walletSeed
+} from 'revibase-wallet-sdk';
 
-import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
+import { base64UrlToBytes, bytesEqual, bytesToBase64Url } from '#lib/shared/encoding.ts';
 import { fetchAccessory } from '../accessory/resolve';
 import { DEFAULT_PUBKEY } from '#lib/shared/accessory-view.ts';
 import { CHALLENGE_TTL_MS, consumeChallenge, isChallengeId, issueChallenge } from '../challenges';
@@ -59,16 +66,30 @@ export const issueOwnerLoginChallenge = (
 
 type Failure<C extends string> = { ok: false; status: number; code: C; error: string };
 
+/** Revibase Passkey sign-ins: only its signer's RP counts. */
+export type PasskeyLogin = { signerRpIdHash: Uint8Array };
+
 /**
  * Wallet login (owner session): the wallet signs a single-use
  * challenge with `solana:signMessage` once. The caller then sets the `os` cookie.
+ *
+ * Revibase Passkey signs with a secp256r1 passkey, not the address's key: its
+ * address is a vault PDA. It sends `passkeyPublicKey` and a WebAuthn proof
+ * instead of an ed25519 signature. The vault is derived from that key and our
+ * RP, so this works before the wallet exists on-chain.
  */
 export async function verifyOwnerLogin(
 	db: D1Database,
-	input: { challengeId?: unknown; address?: unknown; signature?: unknown },
-	now = Date.now()
+	input: {
+		challengeId?: unknown;
+		address?: unknown;
+		signature?: unknown;
+		passkeyPublicKey?: unknown;
+	},
+	now = Date.now(),
+	passkey: PasskeyLogin | null = null
 ): Promise<{ ok: true; wallet: string } | Failure<'bad_request' | 'too_slow' | 'bad_signature'>> {
-	const { challengeId, address, signature } = input;
+	const { challengeId, address, signature, passkeyPublicKey } = input;
 	if (!isChallengeId(challengeId) || typeof address !== 'string' || typeof signature !== 'string') {
 		return {
 			ok: false,
@@ -93,7 +114,10 @@ export async function verifyOwnerLogin(
 	try {
 		const pubkey = new Uint8Array(getBase58Encoder().encode(address));
 		const sig = base64UrlToBytes(signature);
-		if (
+		if (passkey && typeof passkeyPublicKey === 'string') {
+			if (await verifyPasskeyLogin(passkey, passkeyPublicKey, address, message, sig))
+				return { ok: true, wallet: address };
+		} else if (
 			pubkey.length === 32 &&
 			sig.length === 64 &&
 			ed25519.verify(sig, new TextEncoder().encode(message), pubkey)
@@ -159,4 +183,30 @@ export async function verifyOwnerBrowse(
 		pda: resolved.pda,
 		identifier: bytesToBase64Url(new Uint8Array(resolved.account.identifier[0]))
 	};
+}
+
+async function verifyPasskeyLogin(
+	passkey: PasskeyLogin,
+	publicKeyB64: string,
+	vault: string,
+	message: string,
+	proof: Uint8Array
+): Promise<boolean> {
+	const publicKey = base64UrlToBytes(publicKeyB64);
+	if (publicKey.length !== 33) return false;
+	// The vault this passkey controls on our RP (the program enforces the same seed).
+	const rpIdHash = passkey.signerRpIdHash;
+	const [wallet] = await findWalletPda({ userSeed: await walletSeed(publicKey, rpIdHash) });
+	const [derived] = await findVaultPda({ wallet });
+	if (derived !== vault) return false;
+	// verifyPasskeyMessage checks the challenge and signature; the RP and user presence are ours to check.
+	const { authenticatorData } = parsePasskeyMessageProof(proof);
+	if (authenticatorData.length < 37 || !bytesEqual(authenticatorData.subarray(0, 32), rpIdHash))
+		return false;
+	if ((authenticatorData[32] & 0x01) === 0) return false;
+	return verifyPasskeyMessage({
+		message: new TextEncoder().encode(message),
+		signature: proof,
+		publicKey
+	});
 }

@@ -2,9 +2,10 @@
 	import { onDestroy } from 'svelte';
 	import {
 		SolanaSignAndSendTransaction,
-		SolanaSignMessage,
 		type SolanaSignAndSendTransactionFeature,
-		type SolanaSignMessageFeature
+		SolanaSignMessage,
+		type SolanaSignMessageFeature,
+		SolanaSignTransaction
 	} from '@solana/wallet-standard-features';
 	import {
 		getBase58Encoder,
@@ -81,7 +82,12 @@
 			signer: {
 				account,
 				signTransaction: async (bytes, chain) => {
-					const outcome = await signWithWallet(requireAccount(chain), bytes);
+					const ctx = requireAccount(chain);
+					// Never fall back to sending: the dapp asked only for a signature.
+					// (Revibase Passkey can't return one: its fee payer signs last and sends.)
+					if (!(SolanaSignTransaction in ctx.wallet.features))
+						throw new Error('This wallet sends transactions itself; use signAndSendTransaction.');
+					const outcome = await signWithWallet(ctx, bytes);
 					if (outcome.kind !== 'signed')
 						throw new Error('This wallet submitted the transaction instead of returning it.');
 					return outcome.signedBytes;

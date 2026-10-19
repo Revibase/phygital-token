@@ -26,13 +26,32 @@ The URL’s `pk` is the chip identifier, not its WebAuthn passkey. Resolve it to
 - Validate the transaction bytes before and after signing. Keep the approved programs, accounts, recipient, slot, and assertion. Reject unexpected signers or lookup tables.
 - The program does not check origin or rpId on `set_owner`. The app checks both before it keeps a tap. Chip and passkey binding also depends on the issuer.
 - Stateful APIs require same-origin requests. Claim construction, signing, and submission use the browser’s Solana RPC.
-- `/api/tap/challenge`, `/api/tap/resume`, and `/api/owner/challenge` are rate-limited at the Cloudflare edge, not in the worker.
+- `/api/tap/challenge`, `/api/tap/resume`, `/api/owner/challenge` and `/api/fee-payer` are rate-limited at the Cloudflare edge, not in the worker.
 
 ## Claim
 
 On a phone, connect the wallet first, then prepare the challenge for that wallet before the tap. A desktop visit only shows a handoff to the phone, because the tap needs NFC. iOS WebAuthn needs a user gesture that does not wait on the network. The countdown estimates SlotHashes expiry (`TAP_WINDOW_MS`). The program is authoritative. If the assertion expires, the user taps again.
 
-Claim transactions are v0 with compute-budget instructions. Wallet discovery and signing use `@solana/connector`. Wallet Standard signs kit 8 transaction bytes directly, because the connector uses kit 7.
+Every transaction the app builds is v1 (up to 4096 bytes; a claim with two WebAuthn verifies doesn't reliably fit v0's 1232). Its compute limit, priority fee and loaded-data limit live in the message header (`LINK_TX_CONFIG`), not in compute-budget instructions; v1 budgets zero for an unset limit. Wallet discovery and signing use `@solana/connector`. Wallet Standard signs kit 8 transaction bytes directly, because the connector uses kit 7.
+
+## Revibase Passkey
+
+[revibase-wallet](https://github.com/jychab/revibase-wallet) is registered as a Wallet Standard wallet ("Revibase Passkey") when `SECURE_SIGNER_ORIGIN` and `FEE_PAYER_KEY` are set. Its keys live in the secure-signer iframe (`PasskeySignerHost`), which is shown only while it prompts. The page's Permissions-Policy delegates `publickey-credentials-get` to that origin.
+
+Its address is a vault PDA. The vault signs only through the wallet program's `execute`, after a secp256r1 passkey assertion, and it can't pay fees. Nothing is sponsored: the server only relays.
+
+- **Address.** The wallet is `["wallet", sha256(public key ‖ RP ID hash)]`, and `create_wallet` enforces that seed. The address is known as soon as the passkey exists, so it can be funded first. No one can create it with another key or RP. Connecting creates nothing on-chain.
+- **Connect.** The signer asks "Use my passkey" or "Create a new wallet" (no username). Creating writes credential ID → public key to the signer's credential map before the wallet is shown. Signing in on a new device looks the key up by the sign-in's credential ID and verifies that sign-in's signature with it.
+- **Fees.** The adapter appends one System transfer from the vault to the fee payer: the network fee (5000 lamports per signature, precompiles included, plus the priority fee), plus the wallet config's rent on its first transaction. On that first transaction, `create_wallet` (rent fronted by the fee payer) goes before everything else. `POST /api/fee-payer` (`server/fee-payer/policy.ts`) accepts only `[create_wallet?, secp256r1+, execute]` (v1, no compute-budget instructions, bounded limit and priority fee):
+  - the fee payer is the outer fee payer, `create_wallet`'s payer, and the destination of exactly one transfer, and appears nowhere else
+  - only the vault signs inside `execute`
+  - any calls are allowed, because the user pays.
+
+  It simulates and requires the fee payer to break even exactly (payment = fee + the rent actually taken), then signs last and submits. The signature is only returned once the transaction has been submitted. A transaction that fails on-chain costs the fee payer its fee (the repayment rolls back); that risk is accepted.
+- **Claim.** The app builds the usual claim. The adapter keeps the tap's `secp256r1_verify` at the top level and wraps `set_owner`: v1 `[create_wallet?, secp256r1(wallet), secp256r1(tap), execute(set_owner, repayment)]`. Inside the CPI, `set_owner`'s `-1` still finds the tap. The claim page checks the vault can pay (fee plus any setup) before asking for a tap.
+- **Sign-in.** `signMessage` returns a WebAuthn proof, not an ed25519 signature. The client sends the passkey's public key; the server derives the vault from it and our RP (no on-chain read, so it works before the wallet exists) and checks the RP, user presence and signature.
+- **Transfers.** `/wallet` sends SOL and fungible tokens the same way for every wallet (`shared/wallet-transfer.ts`), and every cost comes out of the sending wallet. The signer prompt shows the repayment as "Network fee" and, on the first transaction, "Wallet setup (one time)".
+- The passkey wallet only offers `signAndSendTransaction`: the fee payer never hands out its signature. An embedded dapp asking it for `signTransaction` gets a clear error, and nothing is sent.
 
 ## Shortcuts
 
@@ -58,6 +77,8 @@ Only NFT media queries persist locally. Shortcut caches include the owner addres
 | `src/lib/shared/link-transaction.ts` | Transaction construction and byte validation. |
 | `src/lib/client/link`, `wallet` | Claim, release, connector discovery, and signing. |
 | `src/lib/client/wallet/embed-host.ts`, `src/lib/shared/wallet-bridge.ts` | In-app browser and the wallet injected into it. |
-| `src/lib/components/app`, `src/routes` | UI, including `/accessory/link`. |
+| `src/lib/client/wallet/{passkey.svelte,passkey-cost}.ts`, `src/lib/shared/passkey-transaction.ts`, `src/lib/server/fee-payer` | Revibase Passkey: registration, its costs, unwrapping `execute`, the relaying fee payer. |
+| `src/lib/shared/wallet-{transfer,fee,holdings}.ts`, `src/lib/client/wallet/send.ts` | `/wallet`: balances, transfers, and who pays the fee. |
+| `src/lib/components/app`, `src/routes` | UI, including `/accessory/link` and `/wallet`. |
 
 Never expose an RPC URL that contains a secret to the browser.

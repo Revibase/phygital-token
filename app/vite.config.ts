@@ -69,6 +69,9 @@ export default defineConfig(({ mode }) => ({
 		projects: [
 			{
 				extends: './vite.config.ts',
+				resolve: {
+					alias: { 'cloudflare:workers': `${appRoot}test/support/cloudflare-workers.ts` }
+				},
 				test: {
 					name: 'server',
 					environment: 'node',

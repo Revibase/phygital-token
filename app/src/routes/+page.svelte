@@ -13,7 +13,9 @@
 	import WalletConnect from '#lib/components/app/WalletConnect.svelte';
 	import WalletRow from '#lib/components/app/WalletRow.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { walletAccessoriesQuery } from '#lib/client/queries.ts';
+	import { walletAccessoriesQuery, walletHoldingsQuery } from '#lib/client/queries.ts';
+	import { formatCompactTokenAmount, SOL_DECIMALS } from '#lib/shared/amount.ts';
+	import { formatUsd, portfolioUsd } from '#lib/shared/wallet-holdings.ts';
 	import { loginOwner, openOwnedAccessory } from '#lib/client/accessory/open-owned.ts';
 	import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
@@ -40,6 +42,20 @@
 		listQuery.isError && !listQuery.data ? describeError(listQuery.error) : null
 	);
 	const reload = () => void listQuery.refetch();
+
+	// The wallet row shows what it holds and opens the wallet page.
+	const holdingsQuery = createQuery(() => ({
+		...walletHoldingsQuery(walletStore.address ?? ''),
+		enabled: !!walletStore.address
+	}));
+	const balance = $derived.by(() => {
+		const holdings = walletStore.address ? holdingsQuery.data : undefined;
+		if (!holdings) return undefined;
+		const usd = portfolioUsd(holdings);
+		return usd !== null
+			? formatUsd(usd)
+			: `${formatCompactTokenAmount(holdings.lamports, SOL_DECIMALS)} SOL`;
+	});
 
 	// The one signature: it logs this browser in, so opening accessories never asks again.
 	// Declining it cancels the connection and returns to the wallet picker.
@@ -110,6 +126,8 @@
 					label={walletStore.walletName ?? 'Your wallet'}
 					icon={walletStore.walletIcon}
 					cluster={data.cluster}
+					href="/wallet"
+					value={balance}
 				/>
 			</List>
 

@@ -10,6 +10,7 @@ import {
 } from '@solana/wallet-standard-features';
 
 import { platform } from '../capability';
+import { passkeyFeePayer } from './passkey.svelte';
 import { bytesToBase64Url } from '#lib/shared/encoding.ts';
 
 export type Cluster = 'mainnet' | 'devnet' | 'testnet' | 'localnet';
@@ -26,6 +27,12 @@ export type SigningContext = {
 	account: WalletAccount;
 	address: string;
 	chain: `solana:${string}`;
+	/**
+	 * Who pays the network fee: the wallet itself, or for Revibase Passkey (whose
+	 * address is a PDA) the Revibase fee payer. `passkey` is true in that case.
+	 */
+	feePayer: string;
+	passkey: boolean;
 };
 
 /**
@@ -138,11 +145,15 @@ class WalletStore {
 		if (!this.#client || w?.status !== 'connected') throw new Error('Connect a wallet first.');
 		const wallet = this.#client.getConnector(w.session.connectorId);
 		if (!wallet) throw new Error('This wallet is no longer available.');
+		const address = String(w.session.selectedAccount.address);
+		const sponsor = passkeyFeePayer(wallet.name);
 		return {
 			wallet,
 			account: w.session.selectedAccount.account,
-			address: String(w.session.selectedAccount.address),
-			chain: `solana:${this.#cluster === 'localnet' ? 'localnet' : this.#cluster}`
+			address,
+			chain: `solana:${this.#cluster === 'localnet' ? 'localnet' : this.#cluster}`,
+			feePayer: sponsor ?? address,
+			passkey: sponsor !== null
 		};
 	}
 }

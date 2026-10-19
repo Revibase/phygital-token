@@ -1,6 +1,7 @@
 import { PhygitalTokenError, type PhygitalTokenErrorCode } from 'phygital-token-sdk';
 import { ApiClientError } from '../api';
 import { LinkTransactionRejected } from '#lib/shared/link-transaction.ts';
+import { TransferRejected } from '#lib/shared/wallet-transfer.ts';
 import { fromSendError } from '#lib/shared/link-errors.ts';
 import type { LinkErrorCode, TapFailureReason } from '#lib/shared/types.ts';
 
@@ -100,6 +101,32 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 				title: 'This session expired',
 				body: err.message
 			};
+		if (err.code === 'fee_payer_refused') {
+			return {
+				title: 'This transaction couldn’t be sent',
+				body: 'Nothing was changed.',
+				detail: err.message
+			};
+		}
+		if (err.code === 'transaction_changed') {
+			return {
+				title: 'Something changed',
+				body: 'Nothing was sent. Review and try again.',
+				detail: err.message
+			};
+		}
+		if (err.code === 'fee_payer_unavailable') {
+			return {
+				title: 'Revibase can’t send transactions right now',
+				body: 'Nothing was sent. Please try again later.'
+			};
+		}
+		if (err.code === 'submit_unknown') {
+			return {
+				title: 'We couldn’t confirm whether this went through',
+				body: 'Check your balance before trying again, so nothing is sent twice.'
+			};
+		}
 		if (err.code === 'forbidden' || err.code === 'not_found' || err.code === 'conflict') {
 			return {
 				title: 'This link isn’t active anymore',
@@ -118,6 +145,13 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 		return {
 			title: 'We stopped an unexpected transaction',
 			body: 'What your wallet was asked to sign didn’t match this link, so nothing was sent.',
+			detail: err.message
+		};
+	}
+	if (err instanceof TransferRejected) {
+		return {
+			title: 'We stopped this transfer',
+			body: 'What your wallet signed didn’t match what you asked to send, so nothing was sent.',
 			detail: err.message
 		};
 	}

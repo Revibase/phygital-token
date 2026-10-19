@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { recentWallet } from '#lib/client/memory.ts';
 	import type { WalletOption } from '#lib/client/wallet/wallet.svelte.ts';
+	import { PASSKEY_WALLET_HINT, PASSKEY_WALLET_NAME } from '#lib/client/wallet/passkey.svelte.ts';
 	import EmptyState from './EmptyState.svelte';
 	import List from './List.svelte';
 	import ListRow from './ListRow.svelte';
@@ -39,7 +40,9 @@
 					? 'Connecting…'
 					: wallet.name === recent
 						? 'Recent'
-						: undefined}
+						: wallet.name === PASSKEY_WALLET_NAME
+							? PASSKEY_WALLET_HINT
+							: undefined}
 				onclick={() => onpick(wallet.id)}
 				busy={connecting === wallet.id}
 				disabled={(!!connecting && connecting !== wallet.id) || !wallet.ready}

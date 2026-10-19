@@ -2,6 +2,10 @@ import { error } from '@sveltejs/kit';
 import { env } from 'cloudflare:workers';
 import { createSolanaRpc, type Rpc, type SolanaRpcApi } from '@solana/kit';
 
+import { passkeyEnv, type PasskeyEnv } from './passkey-env';
+
+export { passkeyEnv };
+
 export type ServerEnv = {
 	db: D1Database;
 	rpcUrl: string;
@@ -10,6 +14,8 @@ export type ServerEnv = {
 	/** Public application origin used for tap assertion validation. */
 	origin: string;
 	cluster: string;
+	/** Revibase Passkey: the secure-signer origin, and the key that pays its fees. Both or neither. */
+	passkey: PasskeyEnv | null;
 };
 
 export function getEnv(): ServerEnv {
@@ -22,7 +28,8 @@ export function getEnv(): ServerEnv {
 		sessionSecret: secret,
 		rpId: env.RP_ID,
 		origin: env.ORIGIN,
-		cluster: env.SOLANA_CLUSTER
+		cluster: env.SOLANA_CLUSTER,
+		passkey: passkeyEnv(env.SECURE_SIGNER_ORIGIN, env.FEE_PAYER_KEY)
 	};
 }
 

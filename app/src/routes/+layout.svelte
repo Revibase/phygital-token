@@ -2,6 +2,7 @@
 	import './layout.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import { Toaster } from '#lib/components/ui/sonner/index.ts';
+	import PasskeySignerHost from '#lib/components/app/PasskeySignerHost.svelte';
 	import { configureRpc } from '#lib/client/rpc.ts';
 	import { PersistQueryClientProvider } from '@tanstack/svelte-query-persist-client';
 	import { queryClient, persistOptions } from '#lib/client/cache.ts';
@@ -28,3 +29,6 @@
 <PersistQueryClientProvider client={queryClient} {persistOptions}>
 	{@render children()}
 </PersistQueryClientProvider>
+{#if data.passkeySigner && data.rpcUrl}
+	<PasskeySignerHost config={data.passkeySigner} rpcUrl={data.rpcUrl} />
+{/if}

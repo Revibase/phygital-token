@@ -3,6 +3,10 @@ import { queryOptions } from '@tanstack/svelte-query';
 import { fetchAccessoryMedia } from './media';
 import { fetchAccessoryShortcuts } from './shortcuts';
 import { fetchWalletAccessories } from './wallet-accessories';
+import { browserRpc, rpcUrl } from './rpc';
+import { address } from '@solana/kit';
+import { fetchWalletHoldings } from '#lib/shared/wallet-holdings.ts';
+import { walletSetupFor } from './wallet/passkey-cost';
 import { queryKeys } from './cache';
 
 // Persist NFT media only; shortcuts and wallet lists must follow current linkage.
@@ -26,6 +30,26 @@ export const accessoryShortcutsQuery = (pda: string, owner: string | null) =>
 		queryFn: fetchAccessoryShortcuts,
 		staleTime: 10 * MINUTE,
 		gcTime: HOUR,
+		retry: 1
+	});
+
+/** SOL and fungible tokens; kept fresh rather than persisted. */
+export const walletHoldingsQuery = (wallet: string) =>
+	queryOptions({
+		queryKey: queryKeys.walletHoldings(wallet),
+		queryFn: () => fetchWalletHoldings(browserRpc(), rpcUrl(), address(wallet)),
+		staleTime: 15_000,
+		gcTime: 5 * MINUTE,
+		retry: 1
+	});
+
+/** A passkey wallet's one-time setup cost (0 once it exists, or for other wallets). */
+export const walletSetupQuery = (wallet: string) =>
+	queryOptions({
+		queryKey: queryKeys.walletSetup(wallet),
+		queryFn: () => walletSetupFor(wallet),
+		staleTime: 15_000,
+		gcTime: 5 * MINUTE,
 		retry: 1
 	});
 

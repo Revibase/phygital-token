@@ -1,6 +1,7 @@
 import { goto } from '$app/navigation';
 
 import { ApiClientError, postJson } from '../api';
+import { passkeyPublicKeyFor } from '../wallet/passkey.svelte';
 import { signMessageWithWallet, walletStore, type SigningContext } from '../wallet/wallet.svelte';
 
 /** Log in with the wallet: one Sign-In With Solana message (not a transaction), then the server remembers this browser. */
@@ -10,7 +11,14 @@ export async function loginOwner(ctx: SigningContext): Promise<void> {
 		{ address: ctx.address }
 	);
 	const signature = await signMessageWithWallet(ctx, message);
-	await postJson('/api/owner/session', { challengeId, address: ctx.address, signature });
+	// Revibase Passkey signs with a passkey; the server derives the vault from its public key.
+	const passkeyPublicKey = ctx.passkey ? passkeyPublicKeyFor(ctx.address) : null;
+	await postJson('/api/owner/session', {
+		challengeId,
+		address: ctx.address,
+		signature,
+		...(passkeyPublicKey ? { passkeyPublicKey } : {})
+	});
 }
 
 /** Open an accessory the wallet owns. Signs only if this browser isn't logged in as that wallet. */

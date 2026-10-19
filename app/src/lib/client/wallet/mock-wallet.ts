@@ -2,6 +2,7 @@ import { ed25519 } from '@noble/curves/ed25519.js';
 import type { WalletAccount } from '@wallet-standard/base';
 import { StandardConnect, StandardDisconnect, StandardEvents } from '@wallet-standard/features';
 import { SolanaSignMessage, SolanaSignTransaction } from '@solana/wallet-standard-features';
+import { getTransactionDecoder, getTransactionEncoder, type SignatureBytes } from '@solana/kit';
 
 const KEY = 'revibase-dev-wallet-secret-v1';
 const SESSION_KEY = 'revibase-dev-wallet-secret-v1';
@@ -28,45 +29,23 @@ function getSecretKey(): Uint8Array {
 	return secretKey;
 }
 
-function readShortVec(bytes: Uint8Array, start: number): { value: number; next: number } {
-	let value = 0;
-	let shift = 0;
-	let offset = start;
-	while (offset < bytes.length && shift <= 16) {
-		const byte = bytes[offset++];
-		value |= (byte & 0x7f) << shift;
-		if ((byte & 0x80) === 0) return { value, next: offset };
-		shift += 7;
+/** Sign as `address` with kit's codec, which reads every version (v1 puts its signatures elsewhere). */
+function signWireTransaction(transaction: Uint8Array, address: string, secretKey: Uint8Array) {
+	let tx;
+	try {
+		tx = getTransactionDecoder().decode(transaction);
+	} catch {
+		throw new Error('Malformed Solana transaction.');
 	}
-	throw new Error('Malformed Solana transaction.');
-}
-
-function signWireTransaction(
-	transaction: Uint8Array,
-	publicKey: Uint8Array,
-	secretKey: Uint8Array
-) {
-	const signatures = readShortVec(transaction, 0);
-	const messageStart = signatures.next + signatures.value * 64;
-	if (messageStart >= transaction.length) throw new Error('Malformed Solana transaction.');
-	let offset = messageStart;
-	if ((transaction[offset] & 0x80) !== 0) offset++;
-	const requiredSignatures = transaction[offset];
-	const accountKeys = readShortVec(transaction, offset + 3);
-	if (signatures.value !== requiredSignatures)
-		throw new Error('The development wallet can only sign fully populated transactions.');
-	let signerIndex = -1;
-	for (let i = 0; i < requiredSignatures; i++) {
-		const keyStart = accountKeys.next + i * 32;
-		if (keyStart + 32 > transaction.length) throw new Error('Malformed Solana transaction.');
-		if (publicKey.every((byte, j) => transaction[keyStart + j] === byte)) signerIndex = i;
-	}
-	if (signerIndex === -1)
+	if (!(address in tx.signatures))
 		throw new Error('The development wallet is not a signer for this transaction.');
-	const signed = transaction.slice();
-	const signature = ed25519.sign(signed.subarray(messageStart), secretKey);
-	signed.set(signature, signatures.next + signerIndex * 64);
-	return signed;
+	const signature = ed25519.sign(new Uint8Array(tx.messageBytes), secretKey) as SignatureBytes;
+	return new Uint8Array(
+		getTransactionEncoder().encode({
+			...tx,
+			signatures: { ...tx.signatures, [address]: signature }
+		})
+	);
 }
 
 /** Register a persistent Wallet Standard test wallet for local development only. */
@@ -131,7 +110,7 @@ export async function registerDevMockWallet() {
 				supportedTransactionVersions: ['legacy', 0, 1] as const,
 				signTransaction: async (...inputs: { account: WalletAccount; transaction: Uint8Array }[]) =>
 					inputs.map(({ transaction }) => ({
-						signedTransaction: signWireTransaction(transaction, publicKey, key)
+						signedTransaction: signWireTransaction(transaction, address, key)
 					}))
 			}
 		}

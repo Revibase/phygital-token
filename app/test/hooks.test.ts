@@ -1,16 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
 import { handle } from '../src/hooks.server';
+import { env } from './support/cloudflare-workers';
 
 const APP = 'https://portal.revibase.test';
 
-async function call(path: string, init: { method?: string; origin?: string } = {}) {
+async function call(
+	path: string,
+	init: { method?: string; origin?: string; env?: Record<string, string> } = {}
+) {
 	const url = new URL(path, APP);
 	const request = new Request(url, {
 		method: init.method ?? 'POST',
 		headers: init.origin ? { origin: init.origin } : {}
 	});
-	const event = { request, url, locals: {}, platform: { env: {} } };
+	for (const key of Object.keys(env)) delete env[key];
+	Object.assign(env, init.env);
+	const event = { request, url, locals: {} };
 	const resolve = async () =>
 		new Response('{}', { headers: { 'content-security-policy': "default-src 'self'" } });
 	return handle({ event, resolve } as never);
@@ -34,5 +40,18 @@ describe('hooks', () => {
 		expect(page.headers.get('content-security-policy')).toBe("default-src 'self'");
 		expect(page.headers.get('permissions-policy')).toContain('publickey-credentials-get=(self)');
 		expect(page.headers.get('permissions-policy')).not.toContain('publickey-credentials-create');
+	});
+
+	it('lets the Revibase Passkey signer frame use passkeys only when it is configured', async () => {
+		const signer = 'https://signer.revibase.test';
+		const on = await call('/', {
+			method: 'GET',
+			env: { SECURE_SIGNER_ORIGIN: signer, FEE_PAYER_KEY: 'key' }
+		});
+		expect(on.headers.get('permissions-policy')).toContain(
+			`publickey-credentials-get=(self "${signer}")`
+		);
+		const off = await call('/', { method: 'GET', env: { SECURE_SIGNER_ORIGIN: signer } });
+		expect(off.headers.get('permissions-policy')).toContain('publickey-credentials-get=(self)');
 	});
 });

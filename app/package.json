@@ -13,9 +13,9 @@
 		"deploy": "pnpm build && wrangler deploy",
 		"preview": "wrangler dev .svelte-kit/cloudflare/_worker.js --port 4173",
 		"prepare": "svelte-kit sync || echo ''",
-		"check": "wrangler types --check && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check": "wrangler types --check --env-file .dev.vars.example && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"gen": "wrangler types",
+		"gen": "wrangler types --env-file .dev.vars.example",
 		"test:unit": "vitest",
 		"test": "vitest --run",
 		"db:migrate:local": "wrangler d1 migrations apply DB --local",
@@ -52,6 +52,7 @@
 		"@solana-mobile/wallet-standard-mobile": "^0.7.0",
 		"@solana-program/compute-budget": "^0.20.0",
 		"@solana-program/system": "^0.16.0",
+		"@solana-program/token": "^0.18.0",
 		"@solana/connector": "^0.3.0",
 		"@solana/kit": "^8.5.0",
 		"@solana/wallet-standard-features": "^1.5.0",
@@ -62,7 +63,8 @@
 		"@wallet-standard/base": "^1.1.1",
 		"@wallet-standard/features": "^1.1.1",
 		"phygital-token-sdk": "workspace:*",
-		"qrcode": "^1.5.4"
+		"qrcode": "^1.5.4",
+		"revibase-wallet-sdk": "file:../../revibase-wallet/packages/js/revibase-wallet"
 	},
 	"engines": {
 		"node": ">=22.12.0"

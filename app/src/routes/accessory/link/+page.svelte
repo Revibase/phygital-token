@@ -31,8 +31,16 @@
 		rememberWallet
 	} from '#lib/client/memory.ts';
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
+	import { PASSKEY_WALLET_NAME } from '#lib/client/wallet/passkey.svelte.ts';
+	import { walletHoldingsQuery, walletSetupQuery } from '#lib/client/queries.ts';
+	import ReceiveSheet from '#lib/components/app/ReceiveSheet.svelte';
+	import { createQuery } from '@tanstack/svelte-query';
+	import { formatCompactTokenAmount, SOL_DECIMALS } from '#lib/shared/amount.ts';
 	import { shortAddress } from '#lib/shared/encoding.ts';
 	import { explorerUrl } from '#lib/shared/explorer.ts';
+	import { LINK_TX_CONFIG } from '#lib/shared/fee-policy.ts';
+	import { networkFeeLamports } from '#lib/shared/wallet-fee.ts';
+	import { SYSTEM_ACCOUNT_RENT_LAMPORTS } from '#lib/shared/wallet-transfer.ts';
 
 	let { data } = $props();
 	const accessory = $derived(data.accessory);
@@ -48,6 +56,34 @@
 	let hint = $state('Tap Approve, then hold your accessory to your phone.');
 	let webauthnOk = $state(true);
 	let device = $state<'pending' | 'desktop' | 'mobile'>('pending');
+
+	// Revibase Passkey pays its claim itself (fee, plus its one-time setup on its
+	// first transaction), so check the wallet can before asking for a tap.
+	const passkey = $derived(walletStore.walletName === PASSKEY_WALLET_NAME);
+	const fundingEnabled = $derived(passkey && !!walletStore.address && !linked);
+	const balanceQuery = createQuery(() => ({
+		...walletHoldingsQuery(walletStore.address ?? ''),
+		enabled: fundingEnabled,
+		refetchInterval: 5_000
+	}));
+	const setupQuery = createQuery(() => ({
+		...walletSetupQuery(walletStore.address ?? ''),
+		enabled: fundingEnabled
+	}));
+	/** SOL still to add before this wallet can claim, or 0. */
+	const shortBy = $derived.by(() => {
+		if (!fundingEnabled || !balanceQuery.data || setupQuery.data === undefined) return 0n;
+		// Fee payer + the wallet's check + the tap's check.
+		const cost = networkFeeLamports(3, LINK_TX_CONFIG) + setupQuery.data;
+		const held = balanceQuery.data.lamports;
+		if (held < cost) return cost - held;
+		const left = held - cost;
+		// What stays must be nothing or keep the account open.
+		return left !== 0n && left < SYSTEM_ACCOUNT_RENT_LAMPORTS
+			? SYSTEM_ACCOUNT_RENT_LAMPORTS - left
+			: 0n;
+	});
+	let receiving = $state(false);
 
 	type View = 'pending' | 'phone' | 'choose' | 'tap' | 'confirm' | 'done';
 	const view = $derived.by((): View => {
@@ -261,6 +297,17 @@
 								onclick={() => void walletStore.disconnect()}>Use a different wallet</Button
 							>
 						{/if}
+						{#if shortBy > 0n}
+							<Notice
+								tone="info"
+								title="Add SOL to your wallet to claim"
+								body={`Your wallet pays a small network fee${setupQuery.data ? ' and its one-time setup' : ''}. Add ${formatCompactTokenAmount(shortBy, SOL_DECIMALS)} SOL to continue.`}
+							>
+								{#snippet actions()}<Button variant="secondary" onclick={() => (receiving = true)}
+										>Receive</Button
+									>{/snippet}
+							</Notice>
+						{/if}
 						{#if !webauthnOk}
 							<Notice
 								title="Open this page in Safari or Chrome"
@@ -298,7 +345,12 @@
 					rel="noopener noreferrer">View transaction</Button
 				>
 			{:else if view === 'tap' && webauthnOk}
-				<Button size="xl" class="w-full" disabled={tapping || !prepared} onclick={tap}>
+				<Button
+					size="xl"
+					class="w-full"
+					disabled={tapping || !prepared || shortBy > 0n}
+					onclick={tap}
+				>
 					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !prepared}<Spinner /> Preparing…{:else}Approve{/if}
 				</Button>
 			{:else if view === 'confirm' && walletStore.address}
@@ -315,3 +367,7 @@
 		</div>
 	{/snippet}
 </PageShell>
+
+{#if walletStore.address && passkey}
+	<ReceiveSheet bind:open={receiving} address={walletStore.address} cluster={data.cluster} />
+{/if}

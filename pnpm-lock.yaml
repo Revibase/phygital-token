@@ -86,6 +86,9 @@ importers:
       '@solana-program/system':
         specifier: ^0.16.0
         version: 0.16.0(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6))
+      '@solana-program/token':
+        specifier: ^0.18.0
+        version: 0.18.0(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6))
       '@solana/connector':
         specifier: ^0.3.0
         version: 0.3.0(@solana/web3.js@1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6))(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(react-dom@19.3.1(react@19.3.0))(react-native@0.87.1(@babel/core@7.29.7)(bufferutil@4.1.0)(react@19.3.0)(utf-8-validate@6.0.6))(react@19.3.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
@@ -119,6 +122,9 @@ importers:
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
+      revibase-wallet-sdk:
+        specifier: file:../../revibase-wallet/packages/js/revibase-wallet
+        version: file:../revibase-wallet/packages/js/revibase-wallet(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6))
     devDependencies:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
@@ -1105,6 +1111,11 @@ packages:
 
   '@solana-program/system@0.16.0':
     resolution: {integrity: sha512-/RG6q2E2vG/XpdOt8Jj/kbQktPlL5JyJuNGAeN9wDcxKDKQtrGTJpDrJgQUxiEy23fsPNXQbLN8XeCtYoMof3Q==}
+    peerDependencies:
+      '@solana/kit': ^8.5.0
+
+  '@solana-program/token@0.18.0':
+    resolution: {integrity: sha512-YNN13I4BxBnGPGk0NzP/LLQMCmJVdunbtgqjl7/Gfp1fDXQrKXh9df8xu+2ayNdvjGJYC4c9D5vZpVetHdyJaQ==}
     peerDependencies:
       '@solana/kit': ^8.5.0
 
@@ -3788,6 +3799,12 @@ packages:
     engines: {node: '>= 0.4'}
     hasBin: true
 
+  revibase-wallet-sdk@file:../revibase-wallet/packages/js/revibase-wallet:
+    resolution: {directory: ../revibase-wallet/packages/js/revibase-wallet, type: directory}
+    engines: {node: '>=20.18.0'}
+    peerDependencies:
+      '@solana/kit': ^8.3.0
+
   rolldown@1.2.14:
     resolution: {integrity: sha512-eTBTTqMR6uHKLgcUqpJP8ntzDI6V4LYA8negAMBEI7gkgVvOdrx6VsvS2Ym+83KhOPdLCHWJu0w7UQFJZhHKNw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -5239,6 +5256,11 @@ snapshots:
 
   '@solana-program/system@0.16.0(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6))':
     dependencies:
+      '@solana/kit': 8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6)
+
+  '@solana-program/token@0.18.0(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6))':
+    dependencies:
+      '@solana-program/system': 0.16.0(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6))
       '@solana/kit': 8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6)
 
   '@solana/accounts@7.1.1(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)':
@@ -8239,6 +8261,15 @@ snapshots:
       is-core-module: 2.17.0
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
+
+  revibase-wallet-sdk@file:../revibase-wallet/packages/js/revibase-wallet(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6)):
+    dependencies:
+      '@noble/curves': 2.4.0
+      '@solana/kit': 8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6)
+      '@solana/wallet-standard-features': 1.5.0
+      '@wallet-standard/app': 1.1.1
+      '@wallet-standard/base': 1.1.1
+      '@wallet-standard/features': 1.1.1
 
   rolldown@1.2.14:
     dependencies:

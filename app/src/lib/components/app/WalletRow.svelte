@@ -20,7 +20,8 @@
 		cluster = null,
 		nftOwnership = null,
 		onforget,
-		href
+		href,
+		value
 	}: {
 		address: string;
 		label: string;
@@ -32,6 +33,8 @@
 		nftOwnership?: 'same' | 'different' | null;
 		/** Opens this wallet's own page instead of the options menu. */
 		href?: string;
+		/** A trailing figure, such as the wallet's balance. */
+		value?: string;
 	} = $props();
 	function copyAddress() {
 		return copyText(address, 'Wallet address copied');
@@ -73,6 +76,7 @@
 	detail={shortAddress(address)}
 	subdetail={context ?? undefined}
 	{href}
+	{value}
 	chevron={!!href}
 	trailing={href ? undefined : menu}
 >

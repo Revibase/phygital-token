@@ -5,17 +5,15 @@ import {
 	compileTransaction,
 	createNoopSigner,
 	createTransactionMessage,
-	decompileTransactionMessage,
 	getBase58Decoder,
 	getBase64EncodedWireTransaction,
-	getCompiledTransactionMessageDecoder,
 	getTransactionDecoder,
 	getTransactionEncoder,
 	pipe,
+	setTransactionMessageConfig,
 	setTransactionMessageFeePayer,
 	setTransactionMessageLifetimeUsingBlockhash
 } from '@solana/kit';
-import { getSetComputeUnitPriceInstruction } from '@solana-program/compute-budget';
 import {
 	authenticatePasskeyForTransfer,
 	beginTransfer,
@@ -26,7 +24,7 @@ import {
 	type TransferSession
 } from 'phygital-token-sdk';
 import { bytesEqual } from '#lib/shared/encoding.ts';
-import { LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS } from '#lib/shared/fee-policy.ts';
+import { LINK_TX_CONFIG } from '#lib/shared/fee-policy.ts';
 import {
 	buildLinkTransactionFromTap,
 	expectationFromTap,
@@ -34,6 +32,7 @@ import {
 	type LinkTap,
 	validateLinkTransaction
 } from '#lib/shared/link-transaction.ts';
+import { decodeMessage } from '#lib/shared/passkey-transaction.ts';
 import { TAP_WINDOW_MS } from '#lib/shared/link-transaction.ts';
 import { browserRpc } from '../rpc';
 import { forgetWalletAccessories } from '../cache';
@@ -68,7 +67,12 @@ export async function tapAccessory(prepared: PreparedTap): Promise<TappedAccesso
 	};
 }
 
-/** Build, validate, sign and submit the claim directly through the wallet and Solana RPC. */
+/**
+ * Build, validate, sign and submit the claim directly through the wallet and Solana RPC.
+ *
+ * Revibase Passkey returns a different transaction: the claim runs through its
+ * vault's `execute`, already co-signed by the Revibase fee payer.
+ */
 export async function finishLink(
 	tap: LinkTap & { expiresAt: number },
 	ctx: SigningContext,
@@ -77,21 +81,23 @@ export async function finishLink(
 	onPhase('preparing');
 	const rpc = browserRpc();
 	const recipient = createNoopSigner(address(ctx.address));
+	const feePayer = address(ctx.feePayer);
 	const blockhash = (await rpc.getLatestBlockhash({ commitment: 'confirmed' }).send()).value;
-	const [{ wireBytes }, expectation] = await Promise.all([
-		buildLinkTransactionFromTap({ tap, recipient, blockhash }),
+	const [{ wireBytes }, tapExpectation] = await Promise.all([
+		buildLinkTransactionFromTap({ tap, recipient, feePayer, blockhash }),
 		expectationFromTap(tap, ctx.address)
 	]);
+	const expectation = { ...tapExpectation, feePayer: ctx.feePayer };
 	validateLinkTransaction(wireBytes, expectation);
 
 	onPhase('approve');
 	const outcome = await signWithWallet(ctx, wireBytes);
 	let signature: string;
 	if (outcome.kind === 'signed') {
+		// Revibase Passkey never returns the transaction: its fee payer checks and submits it.
 		validateLinkTransaction(outcome.signedBytes, expectation, { allowWalletAdditions: true });
 		const signed = getTransactionDecoder().decode(outcome.signedBytes);
-		if (!signed.signatures[address(ctx.address)])
-			throw new LinkTransactionRejected('wallet did not sign');
+		if (!signed.signatures[feePayer]) throw new LinkTransactionRejected('wallet did not sign');
 		signature = await rpc
 			.sendTransaction(getBase64EncodedWireTransaction(signed), {
 				encoding: 'base64',
@@ -113,17 +119,13 @@ export async function releaseAccessory(ctx: SigningContext, pda: string): Promis
 	const signer = createNoopSigner(address(ctx.address));
 	const blockhash = (await rpc.getLatestBlockhash({ commitment: 'confirmed' }).send()).value;
 	const message = pipe(
-		createTransactionMessage({ version: 0 }),
-		(m) => setTransactionMessageFeePayer(signer.address, m),
+		createTransactionMessage({ version: 1 }),
+		(m) => setTransactionMessageFeePayer(address(ctx.feePayer), m),
 		(m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
+		(m) => setTransactionMessageConfig(LINK_TX_CONFIG, m),
 		(m) =>
 			appendTransactionMessageInstructions(
-				[
-					getSetComputeUnitPriceInstruction({
-						microLamports: LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS
-					}),
-					getRemoveOwnerInstruction({ owner: signer, phygitalToken: address(pda) })
-				],
+				[getRemoveOwnerInstruction({ owner: signer, phygitalToken: address(pda) })],
 				m
 			)
 	);
@@ -133,7 +135,7 @@ export async function releaseAccessory(ctx: SigningContext, pda: string): Promis
 	let signature: string;
 	if (outcome.kind === 'signed') {
 		const signed = getTransactionDecoder().decode(outcome.signedBytes);
-		assertReleaseIntact(outcome.signedBytes, pda, ctx.address);
+		assertReleaseIntact(outcome.signedBytes, pda, ctx);
 		signature = await rpc
 			.sendTransaction(getBase64EncodedWireTransaction(signed), {
 				encoding: 'base64',
@@ -148,17 +150,15 @@ export async function releaseAccessory(ctx: SigningContext, pda: string): Promis
 	return signature;
 }
 
-function assertReleaseIntact(bytes: Uint8Array, pda: string, owner: string) {
+function assertReleaseIntact(bytes: Uint8Array, pda: string, ctx: SigningContext) {
+	const owner = ctx.address;
 	let message;
 	try {
-		const tx = getTransactionDecoder().decode(bytes);
-		message = decompileTransactionMessage(
-			getCompiledTransactionMessageDecoder().decode(tx.messageBytes)
-		);
+		message = decodeMessage(bytes);
 	} catch {
 		throw new LinkTransactionRejected('undecodable release');
 	}
-	if (message.feePayer.address !== owner) throw new LinkTransactionRejected('unexpected fee payer');
+	if (message.feePayer !== ctx.feePayer) throw new LinkTransactionRejected('unexpected fee payer');
 	const removes = message.instructions.filter(
 		(ix) =>
 			ix.programAddress === PHYGITAL_TOKEN_PROGRAM_ADDRESS &&

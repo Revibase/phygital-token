@@ -3,22 +3,17 @@ import {
 	appendTransactionMessageInstructions,
 	compileTransaction,
 	createTransactionMessage,
-	decompileTransactionMessage,
-	getCompiledTransactionMessageDecoder,
-	getTransactionDecoder,
 	getTransactionEncoder,
 	pipe,
+	setTransactionMessageConfig,
 	setTransactionMessageFeePayer,
 	setTransactionMessageLifetimeUsingBlockhash,
 	type Address,
 	type Blockhash,
+	type Instruction,
 	type TransactionSigner
 } from '@solana/kit';
-import {
-	COMPUTE_BUDGET_PROGRAM_ADDRESS,
-	getSetComputeUnitLimitInstruction,
-	getSetComputeUnitPriceInstruction
-} from '@solana-program/compute-budget';
+import { COMPUTE_BUDGET_PROGRAM_ADDRESS } from '@solana-program/compute-budget';
 import {
 	completeTransfer,
 	getSetOwnerInstructionDataDecoder,
@@ -35,7 +30,12 @@ import {
 	SECP256R1_PROGRAM_ADDRESS,
 	SLOT_HASHES_SYSVAR
 } from './addresses';
-import { LINK_COMPUTE_UNIT_LIMIT, LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS } from './fee-policy';
+import { LINK_TX_CONFIG } from './fee-policy';
+import {
+	decodeMessage,
+	PasskeyTransactionRejected,
+	type DecodedMessage
+} from './passkey-transaction';
 
 /**
  * How long a tap over a freshly fetched slot hash stays usable.
@@ -54,6 +54,8 @@ export type LinkTap = { session: TransferSession; response: AuthenticationRespon
 export async function buildLinkTransactionFromTap(input: {
 	tap: LinkTap;
 	recipient: TransactionSigner;
+	/** Who pays the fee: the recipient, unless it is a passkey vault (a Revibase fee payer). */
+	feePayer?: Address;
 	blockhash: { blockhash: Blockhash; lastValidBlockHeight: bigint };
 }) {
 	const instructions = await completeTransfer(
@@ -62,20 +64,11 @@ export async function buildLinkTransactionFromTap(input: {
 		input.recipient
 	);
 	const message = pipe(
-		createTransactionMessage({ version: 0 }),
-		(m) => setTransactionMessageFeePayer(input.recipient.address, m),
+		createTransactionMessage({ version: 1 }),
+		(m) => setTransactionMessageFeePayer(input.feePayer ?? input.recipient.address, m),
 		(m) => setTransactionMessageLifetimeUsingBlockhash(input.blockhash, m),
-		(m) =>
-			appendTransactionMessageInstructions(
-				[
-					getSetComputeUnitLimitInstruction({ units: LINK_COMPUTE_UNIT_LIMIT }),
-					getSetComputeUnitPriceInstruction({
-						microLamports: LINK_COMPUTE_UNIT_PRICE_MICROLAMPORTS
-					}),
-					...instructions
-				],
-				m
-			)
+		(m) => setTransactionMessageConfig(LINK_TX_CONFIG, m),
+		(m) => appendTransactionMessageInstructions(instructions, m)
 	);
 	const transaction = compileTransaction(message);
 	return { transaction, wireBytes: new Uint8Array(getTransactionEncoder().encode(transaction)) };
@@ -84,6 +77,8 @@ export async function buildLinkTransactionFromTap(input: {
 export type LinkExpectation = {
 	phygitalToken: string;
 	recipient: string;
+	/** Defaults to the recipient. */
+	feePayer?: string;
 	secp256r1Pubkey: Uint8Array;
 	slotNumber: bigint;
 	clientDataJson: Uint8Array;
@@ -110,24 +105,28 @@ export function validateLinkTransaction(
 	expected: LinkExpectation,
 	options: { allowWalletAdditions?: boolean } = {}
 ): void {
+	validateLinkMessage(decodeLinkMessage(wireBytes), expected, options);
+}
+
+function decodeLinkMessage(wireBytes: Uint8Array): DecodedMessage {
+	try {
+		return decodeMessage(wireBytes);
+	} catch (err) {
+		if (err instanceof PasskeyTransactionRejected) throw new LinkTransactionRejected(err.reason);
+		throw err;
+	}
+}
+
+function validateLinkMessage(
+	message: { feePayer: Address; instructions: readonly Instruction[] },
+	expected: LinkExpectation,
+	options: { allowWalletAdditions?: boolean } = {}
+): void {
 	const reject = (reason: string): never => {
 		throw new LinkTransactionRejected(reason);
 	};
 
-	let message;
-	try {
-		const tx = getTransactionDecoder().decode(wireBytes);
-		const compiled = getCompiledTransactionMessageDecoder().decode(tx.messageBytes);
-		if ('addressTableLookups' in compiled && (compiled.addressTableLookups?.length ?? 0) > 0) {
-			reject('address lookup tables are not allowed');
-		}
-		message = decompileTransactionMessage(compiled);
-	} catch (err) {
-		if (err instanceof LinkTransactionRejected) throw err;
-		return reject('undecodable transaction');
-	}
-
-	if (message.feePayer.address !== expected.recipient)
+	if (message.feePayer !== (expected.feePayer ?? expected.recipient))
 		reject('fee payer is not the linking wallet');
 
 	const ixs = message.instructions;

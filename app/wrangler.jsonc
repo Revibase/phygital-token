@@ -29,7 +29,10 @@
 		// Base URL for handoff and pairing links (QR codes, "open in wallet").
 		"ORIGIN": "https://portal.revibase.com",
 		"SOLANA_CLUSTER": "mainnet",
-		"SOLANA_RPC_URL": "https://rpc.revibase.com"
+		"SOLANA_RPC_URL": "https://rpc.revibase.com",
+		// Revibase Passkey wallet (revibase-wallet's secure-signer). It is offered only when
+		// FEE_PAYER_KEY is also set: `wrangler secret put FEE_PAYER_KEY` (base58 64-byte key).
+		"SECURE_SIGNER_ORIGIN": "https://signer.revibase.com"
 	},
 	"observability": { "enabled": true }
 }
