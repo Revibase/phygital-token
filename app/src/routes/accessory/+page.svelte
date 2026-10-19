@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { onMount } from 'svelte';
 	import { refreshAll } from '$app/navigation';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import CollectibleDialog from '#lib/components/app/CollectibleDialog.svelte';
@@ -18,21 +18,10 @@
 	import { Skeleton } from '#lib/components/ui/skeleton/index.ts';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { accessoryMediaQuery, accessoryShortcutsQuery } from '#lib/client/queries.ts';
-	import {
-		forgetOwnerDetails,
-		reconcileAccessoryWallet,
-		accessoryLinkContext,
-		type OwnerContext,
-		rememberedWallet
-	} from '#lib/client/memory.ts';
 	import { platform } from '#lib/client/capability.ts';
 	import { shortcutsFor, type Shortcut } from '#lib/shared/shortcuts.ts';
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
-	import {
-		changedElsewhereNotice,
-		tapScreen,
-		managementActions
-	} from '#lib/client/accessory/screen.ts';
+	import { tapScreen, managementActions } from '#lib/client/accessory/screen.ts';
 
 	let { data } = $props();
 	const a = $derived(data.accessory);
@@ -70,13 +59,6 @@
 
 	const owned = $derived(!!a?.owner && walletStore.address === a.owner);
 
-	// "Owner changed" is only knowable against what this device linked before.
-	let remembered = $state<string | null>(null);
-	$effect(() => {
-		if (a) remembered = rememberedWallet(a.pda);
-	});
-	const changedElsewhere = $derived(!!a?.owner && !!remembered && remembered !== a.owner);
-
 	const screen = $derived(a ? tapScreen(a, owned) : null);
 	const management = $derived(a ? managementActions(a, owned) : null);
 	function openManagement() {
@@ -93,46 +75,14 @@
 	const collectibleLoading = $derived(namedCollectible && mediaQuery.isPending);
 	const collectibleName = $derived(namedCollectible ? media?.name : null);
 
-	// Which wallet app this device claimed with. Shown on the owner row.
-	let linkedContext = $state<OwnerContext | null>(null);
-	const linkedApp = $derived(linkedContext?.app ?? (owned ? walletStore.walletName : null));
-	const linkedDetail = $derived(
-		[
-			linkedApp,
-			linkedContext
-				? {
-						desktop: 'Claimed from a computer',
-						mobile: 'Claimed in a phone browser',
-						wallet: 'Claimed in a wallet app'
-					}[linkedContext.source]
-				: null
-		]
-			.filter(Boolean)
-			.join(' · ') || null
-	);
-
 	const shortcutsQuery = createQuery(() => ({
 		...accessoryShortcutsQuery(a?.pda ?? '', a?.owner ?? null),
 		enabled: !!a?.mint
 	}));
 	let formFactor = $state<'desktop' | 'mobile' | null>(null);
 	onMount(() => {
-		linkedContext = a ? accessoryLinkContext(a.pda, a.owner) : null;
 		formFactor = platform() === 'desktop' ? 'desktop' : 'mobile';
 	});
-	// The owner changed since this device last saw it: the saved claim no longer applies.
-	$effect(() => {
-		const current = a;
-		untrack(() => {
-			if (!current) return;
-			reconcileAccessoryWallet(current.pda, current.owner);
-			linkedContext = accessoryLinkContext(current.pda, current.owner);
-		});
-	});
-	function forgetApps() {
-		if (a) forgetOwnerDetails(a.pda);
-		linkedContext = null;
-	}
 
 	const payHref = $derived.by(() => {
 		if (!data.payAppOrigin || !a) return null;
@@ -244,17 +194,11 @@
 					/>
 				{/if}
 
-				{#if changedElsewhere}
-					<Notice tone="info" {...changedElsewhereNotice(a)} />
-				{/if}
-
 				{#if a.owner}<List label="Owner"
 						><WalletRow
 							address={a.owner}
-							label={owned ? 'Your wallet' : 'Owner'}
-							context={linkedDetail ?? 'Manages this accessory'}
+							label={owned ? 'Your wallet' : 'Another wallet'}
 							nftOwnership={media?.owner ? (media.owner === a.owner ? 'same' : 'different') : null}
-							onforget={linkedContext?.app ? forgetApps : undefined}
 							cluster={data.cluster}
 							href={owned ? '/wallet' : undefined}
 						/></List

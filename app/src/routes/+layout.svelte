@@ -1,16 +1,19 @@
 <script lang="ts">
 	import './layout.css';
+	import { onMount } from 'svelte';
 	import favicon from '#lib/assets/favicon.svg';
 	import { Toaster } from '#lib/components/ui/sonner/index.ts';
 	import PasskeySignerHost from '#lib/components/app/PasskeySignerHost.svelte';
 	import { configureRpc } from '#lib/client/rpc.ts';
 	import { PersistQueryClientProvider } from '@tanstack/svelte-query-persist-client';
 	import { queryClient, persistOptions } from '#lib/client/cache.ts';
+	import { clearStoredOwners } from '#lib/client/memory.ts';
 
 	let { data, children } = $props();
 	$effect.pre(() => {
 		if (data.rpcUrl) configureRpc(data.rpcUrl);
 	});
+	onMount(clearStoredOwners);
 </script>
 
 <svelte:head>

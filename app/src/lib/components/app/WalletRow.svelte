@@ -4,7 +4,6 @@
 	import CircleCheck from '@lucide/svelte/icons/circle-check';
 	import EllipsisVertical from '@lucide/svelte/icons/ellipsis-vertical';
 	import Copy from '@lucide/svelte/icons/copy';
-	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
 	import { explorerUrl } from '#lib/shared/explorer.ts';
 	import { copyText } from '#lib/client/clipboard.ts';
@@ -18,7 +17,6 @@
 		context = null,
 		cluster = null,
 		nftOwnership = null,
-		onforget,
 		href,
 		value
 	}: {
@@ -26,8 +24,6 @@
 		label: string;
 		context?: string | null;
 		cluster?: string | null;
-		/** Clears the wallet name shown for this accessory. */
-		onforget?: () => void;
 		nftOwnership?: 'same' | 'different' | null;
 		/** Opens this wallet's own page instead of the options menu. */
 		href?: string;
@@ -59,11 +55,6 @@
 							rel="noopener noreferrer"><ArrowUpRight class="size-4 shrink-0" />Open in explorer</a
 						>{/snippet}
 				</DropdownMenu.Item>
-			{/if}
-			{#if onforget}
-				<DropdownMenu.Item onSelect={onforget}
-					><RotateCcw class="size-4 shrink-0" />Forget wallet preference</DropdownMenu.Item
-				>
 			{/if}
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>

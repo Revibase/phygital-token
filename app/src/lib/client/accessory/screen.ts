@@ -32,16 +32,3 @@ export function tapScreen(a: AccessoryView, owned: boolean): TapScreen {
 		body: ''
 	};
 }
-
-/** Shown when this device linked the accessory before and it now points elsewhere. */
-export function changedElsewhereNotice(a: AccessoryView): { title: string; body: string } {
-	return a.kind === 'bearer'
-		? {
-				title: 'Owner changed',
-				body: 'Since you last used it here, another wallet became the owner. You can claim it while it is unlocked.'
-			}
-		: {
-				title: 'Owner changed',
-				body: 'Since you last used it here, it was released and claimed with another wallet. Only that wallet can release it now.'
-			};
-}

@@ -123,7 +123,7 @@
 			<List>
 				<WalletRow
 					address={walletStore.address}
-					label={walletStore.walletName ?? 'Your wallet'}
+					label="Your wallet"
 					cluster={data.cluster}
 					href="/wallet"
 					value={balance}

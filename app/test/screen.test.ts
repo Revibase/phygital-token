@@ -2,11 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { AccessoryView, TokenKind } from '#lib/shared/types.ts';
 import { accessoryRules } from '#lib/shared/accessory-view.ts';
-import {
-	changedElsewhereNotice,
-	tapScreen,
-	managementActions
-} from '#lib/client/accessory/screen.ts';
+import { tapScreen, managementActions } from '#lib/client/accessory/screen.ts';
 
 const W = '7Yu3oPKm7hSbcX3u7ke1HMuiKeuuSJo4iQ8PYP6VGkCN';
 
@@ -113,13 +109,6 @@ describe('tapScreen: Controlled and Permanent wallet linkage', () => {
 			title: 'Unavailable',
 			claim: false
 		});
-	});
-});
-
-describe('changedElsewhereNotice', () => {
-	it('describes linkage changes by the applicable relinking rule', () => {
-		expect(changedElsewhereNotice(accessory('bearer', W)).title).toBe('Owner changed');
-		expect(changedElsewhereNotice(accessory('controlled', W)).title).toBe('Owner changed');
 	});
 });
 

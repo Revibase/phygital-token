@@ -14,7 +14,7 @@
 	import QrCode from '#lib/components/app/QrCode.svelte';
 	import WalletPicker from '#lib/components/app/WalletPicker.svelte';
 	import WalletRow from '#lib/components/app/WalletRow.svelte';
-	import { canTapHere, isLikelyWalletBrowser, platform, tapHint } from '#lib/client/capability.ts';
+	import { canTapHere, platform, tapHint } from '#lib/client/capability.ts';
 	import {
 		finishLink,
 		prepareTap,
@@ -25,11 +25,7 @@
 	} from '#lib/client/link/flow.ts';
 	import { describeError, linkErrorCopy, type FriendlyError } from '#lib/client/link/messages.ts';
 	import { linkCopy } from '#lib/client/accessory/link-copy.ts';
-	import {
-		rememberAccessoryLink,
-		rememberRecentWallet,
-		rememberWallet
-	} from '#lib/client/memory.ts';
+	import { rememberRecentWallet } from '#lib/client/memory.ts';
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
 	import { PASSKEY_WALLET_NAME } from '#lib/client/wallet/passkey.svelte.ts';
 	import { walletHoldingsQuery, walletSetupQuery } from '#lib/client/queries.ts';
@@ -172,13 +168,7 @@
 		try {
 			const signature = await finishLink(tapped, context, (next) => (phase = next));
 			linked = { recipient: context.address, signature };
-			rememberWallet(accessory.pda, context.address);
 			rememberRecentWallet(context.wallet.name);
-			rememberAccessoryLink(accessory.pda, {
-				wallet: context.address,
-				app: context.wallet.name,
-				source: isLikelyWalletBrowser() ? 'wallet' : 'mobile'
-			});
 		} catch (err) {
 			failure = describeError(err);
 		} finally {
@@ -232,7 +222,7 @@
 						<List>
 							<WalletRow
 								address={linked.recipient}
-								label={ownedResult ? 'Your wallet' : 'Owner'}
+								label={ownedResult ? 'Your wallet' : 'Another wallet'}
 								cluster={data.cluster}
 							/>
 						</List>
@@ -279,7 +269,7 @@
 							<List>
 								<WalletRow
 									address={walletStore.address}
-									label={walletStore.walletName ?? 'Owner'}
+									label="Your wallet"
 									cluster={data.cluster}
 								/>
 							</List>
@@ -309,11 +299,7 @@
 						{/if}
 					{:else if view === 'confirm' && walletStore.address}
 						<List>
-							<WalletRow
-								address={walletStore.address}
-								label={walletStore.walletName ?? 'Owner'}
-								cluster={data.cluster}
-							/>
+							<WalletRow address={walletStore.address} label="Your wallet" cluster={data.cluster} />
 						</List>
 					{/if}
 
