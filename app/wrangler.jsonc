@@ -12,12 +12,6 @@
 	"preview_urls": false,
 	"d1_databases": [
 		{
-			// One D1 database. It may be shared with other services that accept the
-			// same tap URLs (see migrations/README.md):
-			// - tap_counters / auth_challenges: shared tables. Sharing tap_counters
-			//   gives ONE counter high-water mark per chip across every service.
-			// - revibase_*: this app's tables (migrations/revibase_*.sql).
-			// Replace the placeholder id with your database's (`wrangler d1 create`).
 			"binding": "DB",
 			"database_name": "phygital-token",
 			"database_id": "356d6b15-cd60-47b5-a014-648246bd27b5",
@@ -27,8 +21,6 @@
 	"vars": {
 		"SOLANA_CLUSTER": "mainnet",
 		"SOLANA_RPC_URL": "https://rpc.revibase.com",
-		// Revibase Passkey wallet (revibase-wallet's secure-signer). It is offered only when
-		// FEE_PAYER_KEY is also set: `wrangler secret put FEE_PAYER_KEY` (base58 64-byte key).
 		"SECURE_SIGNER_ORIGIN": "https://signer.revibase.com"
 	},
 	"observability": { "enabled": true }
