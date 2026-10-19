@@ -5,7 +5,7 @@ import { passkeyPublicKeyFor } from '../wallet/passkey.svelte';
 import { signMessageWithWallet, walletStore, type SigningContext } from '../wallet/wallet.svelte';
 
 /** Log in with the wallet: one Sign-In With Solana message (not a transaction), then the server remembers this browser. */
-export async function loginOwner(ctx: SigningContext): Promise<void> {
+async function loginOwner(ctx: SigningContext): Promise<void> {
 	const { challengeId, message } = await postJson<{ challengeId: string; message: string }>(
 		'/api/owner/challenge',
 		{ address: ctx.address }

@@ -22,7 +22,8 @@
 		open = $bindable(false)
 	}: { accessory: AccessoryView; cluster: string; open?: boolean } = $props();
 
-	const explorable = new Set(['Owner', 'Collectible']);
+	const explorable = new Set(['Owner', 'NFT']);
+	const lower = (label: string) => (label === 'NFT' ? label : label.toLowerCase());
 	const mediaQuery = createQuery(() => ({
 		...accessoryMediaQuery(accessory.pda),
 		enabled: !!accessory.mint
@@ -41,11 +42,11 @@
 	});
 	const checkDetail = $derived(
 		!canCheck
-			? 'Open in Safari or Chrome to read your accessory'
+			? 'Open this page in Safari or Chrome'
 			: {
-					idle: 'Tap it to your phone to prove it’s the real thing',
+					idle: 'Hold it to your phone',
 					tapping: tapHint(),
-					genuine: 'Authentic, and here now',
+					genuine: 'Genuine, and in your hand',
 					mismatch: 'That’s a different accessory'
 				}[check]
 	);
@@ -72,22 +73,22 @@
 	}
 
 	const kindLabel = {
-		permanent: 'Bound to one wallet',
-		bearer: 'Relinkable while unlocked',
-		controlled: 'Unlink before relinking',
+		permanent: 'Permanent · its owner can’t change',
+		bearer: 'Bearer · whoever holds it can claim it',
+		controlled: 'Controlled · its owner releases it first',
 		unknown: 'Unknown'
 	};
 	const copyable = $derived([
-		['Public Key', accessory.publicKey],
+		['Public key', accessory.publicKey],
 		['Owner', accessory.owner],
-		['Collectible', accessory.mint]
+		['NFT', accessory.mint]
 	] as const);
 </script>
 
-<ResponsiveSheet bind:open title="Details" description="The on-chain record for this accessory.">
+<ResponsiveSheet bind:open title="Accessory details">
 	<List>
 		<ListRow
-			label="Verify authenticity"
+			label="Check it’s genuine"
 			detail={checkDetail}
 			busy={check === 'tapping'}
 			onclick={canCheck ? runCheck : undefined}
@@ -110,7 +111,7 @@
 			<ListRow
 				{label}
 				detail={value
-					? label === 'Collectible' && collectibleName
+					? label === 'NFT' && collectibleName
 						? `${collectibleName} · ${shortAddress(value)}`
 						: shortAddress(value)
 					: 'None'}
@@ -119,13 +120,9 @@
 					{#if value}
 						<span class="flex items-center">
 							{#if explorable.has(label)}
-								<ExplorerLink
-									{value}
-									{cluster}
-									label={`View ${label.toLowerCase()} on Solana Explorer`}
-								/>
+								<ExplorerLink {value} {cluster} label={`View ${lower(label)} on Solana Explorer`} />
 							{/if}
-							<CopyButton {value} label={`Copy ${label.toLowerCase()}`} />
+							<CopyButton {value} label={`Copy ${lower(label)}`} />
 						</span>
 					{/if}
 				{/snippet}

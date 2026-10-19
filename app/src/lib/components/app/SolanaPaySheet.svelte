@@ -21,23 +21,19 @@
 		<QrCode
 			value={href}
 			accessibleLabel="Solana Pay request QR code"
-			label="Scan with your wallet to continue."
+			label="Or scan with your wallet."
 		/>
-		<div class="space-y-2">
-			<Button onclick={copy} variant="secondary" size="xl"
-				><Copy class="size-4" />Copy payment link</Button
-			>
-		</div>
-		<p class="text-center text-xs leading-relaxed text-muted-foreground">
-			Wallet didn’t open? Use a wallet that supports Solana Pay. Review and approve the request
-			there.
-		</p>
-		<a
-			href="https://docs.solanapay.com/"
-			target="_blank"
-			rel="noopener noreferrer"
-			class="block min-h-11 py-3 text-center text-sm font-medium text-primary underline underline-offset-4"
-			>Get a wallet</a
+		<Button onclick={copy} variant="secondary" size="xl"
+			><Copy class="size-4" />Copy payment link</Button
 		>
+		<p class="text-center text-[13px] leading-relaxed text-muted-foreground">
+			Wallet didn’t open? Use one that supports
+			<a
+				href="https://docs.solanapay.com/"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="font-medium text-primary underline underline-offset-4">Solana Pay</a
+			>.
+		</p>
 	</div>
 </ResponsiveSheet>

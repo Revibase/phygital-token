@@ -19,16 +19,13 @@ export function tapScreen(a: AccessoryView, owned: boolean): TapScreen {
 	if (a.status === 'unavailable') {
 		return {
 			title: 'Unavailable',
-			body: 'This accessory’s record is in an unexpected state. Contact the issuer.',
+			body: 'Its record is in an unexpected state. Contact whoever issued it.',
 			claim: false
 		};
 	}
 
 	if (!a.owner) return { claim: a.canLink, title: 'Ready to claim', body: '' };
-	if (a.kind === 'permanent') return { claim: false, title: 'Permanently assigned', body: '' };
-	return {
-		claim: a.kind === 'bearer' && !owned && a.canLink,
-		title: 'Claimed',
-		body: ''
-	};
+	if (owned) return { claim: false, title: 'Your accessory', body: '' };
+	if (a.kind === 'permanent') return { claim: false, title: 'Permanently owned', body: '' };
+	return { claim: a.kind === 'bearer' && a.canLink, title: 'Claimed', body: '' };
 }

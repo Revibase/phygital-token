@@ -176,7 +176,7 @@
 <ResponsiveSheet
 	bind:open
 	title={chosen ? `Send ${label}` : 'Send'}
-	description={chosen ? 'To any Solana address.' : 'Choose what to send.'}
+	description={chosen ? undefined : 'Choose what to send.'}
 >
 	{#if !chosen}
 		<HoldingsList {holdings} label={null} onselect={choose} />
@@ -276,8 +276,8 @@
 			{:else}
 				<p class="text-[13px] text-muted-foreground">
 					Network fee about {sol(transferFeeLamports(passkey))}{setup
-						? `, plus ${sol(setup)} to set up this wallet (once)`
-						: ''}, paid from this wallet.
+						? `, plus ${sol(setup)} one-time setup`
+						: ''}.
 				</p>
 			{/if}
 

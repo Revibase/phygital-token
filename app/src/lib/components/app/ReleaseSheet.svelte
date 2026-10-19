@@ -5,7 +5,7 @@
 	import { Spinner } from '#lib/components/ui/spinner/index.ts';
 	import List from './List.svelte';
 	import Notice from './Notice.svelte';
-	import WalletPicker from './WalletPicker.svelte';
+	import WalletConnect from './WalletConnect.svelte';
 	import WalletRow from './WalletRow.svelte';
 	import { walletStore, type Cluster } from '#lib/client/wallet/wallet.svelte.ts';
 	import { isConnectedAccessoryOwner } from '#lib/client/accessory/ownership.ts';
@@ -28,7 +28,7 @@
 		onreleased?: () => void;
 	} = $props();
 
-	let connecting = $state<string | null>(null);
+	let choosing = $state(false);
 	let busy = $state(false);
 	let failure = $state<FriendlyError | null>(null);
 
@@ -37,26 +37,10 @@
 	});
 
 	const linked = $derived(accessory.owner ? shortAddress(accessory.owner) : 'its owner');
-	const outcome = $derived(
-		`This removes ${linked} as the owner. Someone else can claim it afterward.`
-	);
 	const isOwner = $derived(isConnectedAccessoryOwner(accessory.owner, walletStore.address));
-
-	async function selectManually() {
-		failure = null;
-		await walletStore.disconnect();
-	}
-	async function pick(id: string) {
-		connecting = id;
-		failure = null;
-		try {
-			await walletStore.connect(id);
-		} catch (err) {
-			failure = describeError(err);
-		} finally {
-			connecting = null;
-		}
-	}
+	const outcome = $derived(
+		`${isOwner ? 'You’ll' : `${linked} will`} no longer own it. Anyone can claim it next.`
+	);
 
 	async function release() {
 		if (!isConnectedAccessoryOwner(accessory.owner, walletStore.address)) {
@@ -82,14 +66,15 @@
 <ResponsiveSheet bind:open title="Release this accessory?" description={outcome}>
 	<Notice error={failure} />
 
-	{#if !walletStore.address}
-		<WalletPicker
-			label={`Connect ${linked}`}
-			options={walletStore.options}
-			{connecting}
-			onpick={pick}
-		/>
-	{:else}
+	<!-- Inside the sheet so it nests; it only accepts the owner's wallet. -->
+	<WalletConnect
+		bind:open={choosing}
+		showButton={!walletStore.address}
+		description={accessory.owner ? `Choose the owner’s wallet, ${linked}.` : undefined}
+		requireAddress={accessory.owner}
+		onconnected={() => (failure = null)}
+	/>
+	{#if walletStore.address}
 		<List>
 			<WalletRow address={walletStore.address} label="Your wallet" />
 		</List>
@@ -100,13 +85,12 @@
 		{:else}
 			<Notice
 				tone="info"
-				title="This isn’t the owner wallet"
-				body="Connect the accessory owner’s wallet to release it."
+				title="Not the owner’s wallet"
+				body={`Switch to ${linked} to release it.`}
 			/>
-			<Button variant="secondary" size="xl" class="w-full" onclick={selectManually}
+			<Button variant="secondary" size="xl" class="w-full" onclick={() => (choosing = true)}
 				>Use a different wallet</Button
 			>
 		{/if}
 	{/if}
-	<Button variant="quiet" class="w-full" onclick={() => (open = false)}>Cancel</Button>
 </ResponsiveSheet>

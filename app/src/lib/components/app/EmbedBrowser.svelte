@@ -34,6 +34,23 @@
 	let origin = $state<string | null>(null);
 	let approval = $state<{ origin: string; accept: (ok: boolean) => void } | null>(null);
 	let host = $state<EmbedHost | null>(null);
+	let choosing = $state(false);
+	// A connect request from the app waits on the same sheet as the header's Connect.
+	let connectWaiter: ((ok: boolean) => void) | null = null;
+	function settleConnect(ok: boolean) {
+		connectWaiter?.(ok);
+		connectWaiter = null;
+	}
+	function requestConnect() {
+		settleConnect(false);
+		return new Promise<boolean>((resolve) => {
+			connectWaiter = resolve;
+			choosing = true;
+		});
+	}
+	$effect(() => {
+		if (!choosing) settleConnect(false);
+	});
 
 	const hostname = $derived.by(() => {
 		try {
@@ -79,6 +96,7 @@
 				new Promise((resolve) => {
 					approval = { origin: site, accept: resolve };
 				}),
+			connect: requestConnect,
 			signer: {
 				account,
 				signTransaction: async (bytes, chain) => {
@@ -152,6 +170,7 @@
 			node.removeEventListener('load', onload);
 			approval?.accept(false);
 			approval = null;
+			settleConnect(false);
 			started.stop();
 			if (host === started) host = null;
 		};
@@ -162,7 +181,10 @@
 		host?.pushAccounts(current ? [current] : []);
 	});
 
-	onDestroy(() => approval?.accept(false));
+	onDestroy(() => {
+		approval?.accept(false);
+		settleConnect(false);
+	});
 
 	function decide(ok: boolean) {
 		approval?.accept(ok);
@@ -184,7 +206,9 @@
 				{shortAddress(walletStore.address)}
 			</p>
 		{:else}
-			<WalletConnect description="Connect the wallet this app can use." />
+			<Button size="sm" class="shrink-0 rounded-full px-4" onclick={() => (choosing = true)}
+				>Connect</Button
+			>
 		{/if}
 		<a
 			{href}
@@ -204,13 +228,15 @@
 		></iframe>
 	{:else}
 		<div class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-			<p class="text-[15px] font-medium">This app can’t open inside Revibase.</p>
-			<p class="max-w-sm text-[13px] text-muted-foreground">
-				Its address isn’t a page Revibase can frame. Open it in a new tab instead.
-			</p>
+			<p class="text-[15px] font-medium">This app can’t open here</p>
+			<Button {href} target="_blank" rel="noopener noreferrer" variant="secondary"
+				>Open in new tab</Button
+			>
 		</div>
 	{/if}
 </div>
+
+<WalletConnect bind:open={choosing} showButton={false} onconnected={() => settleConnect(true)} />
 
 {#if approval}
 	<div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center">
@@ -220,11 +246,12 @@
 			aria-modal="true"
 			aria-labelledby="embed-connect-title"
 		>
-			<h2 id="embed-connect-title" class="text-[17px] font-semibold">Connect to this app?</h2>
+			<h2 id="embed-connect-title" class="text-[17px] font-semibold">
+				Connect to {hostname || label}?
+			</h2>
 			<p class="mt-2 text-[14px] leading-relaxed text-muted-foreground">
-				<span class="font-medium text-foreground">{approval.origin}</span> wants to use
-				{walletStore.address ? shortAddress(walletStore.address) : 'your wallet'}. Revibase will
-				still ask you to approve each transaction.
+				It will see {walletStore.address ? shortAddress(walletStore.address) : 'your wallet'}. You
+				still approve every transaction.
 			</p>
 			<div class="mt-5 grid gap-2">
 				<Button size="xl" onclick={() => decide(true)}>Connect</Button>

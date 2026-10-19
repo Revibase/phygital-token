@@ -12,13 +12,16 @@
 		children,
 		footer,
 		size = 'narrow',
-		back = false
+		back = false,
+		connect = true
 	}: {
 		children: Snippet;
 		footer?: Snippet;
 		size?: 'narrow' | 'medium' | 'wide';
 		/** A secondary place: reached from another screen, it offers Back instead of the home link. */
 		back?: boolean;
+		/** False when the page shows its own Connect wallet button: the header then shows only a connected wallet. */
+		connect?: boolean;
 	} = $props();
 
 	// The installed app (display: standalone) has no browser back button.
@@ -70,7 +73,7 @@
 						title="Solana network">{network}</span
 					>
 				{/if}
-				{#if cluster && page.url.pathname !== '/wallet'}<WalletButton {cluster} />{/if}
+				{#if cluster && page.url.pathname !== '/wallet'}<WalletButton {cluster} {connect} />{/if}
 			</div>
 		</div>
 	</header>

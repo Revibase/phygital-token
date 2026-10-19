@@ -10,7 +10,7 @@
 	import { walletStore, type Cluster } from '#lib/client/wallet/wallet.svelte.ts';
 	import { shortAddress } from '#lib/shared/encoding.ts';
 
-	let { cluster }: { cluster: Cluster } = $props();
+	let { cluster, connect = true }: { cluster: Cluster; connect?: boolean } = $props();
 
 	onMount(() => walletStore.init(cluster));
 
@@ -38,7 +38,7 @@
 			>
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
-{:else if !walletStore.pending}
+{:else if connect && !walletStore.pending}
 	<Button size="sm" class="h-10 rounded-full px-4" onclick={() => (connecting = true)}
 		>Connect</Button
 	>

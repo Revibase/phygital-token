@@ -21,7 +21,7 @@ import { PASSKEY_WALLET_NAME } from '#lib/shared/passkey-transaction.ts';
 import { ApiClientError, postJson } from '../api';
 
 export { PASSKEY_WALLET_NAME };
-export const PASSKEY_WALLET_HINT = 'Face ID or fingerprint · no app needed';
+export const PASSKEY_WALLET_HINT = 'Face ID or fingerprint';
 
 export type PasskeyConfig = { origin: string; feePayer: string };
 

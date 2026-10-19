@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
 	import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
-	import { ApiClientError } from '#lib/client/api.ts';
 	import { rememberRecentWallet } from '#lib/client/memory.ts';
 	import { shortAddress } from '#lib/shared/encoding.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
@@ -11,24 +10,23 @@
 
 	/**
 	 * The one way to connect a wallet: a "Connect wallet" button (optional) and the picker sheet.
-	 * `requireAddress` refuses any other wallet; `afterConnect` runs before the sheet closes
-	 * (a failure disconnects again); `onconnected` runs once it has.
+	 * Every entry point uses it, so connecting is always the same: pick a wallet, nothing to sign.
+	 * `requireAddress` refuses any other wallet; `onconnected` runs once the sheet closes.
 	 */
 	let {
 		open = $bindable(false),
 		showButton = true,
 		disabled = false,
-		description = 'Choose a wallet to continue.',
+		description,
 		requireAddress = null,
-		afterConnect,
 		onconnected
 	}: {
 		open?: boolean;
 		showButton?: boolean;
 		disabled?: boolean;
+		/** Only when the choice is constrained, e.g. it must be the owner's wallet. */
 		description?: string;
 		requireAddress?: string | null;
-		afterConnect?: () => Promise<void>;
 		onconnected?: () => void;
 	} = $props();
 
@@ -44,19 +42,10 @@
 			if (requireAddress && walletStore.address !== requireAddress) {
 				await walletStore.disconnect();
 				failure = {
-					title: 'That’s not the owner’s wallet',
-					body: `Choose the wallet that owns this accessory (${shortAddress(requireAddress)}).`
+					title: 'Not the owner’s wallet',
+					body: `Choose ${shortAddress(requireAddress)}.`
 				};
 				return;
-			}
-			try {
-				await afterConnect?.();
-			} catch (err) {
-				// A dropped request (offline, or Safari aborting it as the page reloads) isn't a refusal:
-				// keep the wallet. Anything that still needs a session asks again.
-				const dropped = err instanceof ApiClientError && err.status === 0;
-				if (!dropped) await walletStore.disconnect().catch(() => {});
-				throw err;
 			}
 			rememberRecentWallet(walletStore.walletName);
 			open = false;
@@ -74,11 +63,6 @@
 <ResponsiveSheet bind:open title="Connect wallet" {description}>
 	<div class="space-y-4">
 		<Notice error={failure} />
-		<WalletPicker
-			label="Choose a wallet"
-			options={walletStore.options}
-			{connecting}
-			onpick={pick}
-		/>
+		<WalletPicker options={walletStore.options} {connecting} onpick={pick} />
 	</div>
 </ResponsiveSheet>

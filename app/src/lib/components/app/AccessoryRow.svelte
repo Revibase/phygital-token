@@ -25,12 +25,14 @@
 	}));
 	const name = $derived(media.data?.name ?? null);
 
-	const kind = $derived(
-		accessory.kind === 'permanent'
-			? 'Permanently linked to this wallet'
-			: accessory.kind === 'controlled' || accessory.isLocked
-				? 'Linked to this wallet'
-				: 'Linked to this wallet'
+	// Every row is already this wallet's, so the detail only adds what tells them apart.
+	const detail = $derived(
+		[
+			name ? `Accessory ${accessory.tag}` : null,
+			accessory.kind === 'permanent' ? 'Permanent' : null
+		]
+			.filter(Boolean)
+			.join(' · ')
 	);
 </script>
 
@@ -51,11 +53,10 @@
 		>
 		<span class="min-w-0 flex-1">
 			<span class="block truncate text-[15px] font-medium"
-				>{name ?? `Accessory · ${accessory.tag}`}</span
+				>{name ?? `Accessory ${accessory.tag}`}</span
 			>
-			<span class="block truncate text-[13px] text-muted-foreground"
-				>{name ? `${kind} · ${accessory.tag}` : kind}</span
-			>
+			{#if detail}<span class="block truncate text-[13px] text-muted-foreground">{detail}</span
+				>{/if}
 		</span>
 		{#if onclick && !trailing}
 			<ChevronRightIcon class="size-4 shrink-0 text-muted-foreground/70" />

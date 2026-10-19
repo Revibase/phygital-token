@@ -115,6 +115,84 @@ describe('embed host', () => {
 		expect(signer.signTransaction).not.toHaveBeenCalled();
 	});
 
+	it('asks the shell to connect a wallet before approving a connect', async () => {
+		const contentWindow = { postMessage: vi.fn() };
+		let listener: ((event: { source: unknown; origin: string; data: unknown }) => void) | null =
+			null;
+		let current: EmbedAccount | null = null;
+		const connect = vi.fn(async () => {
+			current = account;
+			return true;
+		});
+		const approve = vi.fn(async () => true);
+		startEmbedHost({
+			target: {
+				addEventListener: (_t: string, fn: typeof listener) => (listener = fn),
+				removeEventListener: () => {}
+			} as unknown as EventTarget,
+			iframe: { contentWindow },
+			expectedOrigin: 'https://pay.test',
+			approve,
+			connect,
+			signer: {
+				account: () => current,
+				signTransaction: async (bytes) => bytes,
+				signMessage: async () => new Uint8Array([1]),
+				signAndSendTransaction: async () => new Uint8Array([2])
+			},
+			storage: { getItem: () => null, setItem: () => {} }
+		});
+		listener!({
+			source: contentWindow,
+			origin: 'https://pay.test',
+			data: { source: BRIDGE_SOURCE_DAPP, version: BRIDGE_VERSION, id: 'c1', method: 'connect' }
+		});
+		await vi.waitFor(() =>
+			expect(contentWindow.postMessage).toHaveBeenCalledWith(
+				expect.objectContaining({ id: 'c1', ok: true }),
+				'https://pay.test'
+			)
+		);
+		expect(connect).toHaveBeenCalledOnce();
+		expect(approve).toHaveBeenCalledWith('https://pay.test');
+	});
+
+	it('refuses a connect when the shell connects no wallet', async () => {
+		const contentWindow = { postMessage: vi.fn() };
+		let listener: ((event: { source: unknown; origin: string; data: unknown }) => void) | null =
+			null;
+		const approve = vi.fn(async () => true);
+		startEmbedHost({
+			target: {
+				addEventListener: (_t: string, fn: typeof listener) => (listener = fn),
+				removeEventListener: () => {}
+			} as unknown as EventTarget,
+			iframe: { contentWindow },
+			expectedOrigin: 'https://pay.test',
+			approve,
+			connect: async () => false,
+			signer: {
+				account: () => null,
+				signTransaction: async (bytes) => bytes,
+				signMessage: async () => new Uint8Array([1]),
+				signAndSendTransaction: async () => new Uint8Array([2])
+			},
+			storage: { getItem: () => null, setItem: () => {} }
+		});
+		listener!({
+			source: contentWindow,
+			origin: 'https://pay.test',
+			data: { source: BRIDGE_SOURCE_DAPP, version: BRIDGE_VERSION, id: 'c1', method: 'connect' }
+		});
+		await vi.waitFor(() =>
+			expect(contentWindow.postMessage).toHaveBeenCalledWith(
+				expect.objectContaining({ id: 'c1', ok: false }),
+				'https://pay.test'
+			)
+		);
+		expect(approve).not.toHaveBeenCalled();
+	});
+
 	it('says hello with the wallet name a compatible dApp registers', () => {
 		const contentWindow = { postMessage: vi.fn() };
 		const host = startEmbedHost({

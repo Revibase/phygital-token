@@ -31,5 +31,5 @@
 		className
 	)}
 >
-	{remaining > 0 ? `Expires in ${label}` : 'Expired'}
+	{remaining > 0 ? `Approval expires in ${label}` : 'Approval expired'}
 </p>

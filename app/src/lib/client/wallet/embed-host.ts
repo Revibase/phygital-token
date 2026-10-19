@@ -35,6 +35,8 @@ export function startEmbedHost(input: {
 	expectedOrigin: string;
 	walletName?: string;
 	approve: (origin: string) => Promise<boolean>;
+	/** Asks the shell to connect a wallet when none is; resolves true once one is. */
+	connect?: () => Promise<boolean>;
 	signer: EmbedSigner;
 	storage?: Pick<Storage, 'getItem' | 'setItem'>;
 }): EmbedHost {
@@ -74,7 +76,8 @@ export function startEmbedHost(input: {
 
 	async function handle(request: BridgeRequest) {
 		if (request.method === 'connect') {
-			const account = input.signer.account();
+			let account = input.signer.account();
+			if (!account && (await input.connect?.())) account = input.signer.account();
 			if (!account) throw new Error('Connect a wallet in Revibase first.');
 			if (!remembered(storage, input.expectedOrigin, account.address)) {
 				const ok = await input.approve(input.expectedOrigin);

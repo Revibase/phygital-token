@@ -4,7 +4,8 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { accessoryMediaQuery } from '#lib/client/queries.ts';
 
-	type MarkState = 'idle' | 'waiting' | 'verified';
+	/** `unverified`: muted, for an accessory we couldn't verify (it must not look genuine). */
+	type MarkState = 'idle' | 'waiting' | 'verified' | 'unverified';
 	let {
 		state: mode = 'idle',
 		size = 'lg',
@@ -49,7 +50,9 @@
 			'relative grid size-full place-items-center overflow-hidden rounded-[26%] transition-colors duration-200 ease-out',
 			showPlaceholder || (showArtwork && loaded)
 				? 'bg-muted'
-				: 'bg-brand bg-[linear-gradient(160deg,rgb(255_255_255/0.16),transparent_55%)] text-brand-cream',
+				: mode === 'unverified'
+					? 'bg-muted text-muted-foreground/60'
+					: 'bg-brand bg-[linear-gradient(160deg,rgb(255_255_255/0.16),transparent_55%)] text-brand-cream',
 			'shadow-[0_1px_1px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(14_26_26/0.35),inset_0_1px_0_rgb(255_255_255/0.28)]'
 		)}
 	>

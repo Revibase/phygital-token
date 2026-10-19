@@ -21,6 +21,7 @@
 	const copy = $derived(TAP_FAILURE_COPY[data.reason]);
 	const retryable = $derived(data.reason !== 'unknown');
 	const resumable = $derived(data.reason === 'expired');
+	const unverified = $derived(data.reason === 'unknown' || data.reason === 'invalid');
 
 	type Challenge = {
 		challengeId: string;
@@ -53,8 +54,8 @@
 		webauthnOk = canTapHere();
 		const hint = tapHint();
 		body = webauthnOk
-			? `Your tap session has expired. Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`
-			: 'Your tap session has expired. Hold your accessory to your phone again.';
+			? `Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`
+			: 'Hold your accessory to your phone again.';
 		if (webauthnOk) void prepare();
 	});
 
@@ -82,13 +83,15 @@
 
 <svelte:head><title>{copy.title} · Revibase</title></svelte:head>
 
-<PageShell>
+<PageShell connect={false}>
 	<section
 		class="flex flex-1 flex-col items-center justify-center gap-8 pb-8"
 		role={data.reason === 'expired' ? undefined : 'alert'}
 		aria-live="polite"
 	>
-		<AccessoryMark state={retryable && (!resumable || tapping) ? 'waiting' : 'idle'} />
+		<AccessoryMark
+			state={unverified ? 'unverified' : retryable && (!resumable || tapping) ? 'waiting' : 'idle'}
+		/>
 		<PageHeader align="center" title={copy.title} body={body ?? copy.body} />
 		{#if failure}<div class="w-full"><Notice error={failure} /></div>{/if}
 	</section>
@@ -100,7 +103,7 @@
 						/> Preparing…{:else}Continue{/if}
 				</Button>
 			{/if}
-			<Button href="/" variant="quiet" class="w-full">Use your wallet instead</Button>
+			<Button href="/" variant="quiet" class="w-full">Your accessories</Button>
 		</div>
 	{/snippet}
 </PageShell>

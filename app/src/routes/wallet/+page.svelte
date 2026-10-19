@@ -9,7 +9,6 @@
 	import Section from '#lib/components/app/Section.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import HoldingsList from '#lib/components/app/HoldingsList.svelte';
-	import EmptyState from '#lib/components/app/EmptyState.svelte';
 	import List from '#lib/components/app/List.svelte';
 	import Notice from '#lib/components/app/Notice.svelte';
 	import PageHeader from '#lib/components/app/PageHeader.svelte';
@@ -105,20 +104,17 @@
 			{#if holdings && needsSolForFees(holdings, passkey, setup)}
 				<Notice
 					tone="info"
-					title={setup ? 'Add SOL to get started' : 'Add a little SOL for network fees'}
+					title={setup ? 'Add SOL to get started' : 'Add SOL for network fees'}
 					body={setup
-						? `Your wallet is set up on its first transaction, which costs about ${formatCompactTokenAmount(setup, SOL_DECIMALS)} SOL once, plus a small network fee. Receive some SOL to begin.`
-						: 'Every transfer pays a small network fee in SOL from this wallet. Receive some SOL to send your tokens.'}
+						? `Its first transaction sets it up, once, for about ${formatCompactTokenAmount(setup, SOL_DECIMALS)} SOL plus the network fee.`
+						: 'Every transfer pays a small fee in SOL.'}
 				/>
 			{/if}
 
 			<HoldingsList {holdings} onselect={startSend} />
 
 			{#if passkey}
-				<Section
-					label="Backup"
-					footer="A backup wallet can use this one without your passkey, for example if you lose your device."
-				>
+				<Section label="Backup" footer="A backup wallet can use this one if you lose your passkey.">
 					<List>
 						<ListRow
 							label={backup ? 'Backup wallet' : 'Add a backup'}
@@ -140,11 +136,7 @@
 				</Section>
 			{/if}
 		{:else}
-			<PageHeader title="Wallet" body="Send and receive SOL and tokens." />
-			<EmptyState
-				title="No wallet connected"
-				body="Connect a wallet to see your balance and send or receive."
-			/>
+			<PageHeader title="Wallet" body="Connect a wallet to see your balance, send and receive." />
 			<WalletConnect />
 		{/if}
 	</section>

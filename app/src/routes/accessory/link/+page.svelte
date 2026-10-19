@@ -12,7 +12,7 @@
 	import PageHeader from '#lib/components/app/PageHeader.svelte';
 	import PageShell from '#lib/components/app/PageShell.svelte';
 	import QrCode from '#lib/components/app/QrCode.svelte';
-	import WalletPicker from '#lib/components/app/WalletPicker.svelte';
+	import WalletConnect from '#lib/components/app/WalletConnect.svelte';
 	import WalletRow from '#lib/components/app/WalletRow.svelte';
 	import { canTapHere, platform, tapHint } from '#lib/client/capability.ts';
 	import {
@@ -47,7 +47,7 @@
 	let linked = $state<{ recipient: string; signature: string } | null>(null);
 	let tapping = $state(false);
 	let failure = $state<FriendlyError | null>(null);
-	let connecting = $state<string | null>(null);
+	let choosing = $state(false);
 	let phase = $state<FinishPhase | null>(null);
 	let hint = $state('Tap Approve, then hold your accessory to your phone.');
 	let webauthnOk = $state(true);
@@ -176,19 +176,6 @@
 		}
 	}
 
-	async function connectWallet(id: string) {
-		connecting = id;
-		failure = null;
-		try {
-			await walletStore.connect(id);
-			rememberRecentWallet(walletStore.walletName);
-		} catch (err) {
-			failure = describeError(err);
-		} finally {
-			connecting = null;
-		}
-	}
-
 	function cancel() {
 		void goto('/accessory');
 	}
@@ -196,7 +183,7 @@
 
 <svelte:head><title>{copy.pageTitle} · Revibase</title></svelte:head>
 
-<PageShell>
+<PageShell connect={false}>
 	<section class="flex flex-1 flex-col pt-4" aria-live="polite">
 		{#key view}
 			<div class="animate-rise flex flex-1 flex-col gap-7">
@@ -204,8 +191,8 @@
 					<div class="flex flex-1 flex-col justify-center gap-8">
 						<PageHeader
 							align="center"
-							title="Continue on your phone"
-							body="Claiming needs a tap, so it only works on a phone with NFC. Scan this code, then hold your accessory to your phone."
+							title="Claim on your phone"
+							body="Claiming uses your phone’s NFC."
 						/>
 						<QrCode value={page.url.origin} label="Scan with your phone’s camera" />
 					</div>
@@ -243,20 +230,13 @@
 						<PageHeader
 							step={{ current: 3, total: 3 }}
 							title={copy.confirm.title}
-							body={copy.confirm.body}
+							body={accessory.mint ? `${copy.confirm.body} ${copy.nft}` : copy.confirm.body}
 						/>
 					{/if}
 
 					<Notice error={failure} />
 
-					{#if view === 'choose'}
-						<WalletPicker
-							options={walletStore.options}
-							{connecting}
-							onpick={connectWallet}
-							emptyHint="Open Revibase in a Solana wallet browser to connect."
-						/>
-					{:else if view === 'tap'}
+					{#if view === 'choose' || view === 'tap'}
 						<div class="grid flex-1 place-items-center py-6">
 							<AccessoryMark
 								state={tapping ? 'waiting' : 'idle'}
@@ -264,6 +244,8 @@
 								hasMint={!!accessory.mint}
 							/>
 						</div>
+					{/if}
+					{#if view === 'tap'}
 						{#if walletStore.address}
 							<List>
 								<WalletRow address={walletStore.address} label="Your wallet" />
@@ -272,14 +254,14 @@
 								variant="quiet"
 								class="w-full"
 								disabled={tapping}
-								onclick={() => void walletStore.disconnect()}>Use a different wallet</Button
+								onclick={() => (choosing = true)}>Use a different wallet</Button
 							>
 						{/if}
 						{#if shortBy > 0n}
 							<Notice
 								tone="info"
-								title="Add SOL to your wallet to claim"
-								body={`Your wallet pays a small network fee${setupQuery.data ? ' and its one-time setup' : ''}. Add ${formatCompactTokenAmount(shortBy, SOL_DECIMALS)} SOL to continue.`}
+								title={`Add ${formatCompactTokenAmount(shortBy, SOL_DECIMALS)} SOL to claim`}
+								body={`Your wallet pays the network fee${setupQuery.data ? ' and a one-time setup' : ''}.`}
 							>
 								{#snippet actions()}<Button variant="secondary" onclick={() => (receiving = true)}
 										>Receive</Button
@@ -308,6 +290,8 @@
 
 	{#snippet footer()}
 		<div class="grid gap-1">
+			<!-- Always mounted: "Use a different wallet" reopens the same sheet from the tap step. -->
+			<WalletConnect bind:open={choosing} showButton={view === 'choose'} />
 			{#if view === 'done' && linked}
 				<Button href="/accessory" size="xl" class="w-full">Done</Button>
 				<Button

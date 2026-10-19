@@ -12,7 +12,7 @@
 	import WalletConnect from '#lib/components/app/WalletConnect.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { walletAccessoriesQuery } from '#lib/client/queries.ts';
-	import { loginOwner, openOwnedAccessory } from '#lib/client/accessory/open-owned.ts';
+	import { openOwnedAccessory } from '#lib/client/accessory/open-owned.ts';
 	import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
 	import { platform } from '#lib/client/capability.ts';
@@ -39,10 +39,6 @@
 	);
 	const reload = () => void listQuery.refetch();
 
-	// The one signature: it logs this browser in, so opening accessories never asks again.
-	// Declining it cancels the connection and returns to the wallet picker.
-	const login = () => loginOwner(walletStore.signingContext());
-
 	async function openAccessory(acc: AccessoryView) {
 		opening = acc.pda;
 		failure = null;
@@ -54,36 +50,22 @@
 			opening = null;
 		}
 	}
-
-	// Show wallet linkage separately from physical ownership.
-	const summary = $derived(
-		!walletStore.address
-			? 'Connect a wallet to see and manage the accessories linked to it.'
-			: accessories === null
-				? 'Accessories linked to this wallet.'
-				: accessories.length === 1
-					? 'One accessory is linked to this wallet.'
-					: `${accessories.length === 0 ? 'No' : accessories.length} accessories are linked to this wallet.`
-	);
 </script>
 
-<svelte:head
-	><title>{walletStore.address ? 'Your accessories' : 'Connect your wallet'} · Revibase</title
-	></svelte:head
->
+<svelte:head><title>Your accessories · Revibase</title></svelte:head>
 
-<PageShell size="medium">
+<PageShell size="medium" connect={false}>
 	<section class="flex flex-1 flex-col gap-7 pt-4" aria-live="polite">
 		<PageHeader
-			title={walletStore.address ? 'Your accessories' : 'Connect your wallet'}
-			body={summary}
+			title="Your accessories"
+			body={walletStore.address ? undefined : 'Connect a wallet to see the accessories it owns.'}
 		/>
 		{#if onDesktop}
 			<div class="space-y-4 rounded-2xl border bg-card px-5 py-6 text-center">
 				<div class="space-y-1">
-					<h2 class="text-[17px] font-semibold">Continue on your phone</h2>
+					<h2 class="text-[17px] font-semibold">Claim on your phone</h2>
 					<p class="text-[14px] leading-relaxed text-muted-foreground">
-						Scan to open Revibase, then tap your accessory to claim it.
+						Claiming uses your phone’s NFC.
 					</p>
 				</div>
 				<QrCode value={page.url.origin} label="Scan with your phone’s camera" />
@@ -97,19 +79,16 @@
 		/>
 
 		{#if !walletStore.address}
-			<WalletConnect afterConnect={login} />
-			<p class="-mt-4 px-1 text-[13px] leading-snug text-muted-foreground">
-				Approve a sign-in message to view your linked accessories.
-			</p>
+			<WalletConnect />
 		{:else}
 			{#if accessories === null && !failure && !listFailure}
-				<List label="Accessories">
+				<List>
 					{#each [0, 1] as i (i)}<ListRowSkeleton avatar="size-12 rounded-[26%]" detail />{/each}
 				</List>
 			{:else if accessories?.length === 0 && !onDesktop}
-				<EmptyState title="No accessories yet" body="Tap an accessory to view it and claim it." />
+				<EmptyState title="No accessories yet" body="Hold one to your phone to claim it." />
 			{:else if accessories?.length}
-				<List label="Accessories">
+				<List>
 					{#each accessories as acc (acc.pda)}
 						<AccessoryRow
 							accessory={acc}
@@ -125,7 +104,7 @@
 	{#snippet footer()}
 		{#if !walletStore.address && !onDesktop}
 			<p class="text-center text-[14px] text-muted-foreground">
-				Have your accessory with you? Hold it to your phone instead.
+				Have your accessory? Hold it to your phone.
 			</p>
 		{/if}
 	{/snippet}

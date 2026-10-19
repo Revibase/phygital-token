@@ -14,44 +14,49 @@ export type FriendlyError = {
 const LINK_COPY: Record<LinkErrorCode, FriendlyError> = {
 	accessory_locked: {
 		title: 'This accessory is locked',
-		body: 'It’s already linked and locked to a wallet. The owner has to unlink it first.'
+		body: 'Its owner has to release it first.'
 	},
 	accessory_permanent: {
-		title: 'Permanently linked',
-		body: 'This accessory was made for one wallet, and that link can’t be changed.'
+		title: 'This accessory can’t change owner',
+		body: 'It was made for one wallet.'
 	},
 	different_accessory: {
 		title: 'That’s a different accessory',
-		body: 'Use the same accessory you tapped at the start.'
+		body: 'Use the one you tapped first.'
 	},
 	tap_rejected: {
-		title: 'We couldn’t confirm that tap',
-		body: 'Hold your accessory steady against your phone until it finishes, then try again.'
+		title: 'Couldn’t confirm that tap',
+		body: 'Hold your accessory still until it’s done, then try again.'
 	},
 	too_slow: {
-		title: 'That took a little too long',
-		body: 'Each approval only lasts a few minutes. Tap your accessory again to continue.'
+		title: 'Approval expired',
+		body: 'Approvals last about a minute. Tap your accessory again.'
 	},
 	insufficient_sol: {
-		title: 'Your wallet needs a little SOL',
-		body: 'The wallet you’re linking pays a tiny network fee (well under 0.001 SOL). Add some SOL to it, then try again.'
+		title: 'Not enough SOL',
+		body: 'Add a little SOL to this wallet for the network fee, then try again.'
 	},
 	already_used: {
-		title: 'That approval was already used',
-		body: 'Tap your accessory again to create a fresh one.'
+		title: 'Approval already used',
+		body: 'Tap your accessory again.'
 	},
 	wallet_rejected: {
-		title: 'Cancelled in your wallet',
-		body: 'Nothing was changed. You can try again whenever you’re ready.'
+		title: 'Cancelled',
+		body: 'Nothing was changed.'
 	},
 	network: {
-		title: 'Connection problem',
-		body: 'We couldn’t reach the network. Check your connection and try again.'
+		title: 'Can’t connect',
+		body: 'Check your connection and try again.'
 	},
 	unknown: {
 		title: 'Something went wrong',
-		body: 'Nothing was changed. Please try again.'
+		body: 'Nothing was changed. Try again.'
 	}
+};
+
+const UNKNOWN_ACCESSORY: FriendlyError = {
+	title: 'Unknown accessory',
+	body: 'It isn’t registered, so it can’t be verified. Contact whoever issued it.'
 };
 
 export function linkErrorCopy(code: LinkErrorCode | null | undefined): FriendlyError {
@@ -78,60 +83,48 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 	if (err instanceof ApiClientError) {
 		if (err.code in LINK_COPY)
 			return { ...linkErrorCopy(err.code as LinkErrorCode), detail: err.message };
-		if (err.code === 'unknown_accessory') {
-			return {
-				title: 'We don’t recognize this accessory',
-				body: 'It isn’t registered, so we can’t confirm it’s genuine.'
-			};
-		}
+		if (err.code === 'unknown_accessory') return UNKNOWN_ACCESSORY;
 		if (err.code === 'not_owner') {
 			return {
-				title: 'That’s a different wallet',
-				body: 'This accessory isn’t linked to the wallet you connected.'
+				title: 'Not the owner’s wallet',
+				body: 'This wallet doesn’t own this accessory.'
 			};
 		}
 		if (err.code === 'bad_signature') {
 			return {
-				title: 'We couldn’t verify that signature',
+				title: 'Couldn’t verify the signature',
 				body: 'Approve the message in your wallet, then try again.'
 			};
 		}
-		if (err.code === 'expired')
-			return {
-				title: 'This session expired',
-				body: err.message
-			};
+		if (err.code === 'expired') return { title: 'Session expired', body: err.message };
 		if (err.code === 'fee_payer_refused') {
 			return {
-				title: 'This transaction couldn’t be sent',
+				title: 'Couldn’t send this transaction',
 				body: 'Nothing was changed.',
 				detail: err.message
 			};
 		}
 		if (err.code === 'transaction_changed') {
 			return {
-				title: 'Something changed',
-				body: 'Nothing was sent. Review and try again.',
+				title: 'The transaction changed',
+				body: 'Nothing was sent. Try again.',
 				detail: err.message
 			};
 		}
 		if (err.code === 'fee_payer_unavailable') {
 			return {
-				title: 'Revibase can’t send transactions right now',
-				body: 'Nothing was sent. Please try again later.'
+				title: 'Sending is unavailable',
+				body: 'Nothing was sent. Try again later.'
 			};
 		}
 		if (err.code === 'submit_unknown') {
 			return {
-				title: 'We couldn’t confirm whether this went through',
+				title: 'Couldn’t confirm the transaction',
 				body: 'Check your balance before trying again, so nothing is sent twice.'
 			};
 		}
 		if (err.code === 'forbidden' || err.code === 'not_found' || err.code === 'conflict') {
-			return {
-				title: 'This link isn’t active anymore',
-				body: err.message
-			};
+			return { title: 'No longer available', body: err.message };
 		}
 		return {
 			title: 'Something went wrong',
@@ -143,15 +136,15 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 		return { ...linkErrorCopy(onChain), detail: err instanceof Error ? err.message : undefined };
 	if (err instanceof LinkTransactionRejected) {
 		return {
-			title: 'We stopped an unexpected transaction',
-			body: 'What your wallet was asked to sign didn’t match this link, so nothing was sent.',
+			title: 'Unexpected transaction blocked',
+			body: 'It didn’t match what you asked for, so nothing was sent.',
 			detail: err.message
 		};
 	}
 	if (err instanceof TransferRejected) {
 		return {
-			title: 'We stopped this transfer',
-			body: 'What your wallet signed didn’t match what you asked to send, so nothing was sent.',
+			title: 'Transfer blocked',
+			body: 'It didn’t match what you asked to send, so nothing was sent.',
 			detail: err.message
 		};
 	}
@@ -159,7 +152,7 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 		if (context === 'tap') {
 			return {
 				title: 'The tap didn’t finish',
-				body: 'Hold your accessory to your phone when prompted and keep it there until it’s done.'
+				body: 'Hold your accessory to your phone until it’s done.'
 			};
 		}
 		return linkErrorCopy('wallet_rejected');
@@ -167,16 +160,12 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 	const message = err instanceof Error ? err.message : String(err);
 	if (err instanceof PhygitalTokenError && err.code === 'WEBAUTHN_UNSUPPORTED') {
 		return {
-			title: 'This browser can’t read your accessory',
-			body: 'Open this page in Safari (iPhone) or Chrome (Android) to tap.'
+			title: 'This browser can’t read accessories',
+			body: 'Open this page in Safari or Chrome.'
 		};
 	}
 	if (err instanceof PhygitalTokenError && TAP_REJECTED_CODES.includes(err.code)) {
-		return {
-			title: 'We couldn’t confirm that tap',
-			body: 'Hold your accessory steady against your phone until it finishes, then try again.',
-			detail: message
-		};
+		return { ...linkErrorCopy('tap_rejected'), detail: message };
 	}
 	return { ...linkErrorCopy('unknown'), detail: message };
 }
@@ -184,26 +173,23 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 export const TAP_FAILURE_COPY: Record<TapFailureReason, { title: string; body: string }> = {
 	malformed: {
 		title: 'Couldn’t read that tap',
-		body: 'Hold your accessory to your phone again and keep it there for a moment.'
+		body: 'Hold your accessory to your phone again, and keep it there for a moment.'
 	},
 	invalid: {
-		title: 'Couldn’t verify this tap',
-		body: 'The link wasn’t signed by an accessory. If it was copied or edited, tap the accessory itself.'
+		title: 'Couldn’t verify that tap',
+		body: 'This link didn’t come from an accessory. Tap the accessory itself.'
 	},
 	replayed: {
 		title: 'That tap was already used',
-		body: 'Each tap works once. Hold your accessory to your phone again.'
+		body: 'Each tap works once. Tap your accessory again.'
 	},
-	unknown: {
-		title: 'We don’t recognize this accessory',
-		body: 'It isn’t registered, so we can’t confirm it’s genuine. If you were expecting it to work, contact whoever issued it.'
-	},
+	unknown: UNKNOWN_ACCESSORY,
 	network: {
-		title: 'Connection problem',
-		body: 'We couldn’t reach the network to check this accessory. Check your connection and tap again.'
+		title: 'Can’t connect',
+		body: 'Check your connection, then tap your accessory again.'
 	},
 	expired: {
-		title: 'Tap to continue',
-		body: 'This page closes after a few minutes. Tap Continue, then hold your accessory to your phone.'
+		title: 'Session expired',
+		body: 'Tap Continue, then hold your accessory to your phone.'
 	}
 };

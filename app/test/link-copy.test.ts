@@ -22,8 +22,8 @@ describe('neutral wallet linking copy', () => {
 		}
 	);
 	it('explains the distinct relinking rules', () => {
-		expect(linkCopy('bearer').confirm.body).toContain('claim it while unlocked');
-		expect(linkCopy('controlled').confirm.body).toContain('Only the owner can release it');
+		expect(linkCopy('bearer').confirm.body).toContain('claim it while it’s unlocked');
+		expect(linkCopy('controlled').confirm.body).toContain('only the owner can release it');
 	});
 	it('unknown types retain the stricter linkage warning', () => {
 		expect(linkCopy('unknown')).toBe(linkCopy('controlled'));

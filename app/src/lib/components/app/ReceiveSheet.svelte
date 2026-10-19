@@ -8,14 +8,16 @@
 		open = $bindable(false),
 		address,
 		cluster,
-		description = 'Send SOL or tokens to this address on Solana.'
+		description = 'Only send SOL and Solana tokens to this address.'
 	}: { open?: boolean; address: string; cluster?: string; description?: string } = $props();
+	// Only a test network needs saying.
+	const network = $derived(cluster ? networkLabel(cluster) : null);
 </script>
 
 <ResponsiveSheet bind:open title="Receive" {description}>
 	<div class="space-y-5">
-		{#if cluster}<p class="text-center text-[13px] font-medium text-muted-foreground">
-				Solana{networkLabel(cluster) ? ` · ${networkLabel(cluster)}` : ''}
+		{#if network}<p class="text-center text-[13px] font-medium text-muted-foreground">
+				On {network}
 			</p>{/if}
 		<QrCode
 			value={`solana:${address}`}

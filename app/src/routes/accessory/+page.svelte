@@ -120,14 +120,14 @@
 	}
 </script>
 
-<svelte:head><title>Your accessory · Revibase</title></svelte:head>
+<svelte:head><title>{screen?.title ?? 'Accessory'} · Revibase</title></svelte:head>
 
 <PageShell size="wide">
 	{#if !a || !screen}
 		<section class="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center">
 			<Notice
 				title="Couldn’t load this accessory"
-				body="It’s genuine, but we couldn’t reach the network to load it. Check your connection and try again."
+				body="It’s genuine, but the network didn’t respond."
 				onretry={retry}
 				retrying={refreshing}
 			/>
@@ -189,8 +189,8 @@
 						align="center-mobile"
 						eyebrow={`Genuine · ${a.tag}`}
 						eyebrowTone="success"
-						title={a.status === 'unavailable' ? screen.title : 'Your accessory'}
-						body={screen.body || screen.title}
+						title={screen.title}
+						body={screen.body || undefined}
 					/>
 				{/if}
 
@@ -230,13 +230,8 @@
 {#snippet actions()}
 	{#if a && screen}
 		{#if screen.claim}
-			<div class="grid gap-2">
-				{#if !a.owner}<p class="px-3 text-center text-[13px] text-muted-foreground">
-						Claim it to manage its settings with your wallet.
-					</p>{/if}
-				<Button href="/accessory/link" size="xl"
-					>{a.owner ? 'Claim this accessory' : 'Claim accessory'}</Button
-				>
+			<div class="grid gap-1">
+				<Button href="/accessory/link" size="xl">Claim accessory</Button>
 				<Button variant="quiet" class="w-full" onclick={openManagement}
 					>{management?.hasActions ? 'Manage accessory' : 'Details'}</Button
 				>
@@ -254,7 +249,7 @@
 		<List>
 			{#if management?.changeOwner}<ListRow
 					label="Change owner"
-					detail="Choose a new owner"
+					detail="Claim it with another wallet"
 					href="/accessory/link"
 					chevron
 				/>{/if}

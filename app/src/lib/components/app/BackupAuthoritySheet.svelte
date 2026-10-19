@@ -59,7 +59,7 @@
 	);
 	const shortfall = $derived(
 		lamports !== undefined && lamports < fee + setup
-			? `Add ${sol(fee + setup - lamports)} to this wallet to pay for this.`
+			? `Add ${sol(fee + setup - lamports)} to this wallet first.`
 			: null
 	);
 	const ready = $derived(mode === 'remove' || (!!typed && !formProblem));
@@ -93,7 +93,7 @@
 	title={mode === 'remove' ? 'Remove backup' : current ? 'Change backup' : 'Add a backup'}
 	description={mode === 'remove'
 		? 'Only your passkey will be able to use this wallet.'
-		: 'Another wallet that can use this one without your passkey.'}
+		: 'A wallet that can use this one without your passkey.'}
 >
 	<Notice error={failure} />
 	<form
@@ -120,7 +120,7 @@
 			<Notice
 				tone="info"
 				title="It can move everything"
-				body="The backup can send all of this wallet’s SOL and tokens, now and later, until you remove it. Use a wallet only you control, such as a hardware wallet."
+				body="Until you remove it, the backup can send all SOL and tokens in this wallet. Use one only you control, like a hardware wallet."
 			/>
 		{:else if current}
 			<Panel class="space-y-1 py-4">
@@ -130,9 +130,7 @@
 		{/if}
 
 		<p class="text-[13px] text-muted-foreground">
-			Network fee about {sol(fee)}{setup
-				? `, plus ${sol(setup)} to set up this wallet (once)`
-				: ''}, paid from this wallet.
+			Network fee about {sol(fee)}{setup ? `, plus ${sol(setup)} one-time setup` : ''}.
 		</p>
 		<FieldError message={shortfall} />
 
@@ -144,7 +142,8 @@
 		>
 			{#if busy}<Spinner /> {walletStore.approvePrompt}
 			{:else if mode === 'remove'}Remove backup
-			{:else}Continue{/if}
+			{:else if current}Change backup
+			{:else}Add backup{/if}
 		</Button>
 	</form>
 </ResponsiveSheet>

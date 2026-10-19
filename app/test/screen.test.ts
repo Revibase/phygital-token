@@ -41,7 +41,7 @@ describe('tapScreen: Bearer wallet linkage', () => {
 
 	it('owner: in their collection, can move it, not pitched as a wallet key', () => {
 		const s = tapScreen(accessory('bearer', W), true);
-		expect(s).toMatchObject({ title: 'Claimed', claim: false });
+		expect(s).toMatchObject({ title: 'Your accessory', claim: false });
 		expect(s.body).not.toMatch(/prove/i);
 	});
 
@@ -53,7 +53,7 @@ describe('tapScreen: Bearer wallet linkage', () => {
 				}
 		}
 		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({
-			title: 'Permanently assigned',
+			title: 'Permanently owned',
 			body: ''
 		});
 	});
@@ -84,7 +84,7 @@ describe('tapScreen: Controlled and Permanent wallet linkage', () => {
 
 	it('Controlled linked: never claimable, framed around authentication', () => {
 		expect(tapScreen(accessory('controlled', W), true)).toMatchObject({
-			title: 'Claimed',
+			title: 'Your accessory',
 			claim: false
 		});
 		expect(tapScreen(accessory('controlled', W), false)).toMatchObject({
@@ -95,11 +95,11 @@ describe('tapScreen: Controlled and Permanent wallet linkage', () => {
 
 	it('Permanent: bound for good, never claimable', () => {
 		expect(tapScreen(accessory('permanent', W), true)).toMatchObject({
-			title: 'Permanently assigned',
+			title: 'Your accessory',
 			claim: false
 		});
 		expect(tapScreen(accessory('permanent', W), false)).toMatchObject({
-			title: 'Permanently assigned',
+			title: 'Permanently owned',
 			claim: false
 		});
 	});
