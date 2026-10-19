@@ -113,9 +113,6 @@ importers:
       '@wallet-standard/base':
         specifier: ^1.1.1
         version: 1.1.1
-      '@wallet-standard/features':
-        specifier: ^1.1.1
-        version: 1.1.1
       phygital-token-sdk:
         specifier: workspace:*
         version: link:../packages/js/phygital-token

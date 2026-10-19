@@ -56,14 +56,6 @@ class WalletStore {
 	}
 
 	async #initialize(cluster: Cluster) {
-		if (import.meta.env.DEV) {
-			try {
-				const { registerDevMockWallet } = await import('./mock-wallet');
-				await registerDevMockWallet();
-			} catch (err) {
-				console.error('Could not register the development mock wallet', err);
-			}
-		}
 		const client = new ConnectorClient(
 			getDefaultConfig({
 				appName: 'Revibase',
