@@ -83,7 +83,7 @@
 
 <svelte:head><title>{copy.title} · Revibase</title></svelte:head>
 
-<PageShell connect={false}>
+<PageShell brand={false} connect={false}>
 	<section
 		class="flex flex-1 flex-col items-center justify-center gap-8 pb-8"
 		role={data.reason === 'expired' ? undefined : 'alert'}

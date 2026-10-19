@@ -72,7 +72,7 @@
 
 <svelte:head><title>Wallet · Revibase</title></svelte:head>
 
-<PageShell size="narrow" back>
+<PageShell size="narrow" back brand={false}>
 	<section class="flex flex-1 flex-col gap-7 pt-4" aria-live="polite">
 		{#if walletStore.address}
 			<div class="flex flex-col items-center gap-5">

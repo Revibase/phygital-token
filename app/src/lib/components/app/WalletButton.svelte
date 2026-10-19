@@ -5,7 +5,6 @@
 	import WalletIcon from '@lucide/svelte/icons/wallet';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
-	import WalletAvatar from './WalletAvatar.svelte';
 	import WalletConnect from './WalletConnect.svelte';
 	import { walletStore, type Cluster } from '#lib/client/wallet/wallet.svelte.ts';
 	import { shortAddress } from '#lib/shared/encoding.ts';
@@ -21,9 +20,8 @@
 	<DropdownMenu.Root>
 		<DropdownMenu.Trigger
 			aria-label={`Wallet ${walletStore.address}`}
-			class="inline-flex h-10 items-center gap-2 rounded-full border bg-card py-1 pr-3.5 pl-1.5 transition-colors outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/60 data-[state=open]:bg-muted/60"
+			class="inline-flex h-10 items-center gap-1.5 rounded-full border bg-card px-4 transition-colors outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/60 data-[state=open]:bg-muted/60"
 		>
-			<WalletAvatar address={walletStore.address} size="sm" />
 			<span class="font-mono text-[13px] font-medium">{shortAddress(walletStore.address)}</span>
 			<ChevronDown class="size-3.5 text-muted-foreground" />
 		</DropdownMenu.Trigger>

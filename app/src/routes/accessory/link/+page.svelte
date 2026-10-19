@@ -183,7 +183,7 @@
 
 <svelte:head><title>{copy.pageTitle} · Revibase</title></svelte:head>
 
-<PageShell connect={false}>
+<PageShell brand={false} connect={false}>
 	<section class="flex flex-1 flex-col pt-4" aria-live="polite">
 		{#key view}
 			<div class="animate-rise flex flex-1 flex-col gap-7">

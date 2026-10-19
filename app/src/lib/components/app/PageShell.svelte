@@ -4,6 +4,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+	import RevibaseMark from '#lib/brand/RevibaseMark.svelte';
 	import WalletButton from './WalletButton.svelte';
 	import type { Cluster } from '#lib/client/wallet/wallet.svelte.ts';
 
@@ -12,6 +13,7 @@
 		footer,
 		size = 'narrow',
 		back = false,
+		brand = true,
 		connect = true
 	}: {
 		children: Snippet;
@@ -19,6 +21,8 @@
 		size?: 'narrow' | 'medium' | 'wide';
 		/** A secondary place: reached from another screen, it offers Back instead of the home link. */
 		back?: boolean;
+		/** False on full-screen flows: no logo or home link (Back still shows when offered). */
+		brand?: boolean;
 		/** False when the page shows its own Connect wallet button: the header then shows only a connected wallet. */
 		connect?: boolean;
 	} = $props();
@@ -53,6 +57,17 @@
 				>
 					<ChevronLeft class="-ml-1 size-5" />Back
 				</button>
+			{:else if brand}
+				<a
+					href="/"
+					class="-mx-2 inline-flex h-11 items-center gap-2 rounded-lg px-2 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+					aria-label="Revibase home"
+				>
+					<span class="grid size-6 place-items-center rounded-[26%] bg-brand text-brand-cream">
+						<RevibaseMark class="w-3.5" />
+					</span>
+					<span class="text-[15px] font-semibold tracking-[-0.01em]">Revibase</span>
+				</a>
 			{/if}
 			<div class="ml-auto flex items-center gap-2">
 				{#if network}
