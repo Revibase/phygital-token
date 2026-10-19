@@ -5,6 +5,8 @@
 	import { page } from '$app/state';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import RevibaseMark from '#lib/brand/RevibaseMark.svelte';
+	import WalletButton from './WalletButton.svelte';
+	import type { Cluster } from '#lib/client/wallet/wallet.svelte.ts';
 
 	let {
 		children,
@@ -28,7 +30,7 @@
 	const showBack = $derived(back && arrivedInApp);
 
 	// Wallet users check the network before they sign; only a non-mainnet one needs saying.
-	const cluster = $derived((page.data as { cluster?: string }).cluster);
+	const cluster = $derived((page.data as { cluster?: Cluster }).cluster);
 	const network = $derived(networkLabel(cluster));
 
 	const max = { narrow: 'lg:max-w-[440px]', medium: 'lg:max-w-[560px]', wide: 'lg:max-w-[920px]' };
@@ -61,12 +63,15 @@
 					<span class="text-[15px] font-semibold tracking-[-0.01em]">Revibase</span>
 				</a>
 			{/if}
-			{#if network}
-				<span
-					class="rounded-full bg-muted px-2.5 py-1 text-[12px] font-medium text-muted-foreground"
-					title="Solana network">{network}</span
-				>
-			{/if}
+			<div class="flex items-center gap-2">
+				{#if network}
+					<span
+						class="rounded-full bg-muted px-2.5 py-1 text-[12px] font-medium text-muted-foreground"
+						title="Solana network">{network}</span
+					>
+				{/if}
+				{#if cluster && page.url.pathname !== '/wallet'}<WalletButton {cluster} />{/if}
+			</div>
 		</div>
 	</header>
 	<div class="flex flex-1 flex-col lg:justify-center">

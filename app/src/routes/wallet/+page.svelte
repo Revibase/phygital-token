@@ -17,6 +17,7 @@
 	import ReceiveSheet from '#lib/components/app/ReceiveSheet.svelte';
 	import SendSheet from '#lib/components/app/SendSheet.svelte';
 	import WalletAccount from '#lib/components/app/WalletAccount.svelte';
+	import WalletConnect from '#lib/components/app/WalletConnect.svelte';
 	import { walletBackupQuery, walletHoldingsQuery, walletSetupQuery } from '#lib/client/queries.ts';
 	import { describeError } from '#lib/client/link/messages.ts';
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
@@ -142,9 +143,9 @@
 			<PageHeader title="Wallet" body="Send and receive SOL and tokens." />
 			<EmptyState
 				title="No wallet connected"
-				body="Connect a wallet on the home page to see it here."
+				body="Connect a wallet to see your balance and send or receive."
 			/>
-			<Button href="/" variant="secondary" size="xl">Go to home</Button>
+			<WalletConnect />
 		{/if}
 	</section>
 </PageShell>

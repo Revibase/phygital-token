@@ -3,7 +3,6 @@
 	import EmptyState from '#lib/components/app/EmptyState.svelte';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import { Button } from '#lib/components/ui/button/index.ts';
 	import AccessoryRow from '#lib/components/app/AccessoryRow.svelte';
 	import List from '#lib/components/app/List.svelte';
 	import QrCode from '#lib/components/app/QrCode.svelte';
@@ -11,11 +10,8 @@
 	import PageHeader from '#lib/components/app/PageHeader.svelte';
 	import PageShell from '#lib/components/app/PageShell.svelte';
 	import WalletConnect from '#lib/components/app/WalletConnect.svelte';
-	import WalletRow from '#lib/components/app/WalletRow.svelte';
 	import { createQuery } from '@tanstack/svelte-query';
-	import { walletAccessoriesQuery, walletHoldingsQuery } from '#lib/client/queries.ts';
-	import { formatCompactTokenAmount, SOL_DECIMALS } from '#lib/shared/amount.ts';
-	import { formatUsd, portfolioUsd } from '#lib/shared/wallet-holdings.ts';
+	import { walletAccessoriesQuery } from '#lib/client/queries.ts';
 	import { loginOwner, openOwnedAccessory } from '#lib/client/accessory/open-owned.ts';
 	import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
@@ -42,20 +38,6 @@
 		listQuery.isError && !listQuery.data ? describeError(listQuery.error) : null
 	);
 	const reload = () => void listQuery.refetch();
-
-	// The wallet row shows what it holds and opens the wallet page.
-	const holdingsQuery = createQuery(() => ({
-		...walletHoldingsQuery(walletStore.address ?? ''),
-		enabled: !!walletStore.address
-	}));
-	const balance = $derived.by(() => {
-		const holdings = walletStore.address ? holdingsQuery.data : undefined;
-		if (!holdings) return undefined;
-		const usd = portfolioUsd(holdings);
-		return usd !== null
-			? formatUsd(usd)
-			: `${formatCompactTokenAmount(holdings.lamports, SOL_DECIMALS)} SOL`;
-	});
 
 	// The one signature: it logs this browser in, so opening accessories never asks again.
 	// Declining it cancels the connection and returns to the wallet picker.
@@ -120,15 +102,6 @@
 				Approve a sign-in message to view your linked accessories.
 			</p>
 		{:else}
-			<List>
-				<WalletRow
-					address={walletStore.address}
-					label="Your wallet"
-					href="/wallet"
-					value={balance}
-				/>
-			</List>
-
 			{#if accessories === null && !failure && !listFailure}
 				<List label="Accessories">
 					{#each [0, 1] as i (i)}<ListRowSkeleton avatar="size-12 rounded-[26%]" detail />{/each}
@@ -150,11 +123,7 @@
 	</section>
 
 	{#snippet footer()}
-		{#if walletStore.address}
-			<Button variant="quiet" class="w-full" onclick={() => walletStore.disconnect()}
-				>Use a different wallet</Button
-			>
-		{:else if !onDesktop}
+		{#if !walletStore.address && !onDesktop}
 			<p class="text-center text-[14px] text-muted-foreground">
 				Have your accessory with you? Hold it to your phone instead.
 			</p>

@@ -105,6 +105,11 @@ class WalletStore {
 			.map((c) => ({ id: c.id, name: c.name, icon: c.icon, ready: c.ready }));
 	}
 
+	/** Before the connector has loaded, or while it reconnects. */
+	get pending(): boolean {
+		return this.state === null || this.state.wallet?.status === 'connecting';
+	}
+
 	get address(): string | null {
 		const w = this.state?.wallet;
 		return w?.status === 'connected' ? String(w.session.selectedAccount.address) : null;
