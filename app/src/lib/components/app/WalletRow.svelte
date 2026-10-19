@@ -58,5 +58,5 @@
 			</span>
 		{/if}
 	{/snippet}
-	{#snippet leading()}<WalletAvatar {address} />{/snippet}
+	{#snippet leading()}<WalletAvatar />{/snippet}
 </ListRow>

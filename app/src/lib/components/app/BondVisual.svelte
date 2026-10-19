@@ -21,6 +21,6 @@
 	<div
 		class="grid size-20 place-items-center rounded-[26%] bg-card shadow-[0_0_0_1px_rgb(14_26_26/0.06),0_8px_24px_-14px_rgb(14_26_26/0.3)]"
 	>
-		{#if wallet}<WalletAvatar address={wallet} />{/if}
+		{#if wallet}<WalletAvatar />{/if}
 	</div>
 </div>

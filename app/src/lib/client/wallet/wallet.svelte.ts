@@ -118,12 +118,6 @@ class WalletStore {
 		return `Approve in ${this.walletName ?? 'your wallet'}…`;
 	}
 
-	get walletIcon(): string | null {
-		const w = this.state?.wallet;
-		if (w?.status !== 'connected') return null;
-		return this.state?.connectors.find((c) => c.id === w.session.connectorId)?.icon ?? null;
-	}
-
 	async connect(id: string) {
 		if (!this.#client) throw new Error('Wallet connector not initialised');
 		await this.#client.connectWallet(id as Parameters<ConnectorClient['connectWallet']>[0]);
