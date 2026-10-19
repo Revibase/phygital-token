@@ -16,5 +16,5 @@ export const load: PageServerLoad = async ({ cookies, setHeaders }) => {
 	if (!resolved) redirect(303, '/accessory');
 	const accessory = toAccessoryView(resolved.pda, resolved.account);
 	if (!accessory.canLink) redirect(303, '/accessory');
-	return { accessory, rpId: env.rpId };
+	return { accessory };
 };

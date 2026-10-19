@@ -13,7 +13,7 @@ export const POST: RequestHandler = async ({ request, url, cookies }) => {
 	const body = read.body as { challengeId?: unknown; response?: unknown };
 	try {
 		const result = await verifyResume(
-			{ db: env.db, rpc: getRpc(env), origin: url.origin, rpId: env.rpId },
+			{ db: env.db, rpc: getRpc(env), origin: url.origin },
 			{ challengeId: body.challengeId, response: body.response }
 		);
 		if (!result.ok)

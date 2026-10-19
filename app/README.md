@@ -15,7 +15,7 @@ pnpm --filter revibase db:migrate:local
 pnpm --filter revibase dev
 ```
 
-`.dev.vars` sets `SOLANA_RPC_URL`, `SESSION_SECRET` (32+ chars), `ORIGIN` and, optionally, `SOLANA_CLUSTER`. `RP_ID` in `wrangler.jsonc` is the WebAuthn relying party for accessory taps and must match the host the tap page is served from. `ORIGIN` is used to validate tap assertions.
+`.dev.vars` sets `SOLANA_RPC_URL`, `SESSION_SECRET` (32+ chars) and, optionally, `SOLANA_CLUSTER`. Tap assertions are checked against the origin of the request that submits them.
 
 ### Revibase Passkey (optional)
 
@@ -32,7 +32,7 @@ pnpm --filter revibase test       # unit tests (real SQL via node:sqlite)
 
 Run `pnpm --filter revibase deploy` to build, then deploy. Production builds reject imports from test code.
 
-There is **one** D1 binding, `DB`. In production it can be shared with other services that accept the same tap URLs. Replace the placeholder `database_id` in `wrangler.jsonc` with your database's before deploying (`wrangler d1 create phygital-token`), and set `ORIGIN` to the app's public URL.
+There is **one** D1 binding, `DB`. In production it can be shared with other services that accept the same tap URLs. Replace the placeholder `database_id` in `wrangler.jsonc` with your database's before deploying (`wrangler d1 create phygital-token`).
 
 - **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned outside this app. D1 records applied migrations by file name, so never rename or edit one that has already been applied.
   - `tap_counters` must be shared so there is one tap-counter high-water mark per chip across every service.
