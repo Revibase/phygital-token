@@ -96,9 +96,6 @@
 	// Which wallet app this device claimed with. Shown on the owner row.
 	let linkedContext = $state<OwnerContext | null>(null);
 	const linkedApp = $derived(linkedContext?.app ?? (owned ? walletStore.walletName : null));
-	const linkedIcon = $derived(
-		owned && walletStore.walletName === linkedApp ? walletStore.walletIcon : null
-	);
 	const linkedDetail = $derived(
 		[
 			linkedApp,
@@ -255,11 +252,11 @@
 						><WalletRow
 							address={a.owner}
 							label={owned ? 'Your wallet' : 'Owner'}
-							icon={linkedIcon}
 							context={linkedDetail ?? 'Manages this accessory'}
 							nftOwnership={media?.owner ? (media.owner === a.owner ? 'same' : 'different') : null}
 							onforget={linkedContext?.app ? forgetApps : undefined}
 							cluster={data.cluster}
+							href={owned ? '/wallet' : undefined}
 						/></List
 					>{/if}
 

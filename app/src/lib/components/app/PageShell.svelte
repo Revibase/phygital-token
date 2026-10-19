@@ -1,14 +1,31 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { networkLabel } from '#lib/shared/explorer.ts';
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
+	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import RevibaseMark from '#lib/brand/RevibaseMark.svelte';
 
 	let {
 		children,
 		footer,
-		size = 'narrow'
-	}: { children: Snippet; footer?: Snippet; size?: 'narrow' | 'medium' | 'wide' } = $props();
+		size = 'narrow',
+		back = false
+	}: {
+		children: Snippet;
+		footer?: Snippet;
+		size?: 'narrow' | 'medium' | 'wide';
+		/** A secondary place: reached from another screen, it offers Back instead of the home link. */
+		back?: boolean;
+	} = $props();
+
+	// The installed app (display: standalone) has no browser back button.
+	let arrivedInApp = $state(false);
+	afterNavigate(({ from }) => {
+		arrivedInApp =
+			!!from && from.url.origin === page.url.origin && from.url.pathname !== page.url.pathname;
+	});
+	const showBack = $derived(back && arrivedInApp);
 
 	// Wallet users check the network before they sign; only a non-mainnet one needs saying.
 	const cluster = $derived((page.data as { cluster?: string }).cluster);
@@ -24,16 +41,26 @@
 		<div
 			class="mx-auto flex h-12 w-full max-w-[440px] items-center justify-between px-5 lg:h-14 lg:max-w-none lg:px-8"
 		>
-			<a
-				href="/"
-				class="-mx-2 inline-flex h-11 items-center gap-2 rounded-lg px-2 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
-				aria-label="Revibase home"
-			>
-				<span class="grid size-6 place-items-center rounded-[26%] bg-brand text-brand-cream">
-					<RevibaseMark class="w-3.5" />
-				</span>
-				<span class="text-[15px] font-semibold tracking-[-0.01em]">Revibase</span>
-			</a>
+			{#if showBack}
+				<button
+					type="button"
+					onclick={() => history.back()}
+					class="-mx-2 inline-flex h-11 items-center gap-1 rounded-lg px-2 text-[15px] font-medium focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+				>
+					<ChevronLeft class="-ml-1 size-5" />Back
+				</button>
+			{:else}
+				<a
+					href="/"
+					class="-mx-2 inline-flex h-11 items-center gap-2 rounded-lg px-2 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+					aria-label="Revibase home"
+				>
+					<span class="grid size-6 place-items-center rounded-[26%] bg-brand text-brand-cream">
+						<RevibaseMark class="w-3.5" />
+					</span>
+					<span class="text-[15px] font-semibold tracking-[-0.01em]">Revibase</span>
+				</a>
+			{/if}
 			{#if network}
 				<span
 					class="rounded-full bg-muted px-2.5 py-1 text-[12px] font-medium text-muted-foreground"

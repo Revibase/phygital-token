@@ -16,7 +16,7 @@
 	import PageShell from '#lib/components/app/PageShell.svelte';
 	import ReceiveSheet from '#lib/components/app/ReceiveSheet.svelte';
 	import SendSheet from '#lib/components/app/SendSheet.svelte';
-	import WalletRow from '#lib/components/app/WalletRow.svelte';
+	import WalletAccount from '#lib/components/app/WalletAccount.svelte';
 	import { walletBackupQuery, walletHoldingsQuery, walletSetupQuery } from '#lib/client/queries.ts';
 	import { describeError } from '#lib/client/link/messages.ts';
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
@@ -72,33 +72,29 @@
 
 <svelte:head><title>Wallet · Revibase</title></svelte:head>
 
-<PageShell size="narrow">
+<PageShell size="narrow" back>
 	<section class="flex flex-1 flex-col gap-7 pt-4" aria-live="polite">
-		<PageHeader title="Wallet" body="Send and receive SOL and tokens." />
 		{#if walletStore.address}
-			<List>
-				<WalletRow
+			<div class="flex flex-col items-center gap-5">
+				<h1 class="sr-only">Wallet</h1>
+				<WalletAccount
 					address={walletStore.address}
 					label={walletStore.walletName ?? 'Your wallet'}
-					icon={walletStore.walletIcon}
 					cluster={data.cluster}
 				/>
-			</List>
-
-			<div class="space-y-1 px-1">
-				<p class="text-[13px] font-medium text-muted-foreground">Balance</p>
-				{#if total}<p class="text-[32px] leading-tight font-semibold tracking-tight">
+				{#if total}<p
+						class="text-center text-[40px] leading-none font-semibold tracking-tight tabular-nums"
+					>
 						{total}
-					</p>{:else}<div class="h-10 w-40 animate-pulse rounded-lg bg-muted"></div>{/if}
-			</div>
-
-			<div class="grid grid-cols-2 gap-3">
-				<Button size="xl" variant="secondary" onclick={() => (receiving = true)}
-					><ArrowDownLeft class="size-4" />Receive</Button
-				>
-				<Button size="xl" disabled={!holdings} onclick={() => startSend({ kind: 'sol' })}
-					><ArrowUpRight class="size-4" />Send</Button
-				>
+					</p>{:else}<div class="h-10 w-44 animate-pulse rounded-lg bg-muted"></div>{/if}
+				<div class="grid w-full grid-cols-2 gap-3">
+					<Button size="xl" variant="secondary" onclick={() => (receiving = true)}
+						><ArrowDownLeft class="size-4" />Receive</Button
+					>
+					<Button size="xl" disabled={!holdings} onclick={() => startSend({ kind: 'sol' })}
+						><ArrowUpRight class="size-4" />Send</Button
+					>
+				</div>
 			</div>
 
 			<Notice error={failure} onretry={() => void query.refetch()} retrying={query.isFetching} />
@@ -140,6 +136,7 @@
 				</Section>
 			{/if}
 		{:else}
+			<PageHeader title="Wallet" body="Send and receive SOL and tokens." />
 			<EmptyState
 				title="No wallet connected"
 				body="Connect a wallet on the home page to see it here."

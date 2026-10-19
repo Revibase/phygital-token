@@ -15,7 +15,6 @@
 	let {
 		address,
 		label,
-		icon = null,
 		context = null,
 		cluster = null,
 		nftOwnership = null,
@@ -25,7 +24,6 @@
 	}: {
 		address: string;
 		label: string;
-		icon?: string | null;
 		context?: string | null;
 		cluster?: string | null;
 		/** Clears the wallet name shown for this accessory. */
@@ -93,5 +91,5 @@
 			</span>
 		{/if}
 	{/snippet}
-	{#snippet leading()}<WalletAvatar {address} {icon} />{/snippet}
+	{#snippet leading()}<WalletAvatar {address} />{/snippet}
 </ListRow>

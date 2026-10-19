@@ -223,12 +223,7 @@
 					<div class="flex-1"></div>
 				{:else if view === 'done' && linked}
 					<div class="flex flex-1 flex-col justify-center gap-8">
-						<BondVisual
-							wallet={linked.recipient}
-							icon={ownedResult ? walletStore.walletIcon : null}
-							pda={accessory.pda}
-							hasMint={!!accessory.mint}
-						/>
+						<BondVisual wallet={linked.recipient} pda={accessory.pda} hasMint={!!accessory.mint} />
 						<PageHeader
 							align="center"
 							title={copy.done.title}
@@ -238,7 +233,6 @@
 							<WalletRow
 								address={linked.recipient}
 								label={ownedResult ? 'Your wallet' : 'Owner'}
-								icon={ownedResult ? walletStore.walletIcon : null}
 								cluster={data.cluster}
 							/>
 						</List>
@@ -286,7 +280,6 @@
 								<WalletRow
 									address={walletStore.address}
 									label={walletStore.walletName ?? 'Owner'}
-									icon={walletStore.walletIcon}
 									cluster={data.cluster}
 								/>
 							</List>
@@ -319,7 +312,6 @@
 							<WalletRow
 								address={walletStore.address}
 								label={walletStore.walletName ?? 'Owner'}
-								icon={walletStore.walletIcon}
 								cluster={data.cluster}
 							/>
 						</List>

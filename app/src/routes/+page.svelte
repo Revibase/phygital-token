@@ -124,7 +124,6 @@
 				<WalletRow
 					address={walletStore.address}
 					label={walletStore.walletName ?? 'Your wallet'}
-					icon={walletStore.walletIcon}
 					cluster={data.cluster}
 					href="/wallet"
 					value={balance}

@@ -94,7 +94,6 @@
 			<WalletRow
 				address={walletStore.address}
 				label={walletStore.walletName ?? 'Connected wallet'}
-				icon={walletStore.walletIcon}
 				{cluster}
 			/>
 		</List>

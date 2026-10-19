@@ -4,12 +4,10 @@
 
 	let {
 		wallet = null,
-		icon = null,
 		pda = null,
 		hasMint
 	}: {
 		wallet?: string | null;
-		icon?: string | null;
 		pda?: string | null;
 		hasMint?: boolean;
 	} = $props();
@@ -23,6 +21,6 @@
 	<div
 		class="grid size-20 place-items-center rounded-[26%] bg-card shadow-[0_0_0_1px_rgb(14_26_26/0.06),0_8px_24px_-14px_rgb(14_26_26/0.3)]"
 	>
-		{#if wallet}<WalletAvatar address={wallet} {icon} />{/if}
+		{#if wallet}<WalletAvatar address={wallet} />{/if}
 	</div>
 </div>
