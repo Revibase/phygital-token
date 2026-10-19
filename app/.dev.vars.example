@@ -3,8 +3,6 @@
 # so it must be a proxy Worker with no secret in the URL.
 SOLANA_RPC_URL=https://your-rpc-proxy.example.com
 SESSION_SECRET=replace-me
-# Handoff and pairing links point here; use the dev server's URL locally.
-ORIGIN=http://localhost:5173
 # The WebAuthn relying party: the host that serves the tap page.
 RP_ID=localhost
 # Optional: the Revibase Passkey wallet. Run revibase-wallet's signer (`pnpm dev:signer`,

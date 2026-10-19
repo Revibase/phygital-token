@@ -26,8 +26,6 @@
 	],
 	"vars": {
 		"RP_ID": "revibase.com",
-		// Base URL for handoff and pairing links (QR codes, "open in wallet").
-		"ORIGIN": "https://portal.revibase.com",
 		"SOLANA_CLUSTER": "mainnet",
 		"SOLANA_RPC_URL": "https://rpc.revibase.com",
 		// Revibase Passkey wallet (revibase-wallet's secure-signer). It is offered only when
