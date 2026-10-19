@@ -6,6 +6,7 @@ import { fetchWalletAccessories } from './wallet-accessories';
 import { browserRpc, rpcUrl } from './rpc';
 import { address } from '@solana/kit';
 import { fetchWalletHoldings } from '#lib/shared/wallet-holdings.ts';
+import { fetchBackupAuthority } from './wallet/backup';
 import { walletSetupFor } from './wallet/passkey-cost';
 import { queryKeys } from './cache';
 
@@ -48,6 +49,15 @@ export const walletSetupQuery = (wallet: string) =>
 	queryOptions({
 		queryKey: queryKeys.walletSetup(wallet),
 		queryFn: () => walletSetupFor(wallet),
+		staleTime: 15_000,
+		gcTime: 5 * MINUTE,
+		retry: 1
+	});
+
+export const walletBackupQuery = (wallet: string) =>
+	queryOptions({
+		queryKey: queryKeys.walletBackup(wallet),
+		queryFn: () => fetchBackupAuthority(wallet),
 		staleTime: 15_000,
 		gcTime: 5 * MINUTE,
 		retry: 1

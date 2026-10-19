@@ -3,6 +3,10 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import ArrowDownLeft from '@lucide/svelte/icons/arrow-down-left';
 	import ArrowUpRight from '@lucide/svelte/icons/arrow-up-right';
+	import ShieldCheck from '@lucide/svelte/icons/shield-check';
+	import BackupAuthoritySheet from '#lib/components/app/BackupAuthoritySheet.svelte';
+	import ListRow from '#lib/components/app/ListRow.svelte';
+	import Section from '#lib/components/app/Section.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import HoldingsList from '#lib/components/app/HoldingsList.svelte';
 	import EmptyState from '#lib/components/app/EmptyState.svelte';
@@ -13,11 +17,12 @@
 	import ReceiveSheet from '#lib/components/app/ReceiveSheet.svelte';
 	import SendSheet from '#lib/components/app/SendSheet.svelte';
 	import WalletRow from '#lib/components/app/WalletRow.svelte';
-	import { walletHoldingsQuery, walletSetupQuery } from '#lib/client/queries.ts';
+	import { walletBackupQuery, walletHoldingsQuery, walletSetupQuery } from '#lib/client/queries.ts';
 	import { describeError } from '#lib/client/link/messages.ts';
 	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
 	import { PASSKEY_WALLET_NAME } from '#lib/client/wallet/passkey.svelte.ts';
 	import { formatCompactTokenAmount, SOL_DECIMALS } from '#lib/shared/amount.ts';
+	import { shortAddress } from '#lib/shared/encoding.ts';
 	import { formatUsd, portfolioUsd } from '#lib/shared/wallet-holdings.ts';
 	import { needsSolForFees, type SendAsset } from '#lib/shared/wallet-transfer.ts';
 
@@ -37,6 +42,17 @@
 		enabled: passkey && !!walletStore.address
 	}));
 	const setup = $derived(passkey ? (setupQuery.data ?? 0n) : 0n);
+	const backupQuery = createQuery(() => ({
+		...walletBackupQuery(walletStore.address ?? ''),
+		enabled: passkey && !!walletStore.address
+	}));
+	const backup = $derived(passkey ? (backupQuery.data ?? null) : null);
+	let backupOpen = $state(false);
+	let backupMode = $state<'set' | 'remove'>('set');
+	function editBackup(mode: 'set' | 'remove') {
+		backupMode = mode;
+		backupOpen = true;
+	}
 	const total = $derived.by(() => {
 		if (!holdings) return null;
 		const usd = portfolioUsd(holdings);
@@ -97,6 +113,32 @@
 			{/if}
 
 			<HoldingsList {holdings} onselect={startSend} />
+
+			{#if passkey}
+				<Section
+					label="Backup"
+					footer="A backup wallet can use this one without your passkey, for example if you lose your device."
+				>
+					<List>
+						<ListRow
+							label={backup ? 'Backup wallet' : 'Add a backup'}
+							detail={backup ? shortAddress(backup) : 'Only your passkey can use this wallet'}
+							busy={backupQuery.isPending}
+							chevron
+							onclick={() => editBackup('set')}
+						>
+							{#snippet leading()}<ShieldCheck class="size-5 text-muted-foreground" />{/snippet}
+						</ListRow>
+						{#if backup}
+							<ListRow
+								label="Remove backup"
+								tone="destructive"
+								onclick={() => editBackup('remove')}
+							/>
+						{/if}
+					</List>
+				</Section>
+			{/if}
 		{:else}
 			<EmptyState
 				title="No wallet connected"
@@ -110,4 +152,14 @@
 {#if walletStore.address}
 	<ReceiveSheet bind:open={receiving} address={walletStore.address} cluster={data.cluster} />
 	<SendSheet bind:open={sending} {holdings} {asset} cluster={data.cluster} />
+	{#if passkey}
+		<BackupAuthoritySheet
+			bind:open={backupOpen}
+			mode={backupMode}
+			current={backup}
+			vault={walletStore.address}
+			lamports={holdings?.lamports}
+			cluster={data.cluster}
+		/>
+	{/if}
 {/if}

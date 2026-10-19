@@ -11,7 +11,8 @@ export const queryKeys = {
 		['accessory-shortcuts', pda, owner ?? ''] as const,
 	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const,
 	walletHoldings: (wallet: string) => ['wallet-holdings', wallet] as const,
-	walletSetup: (wallet: string) => ['wallet-setup', wallet] as const
+	walletSetup: (wallet: string) => ['wallet-setup', wallet] as const,
+	walletBackup: (wallet: string) => ['wallet-backup', wallet] as const
 };
 
 export function createQueryClient() {
