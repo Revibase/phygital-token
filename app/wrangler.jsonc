@@ -20,7 +20,7 @@
 			// Replace the placeholder id with your database's (`wrangler d1 create`).
 			"binding": "DB",
 			"database_name": "phygital-token",
-			"database_id": "00000000-0000-4000-8000-000000000000",
+			"database_id": "356d6b15-cd60-47b5-a014-648246bd27b5",
 			"migrations_dir": "migrations"
 		}
 	],
