@@ -10,9 +10,11 @@
 	/** The wallet's SOL and tokens. With `onselect`, tapping one starts sending it. */
 	let {
 		holdings,
+		label = 'Assets',
 		onselect
 	}: {
 		holdings: WalletHoldings | undefined;
+		label?: string | null;
 		onselect?: (asset: SendAsset) => void;
 	} = $props();
 
@@ -20,7 +22,7 @@
 		price === null ? undefined : formatUsd((Number(amount) / 10 ** decimals) * price);
 </script>
 
-<List label="Assets">
+<List label={label ?? undefined}>
 	{#if !holdings}
 		{#each [0, 1] as i (i)}<ListRowSkeleton />{/each}
 	{:else}

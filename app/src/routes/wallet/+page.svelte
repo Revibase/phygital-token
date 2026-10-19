@@ -63,8 +63,8 @@
 
 	let receiving = $state(false);
 	let sending = $state(false);
-	let asset = $state<SendAsset>({ kind: 'sol' });
-	function startSend(next: SendAsset) {
+	let asset = $state<SendAsset | null>({ kind: 'sol' });
+	function startSend(next: SendAsset | null) {
 		asset = next;
 		sending = true;
 	}
@@ -90,7 +90,11 @@
 					<Button size="xl" variant="secondary" onclick={() => (receiving = true)}
 						><ArrowDownLeft class="size-4" />Receive</Button
 					>
-					<Button size="xl" disabled={!holdings} onclick={() => startSend({ kind: 'sol' })}
+					<Button
+						size="xl"
+						disabled={!holdings}
+						onclick={() =>
+							startSend(holdings?.tokens.some((t) => !t.frozen) ? null : { kind: 'sol' })}
 						><ArrowUpRight class="size-4" />Send</Button
 					>
 				</div>

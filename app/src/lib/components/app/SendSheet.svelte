@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Field from './Field.svelte';
+	import HoldingsList from './HoldingsList.svelte';
 	import FieldError from './FieldError.svelte';
 	import Notice from './Notice.svelte';
 	import Panel from './Panel.svelte';
@@ -41,7 +43,8 @@
 	}: {
 		open?: boolean;
 		holdings: WalletHoldings | undefined;
-		asset: SendAsset;
+		/** null: choose what to send first. */
+		asset: SendAsset | null;
 		cluster: string;
 	} = $props();
 
@@ -55,10 +58,24 @@
 		enabled: passkey && !!walletStore.address && open
 	}));
 	const setup = $derived(passkey ? (setupQuery.data ?? 0n) : 0n);
-	const label = $derived(asset.kind === 'sol' ? 'SOL' : tokenLabel(asset.token));
-	const decimals = $derived(asset.kind === 'sol' ? SOL_DECIMALS : asset.token.decimals);
-	const balance = $derived(asset.kind === 'sol' ? (holdings?.lamports ?? 0n) : asset.token.amount);
-	const icon = $derived(asset.kind === 'sol' ? '/solana.svg' : asset.token.icon);
+	let chosen = $state<SendAsset | null>(null);
+	$effect(() => {
+		if (open) untrack(() => (chosen = asset));
+	});
+	const current = $derived<SendAsset>(chosen ?? { kind: 'sol' });
+	const label = $derived(current.kind === 'sol' ? 'SOL' : tokenLabel(current.token));
+	const decimals = $derived(current.kind === 'sol' ? SOL_DECIMALS : current.token.decimals);
+	const balance = $derived(
+		current.kind === 'sol' ? (holdings?.lamports ?? 0n) : current.token.amount
+	);
+	const icon = $derived(current.kind === 'sol' ? '/solana.svg' : current.token.icon);
+
+	function choose(next: SendAsset | null) {
+		chosen = next;
+		amount = '';
+		plan = null;
+		failure = null;
+	}
 
 	let recipient = $state('');
 	let amount = $state('');
@@ -112,7 +129,7 @@
 
 	function setMax() {
 		if (!holdings) return;
-		amount = formatTokenAmount(maxSendable(holdings, asset, passkey, false, setup), decimals);
+		amount = formatTokenAmount(maxSendable(holdings, current, passkey, false, setup), decimals);
 	}
 
 	async function review() {
@@ -120,7 +137,13 @@
 		busy = 'review';
 		failure = null;
 		try {
-			plan = await planTransfer(walletStore.signingContext(), holdings, asset, validRecipient, raw);
+			plan = await planTransfer(
+				walletStore.signingContext(),
+				holdings,
+				current,
+				validRecipient,
+				raw
+			);
 		} catch (err) {
 			failure = describeError(err);
 		} finally {
@@ -150,103 +173,120 @@
 	}
 </script>
 
-<ResponsiveSheet bind:open title={`Send ${label}`} description="To any Solana address.">
-	<Notice error={failure} />
-	<form
-		class="space-y-4"
-		onsubmit={(e) => {
-			e.preventDefault();
-			void (plan && !plan.problem ? send() : review());
-		}}
-	>
-		<Panel class="flex items-center gap-3 py-4">
-			<TokenIcon src={icon} {label} />
-			<div class="min-w-0">
-				<p class="truncate text-[15px] font-medium">{label}</p>
-				<p class="text-[13px] text-muted-foreground">
-					{formatCompactTokenAmount(balance, decimals)} available
-				</p>
-			</div>
-		</Panel>
-		<Field label="Send to" id={`${uid}-recipient`}>
-			<Input
-				id={`${uid}-recipient`}
-				bind:value={recipient}
-				disabled={!!busy}
-				placeholder="Solana address"
-				autocomplete="off"
-				autocapitalize="off"
-				spellcheck={false}
-			/>
-		</Field>
-		<Field label="Amount" id={`${uid}-amount`}>
-			{#snippet labelAction()}<Button
-					variant="ghost"
-					size="sm"
-					class="-my-3 text-primary"
-					disabled={!!busy || !holdings}
-					onclick={setMax}>Max</Button
-				>{/snippet}
-			<Input
-				id={`${uid}-amount`}
-				value={amount}
-				oninput={(e) => (amount = sanitizeDecimalInput(e.currentTarget.value))}
-				disabled={!!busy}
-				inputmode="decimal"
-				placeholder="0.00"
-				aria-invalid={!!formProblem || !!plan?.problem || undefined}
-			/>
-		</Field>
-		<FieldError message={formProblem ?? plan?.problem} />
-
-		{#if plan && !plan.problem}
-			<Panel class="space-y-2 py-4 text-[14px]">
-				<div class="flex justify-between gap-3">
-					<span class="text-muted-foreground">To</span>
-					<span class="font-mono text-[13px]">{shortAddress(plan.request.recipient)}</span>
+<ResponsiveSheet
+	bind:open
+	title={chosen ? `Send ${label}` : 'Send'}
+	description={chosen ? 'To any Solana address.' : 'Choose what to send.'}
+>
+	{#if !chosen}
+		<HoldingsList {holdings} label={null} onselect={choose} />
+	{:else}
+		<Notice error={failure} />
+		<form
+			class="space-y-4"
+			onsubmit={(e) => {
+				e.preventDefault();
+				void (plan && !plan.problem ? send() : review());
+			}}
+		>
+			<Panel class="flex items-center gap-3 py-4">
+				<TokenIcon src={icon} {label} />
+				<div class="min-w-0 flex-1">
+					<p class="truncate text-[15px] font-medium">{label}</p>
+					<p class="text-[13px] text-muted-foreground">
+						{formatCompactTokenAmount(balance, decimals)} available
+					</p>
 				</div>
-				<div class="flex justify-between gap-3">
-					<span class="text-muted-foreground">Amount</span>
-					<span>{amount} {label}</span>
-				</div>
-				{#if plan.cost.accountRent}
-					<div class="flex justify-between gap-3">
-						<span class="text-muted-foreground">Recipient’s token account</span>
-						<span>{sol(plan.cost.accountRent)}</span>
-					</div>
-				{/if}
-				<div class="flex justify-between gap-3">
-					<span class="text-muted-foreground">Network fee</span>
-					<span>{sol(plan.cost.fee)}</span>
-				</div>
-				{#if plan.cost.setup}
-					<div class="flex justify-between gap-3">
-						<span class="text-muted-foreground">Wallet setup (one time)</span>
-						<span>{sol(plan.cost.setup)}</span>
-					</div>
-				{/if}
-				<div class="flex justify-between gap-3 border-t pt-2 font-medium">
-					<span>Total from this wallet</span>
-					<span
-						>{asset.kind === 'sol'
-							? sol(plan.cost.solOut)
-							: `${amount} ${label} + ${sol(plan.cost.solOut)}`}</span
+				{#if asset === null}
+					<Button
+						variant="ghost"
+						size="sm"
+						class="text-primary"
+						disabled={!!busy}
+						onclick={() => choose(null)}>Change</Button
 					>
-				</div>
+				{/if}
 			</Panel>
-		{:else}
-			<p class="text-[13px] text-muted-foreground">
-				Network fee about {sol(transferFeeLamports(passkey))}{setup
-					? `, plus ${sol(setup)} to set up this wallet (once)`
-					: ''}, paid from this wallet.
-			</p>
-		{/if}
+			<Field label="Send to" id={`${uid}-recipient`}>
+				<Input
+					id={`${uid}-recipient`}
+					bind:value={recipient}
+					disabled={!!busy}
+					placeholder="Solana address"
+					autocomplete="off"
+					autocapitalize="off"
+					spellcheck={false}
+				/>
+			</Field>
+			<Field label="Amount" id={`${uid}-amount`}>
+				{#snippet labelAction()}<Button
+						variant="ghost"
+						size="sm"
+						class="-my-3 text-primary"
+						disabled={!!busy || !holdings}
+						onclick={setMax}>Max</Button
+					>{/snippet}
+				<Input
+					id={`${uid}-amount`}
+					value={amount}
+					oninput={(e) => (amount = sanitizeDecimalInput(e.currentTarget.value))}
+					disabled={!!busy}
+					inputmode="decimal"
+					placeholder="0.00"
+					aria-invalid={!!formProblem || !!plan?.problem || undefined}
+				/>
+			</Field>
+			<FieldError message={formProblem ?? plan?.problem} />
 
-		<Button type="submit" size="xl" disabled={!ready || !!busy || !!plan?.problem}>
-			{#if busy === 'send'}<Spinner /> {walletStore.approvePrompt}
-			{:else if busy === 'review'}<Spinner /> Checking…
-			{:else if plan && !plan.problem}Send {amount} {label}
-			{:else}Review{/if}
-		</Button>
-	</form>
+			{#if plan && !plan.problem}
+				<Panel class="space-y-2 py-4 text-[14px]">
+					<div class="flex justify-between gap-3">
+						<span class="text-muted-foreground">To</span>
+						<span class="font-mono text-[13px]">{shortAddress(plan.request.recipient)}</span>
+					</div>
+					<div class="flex justify-between gap-3">
+						<span class="text-muted-foreground">Amount</span>
+						<span>{amount} {label}</span>
+					</div>
+					{#if plan.cost.accountRent}
+						<div class="flex justify-between gap-3">
+							<span class="text-muted-foreground">Recipient’s token account</span>
+							<span>{sol(plan.cost.accountRent)}</span>
+						</div>
+					{/if}
+					<div class="flex justify-between gap-3">
+						<span class="text-muted-foreground">Network fee</span>
+						<span>{sol(plan.cost.fee)}</span>
+					</div>
+					{#if plan.cost.setup}
+						<div class="flex justify-between gap-3">
+							<span class="text-muted-foreground">Wallet setup (one time)</span>
+							<span>{sol(plan.cost.setup)}</span>
+						</div>
+					{/if}
+					<div class="flex justify-between gap-3 border-t pt-2 font-medium">
+						<span>Total from this wallet</span>
+						<span
+							>{current.kind === 'sol'
+								? sol(plan.cost.solOut)
+								: `${amount} ${label} + ${sol(plan.cost.solOut)}`}</span
+						>
+					</div>
+				</Panel>
+			{:else}
+				<p class="text-[13px] text-muted-foreground">
+					Network fee about {sol(transferFeeLamports(passkey))}{setup
+						? `, plus ${sol(setup)} to set up this wallet (once)`
+						: ''}, paid from this wallet.
+				</p>
+			{/if}
+
+			<Button type="submit" size="xl" disabled={!ready || !!busy || !!plan?.problem}>
+				{#if busy === 'send'}<Spinner /> {walletStore.approvePrompt}
+				{:else if busy === 'review'}<Spinner /> Checking…
+				{:else if plan && !plan.problem}Send {amount} {label}
+				{:else}Review{/if}
+			</Button>
+		</form>
+	{/if}
 </ResponsiveSheet>
