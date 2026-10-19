@@ -47,7 +47,6 @@
 	let linked = $state<{ recipient: string; signature: string } | null>(null);
 	let tapping = $state(false);
 	let failure = $state<FriendlyError | null>(null);
-	let choosing = $state(false);
 	let phase = $state<FinishPhase | null>(null);
 	let hint = $state('Tap Approve, then hold your accessory to your phone.');
 	let webauthnOk = $state(true);
@@ -250,12 +249,6 @@
 							<List>
 								<WalletRow address={walletStore.address} label="Your wallet" />
 							</List>
-							<Button
-								variant="quiet"
-								class="w-full"
-								disabled={tapping}
-								onclick={() => (choosing = true)}>Use a different wallet</Button
-							>
 						{/if}
 						{#if shortBy > 0n}
 							<Notice
@@ -290,8 +283,7 @@
 
 	{#snippet footer()}
 		<div class="grid gap-1">
-			<!-- Always mounted: "Use a different wallet" reopens the same sheet from the tap step. -->
-			<WalletConnect bind:open={choosing} showButton={view === 'choose'} />
+			<WalletConnect showButton={view === 'choose'} />
 			{#if view === 'done' && linked}
 				<Button href="/accessory" size="xl" class="w-full">Done</Button>
 				<Button
