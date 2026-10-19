@@ -15,7 +15,7 @@ pnpm --filter revibase db:migrate:local
 pnpm --filter revibase dev
 ```
 
-`.dev.vars` sets `SOLANA_RPC_URL`, `SESSION_SECRET` (32+ chars) and, optionally, `SOLANA_CLUSTER`. `RP_ID` in `wrangler.jsonc` is the WebAuthn relying party for accessory taps and must match the host the tap page is served from. Tap assertions are checked against the origin of the request that submits them.
+`.dev.vars` sets `SOLANA_RPC_URL`, `SESSION_SECRET` (32+ chars) and, optionally, `SOLANA_CLUSTER`. Tap assertions are checked against the origin of the request that submits them.
 
 ### Revibase Passkey (optional)
 

@@ -3,8 +3,6 @@
 # so it must be a proxy Worker with no secret in the URL.
 SOLANA_RPC_URL=https://your-rpc-proxy.example.com
 SESSION_SECRET=replace-me
-# The WebAuthn relying party: the host that serves the tap page.
-RP_ID=localhost
 # Optional: the Revibase Passkey wallet. Run revibase-wallet's signer (`pnpm dev:signer`,
 # VITE_PARENT_ORIGIN=http://localhost:5173) and give it a fee payer with SOL on this cluster
 # (base58 64-byte secret key). It pays passkey wallet creation and claim/release fees.

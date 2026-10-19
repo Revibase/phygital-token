@@ -10,7 +10,6 @@ export type ServerEnv = {
 	db: D1Database;
 	rpcUrl: string;
 	sessionSecret: string;
-	rpId: string;
 	cluster: string;
 	/** Revibase Passkey: the secure-signer origin, and the key that pays its fees. Both or neither. */
 	passkey: PasskeyEnv | null;
@@ -24,7 +23,6 @@ export function getEnv(): ServerEnv {
 		db: env.DB,
 		rpcUrl: env.SOLANA_RPC_URL,
 		sessionSecret: secret,
-		rpId: env.RP_ID,
 		cluster: env.SOLANA_CLUSTER,
 		passkey: passkeyEnv(env.SECURE_SIGNER_ORIGIN, env.FEE_PAYER_KEY)
 	};

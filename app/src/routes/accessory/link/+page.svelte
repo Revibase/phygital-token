@@ -101,7 +101,7 @@
 		if (!recipient || tapped || tapping) return;
 		const epoch = ++challengeEpoch;
 		try {
-			const next = await prepareTap(accessory.publicKey, data.rpId, recipient);
+			const next = await prepareTap(accessory.publicKey, recipient);
 			if (epoch !== challengeEpoch || walletStore.address !== recipient || tapped) return;
 			prepared = next;
 			prepareFailures = 0;

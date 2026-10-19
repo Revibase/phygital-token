@@ -62,7 +62,7 @@ function assertion(message: string, tamper: Tamper = {}) {
 async function tap(tamper?: Tamper) {
 	const db = createTestD1([MIGRATIONS]);
 	const { challengeId, message } = await issueResumeChallenge(db);
-	const deps = { db, rpc, origin: APP, rpId: RP_ID };
+	const deps = { db, rpc, origin: APP };
 	return { deps, input: { challengeId, response: assertion(message, tamper) } };
 }
 
@@ -72,9 +72,9 @@ describe('tap resume', () => {
 		expect(await verifyResume(deps, input)).toMatchObject({ ok: false, code: 'unknown_accessory' });
 	});
 
-	it('rejects a tap for another relying party', async () => {
-		const { deps, input } = await tap({ rpId: 'evil.example' });
-		expect(await verifyResume(deps, input)).toMatchObject({ ok: false, code: 'tap_rejected' });
+	it('accepts a tap for any relying party (the accessory reuses one credential)', async () => {
+		const { deps, input } = await tap({ rpId: 'other.example' });
+		expect(await verifyResume(deps, input)).toMatchObject({ ok: false, code: 'unknown_accessory' });
 	});
 
 	it('rejects a tap without user presence', async () => {
