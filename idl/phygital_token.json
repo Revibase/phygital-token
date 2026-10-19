@@ -10,6 +10,9 @@
   "instructions": [
     {
       "name": "assign_mint",
+      "docs": [
+        "Minter: records the mint that represents the token."
+      ],
       "discriminator": [
         68,
         110,
@@ -27,9 +30,6 @@
         },
         {
           "name": "admin_config",
-          "docs": [
-            "Authority must be the admin or an issuer on this config."
-          ],
           "pda": {
             "seeds": [
               {
@@ -60,9 +60,7 @@
     {
       "name": "close_phygital_token",
       "docs": [
-        "Close a phygital token PDA and send its rent to `rent_recipient`.",
-        "Admin-only. Irreversible — the chip can be re-initialized later with a",
-        "fresh `initialize` if the same passkey is reused."
+        "Admin: deletes a token."
       ],
       "discriminator": [
         254,
@@ -109,6 +107,9 @@
     },
     {
       "name": "create_config",
+      "docs": [
+        "Creates the role registry and makes the signer its admin. Once only."
+      ],
       "discriminator": [
         201,
         207,
@@ -155,6 +156,9 @@
     },
     {
       "name": "initialize",
+      "docs": [
+        "Issuer: registers an accessory's passkey as a new token."
+      ],
       "discriminator": [
         175,
         175,
@@ -173,9 +177,6 @@
         },
         {
           "name": "admin_config",
-          "docs": [
-            "Authority must be the admin or an issuer on this config."
-          ],
           "pda": {
             "seeds": [
               {
@@ -212,21 +213,28 @@
       ]
     },
     {
-      "name": "remove_linked_wallet",
+      "name": "remove_owner",
+      "docs": [
+        "Owner: gives up the token (not Permanent ones)."
+      ],
       "discriminator": [
-        7,
-        178,
-        142,
-        3,
-        161,
-        131,
-        177,
-        97
+        153,
+        251,
+        84,
+        208,
+        33,
+        62,
+        15,
+        247
       ],
       "accounts": [
         {
-          "name": "linked_wallet",
-          "signer": true
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "phygital_token"
+          ]
         },
         {
           "name": "phygital_token",
@@ -237,6 +245,9 @@
     },
     {
       "name": "set_admin",
+      "docs": [
+        "Admin: replaces the admin key."
+      ],
       "discriminator": [
         251,
         163,
@@ -280,6 +291,9 @@
     },
     {
       "name": "set_issuer",
+      "docs": [
+        "Admin: sets the key allowed to `initialize` tokens."
+      ],
       "discriminator": [
         122,
         240,
@@ -322,52 +336,10 @@
       ]
     },
     {
-      "name": "set_linked_wallet",
-      "discriminator": [
-        118,
-        134,
-        6,
-        114,
-        75,
-        108,
-        86,
-        199
-      ],
-      "accounts": [
-        {
-          "name": "recipient",
-          "signer": true
-        },
-        {
-          "name": "phygital_token",
-          "writable": true
-        },
-        {
-          "name": "slot_hashes",
-          "address": "SysvarS1otHashes111111111111111111111111111"
-        },
-        {
-          "name": "instructions_sysvar",
-          "address": "Sysvar1nstructions1111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "secp256r1_verify_args",
-          "type": {
-            "defined": {
-              "name": "Secp256r1VerifyArgs"
-            }
-          }
-        },
-        {
-          "name": "slot_number",
-          "type": "u64"
-        }
-      ]
-    },
-    {
       "name": "set_minter",
+      "docs": [
+        "Admin: sets the key allowed to `assign_mint`."
+      ],
       "discriminator": [
         13,
         170,
@@ -410,10 +382,58 @@
       ]
     },
     {
+      "name": "set_owner",
+      "docs": [
+        "Tap: makes the signing `recipient` the owner, unless the token is locked."
+      ],
+      "discriminator": [
+        72,
+        202,
+        120,
+        52,
+        77,
+        128,
+        96,
+        197
+      ],
+      "accounts": [
+        {
+          "name": "recipient",
+          "signer": true
+        },
+        {
+          "name": "phygital_token",
+          "writable": true
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "secp256r1_verify_args",
+          "type": {
+            "defined": {
+              "name": "Secp256r1VerifyArgs"
+            }
+          }
+        },
+        {
+          "name": "slot_number",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "verify",
       "docs": [
-        "Prove passkey possession and advance `last_sign_count`.",
-        "",
+        "Tap: proves the accessory signed `message_hash` (under the `verify`",
+        "domain tag) and records its sign count.",
         "`expected_rp_id` / `expected_origins` are optional WebAuthn bindings.",
         "`None` skips the check. When `expected_origins` is `Some`, the signed",
         "origin must match one listed origin."
@@ -457,9 +477,14 @@
           }
         },
         {
-          "name": "expected_rp_id",
+          "name": "expected_rp_id_hash",
           "type": {
-            "option": "string"
+            "option": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           }
         },
         {
@@ -555,16 +580,16 @@
       ]
     },
     {
-      "name": "RemoveLinkedWalletEvent",
+      "name": "RemoveOwnerEvent",
       "discriminator": [
-        95,
-        70,
-        121,
-        173,
-        81,
-        218,
-        242,
-        83
+        246,
+        26,
+        190,
+        2,
+        53,
+        42,
+        12,
+        235
       ]
     },
     {
@@ -594,19 +619,6 @@
       ]
     },
     {
-      "name": "SetLinkedWalletEvent",
-      "discriminator": [
-        155,
-        114,
-        79,
-        24,
-        64,
-        122,
-        22,
-        188
-      ]
-    },
-    {
       "name": "SetMinterEvent",
       "discriminator": [
         8,
@@ -617,6 +629,19 @@
         98,
         240,
         242
+      ]
+    },
+    {
+      "name": "SetOwnerEvent",
+      "discriminator": [
+        229,
+        51,
+        193,
+        27,
+        198,
+        107,
+        153,
+        2
       ]
     }
   ],
@@ -648,8 +673,8 @@
     },
     {
       "code": 6005,
-      "name": "LinkedWalletMismatch",
-      "msg": "Phygital token linked wallet mismatch"
+      "name": "OwnerMismatch",
+      "msg": "Phygital token owner mismatch"
     },
     {
       "code": 6006,
@@ -668,78 +693,73 @@
     },
     {
       "code": 6009,
-      "name": "MissingInstructionsSysvar",
-      "msg": "Missing instructions sysvar account"
-    },
-    {
-      "code": 6010,
       "name": "InvalidSysvarDataFormat",
       "msg": "Invalid sysvar data format"
     },
     {
-      "code": 6011,
+      "code": 6010,
       "name": "TokenIsCurrentlyLocked",
-      "msg": "The linked wallet needs to unlock the phygital token to enable transfer."
+      "msg": "The owner needs to unlock the phygital token to enable transfer."
     },
     {
-      "code": 6012,
-      "name": "TokenIsNotLockable",
-      "msg": "This phygital token is not lockable."
-    },
-    {
-      "code": 6013,
+      "code": 6011,
       "name": "UnableToParseClientData",
       "msg": "Unable to parse client data JSON."
     },
     {
-      "code": 6014,
+      "code": 6012,
       "name": "ChallengeHashMismatch",
       "msg": "Challenge hash mismatch."
     },
     {
-      "code": 6015,
+      "code": 6013,
       "name": "InvalidAuthenticatorData",
       "msg": "Authenticator data is too short to contain WebAuthn flags."
     },
     {
-      "code": 6016,
+      "code": 6014,
       "name": "UserPresenceNotVerified",
       "msg": "WebAuthn user presence flag (UP) was not set by the authenticator."
     },
     {
-      "code": 6017,
+      "code": 6015,
       "name": "RpIdMismatch",
       "msg": "WebAuthn rpId hash does not match the expected relying party id."
     },
     {
-      "code": 6018,
+      "code": 6016,
       "name": "OriginMismatch",
       "msg": "WebAuthn origin does not match any expected origin."
     },
     {
-      "code": 6019,
+      "code": 6017,
       "name": "UnauthorizedAuthority",
       "msg": "Only the designated authority can perform this action."
     },
     {
-      "code": 6020,
+      "code": 6018,
       "name": "UnauthorizedAdmin",
       "msg": "Only the admin can perform this action."
     },
     {
-      "code": 6021,
+      "code": 6019,
       "name": "KeyAlreadyExists",
       "msg": "Key already exists on the admin config."
     },
     {
-      "code": 6022,
-      "name": "PermanentLinkedWalletRequired",
-      "msg": "Permanent phygital tokens require a non-default linked wallet at initialize."
+      "code": 6020,
+      "name": "PermanentOwnerRequired",
+      "msg": "Only Permanent phygital tokens set an owner at initialize, and they must set one."
     },
     {
-      "code": 6023,
-      "name": "PermanentLinkedWalletImmutable",
-      "msg": "Permanent phygital token linked wallet cannot be transferred or removed."
+      "code": 6021,
+      "name": "PermanentOwnerImmutable",
+      "msg": "Permanent phygital token owner cannot be transferred or removed."
+    },
+    {
+      "code": 6022,
+      "name": "ClientDataTypeMismatch",
+      "msg": "clientDataJSON type must be webauthn.get."
     }
   ],
   "types": [
@@ -833,7 +853,7 @@
             }
           },
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -885,7 +905,7 @@
             }
           },
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           }
         ]
@@ -917,7 +937,7 @@
             }
           },
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -941,7 +961,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -957,7 +977,7 @@
             "type": "u8"
           },
           {
-            "name": "is_locked",
+            "name": "bump",
             "type": "u8"
           },
           {
@@ -1000,12 +1020,12 @@
       }
     },
     {
-      "name": "RemoveLinkedWalletEvent",
+      "name": "RemoveOwnerEvent",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -1046,19 +1066,32 @@
     },
     {
       "name": "Secp256r1VerifyArgs",
+      "docs": [
+        "Instruction argument locating and completing a tap's assertion."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "verify_args_relative_index",
+            "docs": [
+              "Position of the secp256r1 precompile instruction relative to the",
+              "current top-level instruction (usually `-1`: immediately before)."
+            ],
             "type": "i64"
           },
           {
             "name": "signed_message_index",
+            "docs": [
+              "Which signature inside the precompile instruction to use."
+            ],
             "type": "u8"
           },
           {
             "name": "client_data_json",
+            "docs": [
+              "The exact bytes whose SHA-256 the authenticator signed."
+            ],
             "type": "bytes"
           }
         ]
@@ -1097,7 +1130,23 @@
       }
     },
     {
-      "name": "SetLinkedWalletEvent",
+      "name": "SetMinterEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "minter",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetOwnerEvent",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1106,7 +1155,7 @@
             "type": "pubkey"
           },
           {
-            "name": "linked_wallet",
+            "name": "owner",
             "type": "pubkey"
           },
           {
@@ -1124,22 +1173,6 @@
                 "name": "Secp256r1Pubkey"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "name": "SetMinterEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "admin",
-            "type": "pubkey"
-          },
-          {
-            "name": "minter",
-            "type": "pubkey"
           }
         ]
       }

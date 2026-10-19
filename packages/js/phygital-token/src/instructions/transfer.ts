@@ -9,24 +9,22 @@ import {
   bufferToBase64URLString,
   type AuthenticationResponseJSON,
 } from "../utils/passkey/webauthn.js";
-import {
-  authenticatePasskey,
-  type NfcTransceive,
-} from "../utils/passkey/authenticate.js";
+import { authenticatePasskey } from "../utils/passkey/authenticate.js";
 import {
   buildSecp256r1VerifyInstructionFromWebAuthnResponse,
   buildTransferChallenge,
   type Secp256r1VerifyEntry,
 } from "../utils/passkey/secp256r1.js";
 import { getLatestSlotHash } from "../utils/slotHash.js";
-import { getSetLinkedWalletInstruction } from "../generated/index.js";
+import { fetchMaybePhygitalToken, getSetOwnerInstruction } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "../utils/parseSecp256r1Pubkey.js";
 import { PhygitalTokenError } from "../utils/errors.js";
 import { findPhygitalTokenPda } from "../utils/pdas/token.js";
 
+/** State from `beginTransfer` needed to collect the tap and build `set_owner`. */
 export type TransferSession = {
   rpc: Rpc<SolanaRpcApi>;
-  /** Phygital token PDA derived from {@link secp256r1Pubkey}. */
+  /** Phygital token PDA derived from {@link TransferSession.secp256r1Pubkey}. */
   phygitalToken: Address;
   /** Base64url compressed secp256r1 passkey public key for the physical token. */
   secp256r1Pubkey: string;
@@ -34,11 +32,20 @@ export type TransferSession = {
   slotNumber: bigint;
   challenge: Uint8Array;
   rpId: string;
+  /** Wallet named by the tap. {@link completeTransfer} must use this signer. */
+  recipient: Address;
+  /**
+   * The token's owner when the session began, or `null` if it had none.
+   */
+  owner: Address | null;
 };
+
+/** The default (all-zero) address the program stores for "no owner". */
+const NO_OWNER = "11111111111111111111111111111111" as Address;
 
 /**
  * Prepares a transfer session with slot-bound challenge data.
- * Recipient is chosen at wallet confirmation and must sign the transfer transaction.
+ * The tap names `recipient`, who must sign the transaction.
  * Must be followed promptly by {@link authenticatePasskeyForTransfer} and
  * {@link completeTransfer}.
  *
@@ -46,18 +53,25 @@ export type TransferSession = {
  * @param input.secp256r1Pubkey - Base64url compressed secp256r1 public key for the
  *   physical token (same shape as a phygital `response.id` / compressed passkey). The phygital
  *   token PDA is derived via {@link findPhygitalTokenPda}.
+ * @param input.recipient - Wallet that will become the owner. It is part of the signed challenge.
  * @param input.rpId - Relying party ID for the NFC tap. Defaults to `window.location.hostname`.
  */
 export async function beginTransfer(input: {
   rpc: Rpc<SolanaRpcApi>;
   secp256r1Pubkey: string;
+  recipient: Address;
   rpId?: string;
 }): Promise<TransferSession> {
   const rpId = resolveTransferRpId(input.rpId);
   const phygitalToken = await findPhygitalTokenPda(input.secp256r1Pubkey);
-  const { slotHash, slotNumber } = await getLatestSlotHash(input.rpc);
+  const [{ slotHash, slotNumber }, token] = await Promise.all([
+    getLatestSlotHash(input.rpc),
+    fetchMaybePhygitalToken(input.rpc, phygitalToken),
+  ]);
+  const owner = token.exists && token.data.owner !== NO_OWNER ? token.data.owner : null;
   const challenge = await buildTransferChallenge({
     phygitalToken,
+    recipient: input.recipient,
     slotHash,
   });
 
@@ -69,6 +83,8 @@ export async function beginTransfer(input: {
     slotNumber,
     challenge,
     rpId,
+    recipient: input.recipient,
+    owner,
   };
 }
 
@@ -79,7 +95,7 @@ function resolveTransferRpId(rpId: string | undefined): string {
   }
   throw new PhygitalTokenError(
     "RP_ID_REQUIRED",
-    "Pass `rpId`; it cannot be inferred outside a browser."
+    "Pass `rpId`; it cannot be inferred outside a browser.",
   );
 }
 
@@ -91,38 +107,35 @@ function resolveTransferRpId(rpId: string | undefined): string {
  * which candidate matches {@link TransferSession.secp256r1Pubkey}.
  *
  * Throws `PASSKEY_NOT_RECOGNIZED` if a different tag is tapped.
- *
- * Native / kiosk: pass `transceive` to use IsoDep APDUs instead of browser WebAuthn.
  */
 export async function authenticatePasskeyForTransfer(
   session: TransferSession,
-  options?: {
-    transceive?: NfcTransceive;
-    /** `clientDataJSON` origin for `transceive`. Set it if your program checks `expected_origins`. */
-    origin?: string;
-  }
 ): Promise<AuthenticationResponseJSON> {
   return authenticatePasskey(bufferToBase64URLString(session.challenge), {
     allowList: new Set([session.secp256r1Pubkey]),
     rpId: session.rpId,
     credentialId: session.secp256r1Pubkey,
-    transceive: options?.transceive,
-    origin: options?.origin,
   });
 }
 
 /**
  * Builds the two on-chain instructions after passkey authentication.
- * Linked wallet is updated on the phygital token PDA only — no SPL token transfer.
+ * Owner is updated on the phygital token PDA only — no SPL token transfer.
  *
- * @param recipient - Kit `TransactionSigner` for the wallet that will be linked.
+ * @param recipient - Kit `TransactionSigner` for the wallet named by the tap.
  */
 export async function completeTransfer(
   session: TransferSession,
   response: AuthenticationResponseJSON,
   recipient: TransactionSigner,
-  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[]
+  existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[],
 ): Promise<Instruction[]> {
+  if (recipient.address !== session.recipient) {
+    throw new PhygitalTokenError(
+      "INVALID_ARGUMENT",
+      "The signing wallet must be the recipient named by the tap.",
+    );
+  }
   const { secp256r1VerifyInstruction, signedMessageIndex, clientDataJson } =
     buildSecp256r1VerifyInstructionFromWebAuthnResponse({
       response,
@@ -130,7 +143,7 @@ export async function completeTransfer(
       existingSecp256r1VerifyInputs,
     });
 
-  const setLinkedWallet = getSetLinkedWalletInstruction({
+  const setOwner = getSetOwnerInstruction({
     recipient,
     phygitalToken: session.phygitalToken,
     slotNumber: session.slotNumber,
@@ -141,5 +154,5 @@ export async function completeTransfer(
     },
   });
 
-  return [secp256r1VerifyInstruction, setLinkedWallet];
+  return [secp256r1VerifyInstruction, setOwner];
 }

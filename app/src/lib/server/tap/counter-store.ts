@@ -1,8 +1,8 @@
 export type CounterVerdict = 'new' | 'replay';
 
 /**
- * Atomically consume a tap counter against the shared D1 `tap_counters` table
- * (owned by phygital-wallet; same statement as its `consumeCounterSession`).
+ * Atomically consume a tap counter against the shared D1 `tap_counters` table.
+ * Every service sharing the table must use this same statement.
  *
  * The conditional upsert only writes when the incoming counter is strictly
  * greater than the stored high-water mark, so two concurrent requests for the

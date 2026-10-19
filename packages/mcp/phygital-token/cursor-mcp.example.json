@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "phygital-token": {
-      "command": "npx",
-      "args": ["-y", "phygital-token-mcp"]
-    }
-  }
-}

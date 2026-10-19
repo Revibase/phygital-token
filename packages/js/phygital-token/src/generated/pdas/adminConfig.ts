@@ -10,15 +10,19 @@ import {
   getBytesEncoder,
   getProgramDerivedAddress,
   type Address,
+  type HasAddress,
   type ProgramDerivedAddress,
 } from "@solana/kit";
 
 export async function findAdminConfigPda(
-  config: { programAddress?: Address | undefined } = {},
+  config: { programAddress?: Address | HasAddress | undefined } = {},
 ): Promise<ProgramDerivedAddress> {
   const {
-    programAddress = "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ" as Address<"DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ">,
+    programAddress:
+      programAddressInput = "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ" as Address<"DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ">,
   } = config;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
   return await getProgramDerivedAddress({
     programAddress,
     seeds: [getBytesEncoder().encode(new Uint8Array([97, 100, 109, 105, 110]))],

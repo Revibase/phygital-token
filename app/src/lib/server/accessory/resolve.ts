@@ -43,7 +43,10 @@ export async function resolveAccessoryByIdentifier(
 	return pda;
 }
 
-export async function fetchAccessory(rpc: Rpc<SolanaRpcApi>, pda: string): Promise<ResolvedAccessory | null> {
+export async function fetchAccessory(
+	rpc: Rpc<SolanaRpcApi>,
+	pda: string
+): Promise<ResolvedAccessory | null> {
 	const maybe = await fetchMaybePhygitalToken(rpc, address(pda), { commitment: 'confirmed' });
 	return maybe.exists ? { pda, account: maybe.data } : null;
 }

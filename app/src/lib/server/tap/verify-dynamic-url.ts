@@ -1,12 +1,12 @@
 import { Endian, getU32Encoder } from '@solana/kit';
 import { p256 } from '@noble/curves/nist.js';
 
-import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
+import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
 
 /**
- * Port of phygital-wallet `apps/api/src/tap/verify-dynamic-url.ts` (same crypto
- * as revibase vault / phygital-token-sdk ≤0.13). phygital-token-sdk ≥0.14
- * deliberately ships no signed-URL helper, so it lives here.
+ * Verifies the chip-signed dynamic tap URL (the same scheme phygital-token-sdk
+ * ≤0.13 shipped). phygital-token-sdk ≥0.14 deliberately ships no signed-URL
+ * helper, so it lives here.
  */
 
 export type VerifyDynamicUrlResult = {
@@ -63,7 +63,9 @@ export function verifyDynamicUrlWithoutCounterCheck(
 
 	const compressedPk = decodeParam(identifier, 'pk');
 	if (compressedPk.length !== 33 || (compressedPk[0] !== 0x02 && compressedPk[0] !== 0x03)) {
-		throw new TapParamError(`pk must be 33-byte compressed P-256 key, got ${compressedPk.length} bytes`);
+		throw new TapParamError(
+			`pk must be 33-byte compressed P-256 key, got ${compressedPk.length} bytes`
+		);
 	}
 	const randomBytes = decodeParam(nonce, 'n');
 	if (randomBytes.length !== 8) {

@@ -3,12 +3,21 @@ import { ed25519 } from '@noble/curves/ed25519.js';
 import { address, getBase58Decoder, type Rpc, type SolanaRpcApi } from '@solana/kit';
 import { getPhygitalTokenEncoder } from 'phygital-token-sdk';
 
-import { bytesToBase64, bytesToBase64Url } from '$lib/shared/encoding';
+import { bytesToBase64, bytesToBase64Url } from '#lib/shared/encoding.ts';
 import { MIGRATIONS, createTestD1 } from './support/d1-sqlite';
 import { fakeAccessory } from './support/fixtures';
-import { issueOwnerLoginChallenge, verifyOwnerBrowse, verifyOwnerLogin } from '$lib/server/accessory/owner-browse';
+import {
+	issueOwnerLoginChallenge,
+	verifyOwnerBrowse,
+	verifyOwnerLogin
+} from '#lib/server/accessory/owner-browse.ts';
 
-const site = (address: string) => ({ domain: 'portal.revibase.com', uri: 'https://portal.revibase.com', address, cluster: 'mainnet' });
+const site = (address: string) => ({
+	domain: 'portal.revibase.com',
+	uri: 'https://portal.revibase.com',
+	address,
+	cluster: 'mainnet'
+});
 
 function rpcWith(account: Uint8Array | null) {
 	return {
@@ -42,8 +51,13 @@ describe('owner login (owner_session)', () => {
 		const { challengeId, message } = await issueOwnerLoginChallenge(db, site(w.address));
 		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), w.secret));
 
-		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toEqual({ ok: true, wallet: w.address });
-		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toMatchObject({ ok: false, code: 'too_slow' });
+		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toEqual({
+			ok: true,
+			wallet: w.address
+		});
+		expect(
+			await verifyOwnerLogin(db, { challengeId, address: w.address, signature })
+		).toMatchObject({ ok: false, code: 'too_slow' });
 	});
 
 	it('rejects a signature from another key', async () => {
@@ -51,9 +65,13 @@ describe('owner login (owner_session)', () => {
 		const other = walletKey();
 		const db = createTestD1([MIGRATIONS]);
 		const { challengeId, message } = await issueOwnerLoginChallenge(db, site(w.address));
-		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), other.secret));
+		const signature = bytesToBase64Url(
+			ed25519.sign(new TextEncoder().encode(message), other.secret)
+		);
 
-		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toMatchObject({ ok: false, code: 'bad_signature' });
+		expect(
+			await verifyOwnerLogin(db, { challengeId, address: w.address, signature })
+		).toMatchObject({ ok: false, code: 'bad_signature' });
 	});
 
 	it('is a readable Sign-In With Solana message for the requesting wallet', async () => {
@@ -79,7 +97,9 @@ describe('owner login (owner_session)', () => {
 		const { challengeId, message } = await issueOwnerLoginChallenge(db, site(other.address));
 		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), w.secret));
 
-		expect(await verifyOwnerLogin(db, { challengeId, address: w.address, signature })).toMatchObject({ ok: false, code: 'bad_signature' });
+		expect(
+			await verifyOwnerLogin(db, { challengeId, address: w.address, signature })
+		).toMatchObject({ ok: false, code: 'bad_signature' });
 	});
 });
 
@@ -87,7 +107,7 @@ describe('owner_browse', () => {
 	async function linkedTo(wallet: string) {
 		const acc = fakeAccessory();
 		const data = new Uint8Array(
-			getPhygitalTokenEncoder().encode(acc.account({ linkedWallet: address(wallet), tokenType: 2, isLocked: 1 }))
+			getPhygitalTokenEncoder().encode(acc.account({ owner: address(wallet), tokenType: 2 }))
 		);
 		return { pda: await acc.pda(), rpc: rpcWith(data) };
 	}
@@ -101,6 +121,9 @@ describe('owner_browse', () => {
 	it('rejects a wallet that isn’t the linked one', async () => {
 		const owner = walletKey();
 		const { pda, rpc } = await linkedTo(owner.address);
-		expect(await verifyOwnerBrowse(rpc, walletKey().address, pda)).toMatchObject({ ok: false, code: 'not_owner' });
+		expect(await verifyOwnerBrowse(rpc, walletKey().address, pda)).toMatchObject({
+			ok: false,
+			code: 'not_owner'
+		});
 	});
 });

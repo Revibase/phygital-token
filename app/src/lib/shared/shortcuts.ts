@@ -1,6 +1,6 @@
 /**
- * Phantom-compatible descriptive fields plus HTTPS image icons and explicit Revibase launch modes. Pure: the server fetches the file, the client decides how each link opens.
- * The rules and why they exist: ARCHITECTURE.md, "Project shortcuts".
+ * Phantom shortcut fields. Pure: the server fetches the file, the client decides how each link opens. A project-host link opens in the in-app browser. `prefersExternalTarget` opens a new tab.
+ * The rules and why they exist: ARCHITECTURE.md, "Shortcuts".
  */
 
 export const SHORTCUT_ICONS = [
@@ -36,12 +36,8 @@ export type Shortcut = {
 	icon: ShortcutIcon;
 	/** The project's https icon URL; the server swaps it for a same-origin proxy path. */
 	image: string | null;
-	/** Asked for with `immerse`, and the server checked its site allows framing. */
-	immerse: boolean;
-	/** Opening it mints a session proof (through `/shortcut/[n]`); the list never carries one. */
-	proof: boolean;
-	/** `prefersExternalTarget`: open as a plain link rather than inside a wallet. */
-	external: boolean;
+	/** `embed` fills the in-app browser. `tab` opens a new browser tab. */
+	open: 'embed' | 'tab';
 	platform: ShortcutPlatform;
 };
 
@@ -107,7 +103,7 @@ export function withinProject(url: URL, externalUrl: string): boolean {
 	return url.hostname === home || url.hostname.endsWith(`.${home}`);
 }
 
-function resolveUri(raw: unknown, external: boolean, ctx: ShortcutContext, explicit = false): string | null {
+function resolveUri(raw: unknown, tab: boolean, ctx: ShortcutContext): string | null {
 	if (typeof raw !== 'string' || !raw.trim() || raw.length > MAX_URI) return null;
 	const filled = fill(raw.trim(), ctx);
 	if (!filled) return null;
@@ -117,9 +113,9 @@ function resolveUri(raw: unknown, external: boolean, ctx: ShortcutContext, expli
 	} catch {
 		return null;
 	}
-	if (url.protocol === 'solana:') return external ? url.href : null; // Solana Pay hands off to the wallet itself
+	if (url.protocol === 'solana:') return tab ? url.href : null; // Solana Pay hands off to the wallet itself
 	if (url.protocol !== 'https:' || url.username || url.password) return null;
-	if (!explicit && !external && !withinProject(url, ctx.externalUrl)) return null;
+	if (!tab && !withinProject(url, ctx.externalUrl)) return null;
 	return url.href;
 }
 
@@ -145,19 +141,14 @@ export function resolveShortcuts(file: unknown, ctx: ShortcutContext): Shortcut[
 		const only = Array.isArray(s.limitToCollections) ? s.limitToCollections : [];
 		if (only.length > 0 && (!ctx.collectionId || !only.includes(ctx.collectionId))) continue;
 
-		const config = s.revibase;
-		if (config !== undefined && (!config || typeof config !== 'object' || Array.isArray(config))) continue;
-		const launch = (config as { launch?: unknown } | undefined)?.launch;
-		if (config !== undefined && launch !== 'embed' && launch !== 'wallet' && launch !== 'browser') continue;
-		const external = launch ? launch === 'browser' : s.prefersExternalTarget === true;
-		const href = resolveUri(s.uri, external, ctx, launch !== undefined);
+		const tab = s.prefersExternalTarget === true;
+		const href = resolveUri(s.uri, tab, ctx);
 		if (!href) continue;
 
 		const named = SHORTCUT_ICONS.includes(s.icon as ShortcutIcon);
 		const icon = named ? (s.icon as ShortcutIcon) : 'generic-link';
 		const image = named ? null : iconImageUrl(s.icon);
-		const immerse = launch ? launch === 'embed' : !external && s.preferredPresentation === 'immerse';
-		out.push({ label, href, icon, image, immerse, proof: false, external, platform });
+		out.push({ label, href, icon, image, open: tab ? 'tab' : 'embed', platform });
 	}
 	return out;
 }

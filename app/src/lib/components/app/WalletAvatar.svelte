@@ -1,8 +1,12 @@
 <script lang="ts">
-	import { cn } from '$lib/utils';
+	import WalletIcon from '@lucide/svelte/icons/wallet';
+	import { cn } from '#lib/utils.ts';
+	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
 
-	let { address, icon = null, size = 'md' }: { address: string; icon?: string | null; size?: 'sm' | 'md' } = $props();
-	const hue = $derived([...address].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7));
+	let { address, size = 'md' }: { address: string; size?: 'sm' | 'md' } = $props();
+
+	// Only the connected wallet has a known app; any other address gets the generic mark.
+	const icon = $derived(walletStore.address === address ? walletStore.walletIcon : null);
 </script>
 
 {#if icon}
@@ -10,7 +14,9 @@
 {:else}
 	<span
 		aria-hidden="true"
-		class={cn('block rounded-full', size === 'sm' ? 'size-7' : 'size-9')}
-		style={`background: linear-gradient(135deg, oklch(0.78 0.1 ${hue}), oklch(0.55 0.11 ${(hue + 60) % 360}))`}
-	></span>
+		class={cn(
+			'grid place-items-center rounded-[9px] bg-muted text-muted-foreground',
+			size === 'sm' ? 'size-7' : 'size-9'
+		)}><WalletIcon class={size === 'sm' ? 'size-3.5' : 'size-4'} /></span
+	>
 {/if}

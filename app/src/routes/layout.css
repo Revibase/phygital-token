@@ -1,7 +1,7 @@
 @import 'tailwindcss';
-@import "tw-animate-css";
-@import "shadcn-svelte/tailwind.css";
-@import "@fontsource-variable/inter";
+@import 'tw-animate-css';
+@import 'shadcn-svelte/tailwind.css';
+@import '@fontsource-variable/inter';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -140,24 +140,51 @@
 	--ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes nfc-ring {
-	0% { transform: scale(0.92); opacity: 0.5; }
-	70%, 100% { transform: scale(1.35); opacity: 0; }
+	0% {
+		transform: scale(0.92);
+		opacity: 0.5;
+	}
+	70%,
+	100% {
+		transform: scale(1.35);
+		opacity: 0;
+	}
 }
 @keyframes rise-in {
-	from { transform: translateY(4px); opacity: 0; }
-	to { transform: translateY(0); opacity: 1; }
+	from {
+		transform: translateY(4px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
 }
 @keyframes draw-check {
-	from { stroke-dashoffset: 24; }
-	to { stroke-dashoffset: 0; }
+	from {
+		stroke-dashoffset: 24;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
 }
 @keyframes bond {
-	from { transform: scaleX(0); }
-	to { transform: scaleX(1); }
+	from {
+		transform: scaleX(0);
+	}
+	to {
+		transform: scaleX(1);
+	}
 }
 @keyframes pop-in {
-	from { transform: scale(0.6); opacity: 0; }
-	to { transform: scale(1); opacity: 1; }
+	from {
+		transform: scale(0.6);
+		opacity: 0;
+	}
+	to {
+		transform: scale(1);
+		opacity: 1;
+	}
 }
 
 /* State change within a screen (new step, result): 240ms, 4px. */

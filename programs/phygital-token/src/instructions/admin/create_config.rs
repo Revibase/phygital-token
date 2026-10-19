@@ -1,3 +1,6 @@
+//! `create_config`: creates the singleton role registry and makes the caller
+//! its admin. Callable once (the PDA can only be initialized once).
+
 use anchor_lang::prelude::*;
 
 use crate::constants::ADMIN_CONFIG_SEED;
@@ -26,14 +29,15 @@ pub struct CreateConfig<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<CreateConfig>) -> Result<()> {
-    let admin_config = &mut ctx.accounts.admin_config.load_init()?;
-    admin_config.bump = ctx.bumps.admin_config;
-    admin_config.admin = ctx.accounts.authority.key();
+impl CreateConfig<'_> {
+    pub fn handler(ctx: Context<Self>) -> Result<()> {
+        let admin_config = &mut ctx.accounts.admin_config.load_init()?;
+        admin_config.bump = ctx.bumps.admin_config;
+        admin_config.admin = ctx.accounts.authority.key();
 
-    emit!(CreateConfigEvent {
-        authority: ctx.accounts.authority.key(),
-    });
-
-    Ok(())
+        emit!(CreateConfigEvent {
+            authority: ctx.accounts.authority.key(),
+        });
+        Ok(())
+    }
 }

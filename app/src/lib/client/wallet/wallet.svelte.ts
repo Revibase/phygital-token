@@ -10,18 +10,29 @@ import {
 } from '@solana/wallet-standard-features';
 
 import { platform } from '../capability';
-import { bytesToBase64Url } from '$lib/shared/encoding';
-import { FEATURED_WALLET_NAMES } from './catalog';
+import { passkeyFeePayer } from './passkey.svelte';
+import { bytesToBase64Url } from '#lib/shared/encoding.ts';
 
 export type Cluster = 'mainnet' | 'devnet' | 'testnet' | 'localnet';
 
-export type WalletOption = { id: string; name: string; icon: string; ready: boolean };
+export type WalletOption = {
+	id: string;
+	name: string;
+	icon: string;
+	ready: boolean;
+};
 
 export type SigningContext = {
 	wallet: Wallet;
 	account: WalletAccount;
 	address: string;
 	chain: `solana:${string}`;
+	/**
+	 * Who pays the network fee: the wallet itself, or for Revibase Passkey (whose
+	 * address is a PDA) the Revibase fee payer. `passkey` is true in that case.
+	 */
+	feePayer: string;
+	passkey: boolean;
 };
 
 /**
@@ -33,26 +44,32 @@ export type SigningContext = {
  */
 class WalletStore {
 	#client: ConnectorClient | null = null;
+	#initializing = false;
 	#cluster: Cluster = 'devnet';
 	state = $state<ConnectorState | null>(null);
 
 	init(cluster: Cluster) {
-		if (this.#client || typeof window === 'undefined') return;
+		if (this.#client || this.#initializing || typeof window === 'undefined') return;
+		this.#initializing = true;
 		this.#cluster = cluster;
+		void this.#initialize(cluster);
+	}
+
+	async #initialize(cluster: Cluster) {
 		const client = new ConnectorClient(
 			getDefaultConfig({
 				appName: 'Revibase',
 				appUrl: window.location.origin,
 				autoConnect: true,
-				network: cluster,
-				wallets: { featured: FEATURED_WALLET_NAMES }
+				network: cluster
 			})
 		);
 		(client as unknown as { initialize?: () => void }).initialize?.();
 		this.#client = client;
 		this.state = client.getSnapshot();
 		client.subscribe((s) => (this.state = s));
-		if (platform() === 'android' && cluster !== 'localnet') void this.#registerMobileWalletAdapter(cluster);
+		if (platform() === 'android' && cluster !== 'localnet')
+			void this.#registerMobileWalletAdapter(cluster);
 	}
 
 	async #registerMobileWalletAdapter(cluster: Exclude<Cluster, 'localnet'>) {
@@ -72,12 +89,17 @@ class WalletStore {
 
 	get options(): WalletOption[] {
 		return (this.state?.connectors ?? [])
-			.filter((c) => c.features.includes(SolanaSignTransaction) || c.features.includes(SolanaSignAndSendTransaction))
+			.filter(
+				(c) =>
+					c.features.includes(SolanaSignTransaction) ||
+					c.features.includes(SolanaSignAndSendTransaction)
+			)
 			.map((c) => ({ id: c.id, name: c.name, icon: c.icon, ready: c.ready }));
 	}
 
-	get status() {
-		return this.state?.wallet.status ?? 'disconnected';
+	/** Before the connector has loaded, or while it reconnects. */
+	get pending(): boolean {
+		return this.state === null || this.state.wallet?.status === 'connecting';
 	}
 
 	get address(): string | null {
@@ -91,15 +113,15 @@ class WalletStore {
 		return this.state?.connectors.find((c) => c.id === w.session.connectorId)?.name ?? null;
 	}
 
+	/** Busy label while the connected wallet shows its approval prompt. */
+	get approvePrompt(): string {
+		return `Approve in ${this.walletName ?? 'your wallet'}…`;
+	}
+
 	get walletIcon(): string | null {
 		const w = this.state?.wallet;
 		if (w?.status !== 'connected') return null;
 		return this.state?.connectors.find((c) => c.id === w.session.connectorId)?.icon ?? null;
-	}
-
-	get error(): Error | null {
-		const w = this.state?.wallet;
-		return w?.status === 'error' ? w.error : null;
 	}
 
 	async connect(id: string) {
@@ -110,7 +132,9 @@ class WalletStore {
 	async disconnect() {
 		await this.#client?.disconnectWallet();
 		// Best effort: the wallet login and any owner_browse it issued end with the connection.
-		void fetch('/api/owner/session', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
+		void fetch('/api/owner/session', { method: 'DELETE', credentials: 'same-origin' }).catch(
+			() => {}
+		);
 	}
 
 	signingContext(): SigningContext {
@@ -118,29 +142,43 @@ class WalletStore {
 		if (!this.#client || w?.status !== 'connected') throw new Error('Connect a wallet first.');
 		const wallet = this.#client.getConnector(w.session.connectorId);
 		if (!wallet) throw new Error('This wallet is no longer available.');
+		const address = String(w.session.selectedAccount.address);
+		const sponsor = passkeyFeePayer(wallet.name);
 		return {
 			wallet,
 			account: w.session.selectedAccount.account,
-			address: String(w.session.selectedAccount.address),
-			chain: `solana:${this.#cluster === 'localnet' ? 'localnet' : this.#cluster}`
+			address,
+			chain: `solana:${this.#cluster === 'localnet' ? 'localnet' : this.#cluster}`,
+			feePayer: sponsor ?? address,
+			passkey: sponsor !== null
 		};
 	}
 }
 
 export const walletStore = new WalletStore();
 
-export type SignOutcome = { kind: 'signed'; signedBytes: Uint8Array } | { kind: 'sent'; signature: Uint8Array };
+export type SignOutcome =
+	{ kind: 'signed'; signedBytes: Uint8Array } | { kind: 'sent'; signature: Uint8Array };
 
 /**
  * Ask the wallet to sign exactly `wireBytes`. Prefer sign-only so the signed
  * copy can be re-validated before it is broadcast; fall back to
  * sign-and-send for wallets that only offer that.
  */
-export async function signWithWallet(ctx: SigningContext, wireBytes: Uint8Array): Promise<SignOutcome> {
-	const features = ctx.wallet.features as Partial<SolanaSignTransactionFeature & SolanaSignAndSendTransactionFeature>;
+export async function signWithWallet(
+	ctx: SigningContext,
+	wireBytes: Uint8Array
+): Promise<SignOutcome> {
+	const features = ctx.wallet.features as Partial<
+		SolanaSignTransactionFeature & SolanaSignAndSendTransactionFeature
+	>;
 	const signOnly = features[SolanaSignTransaction];
 	if (signOnly) {
-		const [result] = await signOnly.signTransaction({ account: ctx.account, transaction: wireBytes, chain: ctx.chain });
+		const [result] = await signOnly.signTransaction({
+			account: ctx.account,
+			transaction: wireBytes,
+			chain: ctx.chain
+		});
 		return { kind: 'signed', signedBytes: new Uint8Array(result.signedTransaction) };
 	}
 	const signAndSend = features[SolanaSignAndSendTransaction];

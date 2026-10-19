@@ -1,30 +1,35 @@
-import { json, type Handle } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { env } from 'cloudflare:workers';
+
+import { passkeyEnv } from '#lib/server/passkey-env.ts';
 
 /**
  * - JSON APIs require a same-origin `Origin` header (SameSite=Lax cookies plus
  *   this check closes CSRF; SvelteKit's own check only covers form posts).
  * - Security headers everywhere; CSP itself is configured in vite.config.ts
  *   (`kit.csp`) so SvelteKit can hash/nonce its inline bootstrap script.
- * - An embedded-app page (`locals.frameSrc`) gets `frame-src` for that one origin. It's appended to
- *   SvelteKit's own policy: a second CSP header could only narrow it, never allow a frame.
+ *   `frame-src` allows embed shortcuts. This app still cannot be framed.
+ * - Passkeys: this page's own (taps), plus the Revibase Passkey signer frame's.
  */
 export const handle: Handle = async ({ event, resolve }) => {
 	const { request, url } = event;
 	if (url.pathname.startsWith('/api/') && request.method !== 'GET' && request.method !== 'HEAD') {
-		const origin = request.headers.get('origin');
-		if (origin !== url.origin) {
+		if (request.headers.get('origin') !== url.origin) {
 			return json({ error: 'Cross-site request blocked.', code: 'forbidden' }, { status: 403 });
 		}
 	}
 
 	const response = await resolve(event);
 	const headers = response.headers;
-	const csp = headers.get('content-security-policy');
-	if (event.locals.frameSrc && csp) headers.set('content-security-policy', `${csp}; frame-src ${event.locals.frameSrc}`);
 	headers.set('Referrer-Policy', 'no-referrer');
 	headers.set('X-Content-Type-Options', 'nosniff');
 	headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-	headers.set('Permissions-Policy', 'publickey-credentials-get=(self), camera=(), microphone=(), geolocation=()');
+	const signer = passkeyEnv(env.SECURE_SIGNER_ORIGIN, env.FEE_PAYER_KEY)?.signerOrigin;
+	headers.set(
+		'Permissions-Policy',
+		`publickey-credentials-get=(self${signer ? ` "${signer}"` : ''}), clipboard-write=(self), camera=(), microphone=(), geolocation=()`
+	);
 	if (url.pathname.startsWith('/api/')) headers.set('Cache-Control', 'no-store');
 	return response;
 };

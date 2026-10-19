@@ -1,218 +1,174 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
-	import { goto, replaceState } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Button } from '$lib/components/ui/button';
-	import { Spinner } from '$lib/components/ui/spinner';
-	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
-	import BondVisual from '$lib/components/app/BondVisual.svelte';
-	import Countdown from '$lib/components/app/Countdown.svelte';
-	import HandoffPanel from '$lib/components/app/HandoffPanel.svelte';
-	import List from '$lib/components/app/List.svelte';
-	import Notice from '$lib/components/app/Notice.svelte';
-	import PageHeader from '$lib/components/app/PageHeader.svelte';
-	import PageShell from '$lib/components/app/PageShell.svelte';
-	import PairingCode from '$lib/components/app/PairingCode.svelte';
-	import WalletRow from '$lib/components/app/WalletRow.svelte';
-	import { explorerUrl } from '$lib/shared/explorer';
-	import { platform, canTapHere, tapHint } from '$lib/client/capability';
+	import { onDestroy, onMount } from 'svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Spinner } from '#lib/components/ui/spinner/index.ts';
+	import AccessoryMark from '#lib/components/app/AccessoryMark.svelte';
+	import BondVisual from '#lib/components/app/BondVisual.svelte';
+	import Countdown from '#lib/components/app/Countdown.svelte';
+	import List from '#lib/components/app/List.svelte';
+	import Notice from '#lib/components/app/Notice.svelte';
+	import PageHeader from '#lib/components/app/PageHeader.svelte';
+	import PageShell from '#lib/components/app/PageShell.svelte';
+	import QrCode from '#lib/components/app/QrCode.svelte';
+	import WalletPicker from '#lib/components/app/WalletPicker.svelte';
+	import WalletRow from '#lib/components/app/WalletRow.svelte';
+	import { canTapHere, platform, tapHint } from '#lib/client/capability.ts';
 	import {
-		cancelLink,
-		claimHandoff,
-		finishInWallet,
-		linkStatus,
-		pollLink,
+		finishLink,
 		prepareTap,
-		startPhoneLink,
-		tapWithChallenge,
-		type FinishPhase
-	} from '$lib/client/link/flow';
-	import { describeError, linkErrorCopy, type FriendlyError } from '$lib/client/link/messages';
-	import { linkCopy } from '$lib/client/accessory/link-copy';
-	import { rememberAccessoryLink, type ConnectionMethod, rememberRecentWallet, rememberWallet, rememberAccessoryWalletApp } from '$lib/client/memory';
-	import { walletStore } from '$lib/client/wallet/wallet.svelte';
-	import { shortAddress } from '$lib/shared/encoding';
-	import type { LinkStatusView, TransferChallenge } from '$lib/shared/types';
+		tapAccessory,
+		type FinishPhase,
+		type PreparedTap,
+		type TappedAccessory
+	} from '#lib/client/link/flow.ts';
+	import { describeError, linkErrorCopy, type FriendlyError } from '#lib/client/link/messages.ts';
+	import { linkCopy } from '#lib/client/accessory/link-copy.ts';
+	import { rememberRecentWallet } from '#lib/client/memory.ts';
+	import { walletStore } from '#lib/client/wallet/wallet.svelte.ts';
+	import { PASSKEY_WALLET_NAME } from '#lib/client/wallet/passkey.svelte.ts';
+	import { walletHoldingsQuery, walletSetupQuery } from '#lib/client/queries.ts';
+	import ReceiveSheet from '#lib/components/app/ReceiveSheet.svelte';
+	import { createQuery } from '@tanstack/svelte-query';
+	import { formatCompactTokenAmount, SOL_DECIMALS } from '#lib/shared/amount.ts';
+	import { shortAddress } from '#lib/shared/encoding.ts';
+	import { explorerUrl } from '#lib/shared/explorer.ts';
+	import { LINK_TX_CONFIG } from '#lib/shared/fee-policy.ts';
+	import { networkFeeLamports } from '#lib/shared/wallet-fee.ts';
+	import { SYSTEM_ACCOUNT_RENT_LAMPORTS } from '#lib/shared/wallet-transfer.ts';
 
 	let { data } = $props();
-	const a = $derived(data.accessory);
-	const copy = $derived(linkCopy(a.kind));
+	const accessory = $derived(data.accessory);
+	const copy = $derived(linkCopy(accessory.kind));
 
-	let status = $state<LinkStatusView | null>(null);
-	let challenge = $state<TransferChallenge | null>(null);
-	let challengeAt = 0;
-	let handoffUrl = $state<string | null>(null);
+	let prepared = $state.raw<PreparedTap | null>(null);
+	let tapped = $state.raw<TappedAccessory | null>(null);
+	let linked = $state<{ recipient: string; signature: string } | null>(null);
 	let tapping = $state(false);
 	let failure = $state<FriendlyError | null>(null);
-	let showComputer = $state(false);
-	let localFinish = $state(false);
 	let connecting = $state<string | null>(null);
 	let phase = $state<FinishPhase | null>(null);
 	let hint = $state('Tap Approve, then hold your accessory to your phone.');
 	let webauthnOk = $state(true);
+	let device = $state<'pending' | 'desktop' | 'mobile'>('pending');
 
-	const poller = new AbortController();
-	onDestroy(() => poller.abort());
-	onMount(() => {
-		const refresh = () => {
-			if (document.visibilityState === 'visible' && status && !done && !dead && !tapping && !phase) {
-				void linkStatus(status.id).then(apply).catch(() => {});
-			}
-		};
-		document.addEventListener('visibilitychange', refresh);
-		return () => document.removeEventListener('visibilitychange', refresh);
+	// Revibase Passkey pays its claim itself (fee, plus its one-time setup on its
+	// first transaction), so check the wallet can before asking for a tap.
+	const passkey = $derived(walletStore.walletName === PASSKEY_WALLET_NAME);
+	const fundingEnabled = $derived(passkey && !!walletStore.address && !linked);
+	const balanceQuery = createQuery(() => ({
+		...walletHoldingsQuery(walletStore.address ?? ''),
+		enabled: fundingEnabled,
+		refetchInterval: 5_000
+	}));
+	const setupQuery = createQuery(() => ({
+		...walletSetupQuery(walletStore.address ?? ''),
+		enabled: fundingEnabled
+	}));
+	/** SOL still to add before this wallet can claim, or 0. */
+	const shortBy = $derived.by(() => {
+		if (!fundingEnabled || !balanceQuery.data || setupQuery.data === undefined) return 0n;
+		// Fee payer + the wallet's check + the tap's check.
+		const cost = networkFeeLamports(3, LINK_TX_CONFIG) + setupQuery.data;
+		const held = balanceQuery.data.lamports;
+		if (held < cost) return cost - held;
+		const left = held - cost;
+		// What stays must be nothing or keep the account open.
+		return left !== 0n && left < SYSTEM_ACCOUNT_RENT_LAMPORTS
+			? SYSTEM_ACCOUNT_RENT_LAMPORTS - left
+			: 0n;
 	});
+	let receiving = $state(false);
 
-	const s = $derived(status?.state);
-	const isDesktop = $derived(status?.kind === 'desktop');
-	const needsTap = $derived(s === 'created' || s === 'awaiting_passkey' || s === 'accessory_confirmed' || (s === 'tapped' && !handoffUrl && !isDesktop));
-	const done = $derived(s === 'linked');
-	const dead = $derived(s === 'cancelled' || s === 'expired' || s === 'failed');
-
-	type View = 'loading' | 'dead' | 'confirm_computer' | 'tap' | 'choose' | 'local' | 'remote' | 'desktop_remote' | 'done';
+	type View = 'pending' | 'phone' | 'choose' | 'tap' | 'confirm' | 'done';
 	const view = $derived.by((): View => {
-		if (!status) return failure ? 'dead' : 'loading';
-		if (done) return 'done';
-		if (dead) return 'dead';
-		if (s === 'accessory_attached') return 'confirm_computer';
-		if (needsTap) return 'tap';
-		if (isDesktop) return 'desktop_remote';
-		if (s === 'tapped' && handoffUrl && !localFinish) return 'choose';
-		if (localFinish && (s === 'claimed' || s === 'finishing')) return 'local';
-		return 'remote';
+		if (device === 'desktop') return 'phone';
+		if (linked) return 'done';
+		if (device === 'pending') return 'pending';
+		if (!walletStore.address) return 'choose';
+		if (!tapped) return 'tap';
+		return 'confirm';
 	});
+	const ownedResult = $derived(!!linked && walletStore.address === linked.recipient);
 
-	/** Only claim "your wallet" when the wallet connected here is the one that was linked. */
-	const ownedResult = $derived(!!status?.recipient && walletStore.address === status.recipient);
-
-	function apply(next: LinkStatusView) {
-		status = next;
-		if (next.state === 'linked' && next.recipient) {
-			rememberWallet(a.pda, next.recipient);
-			let method: ConnectionMethod = next.kind === 'desktop' ? 'browser' : 'wallet';
-			try { if (sessionStorage.getItem(`revibase:link-method:${next.id}`) === 'browser') method = 'browser'; } catch {}
-			rememberRecentWallet(next.walletApp, method);
-			rememberAccessoryWalletApp(a.pda, next.recipient, next.walletApp, method);
-			rememberAccessoryLink(a.pda, { wallet: next.recipient, app: next.walletApp ?? null, source: next.kind === 'desktop' || platform() === 'desktop' ? 'desktop' : method === 'wallet' ? 'wallet' : 'mobile' });
-			try { sessionStorage.removeItem(`revibase:handoff:${next.id}`); } catch {}
-		}
-		if ((next.state === 'created' || next.state === 'accessory_confirmed') && next.errorCode === 'too_slow' && !failure) {
-			failure = linkErrorCopy('too_slow');
-			handoffUrl = null;
-		}
-	}
-
-	// Fetched when a tap is due, then re-fetched once as it goes stale (not polled).
 	const STALE_MS = 45_000;
 	let staleTimer: ReturnType<typeof setTimeout> | undefined;
-	function setChallenge(next: TransferChallenge) {
-		challenge = next;
-		challengeAt = Date.now();
-		clearTimeout(staleTimer);
-		staleTimer = setTimeout(() => void refreshChallenge(), STALE_MS);
-	}
-	let preparing = false;
 	let prepareFailures = 0;
+	let challengeEpoch = 0;
 	async function refreshChallenge() {
-		if (!status || !needsTap || tapping || preparing) return;
-		preparing = true;
+		const recipient = walletStore.address;
+		if (!recipient || tapped || tapping) return;
+		const epoch = ++challengeEpoch;
 		try {
-			setChallenge(await prepareTap(status.id));
+			const next = await prepareTap(accessory.publicKey, data.rpId, recipient);
+			if (epoch !== challengeEpoch || walletStore.address !== recipient || tapped) return;
+			prepared = next;
 			prepareFailures = 0;
+			clearTimeout(staleTimer);
+			staleTimer = setTimeout(() => void refreshChallenge(), STALE_MS);
 		} catch (err) {
-			// Background refresh: only surface it if it keeps failing.
-			if (++prepareFailures >= 2) failure = describeError(err);
-		} finally {
-			preparing = false;
+			if (epoch === challengeEpoch && ++prepareFailures >= 2) failure = describeError(err);
 		}
 	}
+	onDestroy(() => clearTimeout(staleTimer));
 
-	onMount(async () => {
+	// The challenge names the connected wallet, so it is fetched only after connect.
+	let watching: string | null = null;
+	$effect(() => {
+		const recipient = walletStore.address;
+		if (tapping || phase || linked) return;
+		if (recipient === watching) return;
+		watching = recipient;
+		if (tapped) tapped = null;
+		prepared = null;
+		clearTimeout(staleTimer);
+		if (recipient) void refreshChallenge();
+	});
+
+	onMount(() => {
+		if (platform() === 'desktop') {
+			device = 'desktop';
+			return;
+		}
+		device = 'mobile';
 		hint = `Tap Approve, then ${tapHint().charAt(0).toLowerCase()}${tapHint().slice(1)}`;
 		webauthnOk = canTapHere();
 		walletStore.init(data.cluster);
-		try {
-			if (data.pairedLinkId) {
-				apply(await linkStatus(data.pairedLinkId));
-				try { handoffUrl = sessionStorage.getItem(`revibase:handoff:${data.pairedLinkId}`); } catch {}
-			}
-			else {
-				const { challenge: first, ...started } = await startPhoneLink();
-				apply(started);
-				const resumeUrl = new URL(page.url);
-				resumeUrl.searchParams.set('link', started.id);
-				replaceState(resumeUrl, page.state);
-				setChallenge(first);
-			}
-		} catch (err) {
-			failure = describeError(err);
-			return;
-		}
-		void pollLink(
-			status!.id,
-			(next) => {
-				// Local actions own the state while they run.
-				if (!tapping && !phase) apply(next);
-				return next.state === 'linked' || next.state === 'cancelled' || next.state === 'expired' || next.state === 'failed';
-			},
-			poller.signal
-		);
 	});
 
-	// Keep a fresh challenge ready so the tap button can call WebAuthn synchronously (iOS).
-	$effect(() => {
-		if (needsTap && !tapping && (!challenge || Date.now() - challengeAt > STALE_MS)) void refreshChallenge();
-	});
-	onDestroy(() => clearTimeout(staleTimer));
+	function tapExpired() {
+		if (phase || linked) return;
+		tapped = null;
+		failure = linkErrorCopy('too_slow');
+		void refreshChallenge();
+	}
 
 	async function tap() {
-		if (!challenge || !status) return;
+		if (!prepared) return;
 		tapping = true;
 		failure = null;
-		const fields = challenge;
-		challenge = null;
+		const challenge = prepared;
+		prepared = null;
+		clearTimeout(staleTimer);
 		try {
-			const result = await tapWithChallenge(fields, { finishHere: false });
-			handoffUrl = result.handoffUrl;
-			try { if (handoffUrl) sessionStorage.setItem(`revibase:handoff:${fields.linkId}`, handoffUrl); } catch {}
-			apply(result.status);
+			tapped = await tapAccessory(challenge);
 		} catch (err) {
 			failure = describeError(err, 'tap');
-			void refreshChallenge();
 		} finally {
 			tapping = false;
-		}
-	}
-
-	function rememberLinkMethod(method: ConnectionMethod) {
-		try { if (status) sessionStorage.setItem(`revibase:link-method:${status.id}`, method); } catch {}
-	}
-
-	async function useLocalWallet(id: string) {
-		if (!status || !handoffUrl) return;
-		connecting = id;
-		failure = null;
-		try {
-			// This browser claims its own handoff link and becomes the finisher.
-			const h = new URL(handoffUrl).hash.slice(3);
-			if (!localFinish) {
-				apply(await claimHandoff(h));
-				localFinish = true;
-			}
-			await walletStore.connect(id);
-			rememberLinkMethod('browser');
-		} catch (err) {
-			failure = describeError(err);
-		} finally {
-			connecting = null;
+			if (!tapped) void refreshChallenge();
 		}
 	}
 
 	async function approveHere() {
-		if (!status) return;
+		if (!tapped) return;
+		const context = walletStore.signingContext();
 		failure = null;
 		try {
-			apply(await finishInWallet(status.id, walletStore.signingContext(), (p) => (phase = p)));
+			const signature = await finishLink(tapped, context, (next) => (phase = next));
+			linked = { recipient: context.address, signature };
+			rememberRecentWallet(context.wallet.name);
 		} catch (err) {
 			failure = describeError(err);
 		} finally {
@@ -220,9 +176,21 @@
 		}
 	}
 
-	async function cancel() {
-		if (status && !done && !dead && s !== 'submitted') await cancelLink(status.id).catch(() => {});
-		await goto('/accessory');
+	async function connectWallet(id: string) {
+		connecting = id;
+		failure = null;
+		try {
+			await walletStore.connect(id);
+			rememberRecentWallet(walletStore.walletName);
+		} catch (err) {
+			failure = describeError(err);
+		} finally {
+			connecting = null;
+		}
+	}
+
+	function cancel() {
+		void goto('/accessory');
 	}
 </script>
 
@@ -230,91 +198,108 @@
 
 <PageShell>
 	<section class="flex flex-1 flex-col pt-4" aria-live="polite">
-		{#key view + (showComputer ? ':computer' : '')}
+		{#key view}
 			<div class="animate-rise flex flex-1 flex-col gap-7">
-				{#if view === 'loading'}
-					<div class="grid flex-1 place-items-center"><Spinner class="size-5 text-muted-foreground" /></div>
-				{:else if view === 'done' && status}
+				{#if view === 'phone'}
 					<div class="flex flex-1 flex-col justify-center gap-8">
-						<BondVisual wallet={status.recipient} icon={ownedResult ? walletStore.walletIcon : null} pda={a.pda} hasMint={!!a.mint} />
+						<PageHeader
+							align="center"
+							title="Continue on your phone"
+							body="Claiming needs a tap, so it only works on a phone with NFC. Scan this code, then hold your accessory to your phone."
+						/>
+						<QrCode value={page.url.origin} label="Scan with your phone’s camera" />
+					</div>
+				{:else if view === 'pending'}
+					<div class="flex-1"></div>
+				{:else if view === 'done' && linked}
+					<div class="flex flex-1 flex-col justify-center gap-8">
+						<BondVisual wallet={linked.recipient} pda={accessory.pda} hasMint={!!accessory.mint} />
 						<PageHeader
 							align="center"
 							title={copy.done.title}
-							body={copy.done.body(ownedResult, status.recipient ? shortAddress(status.recipient) : 'the wallet you chose')}
+							body={copy.done.body(ownedResult, shortAddress(linked.recipient))}
 						/>
-						{#if status.recipient}
-							<List><WalletRow address={status.recipient} label={ownedResult ? 'Your wallet' : 'Linked wallet'} icon={ownedResult ? walletStore.walletIcon : null} cluster={data.cluster} /></List>
-						{/if}
-					</div>
-				{:else if view === 'dead'}
-					<div class="flex flex-1 flex-col justify-center">
-						<Notice
-							title={s === 'cancelled' ? copy.cancelled : (failure?.title ?? linkErrorCopy(status?.errorCode).title)}
-							body={s === 'cancelled' ? 'Nothing was changed.' : (failure?.body ?? linkErrorCopy(status?.errorCode).body)}
-							detail={failure?.detail}
-						/>
+						<List>
+							<WalletRow
+								address={linked.recipient}
+								label={ownedResult ? 'Your wallet' : undefined}
+							/>
+						</List>
 					</div>
 				{:else}
-					{#if view === 'tap'}
-						<PageHeader step={{ current: 1, total: 2 }} title="Approve with your accessory" body={hint} />
-					{:else if view === 'confirm_computer'}
-						<PageHeader step={{ current: 1, total: 2 }} title="Confirm on your computer" body="Make sure your computer shows this code, then approve there." />
-					{:else if view === 'choose' && showComputer}
-						<PageHeader step={{ current: 2, total: 2 }} title="Use a computer" body="Link from a wallet on your computer instead." />
-					{:else if view === 'choose'}
-						<PageHeader step={{ current: 2, total: 2 }} title={copy.choose.title} body={copy.choose.body} />
-					{:else if view === 'local'}
-						<PageHeader step={{ current: 2, total: 2 }} title={copy.confirm.title} body={copy.confirm.body} />
-					{:else if view === 'desktop_remote'}
-						<PageHeader step={{ current: 2, total: 2 }} title="Finish on your computer" body={copy.finishOnComputer} />
+					{#if view === 'choose'}
+						<PageHeader
+							step={{ current: 1, total: 3 }}
+							title={copy.choose.title}
+							body={copy.choose.body}
+						/>
+					{:else if view === 'tap'}
+						<PageHeader
+							step={{ current: 2, total: 3 }}
+							title="Approve with your accessory"
+							body={hint}
+						/>
 					{:else}
-						<PageHeader step={{ current: 2, total: 2 }} title="Finish in your wallet" body={copy.finishInWallet} />
+						<PageHeader
+							step={{ current: 3, total: 3 }}
+							title={copy.confirm.title}
+							body={copy.confirm.body}
+						/>
 					{/if}
 
-					{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
+					<Notice error={failure} />
 
-					{#if status?.claimConflict}
-						<Notice title="Opened on another device" body="Your link was opened a second time. If that wasn’t you, cancel and start again." />
-					{/if}
-
-					{#if view === 'tap'}
+					{#if view === 'choose'}
+						<WalletPicker
+							options={walletStore.options}
+							{connecting}
+							onpick={connectWallet}
+							emptyHint="Open Revibase in a Solana wallet browser to connect."
+						/>
+					{:else if view === 'tap'}
 						<div class="grid flex-1 place-items-center py-6">
-							<AccessoryMark state={tapping ? 'waiting' : 'idle'} pda={a.pda} hasMint={!!a.mint} />
+							<AccessoryMark
+								state={tapping ? 'waiting' : 'idle'}
+								pda={accessory.pda}
+								hasMint={!!accessory.mint}
+							/>
 						</div>
-						{#if !webauthnOk}
-							<Notice title="Open this page in Safari or Chrome" body="This browser can’t read your accessory." />
+						{#if walletStore.address}
+							<List>
+								<WalletRow address={walletStore.address} label="Your wallet" />
+							</List>
+							<Button
+								variant="quiet"
+								class="w-full"
+								disabled={tapping}
+								onclick={() => void walletStore.disconnect()}>Use a different wallet</Button
+							>
 						{/if}
-					{:else if view === 'confirm_computer'}
-						<div class="grid flex-1 place-items-center">
-							{#if status?.pairingCode}<PairingCode code={status.pairingCode} caption="Your code" />{/if}
-						</div>
-					{:else if view === 'choose' && showComputer}
-						<ol class="space-y-3 text-[15px]">
-							{#each [`On your computer, open ${page.url.host}`, 'Connect your wallet, then choose Link an accessory', 'Scan the code it shows with this phone'] as line, i (line)}
-								<li class="flex gap-3">
-									<span class="grid size-6 shrink-0 place-items-center rounded-full bg-muted text-[13px] font-medium tabular-nums">{i + 1}</span>
-									<span class="pt-0.5">{line}</span>
-								</li>
-							{/each}
-						</ol>
-					{:else if view === 'choose' && handoffUrl}
-						<HandoffPanel {handoffUrl} options={walletStore.options} {connecting} onpick={useLocalWallet} onbrowse={() => rememberLinkMethod('wallet')} oncomputer={() => (showComputer = true)} />
-					{:else if view === 'local' && walletStore.address}
-						<List><WalletRow address={walletStore.address} label={walletStore.walletName ?? 'This wallet'} icon={walletStore.walletIcon} cluster={data.cluster} /></List>
-					{:else if view === 'remote' || view === 'desktop_remote'}
-						<div class="flex items-center gap-3 rounded-[14px] bg-muted px-4 py-3.5 text-[15px]">
-							<Spinner class="size-4 text-muted-foreground" />
-							<span>
-								{#if s === 'submitted'}Confirming on the network…
-								{:else if status?.recipient}{copy.progress(shortAddress(status.recipient))}
-								{:else if s === 'claimed'}Opened in your wallet
-								{:else}Waiting for your wallet…{/if}
-							</span>
-						</div>
+						{#if shortBy > 0n}
+							<Notice
+								tone="info"
+								title="Add SOL to your wallet to claim"
+								body={`Your wallet pays a small network fee${setupQuery.data ? ' and its one-time setup' : ''}. Add ${formatCompactTokenAmount(shortBy, SOL_DECIMALS)} SOL to continue.`}
+							>
+								{#snippet actions()}<Button variant="secondary" onclick={() => (receiving = true)}
+										>Receive</Button
+									>{/snippet}
+							</Notice>
+						{/if}
+						{#if !webauthnOk}
+							<Notice
+								title="Open this page in Safari or Chrome"
+								body="This browser can’t read your accessory."
+							/>
+						{/if}
+					{:else if view === 'confirm' && walletStore.address}
+						<List>
+							<WalletRow address={walletStore.address} label="Your wallet" />
+						</List>
 					{/if}
 
-					{#if status?.tapExpiresAt && (view === 'choose' || view === 'local' || view === 'remote' || view === 'desktop_remote')}
-						<Countdown until={status.tapExpiresAt} />
+					{#if tapped && (view === 'choose' || view === 'confirm')}
+						<Countdown until={tapped.expiresAt} onexpire={tapExpired} />
 					{/if}
 				{/if}
 			</div>
@@ -323,28 +308,39 @@
 
 	{#snippet footer()}
 		<div class="grid gap-1">
-			{#if view === 'done' || view === 'dead'}
-				<Button href="/accessory" size="xl" class="w-full">{view === 'done' ? 'Done' : 'Back to your accessory'}</Button>
-				{#if view === 'done' && status?.txSignature}
-					<Button variant="ghost" class="h-11 text-muted-foreground" href={explorerUrl('tx', status.txSignature, data.cluster)} target="_blank" rel="noopener noreferrer">View transaction</Button>
-				{/if}
+			{#if view === 'done' && linked}
+				<Button href="/accessory" size="xl" class="w-full">Done</Button>
+				<Button
+					variant="quiet"
+					class="w-full"
+					href={explorerUrl('tx', linked.signature, data.cluster)}
+					target="_blank"
+					rel="noopener noreferrer">View transaction</Button
+				>
 			{:else if view === 'tap' && webauthnOk}
-				<Button size="xl" class="w-full" disabled={tapping || !challenge} onclick={tap}>
-					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !challenge}<Spinner /> Preparing…{:else}Approve{/if}
+				<Button
+					size="xl"
+					class="w-full"
+					disabled={tapping || !prepared || shortBy > 0n}
+					onclick={tap}
+				>
+					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !prepared}<Spinner /> Preparing…{:else}Approve{/if}
 				</Button>
-			{:else if view === 'local' && walletStore.address}
+			{:else if view === 'confirm' && walletStore.address}
 				<Button size="xl" class="w-full" disabled={!!phase} onclick={approveHere}>
-					{#if phase === 'approve'}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…
+					{#if phase === 'approve'}<Spinner /> {walletStore.approvePrompt}
 					{:else if phase === 'confirming'}<Spinner /> Confirming…
 					{:else if phase}<Spinner /> Preparing…
 					{:else}{copy.action}{/if}
 				</Button>
-			{:else if view === 'choose' && showComputer}
-				<Button variant="secondary" size="xl" class="w-full" onclick={() => (showComputer = false)}>Back</Button>
 			{/if}
-			{#if view !== 'done' && view !== 'dead'}
-				<Button variant="ghost" class="h-11 text-muted-foreground" onclick={cancel}>Cancel</Button>
+			{#if view !== 'done'}
+				<Button variant="quiet" class="w-full" disabled={!!phase} onclick={cancel}>Cancel</Button>
 			{/if}
 		</div>
 	{/snippet}
 </PageShell>
+
+{#if walletStore.address && passkey}
+	<ReceiveSheet bind:open={receiving} address={walletStore.address} cluster={data.cluster} />
+{/if}

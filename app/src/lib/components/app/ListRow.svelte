@@ -1,13 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { cn } from '$lib/utils';
+	import { cn } from '#lib/utils.ts';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
-	import { Spinner } from '$lib/components/ui/spinner';
+	import { Spinner } from '#lib/components/ui/spinner/index.ts';
 
 	let {
 		label,
 		detail,
+		value,
 		subdetail,
 		href,
 		onclick,
@@ -21,10 +22,13 @@
 		trailing,
 		rel,
 		target,
-		reload = false
+		reload = false,
+		selectable = false
 	}: {
 		label: string;
 		detail?: string;
+		/** A trailing figure, such as a balance, shown before the chevron. */
+		value?: string;
 		subdetail?: string;
 		href?: string;
 		onclick?: () => void;
@@ -39,9 +43,11 @@
 		rel?: string;
 		target?: string;
 		reload?: boolean;
+		/** A `<label>` row: tapping anywhere toggles the control in `leading` (e.g. a checkbox). */
+		selectable?: boolean;
 	} = $props();
 
-	const interactive = $derived(!!href || !!onclick);
+	const interactive = $derived(!!href || !!onclick || selectable);
 	const classes = $derived(
 		cn(
 			'flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left outline-none',
@@ -57,12 +63,21 @@
 	{#if leading}<span class="grid shrink-0 place-items-center">{@render leading()}</span>{/if}
 	<span class="min-w-0 flex-1">
 		<span class="flex flex-wrap items-center gap-x-2 gap-y-1">
-			<span class={cn('min-w-0 truncate text-[15px] font-medium', tone === 'destructive' && 'text-destructive')}>{label}</span>
+			<span
+				class={cn(
+					'min-w-0 truncate text-[15px] font-medium',
+					tone === 'destructive' && 'text-destructive'
+				)}>{label}</span
+			>
 			{@render labelBadge?.()}
 		</span>
 		{#if detail}<span class="block truncate text-[13px] text-muted-foreground">{detail}</span>{/if}
-		{#if subdetail}<span class="block text-[12px] leading-snug text-muted-foreground">{subdetail}</span>{/if}
+		{#if subdetail}<span class="block text-[12px] leading-snug text-muted-foreground"
+				>{subdetail}</span
+			>{/if}
 	</span>
+	{#if value !== undefined}<span class="shrink-0 text-[15px] font-medium tabular-nums">{value}</span
+		>{/if}
 	{#if busy}
 		<Spinner class="size-4 text-muted-foreground" />
 	{:else if trailing}
@@ -76,9 +91,21 @@
 
 <li>
 	{#if href}
-		<a {href} {rel} {target} {onclick} data-sveltekit-reload={reload || undefined} class={classes} aria-disabled={disabled || undefined}>{@render content()}</a>
+		<a
+			{href}
+			{rel}
+			{target}
+			{onclick}
+			data-sveltekit-reload={reload || undefined}
+			class={classes}
+			aria-disabled={disabled || undefined}>{@render content()}</a
+		>
 	{:else if onclick}
-		<button type="button" class={classes} {disabled} aria-busy={busy || undefined} onclick={onclick}>{@render content()}</button>
+		<button type="button" class={classes} {disabled} aria-busy={busy || undefined} {onclick}
+			>{@render content()}</button
+		>
+	{:else if selectable}
+		<label class={cn(classes, 'cursor-pointer')}>{@render content()}</label>
 	{:else}
 		<div class={classes}>{@render content()}</div>
 	{/if}

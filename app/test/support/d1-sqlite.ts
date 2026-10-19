@@ -5,7 +5,9 @@ import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 export function createTestD1(migrationDirs: string[]): D1Database {
 	const db = new DatabaseSync(':memory:');
 	for (const dir of migrationDirs) {
-		for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
+		for (const file of readdirSync(dir)
+			.filter((f) => f.endsWith('.sql'))
+			.sort()) {
 			db.exec(readFileSync(join(dir, file), 'utf8'));
 		}
 	}
@@ -29,6 +31,12 @@ export function createTestD1(migrationDirs: string[]): D1Database {
 				}
 			};
 			return stmt;
+		},
+		// Like D1: the statements run in order, each result as from `all()`.
+		async batch(statements: { all: () => Promise<unknown> }[]) {
+			const results = [];
+			for (const statement of statements) results.push(await statement.all());
+			return results;
 		}
 	} as unknown as D1Database;
 }

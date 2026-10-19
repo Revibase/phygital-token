@@ -9,6 +9,7 @@
 import {
   isProgramError,
   type Address,
+  type HasAddress,
   type SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM,
   type SolanaError,
 } from "@solana/kit";
@@ -24,48 +25,47 @@ export const PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS = 0x1772; // 6002
 export const PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY = 0x1773; // 6003
 /** Secp256r1PubkeyMismatch: secp256r1 pubkey does not match phygital token record */
 export const PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH = 0x1774; // 6004
-/** LinkedWalletMismatch: Phygital token linked wallet mismatch */
-export const PHYGITAL_TOKEN_ERROR__LINKED_WALLET_MISMATCH = 0x1775; // 6005
+/** OwnerMismatch: Phygital token owner mismatch */
+export const PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH = 0x1775; // 6005
 /** InvalidSlotHash: Slot not found in SlotHashes sysvar — signature has expired or is being replayed */
 export const PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH = 0x1776; // 6006
 /** StaleSignCount: WebAuthn signCount must be greater than the last accepted signCount */
 export const PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT = 0x1777; // 6007
 /** ClientDataHashMismatch: Client data hash mismatch */
 export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH = 0x1778; // 6008
-/** MissingInstructionsSysvar: Missing instructions sysvar account */
-export const PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR = 0x1779; // 6009
 /** InvalidSysvarDataFormat: Invalid sysvar data format */
-export const PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x177a; // 6010
-/** TokenIsCurrentlyLocked: The linked wallet needs to unlock the phygital token to enable transfer. */
-export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED = 0x177b; // 6011
-/** TokenIsNotLockable: This phygital token is not lockable. */
-export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE = 0x177c; // 6012
+export const PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x1779; // 6009
+/** TokenIsCurrentlyLocked: The owner needs to unlock the phygital token to enable transfer. */
+export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED = 0x177a; // 6010
 /** UnableToParseClientData: Unable to parse client data JSON. */
-export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x177d; // 6013
+export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x177b; // 6011
 /** ChallengeHashMismatch: Challenge hash mismatch. */
-export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x177e; // 6014
+export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x177c; // 6012
 /** InvalidAuthenticatorData: Authenticator data is too short to contain WebAuthn flags. */
-export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x177f; // 6015
+export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x177d; // 6013
 /** UserPresenceNotVerified: WebAuthn user presence flag (UP) was not set by the authenticator. */
-export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x1780; // 6016
+export const PHYGITAL_TOKEN_ERROR__USER_PRESENCE_NOT_VERIFIED = 0x177e; // 6014
 /** RpIdMismatch: WebAuthn rpId hash does not match the expected relying party id. */
-export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x1781; // 6017
+export const PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH = 0x177f; // 6015
 /** OriginMismatch: WebAuthn origin does not match any expected origin. */
-export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1782; // 6018
+export const PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH = 0x1780; // 6016
 /** UnauthorizedAuthority: Only the designated authority can perform this action. */
-export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1783; // 6019
+export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY = 0x1781; // 6017
 /** UnauthorizedAdmin: Only the admin can perform this action. */
-export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN = 0x1784; // 6020
+export const PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN = 0x1782; // 6018
 /** KeyAlreadyExists: Key already exists on the admin config. */
-export const PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS = 0x1785; // 6021
-/** PermanentLinkedWalletRequired: Permanent phygital tokens require a non-default linked wallet at initialize. */
-export const PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_REQUIRED = 0x1786; // 6022
-/** PermanentLinkedWalletImmutable: Permanent phygital token linked wallet cannot be transferred or removed. */
-export const PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_IMMUTABLE = 0x1787; // 6023
+export const PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS = 0x1783; // 6019
+/** PermanentOwnerRequired: Only Permanent phygital tokens set an owner at initialize, and they must set one. */
+export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED = 0x1784; // 6020
+/** PermanentOwnerImmutable: Permanent phygital token owner cannot be transferred or removed. */
+export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE = 0x1785; // 6021
+/** ClientDataTypeMismatch: clientDataJSON type must be webauthn.get. */
+export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH = 0x1786; // 6022
 
 export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH
+  | typeof PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY
@@ -73,17 +73,15 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH
   | typeof PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT
   | typeof PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS
-  | typeof PHYGITAL_TOKEN_ERROR__LINKED_WALLET_MISMATCH
-  | typeof PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR
   | typeof PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH
-  | typeof PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_IMMUTABLE
-  | typeof PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_REQUIRED
+  | typeof PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH
+  | typeof PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE
+  | typeof PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED
   | typeof PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
   | typeof PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT
   | typeof PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED
-  | typeof PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE
   | typeof PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA
   | typeof PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN
   | typeof PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY
@@ -94,6 +92,7 @@ if (process.env["NODE_ENV"] !== "production") {
   phygitalTokenErrorMessages = {
     [PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH]: `Challenge hash mismatch.`,
     [PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
+    [PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH]: `clientDataJSON type must be webauthn.get.`,
     [PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA]: `Authenticator data is too short to contain WebAuthn flags.`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION]: `No prior secp256r1 verification instruction in this transaction matches the provided client data`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,
@@ -101,17 +100,15 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH]: `Slot not found in SlotHashes sysvar — signature has expired or is being replayed`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT]: `Invalid sysvar data format`,
     [PHYGITAL_TOKEN_ERROR__KEY_ALREADY_EXISTS]: `Key already exists on the admin config.`,
-    [PHYGITAL_TOKEN_ERROR__LINKED_WALLET_MISMATCH]: `Phygital token linked wallet mismatch`,
-    [PHYGITAL_TOKEN_ERROR__MISSING_INSTRUCTIONS_SYSVAR]: `Missing instructions sysvar account`,
     [PHYGITAL_TOKEN_ERROR__ORIGIN_MISMATCH]: `WebAuthn origin does not match any expected origin.`,
-    [PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_IMMUTABLE]: `Permanent phygital token linked wallet cannot be transferred or removed.`,
-    [PHYGITAL_TOKEN_ERROR__PERMANENT_LINKED_WALLET_REQUIRED]: `Permanent phygital tokens require a non-default linked wallet at initialize.`,
+    [PHYGITAL_TOKEN_ERROR__OWNER_MISMATCH]: `Phygital token owner mismatch`,
+    [PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE]: `Permanent phygital token owner cannot be transferred or removed.`,
+    [PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED]: `Only Permanent phygital tokens set an owner at initialize, and they must set one.`,
     [PHYGITAL_TOKEN_ERROR__RP_ID_MISMATCH]: `WebAuthn rpId hash does not match the expected relying party id.`,
     [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match phygital token record`,
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
     [PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT]: `WebAuthn signCount must be greater than the last accepted signCount`,
-    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED]: `The linked wallet needs to unlock the phygital token to enable transfer.`,
-    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_NOT_LOCKABLE]: `This phygital token is not lockable.`,
+    [PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED]: `The owner needs to unlock the phygital token to enable transfer.`,
     [PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA]: `Unable to parse client data JSON.`,
     [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN]: `Only the admin can perform this action.`,
     [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_AUTHORITY]: `Only the designated authority can perform this action.`,
@@ -121,28 +118,21 @@ if (process.env["NODE_ENV"] !== "production") {
 
 export function getPhygitalTokenErrorMessage(code: PhygitalTokenError): string {
   if (process.env["NODE_ENV"] !== "production") {
-    return (phygitalTokenErrorMessages as Record<PhygitalTokenError, string>)[
-      code
-    ];
+    return (phygitalTokenErrorMessages as Record<PhygitalTokenError, string>)[code];
   }
 
   return "Error message not available in production bundles.";
 }
 
-export function isPhygitalTokenError<
-  TProgramErrorCode extends PhygitalTokenError,
->(
+export function isPhygitalTokenError<TProgramErrorCode extends PhygitalTokenError>(
   error: unknown,
-  transactionMessage: {
-    instructions: Record<number, { programAddress: Address }>;
-  },
+  transactionMessage: { instructions: Record<number, { programAddress: Address }> },
   code?: TProgramErrorCode,
+  config: { programAddress?: Address | HasAddress } = {},
 ): error is SolanaError<typeof SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM> &
   Readonly<{ context: Readonly<{ code: TProgramErrorCode }> }> {
-  return isProgramError<TProgramErrorCode>(
-    error,
-    transactionMessage,
-    PHYGITAL_TOKEN_PROGRAM_ADDRESS,
-    code,
-  );
+  const programAddressInput = config.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+  const programAddress =
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+  return isProgramError<TProgramErrorCode>(error, transactionMessage, programAddress, code);
 }

@@ -1,59 +1,124 @@
-#![allow(ambiguous_glob_reexports)]
+//! # phygital-token
+//!
+//! A Solana program that binds a physical accessory (an NFC chip holding a
+//! P-256 passkey) to an on-chain token, so that a live tap can be verified
+//! on-chain.
+//!
+//! - **Authenticate** (`verify`): prove a tap over a caller-chosen message, or
+//!   through CPI from another program. Needs no owner.
+//! - **Own** (`set_owner`, `remove_owner`): a tap assigns the token to a wallet
+//!   key; Controlled and Permanent tokens stay locked while owned.
+//! ## Where to start reading
+//!
+//! | Module | Responsibility |
+//! |--------|----------------|
+//! | [`instructions`] | One file per instruction: account constraints and handler. |
+//! | [`webauthn`] | Verifying a tap's WebAuthn assertion; the signed challenges. |
+//! | [`state`] | Account layouts. |
+//! | [`sysvar`] | In-place readers for the Instructions and SlotHashes sysvars. |
+//!
+//! Invariants and the threat model are in `docs/program/`.
 
+// On-chain code must not panic: every failure is a typed `PhygitalError`.
+// Unit tests are exempted in clippy.toml; integration tests are separate crates.
+#![deny(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    clippy::todo,
+    clippy::unimplemented,
+    clippy::dbg_macro,
+    clippy::undocumented_unsafe_blocks
+)]
+// Anchor's `#[program]` expansion contains diverging sub-expressions.
+#![allow(clippy::diverging_sub_expression)]
+
+pub mod constants;
 pub mod error;
 pub mod instructions;
 pub mod state;
-pub mod utils;
+pub(crate) mod sysvar;
+pub mod webauthn;
 
+// Anchor's `#[program]` macro resolves each instruction's `Accounts` type and
+// generated client modules through this glob.
 pub use instructions::*;
-pub use state::*;
-pub use utils::*;
+
+pub use constants::*;
+pub use error::PhygitalError;
+pub use state::{AdminConfig, PhygitalToken, PhygitalTokenType};
+pub use webauthn::challenge::{build_set_owner_challenge, build_verify_challenge};
+pub use webauthn::secp256r1::{
+    COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
+    SIGNATURE_OFFSETS_START,
+};
+pub use webauthn::{secp256r1_pda_seed, Secp256r1Pubkey, Secp256r1VerifyArgs, AUTH_DATA_MIN_LEN};
 
 use anchor_lang::prelude::*;
 declare_id!("DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ");
+
+// Embedded in the program binary so anyone holding only the program id can
+// find how to report a vulnerability (`solana-verify`/explorers display it).
+#[cfg(not(feature = "no-entrypoint"))]
+solana_security_txt::security_txt! {
+    name: "phygital-token",
+    project_url: "https://github.com/Revibase/phygital-token",
+    contacts: "link:https://github.com/Revibase/phygital-token/security/advisories/new",
+    policy: "https://github.com/Revibase/phygital-token/blob/master/SECURITY.md",
+    preferred_languages: "en",
+    source_code: "https://github.com/Revibase/phygital-token"
+}
 
 #[program]
 pub mod phygital_token {
     use super::*;
 
+    /// Creates the role registry and makes the signer its admin. Once only.
     pub fn create_config(ctx: Context<CreateConfig>) -> Result<()> {
-        create_config::handler(ctx)
+        CreateConfig::handler(ctx)
     }
 
-    pub fn set_admin(ctx: Context<SetAdmin>, new_admin: Pubkey) -> Result<()> {
-        set_admin::handler(ctx, new_admin)
+    /// Admin: replaces the admin key.
+    pub fn set_admin(ctx: Context<SetRole>, new_admin: Pubkey) -> Result<()> {
+        SetRole::set_admin(ctx, new_admin)
     }
 
-    pub fn set_issuer(ctx: Context<SetIssuer>, issuer: Pubkey) -> Result<()> {
-        set_issuer::handler(ctx, issuer)
+    /// Admin: sets the key allowed to `initialize` tokens.
+    pub fn set_issuer(ctx: Context<SetRole>, issuer: Pubkey) -> Result<()> {
+        SetRole::set_issuer(ctx, issuer)
     }
 
-    pub fn set_minter(ctx: Context<SetMinter>, minter: Pubkey) -> Result<()> {
-        set_minter::handler(ctx, minter)
+    /// Admin: sets the key allowed to `assign_mint`.
+    pub fn set_minter(ctx: Context<SetRole>, minter: Pubkey) -> Result<()> {
+        SetRole::set_minter(ctx, minter)
     }
 
+    /// Admin: deletes a token.
     pub fn close_phygital_token(ctx: Context<ClosePhygitalToken>) -> Result<()> {
-        close_phygital_token::handler(ctx)
+        ClosePhygitalToken::handler(ctx)
     }
 
+    /// Issuer: registers an accessory's passkey as a new token.
     pub fn initialize(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
-        initialize::handler(ctx, args)
+        Initialize::handler(ctx, args)
     }
 
+    /// Minter: records the mint that represents the token.
     pub fn assign_mint(ctx: Context<AssignMint>, mint: Pubkey) -> Result<()> {
-        assign_mint::handler(ctx, mint)
+        AssignMint::handler(ctx, mint)
     }
 
-    pub fn set_linked_wallet(
-        ctx: Context<SetLinkedWallet>,
+    /// Tap: makes the signing `recipient` the owner, unless the token is locked.
+    pub fn set_owner(
+        ctx: Context<SetOwner>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         slot_number: u64,
     ) -> Result<()> {
-        set_linked_wallet::handler(ctx, secp256r1_verify_args, slot_number)
+        SetOwner::handler(ctx, secp256r1_verify_args, slot_number)
     }
 
-    /// Prove passkey possession and advance `last_sign_count`.
-    ///
+    /// Tap: proves the accessory signed `message_hash` (under the `verify`
+    /// domain tag) and records its sign count.
     /// `expected_rp_id` / `expected_origins` are optional WebAuthn bindings.
     /// `None` skips the check. When `expected_origins` is `Some`, the signed
     /// origin must match one listed origin.
@@ -61,19 +126,20 @@ pub mod phygital_token {
         ctx: Context<Verify>,
         secp256r1_verify_args: Secp256r1VerifyArgs,
         message_hash: [u8; 32],
-        expected_rp_id: Option<String>,
+        expected_rp_id_hash: Option<[u8; 32]>,
         expected_origins: Option<Vec<String>>,
     ) -> Result<()> {
-        verify::handler(
+        Verify::handler(
             ctx,
             secp256r1_verify_args,
             message_hash,
-            expected_rp_id,
+            expected_rp_id_hash,
             expected_origins,
         )
     }
 
-    pub fn remove_linked_wallet(ctx: Context<RemoveLinkedWallet>) -> Result<()> {
-        remove_linked_wallet::handler(ctx)
+    /// Owner: gives up the token (not Permanent ones).
+    pub fn remove_owner(ctx: Context<RemoveOwner>) -> Result<()> {
+        RemoveOwner::handler(ctx)
     }
 }

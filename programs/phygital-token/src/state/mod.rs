@@ -1,5 +1,7 @@
-pub mod admin;
-pub use admin::*;
+//! Program-owned accounts.
 
-pub mod phygital_token;
-pub use phygital_token::*;
+mod admin_config;
+mod phygital_token;
+
+pub use admin_config::AdminConfig;
+pub use phygital_token::{PhygitalToken, PhygitalTokenType};

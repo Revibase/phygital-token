@@ -1,22 +1,19 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import { page } from '$app/state';
+	import { refreshAll } from '$app/navigation';
 	import ResponsiveSheet from './ResponsiveSheet.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Spinner } from '$lib/components/ui/spinner';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Spinner } from '#lib/components/ui/spinner/index.ts';
 	import List from './List.svelte';
 	import Notice from './Notice.svelte';
 	import WalletPicker from './WalletPicker.svelte';
 	import WalletRow from './WalletRow.svelte';
-	import { walletStore, type Cluster } from '$lib/client/wallet/wallet.svelte';
-	import { releaseAccessory } from '$lib/client/link/flow';
-	import { describeError, type FriendlyError } from '$lib/client/link/messages';
-	import { onMount, untrack } from 'svelte';
-	import { platform, isLikelyWalletBrowser } from '$lib/client/capability';
-	import { walletDestinationLaunch, type WalletLaunchOptions } from '$lib/client/shortcuts';
-	import { shouldChooseWallet, reconcileAccessoryWallet, accessoryLinkContext, accessoryConnectionMethod, accessoryWalletApp, recentWallet, recentConnectionMethod, rememberWallet } from '$lib/client/memory';
-	import { shortAddress } from '$lib/shared/encoding';
-	import type { AccessoryView } from '$lib/shared/types';
+	import { walletStore, type Cluster } from '#lib/client/wallet/wallet.svelte.ts';
+	import { isConnectedAccessoryOwner } from '#lib/client/accessory/ownership.ts';
+	import { releaseAccessory } from '#lib/client/link/flow.ts';
+	import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
+	import { untrack } from 'svelte';
+	import { shortAddress } from '#lib/shared/encoding.ts';
+	import type { AccessoryView } from '#lib/shared/types.ts';
 	import { toast } from 'svelte-sonner';
 
 	let {
@@ -24,38 +21,28 @@
 		cluster,
 		open = $bindable(false),
 		onreleased
-	}: { accessory: AccessoryView; cluster: Cluster; open?: boolean; onreleased?: () => void } = $props();
-
-	let manual = $state(false);
-	let launchOptions = $state<WalletLaunchOptions | null>(null);
-	onMount(() => {
-		reconcileAccessoryWallet(accessory.pda, accessory.linkedWallet);
-		manual = shouldChooseWallet(accessory.pda) && !isLikelyWalletBrowser();
-		const context = accessoryLinkContext(accessory.pda, accessory.linkedWallet);
-		launchOptions = {
-			chooseWallet: shouldChooseWallet(accessory.pda), platform: platform(), inWallet: isLikelyWalletBrowser(), origin: page.url.origin,
-			recent: context?.app ?? accessoryWalletApp(accessory.pda, accessory.linkedWallet) ?? recentWallet(),
-			method: context ? (context.source === 'wallet' ? 'wallet' : 'browser') : accessoryConnectionMethod(accessory.pda, accessory.linkedWallet) ?? recentConnectionMethod()
-		};
-	});
-	const unlinkUrl = $derived(`${page.url.origin}/unlink/${encodeURIComponent(accessory.pda)}`);
-	const launch = $derived(launchOptions ? walletDestinationLaunch(unlinkUrl, launchOptions) : null);
-	const handoff = $derived(launch?.kind === 'link' && launch.href !== unlinkUrl ? launch.href : null);
+	}: {
+		accessory: AccessoryView;
+		cluster: Cluster;
+		open?: boolean;
+		onreleased?: () => void;
+	} = $props();
 
 	let connecting = $state<string | null>(null);
 	let busy = $state(false);
 	let failure = $state<FriendlyError | null>(null);
 
 	$effect(() => {
-		if (open) untrack(() => { walletStore.init(cluster); if (shouldChooseWallet(accessory.pda) && !isLikelyWalletBrowser()) { manual = true; if (launchOptions) launchOptions = { ...launchOptions, recent: null, method: null, chooseWallet: true }; } });
+		if (open) untrack(() => walletStore.init(cluster));
 	});
 
-	const linked = $derived(accessory.linkedWallet ? shortAddress(accessory.linkedWallet) : 'its wallet');
-	const outcome = $derived(`This removes the link to ${linked}. A wallet can be linked again afterward.`);
-	const isLinkedWallet = $derived(!!walletStore.address && walletStore.address === accessory.linkedWallet);
+	const linked = $derived(accessory.owner ? shortAddress(accessory.owner) : 'its owner');
+	const outcome = $derived(
+		`This removes ${linked} as the owner. Someone else can claim it afterward.`
+	);
+	const isOwner = $derived(isConnectedAccessoryOwner(accessory.owner, walletStore.address));
 
 	async function selectManually() {
-		if (launchOptions) launchOptions = { ...launchOptions, recent: null, method: null };
 		failure = null;
 		await walletStore.disconnect();
 	}
@@ -64,7 +51,6 @@
 		failure = null;
 		try {
 			await walletStore.connect(id);
-			manual = false;
 		} catch (err) {
 			failure = describeError(err);
 		} finally {
@@ -73,14 +59,18 @@
 	}
 
 	async function release() {
+		if (!isConnectedAccessoryOwner(accessory.owner, walletStore.address)) {
+			failure = describeError(new Error('Connect the accessory owner’s wallet to release it.'));
+			return;
+		}
 		busy = true;
 		failure = null;
 		try {
 			await releaseAccessory(walletStore.signingContext(), accessory.pda);
-			rememberWallet(accessory.pda, null);
-			toast.success('Accessory unlinked');
+			toast.success('Accessory released');
 			open = false;
-			onreleased ? onreleased() : await invalidateAll();
+			if (onreleased) onreleased();
+			else await refreshAll();
 		} catch (err) {
 			failure = describeError(err);
 		} finally {
@@ -89,31 +79,34 @@
 	}
 </script>
 
-<ResponsiveSheet
-	bind:open
-	title="Unlink this accessory?"
-	description={outcome}
->
-	{#if failure}<Notice title={failure.title} body={failure.body} detail={failure.detail} />{/if}
+<ResponsiveSheet bind:open title="Release this accessory?" description={outcome}>
+	<Notice error={failure} />
 
-	{#if !isLinkedWallet && handoff}
-		<Button href={handoff} size="xl" class="w-full" rel="noopener noreferrer">Open in {launchOptions?.recent ?? 'wallet app'} to unlink</Button>
-		<Button variant="ghost" class="w-full" onclick={selectManually}>Use a different wallet</Button>
-	{:else if !walletStore.address || manual}
-		<WalletPicker label={`Connect ${linked}`} options={walletStore.options} {connecting} onpick={pick} browseTarget={unlinkUrl} />
+	{#if !walletStore.address}
+		<WalletPicker
+			label={`Connect ${linked}`}
+			options={walletStore.options}
+			{connecting}
+			onpick={pick}
+		/>
 	{:else}
 		<List>
-			<WalletRow address={walletStore.address} label={walletStore.walletName ?? 'Connected wallet'} icon={walletStore.walletIcon} {cluster} />
+			<WalletRow address={walletStore.address} label="Your wallet" />
 		</List>
-		{#if isLinkedWallet}
+		{#if isOwner}
 			<Button variant="destructive" size="xl" class="w-full" disabled={busy} onclick={release}>
-				{#if busy}<Spinner /> Approve in {walletStore.walletName ?? 'your wallet'}…{:else}Unlink accessory{/if}
+				{#if busy}<Spinner /> {walletStore.approvePrompt}{:else}Release accessory{/if}
 			</Button>
-			<Button variant="ghost" class="w-full" disabled={busy} onclick={selectManually}>Use a different wallet app</Button>
 		{:else}
-			<Notice tone="info" title="This isn’t the linked wallet" body={`Switch to ${linked} in your wallet app, then try again.`} />
-			<Button variant="secondary" size="xl" class="w-full" onclick={selectManually}>Use a different wallet</Button>
+			<Notice
+				tone="info"
+				title="This isn’t the owner wallet"
+				body="Connect the accessory owner’s wallet to release it."
+			/>
+			<Button variant="secondary" size="xl" class="w-full" onclick={selectManually}
+				>Use a different wallet</Button
+			>
 		{/if}
 	{/if}
-	<Button variant="ghost" class="h-11 w-full text-muted-foreground" onclick={() => (open = false)}>Cancel</Button>
+	<Button variant="quiet" class="w-full" onclick={() => (open = false)}>Cancel</Button>
 </ResponsiveSheet>

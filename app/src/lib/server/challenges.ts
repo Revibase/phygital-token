@@ -1,4 +1,4 @@
-import { bytesToBase64Url } from '$lib/shared/encoding';
+import { bytesToBase64Url } from '#lib/shared/encoding.ts';
 
 /** Single-use challenges; each purpose uses its own namespace. */
 export const CHALLENGE_TTL_MS = 2 * 60 * 1000;
@@ -6,13 +6,24 @@ export const CHALLENGE_TTL_MS = 2 * 60 * 1000;
 const random = (n: number) => bytesToBase64Url(crypto.getRandomValues(new Uint8Array(n)));
 
 /** Alphanumeric, as Sign-In With Solana requires of its nonce. */
-const hexNonce = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('');
+const hexNonce = () =>
+	Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) =>
+		b.toString(16).padStart(2, '0')
+	).join('');
 
 /** `format` turns a fresh nonce into a human-readable message; without it the message is opaque. */
-export async function issueChallenge(db: D1Database, namespace: string, now = Date.now(), format?: (nonce: string) => string) {
+export async function issueChallenge(
+	db: D1Database,
+	namespace: string,
+	now = Date.now(),
+	format?: (nonce: string) => string
+) {
 	const id = random(16);
 	const message = format ? format(hexNonce()) : `${namespace}:${random(32)}`;
-	await db.prepare('DELETE FROM auth_challenges WHERE namespace = ? AND expires_at < ?').bind(namespace, now).run();
+	await db
+		.prepare('DELETE FROM auth_challenges WHERE namespace = ? AND expires_at < ?')
+		.bind(namespace, now)
+		.run();
 	await db
 		.prepare('INSERT INTO auth_challenges (id, namespace, value, expires_at) VALUES (?, ?, ?, ?)')
 		.bind(id, namespace, message, now + CHALLENGE_TTL_MS)
@@ -20,11 +31,19 @@ export async function issueChallenge(db: D1Database, namespace: string, now = Da
 	return { challengeId: id, message };
 }
 
-export const isChallengeId = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9_-]{22}$/.test(v);
+export const isChallengeId = (v: unknown): v is string =>
+	typeof v === 'string' && /^[A-Za-z0-9_-]{22}$/.test(v);
 
-export async function consumeChallenge(db: D1Database, namespace: string, id: string, now = Date.now()): Promise<string | null> {
+export async function consumeChallenge(
+	db: D1Database,
+	namespace: string,
+	id: string,
+	now = Date.now()
+): Promise<string | null> {
 	const row = await db
-		.prepare('DELETE FROM auth_challenges WHERE id = ? AND namespace = ? AND expires_at > ? RETURNING value')
+		.prepare(
+			'DELETE FROM auth_challenges WHERE id = ? AND namespace = ? AND expires_at > ? RETURNING value'
+		)
 		.bind(id, namespace, now)
 		.first<{ value: string }>();
 	return row?.value ?? null;

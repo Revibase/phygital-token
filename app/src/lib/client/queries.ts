@@ -1,21 +1,19 @@
-import { QueryClient, queryOptions } from '@tanstack/svelte-query';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
-import { browser } from '$app/environment';
+import { queryOptions } from '@tanstack/svelte-query';
 
 import { fetchAccessoryMedia } from './media';
 import { fetchAccessoryShortcuts } from './shortcuts';
 import { fetchWalletAccessories } from './wallet-accessories';
+import { browserRpc, rpcUrl } from './rpc';
+import { address } from '@solana/kit';
+import { fetchWalletHoldings } from '#lib/shared/wallet-holdings.ts';
+import { fetchBackupAuthority } from './wallet/backup';
+import { walletSetupFor } from './wallet/passkey-cost';
+import { queryKeys } from './cache';
 
 // Persist NFT media only; shortcuts and wallet lists must follow current linkage.
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
 const MINUTE = 60 * 1000;
-
-export const queryKeys = {
-	media: (pda: string) => ['accessory-media', pda] as const,
-	shortcuts: (pda: string, owner: string | null) => ['accessory-shortcuts', pda, owner ?? ''] as const,
-	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const
-};
 
 export const accessoryMediaQuery = (pda: string) =>
 	queryOptions({
@@ -36,6 +34,35 @@ export const accessoryShortcutsQuery = (pda: string, owner: string | null) =>
 		retry: 1
 	});
 
+/** SOL and fungible tokens; kept fresh rather than persisted. */
+export const walletHoldingsQuery = (wallet: string) =>
+	queryOptions({
+		queryKey: queryKeys.walletHoldings(wallet),
+		queryFn: () => fetchWalletHoldings(browserRpc(), rpcUrl(), address(wallet)),
+		staleTime: 15_000,
+		gcTime: 5 * MINUTE,
+		retry: 1
+	});
+
+/** A passkey wallet's one-time setup cost (0 once it exists, or for other wallets). */
+export const walletSetupQuery = (wallet: string) =>
+	queryOptions({
+		queryKey: queryKeys.walletSetup(wallet),
+		queryFn: () => walletSetupFor(wallet),
+		staleTime: 15_000,
+		gcTime: 5 * MINUTE,
+		retry: 1
+	});
+
+export const walletBackupQuery = (wallet: string) =>
+	queryOptions({
+		queryKey: queryKeys.walletBackup(wallet),
+		queryFn: () => fetchBackupAuthority(wallet),
+		staleTime: 15_000,
+		gcTime: 5 * MINUTE,
+		retry: 1
+	});
+
 export const walletAccessoriesQuery = (wallet: string) =>
 	queryOptions({
 		queryKey: queryKeys.walletAccessories(wallet),
@@ -44,42 +71,3 @@ export const walletAccessoriesQuery = (wallet: string) =>
 		gcTime: 5 * MINUTE,
 		retry: 1
 	});
-
-export function createQueryClient() {
-	return new QueryClient({
-		defaultOptions: {
-			queries: { enabled: browser, refetchOnWindowFocus: true }
-		}
-	});
-}
-
-/** The app's single client cache. Empty on the server: nothing fetches during SSR. */
-export const queryClient = createQueryClient();
-
-export function forgetWalletAccessories() {
-	queryClient.removeQueries({ queryKey: ['wallet-accessories'] });
-}
-
-/** Bump when a cached shape changes, so old persisted entries are discarded. */
-const CACHE_BUSTER = 'v1';
-
-export const persistOptions = {
-	persister: createSyncStoragePersister({
-		// localStorage can throw or be missing (private windows, blocked storage): the cache just stays in memory then.
-		storage: (() => {
-			try {
-				return browser ? window.localStorage : undefined;
-			} catch {
-				return undefined;
-			}
-		})(),
-		key: 'revibase-query-cache',
-		throttleTime: 1000
-	}),
-	maxAge: DAY,
-	buster: CACHE_BUSTER,
-	dehydrateOptions: {
-		shouldDehydrateQuery: (query: { queryKey: readonly unknown[]; state: { status: string } }) =>
-			query.state.status === 'success' && query.queryKey[0] === 'accessory-media'
-	}
-};

@@ -1,9 +1,16 @@
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { getBase58Encoder, type Rpc, type SolanaRpcApi } from '@solana/kit';
+import {
+	findVaultPda,
+	findWalletPda,
+	parsePasskeyMessageProof,
+	verifyPasskeyMessage,
+	walletSeed
+} from 'revibase-wallet-sdk';
 
-import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
+import { base64UrlToBytes, bytesEqual, bytesToBase64Url } from '#lib/shared/encoding.ts';
 import { fetchAccessory } from '../accessory/resolve';
-import { DEFAULT_PUBKEY } from '$lib/shared/accessory-view';
+import { DEFAULT_PUBKEY } from '#lib/shared/accessory-view.ts';
 import { CHALLENGE_TTL_MS, consumeChallenge, isChallengeId, issueChallenge } from '../challenges';
 
 export const OWNER_LOGIN_NAMESPACE = 'revibase-owner-login';
@@ -24,12 +31,19 @@ export const isWalletAddress = (v: unknown): v is string => {
  * when `domain` doesn't match the page) instead of an opaque string. The
  * statement says plainly what signing in is for.
  */
-export function ownerLoginMessage(input: { domain: string; uri: string; address: string; cluster: string; nonce: string; now: number }): string {
+export function ownerLoginMessage(input: {
+	domain: string;
+	uri: string;
+	address: string;
+	cluster: string;
+	nonce: string;
+	now: number;
+}): string {
 	const lines = [
 		`${input.domain} wants you to sign in with your Solana account:`,
 		input.address,
 		'',
-		"Sign in to Revibase to manage the accessories linked to this wallet.",
+		'Sign in to Revibase to manage the accessories linked to this wallet.',
 		'',
 		`URI: ${input.uri}`,
 		'Version: 1',
@@ -45,44 +59,84 @@ export const issueOwnerLoginChallenge = (
 	db: D1Database,
 	site: { domain: string; uri: string; address: string; cluster: string },
 	now = Date.now()
-) => issueChallenge(db, OWNER_LOGIN_NAMESPACE, now, (nonce) => ownerLoginMessage({ ...site, nonce, now }));
+) =>
+	issueChallenge(db, OWNER_LOGIN_NAMESPACE, now, (nonce) =>
+		ownerLoginMessage({ ...site, nonce, now })
+	);
 
 type Failure<C extends string> = { ok: false; status: number; code: C; error: string };
 
+/** Revibase Passkey sign-ins: only its signer's RP counts. */
+export type PasskeyLogin = { signerRpIdHash: Uint8Array };
+
 /**
- * Wallet login (phygital-wallet's owner-session): the wallet signs a single-use
+ * Wallet login (owner session): the wallet signs a single-use
  * challenge with `solana:signMessage` once. The caller then sets the `os` cookie.
+ *
+ * Revibase Passkey signs with a secp256r1 passkey, not the address's key: its
+ * address is a vault PDA. It sends `passkeyPublicKey` and a WebAuthn proof
+ * instead of an ed25519 signature. The vault is derived from that key and our
+ * RP, so this works before the wallet exists on-chain.
  */
 export async function verifyOwnerLogin(
 	db: D1Database,
-	input: { challengeId?: unknown; address?: unknown; signature?: unknown },
-	now = Date.now()
+	input: {
+		challengeId?: unknown;
+		address?: unknown;
+		signature?: unknown;
+		passkeyPublicKey?: unknown;
+	},
+	now = Date.now(),
+	passkey: PasskeyLogin | null = null
 ): Promise<{ ok: true; wallet: string } | Failure<'bad_request' | 'too_slow' | 'bad_signature'>> {
-	const { challengeId, address, signature } = input;
+	const { challengeId, address, signature, passkeyPublicKey } = input;
 	if (!isChallengeId(challengeId) || typeof address !== 'string' || typeof signature !== 'string') {
-		return { ok: false, status: 400, code: 'bad_request', error: 'Missing challenge, wallet or signature.' };
+		return {
+			ok: false,
+			status: 400,
+			code: 'bad_request',
+			error: 'Missing challenge, wallet or signature.'
+		};
 	}
 	const message = await consumeChallenge(db, OWNER_LOGIN_NAMESPACE, challengeId, now);
-	if (!message) return { ok: false, status: 409, code: 'too_slow', error: 'That took too long. Try again.' };
+	if (!message)
+		return { ok: false, status: 409, code: 'too_slow', error: 'That took too long. Try again.' };
 	// The message names the wallet it was issued for; only that wallet's signature counts.
 	if (message.split('\n')[1] !== address) {
-		return { ok: false, status: 401, code: 'bad_signature', error: 'We couldn’t verify that signature.' };
+		return {
+			ok: false,
+			status: 401,
+			code: 'bad_signature',
+			error: 'We couldn’t verify that signature.'
+		};
 	}
 
 	try {
 		const pubkey = new Uint8Array(getBase58Encoder().encode(address));
 		const sig = base64UrlToBytes(signature);
-		if (pubkey.length === 32 && sig.length === 64 && ed25519.verify(sig, new TextEncoder().encode(message), pubkey)) {
+		if (passkey && typeof passkeyPublicKey === 'string') {
+			if (await verifyPasskeyLogin(passkey, passkeyPublicKey, address, message, sig))
+				return { ok: true, wallet: address };
+		} else if (
+			pubkey.length === 32 &&
+			sig.length === 64 &&
+			ed25519.verify(sig, new TextEncoder().encode(message), pubkey)
+		) {
 			return { ok: true, wallet: address };
 		}
 	} catch {
 		// fall through: malformed key or signature
 	}
-	return { ok: false, status: 401, code: 'bad_signature', error: 'We couldn’t verify that signature.' };
+	return {
+		ok: false,
+		status: 401,
+		code: 'bad_signature',
+		error: 'We couldn’t verify that signature.'
+	};
 }
 
 /**
- * Quiet per-item admit (phygital-wallet's authority-browse): the logged-in wallet
+ * Quiet per-item admit (owner browse): the logged-in wallet
  * may open an accessory the chain says is linked to it. No signature, no tap.
  */
 export async function verifyOwnerBrowse(
@@ -90,21 +144,69 @@ export async function verifyOwnerBrowse(
 	wallet: string,
 	pda: unknown
 ): Promise<
-	{ ok: true; pda: string; identifier: string } | Failure<'bad_request' | 'not_owner' | 'unknown_accessory'>
+	| { ok: true; pda: string; identifier: string }
+	| Failure<'bad_request' | 'not_owner' | 'unknown_accessory'>
 > {
-	if (typeof pda !== 'string' || !pda) return { ok: false, status: 400, code: 'bad_request', error: 'Missing accessory.' };
+	if (typeof pda !== 'string' || !pda)
+		return { ok: false, status: 400, code: 'bad_request', error: 'Missing accessory.' };
 
 	let resolved;
 	try {
 		resolved = await fetchAccessory(rpc, pda);
 	} catch {
-		return { ok: false, status: 502, code: 'unknown_accessory', error: 'Couldn’t reach the network. Try again.' };
+		return {
+			ok: false,
+			status: 502,
+			code: 'unknown_accessory',
+			error: 'Couldn’t reach the network. Try again.'
+		};
 	}
-	if (!resolved) return { ok: false, status: 404, code: 'unknown_accessory', error: 'This accessory isn’t registered.' };
+	if (!resolved)
+		return {
+			ok: false,
+			status: 404,
+			code: 'unknown_accessory',
+			error: 'This accessory isn’t registered.'
+		};
 
-	const linked = String(resolved.account.linkedWallet);
+	const linked = String(resolved.account.owner);
 	if (linked === DEFAULT_PUBKEY || linked !== wallet) {
-		return { ok: false, status: 403, code: 'not_owner', error: 'This wallet isn’t linked to that accessory.' };
+		return {
+			ok: false,
+			status: 403,
+			code: 'not_owner',
+			error: 'This wallet isn’t linked to that accessory.'
+		};
 	}
-	return { ok: true, pda: resolved.pda, identifier: bytesToBase64Url(new Uint8Array(resolved.account.identifier[0])) };
+	return {
+		ok: true,
+		pda: resolved.pda,
+		identifier: bytesToBase64Url(new Uint8Array(resolved.account.identifier[0]))
+	};
+}
+
+async function verifyPasskeyLogin(
+	passkey: PasskeyLogin,
+	publicKeyB64: string,
+	vault: string,
+	message: string,
+	proof: Uint8Array
+): Promise<boolean> {
+	const publicKey = base64UrlToBytes(publicKeyB64);
+	if (publicKey.length !== 33) return false;
+	// The vault this passkey controls on our RP (the program enforces the same seed).
+	const rpIdHash = passkey.signerRpIdHash;
+	const [wallet] = await findWalletPda({ userSeed: await walletSeed(publicKey, rpIdHash) });
+	const [derived] = await findVaultPda({ wallet });
+	if (derived !== vault) return false;
+	// verifyPasskeyMessage checks the challenge and signature; the RP and user presence are ours to check.
+	const { authenticatorData } = parsePasskeyMessageProof(proof);
+	if (authenticatorData.length < 37 || !bytesEqual(authenticatorData.subarray(0, 32), rpIdHash))
+		return false;
+	if ((authenticatorData[32] & 0x01) === 0) return false;
+	return verifyPasskeyMessage({
+		message: new TextEncoder().encode(message),
+		signature: proof,
+		publicKey
+	});
 }

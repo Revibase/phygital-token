@@ -1,13 +1,25 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ICON_PATH, MAX_ICON_BYTES, fetchIconImage, iconProxyPath, imageType, verifyIconUrl, withIconProxy } from '$lib/server/accessory/shortcut-icons';
-import type { Shortcut } from '$lib/shared/shortcuts';
+import {
+	ICON_PATH,
+	MAX_ICON_BYTES,
+	fetchIconImage,
+	iconProxyPath,
+	imageType,
+	verifyIconUrl,
+	withIconProxy
+} from '#lib/server/accessory/shortcut-icons.ts';
+import type { Shortcut } from '#lib/shared/shortcuts.ts';
 
 const SECRET = 'x'.repeat(32);
 const URL_ = 'https://cdn.game.xyz/icons/play.png';
 
 const bytes = (...parts: Array<number[] | string>) =>
-	new Uint8Array(parts.flatMap((p) => (typeof p === 'string' ? [...p].map((c) => c.charCodeAt(0)) : p)).concat(new Array(16).fill(0)));
+	new Uint8Array(
+		parts
+			.flatMap((p) => (typeof p === 'string' ? [...p].map((c) => c.charCodeAt(0)) : p))
+			.concat(new Array(16).fill(0))
+	);
 const PNG = bytes([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const JPEG = bytes([0xff, 0xd8, 0xff, 0xe0]);
 const GIF = bytes('GIF89a');
@@ -18,7 +30,13 @@ const HTML = bytes('<!doctype html><script>alert(1)</script>');
 
 describe('imageType', () => {
 	it('recognises raster images by signature, whatever they claim to be', () => {
-		expect([PNG, JPEG, GIF, WEBP, AVIF].map(imageType)).toEqual(['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif']);
+		expect([PNG, JPEG, GIF, WEBP, AVIF].map(imageType)).toEqual([
+			'image/png',
+			'image/jpeg',
+			'image/gif',
+			'image/webp',
+			'image/avif'
+		]);
 	});
 
 	it('refuses SVG, HTML and anything else', () => {
@@ -44,8 +62,20 @@ describe('signed proxy links', () => {
 	});
 
 	it('rewrites only shortcuts that have an image', async () => {
-		const base = { label: 'Play', href: 'https://game.xyz', icon: 'generic-link', immerse: false, proof: false, external: false, platform: 'all' } as const;
-		const [withImage, glyph] = await withIconProxy([{ ...base, image: URL_ }, { ...base, image: null }] satisfies Shortcut[], SECRET);
+		const base = {
+			label: 'Play',
+			href: 'https://game.xyz',
+			icon: 'generic-link',
+			open: 'embed',
+			platform: 'all'
+		} as const;
+		const [withImage, glyph] = await withIconProxy(
+			[
+				{ ...base, image: URL_ },
+				{ ...base, image: null }
+			] satisfies Shortcut[],
+			SECRET
+		);
 		expect(withImage.image).toBe(await iconProxyPath(SECRET, URL_));
 		expect(glyph.image).toBeNull();
 	});
@@ -57,7 +87,7 @@ describe('fetchIconImage', () => {
 		globalThis.fetch = realFetch;
 	});
 	const serve = (body: Uint8Array, headers: Record<string, string> = {}, status = 200) => {
-		globalThis.fetch = (async () => new Response(body.slice(), { status, headers })) as typeof fetch;
+		globalThis.fetch = async () => new Response(body.slice(), { status, headers });
 	};
 
 	it('returns supported images with the type read from their bytes', async () => {
@@ -76,9 +106,9 @@ describe('fetchIconImage', () => {
 		expect(await fetchIconImage(URL_)).toBeNull();
 		serve(PNG, {}, 404);
 		expect(await fetchIconImage(URL_)).toBeNull();
-		globalThis.fetch = (async () => {
+		globalThis.fetch = async () => {
 			throw new Error('timeout');
-		}) as typeof fetch;
+		};
 		expect(await fetchIconImage(URL_)).toBeNull();
 	});
 });

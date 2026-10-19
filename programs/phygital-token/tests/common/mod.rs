@@ -1,20 +1,30 @@
 // Shared test harness: each integration-test binary pulls in this module via
 // `mod common;` and uses only a subset of the helpers, so per-binary dead-code
-// warnings are expected and not meaningful here.
-#![allow(dead_code, unused_imports)]
+// warnings are expected and not meaningful here. Helpers return LiteSVM's large
+// failure metadata as-is.
+#![allow(dead_code, unused_imports, clippy::result_large_err)]
 
+mod admin;
 mod assertions;
+mod assign_mint;
+mod initialize;
+mod remove_owner;
 mod secp256r1;
+mod set_owner;
+mod slots;
+mod state;
+mod tx;
+mod verify;
 
 pub use assertions::{assert_phygital_token_program_error, assert_transaction_failed};
 
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::{prelude::*, InstructionData, ToAccountMetas};
 use litesvm::LiteSVM;
-use phygital_token::constants::{ADMIN_CONFIG_SEED, PHYGITAL_TOKEN_SEED};
-use phygital_token::state::PhygitalToken;
-use phygital_token::utils::secp256r1_pda_seed;
-use phygital_token::{InitializeArgs, PhygitalTokenType, Secp256r1Pubkey, Secp256r1VerifyArgs};
+use phygital_token::{
+    secp256r1_pda_seed, InitializeArgs, PhygitalToken, PhygitalTokenType, Secp256r1Pubkey,
+    Secp256r1VerifyArgs, ADMIN_CONFIG_SEED, PHYGITAL_TOKEN_SEED,
+};
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
 use solana_sdk_ids::sysvar::{
@@ -30,12 +40,12 @@ pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 pub const TEST_RP_ID: &str = "localhost";
 pub const TEST_ORIGIN: &str = "http://localhost:3000";
 
-// Domain vocabulary (see GLOSSARY.md at repo root):
+// Domain vocabulary:
 //   Token      = PhygitalToken PDA created by `initialize` (1:1 with a passkey)
-//   LinkedWallet = phygital_token.linked_wallet (current custodian; `Pubkey::default()` when unowned)
+//   Owner = phygital_token.owner (current custodian; `Pubkey::default()` when unowned)
 //   Mint       = optional SPL mint pubkey, set later via `assign_mint` (default until then)
 //
-// Linked wallet lives in the PhygitalToken PDA and is moved by `set_linked_wallet`
+// Owner lives in the PhygitalToken PDA and is moved by `set_owner`
 // after a secp256r1/WebAuthn proof. `assign_mint` binds an SPL mint after init.
 //
 // AdminConfig roles: admin (manages roles), issuer (initialize), minter (assign_mint).
@@ -113,6 +123,11 @@ impl TestContext {
         svm.airdrop(&payer.pubkey(), 10 * LAMPORTS_PER_SOL)
             .expect("airdrop payer");
 
+        // A realistic wall clock (2026-10-14T01:00:00Z) for expiry and daily limits.
+        let mut clock: Clock = svm.get_sysvar();
+        clock.unix_timestamp = 1_791_939_600;
+        svm.set_sysvar(&clock);
+
         let mut ctx = Self {
             svm,
             payer,
@@ -158,524 +173,5 @@ impl TestContext {
 
     pub fn admin_config_pda(&self) -> Pubkey {
         Pubkey::find_program_address(&[ADMIN_CONFIG_SEED], &self.program_id).0
-    }
-
-    // --- admin config --------------------------------------------------------
-
-    pub fn create_config_ix(&self, authority: Pubkey) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::CreateConfig {
-                authority,
-                admin_config: self.admin_config_pda(),
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::CreateConfig {}.data(),
-        }
-    }
-
-    fn bootstrap_admin_config(&mut self) {
-        let admin = self.admin.insecure_clone();
-        let ix = self.create_config_ix(admin.pubkey());
-        Self::send_instruction(&mut self.svm, ix, &[&admin]).expect("create_config");
-
-        self.send_set_issuer(self.issuer.pubkey())
-            .expect("bootstrap set_issuer");
-        self.send_set_minter(self.minter.pubkey())
-            .expect("bootstrap set_minter");
-    }
-
-    pub fn set_issuer_ix(&self, admin: Pubkey, issuer: Pubkey) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::SetIssuer {
-                admin,
-                admin_config: self.admin_config_pda(),
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::SetIssuer { issuer }.data(),
-        }
-    }
-
-    pub fn send_set_issuer(&mut self, issuer: Pubkey) -> litesvm::types::TransactionResult {
-        let ix = self.set_issuer_ix(self.admin.pubkey(), issuer);
-        let admin = self.admin.insecure_clone();
-        Self::send_instruction(&mut self.svm, ix, &[&admin])
-    }
-
-    pub fn set_minter_ix(&self, admin: Pubkey, minter: Pubkey) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::SetMinter {
-                admin,
-                admin_config: self.admin_config_pda(),
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::SetMinter { minter }.data(),
-        }
-    }
-
-    pub fn send_set_minter(&mut self, minter: Pubkey) -> litesvm::types::TransactionResult {
-        let ix = self.set_minter_ix(self.admin.pubkey(), minter);
-        let admin = self.admin.insecure_clone();
-        Self::send_instruction(&mut self.svm, ix, &[&admin])
-    }
-
-    pub fn set_admin_ix(&self, admin: Pubkey, new_admin: Pubkey) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::SetAdmin {
-                admin,
-                admin_config: self.admin_config_pda(),
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::SetAdmin { new_admin }.data(),
-        }
-    }
-
-    pub fn close_phygital_token_ix(
-        &self,
-        admin: Pubkey,
-        rent_recipient: Pubkey,
-        phygital_token: Pubkey,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::ClosePhygitalToken {
-                admin,
-                rent_recipient,
-                admin_config: self.admin_config_pda(),
-                phygital_token,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::ClosePhygitalToken {}.data(),
-        }
-    }
-
-    pub fn send_close_phygital_token(
-        &mut self,
-        rent_recipient: Pubkey,
-        phygital_token: Pubkey,
-    ) -> litesvm::types::TransactionResult {
-        let ix = self.close_phygital_token_ix(self.admin.pubkey(), rent_recipient, phygital_token);
-        let admin = self.admin.insecure_clone();
-        Self::send_instruction(&mut self.svm, ix, &[&admin])
-    }
-
-    // --- phygital_token state readers -------------------------------------------------
-
-    fn load_phygital_token(&self, phygital_token: Pubkey) -> PhygitalToken {
-        let account = self
-            .svm
-            .get_account(&phygital_token)
-            .expect("phygital_token account");
-        PhygitalToken::try_deserialize(&mut account.data.as_ref())
-            .expect("deserialize phygital_token")
-    }
-
-    pub fn phygital_token_linked_wallet(&self, phygital_token: Pubkey) -> Pubkey {
-        self.load_phygital_token(phygital_token).linked_wallet
-    }
-
-    pub fn phygital_token_lock_state(&self, phygital_token: Pubkey) -> bool {
-        self.load_phygital_token(phygital_token).is_locked != 0
-    }
-
-    pub fn last_sign_count(&self, phygital_token: Pubkey) -> u32 {
-        self.load_phygital_token(phygital_token).last_sign_count
-    }
-
-    pub fn phygital_token_mint(&self, phygital_token: Pubkey) -> Pubkey {
-        self.load_phygital_token(phygital_token).mint
-    }
-
-    /// Next WebAuthn signCount to use for a successful assertion against `phygital_token`.
-    pub fn next_sign_count(&self, phygital_token: Pubkey) -> u32 {
-        self.load_phygital_token(phygital_token)
-            .last_sign_count
-            .saturating_add(1)
-    }
-
-    pub fn phygital_token_account(&self, phygital_token: Pubkey) -> PhygitalToken {
-        self.load_phygital_token(phygital_token)
-    }
-
-    // --- initialize ----------------------------------------------------------
-
-    pub fn initialize_ix(
-        &self,
-        authority: Pubkey,
-        phygital_token: Pubkey,
-        args: InitializeArgs,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::Initialize {
-                authority,
-                admin_config: self.admin_config_pda(),
-                phygital_token,
-                system_program: anchor_lang::solana_program::system_program::ID,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::Initialize { args }.data(),
-        }
-    }
-
-    /// Create a transferable phygital_token controlled by `passkey`.
-    pub fn init_phygital_token(&mut self, passkey: &TestPasskey) -> MintedPhygitalToken {
-        self.init_phygital_token_of_type(passkey, PhygitalTokenType::Bearer)
-    }
-
-    /// Create a phygital_token of the given type (`Controlled`, `Bearer`, or `Permanent`).
-    ///
-    /// Permanent tokens require a non-default linked wallet — use
-    /// [`Self::init_phygital_token_with_linked_wallet`] instead.
-    pub fn init_phygital_token_of_type(
-        &mut self,
-        passkey: &TestPasskey,
-        token_type: PhygitalTokenType,
-    ) -> MintedPhygitalToken {
-        self.init_phygital_token_with_identifier(
-            unique_identifier(),
-            passkey,
-            token_type,
-            Pubkey::default(),
-        )
-    }
-
-    /// Create a phygital_token with an explicit initial `linked_wallet` (required for `Permanent`).
-    pub fn init_phygital_token_with_linked_wallet(
-        &mut self,
-        passkey: &TestPasskey,
-        token_type: PhygitalTokenType,
-        linked_wallet: Pubkey,
-    ) -> MintedPhygitalToken {
-        self.init_phygital_token_with_identifier(
-            unique_identifier(),
-            passkey,
-            token_type,
-            linked_wallet,
-        )
-    }
-
-    /// Create a phygital_token with an explicit chip `identifier` (binding field) and a
-    /// `passkey` whose public key seeds the PDA and authorizes transfers.
-    pub fn init_phygital_token_with_identifier(
-        &mut self,
-        identifier: Secp256r1Pubkey,
-        passkey: &TestPasskey,
-        token_type: PhygitalTokenType,
-        linked_wallet: Pubkey,
-    ) -> MintedPhygitalToken {
-        let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
-        let phygital_token = self.phygital_token_pda(&secp256r1_pubkey);
-        let args = InitializeArgs {
-            identifier,
-            secp256r1_pubkey,
-            token_type,
-            linked_wallet,
-        };
-        let ix = self.initialize_ix(self.issuer.pubkey(), phygital_token, args);
-        let issuer = self.issuer.insecure_clone();
-        Self::send_instruction(&mut self.svm, ix, &[&issuer]).expect("initialize phygital_token");
-
-        MintedPhygitalToken {
-            phygital_token,
-            identifier,
-            passkey: passkey.clone(),
-        }
-    }
-
-    // --- verify --------------------------------------------------------------
-
-    pub fn verify_ix(
-        &self,
-        phygital_token: Pubkey,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-        message_hash: [u8; 32],
-        expected_rp_id: Option<String>,
-        expected_origins: Option<Vec<String>>,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::Verify {
-                phygital_token,
-                instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::Verify {
-                secp256r1_verify_args,
-                message_hash,
-                expected_rp_id,
-                expected_origins,
-            }
-            .data(),
-        }
-    }
-
-    pub fn send_verify(
-        &mut self,
-        phygital_token: &MintedPhygitalToken,
-        message_hash: [u8; 32],
-        include_secp_ix: bool,
-    ) -> litesvm::types::TransactionResult {
-        self.send_verify_with_bindings(
-            phygital_token,
-            message_hash,
-            include_secp_ix,
-            None,
-            None,
-            None,
-        )
-    }
-
-    pub fn send_verify_with_bindings(
-        &mut self,
-        phygital_token: &MintedPhygitalToken,
-        message_hash: [u8; 32],
-        include_secp_ix: bool,
-        sign_count: Option<u32>,
-        expected_rp_id: Option<String>,
-        expected_origins: Option<Vec<String>>,
-    ) -> litesvm::types::TransactionResult {
-        let sign_count =
-            sign_count.unwrap_or_else(|| self.next_sign_count(phygital_token.phygital_token));
-
-        let (secp_ix, verify_args) = phygital_token
-            .passkey
-            .verify_secp256r1_instruction(message_hash, sign_count);
-        let verify_ix = self.verify_ix(
-            phygital_token.phygital_token,
-            verify_args,
-            message_hash,
-            expected_rp_id,
-            expected_origins,
-        );
-
-        let instructions = if include_secp_ix {
-            vec![secp_ix, verify_ix]
-        } else {
-            vec![verify_ix]
-        };
-
-        let payer = self.payer.insecure_clone();
-        Self::send_instructions(&mut self.svm, &instructions, &[&payer])
-    }
-
-    // --- set_linked_wallet ----------------------------------------------------
-
-    pub fn set_linked_wallet_ix(
-        &self,
-        recipient: Pubkey,
-        phygital_token: Pubkey,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-        slot_number: u64,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::SetLinkedWallet {
-                recipient,
-                phygital_token,
-                slot_hashes: SLOT_HASHES_SYSVAR_ID,
-                instructions_sysvar: INSTRUCTIONS_SYSVAR_ID,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::SetLinkedWallet {
-                secp256r1_verify_args,
-                slot_number,
-            }
-            .data(),
-        }
-    }
-
-    pub fn send_set_linked_wallet(
-        &mut self,
-        phygital_token: &MintedPhygitalToken,
-        recipient: &Keypair,
-        include_secp_ix: bool,
-    ) -> litesvm::types::TransactionResult {
-        self.send_set_linked_wallet_at_slot(
-            phygital_token,
-            recipient,
-            include_secp_ix,
-            None,
-            None,
-            None,
-        )
-    }
-
-    pub fn send_set_linked_wallet_at_slot(
-        &mut self,
-        phygital_token: &MintedPhygitalToken,
-        recipient: &Keypair,
-        include_secp_ix: bool,
-        slot_number: Option<u64>,
-        slot_hash: Option<[u8; 32]>,
-        sign_count: Option<u32>,
-    ) -> litesvm::types::TransactionResult {
-        let (slot_number, slot_hash) = match (slot_number, slot_hash) {
-            (Some(slot), Some(hash)) => (slot, hash),
-            _ => current_slot_entry(&self.svm),
-        };
-        let sign_count =
-            sign_count.unwrap_or_else(|| self.next_sign_count(phygital_token.phygital_token));
-
-        let (secp_ix, verify_args) = phygital_token.passkey.secp256r1_verify_instruction(
-            phygital_token.phygital_token,
-            slot_hash,
-            sign_count,
-        );
-
-        let transfer_ix = self.set_linked_wallet_ix(
-            recipient.pubkey(),
-            phygital_token.phygital_token,
-            verify_args,
-            slot_number,
-        );
-
-        let instructions = if include_secp_ix {
-            vec![secp_ix, transfer_ix]
-        } else {
-            vec![transfer_ix]
-        };
-
-        self.svm
-            .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
-            .ok();
-
-        Self::send_instructions(&mut self.svm, &instructions, &[recipient])
-    }
-
-    /// Submit a hand-built instruction list (for negative/edge cases). The first
-    /// signer pays fees.
-    pub fn send_set_linked_wallet_with_instructions(
-        &mut self,
-        instructions: Vec<Instruction>,
-        signers: &[&Keypair],
-    ) -> litesvm::types::TransactionResult {
-        Self::send_instructions(&mut self.svm, &instructions, signers)
-    }
-
-    // --- assign_mint ---------------------------------------------------------
-
-    pub fn assign_mint_ix(
-        &self,
-        authority: Pubkey,
-        phygital_token: Pubkey,
-        mint: Pubkey,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::AssignMint {
-                authority,
-                admin_config: self.admin_config_pda(),
-                phygital_token,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::AssignMint { mint }.data(),
-        }
-    }
-
-    pub fn send_assign_mint(
-        &mut self,
-        phygital_token: Pubkey,
-        mint: Pubkey,
-    ) -> litesvm::types::TransactionResult {
-        let ix = self.assign_mint_ix(self.minter.pubkey(), phygital_token, mint);
-        let minter = self.minter.insecure_clone();
-        Self::send_instruction(&mut self.svm, ix, &[&minter])
-    }
-
-    // --- remove_linked_wallet ----------------------------------------------------
-
-    pub fn remove_linked_wallet_ix(
-        &self,
-        linked_wallet: Pubkey,
-        phygital_token: Pubkey,
-    ) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::RemoveLinkedWallet {
-                linked_wallet,
-                phygital_token,
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::RemoveLinkedWallet {}.data(),
-        }
-    }
-
-    pub fn send_remove_linked_wallet(
-        &mut self,
-        phygital_token: &MintedPhygitalToken,
-        linked_wallet: &Keypair,
-    ) -> litesvm::types::TransactionResult {
-        let ix =
-            self.remove_linked_wallet_ix(linked_wallet.pubkey(), phygital_token.phygital_token);
-        Self::send_instruction(&mut self.svm, ix, &[linked_wallet])
-    }
-
-    // --- slot control --------------------------------------------------------
-
-    pub fn set_current_slot(&mut self, slot: u64) {
-        use solana_slot_hashes::SlotHashes;
-
-        self.svm.warp_to_slot(slot);
-        let hash = solana_message::Hash::new_from_array([slot as u8; 32]);
-        self.svm.set_sysvar(&SlotHashes::new(&[(slot, hash)]));
-    }
-
-    // --- low-level tx submission ---------------------------------------------
-
-    pub fn send_instruction(
-        svm: &mut LiteSVM,
-        instruction: Instruction,
-        signers: &[&Keypair],
-    ) -> litesvm::types::TransactionResult {
-        Self::send_instructions(svm, &[instruction], signers)
-    }
-
-    pub fn send_instructions(
-        svm: &mut LiteSVM,
-        instructions: &[Instruction],
-        signers: &[&Keypair],
-    ) -> litesvm::types::TransactionResult {
-        let blockhash = svm.latest_blockhash();
-        let payer = signers
-            .first()
-            .map(|kp| kp.pubkey())
-            .expect("at least one signer");
-        let msg = Message::new_with_blockhash(instructions, Some(&payer), &blockhash);
-        let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), signers)
-            .expect("build tx");
-        let result = svm.send_transaction(tx);
-        svm.expire_blockhash();
-        result
-    }
-
-    /// Submit an instruction as `payer` without a matching keypair (sigverify disabled).
-    pub fn send_instruction_as(
-        svm: &mut LiteSVM,
-        instruction: Instruction,
-        payer: Pubkey,
-    ) -> litesvm::types::TransactionResult {
-        Self::send_instructions_as(svm, &[instruction], payer)
-    }
-
-    /// Submit instructions as `payer` without matching keypairs (sigverify disabled).
-    pub fn send_instructions_as(
-        svm: &mut LiteSVM,
-        instructions: &[Instruction],
-        payer: Pubkey,
-    ) -> litesvm::types::TransactionResult {
-        let blockhash = svm.latest_blockhash();
-        let msg = Message::new_with_blockhash(instructions, Some(&payer), &blockhash);
-        let tx = VersionedTransaction {
-            signatures: vec![Signature::default(); msg.header.num_required_signatures as usize],
-            message: VersionedMessage::Legacy(msg),
-        };
-        let result = svm.send_transaction(tx);
-        svm.expire_blockhash();
-        result
     }
 }

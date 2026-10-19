@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { Endian, getU32Encoder } from '@solana/kit';
 import { p256 } from '@noble/curves/nist.js';
 
-import { bytesToBase64Url, base64UrlToBytes } from '$lib/shared/encoding';
+import { bytesToBase64Url, base64UrlToBytes } from '#lib/shared/encoding.ts';
 import { createTestD1, MIGRATIONS } from './support/d1-sqlite';
-import { consumeTapCounter } from '$lib/server/tap/counter-store';
-import { verifyDynamicUrlWithoutCounterCheck } from '$lib/server/tap/verify-dynamic-url';
+import { consumeTapCounter } from '#lib/server/tap/counter-store.ts';
+import { verifyDynamicUrlWithoutCounterCheck } from '#lib/server/tap/verify-dynamic-url.ts';
 
 function chip() {
 	const priv = p256.utils.randomSecretKey();
@@ -49,9 +49,24 @@ describe('verifyDynamicUrlWithoutCounterCheck', () => {
 		const params = c.tap(7);
 		const sig = base64UrlToBytes(params.get('s')!);
 		sig[10] ^= 0x01;
-		expect(verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ ...Object.fromEntries(params), s: bytesToBase64Url(sig) })).isVerified).toBe(false);
-		expect(verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ ...Object.fromEntries(params), c: '8' })).isVerified).toBe(false);
-		expect(verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ ...Object.fromEntries(params), n: bytesToBase64Url(new Uint8Array(8)) })).isVerified).toBe(false);
+		expect(
+			verifyDynamicUrlWithoutCounterCheck(
+				new URLSearchParams({ ...Object.fromEntries(params), s: bytesToBase64Url(sig) })
+			).isVerified
+		).toBe(false);
+		expect(
+			verifyDynamicUrlWithoutCounterCheck(
+				new URLSearchParams({ ...Object.fromEntries(params), c: '8' })
+			).isVerified
+		).toBe(false);
+		expect(
+			verifyDynamicUrlWithoutCounterCheck(
+				new URLSearchParams({
+					...Object.fromEntries(params),
+					n: bytesToBase64Url(new Uint8Array(8))
+				})
+			).isVerified
+		).toBe(false);
 	});
 
 	it('canonicalizes padded identifiers so counters are keyed once per chip', () => {
@@ -75,7 +90,9 @@ describe('verifyDynamicUrlWithoutCounterCheck', () => {
 	});
 
 	it('throws on missing params', () => {
-		expect(() => verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ pk: 'x' }))).toThrow(/Missing/);
+		expect(() => verifyDynamicUrlWithoutCounterCheck(new URLSearchParams({ pk: 'x' }))).toThrow(
+			/Missing/
+		);
 	});
 });
 
@@ -93,7 +110,9 @@ describe('consumeTapCounter (shared high-water mark)', () => {
 
 	it('lets exactly one of many concurrent submissions of the same URL through', async () => {
 		const db = createTestD1([MIGRATIONS]);
-		const verdicts = await Promise.all(Array.from({ length: 20 }, () => consumeTapCounter(db, 'chip', 42)));
+		const verdicts = await Promise.all(
+			Array.from({ length: 20 }, () => consumeTapCounter(db, 'chip', 42))
+		);
 		expect(verdicts.filter((v) => v === 'new')).toHaveLength(1);
 	});
 });

@@ -1,20 +1,9 @@
 declare global {
-	/** Secrets (`wrangler secret put`, `.dev.vars`), which `wrangler types` doesn't generate. */
-	interface Env {
-		SESSION_SECRET: string;
-		SESSION_PROOF_KEY?: string;
-	}
-
-	namespace App {
-		interface Locals {
-			/** Set by `/accessory/app/[n]`: the one origin its page may frame (added to CSP `frame-src`). */
-			frameSrc?: string;
-		}
-		interface Platform {
-			env: Env;
-			ctx: ExecutionContext;
-			caches: CacheStorage;
-			cf?: IncomingRequestCfProperties
+	namespace Cloudflare {
+		/** Bindings `wrangler types` doesn't generate from wrangler.jsonc. */
+		interface Env {
+			/** Origin of the Revibase Pay app. Empty hides the built-in Pay shortcut. */
+			PAY_APP_ORIGIN?: string;
 		}
 	}
 }

@@ -5,10 +5,7 @@ import {
   getSecp256r1VerifyInstruction,
   type Secp256r1VerifyEntry,
 } from "../../instructions/internal/secp256r1Verify.js";
-import {
-  SECP256R1_PROGRAM_ADDRESS,
-  TRANSFER_ACTION_BYTES,
-} from "../consts.js";
+import { SECP256R1_PROGRAM_ADDRESS, TRANSFER_ACTION_BYTES } from "../consts.js";
 import { parseWebAuthnAssertion } from "./internal.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import type { Secp256r1Pubkey } from "../../generated/index.js";
@@ -45,12 +42,14 @@ function buildVerifyInputFromWebAuthn(input: {
 
 export async function buildTransferChallenge(input: {
   phygitalToken: Address;
+  recipient: Address;
   slotHash: Uint8Array;
 }): Promise<Uint8Array> {
   return sha256(
     concatBytes(
       TRANSFER_ACTION_BYTES,
       encodeAddress(input.phygitalToken),
+      encodeAddress(input.recipient),
       new Uint8Array(input.slotHash),
     ),
   );

@@ -35,11 +35,10 @@ export type Secp256r1VerifyEntry = {
   message: ReadonlyUint8Array;
 };
 
-export type Secp256r1VerifyInstruction<
-  TProgram extends string = typeof SECP256R1_PROGRAM_ADDRESS,
-> = Instruction<TProgram> &
-  InstructionWithData<Uint8Array<ArrayBuffer>> &
-  InstructionWithAccounts<[]>;
+export type Secp256r1VerifyInstruction<TProgram extends string = typeof SECP256R1_PROGRAM_ADDRESS> =
+  Instruction<TProgram> &
+    InstructionWithData<Uint8Array<ArrayBuffer>> &
+    InstructionWithAccounts<[]>;
 
 export type Secp256r1SignatureOffsetsDataArgs = {
   signatureOffset: number;
@@ -87,14 +86,10 @@ function getSecp256r1SignatureOffsetsDataDecoder(): Decoder<Secp256r1SignatureOf
 function getSecp256r1VerifyInstructionDataEncoder(): Encoder<Secp256r1VerifyInstructionDataArgs> {
   return createEncoder({
     getSizeFromValue: (value: Secp256r1VerifyInstructionData) => {
-      const offsetSize =
-        SIGNATURE_OFFSETS_SERIALIZED_SIZE * value.offsets.length;
+      const offsetSize = SIGNATURE_OFFSETS_SERIALIZED_SIZE * value.offsets.length;
       const payloadSize = value.payload.reduce((sum, entry) => {
         return (
-          sum +
-          COMPRESSED_PUBKEY_SERIALIZED_SIZE +
-          SIGNATURE_SERIALIZED_SIZE +
-          entry.message.length
+          sum + COMPRESSED_PUBKEY_SERIALIZED_SIZE + SIGNATURE_SERIALIZED_SIZE + entry.message.length
         );
       }, 0);
       return 2 + offsetSize + payloadSize;
@@ -109,15 +104,17 @@ function getSecp256r1VerifyInstructionDataEncoder(): Encoder<Secp256r1VerifyInst
       }
 
       for (const entry of value.payload) {
-        offset = fixEncoderSize(
-          getBytesEncoder(),
-          COMPRESSED_PUBKEY_SERIALIZED_SIZE,
-        ).write(entry.publicKey, bytes, offset);
+        offset = fixEncoderSize(getBytesEncoder(), COMPRESSED_PUBKEY_SERIALIZED_SIZE).write(
+          entry.publicKey,
+          bytes,
+          offset,
+        );
 
-        offset = fixEncoderSize(
-          getBytesEncoder(),
-          SIGNATURE_SERIALIZED_SIZE,
-        ).write(entry.signature, bytes, offset);
+        offset = fixEncoderSize(getBytesEncoder(), SIGNATURE_SERIALIZED_SIZE).write(
+          entry.signature,
+          bytes,
+          offset,
+        );
 
         offset = getBytesEncoder().write(entry.message, bytes, offset);
       }
@@ -151,17 +148,14 @@ function getSecp256r1VerifyInstructionDataDecoder(): Decoder<Secp256r1VerifyInst
         ).decode(bytes, offset);
         offset += COMPRESSED_PUBKEY_SERIALIZED_SIZE;
 
-        const signature = fixDecoderSize(
-          getBytesDecoder(),
-          SIGNATURE_SERIALIZED_SIZE,
-        ).decode(bytes, offset);
-        offset += SIGNATURE_SERIALIZED_SIZE;
-
-        const messageSize = offsets[i].messageDataSize;
-        const message = fixDecoderSize(getBytesDecoder(), messageSize).decode(
+        const signature = fixDecoderSize(getBytesDecoder(), SIGNATURE_SERIALIZED_SIZE).decode(
           bytes,
           offset,
         );
+        offset += SIGNATURE_SERIALIZED_SIZE;
+
+        const messageSize = offsets[i]!.messageDataSize;
+        const message = fixDecoderSize(getBytesDecoder(), messageSize).decode(bytes, offset);
         offset += messageSize;
 
         payload.push({ publicKey, signature, message });
@@ -197,12 +191,11 @@ export function getSecp256r1VerifyInstruction<
   config?: { programAddress?: TProgramAddress },
 ): Secp256r1VerifyInstruction<TProgramAddress> {
   const numSignatures = entries.length;
-  let currentOffset =
-    SIGNATURE_OFFSETS_START + numSignatures * SIGNATURE_OFFSETS_SERIALIZED_SIZE;
+  let currentOffset = SIGNATURE_OFFSETS_START + numSignatures * SIGNATURE_OFFSETS_SERIALIZED_SIZE;
   const offsets: Secp256r1SignatureOffsetsDataArgs[] = [];
 
   for (let i = 0; i < numSignatures; i += 1) {
-    const { message } = entries[i];
+    const { message } = entries[i]!;
     const publicKeyOffset = currentOffset;
     const signatureOffset = publicKeyOffset + COMPRESSED_PUBKEY_SERIALIZED_SIZE;
     const messageDataOffset = signatureOffset + SIGNATURE_SERIALIZED_SIZE;
@@ -215,10 +208,7 @@ export function getSecp256r1VerifyInstruction<
       messageDataSize: message.length,
       messageInstructionIndex: 0xffff,
     });
-    currentOffset +=
-      COMPRESSED_PUBKEY_SERIALIZED_SIZE +
-      SIGNATURE_SERIALIZED_SIZE +
-      message.length;
+    currentOffset += COMPRESSED_PUBKEY_SERIALIZED_SIZE + SIGNATURE_SERIALIZED_SIZE + message.length;
   }
 
   const programAddress = config?.programAddress ?? SECP256R1_PROGRAM_ADDRESS;
@@ -232,8 +222,6 @@ export function getSecp256r1VerifyInstruction<
   return {
     accounts: [],
     programAddress,
-    data: getSecp256r1VerifyInstructionDataEncoder().encode(
-      args as Secp256r1VerifyInstructionDataArgs,
-    ),
+    data: getSecp256r1VerifyInstructionDataEncoder().encode(args),
   } as Secp256r1VerifyInstruction<TProgramAddress>;
 }

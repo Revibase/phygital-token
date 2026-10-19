@@ -1,20 +1,27 @@
-.anchor
-.DS_Store
+# Build output
 target
-**/*.rs.bk
-node_modules
-test-ledger
-.yarn
-.surfpool
-.cursor
-.claude
-graphify-out
 **/*/dist
-**/*/node_modules
-.pnpm-store
-app/node_modules
 app/.svelte-kit
 app/build
-app/.wrangler
-app/.env
+coverage
+**/*.rs.bk
+.anchor
+test-ledger
+.surfpool
+
+# Dependencies
+node_modules
 .pnpm-store
+.yarn
+
+# Local environment and secrets
+app/.env
+app/.wrangler
+.dev.vars
+
+# Editor, OS and local tooling
+.DS_Store
+.cursor
+.claude
+CLAUDE.local.md
+graphify-out

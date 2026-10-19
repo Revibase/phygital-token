@@ -1,6 +1,6 @@
 import type { Rpc, SolanaRpcApi } from '@solana/kit';
 
-import type { TapFailureReason } from '$lib/shared/types';
+import type { TapFailureReason } from '#lib/shared/types.ts';
 import { resolveAccessoryByIdentifier } from '../accessory/resolve';
 import { consumeTapCounter } from './counter-store';
 import { TapParamError, verifyDynamicUrlWithoutCounterCheck } from './verify-dynamic-url';
@@ -31,7 +31,11 @@ export async function handleTap(
 	try {
 		verified = verifyDynamicUrlWithoutCounterCheck(params);
 	} catch (err) {
-		return { ok: false, reason: 'malformed', detail: err instanceof TapParamError ? err.message : undefined };
+		return {
+			ok: false,
+			reason: 'malformed',
+			detail: err instanceof TapParamError ? err.message : undefined
+		};
 	}
 	if (!verified.isVerified) {
 		return { ok: false, reason: 'invalid', identifier: verified.identifier };
@@ -41,7 +45,12 @@ export async function handleTap(
 	try {
 		verdict = await consumeTapCounter(deps.db, verified.identifier, verified.counter);
 	} catch {
-		return { ok: false, reason: 'network', identifier: verified.identifier, detail: 'counter store unavailable' };
+		return {
+			ok: false,
+			reason: 'network',
+			identifier: verified.identifier,
+			detail: 'counter store unavailable'
+		};
 	}
 	if (verdict === 'replay') {
 		return { ok: false, reason: 'replayed', identifier: verified.identifier };
@@ -51,7 +60,12 @@ export async function handleTap(
 	try {
 		pda = await resolveAccessoryByIdentifier(deps.db, deps.rpc, verified.identifier);
 	} catch {
-		return { ok: false, reason: 'network', identifier: verified.identifier, detail: 'rpc unavailable' };
+		return {
+			ok: false,
+			reason: 'network',
+			identifier: verified.identifier,
+			detail: 'rpc unavailable'
+		};
 	}
 	if (!pda) {
 		return { ok: false, reason: 'unknown', identifier: verified.identifier };

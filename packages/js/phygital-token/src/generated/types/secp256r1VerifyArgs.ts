@@ -26,15 +26,28 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 
+/** Instruction argument locating and completing a tap's assertion. */
 export type Secp256r1VerifyArgs = {
+  /**
+   * Position of the secp256r1 precompile instruction relative to the
+   * current top-level instruction (usually `-1`: immediately before).
+   */
   verifyArgsRelativeIndex: bigint;
+  /** Which signature inside the precompile instruction to use. */
   signedMessageIndex: number;
+  /** The exact bytes whose SHA-256 the authenticator signed. */
   clientDataJson: ReadonlyUint8Array;
 };
 
 export type Secp256r1VerifyArgsArgs = {
+  /**
+   * Position of the secp256r1 precompile instruction relative to the
+   * current top-level instruction (usually `-1`: immediately before).
+   */
   verifyArgsRelativeIndex: number | bigint;
+  /** Which signature inside the precompile instruction to use. */
   signedMessageIndex: number;
+  /** The exact bytes whose SHA-256 the authenticator signed. */
   clientDataJson: ReadonlyUint8Array;
 };
 
@@ -42,10 +55,7 @@ export function getSecp256r1VerifyArgsEncoder(): Encoder<Secp256r1VerifyArgsArgs
   return getStructEncoder([
     ["verifyArgsRelativeIndex", getI64Encoder()],
     ["signedMessageIndex", getU8Encoder()],
-    [
-      "clientDataJson",
-      addEncoderSizePrefix(getBytesEncoder(), getU32Encoder()),
-    ],
+    ["clientDataJson", addEncoderSizePrefix(getBytesEncoder(), getU32Encoder())],
   ]);
 }
 
@@ -53,19 +63,10 @@ export function getSecp256r1VerifyArgsDecoder(): Decoder<Secp256r1VerifyArgs> {
   return getStructDecoder([
     ["verifyArgsRelativeIndex", getI64Decoder()],
     ["signedMessageIndex", getU8Decoder()],
-    [
-      "clientDataJson",
-      addDecoderSizePrefix(getBytesDecoder(), getU32Decoder()),
-    ],
+    ["clientDataJson", addDecoderSizePrefix(getBytesDecoder(), getU32Decoder())],
   ]);
 }
 
-export function getSecp256r1VerifyArgsCodec(): Codec<
-  Secp256r1VerifyArgsArgs,
-  Secp256r1VerifyArgs
-> {
-  return combineCodec(
-    getSecp256r1VerifyArgsEncoder(),
-    getSecp256r1VerifyArgsDecoder(),
-  );
+export function getSecp256r1VerifyArgsCodec(): Codec<Secp256r1VerifyArgsArgs, Secp256r1VerifyArgs> {
+  return combineCodec(getSecp256r1VerifyArgsEncoder(), getSecp256r1VerifyArgsDecoder());
 }

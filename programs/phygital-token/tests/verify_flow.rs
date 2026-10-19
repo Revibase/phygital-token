@@ -34,18 +34,18 @@ fn verify_succeeds_and_records_sign_count() {
 }
 
 #[test]
-fn verify_does_not_change_linked_wallet() {
+fn verify_does_not_change_owner() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
-    let linked_wallet_before = ctx.phygital_token_linked_wallet(phygital_token.phygital_token);
+    let owner_before = ctx.phygital_token_owner(phygital_token.phygital_token);
 
     ctx.send_verify(&phygital_token, TEST_MESSAGE_HASH, true)
         .expect("verify should succeed");
 
-    let linked_wallet_after = ctx.phygital_token_linked_wallet(phygital_token.phygital_token);
-    assert_eq!(linked_wallet_before, linked_wallet_after);
-    assert_eq!(linked_wallet_after, Pubkey::default());
+    let owner_after = ctx.phygital_token_owner(phygital_token.phygital_token);
+    assert_eq!(owner_before, owner_after);
+    assert_eq!(owner_after, Pubkey::default());
 }
 
 #[test]
@@ -170,7 +170,7 @@ fn verify_sign_count_monotonicity_survives_transfer() {
         .expect("verify before transfer");
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 1);
 
-    ctx.send_set_linked_wallet(&phygital_token, &recipient, true)
+    ctx.send_set_owner(&phygital_token, &recipient, true)
         .expect("transfer after verify");
     assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 2);
 
@@ -318,4 +318,40 @@ fn verify_rejects_when_no_listed_origin_matches() {
         .expect_err("none of the listed origins match the signed origin");
 
     assert_phygital_token_program_error(Err(err), "OriginMismatch");
+}
+
+#[test]
+fn verify_rejects_a_registration_client_data_type() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let token = ctx.init_phygital_token(&passkey);
+    let message_hash = [7u8; 32];
+    let sign_count = ctx.next_sign_count(token.phygital_token);
+    let (secp_ix, args) = passkey.secp256r1_instruction_for_challenge_with_type(
+        "webauthn.create",
+        phygital_token::build_verify_challenge(&message_hash),
+        sign_count,
+    );
+    let verify_ix = ctx.verify_ix(token.phygital_token, args, message_hash, None, None);
+
+    let payer = ctx.payer.insecure_clone();
+    let result = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[&payer]);
+    assert_phygital_token_program_error(result, "ClientDataTypeMismatch");
+}
+
+/// The tap signs `message_hash` under the `verify` domain tag; the bare hash
+/// (which another instruction's challenge could equal) is refused.
+#[test]
+fn verify_rejects_an_untagged_message_hash() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let token = ctx.init_phygital_token(&passkey);
+    let message_hash = [8u8; 32];
+    let sign_count = ctx.next_sign_count(token.phygital_token);
+    let (secp_ix, args) = passkey.secp256r1_instruction_for_challenge(message_hash, sign_count);
+    let verify_ix = ctx.verify_ix(token.phygital_token, args, message_hash, None, None);
+
+    let payer = ctx.payer.insecure_clone();
+    let result = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, verify_ix], &[&payer]);
+    assert_phygital_token_program_error(result, "ChallengeHashMismatch");
 }

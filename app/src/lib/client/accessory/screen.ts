@@ -1,65 +1,34 @@
-import type { AccessoryView } from '$lib/shared/types';
+import type { AccessoryView } from '#lib/shared/types.ts';
 
-/** Link policy is independent of physical tradability. `owned` means the linked wallet is connected. */
+/** Link policy is independent of physical tradability. `owned` means the owner is connected. */
 export type TapScreen = {
 	title: string;
 	body: string;
-	walletLabel: string | null;
-	footnote?: string;
 	claim: boolean;
-	move: boolean;
 };
 
+/** Display choices only. Release still requires the owner wallet's signature. */
+export function managementActions(a: AccessoryView, owned: boolean) {
+	const valid = a.status !== 'unavailable' && a.kind !== 'unknown';
+	const release = valid && !!a.owner && a.canRelease;
+	const changeOwner = release && owned && a.kind === 'bearer' && a.canLink;
+	return { release, changeOwner, hasActions: release || changeOwner };
+}
+
 export function tapScreen(a: AccessoryView, owned: boolean): TapScreen {
-	const none = { walletLabel: null, claim: false, move: false };
 	if (a.status === 'unavailable') {
-		return { ...none, title: 'Unavailable', body: 'This accessory’s record is in an unexpected state. Contact the issuer.' };
-	}
-
-	if (!a.linkedWallet) {
-		return { ...none, claim: a.canLink, title: 'No wallet linked', body: '' };
-	}
-
-	const walletLabel = owned ? 'Your wallet' : 'Linked wallet';
-
-	if (a.kind === 'bearer') {
-		if (owned) {
-			return {
-				walletLabel,
-				claim: false,
-				move: a.canLink,
-				title: 'Linked to your wallet',
-				// Locked when the issuer linked it at setup: nobody can claim it until it's released.
-				body: ''
-			};
-		}
 		return {
-			walletLabel,
-			claim: a.canLink,
-			move: false,
-			title: 'Linked to a wallet',
-			body: ''
+			title: 'Unavailable',
+			body: 'This accessory’s record is in an unexpected state. Contact the issuer.',
+			claim: false
 		};
 	}
 
-	if (a.kind === 'permanent') {
-		return owned
-			? { walletLabel, claim: false, move: false, title: 'Permanently linked to your wallet', body: '' }
-			: { walletLabel, claim: false, move: false, title: 'Permanently linked to a wallet', body: '' };
-	}
-
-	return owned
-		? { walletLabel, claim: false, move: false, title: 'Linked to your wallet', body: '' }
-		: { walletLabel, claim: false, move: false, title: 'Linked to a wallet', body: '' };
-}
-
-/** Shown when this device linked the accessory before and it now points elsewhere. */
-export function changedElsewhereNotice(a: AccessoryView): { title: string; body: string } {
-	return a.kind === 'bearer'
-		? { title: 'Linked to a different wallet', body: 'Since you last used it here, another wallet was linked. You can relink it while it is unlocked.' }
-		: {
-				title: 'Linked to a different wallet',
-				// Controlled only moves after the linked wallet releases it, so it can't simply be linked back.
-				body: 'Since you last used it here, it was unlinked and linked to another wallet. Only that wallet can unlink it now.'
-			};
+	if (!a.owner) return { claim: a.canLink, title: 'Ready to claim', body: '' };
+	if (a.kind === 'permanent') return { claim: false, title: 'Permanently assigned', body: '' };
+	return {
+		claim: a.kind === 'bearer' && !owned && a.canLink,
+		title: 'Claimed',
+		body: ''
+	};
 }

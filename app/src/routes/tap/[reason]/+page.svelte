@@ -2,16 +2,20 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { startAuthentication } from 'phygital-token-sdk';
-	import { Button } from '$lib/components/ui/button';
-	import { Spinner } from '$lib/components/ui/spinner';
-	import AccessoryMark from '$lib/components/app/AccessoryMark.svelte';
-	import Notice from '$lib/components/app/Notice.svelte';
-	import PageHeader from '$lib/components/app/PageHeader.svelte';
-	import PageShell from '$lib/components/app/PageShell.svelte';
-	import { postJson } from '$lib/client/api';
-	import { canTapHere, tapHint } from '$lib/client/capability';
-	import { describeError, TAP_FAILURE_COPY, type FriendlyError } from '$lib/client/link/messages';
-	import { browserRpc } from '$lib/client/rpc';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Spinner } from '#lib/components/ui/spinner/index.ts';
+	import AccessoryMark from '#lib/components/app/AccessoryMark.svelte';
+	import Notice from '#lib/components/app/Notice.svelte';
+	import PageHeader from '#lib/components/app/PageHeader.svelte';
+	import PageShell from '#lib/components/app/PageShell.svelte';
+	import { postJson } from '#lib/client/api.ts';
+	import { canTapHere, tapHint } from '#lib/client/capability.ts';
+	import {
+		describeError,
+		TAP_FAILURE_COPY,
+		type FriendlyError
+	} from '#lib/client/link/messages.ts';
+	import { browserRpc } from '#lib/client/rpc.ts';
 
 	let { data } = $props();
 	const copy = $derived(TAP_FAILURE_COPY[data.reason]);
@@ -39,7 +43,8 @@
 		}
 	}
 	const refresher = setInterval(() => {
-		if (resumable && webauthnOk && !tapping && (!challenge || Date.now() - challenge.at > 90_000)) void prepare();
+		if (resumable && webauthnOk && !tapping && (!challenge || Date.now() - challenge.at > 90_000))
+			void prepare();
 	}, 15_000);
 	onDestroy(() => clearInterval(refresher));
 
@@ -48,8 +53,8 @@
 		webauthnOk = canTapHere();
 		const hint = tapHint();
 		body = webauthnOk
-			? `This page closes after a few minutes. Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`
-			: 'This page closes after a few minutes. Hold your accessory to your phone again.';
+			? `Your tap session has expired. Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`
+			: 'Your tap session has expired. Hold your accessory to your phone again.';
 		if (webauthnOk) void prepare();
 	});
 
@@ -61,8 +66,11 @@
 		failure = null;
 		try {
 			const response = await startAuthentication(c.message, { rpc: browserRpc() });
-			const { next } = await postJson<{ next: string }>('/api/tap/resume', { challengeId: c.challengeId, response });
-			await goto(next, { replaceState: true, invalidateAll: true });
+			const { next } = await postJson<{ next: string }>('/api/tap/resume', {
+				challengeId: c.challengeId,
+				response
+			});
+			await goto(next, { replace: true, refreshAll: true });
 		} catch (err) {
 			failure = describeError(err, 'tap');
 			void prepare();
@@ -75,19 +83,24 @@
 <svelte:head><title>{copy.title} · Revibase</title></svelte:head>
 
 <PageShell>
-	<section class="flex flex-1 flex-col items-center justify-center gap-8 pb-8" role={data.reason === 'expired' ? undefined : 'alert'} aria-live="polite">
+	<section
+		class="flex flex-1 flex-col items-center justify-center gap-8 pb-8"
+		role={data.reason === 'expired' ? undefined : 'alert'}
+		aria-live="polite"
+	>
 		<AccessoryMark state={retryable && (!resumable || tapping) ? 'waiting' : 'idle'} />
 		<PageHeader align="center" title={copy.title} body={body ?? copy.body} />
-		{#if failure}<div class="w-full"><Notice title={failure.title} body={failure.body} detail={failure.detail} /></div>{/if}
+		{#if failure}<div class="w-full"><Notice error={failure} /></div>{/if}
 	</section>
 	{#snippet footer()}
 		<div class="grid gap-1">
 			{#if resumable && webauthnOk}
-				<Button size="xl" class="w-full" disabled={tapping || !challenge} onclick={resume}>
-					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !challenge}<Spinner /> Preparing…{:else}Continue{/if}
+				<Button size="xl" disabled={tapping || !challenge} onclick={resume}>
+					{#if tapping}<Spinner /> Hold your accessory to your phone…{:else if !challenge}<Spinner
+						/> Preparing…{:else}Continue{/if}
 				</Button>
 			{/if}
-			<Button href="/" variant="ghost" class="h-11 w-full text-muted-foreground">Use your wallet instead</Button>
+			<Button href="/" variant="quiet" class="w-full">Use your wallet instead</Button>
 		</div>
 	{/snippet}
 </PageShell>

@@ -4,8 +4,8 @@ use anchor_lang::solana_program::instruction::Instruction;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
-use phygital_token::utils::{
-    build_transfer_challenge, Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE,
+use phygital_token::{
+    build_set_owner_challenge, Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE,
     SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
 };
 use rand::rngs::OsRng;
@@ -46,32 +46,50 @@ impl TestPasskey {
     pub fn secp256r1_verify_instruction(
         &self,
         phygital_token: Pubkey,
+        recipient: Pubkey,
         slot_hash: [u8; 32],
         sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.secp256r1_verify_instruction_with(phygital_token, slot_hash, sign_count, None)
+        self.secp256r1_verify_instruction_with(
+            phygital_token,
+            recipient,
+            slot_hash,
+            sign_count,
+            None,
+        )
     }
 
     pub fn secp256r1_verify_instruction_with(
         &self,
         phygital_token: Pubkey,
+        recipient: Pubkey,
         slot_hash: [u8; 32],
         sign_count: u32,
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let challenge = build_transfer_challenge(&phygital_token, slot_hash);
+        let challenge = build_set_owner_challenge(&phygital_token, &recipient, slot_hash);
         self.build_secp256r1_verify_instruction(challenge, sign_count, signature_override, None)
     }
 
     pub fn secp256r1_verify_instruction_with_auth_flags(
         &self,
         phygital_token: Pubkey,
+        recipient: Pubkey,
         slot_hash: [u8; 32],
         sign_count: u32,
         auth_flags: u8,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let challenge = build_transfer_challenge(&phygital_token, slot_hash);
+        let challenge = build_set_owner_challenge(&phygital_token, &recipient, slot_hash);
         self.build_secp256r1_verify_instruction(challenge, sign_count, None, Some(auth_flags))
+    }
+
+    /// A tap over `challenge` as given (for hand-built cases).
+    pub fn secp256r1_instruction_for_challenge(
+        &self,
+        challenge: [u8; 32],
+        sign_count: u32,
+    ) -> (Instruction, Secp256r1VerifyArgs) {
+        self.build_secp256r1_verify_instruction(challenge, sign_count, None, None)
     }
 
     pub fn verify_secp256r1_instruction(
@@ -79,17 +97,12 @@ impl TestPasskey {
         message_hash: [u8; 32],
         sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.verify_secp256r1_instruction_with(message_hash, sign_count, None)
-    }
-
-    pub fn verify_secp256r1_instruction_with(
-        &self,
-        message_hash: [u8; 32],
-        sign_count: u32,
-        signature_override: Option<[u8; 64]>,
-    ) -> (Instruction, Secp256r1VerifyArgs) {
-        // `verify` uses message_hash as the WebAuthn challenge directly.
-        self.build_secp256r1_verify_instruction(message_hash, sign_count, signature_override, None)
+        self.build_secp256r1_verify_instruction(
+            phygital_token::build_verify_challenge(&message_hash),
+            sign_count,
+            None,
+            None,
+        )
     }
 
     fn build_secp256r1_verify_instruction(
@@ -99,9 +112,44 @@ impl TestPasskey {
         signature_override: Option<[u8; 64]>,
         auth_flags: Option<u8>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
+        self.build_secp256r1_verify_instruction_typed(
+            "webauthn.get",
+            expected_challenge,
+            sign_count,
+            signature_override,
+            auth_flags,
+        )
+    }
+
+    /// An assertion whose `clientDataJSON.type` is `client_type`.
+    pub fn secp256r1_instruction_for_challenge_with_type(
+        &self,
+        client_type: &str,
+        challenge: [u8; 32],
+        sign_count: u32,
+    ) -> (Instruction, Secp256r1VerifyArgs) {
+        self.build_secp256r1_verify_instruction_typed(
+            client_type,
+            challenge,
+            sign_count,
+            None,
+            None,
+        )
+    }
+
+    fn build_secp256r1_verify_instruction_typed(
+        &self,
+        client_type: &str,
+        expected_challenge: [u8; 32],
+        sign_count: u32,
+        signature_override: Option<[u8; 64]>,
+        auth_flags: Option<u8>,
+    ) -> (Instruction, Secp256r1VerifyArgs) {
         let origin = TEST_ORIGIN;
         let mut client_data_json = Vec::new();
-        client_data_json.extend_from_slice(br#"{"type":"webauthn.get","challenge":"#);
+        client_data_json.extend_from_slice(br#"{"type":"#);
+        Self::ccd_to_string(client_type, &mut client_data_json);
+        client_data_json.extend_from_slice(br#","challenge":"#);
         Self::ccd_to_string(
             &URL_SAFE_NO_PAD.encode(expected_challenge),
             &mut client_data_json,

@@ -1,8 +1,13 @@
 <script lang="ts">
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
-	import { explorerUrl } from '$lib/shared/explorer';
+	import { explorerUrl } from '#lib/shared/explorer.ts';
 
-	let { value, cluster, kind = 'address', label }: { value: string; cluster: string; kind?: 'address' | 'tx'; label: string } = $props();
+	let {
+		value,
+		cluster,
+		kind = 'address',
+		label
+	}: { value: string; cluster: string; kind?: 'address' | 'tx'; label: string } = $props();
 </script>
 
 <a

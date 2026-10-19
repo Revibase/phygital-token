@@ -1,3 +1,4 @@
+/** Codes carried by `PhygitalTokenError`. */
 export type PhygitalTokenErrorCode =
   | "INVALID_PUBLIC_KEY"
   | "RP_ID_REQUIRED"
@@ -10,7 +11,10 @@ export type PhygitalTokenErrorCode =
   | "PASSKEY_AMBIGUOUS"
   | "INVALID_ASSERTION"
   | "MESSAGE_MISMATCH"
-  | "SLOT_HASH_UNAVAILABLE";
+  | "ORIGIN_MISMATCH"
+  | "RP_ID_MISMATCH"
+  | "SLOT_HASH_UNAVAILABLE"
+  | "INVALID_ARGUMENT";
 
 /**
  * Error thrown for failures a caller or end user can act on. Branch on
@@ -19,11 +23,7 @@ export type PhygitalTokenErrorCode =
 export class PhygitalTokenError extends Error {
   readonly code: PhygitalTokenErrorCode;
 
-  constructor(
-    code: PhygitalTokenErrorCode,
-    message: string,
-    options?: { cause?: unknown }
-  ) {
+  constructor(code: PhygitalTokenErrorCode, message: string, options?: { cause?: unknown }) {
     super(message, options);
     this.name = "PhygitalTokenError";
     this.code = code;

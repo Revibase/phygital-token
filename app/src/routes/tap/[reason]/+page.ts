@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { TAP_FAILURE_COPY } from '$lib/client/link/messages';
-import type { TapFailureReason } from '$lib/shared/types';
+import { TAP_FAILURE_COPY } from '#lib/client/link/messages.ts';
+import type { TapFailureReason } from '#lib/shared/types.ts';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = ({ params }) => {

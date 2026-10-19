@@ -13,8 +13,8 @@ export function bytesToBase64(bytes: Uint8Array): string {
 
 /**
  * Standard base64 → URL-safe (`-`/`_`, no padding). This is the canonical
- * spelling of a chip identifier; phygital-wallet keys `tap_counters` the same
- * way, so both services share one high-water mark per chip.
+ * spelling of a chip identifier; every service sharing `tap_counters` keys it
+ * the same way, so they share one high-water mark per chip.
  */
 export function bytesToBase64Url(bytes: Uint8Array): string {
 	return bytesToBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -24,10 +24,6 @@ export function base64UrlToBytes(base64url: string): Uint8Array<ArrayBuffer> {
 	const padded = base64url.replace(/-/g, '+').replace(/_/g, '/');
 	const padLen = (4 - (padded.length % 4)) % 4;
 	return base64ToBytes(padded + '='.repeat(padLen));
-}
-
-export function bytesToHex(bytes: Uint8Array): string {
-	return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -42,5 +38,8 @@ export function shortAddress(address: string): string {
 }
 
 export function accessoryTag(identifier: string): string {
-	return identifier.replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase();
+	return identifier
+		.replace(/[^A-Za-z0-9]/g, '')
+		.slice(-4)
+		.toUpperCase();
 }

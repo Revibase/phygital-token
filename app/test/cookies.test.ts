@@ -6,7 +6,7 @@ import {
 	type BrowseUnlockSession,
 	type OwnerBrowseSession,
 	type OwnerSession
-} from '$lib/server/session/cookies';
+} from '#lib/server/session/cookies.ts';
 
 const SECRET = 'x'.repeat(48);
 const browse: BrowseUnlockSession = {
@@ -39,7 +39,13 @@ describe('session tokens', () => {
 	});
 
 	it('round-trips an owner_session and never verifies it as owner_browse', async () => {
-		const login: OwnerSession = { v: 1, t: 'os', sid: 'sid3', wallet: owner.wallet, exp: Date.now() + 60_000 };
+		const login: OwnerSession = {
+			v: 1,
+			t: 'os',
+			sid: 'sid3',
+			wallet: owner.wallet,
+			exp: Date.now() + 60_000
+		};
 		const token = await signToken(SECRET, login);
 		expect(await verifyToken<OwnerSession>(SECRET, token, 'os')).toEqual(login);
 		expect(await verifyToken<OwnerBrowseSession>(SECRET, token, 'ob')).toBeNull();
@@ -55,10 +61,12 @@ describe('session tokens', () => {
 	it('rejects tampering, the wrong secret, the wrong type, and expiry', async () => {
 		const token = await signToken(SECRET, browse);
 		const [body, mac] = token.split('.');
-		const forged = Buffer.from(JSON.stringify({ ...browse, pda: 'someone-else' })).toString('base64url');
+		const forged = Buffer.from(JSON.stringify({ ...browse, pda: 'someone-else' })).toString(
+			'base64url'
+		);
 		expect(await verifyToken(SECRET, `${forged}.${mac}`, 'bu')).toBeNull();
 		expect(await verifyToken('y'.repeat(48), token, 'bu')).toBeNull();
-		expect(await verifyToken(SECRET, token, 'hof')).toBeNull();
+		expect(await verifyToken(SECRET, token, 'os')).toBeNull();
 		expect(await verifyToken(SECRET, token, 'bu', browse.exp + 1)).toBeNull();
 		expect(await verifyToken(SECRET, `${body}.${mac}.x`, 'bu')).toBeNull();
 		expect(await verifyToken(SECRET, undefined, 'bu')).toBeNull();

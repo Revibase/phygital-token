@@ -8,7 +8,9 @@ const appRoot = fileURLToPath(new URL('.', import.meta.url)).replaceAll('\\', '/
 
 export default defineConfig(({ mode }) => ({
 	// Codama-generated SDK modules read process.env.NODE_ENV at import time.
-	define: { 'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development') },
+	define: {
+		'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development')
+	},
 	plugins: [
 		{
 			name: 'exclude-test-code',
@@ -18,7 +20,7 @@ export default defineConfig(({ mode }) => ({
 				const path = id.split('?')[0].replaceAll('\\', '/');
 				if (!path.startsWith(appRoot) || path.includes('/node_modules/')) return;
 				const relative = path.slice(appRoot.length);
-				if (/^(test|scripts)\//.test(relative) || /\.(test|spec)\.[^/]+$/.test(relative) || relative === 'vite.browser-simulation.config.ts')
+				if (/^test\//.test(relative) || /\.(test|spec)\.[^/]+$/.test(relative))
 					this.error(`Test-only code cannot be bundled for production: ${relative}`);
 			}
 		},
@@ -26,7 +28,8 @@ export default defineConfig(({ mode }) => ({
 		sveltekit({
 			compilerOptions: {
 				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
-				runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
+				runes: ({ filename }) =>
+					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 			adapter: adapter(),
 			csp: {
@@ -40,7 +43,19 @@ export default defineConfig(({ mode }) => ({
 					'font-src': ['self', 'data:'],
 					// Mobile Wallet Adapter talks to the wallet over a local websocket.
 					// The RPC proxy (SOLANA_RPC_URL) is called from the browser; a local validator is plain http.
-					'connect-src': ['self', 'https:', 'http://localhost:*', 'http://127.0.0.1:*', 'ws://localhost:*', 'ws://127.0.0.1:*', 'wss:'],
+					'connect-src': [
+						'self',
+						'https:',
+						'http://localhost:*',
+						'http://127.0.0.1:*',
+						'ws://localhost:*',
+						'ws://127.0.0.1:*',
+						'wss:'
+					],
+					'frame-src':
+						mode === 'production'
+							? ['https:']
+							: ['https:', 'http://localhost:*', 'http://127.0.0.1:*'],
 					'frame-ancestors': ['none'],
 					'base-uri': ['self'],
 					'form-action': ['self'],
@@ -54,10 +69,13 @@ export default defineConfig(({ mode }) => ({
 		projects: [
 			{
 				extends: './vite.config.ts',
+				resolve: {
+					alias: { 'cloudflare:workers': `${appRoot}test/support/cloudflare-workers.ts` }
+				},
 				test: {
 					name: 'server',
 					environment: 'node',
-					include: ['test/**/*.test.ts'],
+					include: ['test/**/*.test.ts']
 				}
 			}
 		]

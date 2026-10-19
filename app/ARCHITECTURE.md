@@ -1,65 +1,84 @@
 # Revibase app architecture
 
-See [README.md](README.md) for development, testing and deployment. The program and SDK define the protocol; the app adds session authorization and linking flows.
+See [README.md](README.md) for development, testing, and deployment. The program and SDK define the protocol. The app adds sessions and the claim flow.
 
-## Access and authority
+## Access
 
 | Entry | Grants |
 | --- | --- |
-| Signed NFC URL | Ten-minute `browse_unlock` session: inspect the accessory and start linking. |
-| Wallet sign-in | Twelve-hour `owner_session`; a current linked-wallet check issues a view-only `owner_browse` session. |
-| Fresh WebAuthn assertion | Slot-bound approval for linking, completed with the recipient wallet signature. |
-| Linked wallet signature | Unlinking, without a physical tap; rejected for Permanent tokens. |
+| Signed NFC URL | Ten-minute `browse_unlock`: inspect the accessory and start a claim. |
+| Wallet sign-in | Thirty-day `owner_session`. A current owner check then issues a view-only `owner_browse`. |
+| Fresh WebAuthn assertion | Slot-bound approval for claiming. The connected wallet signs the transaction. |
+| Owner signature | Release (`remove_owner`), without a tap. Rejected for Permanent tokens. |
 
-An unused signed NFC URL can remain valid until a newer counter is consumed; it does not prove current physical presence. A tap does not prove wallet-key control or NFT ownership. The accessory’s `linked_wallet`, NFT owner and physical holder can differ. Any mint-backed token type shows metadata and shortcuts. Bearer relinks while unlocked; Controlled must be unlinked first; Permanent cannot change its link. Server and UI use `accessoryRules`.
+An unused signed NFC URL stays valid until a newer counter is consumed. A tap does not prove wallet-key control or NFT ownership. The on-chain `owner`, the NFT holder, and the person holding the accessory can differ. Bearer can be claimed again while unlocked. Controlled must be released first. Permanent cannot change owner. Server and UI use `accessoryRules`.
 
-The URL’s `pk` is the chip identifier, not its WebAuthn passkey. Resolve it to the token, then derive its PDA from `public_key`; the immutable identifier→PDA mapping is cached in D1.
+The URL’s `pk` is the chip identifier, not its WebAuthn passkey. Resolve it to the token, then derive the PDA from `public_key`. The identifier-to-PDA mapping is cached in D1.
 
-## Security invariants
+## Security
 
-- Verify signed tap URLs before atomically consuming the shared `tap_counters` high-water mark. Ignore speculative prefetch. Redirect to a clean URL with `no-store` and `no-referrer`.
-- Shared `auth_challenges` are single-use; consume them atomically. Session cookies are HMAC-signed, HttpOnly, Secure and SameSite=Lax (`__Host-` in production).
-- `browse_unlock` permits linking; `owner_browse` does not. Authorize every ceremony API against its originating session or claimed finisher.
-- Handoff/pairing capabilities are random, single-use and fragment-only. Store only their hashes; exchange for a finisher cookie and scrub the fragment. An undetected wallet must not consume its capability.
-- Linking uses SDK `beginTransfer` → `authenticatePasskeyForTransfer` → `completeTransfer`. The program checks the recent slot hash, token passkey, user-presence flag, increasing sign count, lock state and recipient signer.
-- The transfer challenge does not bind a recipient: the authorized finisher chooses it. Show that recipient on the originating page and permit cancellation before submission.
-- Validate exact transaction bytes before and after signing. Preserve the approved programs, accounts, recipient, slot and assertion; reject unexpected signers or lookup tables.
-- Linking does not enforce origin/rpId on-chain. A transfer assertion harvested on another site remains a protocol risk; chip identifier/passkey binding also depends on the issuer.
-- JSON mutations require same-origin requests. Wallet handoffs use fixed templates around app-created URLs, never arbitrary return URLs.
+- Verify a signed tap URL before consuming the shared `tap_counters` mark. Ignore speculative prefetch. Redirect to a clean URL with `no-store` and `no-referrer`.
+- A tap the server accepts must be signed on this origin for this rpId. `verifyResponse` checks `clientDataJSON.origin` against the request origin. The browser builds the claim and submits it to Solana RPC.
+- Shared `auth_challenges` are single-use. Session cookies are HMAC-signed, HttpOnly, Secure, and SameSite=Lax (`__Host-` in production).
+- `browse_unlock` can claim. `owner_browse` cannot. The claim page requires the fresh tap session.
+- Claiming connects a wallet, then uses `beginTransfer`, `authenticatePasskeyForTransfer`, and `completeTransfer`. The program checks the recent slot hash, the token passkey, user presence, an increasing sign count, the lock, and that the tap names the recipient signer.
+- The transfer challenge is `SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`. The assertion stays in browser memory.
+- Validate the transaction bytes before and after signing. Keep the approved programs, accounts, recipient, slot, and assertion. Reject unexpected signers or lookup tables.
+- The program does not check origin or rpId on `set_owner`. The app checks both before it keeps a tap. Chip and passkey binding also depends on the issuer.
+- Stateful APIs require same-origin requests. Claim construction, signing, and submission use the browser’s Solana RPC.
+- `/api/tap/challenge`, `/api/tap/resume`, `/api/owner/challenge` and `/api/fee-payer` are rate-limited at the Cloudflare edge, not in the worker.
 
-## Linking and recovery
+## Claim
 
-Phone: accessory approval → wallet selection/handoff → wallet approval → confirmation.
-Desktop: phone pairing → accessory tap and matching-code confirmation → wallet approval → confirmation.
+On a phone, connect the wallet first, then prepare the challenge for that wallet before the tap. A desktop visit only shows a handoff to the phone, because the tap needs NFC. iOS WebAuthn needs a user gesture that does not wait on the network. The countdown estimates SlotHashes expiry (`TAP_WINDOW_MS`). The program is authoritative. If the assertion expires, the user taps again.
 
-D1 `revibase_link_intents` uses compare-and-set transitions. New ceremonies cancel previous ones for the accessory. Terminal states remove stored assertions. Expired slot windows return to the tap step while keeping the finisher.
+Every transaction the app builds is v1 (up to 4096 bytes; a claim with two WebAuthn verifies doesn't reliably fit v0's 1232). Its compute limit, priority fee and loaded-data limit live in the message header (`LINK_TX_CONFIG`), not in compute-budget instructions; v1 budgets zero for an unset limit. Wallet discovery and signing use `@solana/connector`. Wallet Standard signs kit 8 transaction bytes directly, because the connector uses kit 7.
 
-Prepare challenges before a click: iOS WebAuthn requires a user gesture without awaiting a network request. The countdown uses a conservative stored SlotHashes expiry estimate; the program remains authoritative. Reloads resume by intent ID plus the finisher cookie; origins refresh status on visibility return.
+## Revibase Passkey
 
-Detected connectors, including MWA, record browser connections. Hardcoded Phantom/Backpack/Solflare browse choices record wallet-app handoffs. A browse link cannot select an account or share another browser’s wallet connection.
+[revibase-wallet](https://github.com/jychab/revibase-wallet) is registered as a Wallet Standard wallet ("Revibase Passkey") when `SECURE_SIGNER_ORIGIN` and `FEE_PAYER_KEY` are set. Its keys live in the secure-signer iframe (`PasskeySignerHost`), which is shown only while it prompts. The page's Permissions-Policy delegates `publickey-credentials-get` to that origin.
 
-## Shortcuts and local state
+Its address is a vault PDA. The vault signs only through the wallet program's `execute`, after a secp256r1 passkey assertion, and it can't pay fees. Nothing is sponsored: the server only relays.
 
-Project `shortcuts.json` comes from the mint’s HTTPS `external_url`. `revibase.launch` selects embed, wallet or browser behavior; legacy Phantom fields remain compatible. See the [integrator contract](../../developer/content/docs/cards/landing-page.md).
+- **Address.** The wallet is `["wallet", sha256(public key ‖ RP ID hash)]`, and `create_wallet` enforces that seed. The address is known as soon as the passkey exists, so it can be funded first. No one can create it with another key or RP. Connecting creates nothing on-chain.
+- **Connect.** The signer asks "Use my passkey" or "Create a new wallet" (no username). Creating writes credential ID → public key to the signer's credential map before the wallet is shown. Signing in on a new device looks the key up by the sign-in's credential ID and verifies that sign-in's signature with it.
+- **Fees.** The adapter appends one System transfer from the vault to the fee payer: the network fee (5000 lamports per signature, precompiles included, plus the priority fee), plus the wallet config's rent on its first transaction. On that first transaction, `create_wallet` (rent fronted by the fee payer) goes before everything else. `POST /api/fee-payer` (`server/fee-payer/policy.ts`) accepts only `[create_wallet?, secp256r1+, execute]` (v1, no compute-budget instructions, bounded limit and priority fee):
+  - the fee payer is the outer fee payer, `create_wallet`'s payer, and the destination of exactly one transfer, and appears nowhere else
+  - only the vault signs inside `execute`
+  - any calls are allowed, because the user pays.
 
-Each HTTPS shortcut receives a fresh Ed25519 `revibase_session` proof, including third-party destinations selected by the project. Its audience is the destination origin, expiry is at most five minutes, and `jti` must be consumed once by the integrator. A proof is accessory access context, not transaction signing authority.
+  It simulates and requires the fee payer to break even exactly (payment = fee + the rent actually taken), then signs last and submits. The signature is only returned once the transaction has been submitted. A transaction that fails on-chain costs the fee payer its fee (the repayment rolls back); that risk is accepted.
+- **Claim.** The app builds the usual claim. The adapter keeps the tap's `secp256r1_verify` at the top level and wraps `set_owner`: v1 `[create_wallet?, secp256r1(wallet), secp256r1(tap), execute(set_owner, repayment)]`. Inside the CPI, `set_owner`'s `-1` still finds the tap. The claim page checks the vault can pay (fee plus any setup) before asking for a tap.
+- **Sign-in.** `signMessage` returns a WebAuthn proof, not an ed25519 signature. The client sends the passkey's public key; the server derives the vault from it and our RP (no on-chain read, so it works before the wallet exists) and checks the RP, user presence and signature.
+- **Transfers.** `/wallet` sends SOL and fungible tokens the same way for every wallet (`shared/wallet-transfer.ts`), and every cost comes out of the sending wallet. The signer prompt shows the repayment as "Network fee" and, on the first transaction, "Wallet setup (one time)".
+- The passkey wallet only offers `signAndSendTransaction`: the fee payer never hands out its signature. An embedded dapp asking it for `signTransaction` gets a clear error, and nothing is sent.
 
-Embedding requires successful framing checks. Keep the host and exit controls outside the sandboxed iframe; allow only its origin in that page’s `frame-src`, with no top navigation or authenticator delegation. Navigation back performs a full load to reset page-specific CSP.
+## Shortcuts
 
-Wallet app preferences and link provenance are browser-local and accessory/address-bound. Changed linkage removes stale hints. “Forget linked wallet details” clears only that accessory’s app/context hints and requires selection until a new choice is saved; it does not unlink or affect other accessories. Recognized wallet browsers stay in place.
+Project `shortcuts.json` comes from the mint’s HTTPS `external_url`.
 
-Only NFT media queries persist locally. Shortcut caches include the linked address; wallet-accessory lists revalidate and are invalidated after link/unlink. The NFT owner badge compares media ownership with the linked wallet and is informational, not an authorization check.
+| Field | Opens |
+| --- | --- |
+| omitted, or `prefersExternalTarget: false` | In-app browser, and only when the link is the project host or a subdomain |
+| `prefersExternalTarget: true` | New tab |
 
-## Code map
+`solana:` links stay on the Solana Pay sheet. A shortcut carries no session or key material. The frame can ask the shell to connect and sign. The shell approves connect once per origin and account, then the connected wallet signs. A dApp registers that wallet with `registerIframeWallet({ parent: "https://portal.revibase.com" })` before it starts a connector. Registration happens only inside an iframe whose parent sent hello. A normal visit is unchanged.
+
+“Forget wallet preference” clears the claim details shown for this accessory. It does not change where a shortcut opens, and it does not release the accessory.
+
+Only NFT media queries persist locally. Shortcut caches include the owner address. The NFT owner badge is informational.
+
+## Code
 
 | Path | Responsibility |
 | --- | --- |
-| `src/lib/server/tap`, `session` | Tap verification, replay counters, cookies and shortcut proofs. |
-| `src/lib/server/accessory` | Resolve tokens, enforce view/link rules, load shortcuts. |
-| `src/lib/server/link` | Ceremony authorization, state transitions, slot windows and confirmation. |
-| `src/lib/shared/link-transaction.ts` | SDK transaction construction and byte validation. |
-| `src/lib/client/link`, `wallet` | Polling, approvals, connector discovery and signing. |
-| `src/lib/client/memory.ts`, `shortcuts.ts`, `queries.ts` | Local preferences, launch routing and cache policy. |
-| `src/lib/components/app`, `src/routes` | Shared UI and entry flows. |
+| `src/lib/server/tap`, `session` | Tap verification, replay counters, cookies. |
+| `src/lib/server/accessory` | Resolve tokens, enforce view and claim rules, load shortcuts. |
+| `src/lib/shared/link-transaction.ts` | Transaction construction and byte validation. |
+| `src/lib/client/link`, `wallet` | Claim, release, connector discovery, and signing. |
+| `src/lib/client/wallet/embed-host.ts`, `src/lib/shared/wallet-bridge.ts` | In-app browser and the wallet injected into it. |
+| `src/lib/client/wallet/{passkey.svelte,passkey-cost}.ts`, `src/lib/shared/passkey-transaction.ts`, `src/lib/server/fee-payer` | Revibase Passkey: registration, its costs, unwrapping `execute`, the relaying fee payer. |
+| `src/lib/shared/wallet-{transfer,fee,holdings}.ts`, `src/lib/client/wallet/send.ts` | `/wallet`: balances, transfers, and who pays the fee. |
+| `src/lib/components/app`, `src/routes` | UI, including `/accessory/link` and `/wallet`. |
 
-Wallet Standard signs kit-8 transaction bytes directly because the connector uses kit 7. Discovery and MWA still use the connector. Never expose an RPC URL containing private credentials to the browser.
+Never expose an RPC URL that contains a secret to the browser.

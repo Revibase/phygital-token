@@ -8,7 +8,7 @@ TypeScript client for the Phygital Token Solana program.
 pnpm add phygital-token-sdk @solana/kit
 ```
 
-## Sign in with an accessory
+## Authenticate with an accessory
 
 ```ts
 import { createSolanaRpc } from "@solana/kit";
@@ -26,11 +26,12 @@ const message = crypto.randomUUID();
 
 // Client: NFC tap.
 const response = await startAuthentication(message, { rpc });
-// Native / kiosk: startAuthentication(message, { transceive })
 
-// Server: check the signature
-const { isVerified, secp256r1PublicKey } = verifyResponse({
+// Server: check the signature, and that the tap was made on your site
+const { isVerified, secp256r1PublicKey } = await verifyResponse({
   expectedMessage: message,
+  expectedOrigin: "https://app.example.com",
+  expectedRpId: "app.example.com", // the rpId the tap was requested for
   response,
 });
 if (!isVerified) throw new Error("bad tap");
@@ -39,12 +40,19 @@ const token = await fetchPhygitalToken(
   rpc,
   await findPhygitalTokenPda(secp256r1PublicKey),
 );
-// token.data.linkedWallet
+// token.data.owner
 ```
 
-Reject expired/reused challenges and unlinked tokens before creating a session. The linked wallet is delegated identity, not proof of wallet-key control or NFT ownership.
+It rejects anything that isn't a tap (`INVALID_ASSERTION`: a registration response, or no user presence) and, with `expectedRpId`, a tap made for another relying party (`RP_ID_MISMATCH`). `expectedOrigin` is your site's origin as a fixed value, not the request's `Origin` header. A tap made on another site throws `ORIGIN_MISMATCH`, so that site can't pass your challenge to a user and authenticate with their tap.
+
+Reject expired/reused challenges and unlinked tokens before creating a session. The owner is delegated identity, not proof of wallet-key control or NFT ownership.
 
 ## On-chain `verify` (CPI)
+
+To check a tap inside your own program, have it CPI `verify` (see the Rust
+client's `VerifyCpiBuilder`). The client signs over a 32-byte `message_hash`
+your program also derives; include a nonce or recent slot hash in it, since
+`verify` adds no freshness of its own.
 
 ```ts
 import {
@@ -57,4 +65,29 @@ const messageHash = buildMessageHash(message);
 const tap = await authenticatePasskeyForSecp256r1Verify({ rpc, messageHash });
 const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
   await buildSecp256r1VerifyInstruction(tap);
+// Prepend secp256r1VerifyInstruction to your program's instruction.
 ```
+
+## Claim ownership
+
+A tap makes one wallet the token's owner (`set_owner`). Pass that wallet to
+`beginTransfer` before the tap: the challenge is
+`SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`, and the same wallet must
+sign the transaction.
+
+```ts
+import {
+  beginTransfer,
+  authenticatePasskeyForTransfer,
+  completeTransfer,
+} from "phygital-token-sdk";
+
+const session = await beginTransfer({ rpc, secp256r1Pubkey, recipient: recipientSigner.address });
+const response = await authenticatePasskeyForTransfer(session); // NFC tap
+const instructions = await completeTransfer(session, response, recipientSigner);
+// Send `instructions` in one transaction signed by `recipientSigner` before the
+// slot hash leaves SlotHashes (512 slots, about three minutes).
+```
+
+`set_owner` refuses Controlled and Permanent tokens that already have an owner
+(`isPhygitalTokenLocked`). Send the assertion before its slot hash expires.

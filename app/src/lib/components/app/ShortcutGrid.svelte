@@ -1,21 +1,25 @@
 <script lang="ts">
-	import type { ShortcutLaunch } from '$lib/client/shortcuts';
-	import { shortcutDestination, type Shortcut, type ShortcutIcon as IconName } from '$lib/shared/shortcuts';
+	import Section from './Section.svelte';
+	import {
+		shortcutDestination,
+		type Shortcut,
+		type ShortcutIcon as IconName
+	} from '#lib/shared/shortcuts.ts';
 	import { SvelteSet } from 'svelte/reactivity';
 	import ShortcutIcon from './ShortcutIcon.svelte';
 	import SolanaPaySheet from './SolanaPaySheet.svelte';
 	let payment = $state<{ href: string; label: string } | null>(null);
 	let paymentOpen = $state(false);
 
+	/**
+	 * Project shortcuts: `solana:` requests open the Solana Pay sheet, `embed`
+	 * opens in the in-app browser, and the rest open in a new tab.
+	 */
 	let {
 		label,
 		items,
-		onpick
-	}: {
-		label: string;
-		items: Array<{ s: Shortcut; index: number; launch: ShortcutLaunch }>;
-		onpick: (item: { s: Shortcut; index: number; launch: ShortcutLaunch }) => void;
-	} = $props();
+		onembed
+	}: { label: string; items: Shortcut[]; onembed: (item: Shortcut) => void } = $props();
 
 	const tile =
 		'group flex w-full flex-col items-center gap-1.5 rounded-[14px] px-1 pt-1 pb-0.5 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring/60';
@@ -48,31 +52,57 @@
 	const broken = new SvelteSet<string>();
 </script>
 
-<section class="space-y-3" aria-label={label}>
-	<h2 class="px-1 text-[13px] font-medium text-muted-foreground">{label}</h2>
+<Section {label}>
 	<ul class="grid grid-cols-4 gap-x-2 gap-y-4">
-		{#each items as item (item.s.label + item.s.href)}
-			{@const { s, launch } = item}
+		{#each items as s (s.label + s.href)}
 			{@const title = `${s.label} · ${shortcutDestination(s)}`}
 			<li>
 				{#snippet body()}
 					{#if s.image && !broken.has(s.image)}
-						<span class="{icon} bg-card"><img src={s.image} alt="" class="size-full object-cover" decoding="async" onerror={() => broken.add(s.image!)} /></span>
+						<span class="{icon} bg-card"
+							><img
+								src={s.image}
+								alt=""
+								class="size-full object-cover"
+								decoding="async"
+								onerror={() => broken.add(s.image!)}
+							/></span
+						>
 					{:else}
-						<span class="{icon} {themes[s.icon] ?? themes['generic-link']}"><ShortcutIcon icon={s.icon} class="size-6 drop-shadow-[0_1px_1px_rgb(0_0_0/0.15)]" /></span>
+						<span class="{icon} {themes[s.icon] ?? themes['generic-link']}"
+							><ShortcutIcon
+								icon={s.icon}
+								class="size-6 drop-shadow-[0_1px_1px_rgb(0_0_0/0.15)]"
+							/></span
+						>
 					{/if}
 					<span class="line-clamp-2 text-[12px] leading-tight font-medium">{s.label}</span>
 				{/snippet}
 				{#if s.href.startsWith('solana:')}
-					<button type="button" class={tile} {title} onclick={() => { payment = { href: s.href, label: s.label }; paymentOpen = true; }}>{@render body()}</button>
-				{:else if launch.kind === 'link'}
-					<!-- Our own paths are server routes or need their own headers: always a full page load. -->
-					<a href={launch.href} target={launch.newTab ? '_blank' : undefined} rel="noopener noreferrer" data-sveltekit-reload={launch.href.startsWith('/') || undefined} class={tile} {title}>{@render body()}</a>
+					<button
+						type="button"
+						class={tile}
+						{title}
+						onclick={() => {
+							payment = { href: s.href, label: s.label };
+							paymentOpen = true;
+						}}>{@render body()}</button
+					>
+				{:else if s.open === 'embed'}
+					<button type="button" class={tile} {title} onclick={() => onembed(s)}
+						>{@render body()}</button
+					>
 				{:else}
-					<button type="button" class={tile} {title} onclick={() => onpick(item)}>{@render body()}</button>
+					<a href={s.href} target="_blank" rel="noopener noreferrer" class={tile} {title}
+						>{@render body()}</a
+					>
 				{/if}
 			</li>
 		{/each}
 	</ul>
-</section>
-{#if payment}<SolanaPaySheet bind:open={paymentOpen} href={payment.href} label={payment.label} />{/if}
+</Section>
+{#if payment}<SolanaPaySheet
+		bind:open={paymentOpen}
+		href={payment.href}
+		label={payment.label}
+	/>{/if}

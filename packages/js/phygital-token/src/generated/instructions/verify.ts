@@ -43,7 +43,10 @@ import {
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 import {
@@ -85,14 +88,14 @@ export type VerifyInstructionData = {
   discriminator: ReadonlyUint8Array;
   secp256r1VerifyArgs: Secp256r1VerifyArgs;
   messageHash: ReadonlyUint8Array;
-  expectedRpId: Option<string>;
+  expectedRpIdHash: Option<ReadonlyUint8Array>;
   expectedOrigins: Option<Array<string>>;
 };
 
 export type VerifyInstructionDataArgs = {
   secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
   messageHash: ReadonlyUint8Array;
-  expectedRpId: OptionOrNullable<string>;
+  expectedRpIdHash: OptionOrNullable<ReadonlyUint8Array>;
   expectedOrigins: OptionOrNullable<Array<string>>;
 };
 
@@ -102,19 +105,10 @@ export function getVerifyInstructionDataEncoder(): Encoder<VerifyInstructionData
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
       ["messageHash", fixEncoderSize(getBytesEncoder(), 32)],
-      [
-        "expectedRpId",
-        getOptionEncoder(
-          addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
-        ),
-      ],
+      ["expectedRpIdHash", getOptionEncoder(fixEncoderSize(getBytesEncoder(), 32))],
       [
         "expectedOrigins",
-        getOptionEncoder(
-          getArrayEncoder(
-            addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
-          ),
-        ),
+        getOptionEncoder(getArrayEncoder(addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()))),
       ],
     ]),
     (value) => ({ ...value, discriminator: VERIFY_DISCRIMINATOR }),
@@ -126,17 +120,10 @@ export function getVerifyInstructionDataDecoder(): Decoder<VerifyInstructionData
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
     ["messageHash", fixDecoderSize(getBytesDecoder(), 32)],
-    [
-      "expectedRpId",
-      getOptionDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())),
-    ],
+    ["expectedRpIdHash", getOptionDecoder(fixDecoderSize(getBytesDecoder(), 32))],
     [
       "expectedOrigins",
-      getOptionDecoder(
-        getArrayDecoder(
-          addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder()),
-        ),
-      ),
+      getOptionDecoder(getArrayDecoder(addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder()))),
     ],
   ]);
 }
@@ -145,45 +132,53 @@ export function getVerifyInstructionDataCodec(): Codec<
   VerifyInstructionDataArgs,
   VerifyInstructionData
 > {
-  return combineCodec(
-    getVerifyInstructionDataEncoder(),
-    getVerifyInstructionDataDecoder(),
-  );
+  return combineCodec(getVerifyInstructionDataEncoder(), getVerifyInstructionDataDecoder());
 }
 
 export type VerifyInput<
-  TAccountPhygitalToken extends string = string,
-  TAccountInstructionsSysvar extends string = string,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
+  TAccountInstructionsSysvar extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  phygitalToken: Address<TAccountPhygitalToken>;
-  instructionsSysvar?: Address<TAccountInstructionsSysvar>;
+  phygitalToken: TAccountPhygitalToken;
+  instructionsSysvar?: TAccountInstructionsSysvar;
   secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
   messageHash: VerifyInstructionDataArgs["messageHash"];
-  expectedRpId: VerifyInstructionDataArgs["expectedRpId"];
+  expectedRpIdHash: VerifyInstructionDataArgs["expectedRpIdHash"];
   expectedOrigins: VerifyInstructionDataArgs["expectedOrigins"];
 };
 
 export function getVerifyInstruction<
-  TAccountPhygitalToken extends string,
-  TAccountInstructionsSysvar extends string,
+  TAccountPhygitalToken extends InstructionAccountInput,
+  TAccountInstructionsSysvar extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: VerifyInput<TAccountPhygitalToken, TAccountInstructionsSysvar>,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): VerifyInstruction<
   TProgramAddress,
-  TAccountPhygitalToken,
-  TAccountInstructionsSysvar
+  ResolvedInstructionAccountMeta<
+    TAccountPhygitalToken,
+    InstructionAccountInputAddress<TAccountPhygitalToken>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountInstructionsSysvar,
+    InstructionAccountInputAddress<TAccountInstructionsSysvar>
+  >
 > {
   // Program address.
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
   const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
     instructionsSysvar: {
       value: input.instructionsSysvar ?? null,
+      isSigner: false,
       isWritable: false,
     },
   };
@@ -201,20 +196,23 @@ export function getVerifyInstruction<
       "Sysvar1nstructions1111111111111111111111111" as Address<"Sysvar1nstructions1111111111111111111111111">;
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("phygitalToken", accounts.phygitalToken),
       getAccountMeta("instructionsSysvar", accounts.instructionsSysvar),
     ],
-    data: getVerifyInstructionDataEncoder().encode(
-      args as VerifyInstructionDataArgs,
-    ),
+    data: getVerifyInstructionDataEncoder().encode(args as VerifyInstructionDataArgs),
     programAddress,
   } as VerifyInstruction<
     TProgramAddress,
-    TAccountPhygitalToken,
-    TAccountInstructionsSysvar
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountInstructionsSysvar,
+      InstructionAccountInputAddress<TAccountInstructionsSysvar>
+    >
   >);
 }
 
@@ -239,13 +237,10 @@ export function parseVerifyInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedVerifyInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 2) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 2,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 2,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {
@@ -255,10 +250,7 @@ export function parseVerifyInstruction<
   };
   return {
     programAddress: instruction.programAddress,
-    accounts: {
-      phygitalToken: getNextAccount(),
-      instructionsSysvar: getNextAccount(),
-    },
+    accounts: { phygitalToken: getNextAccount(), instructionsSysvar: getNextAccount() },
     data: getVerifyInstructionDataDecoder().decode(instruction.data),
   };
 }

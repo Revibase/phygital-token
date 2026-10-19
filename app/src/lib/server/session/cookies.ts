@@ -1,38 +1,31 @@
 import type { Cookies } from '@sveltejs/kit';
-import { dev } from '$app/environment';
+import { dev } from '$app/env';
 
-import { base64UrlToBytes, bytesToBase64Url } from '$lib/shared/encoding';
+import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
 
 /**
  * Stateless, HMAC-SHA256-signed session cookies.
  *
  * Admit (opens `/accessory`):
  * - `bu`  — browse_unlock: physical possession (NFC tap or WebAuthn Hold).
- * - `ob`  — owner_browse: the linked wallet owns this accessory (no tap needed).
+ * - `ob`  — owner_browse: the owner owns this accessory (no tap needed).
  *   Issued from `os` alone, so opening an accessory never asks for a signature.
  *
  * Login:
  * - `os`  — owner_session: this browser proved control of a wallet (one signMessage).
  *
- * Ceremony:
- * - `hof`  — handoff finisher: the one wallet context that claimed `h`.
- * - `dsk`  — desktop finisher bound when the desktop starts a pairing.
- * - `pair` — phone that scanned the desktop QR (claimed `p`).
- *
  * Purpose is bound into the token (`t`), so a browse_unlock cookie never
- * verifies as owner_browse (and vice versa). Matches phygital-wallet's
- * browse_unlock / authority_browse admit model.
+ * verifies as owner_browse (and vice versa).
  *
  * All are HttpOnly + SameSite=Lax + Secure, with the `__Host-` prefix in
  * production so they cannot be set by a subdomain or scoped to a sub-path.
  */
 
 export const BROWSE_SESSION_TTL_MS = 10 * 60 * 1000;
-export const FINISHER_SESSION_TTL_MS = 10 * 60 * 1000;
-/** Wallet login lifetime (phygital-wallet's authority session). */
+/** Wallet login lifetime. */
 export const OWNER_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** Physical-possession admit. Seed of the link ceremony. */
+/** Physical-possession admit for a fresh accessory tap. */
 export type BrowseUnlockSession = {
 	v: 1;
 	t: 'bu';
@@ -42,14 +35,14 @@ export type BrowseUnlockSession = {
 	exp: number;
 };
 
-/** Owner admit: linked wallet opened this accessory from Home. */
+/** Owner admit: owner opened this accessory from Home. */
 export type OwnerBrowseSession = {
 	v: 1;
 	t: 'ob';
 	sid: string;
 	pda: string;
 	identifier: string;
-	/** The linked wallet that signed to open it. */
+	/** The owner that signed to open it. */
 	wallet: string;
 	exp: number;
 };
@@ -60,17 +53,12 @@ export type OwnerSession = { v: 1; t: 'os'; sid: string; wallet: string; exp: nu
 /** Either admit cookie — enough to view `/accessory`. */
 export type AdmitSession = BrowseUnlockSession | OwnerBrowseSession;
 
-export type FinisherSession = { v: 1; t: 'hof' | 'dsk'; sid: string; linkId: string; exp: number };
-export type PairSession = { v: 1; t: 'pair'; sid: string; linkId: string; exp: number };
-type AnySession = BrowseUnlockSession | OwnerBrowseSession | OwnerSession | FinisherSession | PairSession;
+type AnySession = BrowseUnlockSession | OwnerBrowseSession | OwnerSession;
 
 const NAMES = {
 	bu: dev ? 'bu' : '__Host-bu',
 	ob: dev ? 'ob' : '__Host-ob',
-	os: dev ? 'os' : '__Host-os',
-	hof: dev ? 'hof' : '__Host-hof',
-	dsk: dev ? 'dsk' : '__Host-dsk',
-	pair: dev ? 'pair' : '__Host-pair'
+	os: dev ? 'os' : '__Host-os'
 } as const;
 
 const encoder = new TextEncoder();
@@ -79,10 +67,13 @@ const keyCache = new Map<string, Promise<CryptoKey>>();
 function hmacKey(secret: string): Promise<CryptoKey> {
 	let key = keyCache.get(secret);
 	if (!key) {
-		key = crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
-			'sign',
-			'verify'
-		]);
+		key = crypto.subtle.importKey(
+			'raw',
+			encoder.encode(secret),
+			{ name: 'HMAC', hash: 'SHA-256' },
+			false,
+			['sign', 'verify']
+		);
 		keyCache.set(secret, key);
 	}
 	return key;
@@ -122,7 +113,12 @@ export async function verifyToken<T extends AnySession>(
 	if (!valid) return null;
 	try {
 		const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(body))) as AnySession;
-		if (payload.v !== 1 || payload.t !== type || typeof payload.exp !== 'number' || payload.exp <= now) {
+		if (
+			payload.v !== 1 ||
+			payload.t !== type ||
+			typeof payload.exp !== 'number' ||
+			payload.exp <= now
+		) {
 			return null;
 		}
 		return payload as T;
@@ -193,30 +189,13 @@ export async function setOwnerSession(
 	wallet: string,
 	now = Date.now()
 ): Promise<OwnerSession> {
-	const session: OwnerSession = { v: 1, t: 'os', sid: newSessionId(), wallet, exp: now + OWNER_SESSION_TTL_MS };
-	await writeCookie(cookies, secret, session);
-	return session;
-}
-
-export async function setFinisherSession(
-	cookies: Cookies,
-	secret: string,
-	t: FinisherSession['t'],
-	linkId: string,
-	now = Date.now()
-): Promise<FinisherSession> {
-	const session: FinisherSession = { v: 1, t, sid: newSessionId(), linkId, exp: now + FINISHER_SESSION_TTL_MS };
-	await writeCookie(cookies, secret, session);
-	return session;
-}
-
-export async function setPairSession(
-	cookies: Cookies,
-	secret: string,
-	linkId: string,
-	now = Date.now()
-): Promise<PairSession> {
-	const session: PairSession = { v: 1, t: 'pair', sid: newSessionId(), linkId, exp: now + FINISHER_SESSION_TTL_MS };
+	const session: OwnerSession = {
+		v: 1,
+		t: 'os',
+		sid: newSessionId(),
+		wallet,
+		exp: now + OWNER_SESSION_TTL_MS
+	};
 	await writeCookie(cookies, secret, session);
 	return session;
 }
@@ -237,16 +216,11 @@ export function readOwnerBrowse(cookies: Cookies, secret: string) {
  * Admit for viewing `/accessory`: browse_unlock wins when both somehow remain
  * (a physical tap is fresher proof than an owner open).
  */
-export async function readAdmitSession(cookies: Cookies, secret: string): Promise<AdmitSession | null> {
+export async function readAdmitSession(
+	cookies: Cookies,
+	secret: string
+): Promise<AdmitSession | null> {
 	const browse = await readBrowseUnlock(cookies, secret);
 	if (browse) return browse;
 	return readOwnerBrowse(cookies, secret);
-}
-
-export function readFinisherSession(cookies: Cookies, secret: string, t: FinisherSession['t']) {
-	return verifyToken<FinisherSession>(secret, cookies.get(NAMES[t]), t);
-}
-
-export function readPairSession(cookies: Cookies, secret: string) {
-	return verifyToken<PairSession>(secret, cookies.get(NAMES.pair), 'pair');
 }

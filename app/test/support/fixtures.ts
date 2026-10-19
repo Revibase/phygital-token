@@ -1,10 +1,15 @@
 import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { address, generateKeyPairSigner } from '@solana/kit';
-import { findPhygitalTokenPda, type PhygitalToken } from 'phygital-token-sdk';
+import { address, generateKeyPairSigner, type Rpc, type SolanaRpcApi } from '@solana/kit';
+import {
+	findPhygitalTokenPda,
+	type AuthenticationResponseJSON,
+	type PhygitalToken,
+	type TransferSession
+} from 'phygital-token-sdk';
 
-import { bytesToBase64, bytesToBase64Url } from '$lib/shared/encoding';
-import type { TransferPayload } from '$lib/shared/types';
+import { bytesToBase64Url } from '#lib/shared/encoding.ts';
+import type { LinkTap } from '#lib/shared/link-transaction.ts';
 
 export const RP_ID = 'accessory.test';
 export const ORIGIN = 'https://accessory.test';
@@ -23,20 +28,17 @@ export function fakeAccessory() {
 		account(overrides: Partial<PhygitalToken> = {}): PhygitalToken {
 			return {
 				discriminator: new Uint8Array(8),
-				linkedWallet: address('11111111111111111111111111111111'),
+				owner: address('11111111111111111111111111111111'),
 				mint: address('11111111111111111111111111111111'),
 				lastSignCount: 3,
 				tokenType: 1,
-				isLocked: 0,
+				bump: 0,
 				publicKey: [publicKey],
 				identifier: [identifier],
 				...overrides
 			};
 		},
-		assert(
-			challenge: Uint8Array,
-			opts: { highS?: boolean } = {}
-		): TransferPayload['response'] {
+		assert(challenge: Uint8Array, opts: { highS?: boolean } = {}): AuthenticationResponseJSON {
 			const clientData = new TextEncoder().encode(
 				JSON.stringify({
 					type: 'webauthn.get',
@@ -53,7 +55,8 @@ export function fakeAccessory() {
 			signed.set(authData);
 			signed.set(sha256(clientData), authData.length);
 			let sig = p256.Signature.fromBytes(p256.sign(signed, priv), 'compact');
-			if (!!opts.highS !== sig.hasHighS()) sig = new p256.Signature(sig.r, p256.Point.CURVE().n - sig.s);
+			if (!!opts.highS !== sig.hasHighS())
+				sig = new p256.Signature(sig.r, p256.Point.CURVE().n - sig.s);
 			const der = sig.toBytes('der');
 			return {
 				id: bytesToBase64Url(publicKey),
@@ -70,18 +73,21 @@ export function fakeAccessory() {
 	};
 }
 
-export async function fakePayload(acc = fakeAccessory()) {
+export async function fakeTap(acc = fakeAccessory()) {
 	const slotHash = crypto.getRandomValues(new Uint8Array(32));
 	const challenge = crypto.getRandomValues(new Uint8Array(32));
-	const payload: TransferPayload = {
-		linkId: 'link-test-000000',
-		phygitalToken: await acc.pda(),
+	const recipient = await generateKeyPairSigner();
+	const session: TransferSession = {
+		rpc: {} as Rpc<SolanaRpcApi>,
+		phygitalToken: address(await acc.pda()),
+		owner: null,
 		secp256r1Pubkey: acc.publicKeyB64,
-		slotNumber: '123456',
-		slotHash: bytesToBase64(slotHash),
-		challenge: bytesToBase64Url(challenge),
+		slotNumber: 123456n,
+		slotHash,
+		challenge,
 		rpId: RP_ID,
-		response: acc.assert(challenge)
+		recipient: recipient.address
 	};
-	return { acc, payload, recipient: await generateKeyPairSigner() };
+	const tap: LinkTap = { session, response: acc.assert(challenge) };
+	return { acc, tap, recipient };
 }

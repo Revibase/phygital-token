@@ -29,23 +29,25 @@ import {
   type ReadonlyAccount,
   type ReadonlySignerAccount,
   type ReadonlyUint8Array,
-  type TransactionSigner,
   type WritableAccount,
 } from "@solana/kit";
 import {
   getAccountMetaFactory,
+  type InstructionAccountInput,
+  type InstructionAccountInputAddress,
+  type InstructionSignerInput,
   type ResolvedInstructionAccount,
+  type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { findAdminConfigPda } from "../pdas/index.js";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
-export const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([254, 245, 167, 180, 210, 121, 241, 102]);
+export const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  254, 245, 167, 180, 210, 121, 241, 102,
+]);
 
 export function getClosePhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR,
-  );
+  return fixEncoderSize(getBytesEncoder(), 8).encode(CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR);
 }
 
 export type ClosePhygitalTokenInstruction<
@@ -60,8 +62,7 @@ export type ClosePhygitalTokenInstruction<
   InstructionWithAccounts<
     [
       TAccountAdmin extends string
-        ? ReadonlySignerAccount<TAccountAdmin> &
-            AccountSignerMeta<TAccountAdmin>
+        ? ReadonlySignerAccount<TAccountAdmin> & AccountSignerMeta<TAccountAdmin>
         : TAccountAdmin,
       TAccountRentRecipient extends string
         ? WritableAccount<TAccountRentRecipient>
@@ -76,26 +77,19 @@ export type ClosePhygitalTokenInstruction<
     ]
   >;
 
-export type ClosePhygitalTokenInstructionData = {
-  discriminator: ReadonlyUint8Array;
-};
+export type ClosePhygitalTokenInstructionData = { discriminator: ReadonlyUint8Array };
 
 export type ClosePhygitalTokenInstructionDataArgs = {};
 
 export function getClosePhygitalTokenInstructionDataEncoder(): FixedSizeEncoder<ClosePhygitalTokenInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([["discriminator", fixEncoderSize(getBytesEncoder(), 8)]]),
-    (value) => ({
-      ...value,
-      discriminator: CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR,
-    }),
+    (value) => ({ ...value, discriminator: CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR }),
   );
 }
 
 export function getClosePhygitalTokenInstructionDataDecoder(): FixedSizeDecoder<ClosePhygitalTokenInstructionData> {
-  return getStructDecoder([
-    ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-  ]);
+  return getStructDecoder([["discriminator", fixDecoderSize(getBytesDecoder(), 8)]]);
 }
 
 export function getClosePhygitalTokenInstructionDataCodec(): FixedSizeCodec<
@@ -109,22 +103,22 @@ export function getClosePhygitalTokenInstructionDataCodec(): FixedSizeCodec<
 }
 
 export type ClosePhygitalTokenAsyncInput<
-  TAccountAdmin extends string = string,
-  TAccountRentRecipient extends string = string,
-  TAccountAdminConfig extends string = string,
-  TAccountPhygitalToken extends string = string,
+  TAccountAdmin extends InstructionSignerInput = InstructionSignerInput,
+  TAccountRentRecipient extends InstructionAccountInput = InstructionAccountInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  rentRecipient: Address<TAccountRentRecipient>;
-  adminConfig?: Address<TAccountAdminConfig>;
-  phygitalToken: Address<TAccountPhygitalToken>;
+  admin: TAccountAdmin;
+  rentRecipient: TAccountRentRecipient;
+  adminConfig?: TAccountAdminConfig;
+  phygitalToken: TAccountPhygitalToken;
 };
 
 export async function getClosePhygitalTokenInstructionAsync<
-  TAccountAdmin extends string,
-  TAccountRentRecipient extends string,
-  TAccountAdminConfig extends string,
-  TAccountPhygitalToken extends string,
+  TAccountAdmin extends InstructionSignerInput,
+  TAccountRentRecipient extends InstructionAccountInput,
+  TAccountAdminConfig extends InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: ClosePhygitalTokenAsyncInput<
@@ -133,26 +127,39 @@ export async function getClosePhygitalTokenInstructionAsync<
     TAccountAdminConfig,
     TAccountPhygitalToken
   >,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): Promise<
   ClosePhygitalTokenInstruction<
     TProgramAddress,
-    TAccountAdmin,
-    TAccountRentRecipient,
-    TAccountAdminConfig,
-    TAccountPhygitalToken
+    ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+    ResolvedInstructionAccountMeta<
+      TAccountRentRecipient,
+      InstructionAccountInputAddress<TAccountRentRecipient>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >
   >
 > {
   // Program address.
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
   const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: false },
-    rentRecipient: { value: input.rentRecipient ?? null, isWritable: true },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: false },
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    admin: { value: input.admin ?? null, isSigner: true, isWritable: false },
+    rentRecipient: { value: input.rentRecipient ?? null, isSigner: false, isWritable: true },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -161,10 +168,9 @@ export async function getClosePhygitalTokenInstructionAsync<
 
   // Resolve default values.
   if (!accounts.adminConfig.value) {
-    accounts.adminConfig.value = await findAdminConfigPda();
+    accounts.adminConfig.value = await findAdminConfigPda({ programAddress });
   }
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("admin", accounts.admin),
@@ -176,30 +182,39 @@ export async function getClosePhygitalTokenInstructionAsync<
     programAddress,
   } as ClosePhygitalTokenInstruction<
     TProgramAddress,
-    TAccountAdmin,
-    TAccountRentRecipient,
-    TAccountAdminConfig,
-    TAccountPhygitalToken
+    ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+    ResolvedInstructionAccountMeta<
+      TAccountRentRecipient,
+      InstructionAccountInputAddress<TAccountRentRecipient>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >
   >);
 }
 
 export type ClosePhygitalTokenInput<
-  TAccountAdmin extends string = string,
-  TAccountRentRecipient extends string = string,
-  TAccountAdminConfig extends string = string,
-  TAccountPhygitalToken extends string = string,
+  TAccountAdmin extends InstructionSignerInput = InstructionSignerInput,
+  TAccountRentRecipient extends InstructionAccountInput = InstructionAccountInput,
+  TAccountAdminConfig extends InstructionAccountInput = InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput,
 > = {
-  admin: TransactionSigner<TAccountAdmin>;
-  rentRecipient: Address<TAccountRentRecipient>;
-  adminConfig: Address<TAccountAdminConfig>;
-  phygitalToken: Address<TAccountPhygitalToken>;
+  admin: TAccountAdmin;
+  rentRecipient: TAccountRentRecipient;
+  adminConfig: TAccountAdminConfig;
+  phygitalToken: TAccountPhygitalToken;
 };
 
 export function getClosePhygitalTokenInstruction<
-  TAccountAdmin extends string,
-  TAccountRentRecipient extends string,
-  TAccountAdminConfig extends string,
-  TAccountPhygitalToken extends string,
+  TAccountAdmin extends InstructionSignerInput,
+  TAccountRentRecipient extends InstructionAccountInput,
+  TAccountAdminConfig extends InstructionAccountInput,
+  TAccountPhygitalToken extends InstructionAccountInput,
   TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 >(
   input: ClosePhygitalTokenInput<
@@ -208,31 +223,43 @@ export function getClosePhygitalTokenInstruction<
     TAccountAdminConfig,
     TAccountPhygitalToken
   >,
-  config?: { programAddress?: TProgramAddress },
+  config?: { programAddress?: TProgramAddress | { readonly address: TProgramAddress } },
 ): ClosePhygitalTokenInstruction<
   TProgramAddress,
-  TAccountAdmin,
-  TAccountRentRecipient,
-  TAccountAdminConfig,
-  TAccountPhygitalToken
+  ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+  ResolvedInstructionAccountMeta<
+    TAccountRentRecipient,
+    InstructionAccountInputAddress<TAccountRentRecipient>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountAdminConfig,
+    InstructionAccountInputAddress<TAccountAdminConfig>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountPhygitalToken,
+    InstructionAccountInputAddress<TAccountPhygitalToken>
+  >
 > {
   // Program address.
+  const programAddressInput = config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
   const programAddress =
-    config?.programAddress ?? PHYGITAL_TOKEN_PROGRAM_ADDRESS;
+    typeof programAddressInput === "string" ? programAddressInput : programAddressInput.address;
+
+  // Account meta helper.
+  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
 
   // Original accounts.
   const originalAccounts = {
-    admin: { value: input.admin ?? null, isWritable: false },
-    rentRecipient: { value: input.rentRecipient ?? null, isWritable: true },
-    adminConfig: { value: input.adminConfig ?? null, isWritable: false },
-    phygitalToken: { value: input.phygitalToken ?? null, isWritable: true },
+    admin: { value: input.admin ?? null, isSigner: true, isWritable: false },
+    rentRecipient: { value: input.rentRecipient ?? null, isSigner: false, isWritable: true },
+    adminConfig: { value: input.adminConfig ?? null, isSigner: false, isWritable: false },
+    phygitalToken: { value: input.phygitalToken ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
     ResolvedInstructionAccount
   >;
 
-  const getAccountMeta = getAccountMetaFactory(programAddress, "programId");
   return Object.freeze({
     accounts: [
       getAccountMeta("admin", accounts.admin),
@@ -244,10 +271,19 @@ export function getClosePhygitalTokenInstruction<
     programAddress,
   } as ClosePhygitalTokenInstruction<
     TProgramAddress,
-    TAccountAdmin,
-    TAccountRentRecipient,
-    TAccountAdminConfig,
-    TAccountPhygitalToken
+    ResolvedInstructionAccountMeta<TAccountAdmin, InstructionAccountInputAddress<TAccountAdmin>>,
+    ResolvedInstructionAccountMeta<
+      TAccountRentRecipient,
+      InstructionAccountInputAddress<TAccountRentRecipient>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountAdminConfig,
+      InstructionAccountInputAddress<TAccountAdminConfig>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountPhygitalToken,
+      InstructionAccountInputAddress<TAccountPhygitalToken>
+    >
   >);
 }
 
@@ -274,13 +310,10 @@ export function parseClosePhygitalTokenInstruction<
     InstructionWithData<ReadonlyUint8Array>,
 ): ParsedClosePhygitalTokenInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
-    throw new SolanaError(
-      SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
-      {
-        actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 4,
-      },
-    );
+    throw new SolanaError(SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS, {
+      actualAccountMetas: instruction.accounts.length,
+      expectedAccountMetas: 4,
+    });
   }
   let accountIndex = 0;
   const getNextAccount = () => {
@@ -296,8 +329,6 @@ export function parseClosePhygitalTokenInstruction<
       adminConfig: getNextAccount(),
       phygitalToken: getNextAccount(),
     },
-    data: getClosePhygitalTokenInstructionDataDecoder().decode(
-      instruction.data,
-    ),
+    data: getClosePhygitalTokenInstructionDataDecoder().decode(instruction.data),
   };
 }
