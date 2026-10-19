@@ -16,6 +16,7 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - "@noble/hashes@2.4.0"
+  - revibase-wallet-sdk@0.1.0
 
 # One version of each shared tool across the workspace. TypeScript stays on 6.x:
 # 7.x ships no JavaScript compiler API, which svelte-check, typescript-eslint

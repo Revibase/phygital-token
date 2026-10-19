@@ -120,8 +120,8 @@ importers:
         specifier: ^1.5.4
         version: 1.5.4
       revibase-wallet-sdk:
-        specifier: file:../../revibase-wallet/packages/js/revibase-wallet
-        version: file:../revibase-wallet/packages/js/revibase-wallet(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6))
+        specifier: ^0.1.0
+        version: 0.1.0(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6))
     devDependencies:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
@@ -3796,8 +3796,8 @@ packages:
     engines: {node: '>= 0.4'}
     hasBin: true
 
-  revibase-wallet-sdk@file:../revibase-wallet/packages/js/revibase-wallet:
-    resolution: {directory: ../revibase-wallet/packages/js/revibase-wallet, type: directory}
+  revibase-wallet-sdk@0.1.0:
+    resolution: {integrity: sha512-MimNOoBOTAacyi7sxW2BzHA0fFbdBJ75yM/k1cq9GtS51HL2gsUWBwL8aZyEb7eI9iAZQuie+y0J0Bc9zg8uxA==}
     engines: {node: '>=20.18.0'}
     peerDependencies:
       '@solana/kit': ^8.3.0
@@ -8259,7 +8259,7 @@ snapshots:
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
 
-  revibase-wallet-sdk@file:../revibase-wallet/packages/js/revibase-wallet(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6)):
+  revibase-wallet-sdk@0.1.0(@solana/kit@8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6)):
     dependencies:
       '@noble/curves': 2.4.0
       '@solana/kit': 8.5.0(bufferutil@4.1.0)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@6.0.3)(utf-8-validate@6.0.6)

@@ -63,7 +63,7 @@
 		"@wallet-standard/base": "^1.1.1",
 		"phygital-token-sdk": "workspace:*",
 		"qrcode": "^1.5.4",
-		"revibase-wallet-sdk": "file:../../revibase-wallet/packages/js/revibase-wallet"
+		"revibase-wallet-sdk": "^0.1.0"
 	},
 	"engines": {
 		"node": ">=22.12.0"
