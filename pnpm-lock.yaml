@@ -105,8 +105,8 @@ importers:
         specifier: ^6.3.3
         version: 6.3.3(svelte@5.57.2(@typescript-eslint/types@8.71.2))
       '@tanstack/svelte-query-persist-client':
-        specifier: ^6.3.3
-        version: 6.3.3(@tanstack/svelte-query@6.3.3(svelte@5.57.2(@typescript-eslint/types@8.71.2)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))
+        specifier: ^6.3.4
+        version: 6.3.4(@tanstack/svelte-query@6.3.3(svelte@5.57.2(@typescript-eslint/types@8.71.2)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))
       '@wallet-standard/app':
         specifier: ^1.1.1
         version: 1.1.1
@@ -2171,16 +2171,22 @@ packages:
   '@tanstack/query-core@5.104.3':
     resolution: {integrity: sha512-DZY9TuJAOgU3UyHUhXb4CcTYEHNZszlwkPg4VViIwTxOKzLprPUU+rbaPZQd3srqkGOtpaDdKpW972UV/LKlcg==}
 
+  '@tanstack/query-core@5.104.4':
+    resolution: {integrity: sha512-nU4Yrb8Sjn0DeVb7PKG9uiepNavys3yoxy1FX0hViY4/P6Ng/mBje2SMl7i9812rtyHKtHyqiaC/td6GkI8StA==}
+
   '@tanstack/query-persist-client-core@5.104.3':
     resolution: {integrity: sha512-6nhc/QbMpkKeuAM81SFSdcsJ9B8dm3fGHPODbau2cRSDyqcXiSl7sXQM7POVktch/YdgIGYPIQyZOQQaRarHMA==}
+
+  '@tanstack/query-persist-client-core@5.104.4':
+    resolution: {integrity: sha512-jnKIZWoHJOuYFoUAiXQozupLvCDrn7qEpNfQ1NPvLnzDW8D6mD5029yqu3syPspt+88buTfiSLNyfoabZdGsGA==}
 
   '@tanstack/query-sync-storage-persister@5.104.3':
     resolution: {integrity: sha512-sNM9X7QZdTHBlzHuNxuHQjECn3/zncuMgw5pesOFXu8XQ01UXBGASdMKZSRaxfNOhigRjm5souHhfmByN97NEg==}
 
-  '@tanstack/svelte-query-persist-client@6.3.3':
-    resolution: {integrity: sha512-nnw35Lmxthk2KIC1E4cDdO3i5+st3mqVbIZJN0PW5eJCGKEGtDyTk6sOOTfQmcmMLplVNihZJnWA9da01xvtlQ==}
+  '@tanstack/svelte-query-persist-client@6.3.4':
+    resolution: {integrity: sha512-E9yRBP6vC9MV9aWjTT4W5NZNfMfb7WDqlwNDIVyp1hrJmiLTFzh3J9DG2Xk65cb+dM2c5JLAXNKRJ/L6Szu9WQ==}
     peerDependencies:
-      '@tanstack/svelte-query': ^6.3.3
+      '@tanstack/svelte-query': ^6.3.4
       svelte: ^5.25.0
 
   '@tanstack/svelte-query@6.3.3':
@@ -6541,18 +6547,24 @@ snapshots:
 
   '@tanstack/query-core@5.104.3': {}
 
+  '@tanstack/query-core@5.104.4': {}
+
   '@tanstack/query-persist-client-core@5.104.3':
     dependencies:
       '@tanstack/query-core': 5.104.3
+
+  '@tanstack/query-persist-client-core@5.104.4':
+    dependencies:
+      '@tanstack/query-core': 5.104.4
 
   '@tanstack/query-sync-storage-persister@5.104.3':
     dependencies:
       '@tanstack/query-core': 5.104.3
       '@tanstack/query-persist-client-core': 5.104.3
 
-  '@tanstack/svelte-query-persist-client@6.3.3(@tanstack/svelte-query@6.3.3(svelte@5.57.2(@typescript-eslint/types@8.71.2)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))':
+  '@tanstack/svelte-query-persist-client@6.3.4(@tanstack/svelte-query@6.3.3(svelte@5.57.2(@typescript-eslint/types@8.71.2)))(svelte@5.57.2(@typescript-eslint/types@8.71.2))':
     dependencies:
-      '@tanstack/query-persist-client-core': 5.104.3
+      '@tanstack/query-persist-client-core': 5.104.4
       '@tanstack/svelte-query': 6.3.3(svelte@5.57.2(@typescript-eslint/types@8.71.2))
       svelte: 5.57.2(@typescript-eslint/types@8.71.2)
 

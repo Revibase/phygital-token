@@ -58,7 +58,7 @@
 		"@solana/wallet-standard-features": "^1.5.0",
 		"@tanstack/query-sync-storage-persister": "^5.104.3",
 		"@tanstack/svelte-query": "^6.3.3",
-		"@tanstack/svelte-query-persist-client": "^6.3.3",
+		"@tanstack/svelte-query-persist-client": "^6.3.4",
 		"@wallet-standard/app": "^1.1.1",
 		"@wallet-standard/base": "^1.1.1",
 		"phygital-token-sdk": "workspace:*",
