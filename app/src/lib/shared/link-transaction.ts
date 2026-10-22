@@ -31,11 +31,7 @@ import {
 	SLOT_HASHES_SYSVAR
 } from './addresses';
 import { LINK_TX_CONFIG } from './fee-policy';
-import {
-	decodeMessage,
-	PasskeyTransactionRejected,
-	type DecodedMessage
-} from './passkey-transaction';
+import { decodeMessage, TransactionRejected, type DecodedMessage } from './transaction';
 
 /**
  * How long a tap over a freshly fetched slot hash stays usable.
@@ -54,7 +50,7 @@ export type LinkTap = { session: TransferSession; response: AuthenticationRespon
 export async function buildLinkTransactionFromTap(input: {
 	tap: LinkTap;
 	recipient: TransactionSigner;
-	/** Who pays the fee: the recipient, unless it is a passkey vault (a Revibase fee payer). */
+	/** Who pays the fee. The linking wallet pays its own. */
 	feePayer?: Address;
 	blockhash: { blockhash: Blockhash; lastValidBlockHeight: bigint };
 }) {
@@ -112,7 +108,7 @@ function decodeLinkMessage(wireBytes: Uint8Array): DecodedMessage {
 	try {
 		return decodeMessage(wireBytes);
 	} catch (err) {
-		if (err instanceof PasskeyTransactionRejected) throw new LinkTransactionRejected(err.reason);
+		if (err instanceof TransactionRejected) throw new LinkTransactionRejected(err.reason);
 		throw err;
 	}
 }

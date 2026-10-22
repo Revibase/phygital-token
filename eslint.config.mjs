@@ -1,7 +1,6 @@
 // @ts-check
 import js from "@eslint/js";
 import prettier from "eslint-config-prettier";
-import svelte from "eslint-plugin-svelte";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -12,8 +11,9 @@ export default tseslint.config(
       "**/dist/**",
       "**/build/**",
       "**/coverage/**",
-      "**/.svelte-kit/**",
       "**/.wrangler/**",
+      "**/.next/**",
+      "**/.open-next/**",
       "target/**",
       "graphify-out/**",
       "**/results/**",
@@ -24,9 +24,7 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
-  ...svelte.configs.recommended,
   prettier,
-  ...svelte.configs.prettier,
   {
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
@@ -36,7 +34,6 @@ export default tseslint.config(
           allowDefaultProject: ["eslint.config.mjs"],
         },
         tsconfigRootDir: import.meta.dirname,
-        extraFileExtensions: [".svelte"],
       },
     },
   },
@@ -47,10 +44,6 @@ export default tseslint.config(
       // `let ok = false; try { ok = verify(...) } catch { ok = false }` is a
       // deliberate fail-closed default in the verification code.
       "no-useless-assignment": "off",
-      // The app is served from the origin root and links out to explorers.
-      "svelte/no-navigation-without-resolve": "off",
-      // Flags function-local Maps/Sets that are never reactive state.
-      "svelte/prefer-svelte-reactivity": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" },
@@ -58,22 +51,8 @@ export default tseslint.config(
     },
   },
   {
-    // Svelte rune modules: the Svelte parser delegates script to TypeScript.
-    files: ["**/*.svelte.ts"],
-    languageOptions: { parserOptions: { parser: tseslint.parser } },
-  },
-  {
-    // ESLint cannot see SvelteKit's generated `./$types`, so type-aware rules
-    // report false positives in components. svelte-check type-checks them.
-    files: ["**/*.svelte"],
-    languageOptions: {
-      parserOptions: { parser: tseslint.parser, projectService: false, program: null },
-    },
-    rules: tseslint.configs.disableTypeChecked.rules,
-  },
-  {
     // Trust boundary: browser-reachable code must never import server modules
-    // (secrets, D1, signing keys). SvelteKit enforces this at build time too.
+    // (secrets, D1, signing keys).
     files: ["app/src/lib/client/**", "app/src/lib/shared/**", "app/src/lib/components/**"],
     rules: {
       "no-restricted-imports": [
@@ -88,13 +67,6 @@ export default tseslint.config(
         },
       ],
     },
-  },
-  {
-    // Route modules type their load functions through SvelteKit's generated
-    // `./$types`, which ESLint resolves less precisely than svelte-check; the
-    // assertions there narrow loader output for the page components.
-    files: ["app/src/routes/**/*.ts"],
-    rules: { "@typescript-eslint/no-unnecessary-type-assertion": "off" },
   },
   {
     // Tests and fixtures poke at loosely typed mocks and JSON.

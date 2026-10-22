@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearStoredOwners, recentWallet, rememberRecentWallet } from '#lib/client/memory.ts';
+import { clearStoredOwners } from '#lib/client/memory.ts';
 
 describe('browser-local wallet memory', () => {
 	let storage: Map<string, string>;
@@ -17,21 +17,13 @@ describe('browser-local wallet memory', () => {
 	});
 	afterEach(() => vi.unstubAllGlobals());
 
-	it('remembers the last wallet app used in this browser', () => {
-		rememberRecentWallet('Phantom');
-		expect(recentWallet()).toBe('Phantom');
-		storage.clear();
-		expect(recentWallet()).toBeNull();
-	});
-
 	it('clears the owners older versions stored, and nothing else', () => {
 		storage.set('revibase:linked:card-a', 'owner-a');
 		storage.set('revibase:link-context:card-a', '{"wallet":"owner-a","app":"Phantom"}');
 		storage.set('revibase:linked:card-b', 'owner-b');
-		rememberRecentWallet('Phantom');
 		storage.set('unrelated', 'keep');
 		clearStoredOwners();
-		expect([...storage.keys()].sort()).toEqual(['revibase:recent-wallet', 'unrelated']);
+		expect([...storage.keys()]).toEqual(['unrelated']);
 	});
 
 	it('tolerates blocked storage', () => {
@@ -39,15 +31,13 @@ describe('browser-local wallet memory', () => {
 			get length(): number {
 				throw Error('blocked');
 			},
-			getItem() {
+			key() {
 				throw Error('blocked');
 			},
-			setItem() {
+			removeItem() {
 				throw Error('blocked');
 			}
 		});
-		expect(recentWallet()).toBeNull();
-		expect(() => rememberRecentWallet('Phantom')).not.toThrow();
 		expect(() => clearStoredOwners()).not.toThrow();
 	});
 });

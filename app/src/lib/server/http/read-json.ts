@@ -1,5 +1,3 @@
-import { json } from '@sveltejs/kit';
-
 /** Default cap for API request bodies; every current request is far smaller. */
 export const MAX_JSON_BODY_BYTES = 16 * 1024;
 
@@ -18,11 +16,11 @@ export async function readJsonObject(
 ): Promise<JsonObjectResult> {
 	const tooLarge = {
 		ok: false as const,
-		response: json({ error: 'Request too large', code: 'too_large' }, { status: 413 })
+		response: Response.json({ error: 'Request too large', code: 'too_large' }, { status: 413 })
 	};
 	const bad = {
 		ok: false as const,
-		response: json({ error: 'Invalid JSON body', code: 'bad_request' }, { status: 400 })
+		response: Response.json({ error: 'Invalid JSON body', code: 'bad_request' }, { status: 400 })
 	};
 	if (Number(request.headers.get('content-length') ?? 0) > maxBytes) return tooLarge;
 	let text: string;

@@ -1,4 +1,4 @@
-import { toast } from 'svelte-sonner';
+import { toast } from 'sonner';
 
 /** Returns whether copying succeeded so callers can show local feedback. */
 export async function copyText(

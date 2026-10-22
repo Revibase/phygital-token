@@ -38,7 +38,7 @@ import {
 	TransferRejected,
 	type TransferRequest
 } from '#lib/shared/wallet-transfer.ts';
-import { decodeMessage } from '#lib/shared/passkey-transaction.ts';
+import { decodeMessage } from '#lib/shared/transaction.ts';
 
 const BLOCKHASH = {
 	blockhash: blockhash('EkSnNWid2cvwEVnVx9aBqawnmiCNiDgp3gUdkDPTKN1N'),
@@ -78,16 +78,13 @@ const holdings = (
 async function setup() {
 	const owner = await addr();
 	const recipient = await addr();
-	const feePayer = await addr();
-	return { owner, recipient, feePayer };
+	return { owner, recipient };
 }
 
 describe('network fee', () => {
-	it('charges every signature, precompiles included, plus the priority fee', () => {
-		// A passkey claim on localnet: fee payer + two secp256r1 verifies, 3000 priority = 18000.
-		expect(networkFeeLamports(3, TRANSFER_TX_CONFIG)).toBe(18_000n);
-		expect(transferFeeLamports(false)).toBe(8_000n);
-		expect(transferFeeLamports(true)).toBe(13_000n);
+	it('charges the wallet’s signature plus the priority fee', () => {
+		expect(transferFeeLamports()).toBe(8_000n);
+		expect(networkFeeLamports(1, TRANSFER_TX_CONFIG)).toBe(8_000n);
 	});
 
 	it('reads the same fee back from a decoded transaction', async () => {
@@ -99,8 +96,8 @@ describe('network fee', () => {
 			amount: SOL,
 			openAccount: false
 		};
-		const { wireBytes } = await buildTransferTransaction(request, owner, BLOCKHASH);
-		expect(messageFeeLamports(decodeMessage(wireBytes))).toBe(transferFeeLamports(false));
+		const { wireBytes } = await buildTransferTransaction(request, BLOCKHASH);
+		expect(messageFeeLamports(decodeMessage(wireBytes))).toBe(transferFeeLamports());
 	});
 });
 
@@ -109,7 +106,6 @@ describe('buildTransferTransaction', () => {
 		const { owner, recipient } = await setup();
 		const { wireBytes, instructions } = await buildTransferTransaction(
 			{ owner, asset: { kind: 'sol' }, recipient, amount: SOL, openAccount: false },
-			owner,
 			BLOCKHASH
 		);
 		const message = decodeMessage(wireBytes);
@@ -125,7 +121,6 @@ describe('buildTransferTransaction', () => {
 		const send = (openAccount: boolean) =>
 			buildTransferTransaction(
 				{ owner, asset: { kind: 'token', token: t }, recipient, amount: 10n, openAccount },
-				owner,
 				BLOCKHASH
 			);
 		const opened = await send(true);
@@ -141,16 +136,12 @@ describe('buildTransferTransaction', () => {
 });
 
 describe('what can be sent', () => {
-	it('reserves the fee, any new token account, and (for an ordinary wallet) the rent minimum', async () => {
+	it('reserves the fee and the rent minimum', async () => {
 		const { owner } = await setup();
 		const h = holdings(owner, SOL);
-		const fee = transferFeeLamports(false);
-		expect(maxSendable(h, { kind: 'sol' }, false, false)).toBe(
-			SOL - fee - SYSTEM_ACCOUNT_RENT_LAMPORTS
-		);
-		// A passkey vault may be emptied.
-		expect(maxSendable(h, { kind: 'sol' }, true, false)).toBe(SOL - transferFeeLamports(true));
-		expect(maxSendable(holdings(owner, 1n), { kind: 'sol' }, true, false)).toBe(0n);
+		const fee = transferFeeLamports();
+		expect(maxSendable(h, { kind: 'sol' }, false)).toBe(SOL - fee - SYSTEM_ACCOUNT_RENT_LAMPORTS);
+		expect(maxSendable(holdings(owner, 1n), { kind: 'sol' }, false)).toBe(0n);
 	});
 
 	it('explains in plain words why a transfer can’t go', async () => {
@@ -164,14 +155,13 @@ describe('what can be sent', () => {
 			openAccount: false
 		});
 		const h = holdings(owner, SOL, [t]);
-		expect(transferProblem(sol(SOL / 2n), h, false, SOL)).toBeNull();
-		expect(transferProblem({ ...sol(1n), recipient: owner }, h, false, SOL)).toMatch(/own address/);
-		expect(transferProblem(sol(SOL), h, false, SOL)).toMatch(/Not enough SOL/);
-		// Leaving dust behind isn't possible; the max is.
-		const dust = SOL - transferFeeLamports(true) - 1n;
-		expect(transferProblem(sol(dust), h, true, SOL)).toMatch(/Leave at least/);
-		expect(transferProblem(sol(SOL - transferFeeLamports(true)), h, true, SOL)).toBeNull();
-		expect(transferProblem(sol(1_000n), h, false, 0n)).toMatch(/new address/);
+		const fee = transferFeeLamports();
+		expect(transferProblem(sol(SOL / 2n), h, SOL)).toBeNull();
+		expect(transferProblem({ ...sol(1n), recipient: owner }, h, SOL)).toMatch(/own address/);
+		expect(transferProblem(sol(SOL), h, SOL)).toMatch(/Not enough SOL/);
+		expect(transferProblem(sol(SOL - fee - 1n), h, SOL)).toMatch(/Leave at least/);
+		expect(transferProblem(sol(SOL - fee - SYSTEM_ACCOUNT_RENT_LAMPORTS), h, SOL)).toBeNull();
+		expect(transferProblem(sol(1_000n), h, 0n)).toMatch(/new address/);
 
 		const tokenSend: TransferRequest = {
 			owner,
@@ -180,40 +170,10 @@ describe('what can be sent', () => {
 			amount: 10n,
 			openAccount: true
 		};
-		expect(transferCost(tokenSend, true).solOut).toBe(
-			transferFeeLamports(true) + TOKEN_ACCOUNT_RENT_LAMPORTS
-		);
-		expect(transferProblem(tokenSend, holdings(owner, 10_000n, [t]), true, 0n)).toMatch(
-			/Add a little SOL/
-		);
-		expect(needsSolForFees(holdings(owner, 10_000n), true)).toBe(true);
-		expect(needsSolForFees(holdings(owner, SOL), true)).toBe(false);
-	});
-
-	it('adds a passkey wallet’s one-time setup to its first transaction', async () => {
-		const { owner, recipient } = await setup();
-		const setupRent = 1_948_800n;
-		const send: TransferRequest = {
-			owner,
-			asset: { kind: 'sol' },
-			recipient,
-			amount: SOL / 10n,
-			openAccount: false
-		};
-		const cost = transferCost(send, true, setupRent);
-		expect(cost.setup).toBe(setupRent);
-		expect(cost.solOut).toBe(SOL / 10n + transferFeeLamports(true) + setupRent);
-		const h = holdings(owner, SOL);
-		expect(maxSendable(h, { kind: 'sol' }, true, false, setupRent)).toBe(
-			SOL - transferFeeLamports(true) - setupRent
-		);
-		// Enough for the fee alone isn't enough for the first transaction.
-		const thin = holdings(owner, 1_000_000n);
-		expect(needsSolForFees(thin, true)).toBe(false);
-		expect(needsSolForFees(thin, true, setupRent)).toBe(true);
-		expect(transferProblem({ ...send, amount: 900_000n }, thin, true, SOL, setupRent)).toMatch(
-			/Not enough SOL/
-		);
+		expect(transferCost(tokenSend).solOut).toBe(fee + TOKEN_ACCOUNT_RENT_LAMPORTS);
+		expect(transferProblem(tokenSend, holdings(owner, 10_000n, [t]), 0n)).toMatch(/Add a little SOL/);
+		expect(needsSolForFees(holdings(owner, 10_000n))).toBe(true);
+		expect(needsSolForFees(holdings(owner, SOL))).toBe(false);
 	});
 });
 
@@ -233,7 +193,6 @@ describe('assertTransferIntact', () => {
 		const { owner, recipient } = await setup();
 		const { instructions, wireBytes } = await buildTransferTransaction(
 			{ owner, asset: { kind: 'sol' }, recipient, amount: SOL, openAccount: false },
-			owner,
 			BLOCKHASH
 		);
 		expect(() => assertTransferIntact(wireBytes, instructions, owner)).not.toThrow();
@@ -261,12 +220,12 @@ describe('assertTransferIntact', () => {
 	});
 
 	it('rejects a different fee payer', async () => {
-		const { owner, recipient, feePayer } = await setup();
+		const { owner, recipient } = await setup();
 		const { instructions, wireBytes } = await buildTransferTransaction(
 			{ owner, asset: { kind: 'sol' }, recipient, amount: SOL, openAccount: false },
-			owner,
 			BLOCKHASH
 		);
-		expect(() => assertTransferIntact(wireBytes, instructions, feePayer)).toThrow(/fee payer/);
+		const other = await addr();
+		expect(() => assertTransferIntact(wireBytes, instructions, other)).toThrow(/fee payer/);
 	});
 });

@@ -1,18 +1,16 @@
-import { QueryClient } from '@tanstack/svelte-query';
+import { QueryClient } from '@tanstack/react-query';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
-import { browser } from '$app/env';
 
 /** The app's query cache: its keys, the client, what persists, and what a link or release makes stale. */
 const DAY = 24 * 60 * 60 * 1000;
+const browser = typeof window !== 'undefined';
 
 export const queryKeys = {
 	media: (pda: string) => ['accessory-media', pda] as const,
 	shortcuts: (pda: string, owner: string | null) =>
 		['accessory-shortcuts', pda, owner ?? ''] as const,
 	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const,
-	walletHoldings: (wallet: string) => ['wallet-holdings', wallet] as const,
-	walletSetup: (wallet: string) => ['wallet-setup', wallet] as const,
-	walletBackup: (wallet: string) => ['wallet-backup', wallet] as const
+	walletHoldings: (wallet: string) => ['wallet-holdings', wallet] as const
 };
 
 export function createQueryClient() {

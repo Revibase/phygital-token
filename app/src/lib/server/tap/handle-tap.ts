@@ -5,15 +5,11 @@ import { resolveAccessoryByIdentifier } from '../accessory/resolve';
 import { consumeTapCounter } from './counter-store';
 import { TapParamError, verifyDynamicUrlWithoutCounterCheck } from './verify-dynamic-url';
 
-export const TAP_PARAMS = ['pk', 'c', 'n', 's'] as const;
+export { TAP_PARAMS, hasTapParams } from './params';
 
 export type TapOutcome =
 	| { ok: true; identifier: string; counter: number; pda: string }
 	| { ok: false; reason: TapFailureReason; identifier?: string; detail?: string };
-
-export function hasTapParams(params: URLSearchParams): boolean {
-	return TAP_PARAMS.some((k) => params.has(k));
-}
 
 /**
  * The NFC tap ceremony:

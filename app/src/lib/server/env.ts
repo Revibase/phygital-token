@@ -1,33 +1,33 @@
-import { error } from '@sveltejs/kit';
-import { env } from 'cloudflare:workers';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { createSolanaRpc, type Rpc, type SolanaRpcApi } from '@solana/kit';
 
-import { passkeyEnv, type PasskeyEnv } from './passkey-env';
+import type { Cluster } from '#lib/client/wallet/wallet';
 
-export { passkeyEnv };
-
-export type ServerEnv = {
-	db: D1Database;
-	rpcUrl: string;
-	sessionSecret: string;
-	cluster: string;
-	/** Revibase Passkey: the secure-signer origin, and the key that pays its fees. Both or neither. */
-	passkey: PasskeyEnv | null;
-};
-
-export function getEnv(): ServerEnv {
-	const secret = env.SESSION_SECRET;
-	if (!secret || secret.length < 32) error(500, 'SESSION_SECRET is missing or too short');
-	if (!env.SOLANA_RPC_URL) error(500, 'SOLANA_RPC_URL is missing');
-	return {
-		db: env.DB,
-		rpcUrl: env.SOLANA_RPC_URL,
-		sessionSecret: secret,
-		cluster: env.SOLANA_CLUSTER,
-		passkey: passkeyEnv(env.SECURE_SIGNER_ORIGIN, env.FEE_PAYER_KEY)
-	};
+export class ConfigError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'ConfigError';
+	}
 }
 
-export function getRpc(env: ServerEnv): Rpc<SolanaRpcApi> {
-	return createSolanaRpc(env.rpcUrl);
+/** Bindings from `wrangler types`. Public values use `NEXT_PUBLIC_` because the browser receives them. */
+export async function getEnv(): Promise<Cloudflare.Env> {
+	const { env } = (await getCloudflareContext({ async: true })) as unknown as { env: Cloudflare.Env };
+	if (!env.SESSION_SECRET || env.SESSION_SECRET.length < 32) {
+		throw new ConfigError('SESSION_SECRET is missing or too short');
+	}
+	if (!env.NEXT_PUBLIC_SOLANA_RPC_URL) throw new ConfigError('NEXT_PUBLIC_SOLANA_RPC_URL is missing');
+	if (!env.NEXT_PUBLIC_PRIVY_APP_ID) throw new ConfigError('NEXT_PUBLIC_PRIVY_APP_ID is missing');
+	solanaCluster(env);
+	return env;
+}
+
+export function getRpc(env: Cloudflare.Env): Rpc<SolanaRpcApi> {
+	return createSolanaRpc(env.NEXT_PUBLIC_SOLANA_RPC_URL);
+}
+
+export function solanaCluster(env: Cloudflare.Env): Cluster {
+	const value = env.NEXT_PUBLIC_SOLANA_CLUSTER as string;
+	if (value === 'mainnet' || value === 'devnet' || value === 'testnet' || value === 'localnet') return value;
+	throw new ConfigError('NEXT_PUBLIC_SOLANA_CLUSTER must be mainnet, devnet, testnet, or localnet');
 }

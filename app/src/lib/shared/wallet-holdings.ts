@@ -167,7 +167,11 @@ export async function fetchWalletHoldings(
 	};
 }
 
-/** Total USD value, or null when nothing held has a price. */
+/**
+ * Portfolio value in USD. Token amounts use DAS `token_info.price_info.price_per_token`.
+ * Native SOL uses DAS `nativeBalance.price_per_sol`, the same per-unit price for SOL.
+ * Null when nothing held has a price.
+ */
 export function portfolioUsd(holdings: WalletHoldings): number | null {
 	const value = (raw: bigint, decimals: number, price: number | null) =>
 		price === null ? null : Number(formatTokenAmount(raw, decimals)) * price;

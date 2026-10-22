@@ -2,12 +2,18 @@
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "revibase",
 	"compatibility_date": "2026-09-27",
-	"compatibility_flags": ["nodejs_als"],
-	"main": ".svelte-kit/cloudflare/_worker.js",
+	"compatibility_flags": ["nodejs_compat"],
+	"main": ".open-next/worker.js",
 	"assets": {
 		"binding": "ASSETS",
-		"directory": ".svelte-kit/cloudflare"
+		"directory": ".open-next/assets"
 	},
+	"services": [
+		{
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "revibase"
+		}
+	],
 	"workers_dev": true,
 	"preview_urls": false,
 	"d1_databases": [
@@ -19,9 +25,9 @@
 		}
 	],
 	"vars": {
-		"SOLANA_CLUSTER": "mainnet",
-		"SOLANA_RPC_URL": "https://rpc.revibase.com",
-		"SECURE_SIGNER_ORIGIN": "https://signer.revibase.com"
+		"NEXT_PUBLIC_SOLANA_CLUSTER": "mainnet",
+		"NEXT_PUBLIC_SOLANA_RPC_URL": "https://rpc.revibase.com",
+		"NEXT_PUBLIC_PRIVY_APP_ID": "cmqt76oza019h0ck6296p44a8"
 	},
 	"observability": { "enabled": true }
 }

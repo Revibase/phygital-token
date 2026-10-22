@@ -11,22 +11,3 @@ export function clearStoredOwners() {
 		// Storage can be unavailable (private mode); there is nothing to clear then.
 	}
 }
-
-const RECENT_WALLET = 'revibase:recent-wallet';
-
-/** The wallet last connected in this browser (shown first, marked "Recent"). */
-export function recentWallet(): string | null {
-	try {
-		return localStorage.getItem(RECENT_WALLET);
-	} catch {
-		return null;
-	}
-}
-
-export function rememberRecentWallet(name: string | null | undefined) {
-	try {
-		if (name) localStorage.setItem(RECENT_WALLET, name);
-	} catch {
-		// Storage can be unavailable (private mode, quota); remembering is best-effort.
-	}
-}

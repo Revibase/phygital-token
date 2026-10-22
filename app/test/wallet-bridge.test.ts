@@ -17,8 +17,8 @@ const ZEROS = new Uint8Array(32);
 
 describe('embed frame origin', () => {
 	it('allows another https origin and loopback, and refuses itself', () => {
-		expect(embedFrameOrigin('https://pay.revibase.com/app', 'https://portal.revibase.com')).toBe(
-			'https://pay.revibase.com'
+		expect(embedFrameOrigin('https://shop.example.com/app', 'https://portal.revibase.com')).toBe(
+			'https://shop.example.com'
 		);
 		expect(embedFrameOrigin('http://localhost:5174', 'http://localhost:5173')).toBe(
 			'http://localhost:5174'

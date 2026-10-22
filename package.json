@@ -25,11 +25,8 @@
     "codama": "^1.11.0",
     "eslint": "10.13.0",
     "eslint-config-prettier": "10.1.8",
-    "eslint-plugin-svelte": "3.23.1",
     "globals": "17.13.0",
     "prettier": "^3.9.10",
-    "prettier-plugin-svelte": "4.1.1",
-    "svelte": "^5.57.2",
     "typescript": "catalog:",
     "typescript-eslint": "8.71.2"
   },

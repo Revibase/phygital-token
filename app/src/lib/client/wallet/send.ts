@@ -9,8 +9,7 @@ import {
 import { queryKeys, queryClient } from '../cache';
 import { browserRpc } from '../rpc';
 import { waitForConfirmation } from '../tx';
-import { walletSetupFor } from './passkey-cost';
-import { signWithWallet, type SigningContext } from './wallet.svelte';
+import { signWithWallet, type SigningContext } from './wallet';
 import {
 	assertTransferIntact,
 	buildTransferTransaction,
@@ -31,7 +30,7 @@ export type TransferPlan = {
 	problem: string | null;
 };
 
-/** Look up the recipient (and a passkey wallet's one-time setup), then price the transfer. */
+/** Look up the recipient, then price the transfer. */
 export async function planTransfer(
 	ctx: SigningContext,
 	holdings: WalletHoldings,
@@ -40,7 +39,7 @@ export async function planTransfer(
 	amount: bigint
 ): Promise<TransferPlan> {
 	const rpc = browserRpc();
-	const [recipientLamports, openAccount, setup] = await Promise.all([
+	const [recipientLamports, openAccount] = await Promise.all([
 		rpc
 			.getBalance(recipient, { commitment: 'confirmed' })
 			.send()
@@ -51,31 +50,22 @@ export async function planTransfer(
 						!(await rpc.getAccountInfo(ata, { encoding: 'base64', commitment: 'confirmed' }).send())
 							.value
 				)
-			: Promise.resolve(false),
-		ctx.passkey ? walletSetupFor(ctx.address) : Promise.resolve(0n)
+			: Promise.resolve(false)
 	]);
 	const request = { owner: address(ctx.address), asset, recipient, amount, openAccount };
 	return {
 		request,
-		cost: transferCost(request, ctx.passkey, setup),
-		problem: transferProblem(request, holdings, ctx.passkey, recipientLamports, setup)
+		cost: transferCost(request),
+		problem: transferProblem(request, holdings, recipientLamports)
 	};
 }
 
-/**
- * Sign with the connected wallet and send. Revibase Passkey sends through its
- * fee payer (the signature comes back already submitted); an ordinary wallet's
- * signed copy is checked before it is broadcast.
- */
+/** Sign with the connected wallet, check the signed copy, and send. */
 export async function sendTransfer(ctx: SigningContext, plan: TransferPlan): Promise<string> {
 	if (plan.problem) throw new TransferRejected(plan.problem);
 	const rpc = browserRpc();
 	const blockhash = (await rpc.getLatestBlockhash({ commitment: 'confirmed' }).send()).value;
-	const { instructions, wireBytes } = await buildTransferTransaction(
-		plan.request,
-		address(ctx.feePayer),
-		blockhash
-	);
+	const { instructions, wireBytes } = await buildTransferTransaction(plan.request, blockhash);
 	const outcome = await signWithWallet(ctx, wireBytes);
 	let signature: string;
 	if (outcome.kind === 'signed') {
@@ -91,9 +81,6 @@ export async function sendTransfer(ctx: SigningContext, plan: TransferPlan): Pro
 		signature = getBase58Decoder().decode(outcome.signature);
 	}
 	await waitForConfirmation(signature);
-	await Promise.all([
-		queryClient.invalidateQueries({ queryKey: queryKeys.walletHoldings(ctx.address) }),
-		queryClient.invalidateQueries({ queryKey: queryKeys.walletSetup(ctx.address) })
-	]);
+	await queryClient.invalidateQueries({ queryKey: queryKeys.walletHoldings(ctx.address) });
 	return signature;
 }

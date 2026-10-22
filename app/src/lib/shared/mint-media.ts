@@ -139,7 +139,7 @@ export async function fetchAsset(
 
 /**
  * Fetch a mint's artwork, name, collection and traits straight from DAS, from
- * the browser (`SOLANA_RPC_URL` is a public proxy, so it holds no secret).
+ * the browser (`NEXT_PUBLIC_SOLANA_RPC_URL` is a public proxy, so it holds no secret).
  * Nothing is stored; the client memoises per page session. Throws when DAS is
  * unreachable, so callers can tell "no metadata" apart from "couldn't ask".
  */

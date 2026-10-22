@@ -1,7 +1,23 @@
-import type { Cookies } from '@sveltejs/kit';
-import { dev } from '$app/env';
-
 import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
+
+const dev = process.env.NODE_ENV !== 'production';
+
+/** The slice of a cookie jar the session helpers use (Next.js or a route response). */
+export type CookieJar = {
+	get(name: string): string | undefined;
+	set(
+		name: string,
+		value: string,
+		options: {
+			path: string;
+			httpOnly: boolean;
+			secure: boolean;
+			sameSite: 'lax' | 'strict' | 'none';
+			maxAge: number;
+		}
+	): void;
+	delete(name: string, options: { path: string; secure?: boolean }): void;
+};
 
 /**
  * Stateless, HMAC-SHA256-signed session cookies.
@@ -52,6 +68,9 @@ export type OwnerSession = { v: 1; t: 'os'; sid: string; wallet: string; exp: nu
 
 /** Either admit cookie — enough to view `/accessory`. */
 export type AdmitSession = BrowseUnlockSession | OwnerBrowseSession;
+
+/** Middleware sets this after the admit cookie verifies. Pages read the PDA from here. */
+export const ADMIT_PDA_HEADER = 'x-admit-pda';
 
 type AnySession = BrowseUnlockSession | OwnerBrowseSession | OwnerSession;
 
@@ -131,7 +150,7 @@ export function newSessionId(): string {
 	return bytesToBase64Url(crypto.getRandomValues(new Uint8Array(18)));
 }
 
-async function writeCookie(cookies: Cookies, secret: string, payload: AnySession) {
+async function writeCookie(cookies: CookieJar, secret: string, payload: AnySession) {
 	cookies.set(NAMES[payload.t], await signToken(secret, payload), {
 		path: '/',
 		httpOnly: true,
@@ -141,13 +160,13 @@ async function writeCookie(cookies: Cookies, secret: string, payload: AnySession
 	});
 }
 
-export function clearCookie(cookies: Cookies, t: AnySession['t']) {
+export function clearCookie(cookies: CookieJar, t: AnySession['t']) {
 	cookies.delete(NAMES[t], { path: '/', secure: !dev });
 }
 
 /** Issue browse_unlock. A physical tap always replaces leftover owner_browse. */
 export async function setBrowseUnlock(
-	cookies: Cookies,
+	cookies: CookieJar,
 	secret: string,
 	data: { pda: string; identifier: string },
 	now = Date.now()
@@ -166,7 +185,7 @@ export async function setBrowseUnlock(
 
 /** Issue owner_browse. Clears browse_unlock so one admit cookie is live. */
 export async function setOwnerBrowse(
-	cookies: Cookies,
+	cookies: CookieJar,
 	secret: string,
 	data: { pda: string; identifier: string; wallet: string },
 	now = Date.now()
@@ -184,7 +203,7 @@ export async function setOwnerBrowse(
 }
 
 export async function setOwnerSession(
-	cookies: Cookies,
+	cookies: CookieJar,
 	secret: string,
 	wallet: string,
 	now = Date.now()
@@ -200,15 +219,15 @@ export async function setOwnerSession(
 	return session;
 }
 
-export function readBrowseUnlock(cookies: Cookies, secret: string) {
+export function readBrowseUnlock(cookies: CookieJar, secret: string) {
 	return verifyToken<BrowseUnlockSession>(secret, cookies.get(NAMES.bu), 'bu');
 }
 
-export function readOwnerSession(cookies: Cookies, secret: string) {
+export function readOwnerSession(cookies: CookieJar, secret: string) {
 	return verifyToken<OwnerSession>(secret, cookies.get(NAMES.os), 'os');
 }
 
-export function readOwnerBrowse(cookies: Cookies, secret: string) {
+export function readOwnerBrowse(cookies: CookieJar, secret: string) {
 	return verifyToken<OwnerBrowseSession>(secret, cookies.get(NAMES.ob), 'ob');
 }
 
@@ -217,7 +236,7 @@ export function readOwnerBrowse(cookies: Cookies, secret: string) {
  * (a physical tap is fresher proof than an owner open).
  */
 export async function readAdmitSession(
-	cookies: Cookies,
+	cookies: CookieJar,
 	secret: string
 ): Promise<AdmitSession | null> {
 	const browse = await readBrowseUnlock(cookies, secret);

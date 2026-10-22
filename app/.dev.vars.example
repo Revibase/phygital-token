@@ -1,10 +1,8 @@
-# Copy to .dev.vars for `vite dev` / `wrangler dev`.
-# A public RPC endpoint that also serves DAS (getAsset). The browser calls it directly,
-# so it must be a proxy Worker with no secret in the URL.
-SOLANA_RPC_URL=https://your-rpc-proxy.example.com
+# Copy to .dev.vars for `next dev` / OpenNext preview.
+# Public values use NEXT_PUBLIC_ because the browser receives them.
+# The RPC endpoint must also serve DAS (getAsset) and must not contain a secret.
+NEXT_PUBLIC_SOLANA_RPC_URL=https://your-rpc-proxy.example.com
+NEXT_PUBLIC_SOLANA_CLUSTER=devnet
+NEXT_PUBLIC_PRIVY_APP_ID=
+# Server only. 32+ characters. Never prefix this with NEXT_PUBLIC_.
 SESSION_SECRET=replace-me
-# Optional: the Revibase Passkey wallet. Run revibase-wallet's signer (`pnpm dev:signer`,
-# VITE_PARENT_ORIGIN=http://localhost:5173) and give it a fee payer with SOL on this cluster
-# (base58 64-byte secret key). It pays passkey wallet creation and claim/release fees.
-SECURE_SIGNER_ORIGIN=http://localhost:5174
-FEE_PAYER_KEY=
