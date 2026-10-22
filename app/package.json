@@ -9,7 +9,7 @@
 	},
 	"scripts": {
 		"dev": "next dev --port 5173",
-		"build": "opennextjs-cloudflare build",
+		"build": "next build",
 		"preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
 		"deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
 		"gen": "wrangler types --env-file .dev.vars.example",
