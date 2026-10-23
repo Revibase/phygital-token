@@ -147,11 +147,12 @@ describe('accessory management actions', () => {
 		});
 	});
 	it.each(['bearer', 'controlled'] as const)(
-		'%s visitors can start a release (it needs the owner wallet) but not change owner',
+		'%s visitors do not see release or change owner',
 		(kind) => {
-			expect(managementActions(accessory(kind, W), false)).toMatchObject({
-				release: true,
-				changeOwner: false
+			expect(managementActions(accessory(kind, W), false)).toEqual({
+				release: false,
+				changeOwner: false,
+				hasActions: false
 			});
 		}
 	);

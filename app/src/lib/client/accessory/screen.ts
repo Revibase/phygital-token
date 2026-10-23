@@ -7,11 +7,11 @@ export type TapScreen = {
 	claim: boolean;
 };
 
-/** Display choices only. Release still requires the owner wallet's signature. */
+/** Display choices only. Release is offered only when the connected wallet is the owner. */
 export function managementActions(a: AccessoryView, owned: boolean) {
 	const valid = a.status !== 'unavailable' && a.kind !== 'unknown';
-	const release = valid && !!a.owner && a.canRelease;
-	const changeOwner = release && owned && a.kind === 'bearer' && a.canLink;
+	const release = valid && owned && a.canRelease;
+	const changeOwner = release && a.kind === 'bearer' && a.canLink;
 	return { release, changeOwner, hasActions: release || changeOwner };
 }
 
