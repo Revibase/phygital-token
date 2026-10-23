@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { openOwnedAccessory } from '#lib/client/accessory/open-owned.ts';
 import { platform } from '#lib/client/capability.ts';
-import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
+import { actionFailure, describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 import { walletAccessoriesQuery } from '#lib/client/queries.ts';
 import { useWallet } from '#lib/client/wallet/wallet-context';
 import type { AccessoryView } from '#lib/shared/types.ts';
@@ -41,7 +41,7 @@ export function HomeScreen() {
 			await openOwnedAccessory(wallet.signingContext(), acc.pda);
 			window.location.assign('/accessory');
 		} catch (err) {
-			setFailure(describeError(err));
+			setFailure(actionFailure(err));
 		} finally {
 			setOpening(null);
 		}

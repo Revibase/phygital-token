@@ -6,7 +6,12 @@ import { useEffect, useRef, useState } from 'react';
 import { linkCopy } from '#lib/client/accessory/link-copy.ts';
 import { useBoot } from '#lib/client/boot';
 import { canTapHere, platform, tapHint } from '#lib/client/capability.ts';
-import { describeError, linkErrorCopy, type FriendlyError } from '#lib/client/link/messages.ts';
+import {
+	actionFailure,
+	describeError,
+	linkErrorCopy,
+	type FriendlyError
+} from '#lib/client/link/messages.ts';
 import {
 	finishLink,
 	prepareTap,
@@ -140,7 +145,7 @@ export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
 			const signature = await finishLink(tapped, context, setPhase);
 			setLinked({ recipient: context.address, signature });
 		} catch (err) {
-			setFailure(describeError(err));
+			setFailure(actionFailure(err));
 		} finally {
 			setPhase(null);
 		}

@@ -1,13 +1,12 @@
 'use client';
 
-import { useAddFunds } from '@privy-io/react-auth';
 import { useExportWallet } from '@privy-io/react-auth/solana';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, Download } from 'lucide-react';
 import { useState } from 'react';
 
 import { useBoot } from '#lib/client/boot';
-import { describeError, isDismissedFlow, type FriendlyError } from '#lib/client/link/messages.ts';
+import { actionFailure, describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 import { walletHoldingsQuery } from '#lib/client/queries.ts';
 import { useWallet } from '#lib/client/wallet/wallet-context';
 import { Button } from '#lib/components/ui/button';
@@ -22,17 +21,10 @@ import { SendSheet } from './SendSheet';
 import { WalletAccount } from './WalletAccount';
 import { WalletConnect } from './WalletConnect';
 
-/** CAIP-2 chain ids. `solana:devnet` is not a chain Privy can fund. */
-const FUND_CHAIN = {
-	mainnet: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
-	devnet: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'
-} as const;
-
 export function WalletScreen() {
 	const wallet = useWallet();
 	const { cluster } = useBoot();
 	const { exportWallet } = useExportWallet();
-	const { addFunds } = useAddFunds();
 	const query = useQuery({
 		...walletHoldingsQuery(wallet.address ?? ''),
 		enabled: !!wallet.address
@@ -44,48 +36,23 @@ export function WalletScreen() {
 	const [sending, setSending] = useState(false);
 	const [asset, setAsset] = useState<SendAsset | null>({ kind: 'sol' });
 	const [actionError, setActionError] = useState<FriendlyError | null>(null);
-	const [acting, setActing] = useState<'deposit' | 'export' | null>(null);
-	const canFund = cluster === 'mainnet' || cluster === 'devnet';
+	const [exporting, setExporting] = useState(false);
 
 	function startSend(next: SendAsset | null) {
 		setAsset(next);
 		setSending(true);
 	}
 
-	async function deposit() {
-		if (!wallet.address) return;
-		setActing('deposit');
-		setActionError(null);
-		try {
-			await addFunds({
-				destination: {
-					address: wallet.address,
-					asset: 'sol',
-					chain: cluster === 'mainnet' ? FUND_CHAIN.mainnet : FUND_CHAIN.devnet
-				},
-				fiat: {
-					source: { assets: ['usd'], defaultAsset: 'usd' },
-					environment: cluster === 'mainnet' ? 'production' : 'sandbox',
-					defaultAmount: '25'
-				}
-			});
-		} catch (err) {
-			if (!isDismissedFlow(err)) setActionError(describeError(err));
-		} finally {
-			setActing(null);
-		}
-	}
-
 	async function exportKey() {
 		if (!wallet.address) return;
-		setActing('export');
+		setExporting(true);
 		setActionError(null);
 		try {
 			await exportWallet({ address: wallet.address });
 		} catch (err) {
-			if (!isDismissedFlow(err)) setActionError(describeError(err));
+			setActionError(actionFailure(err));
 		} finally {
-			setActing(null);
+			setExporting(false);
 		}
 	}
 
@@ -97,9 +64,9 @@ export function WalletScreen() {
 						<div className="flex flex-col items-center gap-5" aria-hidden="true">
 							<div className="h-11 w-36 animate-pulse rounded-full bg-muted" />
 							<div className="h-10 w-44 animate-pulse rounded-lg bg-muted" />
-							<div className="grid w-full grid-cols-2 gap-3">
-								<div className="h-13 animate-pulse rounded-[14px] bg-muted" />
-								<div className="h-13 animate-pulse rounded-[14px] bg-muted" />
+							<div className="grid w-full grid-cols-2 gap-2">
+								<div className="h-16 animate-pulse rounded-[14px] bg-muted" />
+								<div className="h-16 animate-pulse rounded-[14px] bg-muted" />
 							</div>
 						</div>
 						<HoldingsList holdings={undefined} />
@@ -116,13 +83,19 @@ export function WalletScreen() {
 									{formatUsd(usd)}
 								</p>
 							) : null}
-							<div className="grid w-full grid-cols-2 gap-3">
-								<Button size="xl" variant="secondary" onClick={() => setReceiving(true)}>
+							<div className="grid w-full grid-cols-2 gap-2">
+								<Button
+									size="xl"
+									variant="secondary"
+									className="h-auto flex-col gap-1.5 px-2 py-3.5 text-[13px] whitespace-normal"
+									onClick={() => setReceiving(true)}
+								>
 									<Download className="size-4" />
 									Add Funds
 								</Button>
 								<Button
 									size="xl"
+									className="h-auto flex-col gap-1.5 px-2 py-3.5 text-[13px] whitespace-normal"
 									disabled={!holdings}
 									onClick={() =>
 										startSend(
@@ -144,7 +117,7 @@ export function WalletScreen() {
 							<Notice
 								tone="info"
 								title="Add SOL for network fees"
-								body="Every transfer pays a small fee in SOL. Buy with a card, or send SOL to your address."
+								body="Every transfer pays a small fee in SOL. Send a little SOL to this address."
 							/>
 						) : null}
 						<HoldingsList holdings={holdings} onSelect={startSend} />
@@ -152,10 +125,10 @@ export function WalletScreen() {
 							<Button
 								variant="quiet"
 								className="self-center"
-								disabled={acting === 'export'}
+								disabled={exporting}
 								onClick={() => void exportKey()}
 							>
-								{acting === 'export' ? 'Opening…' : 'Export private key'}
+								{exporting ? 'Opening…' : 'Export private key'}
 							</Button>
 						) : null}
 					</>
@@ -176,8 +149,6 @@ export function WalletScreen() {
 						onOpenChange={setReceiving}
 						address={wallet.address}
 						cluster={cluster}
-						onBuy={canFund ? () => void deposit() : undefined}
-						buying={acting === 'deposit'}
 					/>
 					<SendSheet
 						open={sending}

@@ -81,7 +81,7 @@ export function ResponsiveSheet({
 							wide && 'sm:max-w-[900px]'
 						)}
 					>
-						<div className="space-y-5">
+						<div className="min-w-0 space-y-5">
 							{header(Dialog.Title, Dialog.Description)}
 							{children}
 						</div>

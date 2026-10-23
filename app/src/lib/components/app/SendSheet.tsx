@@ -4,7 +4,7 @@ import { address as toAddress, type Address } from '@solana/kit';
 import { useEffect, useId, useState } from 'react';
 import { toast } from 'sonner';
 
-import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
+import { actionFailure, describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 import { useWallet } from '#lib/client/wallet/wallet-context';
 import { planTransfer, sendTransfer, type TransferPlan } from '#lib/client/wallet/send.ts';
 import { Button } from '#lib/components/ui/button';
@@ -137,7 +137,7 @@ export function SendSheet({
 			});
 			onOpenChange(false);
 		} catch (err) {
-			setFailure(describeError(err));
+			setFailure(actionFailure(err));
 		} finally {
 			setBusy(null);
 		}

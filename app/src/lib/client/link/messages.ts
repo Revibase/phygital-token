@@ -71,18 +71,56 @@ const TAP_REJECTED_CODES: PhygitalTokenErrorCode[] = [
 	'INVALID_ASSERTION'
 ];
 
-/** Privy closes Buy and export with this error when the person dismisses the modal. */
+function errorCauses(err: unknown): unknown[] {
+	const items: unknown[] = [];
+	const seen = new Set<unknown>();
+	let current: unknown = err;
+	while (current != null && (typeof current === 'object' || typeof current === 'string')) {
+		if (typeof current === 'object') {
+			if (seen.has(current)) break;
+			seen.add(current);
+		}
+		items.push(current);
+		if (typeof current !== 'object') break;
+		current = (current as { cause?: unknown }).cause;
+	}
+	return items;
+}
+
+function errorMessage(err: unknown): string {
+	if (typeof err === 'string') return err;
+	if (err instanceof Error) return err.message;
+	if (err && typeof err === 'object' && typeof (err as { message?: unknown }).message === 'string') {
+		return (err as { message: string }).message;
+	}
+	return '';
+}
+
+/** Closing Privy’s approval. The outer message is often “Failed to connect to wallet”. */
+function closedApproval(err: unknown): boolean {
+	if (err && typeof err === 'object' && (err as { code?: unknown }).code === 4001) return true;
+	const message = errorMessage(err);
+	return /user exited/i.test(message) || /user rejected the request/i.test(message);
+}
+
+/** The person closed an approval. Nothing was signed or sent. */
 export function isDismissedFlow(err: unknown): boolean {
-	const message = err instanceof Error ? err.message : '';
-	return /user exited( the)? flow/i.test(message);
+	return errorCauses(err).some(closedApproval);
+}
+
+/** Null when they closed the approval, so callers do not show an error. */
+export function actionFailure(err: unknown): FriendlyError | null {
+	if (isDismissedFlow(err)) return null;
+	return describeError(err);
 }
 
 function isUserRejection(err: unknown): boolean {
 	if (err instanceof PhygitalTokenError && err.code === 'AUTHENTICATION_CANCELLED') return true;
-	const e = err as { name?: string; message?: string; code?: number };
+	const e = err as { name?: string; code?: number };
 	if (e?.code === 4001) return true;
 	if (e?.name === 'NotAllowedError' || e?.name === 'AbortError') return true;
-	return /reject|denied|declin|cancel/i.test(e?.message ?? '');
+	if (/reject|denied|declin|cancel/i.test(errorMessage(err))) return true;
+	return errorCauses(err).slice(1).some(closedApproval);
 }
 
 export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'): FriendlyError {

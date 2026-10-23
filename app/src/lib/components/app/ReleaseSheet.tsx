@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { isConnectedAccessoryOwner } from '#lib/client/accessory/ownership.ts';
-import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
+import { actionFailure, describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 import { releaseAccessory } from '#lib/client/link/flow.ts';
 import { useWallet } from '#lib/client/wallet/wallet-context';
 import { Button } from '#lib/components/ui/button';
@@ -49,7 +49,7 @@ export function ReleaseSheet({
 			onOpenChange(false);
 			router.refresh();
 		} catch (err) {
-			setFailure(describeError(err));
+			setFailure(actionFailure(err));
 		} finally {
 			setBusy(false);
 		}
