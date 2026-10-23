@@ -71,6 +71,12 @@ const TAP_REJECTED_CODES: PhygitalTokenErrorCode[] = [
 	'INVALID_ASSERTION'
 ];
 
+/** Privy closes Buy and export with this error when the person dismisses the modal. */
+export function isDismissedFlow(err: unknown): boolean {
+	const message = err instanceof Error ? err.message : '';
+	return /user exited( the)? flow/i.test(message);
+}
+
 function isUserRejection(err: unknown): boolean {
 	if (err instanceof PhygitalTokenError && err.code === 'AUTHENTICATION_CANCELLED') return true;
 	const e = err as { name?: string; message?: string; code?: number };

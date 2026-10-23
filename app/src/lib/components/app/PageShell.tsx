@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -47,7 +48,7 @@ export function PageShell({
 							Back
 						</button>
 					) : brand ? (
-						<a
+						<Link
 							href="/"
 							className="-mx-2 inline-flex h-11 items-center gap-2 rounded-lg px-2 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 							aria-label="Revibase home"
@@ -56,7 +57,7 @@ export function PageShell({
 								<RevibaseMark className="w-3.5" />
 							</span>
 							<span className="text-[15px] font-semibold tracking-[-0.01em]">Revibase</span>
-						</a>
+						</Link>
 					) : null}
 					<div className="ml-auto flex items-center gap-2">
 						{network ? (

@@ -2,7 +2,15 @@
 
 import { useLogin, usePrivy, type User, type WalletWithMetadata } from '@privy-io/react-auth';
 import { useWallets, type ConnectedStandardSolanaWallet } from '@privy-io/react-auth/solana';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState
+} from 'react';
 
 import { shortAddress } from '#lib/shared/encoding.ts';
 import { signFeatures, walletSupports, type Cluster, type SigningContext } from './wallet';
@@ -29,7 +37,11 @@ export class SignInCancelled extends Error {
 	}
 }
 
-function isSolanaWallet(account: { type: string; chainType?: string; address?: string }): account is WalletWithMetadata {
+function isSolanaWallet(account: {
+	type: string;
+	chainType?: string;
+	address?: string;
+}): account is WalletWithMetadata {
 	return account.type === 'wallet' && account.chainType === 'solana' && !!account.address;
 }
 
@@ -95,8 +107,8 @@ export function WalletProvider({
 	cluster: Cluster;
 	children: React.ReactNode;
 }) {
-	const { wallets, ready } = useWallets();
-	const { user, logout } = usePrivy();
+	const { wallets, ready: walletsReady } = useWallets();
+	const { user, logout, ready: privyReady } = usePrivy();
 	const [selected, setSelected] = useState<string | null>(null);
 	const [connecting, setConnecting] = useState(false);
 	const waiter = useRef<{
@@ -190,6 +202,7 @@ export function WalletProvider({
 		);
 	}, [active, logout]);
 
+	const ready = privyReady && walletsReady;
 	const value = useMemo<WalletContextValue>(() => {
 		const walletName = active?.standardWallet.name ?? null;
 		return {

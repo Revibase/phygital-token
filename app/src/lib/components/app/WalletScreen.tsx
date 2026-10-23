@@ -7,7 +7,7 @@ import { ArrowUpRight, Download } from 'lucide-react';
 import { useState } from 'react';
 
 import { useBoot } from '#lib/client/boot';
-import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
+import { describeError, isDismissedFlow, type FriendlyError } from '#lib/client/link/messages.ts';
 import { walletHoldingsQuery } from '#lib/client/queries.ts';
 import { useWallet } from '#lib/client/wallet/wallet-context';
 import { Button } from '#lib/components/ui/button';
@@ -70,7 +70,7 @@ export function WalletScreen() {
 				}
 			});
 		} catch (err) {
-			setActionError(describeError(err));
+			if (!isDismissedFlow(err)) setActionError(describeError(err));
 		} finally {
 			setActing(null);
 		}
@@ -83,7 +83,7 @@ export function WalletScreen() {
 		try {
 			await exportWallet({ address: wallet.address });
 		} catch (err) {
-			setActionError(describeError(err));
+			if (!isDismissedFlow(err)) setActionError(describeError(err));
 		} finally {
 			setActing(null);
 		}
@@ -92,15 +92,23 @@ export function WalletScreen() {
 	return (
 		<PageShell size="narrow" back brand={false}>
 			<section className="flex flex-1 flex-col gap-7 pt-4" aria-live="polite">
-				{wallet.address ? (
+				{!wallet.ready ? (
+					<>
+						<div className="flex flex-col items-center gap-5" aria-hidden="true">
+							<div className="h-11 w-36 animate-pulse rounded-full bg-muted" />
+							<div className="h-10 w-44 animate-pulse rounded-lg bg-muted" />
+							<div className="grid w-full grid-cols-2 gap-3">
+								<div className="h-13 animate-pulse rounded-[14px] bg-muted" />
+								<div className="h-13 animate-pulse rounded-[14px] bg-muted" />
+							</div>
+						</div>
+						<HoldingsList holdings={undefined} />
+					</>
+				) : wallet.address ? (
 					<>
 						<div className="flex flex-col items-center gap-5">
 							<h1 className="sr-only">Wallet</h1>
-							<WalletAccount
-								address={wallet.address}
-								label={wallet.walletName ?? 'Your wallet'}
-								onClick={() => setReceiving(true)}
-							/>
+							<WalletAccount address={wallet.address} label={wallet.walletName ?? 'Your wallet'} />
 							{!holdings ? (
 								<div className="h-10 w-44 animate-pulse rounded-lg bg-muted" />
 							) : usd !== null ? (
@@ -109,14 +117,9 @@ export function WalletScreen() {
 								</p>
 							) : null}
 							<div className="grid w-full grid-cols-2 gap-3">
-								<Button
-									size="xl"
-									variant="secondary"
-									disabled={!canFund || acting === 'deposit'}
-									onClick={() => void deposit()}
-								>
+								<Button size="xl" variant="secondary" onClick={() => setReceiving(true)}>
 									<Download className="size-4" />
-									{acting === 'deposit' ? 'Opening…' : 'Buy'}
+									Add Funds
 								</Button>
 								<Button
 									size="xl"
@@ -173,6 +176,8 @@ export function WalletScreen() {
 						onOpenChange={setReceiving}
 						address={wallet.address}
 						cluster={cluster}
+						onBuy={canFund ? () => void deposit() : undefined}
+						buying={acting === 'deposit'}
 					/>
 					<SendSheet
 						open={sending}

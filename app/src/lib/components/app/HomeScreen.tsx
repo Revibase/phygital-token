@@ -52,22 +52,34 @@ export function HomeScreen() {
 			size="medium"
 			connect={false}
 			footer={
-				!wallet.address && !desktop ? (
-					<p className="text-center text-[14px] text-muted-foreground">Have your accessory? Hold it to your phone.</p>
+				wallet.ready && !wallet.address && !desktop ? (
+					<p className="text-center text-[14px] text-muted-foreground">
+						Have your accessory? Hold it to your phone.
+					</p>
 				) : null
 			}
 		>
 			<section className="flex flex-1 flex-col gap-7 pt-4" aria-live="polite">
 				<PageHeader
 					title="Your accessories"
-					body={wallet.address ? undefined : 'Connect a wallet to see the accessories it owns.'}
+					body={
+						wallet.ready && !wallet.address
+							? 'Connect a wallet to see the accessories it owns.'
+							: undefined
+					}
 				/>
 				<Notice
 					error={failure ?? listFailure}
 					onretry={listFailure && !failure ? () => void listQuery.refetch() : undefined}
 					retrying={listQuery.isFetching}
 				/>
-				{!wallet.address ? (
+				{!wallet.ready ? (
+					<List>
+						{[0, 1].map((i) => (
+							<ListRowSkeleton key={i} avatar="size-12 rounded-[26%]" detail />
+						))}
+					</List>
+				) : !wallet.address ? (
 					<WalletConnect />
 				) : accessories === null && !failure && !listFailure ? (
 					<List>

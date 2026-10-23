@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowUpRight, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 import { Spinner } from '#lib/components/ui/spinner';
 import { cn } from '#lib/utils.ts';
@@ -42,6 +43,7 @@ export function ListRow({
 	target?: string;
 	selectable?: boolean;
 }) {
+	const inApp = !!href && href.startsWith('/') && !href.startsWith('//');
 	const interactive = !!href || !!onClick || selectable;
 	const classes = cn(
 		'flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left outline-none',
@@ -65,7 +67,9 @@ export function ListRow({
 					</span>
 					{labelBadge}
 				</span>
-				{detail ? <span className="block truncate text-[13px] text-muted-foreground">{detail}</span> : null}
+				{detail ? (
+					<span className="block truncate text-[13px] text-muted-foreground">{detail}</span>
+				) : null}
 				{subdetail ? (
 					<span className="block text-[12px] leading-snug text-muted-foreground">{subdetail}</span>
 				) : null}
@@ -86,12 +90,34 @@ export function ListRow({
 	);
 	return (
 		<li>
-			{href ? (
-				<a href={href} rel={rel} target={target} onClick={onClick} className={classes} aria-disabled={disabled || undefined}>
+			{inApp && href ? (
+				<Link
+					href={href}
+					onClick={onClick}
+					className={classes}
+					aria-disabled={disabled || undefined}
+				>
+					{content}
+				</Link>
+			) : href ? (
+				<a
+					href={href}
+					rel={rel}
+					target={target}
+					onClick={onClick}
+					className={classes}
+					aria-disabled={disabled || undefined}
+				>
 					{content}
 				</a>
 			) : onClick ? (
-				<button type="button" className={classes} disabled={disabled} aria-busy={busy || undefined} onClick={onClick}>
+				<button
+					type="button"
+					className={classes}
+					disabled={disabled}
+					aria-busy={busy || undefined}
+					onClick={onClick}
+				>
 					{content}
 				</button>
 			) : selectable ? (

@@ -10,15 +10,16 @@ export const ASSET_IMAGE_PATH = '/asset-image';
 export const MAX_ASSET_BYTES = 2 * 1024 * 1024;
 const MAX_URLS = 80;
 const TIMEOUT_MS = 8_000;
-const CACHE_TTL_S = 24 * 60 * 60;
 /** Domain-separates these MACs from session cookies and shortcut icons signed with the same secret. */
 const CONTEXT = 'revibase-asset-image\n';
 
 /**
  * ipfs.io answers server fetches with "blocked". The CID is the image; these gateways serve that CID.
- * The signed link still names the original URL.
+ * The signed link still names the original URL. Filebase is first because Pinata is often slow.
  */
-const IPFS_GATEWAYS = ['https://gateway.pinata.cloud/ipfs/', 'https://ipfs.filebase.io/ipfs/'];
+const IPFS_GATEWAYS = ['https://ipfs.filebase.io/ipfs/', 'https://gateway.pinata.cloud/ipfs/'];
+/** Pinata answers a fetch with no User-Agent with a 403 HTML page, which is not an image. */
+const FETCH_UA = 'Revibase/1.0';
 
 const encoder = new TextEncoder();
 const keyCache = new Map<string, Promise<CryptoKey>>();
@@ -86,9 +87,13 @@ export type AssetImage = { bytes: Uint8Array<ArrayBuffer>; type: string };
 
 async function readImage(url: string): Promise<AssetImage | null> {
 	const res = await fetch(url, {
-		headers: { accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif' },
-		signal: AbortSignal.timeout(TIMEOUT_MS),
-		cf: { cacheTtl: CACHE_TTL_S, cacheEverything: true }
+		headers: {
+			accept: 'image/avif,image/webp,image/png,image/jpeg,image/gif',
+			'user-agent': FETCH_UA
+		},
+		// A cached 403 from a gateway must not stick for the day and hide a later success.
+		cache: 'no-store',
+		signal: AbortSignal.timeout(TIMEOUT_MS)
 	});
 	if (!res.ok) return null;
 	if (Number(res.headers.get('content-length') ?? 0) > MAX_ASSET_BYTES) return null;
@@ -99,13 +104,25 @@ async function readImage(url: string): Promise<AssetImage | null> {
 
 export async function fetchAssetImage(url: string): Promise<AssetImage | null> {
 	if (normalizeMediaUrl(url) !== url) return null;
-	for (const source of sourcesFor(url)) {
-		try {
-			const image = await readImage(source);
-			if (image) return image;
-		} catch {
-			/* Try the next source. */
+	const sources = sourcesFor(url);
+	return new Promise((resolve) => {
+		let pending = sources.length;
+		let settled = false;
+		for (const source of sources) {
+			readImage(source)
+				.then((image) => {
+					if (image && !settled) {
+						settled = true;
+						resolve(image);
+					}
+				})
+				.catch(() => {
+					/* Try whichever source is still running. */
+				})
+				.finally(() => {
+					pending -= 1;
+					if (pending === 0 && !settled) resolve(null);
+				});
 		}
-	}
-	return null;
+	});
 }

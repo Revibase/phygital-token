@@ -45,8 +45,8 @@ describe('asset image proxy', () => {
 
 	it('fetches an ipfs.io url from a gateway that serves the CID', () => {
 		expect(sourcesFor('https://ipfs.io/ipfs/Qmabc')).toEqual([
-			'https://gateway.pinata.cloud/ipfs/Qmabc',
-			'https://ipfs.filebase.io/ipfs/Qmabc'
+			'https://ipfs.filebase.io/ipfs/Qmabc',
+			'https://gateway.pinata.cloud/ipfs/Qmabc'
 		]);
 		expect(sourcesFor(URL_)).toEqual([URL_]);
 	});
@@ -60,9 +60,11 @@ describe('fetchAssetImage', () => {
 
 	it('uses the first gateway that returns a raster image', async () => {
 		const seen: string[] = [];
-		globalThis.fetch = async (input) => {
+		globalThis.fetch = async (input, init) => {
 			const url = String(input);
 			seen.push(url);
+			const headers = new Headers(init?.headers);
+			expect(headers.get('user-agent')).toBe('Revibase/1.0');
 			if (url.startsWith('https://ipfs.filebase.io/')) return new Response(JPEG.slice());
 			return new Response('blocked', { status: 403 });
 		};
@@ -70,8 +72,8 @@ describe('fetchAssetImage', () => {
 			type: 'image/jpeg'
 		});
 		expect(seen).toEqual([
-			'https://gateway.pinata.cloud/ipfs/Qmabc',
-			'https://ipfs.filebase.io/ipfs/Qmabc'
+			'https://ipfs.filebase.io/ipfs/Qmabc',
+			'https://gateway.pinata.cloud/ipfs/Qmabc'
 		]);
 	});
 
