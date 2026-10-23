@@ -1,6 +1,6 @@
 'use client';
 
-import { useDepositFunds } from '@privy-io/react-auth';
+import { useAddFunds } from '@privy-io/react-auth';
 import { useExportWallet } from '@privy-io/react-auth/solana';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, Download } from 'lucide-react';
@@ -22,11 +22,17 @@ import { SendSheet } from './SendSheet';
 import { WalletAccount } from './WalletAccount';
 import { WalletConnect } from './WalletConnect';
 
+/** CAIP-2 chain ids. `solana:devnet` is not a chain Privy can fund. */
+const FUND_CHAIN = {
+	mainnet: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+	devnet: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1'
+} as const;
+
 export function WalletScreen() {
 	const wallet = useWallet();
 	const { cluster } = useBoot();
 	const { exportWallet } = useExportWallet();
-	const { depositFunds } = useDepositFunds();
+	const { addFunds } = useAddFunds();
 	const query = useQuery({
 		...walletHoldingsQuery(wallet.address ?? ''),
 		enabled: !!wallet.address
@@ -51,11 +57,11 @@ export function WalletScreen() {
 		setActing('deposit');
 		setActionError(null);
 		try {
-			await depositFunds({
+			await addFunds({
 				destination: {
+					address: wallet.address,
 					asset: 'sol',
-					chain: cluster === 'mainnet' ? 'solana' : 'solana:devnet',
-					wallet: wallet.address
+					chain: cluster === 'mainnet' ? FUND_CHAIN.mainnet : FUND_CHAIN.devnet
 				},
 				fiat: {
 					source: { assets: ['usd'], defaultAsset: 'usd' },
@@ -103,21 +109,34 @@ export function WalletScreen() {
 								</p>
 							) : null}
 							<div className="grid w-full grid-cols-2 gap-3">
-								<Button size="xl" variant="secondary" disabled={!canFund || acting === 'deposit'} onClick={() => void deposit()}>
+								<Button
+									size="xl"
+									variant="secondary"
+									disabled={!canFund || acting === 'deposit'}
+									onClick={() => void deposit()}
+								>
 									<Download className="size-4" />
 									{acting === 'deposit' ? 'Opening…' : 'Buy'}
 								</Button>
 								<Button
 									size="xl"
 									disabled={!holdings}
-									onClick={() => startSend(holdings?.tokens.some((token) => !token.frozen) ? null : { kind: 'sol' })}
+									onClick={() =>
+										startSend(
+											holdings?.tokens.some((token) => !token.frozen) ? null : { kind: 'sol' }
+										)
+									}
 								>
 									<ArrowUpRight className="size-4" />
 									Send
 								</Button>
 							</div>
 						</div>
-						<Notice error={failure ?? actionError} onretry={failure ? () => void query.refetch() : undefined} retrying={query.isFetching} />
+						<Notice
+							error={failure ?? actionError}
+							onretry={failure ? () => void query.refetch() : undefined}
+							retrying={query.isFetching}
+						/>
 						{holdings && needsSolForFees(holdings) ? (
 							<Notice
 								tone="info"
@@ -127,21 +146,34 @@ export function WalletScreen() {
 						) : null}
 						<HoldingsList holdings={holdings} onSelect={startSend} />
 						{wallet.embedded ? (
-							<Button variant="quiet" className="self-center" disabled={acting === 'export'} onClick={() => void exportKey()}>
+							<Button
+								variant="quiet"
+								className="self-center"
+								disabled={acting === 'export'}
+								onClick={() => void exportKey()}
+							>
 								{acting === 'export' ? 'Opening…' : 'Export private key'}
 							</Button>
 						) : null}
 					</>
 				) : (
 					<>
-						<PageHeader title="Wallet" body="Sign in to create a wallet, or connect one you already have." />
+						<PageHeader
+							title="Wallet"
+							body="Sign in to create a wallet, or connect one you already have."
+						/>
 						<WalletConnect />
 					</>
 				)}
 			</section>
 			{wallet.address ? (
 				<>
-					<ReceiveSheet open={receiving} onOpenChange={setReceiving} address={wallet.address} cluster={cluster} />
+					<ReceiveSheet
+						open={receiving}
+						onOpenChange={setReceiving}
+						address={wallet.address}
+						cluster={cluster}
+					/>
 					<SendSheet
 						open={sending}
 						onOpenChange={setSending}

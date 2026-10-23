@@ -16,7 +16,6 @@ import { ListRowSkeleton } from './ListRowSkeleton';
 import { Notice } from './Notice';
 import { PageHeader } from './PageHeader';
 import { PageShell } from './PageShell';
-import { QrCode } from './QrCode';
 import { WalletConnect } from './WalletConnect';
 
 export function HomeScreen() {
@@ -24,10 +23,8 @@ export function HomeScreen() {
 	const [failure, setFailure] = useState<FriendlyError | null>(null);
 	const [opening, setOpening] = useState<string | null>(null);
 	const [desktop, setDesktop] = useState(false);
-	const [origin, setOrigin] = useState('');
 	useEffect(() => {
 		setDesktop(platform() === 'desktop');
-		setOrigin(window.location.origin);
 	}, []);
 
 	const listQuery = useQuery({
@@ -65,15 +62,6 @@ export function HomeScreen() {
 					title="Your accessories"
 					body={wallet.address ? undefined : 'Connect a wallet to see the accessories it owns.'}
 				/>
-				{desktop && origin ? (
-					<div className="space-y-4 rounded-2xl border bg-card px-5 py-6 text-center">
-						<div className="space-y-1">
-							<h2 className="text-[17px] font-semibold">Claim on your phone</h2>
-							<p className="text-[14px] leading-relaxed text-muted-foreground">Claiming uses your phone’s NFC.</p>
-						</div>
-						<QrCode value={origin} label="Scan with your phone’s camera" />
-					</div>
-				) : null}
 				<Notice
 					error={failure ?? listFailure}
 					onretry={listFailure && !failure ? () => void listQuery.refetch() : undefined}
@@ -87,7 +75,7 @@ export function HomeScreen() {
 							<ListRowSkeleton key={i} avatar="size-12 rounded-[26%]" detail />
 						))}
 					</List>
-				) : accessories?.length === 0 && !desktop ? (
+				) : accessories?.length === 0 ? (
 					<EmptyState title="No accessories yet" body="Hold one to your phone to claim it." />
 				) : accessories?.length ? (
 					<List>

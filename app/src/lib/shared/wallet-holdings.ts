@@ -182,6 +182,26 @@ export function portfolioUsd(holdings: WalletHoldings): number | null {
 	return parts.length ? parts.reduce((a, b) => a + b, 0) : null;
 }
 
+/** Priced tokens shown before the rest fold behind one row. */
+export const TOKEN_PREVIEW = 5;
+
+function tokenUsdValue(token: TokenHolding): number | null {
+	if (token.priceUsd === null) return null;
+	const value = Number(formatTokenAmount(token.amount, token.decimals)) * token.priceUsd;
+	return Number.isFinite(value) ? value : null;
+}
+
+/** Priced tokens by USD value, then tokens with no price, by symbol. */
+export function arrangeTokens(tokens: readonly TokenHolding[]): TokenHolding[] {
+	return [...tokens].sort((a, b) => {
+		const left = tokenUsdValue(a);
+		const right = tokenUsdValue(b);
+		if (left !== null && right !== null && left !== right) return right - left;
+		if ((left === null) !== (right === null)) return left === null ? 1 : -1;
+		return (a.symbol ?? a.name ?? a.mint).localeCompare(b.symbol ?? b.name ?? b.mint);
+	});
+}
+
 export const formatUsd = (value: number) =>
 	new Intl.NumberFormat('en-US', {
 		style: 'currency',

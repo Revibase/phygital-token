@@ -27,7 +27,8 @@ export function normalizeMediaUrl(raw: unknown): string | null {
 	else if (value.startsWith('ar://')) value = `https://arweave.net/${value.slice(5)}`;
 	try {
 		const url = new URL(value);
-		return url.protocol === 'https:' ? url.href : null;
+		if (url.protocol !== 'https:' || url.hostname === 'cdn.helius-rpc.com') return null;
+		return url.href;
 	} catch {
 		return null;
 	}
@@ -47,7 +48,7 @@ export type GetAssetResult = {
 			attributes?: Array<{ trait_type?: unknown; value?: unknown }>;
 		};
 		links?: { image?: string; external_url?: string };
-		files?: Array<{ uri?: string; cdn_uri?: string; mime?: string }>;
+		files?: Array<{ uri?: string; mime?: string }>;
 	};
 	grouping?: Array<{
 		group_key?: string;
@@ -68,7 +69,6 @@ export function mediaFromAsset(asset: GetAssetResult | undefined): MintMedia {
 	if (!content) return EMPTY_MEDIA;
 	const images = (content.files ?? []).filter((f) => !f.mime || f.mime.startsWith('image/'));
 	const image =
-		images.map((f) => normalizeMediaUrl(f.cdn_uri)).find(Boolean) ??
 		normalizeMediaUrl(content.links?.image) ??
 		images.map((f) => normalizeMediaUrl(f.uri)).find(Boolean) ??
 		null;

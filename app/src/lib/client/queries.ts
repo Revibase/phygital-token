@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { proxied, proxiedImages } from './asset-image';
 import { fetchAccessoryMedia } from './media';
 import { fetchAccessoryShortcuts } from './shortcuts';
 import { fetchWalletAccessories } from './wallet-accessories';
@@ -36,7 +37,14 @@ export const accessoryShortcutsQuery = (pda: string, owner: string | null) =>
 export const walletHoldingsQuery = (wallet: string) =>
 	queryOptions({
 		queryKey: queryKeys.walletHoldings(wallet),
-		queryFn: () => fetchWalletHoldings(browserRpc(), rpcUrl(), address(wallet)),
+		queryFn: async () => {
+			const holdings = await fetchWalletHoldings(browserRpc(), rpcUrl(), address(wallet));
+			const images = await proxiedImages(holdings.tokens.map((token) => token.icon));
+			return {
+				...holdings,
+				tokens: holdings.tokens.map((token) => ({ ...token, icon: proxied(token.icon, images) }))
+			};
+		},
 		staleTime: 15_000,
 		gcTime: 5 * MINUTE,
 		retry: 1

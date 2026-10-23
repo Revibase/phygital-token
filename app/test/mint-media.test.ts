@@ -3,23 +3,22 @@ import { describe, expect, it } from 'vitest';
 import { mediaFromAsset, normalizeMediaUrl, fetchMintMedia } from '#lib/shared/mint-media.ts';
 
 describe('mediaFromAsset (Helius getAsset)', () => {
-	it('prefers the Helius CDN image, then links.image, then the raw file uri', () => {
+	it('uses links.image, then the raw file uri, and never a Helius CDN url', () => {
 		expect(
 			mediaFromAsset({
 				content: {
 					metadata: { name: 'Revibase #12' },
-					links: { image: 'https://arweave.net/raw.png' },
+					links: { image: 'https://cdn.helius-rpc.com/cdn-cgi/image//https://arweave.net/raw.png' },
 					files: [
 						{
 							uri: 'https://arweave.net/raw.png',
-							cdn_uri: 'https://cdn.helius-rpc.com/cdn-cgi/image//https://arweave.net/raw.png',
 							mime: 'image/png'
 						}
 					]
 				}
 			})
 		).toEqual({
-			image: 'https://cdn.helius-rpc.com/cdn-cgi/image//https://arweave.net/raw.png',
+			image: 'https://arweave.net/raw.png',
 			name: 'Revibase #12',
 			collection: null,
 			attributes: []
@@ -31,6 +30,13 @@ describe('mediaFromAsset (Helius getAsset)', () => {
 			mediaFromAsset({ content: { files: [{ uri: 'https://x.test/a.webp', mime: 'image/webp' }] } })
 				.image
 		).toBe('https://x.test/a.webp');
+		expect(
+			mediaFromAsset({
+				content: {
+					links: { image: 'https://cdn.helius-rpc.com/cdn-cgi/image//https://ipfs.io/ipfs/abc' }
+				}
+			}).image
+		).toBeNull();
 	});
 
 	it('uses NFT ownership from DAS independently of accessory linkage', () => {
@@ -119,6 +125,9 @@ describe('normalizeMediaUrl', () => {
 		expect(normalizeMediaUrl('http://insecure.test/a.png')).toBeNull();
 		expect(normalizeMediaUrl('javascript:alert(1)')).toBeNull();
 		expect(normalizeMediaUrl('data:image/svg+xml,<svg/>')).toBeNull();
+		expect(
+			normalizeMediaUrl('https://cdn.helius-rpc.com/cdn-cgi/image//https://ipfs.io/ipfs/abc')
+		).toBeNull();
 		expect(normalizeMediaUrl(42)).toBeNull();
 	});
 });
