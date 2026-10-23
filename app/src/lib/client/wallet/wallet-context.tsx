@@ -110,6 +110,7 @@ export function WalletProvider({
 	const { wallets, ready: walletsReady } = useWallets();
 	const { user, logout, ready: privyReady } = usePrivy();
 	const [selected, setSelected] = useState<string | null>(null);
+	const [released, setReleased] = useState(false);
 	const [connecting, setConnecting] = useState(false);
 	const waiter = useRef<{
 		requireAddress: string | null;
@@ -137,6 +138,7 @@ export function WalletProvider({
 				);
 				return;
 			}
+			setReleased(false);
 			setSelected(address);
 			pending?.resolve();
 		},
@@ -148,7 +150,10 @@ export function WalletProvider({
 		}
 	});
 
-	const active = wallets.find((wallet) => wallet.address === selected) ?? wallets[0] ?? null;
+	const active =
+		released || !user
+			? null
+			: (wallets.find((wallet) => wallet.address === selected) ?? wallets[0] ?? null);
 	const embedded = !!user?.linkedAccounts.some(
 		(account) =>
 			isSolanaWallet(account) &&
@@ -194,12 +199,19 @@ export function WalletProvider({
 	);
 
 	const disconnect = useCallback(async () => {
-		await active?.disconnect().catch(() => {});
-		await logout();
+		const current = active;
+		setReleased(true);
 		setSelected(null);
-		void fetch('/api/owner/session', { method: 'DELETE', credentials: 'same-origin' }).catch(
-			() => {}
-		);
+		try {
+			await logout();
+		} finally {
+			void Promise.resolve()
+				.then(() => current?.disconnect())
+				.catch(() => {});
+			void fetch('/api/owner/session', { method: 'DELETE', credentials: 'same-origin' }).catch(
+				() => {}
+			);
+		}
 	}, [active, logout]);
 
 	const ready = privyReady && walletsReady;
