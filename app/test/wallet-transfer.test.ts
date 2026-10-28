@@ -171,7 +171,9 @@ describe('what can be sent', () => {
 			openAccount: true
 		};
 		expect(transferCost(tokenSend).solOut).toBe(fee + TOKEN_ACCOUNT_RENT_LAMPORTS);
-		expect(transferProblem(tokenSend, holdings(owner, 10_000n, [t]), 0n)).toMatch(/Add a little SOL/);
+		expect(transferProblem(tokenSend, holdings(owner, 10_000n, [t]), 0n)).toMatch(
+			/Add a little SOL/
+		);
 		expect(needsSolForFees(holdings(owner, 10_000n))).toBe(true);
 		expect(needsSolForFees(holdings(owner, SOL))).toBe(false);
 	});

@@ -47,7 +47,9 @@ export function ResponsiveSheet({
 	const header = (Title: typeof Dialog.Title, Description: typeof Dialog.Description) => (
 		<div className={cn('flex items-start justify-between gap-3', hideTitle && 'justify-end')}>
 			<div className={cn('min-w-0 flex-1 space-y-1 text-left', hideTitle && 'sr-only')}>
-				<Title className="text-[20px] leading-tight font-semibold tracking-[-0.02em]">{title}</Title>
+				<Title className="text-[20px] leading-tight font-semibold tracking-[-0.02em]">
+					{title}
+				</Title>
 				{description ? (
 					<Description className="text-[14px] leading-snug text-muted-foreground">
 						{description}

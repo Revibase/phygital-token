@@ -11,7 +11,8 @@ const options = {
 function browser() {
   let pending = false;
   const get = vi.fn(({ signal }: { signal?: AbortSignal }) => {
-    if (pending) return Promise.reject(new DOMException("A request is already pending.", "NotAllowedError"));
+    if (pending)
+      return Promise.reject(new DOMException("A request is already pending.", "NotAllowedError"));
     pending = true;
     return new Promise((_, reject) =>
       signal?.addEventListener("abort", () => {
@@ -47,6 +48,8 @@ describe("authenticateWithWebauthn", () => {
   it("without a signal, a prompt left open blocks the next one", async () => {
     browser();
     void authenticateWithWebauthn(options).catch(() => {});
-    await expect(authenticateWithWebauthn(options)).rejects.toMatchObject({ code: "AUTHENTICATION_CANCELLED" });
+    await expect(authenticateWithWebauthn(options)).rejects.toMatchObject({
+      code: "AUTHENTICATION_CANCELLED",
+    });
   });
 });

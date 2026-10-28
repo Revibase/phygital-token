@@ -52,7 +52,11 @@ describe("authenticatePasskey", () => {
 
   it("passes its signal to the WebAuthn prompt", async () => {
     const controller = new AbortController();
-    await authenticatePasskey(challenge, { allowList, rpId: "app.example", signal: controller.signal });
+    await authenticatePasskey(challenge, {
+      allowList,
+      rpId: "app.example",
+      signal: controller.signal,
+    });
     expect(vi.mocked(authenticateWithWebauthn).mock.calls[0]![1]).toBe(controller.signal);
   });
 });

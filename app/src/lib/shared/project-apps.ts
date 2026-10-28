@@ -6,7 +6,6 @@
 export const APPS_FILE = 'revibase.json';
 export const APPS_VERSION = 1;
 
-
 export type ProjectApp = {
 	label: string;
 	/** Fully resolved: placeholders filled, scheme and host checked. */

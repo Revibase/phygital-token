@@ -43,7 +43,10 @@ export function QrCode({
 				aria-label={accessibleLabel}
 			>
 				{svg ? (
-					<div className="animate-rise size-full [&_svg]:size-full" dangerouslySetInnerHTML={{ __html: svg }} />
+					<div
+						className="animate-rise size-full [&_svg]:size-full"
+						dangerouslySetInnerHTML={{ __html: svg }}
+					/>
 				) : null}
 			</div>
 			<figcaption className="text-center text-[13px] text-muted-foreground">{label}</figcaption>

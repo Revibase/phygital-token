@@ -48,10 +48,7 @@ export function Content({
 	);
 }
 
-export function Title({
-	className,
-	...props
-}: React.ComponentProps<typeof DrawerPrimitive.Title>) {
+export function Title({ className, ...props }: React.ComponentProps<typeof DrawerPrimitive.Title>) {
 	return (
 		<DrawerPrimitive.Title
 			data-slot="drawer-title"

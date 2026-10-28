@@ -15,7 +15,9 @@ import { Toaster } from '#lib/components/ui/sonner';
 
 const solanaConnectors = toSolanaWalletConnectors({ shouldAutoConnect: true });
 
-function privyChain(cluster: AppBoot['cluster']): 'solana:mainnet' | 'solana:devnet' | 'solana:testnet' {
+function privyChain(
+	cluster: AppBoot['cluster']
+): 'solana:mainnet' | 'solana:devnet' | 'solana:testnet' {
 	if (cluster === 'mainnet') return 'solana:mainnet';
 	if (cluster === 'testnet') return 'solana:testnet';
 	return 'solana:devnet';
@@ -37,13 +39,10 @@ export function Providers({ boot, children }: { boot: AppBoot; children: React.R
 				config={{
 					appearance: {
 						walletChainType: 'solana-only',
-						walletList: [
-							'detected_solana_wallets',
-							'wallet_connect_qr_solana'
-						],
+						walletList: ['detected_solana_wallets', 'wallet_connect_qr_solana'],
 						showWalletLoginFirst: false
 					},
-					loginMethods: ["google", 'wallet'],
+					loginMethods: ['google', 'wallet'],
 					externalWallets: {
 						solana: { connectors: solanaConnectors }
 					},

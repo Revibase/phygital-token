@@ -9,7 +9,10 @@ import { EmbedBrowser } from './EmbedBrowser';
 import { PageHeader } from './PageHeader';
 import { PageShell } from './PageShell';
 
-const REFUSED: Record<Exclude<BrowseTarget, { ok: true }>['reason'], { title: string; body: string }> = {
+const REFUSED: Record<
+	Exclude<BrowseTarget, { ok: true }>['reason'],
+	{ title: string; body: string }
+> = {
 	missing: {
 		title: 'Nothing to open',
 		body: 'Scan the QR code again, or open the link you were given.'
@@ -35,8 +38,17 @@ export function OpenScreen({ target }: { target: BrowseTarget }) {
 	if (!target.ok) {
 		const copy = REFUSED[target.reason];
 		return (
-			<PageShell footer={<Button href="/" size="xl">Go to your wallet</Button>}>
-				<section className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center" role="alert">
+			<PageShell
+				footer={
+					<Button href="/" size="xl">
+						Go to your wallet
+					</Button>
+				}
+			>
+				<section
+					className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center"
+					role="alert"
+				>
 					<PageHeader title={copy.title} body={copy.body} />
 				</section>
 			</PageShell>
@@ -59,7 +71,10 @@ export function OpenScreen({ target }: { target: BrowseTarget }) {
 					) : null
 				}
 			>
-				<section className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center" role="status">
+				<section
+					className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center"
+					role="status"
+				>
 					{state === 'closed' ? (
 						<PageHeader
 							title={`Closed ${target.hostname}`}
@@ -68,10 +83,7 @@ export function OpenScreen({ target }: { target: BrowseTarget }) {
 					) : (
 						<div className="flex flex-col items-center gap-4 text-center">
 							<Spinner className="size-6 text-muted-foreground" />
-							<PageHeader
-								align="center"
-								title={`Opening ${target.hostname}…`}
-							/>
+							<PageHeader align="center" title={`Opening ${target.hostname}…`} />
 						</div>
 					)}
 				</section>

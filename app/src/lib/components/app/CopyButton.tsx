@@ -27,7 +27,11 @@ export function CopyButton({ value, label = 'Copy' }: { value: string; label?: s
 				});
 			}}
 		>
-			{copied ? <Check className="animate-rise size-4 text-success" /> : <Copy className="size-4" />}
+			{copied ? (
+				<Check className="animate-rise size-4 text-success" />
+			) : (
+				<Copy className="size-4" />
+			)}
 		</Button>
 	);
 }

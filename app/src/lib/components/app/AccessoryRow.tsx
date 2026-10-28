@@ -21,7 +21,10 @@ export function AccessoryRow({
 }) {
 	const media = useQuery({ ...accessoryMediaQuery(accessory.pda), enabled: !!accessory.mint });
 	const name = media.data?.name ?? null;
-	const detail = [name ? `Accessory ${accessory.tag}` : null, accessory.kind === 'permanent' ? 'Permanent' : null]
+	const detail = [
+		name ? `Accessory ${accessory.tag}` : null,
+		accessory.kind === 'permanent' ? 'Permanent' : null
+	]
 		.filter(Boolean)
 		.join(' · ');
 
@@ -42,10 +45,16 @@ export function AccessoryRow({
 					<AccessoryMark size="sm" pda={accessory.pda} hasMint={!!accessory.mint} />
 				</span>
 				<span className="min-w-0 flex-1">
-					<span className="block truncate text-[15px] font-medium">{name ?? `Accessory ${accessory.tag}`}</span>
-					{detail ? <span className="block truncate text-[13px] text-muted-foreground">{detail}</span> : null}
+					<span className="block truncate text-[15px] font-medium">
+						{name ?? `Accessory ${accessory.tag}`}
+					</span>
+					{detail ? (
+						<span className="block truncate text-[13px] text-muted-foreground">{detail}</span>
+					) : null}
 				</span>
-				{onClick && !trailing ? <ChevronRight className="size-4 shrink-0 text-muted-foreground/70" /> : null}
+				{onClick && !trailing ? (
+					<ChevronRight className="size-4 shrink-0 text-muted-foreground/70" />
+				) : null}
 			</button>
 			{trailing ? <span className="flex shrink-0 items-center gap-1 pr-3">{trailing}</span> : null}
 		</li>

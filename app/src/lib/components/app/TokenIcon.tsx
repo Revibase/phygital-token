@@ -18,7 +18,9 @@ export function TokenIcon({
 				src={src}
 				alt=""
 				className={
-					collectible ? 'size-11 rounded-lg bg-muted object-cover' : 'size-9 rounded-full bg-muted object-cover'
+					collectible
+						? 'size-11 rounded-lg bg-muted object-cover'
+						: 'size-9 rounded-full bg-muted object-cover'
 				}
 				onError={() => setFailedSrc(src)}
 			/>

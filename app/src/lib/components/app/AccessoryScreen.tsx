@@ -25,7 +25,13 @@ import { AppGrid } from './AppGrid';
 import { TechnicalDetails } from './TechnicalDetails';
 import { WalletRow } from './WalletRow';
 
-export function AccessoryScreen({ accessory, loadError }: { accessory: AccessoryView | null; loadError: boolean }) {
+export function AccessoryScreen({
+	accessory,
+	loadError
+}: {
+	accessory: AccessoryView | null;
+	loadError: boolean;
+}) {
 	const wallet = useWallet();
 	const boot = useBoot();
 	const router = useRouter();
@@ -54,7 +60,10 @@ export function AccessoryScreen({ accessory, loadError }: { accessory: Accessory
 	const owned = !!accessory?.owner && wallet.address === accessory.owner;
 	const screen = accessory ? tapScreen(accessory, owned) : null;
 	const management = accessory ? managementActions(accessory, owned) : null;
-	const mediaQuery = useQuery({ ...accessoryMediaQuery(accessory?.pda ?? ''), enabled: !!accessory?.mint });
+	const mediaQuery = useQuery({
+		...accessoryMediaQuery(accessory?.pda ?? ''),
+		enabled: !!accessory?.mint
+	});
 	const media = mediaQuery.data ?? null;
 	const namedCollectible = !!accessory?.mint;
 	const collectibleLoading = namedCollectible && mediaQuery.isPending;
@@ -90,10 +99,7 @@ export function AccessoryScreen({ accessory, loadError }: { accessory: Accessory
 
 	return (
 		<>
-			<PageShell
-				size="wide"
-				footer={<div className="lg:hidden">{actions}</div>}
-			>
+			<PageShell size="wide" footer={<div className="lg:hidden">{actions}</div>}>
 				{!accessory || !screen || loadError ? (
 					<section className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center">
 						<Notice
@@ -153,7 +159,11 @@ export function AccessoryScreen({ accessory, loadError }: { accessory: Accessory
 									title={collectibleName}
 									body={media?.collection ? `${media.collection} · ${screen.title}` : screen.title}
 								>
-									{screen.body ? <p className="text-[15px] leading-relaxed text-muted-foreground">{screen.body}</p> : null}
+									{screen.body ? (
+										<p className="text-[15px] leading-relaxed text-muted-foreground">
+											{screen.body}
+										</p>
+									) : null}
 								</PageHeader>
 							) : (
 								<PageHeader
@@ -169,7 +179,9 @@ export function AccessoryScreen({ accessory, loadError }: { accessory: Accessory
 									<WalletRow
 										address={accessory.owner}
 										label={owned ? 'Your wallet' : undefined}
-										nftOwnership={media?.owner ? (media.owner === accessory.owner ? 'same' : 'different') : null}
+										nftOwnership={
+											media?.owner ? (media.owner === accessory.owner ? 'same' : 'different') : null
+										}
 										href={owned ? '/wallet' : undefined}
 									/>
 								</List>
@@ -197,7 +209,12 @@ export function AccessoryScreen({ accessory, loadError }: { accessory: Accessory
 					<ResponsiveSheet open={manageOpen} onOpenChange={setManageOpen} title="Manage accessory">
 						<List>
 							{management?.changeOwner ? (
-								<ListRow label="Change owner" detail="Claim it with another wallet" href="/accessory/link" chevron />
+								<ListRow
+									label="Change owner"
+									detail="Claim it with another wallet"
+									href="/accessory/link"
+									chevron
+								/>
 							) : null}
 							{management?.release ? (
 								<ListRow
@@ -221,13 +238,24 @@ export function AccessoryScreen({ accessory, loadError }: { accessory: Accessory
 							/>
 						</List>
 					</ResponsiveSheet>
-					<TechnicalDetails accessory={accessory} cluster={boot.cluster} open={detailsOpen} onOpenChange={setDetailsOpen} />
+					<TechnicalDetails
+						accessory={accessory}
+						cluster={boot.cluster}
+						open={detailsOpen}
+						onOpenChange={setDetailsOpen}
+					/>
 					{accessory.canRelease ? (
 						<ReleaseSheet accessory={accessory} open={releaseOpen} onOpenChange={setReleaseOpen} />
 					) : null}
 				</>
 			) : null}
-			{embedded ? <EmbedBrowser href={embedded.href} label={embedded.label} onClose={() => setEmbedded(null)} /> : null}
+			{embedded ? (
+				<EmbedBrowser
+					href={embedded.href}
+					label={embedded.label}
+					onClose={() => setEmbedded(null)}
+				/>
+			) : null}
 			{accessory?.mint ? (
 				<CollectibleDialog
 					mint={accessory.mint}

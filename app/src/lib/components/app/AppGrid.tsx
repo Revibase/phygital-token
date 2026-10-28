@@ -35,9 +35,7 @@ export function AppGrid({
 									alt=""
 									className="size-full object-cover"
 									decoding="async"
-									onError={() =>
-										setBroken((current) => new Set(current).add(item.icon!))
-									}
+									onError={() => setBroken((current) => new Set(current).add(item.icon!))}
 								/>
 							</span>
 						) : (
@@ -45,7 +43,9 @@ export function AppGrid({
 								<LinkIcon className="size-6 drop-shadow-[0_1px_1px_rgb(0_0_0/0.15)]" />
 							</span>
 						);
-					const caption = <span className="line-clamp-2 text-[12px] leading-tight font-medium">{item.label}</span>;
+					const caption = (
+						<span className="line-clamp-2 text-[12px] leading-tight font-medium">{item.label}</span>
+					);
 					return (
 						<li key={item.label + item.href}>
 							{item.open === 'embed' ? (
@@ -54,7 +54,13 @@ export function AppGrid({
 									{caption}
 								</button>
 							) : (
-								<a href={item.href} target="_blank" rel="noopener noreferrer" className={tile} title={title}>
+								<a
+									href={item.href}
+									target="_blank"
+									rel="noopener noreferrer"
+									className={tile}
+									title={title}
+								>
 									{body}
 									{caption}
 								</a>

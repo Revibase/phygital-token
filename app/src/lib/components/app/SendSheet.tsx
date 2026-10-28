@@ -95,13 +95,14 @@ export function SendSheet({
 			rawError = (err as Error).message;
 		}
 	}
-	const formProblem = recipient.trim() && !validRecipient
-		? 'Enter a valid Solana address.'
-		: rawError
-			? rawError
-			: raw !== null && raw > balance
-				? 'That’s more than this wallet holds.'
-				: null;
+	const formProblem =
+		recipient.trim() && !validRecipient
+			? 'Enter a valid Solana address.'
+			: rawError
+				? rawError
+				: raw !== null && raw > balance
+					? 'That’s more than this wallet holds.'
+					: null;
 	const ready = !!validRecipient && raw !== null && !formProblem;
 
 	function setMax() {
@@ -171,7 +172,13 @@ export function SendSheet({
 								</p>
 							</div>
 							{asset === null ? (
-								<Button variant="ghost" size="sm" className="text-primary" disabled={!!busy} onClick={() => choose(null)}>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="text-primary"
+									disabled={!!busy}
+									onClick={() => choose(null)}
+								>
 									Change
 								</Button>
 							) : null}
@@ -192,7 +199,13 @@ export function SendSheet({
 							label="Amount"
 							id={`${uid}-amount`}
 							labelAction={
-								<Button variant="ghost" size="sm" className="-my-3 text-primary" disabled={!!busy || !holdings} onClick={setMax}>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="-my-3 text-primary"
+									disabled={!!busy || !holdings}
+									onClick={setMax}
+								>
 									Max
 								</Button>
 							}
@@ -212,7 +225,9 @@ export function SendSheet({
 							<Panel className="space-y-2 py-4 text-[14px]">
 								<div className="flex justify-between gap-3">
 									<span className="text-muted-foreground">To</span>
-									<span className="font-mono text-[13px]">{shortAddress(plan.request.recipient)}</span>
+									<span className="font-mono text-[13px]">
+										{shortAddress(plan.request.recipient)}
+									</span>
 								</div>
 								<div className="flex justify-between gap-3">
 									<span className="text-muted-foreground">Amount</span>
@@ -233,12 +248,16 @@ export function SendSheet({
 								<div className="flex justify-between gap-3 border-t pt-2 font-medium">
 									<span>Total from this wallet</span>
 									<span>
-										{current.kind === 'sol' ? sol(plan.cost.solOut) : `${amount} ${label} + ${sol(plan.cost.solOut)}`}
+										{current.kind === 'sol'
+											? sol(plan.cost.solOut)
+											: `${amount} ${label} + ${sol(plan.cost.solOut)}`}
 									</span>
 								</div>
 							</Panel>
 						) : (
-							<p className="text-[13px] text-muted-foreground">Network fee about {sol(transferFeeLamports())}.</p>
+							<p className="text-[13px] text-muted-foreground">
+								Network fee about {sol(transferFeeLamports())}.
+							</p>
 						)}
 						<Button type="submit" size="xl" disabled={!ready || !!busy || !!plan?.problem}>
 							{busy === 'send' ? (

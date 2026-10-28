@@ -56,7 +56,12 @@ export function ReleaseSheet({
 	}
 
 	return (
-		<ResponsiveSheet open={open} onOpenChange={onOpenChange} title="Release this accessory?" description={outcome}>
+		<ResponsiveSheet
+			open={open}
+			onOpenChange={onOpenChange}
+			title="Release this accessory?"
+			description={outcome}
+		>
 			<Notice error={failure} />
 			<WalletConnect
 				open={choosing}
@@ -72,7 +77,13 @@ export function ReleaseSheet({
 						<WalletRow address={wallet.address} label="Your wallet" />
 					</List>
 					{isOwner ? (
-						<Button variant="destructive" size="xl" className="w-full" disabled={busy} onClick={() => void release()}>
+						<Button
+							variant="destructive"
+							size="xl"
+							className="w-full"
+							disabled={busy}
+							onClick={() => void release()}
+						>
 							{busy ? (
 								<>
 									<Spinner /> {wallet.approvePrompt}
@@ -83,8 +94,17 @@ export function ReleaseSheet({
 						</Button>
 					) : (
 						<>
-							<Notice tone="info" title="Not the owner’s wallet" body={`Switch to ${linked} to release it.`} />
-							<Button variant="secondary" size="xl" className="w-full" onClick={() => setChoosing(true)}>
+							<Notice
+								tone="info"
+								title="Not the owner’s wallet"
+								body={`Switch to ${linked} to release it.`}
+							/>
+							<Button
+								variant="secondary"
+								size="xl"
+								className="w-full"
+								onClick={() => setChoosing(true)}
+							>
 								Use a different wallet
 							</Button>
 						</>

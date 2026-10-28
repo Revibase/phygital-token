@@ -11,14 +11,23 @@ import { toAccessoryView } from '#lib/shared/accessory-view.ts';
 /** Authenticated accessory apps, opened directly by the client. */
 export async function GET(request: NextRequest) {
 	const env = await getEnv();
-	const session = await readAdmitSession(responseCookies(request, NextResponse.next()), env.SESSION_SECRET);
+	const session = await readAdmitSession(
+		responseCookies(request, NextResponse.next()),
+		env.SESSION_SECRET
+	);
 	if (!session) {
-		return NextResponse.json({ error: 'Tap your accessory again.', code: 'expired' }, { status: 401 });
+		return NextResponse.json(
+			{ error: 'Tap your accessory again.', code: 'expired' },
+			{ status: 401 }
+		);
 	}
 	try {
 		const resolved = await fetchAccessory(getRpc(env), session.pda);
 		if (!resolved) {
-			return NextResponse.json({ error: 'Accessory not found', code: 'not_found' }, { status: 404 });
+			return NextResponse.json(
+				{ error: 'Accessory not found', code: 'not_found' },
+				{ status: 404 }
+			);
 		}
 		if (solanaCluster(env) === 'localnet') return NextResponse.json({ apps: [] });
 		const accessory = toAccessoryView(resolved.pda, resolved.account);

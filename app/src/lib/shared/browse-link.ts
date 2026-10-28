@@ -3,8 +3,7 @@
  * `ref` is whatever the link's author wrote, so the page is labelled by its own hostname instead.
  */
 export type BrowseTarget =
-	| { ok: true; href: string; hostname: string }
-	| { ok: false; reason: 'missing' | 'invalid' };
+	{ ok: true; href: string; hostname: string } | { ok: false; reason: 'missing' | 'invalid' };
 
 export function readBrowseLink(segments: readonly string[] | undefined): BrowseTarget {
 	if (!segments?.length) return { ok: false, reason: 'missing' };
@@ -25,7 +24,8 @@ function parseHttpUrl(raw: unknown): URL | null {
 	if (typeof raw !== 'string' || raw.length < 1 || raw.length > 4096) return null;
 	try {
 		const url = new URL(raw);
-		if ((url.protocol !== 'https:' && url.protocol !== 'http:') || url.username || url.password) return null;
+		if ((url.protocol !== 'https:' && url.protocol !== 'http:') || url.username || url.password)
+			return null;
 		return url;
 	} catch {
 		return null;

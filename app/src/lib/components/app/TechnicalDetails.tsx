@@ -70,7 +70,11 @@ export function TechnicalDetails({
 				response
 			});
 			if (!result.isVerified) throw new Error('Signature did not verify');
-			setCheck(String(await findPhygitalTokenPda(result.secp256r1PublicKey)) === accessory.pda ? 'genuine' : 'mismatch');
+			setCheck(
+				String(await findPhygitalTokenPda(result.secp256r1PublicKey)) === accessory.pda
+					? 'genuine'
+					: 'mismatch'
+			);
 		} catch (err) {
 			setCheckFailure(describeError(err, 'tap'));
 			setCheck('idle');
@@ -121,7 +125,11 @@ export function TechnicalDetails({
 							value ? (
 								<span className="flex items-center">
 									{explorable.has(label) ? (
-										<ExplorerLink value={value} cluster={cluster} label={`View ${lower(label)} on Solana Explorer`} />
+										<ExplorerLink
+											value={value}
+											cluster={cluster}
+											label={`View ${lower(label)} on Solana Explorer`}
+										/>
 									) : null}
 									<CopyButton value={value} label={`Copy ${lower(label)}`} />
 								</span>

@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
 		result.wallet
 	);
 	const response = NextResponse.json({ ok: true, wallet: session.wallet, expiresAt: session.exp });
-	for (const cookie of pending.headers.getSetCookie()) response.headers.append('set-cookie', cookie);
+	for (const cookie of pending.headers.getSetCookie())
+		response.headers.append('set-cookie', cookie);
 	return response;
 }
 

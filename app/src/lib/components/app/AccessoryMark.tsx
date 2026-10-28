@@ -37,7 +37,10 @@ export function AccessoryMark({
 	const showPlaceholder = hasMint === true && (!resolved || (showArtwork && !loaded));
 
 	return (
-		<div className={cn('relative grid shrink-0 place-items-center', box[size], className)} aria-hidden="true">
+		<div
+			className={cn('relative grid shrink-0 place-items-center', box[size], className)}
+			aria-hidden="true"
+		>
 			{mode === 'waiting' ? (
 				<span className="animate-ripple absolute inset-0 rounded-[26%] ring-2 ring-brand/60" />
 			) : null}
@@ -53,7 +56,10 @@ export function AccessoryMark({
 				)}
 			>
 				{!showPlaceholder && !(showArtwork && loaded) ? (
-					<Nfc strokeWidth={1.75} className={cn(mark[size], resolved && hasMint === true && 'animate-rise')} />
+					<Nfc
+						strokeWidth={1.75}
+						className={cn(mark[size], resolved && hasMint === true && 'animate-rise')}
+					/>
 				) : null}
 				{showArtwork ? (
 					<>

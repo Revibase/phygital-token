@@ -90,7 +90,11 @@ export function CollectibleDialog({
 								<dd className="flex items-center font-mono text-xs">
 									<span title={mint}>{shortAddress(mint)}</span>
 									<CopyButton value={mint} label="Copy NFT mint" />
-									<ExplorerLink value={mint} cluster={cluster} label="View NFT mint on Solana Explorer" />
+									<ExplorerLink
+										value={mint}
+										cluster={cluster}
+										label="View NFT mint on Solana Explorer"
+									/>
 								</dd>
 							</div>
 							<div className="flex min-h-12 items-center justify-between gap-3">
@@ -129,7 +133,9 @@ export function CollectibleDialog({
 							{media?.tokenStandard ? (
 								<div className="flex min-h-12 items-center justify-between gap-3">
 									<dt className="shrink-0 text-xs text-muted-foreground">Token standard</dt>
-									<dd className="text-right text-xs">{media.tokenStandard.replace(/([a-z])([A-Z])/g, '$1 $2')}</dd>
+									<dd className="text-right text-xs">
+										{media.tokenStandard.replace(/([a-z])([A-Z])/g, '$1 $2')}
+									</dd>
 								</div>
 							) : null}
 							{media?.royaltyBps != null ? (
