@@ -34,9 +34,23 @@ On a phone, connect the wallet first, then prepare the challenge for that wallet
 
 Every transaction the app builds is v1 (up to 4096 bytes; a claim with two WebAuthn verifies doesn't reliably fit v0's 1232). Its compute limit, priority fee and loaded-data limit live in the message header (`LINK_TX_CONFIG`), not in compute-budget instructions; v1 budgets zero for an unset limit. Privy connects embedded Solana wallets and external Wallet Standard wallets. Those wallets sign kit 8 transaction bytes directly and pay their own fees.
 
-## Project apps
+## Project page
 
-Project apps come from `revibase.json` at the mint’s HTTPS `external_url`. It is Revibase’s own format, not Phantom’s `shortcuts.json`, so a project can serve both without one affecting the other. Only `"version": 1` is read.
+The project's part of the tap page comes from `revibase.json` at the mint’s HTTPS `external_url`: its `apps`, a `style` (`accent`, `background`) and `featured` entries keyed by audience. It is Revibase’s own format, not Phantom’s `shortcuts.json`, so a project can serve both without one affecting the other. Only `"version": 1` is read; `style` and `featured` are optional additions to it, so older files show only their apps.
+
+The page has one image and one button:
+
+- **Image.** `pickFeatured` takes the viewer’s entry (`unclaimed`, `owner` when the connected wallet owns it, `visitor`), else `default`. Its image tops the page with the accessory mark and verified check over its lower edge; without one, the NFT art. Title and text sit under the NFT name; owner, management and technical details are behind one Details link.
+- **Button.** `mainButton` picks it, pinned at the bottom on phones: Claim whenever the viewer can claim, otherwise the entry’s `button` (an app named by its label), otherwise none. Built-in flows are never in the file; Revibase adds them. Release and change owner stay behind Details. Every app stays in the apps row, the button’s too: the row is the full list, the button a shortcut to one of them.
+- **Background.** `ProjectSurface` paints it behind the page. A color fills as is and picks Revibase’s light or dark text palette by contrast. An image is blurred and darkened under the dark palette. Sheets and the in-app browser render outside it, unthemed.
+
+The file is untrusted data, and the page is built so that it stays data:
+
+- **Nothing executes.** No HTML, Markdown, CSS or SVG. Text renders as React text nodes, colors must match `#RRGGBB`, and they reach the page only through React `style` objects.
+- **Revibase keeps the trust chrome.** The header, the verified check, the Genuine eyebrow, the NFT name, the owner line, Claim, the in-app browser chrome and wallet prompts are never recolored by the project; on a background they only switch between Revibase’s own light and dark palettes. The NFT art was always the project’s, so position isn’t the boundary; what Revibase writes and renders is. A background image is blurred so it can’t carry a sharp fake control.
+- **The button is an app.** It names an entry in `apps`, so it passed the same URL checks, and its host shows under it. A label that reads like a Revibase flow or wallet prompt (claim, release, verify, connect, sign, wallet, …) shows as “Open”. Claim keeps Revibase’s colors; the accent only fills the project’s own button and icon-less tiles.
+- **Only the Worker talks to the project.** The file, icons, featured images and the background image are fetched server side; images come back as HMAC-signed, raster-only proxy paths (`/app-icon`, `/asset-image`). The tapper’s IP never reaches the project.
+- **No automatic actions, and audiences are cosmetic.** The file is public, so a project must gate real perks on its own server.
 
 | `open` | Opens |
 | --- | --- |
@@ -49,7 +63,7 @@ Any app can send someone into the Revibase wallet with a browse link in the same
 
 “Forget wallet preference” clears the claim details shown for this accessory. It does not change where an app opens, and it does not release the accessory.
 
-Only NFT media queries persist locally. Project app caches include the owner address. The NFT owner badge is informational.
+Only NFT media queries persist locally. Project page caches include the owner address. The NFT owner badge is informational.
 
 ## Code
 
@@ -57,7 +71,7 @@ Only NFT media queries persist locally. Project app caches include the owner add
 | --- | --- |
 | `src/middleware.ts` | Same-origin API checks. Admit cookie for `/accessory` and `/accessory/link`. |
 | `src/lib/server/tap`, `session` | Tap verification, replay counters, cookies. |
-| `src/lib/server/accessory` | Resolve tokens, enforce view and claim rules, load project apps. |
+| `src/lib/server/accessory` | Resolve tokens, enforce view and claim rules, load the project page. |
 | `src/lib/shared/link-transaction.ts` | Transaction construction and byte validation. |
 | `src/lib/client/link`, `wallet` | Claim, release, Privy sign-in, and signing. |
 | `src/lib/client/wallet/embed-host.ts`, `src/lib/shared/wallet-bridge.ts` | In-app browser and the wallet injected into it. |

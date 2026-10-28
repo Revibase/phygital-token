@@ -7,7 +7,7 @@ const browser = typeof window !== 'undefined';
 
 export const queryKeys = {
 	media: (pda: string) => ['accessory-media', pda] as const,
-	apps: (pda: string, owner: string | null) => ['accessory-apps', pda, owner ?? ''] as const,
+	project: (pda: string, owner: string | null) => ['accessory-project', pda, owner ?? ''] as const,
 	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const,
 	walletHoldings: (wallet: string) => ['wallet-holdings', wallet] as const
 };

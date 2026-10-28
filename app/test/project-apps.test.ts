@@ -7,7 +7,8 @@ import {
 	MAX_APPS,
 	type AppContext
 } from '#lib/shared/project-apps.ts';
-import { fetchAppsFile, loadApps } from '#lib/server/accessory/apps.ts';
+import { fetchAppsFile, loadProjectPage } from '#lib/server/accessory/apps.ts';
+import { EMPTY_PAGE } from '#lib/shared/project-page.ts';
 import type { AccessoryView } from '#lib/shared/types.ts';
 
 const MINT = 'So11111111111111111111111111111111111111112';
@@ -189,18 +190,21 @@ describe('loading a project file', () => {
 						]
 					})
 			});
-			const { externalUrl, apps } = await loadApps('https://rpc.test', { ...accessory, kind });
+			const { externalUrl, page } = await loadProjectPage('https://rpc.test', {
+				...accessory,
+				kind
+			});
 			expect(externalUrl).toBe('https://game.xyz/s1');
-			expect(apps.map((a) => a.href)).toEqual([`https://game.xyz/${MINT}`]);
+			expect(page.apps.map((a) => a.href)).toEqual([`https://game.xyz/${MINT}`]);
 			expect(seen).toEqual(['DAS getAsset', 'https://game.xyz/s1/revibase.json']);
 		}
 	);
 
 	it('has none without a mint or an https external_url, without asking the project', async () => {
 		const seen = stub({ das: das({ content: { links: { external_url: 'http://game.xyz' } } }) });
-		const none = { externalUrl: null, apps: [] };
-		expect(await loadApps('https://rpc.test', { ...accessory, mint: null })).toEqual(none);
-		expect(await loadApps('https://rpc.test', accessory)).toEqual(none);
+		const none = { externalUrl: null, page: EMPTY_PAGE };
+		expect(await loadProjectPage('https://rpc.test', { ...accessory, mint: null })).toEqual(none);
+		expect(await loadProjectPage('https://rpc.test', accessory)).toEqual(none);
 		expect(seen).toEqual(['DAS getAsset']);
 	});
 
@@ -219,6 +223,6 @@ describe('loading a project file', () => {
 
 	it('throws when DAS is unreachable, so the client retries', async () => {
 		stub({ das: () => new Response('down', { status: 503 }) });
-		await expect(loadApps('https://rpc.test', accessory)).rejects.toThrow();
+		await expect(loadProjectPage('https://rpc.test', accessory)).rejects.toThrow();
 	});
 });

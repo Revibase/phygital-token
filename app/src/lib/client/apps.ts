@@ -1,6 +1,6 @@
-import type { ProjectApp } from '#lib/shared/project-apps.ts';
+import type { ProjectPage } from '#lib/shared/project-page.ts';
 import { getJson } from './api';
 
-export async function fetchAccessoryApps(): Promise<ProjectApp[]> {
-	return (await getJson<{ apps: ProjectApp[] }>('/api/accessory/apps')).apps;
+export async function fetchProjectPage(): Promise<ProjectPage> {
+	return (await getJson<{ page: ProjectPage }>('/api/accessory/project')).page;
 }

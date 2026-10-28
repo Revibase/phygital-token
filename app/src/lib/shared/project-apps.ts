@@ -100,6 +100,20 @@ function resolveUrl(
 	return null;
 }
 
+/** One app entry, or null when it's invalid. Featured buttons are read the same way, so they pass the same checks. */
+export function resolveApp(entry: unknown, ctx: AppContext): ProjectApp | null {
+	if (!entry || typeof entry !== 'object') return null;
+	const a = entry as Record<string, unknown>;
+
+	const label = typeof a.label === 'string' ? a.label.trim().slice(0, MAX_LABEL) : '';
+	if (!label) return null;
+
+	const link = resolveUrl(a.url, a.open, ctx);
+	if (!link) return null;
+
+	return { label, ...link, icon: iconImageUrl(a.icon) };
+}
+
 /** A file with another `version` shows nothing. Invalid entries are skipped, so one bad app can't hide the rest. */
 export function resolveApps(file: unknown, ctx: AppContext): ProjectApp[] {
 	if (!file || typeof file !== 'object') return [];
@@ -109,16 +123,8 @@ export function resolveApps(file: unknown, ctx: AppContext): ProjectApp[] {
 	const out: ProjectApp[] = [];
 	for (const entry of apps) {
 		if (out.length === MAX_APPS) break;
-		if (!entry || typeof entry !== 'object') continue;
-		const a = entry as Record<string, unknown>;
-
-		const label = typeof a.label === 'string' ? a.label.trim().slice(0, MAX_LABEL) : '';
-		if (!label) continue;
-
-		const link = resolveUrl(a.url, a.open, ctx);
-		if (!link) continue;
-
-		out.push({ label, ...link, icon: iconImageUrl(a.icon) });
+		const app = resolveApp(entry, ctx);
+		if (app) out.push(app);
 	}
 	return out;
 }

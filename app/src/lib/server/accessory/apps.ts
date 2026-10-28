@@ -1,5 +1,8 @@
+import { withIconProxy } from '#lib/server/accessory/app-icons.ts';
+import { assetImagePath } from '#lib/server/media/asset-images.ts';
 import { fetchAsset, type GetAssetResult } from '#lib/shared/mint-media.ts';
-import { appsFileUrl, resolveApps, type ProjectApp } from '#lib/shared/project-apps.ts';
+import { appsFileUrl } from '#lib/shared/project-apps.ts';
+import { EMPTY_PAGE, resolvePage, type ProjectPage } from '#lib/shared/project-page.ts';
 import type { AccessoryView } from '#lib/shared/types.ts';
 
 const TIMEOUT_MS = 3_000;
@@ -31,11 +34,14 @@ function collectionOf(asset: GetAssetResult | undefined): string | null {
 	return asset?.grouping?.find((g) => g.group_key === 'collection')?.group_value ?? null;
 }
 
-export type ProjectApps = { externalUrl: string | null; apps: ProjectApp[] };
+export type LoadedPage = { externalUrl: string | null; page: ProjectPage };
 
 /** Throws only when DAS is unreachable, so the client can retry. */
-export async function loadApps(rpcUrl: string, accessory: AccessoryView): Promise<ProjectApps> {
-	const none = { externalUrl: null, apps: [] };
+export async function loadProjectPage(
+	rpcUrl: string,
+	accessory: AccessoryView
+): Promise<LoadedPage> {
+	const none = { externalUrl: null, page: EMPTY_PAGE };
 	if (!accessory.mint) return none;
 	const asset = await fetchAsset(rpcUrl, accessory.mint);
 	const raw = asset?.content?.links?.external_url;
@@ -46,12 +52,34 @@ export async function loadApps(rpcUrl: string, accessory: AccessoryView): Promis
 	const file = await fetchAppsFile(fileUrl);
 	return {
 		externalUrl,
-		apps: resolveApps(file, {
+		page: resolvePage(file, {
 			externalUrl,
 			mint: accessory.mint,
 			collection: collectionOf(asset),
 			owner: accessory.owner,
 			accessory: accessory.pda
 		})
+	};
+}
+
+/** Every image on the project page, served from our origin: icons by the icon proxy, art by the asset proxy. */
+export async function withPageProxy(page: ProjectPage, secret: string): Promise<ProjectPage> {
+	const art = (url: string | null) => (url ? assetImagePath(secret, url) : null);
+	const bg = page.style.background;
+	const [apps, featured, background] = await Promise.all([
+		withIconProxy(page.apps, secret),
+		Promise.all(
+			Object.entries(page.featured).map(async ([key, f]) => [
+				key,
+				{ ...f, image: await art(f.image) }
+			])
+		),
+		bg?.kind === 'image' ? assetImagePath(secret, bg.image).then((image) => ({ ...bg, image })) : bg
+	]);
+	return {
+		...page,
+		apps,
+		featured: Object.fromEntries(featured) as ProjectPage['featured'],
+		style: { ...page.style, background }
 	};
 }
