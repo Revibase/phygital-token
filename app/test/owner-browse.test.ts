@@ -4,7 +4,7 @@ import { address, getBase58Decoder, type Rpc, type SolanaRpcApi } from '@solana/
 import { getPhygitalTokenEncoder } from 'phygital-token-sdk';
 
 import { bytesToBase64, bytesToBase64Url } from '#lib/shared/encoding.ts';
-import { MIGRATIONS, createTestD1 } from './support/d1-sqlite';
+import { createTestD1 } from './support/d1-sqlite';
 import { fakeAccessory } from './support/fixtures';
 import {
 	issueOwnerLoginChallenge,
@@ -47,7 +47,7 @@ function walletKey() {
 describe('owner login (owner_session)', () => {
 	it('accepts a fresh message signature, once', async () => {
 		const w = walletKey();
-		const db = createTestD1([MIGRATIONS]);
+		const db = createTestD1();
 		const { challengeId, message } = await issueOwnerLoginChallenge(db, site(w.address));
 		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), w.secret));
 
@@ -63,7 +63,7 @@ describe('owner login (owner_session)', () => {
 	it('rejects a signature from another key', async () => {
 		const w = walletKey();
 		const other = walletKey();
-		const db = createTestD1([MIGRATIONS]);
+		const db = createTestD1();
 		const { challengeId, message } = await issueOwnerLoginChallenge(db, site(w.address));
 		const signature = bytesToBase64Url(
 			ed25519.sign(new TextEncoder().encode(message), other.secret)
@@ -76,7 +76,7 @@ describe('owner login (owner_session)', () => {
 
 	it('is a readable Sign-In With Solana message for the requesting wallet', async () => {
 		const w = walletKey();
-		const db = createTestD1([MIGRATIONS]);
+		const db = createTestD1();
 		const { message } = await issueOwnerLoginChallenge(db, site(w.address), Date.UTC(2026, 0, 1));
 		const lines = message.split('\n');
 
@@ -93,7 +93,7 @@ describe('owner login (owner_session)', () => {
 	it('rejects a signature for a message issued to another wallet', async () => {
 		const w = walletKey();
 		const other = walletKey();
-		const db = createTestD1([MIGRATIONS]);
+		const db = createTestD1();
 		const { challengeId, message } = await issueOwnerLoginChallenge(db, site(other.address));
 		const signature = bytesToBase64Url(ed25519.sign(new TextEncoder().encode(message), w.secret));
 

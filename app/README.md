@@ -11,7 +11,7 @@ Stack: Next.js 16 · OpenNext Cloudflare · React 19 · Tailwind v4 + shadcn · 
 ```bash
 pnpm install                          # from the repo root (the app is a workspace package)
 cp app/.dev.vars.example app/.dev.vars
-pnpm --filter revibase db:migrate:local
+pnpm --filter revibase exec wrangler d1 execute DB --local --file test/support/schema.sql
 pnpm --filter revibase dev
 ```
 
@@ -30,9 +30,11 @@ Run `pnpm --filter revibase deploy` to build, then deploy. Production builds rej
 
 There is **one** D1 binding, `DB`. In production it can be shared with other services that accept the same tap URLs. Replace the placeholder `database_id` in `wrangler.jsonc` with your database's before deploying (`wrangler d1 create phygital-token`).
 
-- **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned outside this app. D1 records applied migrations by file name, so never rename or edit one that has already been applied.
+D1 migrations are kept out of git. [`test/support/schema.sql`](./test/support/schema.sql) is the schema the app expects; the tests and local dev use it.
+
+- **Shared tables:** `tap_counters` and `auth_challenges`. Their schema is owned outside this app.
   - `tap_counters` must be shared so there is one tap-counter high-water mark per chip across every service.
   - Resume and owner-login challenges are stored in `auth_challenges` under their own namespaces (message string → `startAuthentication` / `verifyResponse`).
-- **This app's tables:** `revibase_identifier_cache`. Migration `0014` drops the unused legacy `revibase_link_intents` table.
-- **Migrations:** apply the app's own with `wrangler d1 migrations apply DB --remote`. The files are prefixed `revibase_` so they never clash with another service's migration history in a shared database. `revibase_0000_shared_tables_mirror.sql` only mirrors the shared tables for local dev; it uses `IF NOT EXISTS` and is a no-op remotely. `revibase_0014` removes the legacy link-intent table.
+- **This app's tables:** `revibase_identifier_cache`.
+- **Migrations:** put them in `app/migrations` and apply them with `wrangler d1 migrations apply DB --remote`. Prefix them `revibase_` so they never clash with another service's migration history in a shared database. D1 records applied migrations by file name, so never rename or edit one that has already been applied.
 - Set `SESSION_SECRET` with `wrangler secret put`. `NEXT_PUBLIC_SOLANA_RPC_URL` is sent to the browser, which calls it directly (reads, DAS, and sending), so it must be your public RPC proxy, not a URL with an API key. Set it as a plain var, along with `NEXT_PUBLIC_SOLANA_CLUSTER` and `NEXT_PUBLIC_PRIVY_APP_ID`.

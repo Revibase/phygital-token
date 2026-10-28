@@ -5,7 +5,7 @@ import type { Rpc, SolanaRpcApi } from '@solana/kit';
 
 import { issueResumeChallenge, verifyResume } from '#lib/server/tap/resume.ts';
 import { bytesToBase64Url } from '#lib/shared/encoding.ts';
-import { createTestD1, MIGRATIONS } from './support/d1-sqlite';
+import { createTestD1 } from './support/d1-sqlite';
 
 const APP = 'https://portal.revibase.test';
 const RP_ID = 'revibase.test';
@@ -60,7 +60,7 @@ function assertion(message: string, tamper: Tamper = {}) {
 }
 
 async function tap(tamper?: Tamper) {
-	const db = createTestD1([MIGRATIONS]);
+	const db = createTestD1();
 	const { challengeId, message } = await issueResumeChallenge(db);
 	const deps = { db, rpc, origin: APP };
 	return { deps, input: { challengeId, response: assertion(message, tamper) } };
