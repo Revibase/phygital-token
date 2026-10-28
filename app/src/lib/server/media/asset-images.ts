@@ -1,16 +1,16 @@
 import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
 import { normalizeMediaUrl } from '#lib/shared/mint-media.ts';
-import { imageType } from '#lib/server/accessory/shortcut-icons.ts';
+import { imageType } from '#lib/server/accessory/app-icons.ts';
 
 /**
  * Artwork is fetched here and served from our origin. The browser never loads the publisher URL, and Helius
  * `cdn_uri` is not a publisher URL. The HMAC keeps this from being an open proxy.
  */
 export const ASSET_IMAGE_PATH = '/asset-image';
-export const MAX_ASSET_BYTES = 2 * 1024 * 1024;
+export const MAX_ASSET_BYTES = 10 * 1024 * 1024;
 const MAX_URLS = 80;
 const TIMEOUT_MS = 8_000;
-/** Domain-separates these MACs from session cookies and shortcut icons signed with the same secret. */
+/** Domain-separates these MACs from session cookies and app icons signed with the same secret. */
 const CONTEXT = 'revibase-asset-image\n';
 
 /**

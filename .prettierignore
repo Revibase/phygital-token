@@ -16,6 +16,7 @@ Cargo.lock
 idl
 packages/js/phygital-token/src/generated
 app/worker-configuration.d.ts
+app/next-env.d.ts
 app/src/lib/shared/program-idls/*.json
 # Test output and recorded fixtures.
 **/results

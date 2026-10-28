@@ -174,7 +174,12 @@ export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
 							</Button>
 						</>
 					) : view === 'tap' && webauthnOk ? (
-						<Button size="xl" className="w-full" disabled={tapping || !prepared} onClick={() => void tap()}>
+						<Button
+							size="xl"
+							className="w-full"
+							disabled={tapping || !prepared}
+							onClick={() => void tap()}
+						>
 							{tapping ? (
 								<>
 									<Spinner /> Hold your accessory to your phone…
@@ -188,7 +193,12 @@ export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
 							)}
 						</Button>
 					) : view === 'confirm' && wallet.address ? (
-						<Button size="xl" className="w-full" disabled={!!phase} onClick={() => void approveHere()}>
+						<Button
+							size="xl"
+							className="w-full"
+							disabled={!!phase}
+							onClick={() => void approveHere()}
+						>
 							{phase === 'approve' ? (
 								<>
 									<Spinner /> {wallet.approvePrompt}
@@ -207,7 +217,12 @@ export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
 						</Button>
 					) : null}
 					{view !== 'done' ? (
-						<Button variant="quiet" className="w-full" disabled={!!phase} onClick={() => router.push('/accessory')}>
+						<Button
+							variant="quiet"
+							className="w-full"
+							disabled={!!phase}
+							onClick={() => router.push('/accessory')}
+						>
 							Cancel
 						</Button>
 					) : null}
@@ -218,29 +233,48 @@ export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
 				<div className="animate-rise flex flex-1 flex-col gap-7">
 					{view === 'phone' ? (
 						<div className="flex flex-1 flex-col justify-center gap-8">
-							<PageHeader align="center" title="Claim on your phone" body="Claiming uses your phone’s NFC." />
+							<PageHeader
+								align="center"
+								title="Claim on your phone"
+								body="Claiming uses your phone’s NFC."
+							/>
 							{origin ? <QrCode value={origin} label="Scan with your phone’s camera" /> : null}
 						</div>
 					) : view === 'pending' ? (
 						<div className="flex-1" />
 					) : view === 'done' && linked ? (
 						<div className="flex flex-1 flex-col justify-center gap-8">
-							<BondVisual wallet={linked.recipient} pda={accessory.pda} hasMint={!!accessory.mint} />
+							<BondVisual
+								wallet={linked.recipient}
+								pda={accessory.pda}
+								hasMint={!!accessory.mint}
+							/>
 							<PageHeader
 								align="center"
 								title={copy.done.title}
 								body={copy.done.body(ownedResult, shortAddress(linked.recipient))}
 							/>
 							<List>
-								<WalletRow address={linked.recipient} label={ownedResult ? 'Your wallet' : undefined} />
+								<WalletRow
+									address={linked.recipient}
+									label={ownedResult ? 'Your wallet' : undefined}
+								/>
 							</List>
 						</div>
 					) : (
 						<>
 							{view === 'choose' ? (
-								<PageHeader step={{ current: 1, total: 3 }} title={copy.choose.title} body={copy.choose.body} />
+								<PageHeader
+									step={{ current: 1, total: 3 }}
+									title={copy.choose.title}
+									body={copy.choose.body}
+								/>
 							) : view === 'tap' ? (
-								<PageHeader step={{ current: 2, total: 3 }} title="Approve with your accessory" body={hint} />
+								<PageHeader
+									step={{ current: 2, total: 3 }}
+									title="Approve with your accessory"
+									body={hint}
+								/>
 							) : (
 								<PageHeader
 									step={{ current: 3, total: 3 }}
@@ -264,7 +298,10 @@ export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
 								</List>
 							) : null}
 							{view === 'tap' && !webauthnOk ? (
-								<Notice title="Open this page in Safari or Chrome" body="This browser can’t read your accessory." />
+								<Notice
+									title="Open this page in Safari or Chrome"
+									body="This browser can’t read your accessory."
+								/>
 							) : null}
 							{view === 'confirm' && wallet.address ? (
 								<List>

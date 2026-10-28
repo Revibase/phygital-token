@@ -1,16 +1,9 @@
-import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 
-export function createTestD1(migrationDirs: string[]): D1Database {
+export function createTestD1(): D1Database {
 	const db = new DatabaseSync(':memory:');
-	for (const dir of migrationDirs) {
-		for (const file of readdirSync(dir)
-			.filter((f) => f.endsWith('.sql'))
-			.sort()) {
-			db.exec(readFileSync(join(dir, file), 'utf8'));
-		}
-	}
+	db.exec(readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'));
 	return {
 		prepare(sql: string) {
 			let args: SQLInputValue[] = [];
@@ -40,5 +33,3 @@ export function createTestD1(migrationDirs: string[]): D1Database {
 		}
 	} as unknown as D1Database;
 }
-
-export const MIGRATIONS = new URL('../../migrations', import.meta.url).pathname;

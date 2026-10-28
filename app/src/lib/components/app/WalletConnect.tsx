@@ -38,7 +38,6 @@ export function WalletConnect({
 			started.current = false;
 		});
 		// connect is recreated when the wallet changes; only the open transition should start Privy.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [open, showButton]);
 
 	function finish(connected: boolean) {

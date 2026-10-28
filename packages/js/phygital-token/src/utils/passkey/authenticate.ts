@@ -17,6 +17,8 @@ export type AuthenticatePasskeyOptions = {
   rpId?: string;
   /** `allowCredentials` id when known. */
   credentialId?: string;
+  /** Cancels the tap prompt. Aborting rejects with the signal's reason, an `AbortError` by default. */
+  signal?: AbortSignal;
 };
 
 function resolveBrowserRpId(rpId: string | undefined): string {
@@ -37,6 +39,7 @@ export async function authenticatePasskey(
 ): Promise<AuthenticationResponseJSON> {
   const response = await authenticateWithWebauthn(
     nfcWebAuthnRequestOptions(challenge, resolveBrowserRpId(options?.rpId), options?.credentialId),
+    options?.signal,
   );
   return resolveCredentialId(response, {
     allowList: options?.allowList,

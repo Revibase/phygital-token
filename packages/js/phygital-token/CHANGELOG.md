@@ -4,6 +4,15 @@ All notable changes to this artifact are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [2.1.0]
+
+### Added
+
+- `authenticatePasskey` (and `startAuthentication`) take a `signal` that cancels
+  the tap prompt. Without it, a prompt left open by a closed checkout keeps the
+  browser's WebAuthn request pending, and the next tap fails with "A request is
+  already pending".
+
 ## [2.0.0]
 
 ### Breaking

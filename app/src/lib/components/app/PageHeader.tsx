@@ -53,8 +53,7 @@ export function PageHeader({
 						'text-[13px] font-medium tracking-[-0.005em]',
 						eyebrowTone === 'success' ? 'text-success' : 'text-muted-foreground',
 						align === 'center' && 'flex items-center justify-center gap-1.5',
-						align === 'center-mobile' &&
-							'flex items-center justify-center gap-1.5 lg:justify-start'
+						align === 'center-mobile' && 'flex items-center justify-center gap-1.5 lg:justify-start'
 					)}
 				>
 					{eyebrow}

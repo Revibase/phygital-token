@@ -46,10 +46,7 @@ export function Content({
 	);
 }
 
-export function Title({
-	className,
-	...props
-}: React.ComponentProps<typeof DialogPrimitive.Title>) {
+export function Title({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
 	return (
 		<DialogPrimitive.Title
 			data-slot="dialog-title"

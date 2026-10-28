@@ -22,7 +22,11 @@ export function TapScreen({ reason }: { reason: TapFailureReason }) {
 	const retryable = reason !== 'unknown';
 	const resumable = reason === 'expired';
 	const unverified = reason === 'unknown' || reason === 'invalid';
-	const [challenge, setChallenge] = useState<{ challengeId: string; message: string; at: number } | null>(null);
+	const [challenge, setChallenge] = useState<{
+		challengeId: string;
+		message: string;
+		at: number;
+	} | null>(null);
 	const [tapping, setTapping] = useState(false);
 	const [failure, setFailure] = useState<FriendlyError | null>(null);
 	const [webauthnOk, setWebauthnOk] = useState(true);
@@ -42,7 +46,11 @@ export function TapScreen({ reason }: { reason: TapFailureReason }) {
 		const ok = canTapHere();
 		setWebauthnOk(ok);
 		const hint = tapHint();
-		setBody(ok ? `Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}` : 'Hold your accessory to your phone again.');
+		setBody(
+			ok
+				? `Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`
+				: 'Hold your accessory to your phone again.'
+		);
 		if (ok) void prepare();
 		const refresher = setInterval(() => {
 			setChallenge((current) => {
@@ -52,7 +60,6 @@ export function TapScreen({ reason }: { reason: TapFailureReason }) {
 		}, 15_000);
 		return () => clearInterval(refresher);
 		// prepare is stable enough for this screen's lifetime
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [resumable]);
 
 	async function resume() {
@@ -83,7 +90,11 @@ export function TapScreen({ reason }: { reason: TapFailureReason }) {
 				role={reason === 'expired' ? undefined : 'alert'}
 				aria-live="polite"
 			>
-				<AccessoryMark state={unverified ? 'unverified' : retryable && (!resumable || tapping) ? 'waiting' : 'idle'} />
+				<AccessoryMark
+					state={
+						unverified ? 'unverified' : retryable && (!resumable || tapping) ? 'waiting' : 'idle'
+					}
+				/>
 				<PageHeader align="center" title={copy.title} body={body ?? copy.body} />
 				{failure ? (
 					<div className="w-full">

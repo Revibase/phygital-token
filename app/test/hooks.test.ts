@@ -1,7 +1,11 @@
 import { NextRequest } from 'next/server';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { signToken, type BrowseUnlockSession, type OwnerBrowseSession } from '#lib/server/session/cookies.ts';
+import {
+	signToken,
+	type BrowseUnlockSession,
+	type OwnerBrowseSession
+} from '#lib/server/session/cookies.ts';
 import { middleware } from '../src/middleware';
 import { env } from './support/cloudflare-workers';
 
@@ -43,9 +47,9 @@ describe('middleware', () => {
 		expect((await call('/api/tap/resume', { origin: 'https://evil.example' })).status).toBe(403);
 		expect((await call('/api/tap/challenge', { origin: 'https://evil.example' })).status).toBe(403);
 		expect((await call('/api/tap/resume', { origin: APP })).status).toBe(200);
-		expect((await call('/api/tap/challenge', { method: 'GET', origin: 'https://evil.example' })).status).toBe(
-			200
-		);
+		expect(
+			(await call('/api/tap/challenge', { method: 'GET', origin: 'https://evil.example' })).status
+		).toBe(200);
 	});
 
 	it('sends no CORS headers and frames nothing', async () => {
@@ -55,8 +59,9 @@ describe('middleware', () => {
 		const page = await call('/', { method: 'GET' });
 		expect(page.headers.get('content-security-policy')).toContain("default-src 'self'");
 		expect(page.headers.get('content-security-policy')).toContain('https://auth.privy.io');
-		expect(page.headers.get('permissions-policy')).toContain('publickey-credentials-get=(self)');
-		expect(page.headers.get('permissions-policy')).toContain('clipboard-write=(self "https://auth.privy.io")');
+		// Embedded apps (any project's https origin) take taps in the frame, so `get` is delegable.
+		expect(page.headers.get('permissions-policy')).toContain('publickey-credentials-get=*');
+		expect(page.headers.get('permissions-policy')).toContain('clipboard-write=*');
 		expect(page.headers.get('permissions-policy')).not.toContain('publickey-credentials-create');
 	});
 

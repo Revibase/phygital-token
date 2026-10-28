@@ -1,16 +1,16 @@
 import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
-import type { Shortcut } from '#lib/shared/shortcuts.ts';
+import type { ProjectApp } from '#lib/shared/project-apps.ts';
 
 /**
  * Project icons are proxied so the project never sees who's looking. The HMAC keeps this from being an open
  * proxy. Only raster images are served, detected from their bytes: an SVG would be a document on our origin.
  */
-export const ICON_PATH = '/shortcut-icon';
+export const ICON_PATH = '/app-icon';
 export const MAX_ICON_BYTES = 128 * 1024;
 const TIMEOUT_MS = 3_000;
 const CACHE_TTL_S = 24 * 60 * 60;
 /** Domain-separates these MACs from the session cookies signed with the same secret. */
-const CONTEXT = 'revibase-shortcut-icon\n';
+const CONTEXT = 'revibase-app-icon\n';
 
 const encoder = new TextEncoder();
 const keyCache = new Map<string, Promise<CryptoKey>>();
@@ -90,10 +90,8 @@ export async function fetchIconImage(url: string): Promise<IconImage | null> {
 	}
 }
 
-export async function withIconProxy(shortcuts: Shortcut[], secret: string): Promise<Shortcut[]> {
+export async function withIconProxy(apps: ProjectApp[], secret: string): Promise<ProjectApp[]> {
 	return Promise.all(
-		shortcuts.map(async (s) =>
-			s.image ? { ...s, image: await iconProxyPath(secret, s.image) } : s
-		)
+		apps.map(async (a) => (a.icon ? { ...a, icon: await iconProxyPath(secret, a.icon) } : a))
 	);
 }

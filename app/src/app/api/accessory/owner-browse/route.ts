@@ -12,14 +12,23 @@ export async function POST(request: NextRequest) {
 	const read = await readJsonObject(request);
 	if (!read.ok) return read.response;
 	const body = read.body as { pda?: unknown; address?: unknown };
-	const login = await readOwnerSession(responseCookies(request, NextResponse.next()), env.SESSION_SECRET);
+	const login = await readOwnerSession(
+		responseCookies(request, NextResponse.next()),
+		env.SESSION_SECRET
+	);
 	if (!login || login.wallet !== body.address) {
-		return NextResponse.json({ error: 'Sign in with your wallet.', code: 'unauthenticated' }, { status: 401 });
+		return NextResponse.json(
+			{ error: 'Sign in with your wallet.', code: 'unauthenticated' },
+			{ status: 401 }
+		);
 	}
 	try {
 		const result = await verifyOwnerBrowse(getRpc(env), login.wallet, body.pda);
 		if (!result.ok) {
-			return NextResponse.json({ error: result.error, code: result.code }, { status: result.status });
+			return NextResponse.json(
+				{ error: result.error, code: result.code },
+				{ status: result.status }
+			);
 		}
 		const pending = NextResponse.json(null);
 		const session = await setOwnerBrowse(responseCookies(request, pending), env.SESSION_SECRET, {
@@ -32,7 +41,8 @@ export async function POST(request: NextRequest) {
 			pda: session.pda,
 			expiresAt: session.exp
 		});
-		for (const cookie of pending.headers.getSetCookie()) response.headers.append('set-cookie', cookie);
+		for (const cookie of pending.headers.getSetCookie())
+			response.headers.append('set-cookie', cookie);
 		return response;
 	} catch {
 		return NextResponse.json({ error: 'Couldn’t reach the network. Try again.' }, { status: 502 });

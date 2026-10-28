@@ -16,7 +16,8 @@ export function PageShell({
 	size = 'narrow',
 	back = false,
 	brand = true,
-	connect = true
+	connect = true,
+	stickyFooter = false
 }: {
 	children: React.ReactNode;
 	footer?: React.ReactNode;
@@ -24,6 +25,8 @@ export function PageShell({
 	back?: boolean;
 	brand?: boolean;
 	connect?: boolean;
+	/** Keep the footer in reach while the page scrolls, on phones. */
+	stickyFooter?: boolean;
 }) {
 	const pathname = usePathname();
 	const { cluster } = useBoot();
@@ -77,7 +80,17 @@ export function PageShell({
 					className={`mx-auto flex w-full max-w-[440px] flex-1 flex-col px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] lg:flex-none lg:px-8 lg:py-12 ${max[size]}`}
 				>
 					<main className="flex flex-1 flex-col">{children}</main>
-					{footer ? <footer className="pt-6">{footer}</footer> : null}
+					{footer ? (
+						<footer
+							className={
+								stickyFooter
+									? 'sticky bottom-0 z-10 -mx-5 -mb-[max(1.25rem,env(safe-area-inset-bottom))] bg-linear-to-t from-background from-75% to-transparent px-5 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] lg:static lg:mx-0 lg:mb-0 lg:bg-none lg:p-0 lg:pt-6'
+									: 'pt-6'
+							}
+						>
+							{footer}
+						</footer>
+					) : null}
 				</div>
 			</div>
 		</div>

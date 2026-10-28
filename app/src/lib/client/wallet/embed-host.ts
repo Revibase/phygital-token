@@ -4,6 +4,8 @@ import {
 	embedFrameOrigin,
 	messageBytes,
 	readDappRequest,
+	refuseMessage,
+	refuseTransaction,
 	transactionBytes,
 	type BridgeRequest
 } from '#lib/shared/wallet-bridge.ts';
@@ -25,24 +27,38 @@ export type EmbedSigner = {
 
 export type EmbedHost = {
 	stop: () => void;
-	hello: () => void;
 	pushAccounts: (accounts: EmbedAccount[]) => void;
 };
+
+/**
+ * The shell's answer to a frame's `connect` when no wallet is visible yet: wait for the session to
+ * restore (a deep link opens the frame before it has), use that wallet if there is one, and only
+ * otherwise ask the person to choose one.
+ */
+export async function connectWhenReady(input: {
+	ready: () => Promise<void>;
+	account: () => EmbedAccount | null;
+	choose: () => Promise<boolean>;
+}): Promise<boolean> {
+	await input.ready();
+	if (input.account()) return true;
+	return input.choose();
+}
 
 export function startEmbedHost(input: {
 	target: EventTarget;
 	iframe: { contentWindow: { postMessage: (message: unknown, origin: string) => void } | null };
 	expectedOrigin: string;
-	walletName?: string;
 	approve: (origin: string) => Promise<boolean>;
-	/** Asks the shell to connect a wallet when none is; resolves true once one is. */
-	connect?: () => Promise<boolean>;
+	/** Asks the shell to connect a wallet when none is; resolves true once one is. A silent call never asks the person. */
+	connect?: (silent: boolean) => Promise<boolean>;
 	signer: EmbedSigner;
 	storage?: Pick<Storage, 'getItem' | 'setItem'>;
 }): EmbedHost {
 	const storage = input.storage ?? window.localStorage;
 	const seen = new Set<string>();
 	let stopped = false;
+	let busy = false;
 
 	function post(message: Record<string, unknown>) {
 		if (stopped) return;
@@ -52,34 +68,38 @@ export function startEmbedHost(input: {
 		);
 	}
 
+	/** The frame's `ready`: tell it this is Revibase, and which account is signed in if the person approved this site. */
 	function hello() {
-		post({
-			id: 'hello',
-			method: 'hello',
-			payload: { name: input.walletName ?? 'Revibase' }
-		});
+		post({ id: 'hello', method: 'hello' });
+		const account = input.signer.account();
+		pushAccounts(account ? [account] : []);
 	}
 
+	/** Only accounts the person approved for this site, so the frame learns nothing before they connect. */
 	function pushAccounts(accounts: EmbedAccount[]) {
 		post({
 			id: 'accounts',
 			method: 'accountsChanged',
 			payload: {
-				accounts: accounts.map((account) => ({
-					address: account.address,
-					publicKey: account.publicKey,
-					chains: [account.chain]
-				}))
+				accounts: accounts
+					.filter((account) => remembered(storage, input.expectedOrigin, account.address))
+					.map((account) => ({
+						address: account.address,
+						publicKey: account.publicKey,
+						chains: [account.chain]
+					}))
 			}
 		});
 	}
 
 	async function handle(request: BridgeRequest) {
 		if (request.method === 'connect') {
+			const silent = (request.payload as { silent?: unknown } | undefined)?.silent === true;
 			let account = input.signer.account();
-			if (!account && (await input.connect?.())) account = input.signer.account();
+			if (!account && (await input.connect?.(silent))) account = input.signer.account();
 			if (!account) throw new Error('Connect a wallet in Revibase first.');
 			if (!remembered(storage, input.expectedOrigin, account.address)) {
+				if (silent) throw new Error('This site is not connected yet.');
 				const ok = await input.approve(input.expectedOrigin);
 				if (!ok) throw new Error('Connection cancelled.');
 				remember(storage, input.expectedOrigin, account.address);
@@ -99,9 +119,15 @@ export function startEmbedHost(input: {
 				: transactionBytes(request.payload);
 		if (!parsed) throw new Error('Revibase could not read that request.');
 		const account = input.signer.account();
-		if (!account) throw new Error('Connect a wallet in Revibase first.');
+		if (!account || !remembered(storage, input.expectedOrigin, account.address))
+			throw new Error('Connect this site to your wallet first.');
 		if (parsed.chain !== account.chain)
 			throw new Error('This app asked for a different Solana network.');
+		const refusal =
+			request.method === 'signMessage'
+				? refuseMessage(parsed.bytes, input.expectedOrigin)
+				: refuseTransaction(parsed.bytes);
+		if (refusal) throw new Error(refusal);
 		if (request.method === 'signMessage') {
 			return { signature: await input.signer.signMessage(parsed.bytes, parsed.chain) };
 		}
@@ -118,6 +144,11 @@ export function startEmbedHost(input: {
 		const request = readDappRequest(message.data);
 		if (!request || seen.has(request.id)) return;
 		seen.add(request.id);
+		if (request.method === 'ready') return hello();
+		// One prompt at a time, so a frame can't stack them up or swap one in under a tap.
+		if (busy)
+			return post({ id: request.id, ok: false, error: 'Revibase is busy with another request.' });
+		busy = true;
 		try {
 			post({ id: request.id, ok: true, payload: await handle(request) });
 		} catch (err) {
@@ -127,6 +158,8 @@ export function startEmbedHost(input: {
 				error:
 					err instanceof Error && err.message ? err.message : 'Revibase could not complete that.'
 			});
+		} finally {
+			busy = false;
 		}
 	}
 
@@ -137,7 +170,6 @@ export function startEmbedHost(input: {
 			stopped = true;
 			input.target.removeEventListener('message', listener);
 		},
-		hello,
 		pushAccounts
 	};
 }

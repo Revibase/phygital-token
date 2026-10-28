@@ -129,7 +129,11 @@ export function transferCost(request: TransferRequest): TransferCost {
 }
 
 /** The most of `asset` that can be sent, after the fee, rent, and any account it opens. */
-export function maxSendable(holdings: WalletHoldings, asset: SendAsset, openAccount: boolean): bigint {
+export function maxSendable(
+	holdings: WalletHoldings,
+	asset: SendAsset,
+	openAccount: boolean
+): bigint {
 	if (asset.kind === 'token') return asset.token.amount;
 	const reserved =
 		transferFeeLamports() +

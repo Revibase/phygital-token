@@ -3,7 +3,7 @@ import { Endian, getU32Encoder } from '@solana/kit';
 import { p256 } from '@noble/curves/nist.js';
 
 import { bytesToBase64Url, base64UrlToBytes } from '#lib/shared/encoding.ts';
-import { createTestD1, MIGRATIONS } from './support/d1-sqlite';
+import { createTestD1 } from './support/d1-sqlite';
 import { consumeTapCounter } from '#lib/server/tap/counter-store.ts';
 import { verifyDynamicUrlWithoutCounterCheck } from '#lib/server/tap/verify-dynamic-url.ts';
 
@@ -98,7 +98,7 @@ describe('verifyDynamicUrlWithoutCounterCheck', () => {
 
 describe('consumeTapCounter (shared high-water mark)', () => {
 	it('accepts strictly increasing counters and rejects replays and out-of-order taps', async () => {
-		const db = createTestD1([MIGRATIONS]);
+		const db = createTestD1();
 		expect(await consumeTapCounter(db, 'chip', 5)).toBe('new');
 		expect(await consumeTapCounter(db, 'chip', 5)).toBe('replay');
 		expect(await consumeTapCounter(db, 'chip', 4)).toBe('replay');
@@ -109,7 +109,7 @@ describe('consumeTapCounter (shared high-water mark)', () => {
 	});
 
 	it('lets exactly one of many concurrent submissions of the same URL through', async () => {
-		const db = createTestD1([MIGRATIONS]);
+		const db = createTestD1();
 		const verdicts = await Promise.all(
 			Array.from({ length: 20 }, () => consumeTapCounter(db, 'chip', 42))
 		);

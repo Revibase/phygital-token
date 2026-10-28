@@ -21,7 +21,10 @@ export async function GET(request: NextRequest) {
 	const target = new URL('/accessory', url);
 	if (!outcome.ok) {
 		if (outcome.reason === 'replayed' && outcome.identifier) {
-			const existing = await readBrowseUnlock(await requestCookiesReadonly(request), env.SESSION_SECRET);
+			const existing = await readBrowseUnlock(
+				await requestCookiesReadonly(request),
+				env.SESSION_SECRET
+			);
 			if (existing?.identifier !== outcome.identifier) target.pathname = `/tap/${outcome.reason}`;
 		} else {
 			target.pathname = `/tap/${outcome.reason}`;

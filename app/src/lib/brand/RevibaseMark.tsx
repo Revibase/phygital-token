@@ -1,5 +1,11 @@
 /** The Revibase mark (traced from the brand icon). Inherits `currentColor`. */
-export function RevibaseMark({ className = '', title = null }: { className?: string; title?: string | null }) {
+export function RevibaseMark({
+	className = '',
+	title = null
+}: {
+	className?: string;
+	title?: string | null;
+}) {
 	return (
 		<svg
 			viewBox="149 173 214 166"

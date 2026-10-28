@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
 	response.headers.set('Content-Security-Policy', contentSecurityPolicy());
 	response.headers.set(
 		'Permissions-Policy',
-		'publickey-credentials-get=(self), clipboard-write=(self "https://auth.privy.io"), camera=(), microphone=(), geolocation=()'
+		'publickey-credentials-get=*, clipboard-write=*, camera=(), microphone=(), geolocation=()'
 	);
 	if (pathname.startsWith('/api/') || pathname.startsWith('/accessory')) {
 		response.headers.set('Cache-Control', 'no-store');

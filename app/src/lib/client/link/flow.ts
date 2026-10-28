@@ -87,7 +87,8 @@ export async function finishLink(
 	if (outcome.kind === 'signed') {
 		validateLinkTransaction(outcome.signedBytes, expectation, { allowWalletAdditions: true });
 		const signed = getTransactionDecoder().decode(outcome.signedBytes);
-		if (!signed.signatures[recipient.address]) throw new LinkTransactionRejected('wallet did not sign');
+		if (!signed.signatures[recipient.address])
+			throw new LinkTransactionRejected('wallet did not sign');
 		signature = await rpc
 			.sendTransaction(getBase64EncodedWireTransaction(signed), {
 				encoding: 'base64',

@@ -17,7 +17,12 @@ export default async function Page() {
 	try {
 		const resolved = await fetchAccessory(getRpc(env), pda);
 		if (!resolved) redirect('/tap/unknown');
-		return <AccessoryScreen accessory={toAccessoryView(resolved.pda, resolved.account)} loadError={false} />;
+		return (
+			<AccessoryScreen
+				accessory={toAccessoryView(resolved.pda, resolved.account)}
+				loadError={false}
+			/>
+		);
 	} catch (err) {
 		if (err && typeof err === 'object' && 'digest' in err) throw err;
 		return <AccessoryScreen accessory={null} loadError />;
