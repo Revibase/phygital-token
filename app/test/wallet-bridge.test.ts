@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+	connectWhenReady,
 	startEmbedHost,
 	type EmbedAccount,
 	type EmbedSigner
@@ -16,7 +17,7 @@ import {
 const ZEROS = new Uint8Array(32);
 
 describe('embed frame origin', () => {
-	it('allows another https origin and loopback, and refuses itself', () => {
+	it('allows another https origin, loopback only from loopback, and refuses itself', () => {
 		expect(embedFrameOrigin('https://shop.example.com/app', 'https://portal.revibase.com')).toBe(
 			'https://shop.example.com'
 		);
@@ -26,6 +27,7 @@ describe('embed frame origin', () => {
 		expect(
 			embedFrameOrigin('https://portal.revibase.com/x', 'https://portal.revibase.com')
 		).toBeNull();
+		expect(embedFrameOrigin('http://localhost:5174', 'https://portal.revibase.com')).toBeNull();
 		expect(embedFrameOrigin('http://evil.test', 'https://portal.revibase.com')).toBeNull();
 		expect(embedFrameOrigin('javascript:alert(1)', 'https://portal.revibase.com')).toBeNull();
 	});
@@ -193,30 +195,97 @@ describe('embed host', () => {
 		expect(approve).not.toHaveBeenCalled();
 	});
 
-	it('says hello with the wallet name a compatible dApp registers', () => {
+	function frameHost(approved: boolean) {
 		const contentWindow = { postMessage: vi.fn() };
-		const host = startEmbedHost({
-			target: { addEventListener() {}, removeEventListener() {} } as unknown as EventTarget,
+		let listener: ((event: { source: unknown; origin: string; data: unknown }) => void) | null =
+			null;
+		const approve = vi.fn(async () => true);
+		const connect = vi.fn(async () => true);
+		startEmbedHost({
+			target: {
+				addEventListener: (_t: string, fn: typeof listener) => (listener = fn),
+				removeEventListener: () => {}
+			} as unknown as EventTarget,
 			iframe: { contentWindow },
 			expectedOrigin: 'https://pay.test',
-			approve: async () => true,
+			approve,
+			connect,
 			signer: {
 				account: () => account,
 				signTransaction: async (bytes) => bytes,
 				signMessage: async () => new Uint8Array([1]),
 				signAndSendTransaction: async () => new Uint8Array([2])
 			},
-			storage: { getItem: () => null, setItem: () => {} }
+			storage: {
+				getItem: () => (approved ? JSON.stringify({ 'https://pay.test': account.address }) : null),
+				setItem: () => {}
+			}
 		});
-		host.hello();
-		expect(contentWindow.postMessage).toHaveBeenCalledWith(
-			expect.objectContaining({
-				source: BRIDGE_SOURCE_SHELL,
-				version: BRIDGE_VERSION,
-				method: 'hello',
-				payload: { name: 'Revibase' }
-			}),
-			'https://pay.test'
-		);
+		const send = (id: string, method: string, payload?: unknown) =>
+			listener!({
+				source: contentWindow,
+				origin: 'https://pay.test',
+				data: { source: BRIDGE_SOURCE_DAPP, version: BRIDGE_VERSION, id, method, payload }
+			});
+		return { contentWindow, approve, send };
+	}
+
+	it('answers ready with hello, and shares the account only once the site is approved', () => {
+		for (const approved of [false, true]) {
+			const { contentWindow, send } = frameHost(approved);
+			send('r1', 'ready');
+			expect(contentWindow.postMessage).toHaveBeenCalledWith(
+				expect.objectContaining({
+					source: BRIDGE_SOURCE_SHELL,
+					version: BRIDGE_VERSION,
+					method: 'hello'
+				}),
+				'https://pay.test'
+			);
+			const accounts = approved
+				? [{ address: account.address, publicKey: account.publicKey, chains: [account.chain] }]
+				: [];
+			expect(contentWindow.postMessage).toHaveBeenCalledWith(
+				expect.objectContaining({ method: 'accountsChanged', payload: { accounts } }),
+				'https://pay.test'
+			);
+		}
+	});
+
+	it('reconnects silently only when the site is already approved, and never prompts', async () => {
+		for (const approved of [false, true]) {
+			const { contentWindow, approve, send } = frameHost(approved);
+			send('s1', 'connect', { silent: true });
+			await vi.waitFor(() =>
+				expect(contentWindow.postMessage).toHaveBeenCalledWith(
+					expect.objectContaining({ id: 's1', ok: approved }),
+					'https://pay.test'
+				)
+			);
+			expect(approve).not.toHaveBeenCalled();
+		}
+	});
+
+	it('uses a session that finishes restoring instead of asking to sign in again', async () => {
+		let restored: () => void = () => {};
+		let current: EmbedAccount | null = null;
+		const choose = vi.fn(async () => true);
+		const connecting = connectWhenReady({
+			ready: () => new Promise<void>((resolve) => (restored = resolve)),
+			account: () => current,
+			choose
+		});
+		current = account;
+		restored();
+		await expect(connecting).resolves.toBe(true);
+		expect(choose).not.toHaveBeenCalled();
+	});
+
+	it('asks to choose a wallet only when none is signed in once restored', async () => {
+		const choose = vi.fn(async () => false);
+		await expect(
+			connectWhenReady({ ready: async () => {}, account: () => null, choose })
+		).resolves.toBe(false);
+		expect(choose).toHaveBeenCalledOnce();
 	});
 });

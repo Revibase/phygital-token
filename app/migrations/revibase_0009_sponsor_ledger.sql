@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS revibase_sponsor_txs (
   phygital_token TEXT NOT NULL,
   fee_payer TEXT NOT NULL,
   fee_lamports INTEGER NOT NULL,       -- network fee
-  cost_lamports INTEGER NOT NULL,      -- fee plus any tap-payments rent the pool key paid
+  cost_lamports INTEGER NOT NULL,      -- fee plus any rent the pool key paid
   refill_lamports INTEGER NOT NULL,    -- accessory wallet -> fee payer, inside the transaction
   blockhash TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'failed', 'dropped')),

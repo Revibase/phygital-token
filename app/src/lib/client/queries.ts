@@ -2,14 +2,14 @@ import { queryOptions } from '@tanstack/react-query';
 
 import { proxied, proxiedImages } from './asset-image';
 import { fetchAccessoryMedia } from './media';
-import { fetchAccessoryShortcuts } from './shortcuts';
+import { fetchAccessoryApps } from './apps';
 import { fetchWalletAccessories } from './wallet-accessories';
 import { browserRpc, rpcUrl } from './rpc';
 import { address } from '@solana/kit';
 import { fetchWalletHoldings } from '#lib/shared/wallet-holdings.ts';
 import { queryKeys } from './cache';
 
-// Persist NFT media only; shortcuts and wallet lists must follow current linkage.
+// Persist NFT media only; project apps and wallet lists must follow current linkage.
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
 const MINUTE = 60 * 1000;
@@ -24,10 +24,10 @@ export const accessoryMediaQuery = (pda: string) =>
 	});
 
 /** The session decides which accessory the server reads; `pda` and `owner` only key the cache. */
-export const accessoryShortcutsQuery = (pda: string, owner: string | null) =>
+export const accessoryAppsQuery = (pda: string, owner: string | null) =>
 	queryOptions({
-		queryKey: queryKeys.shortcuts(pda, owner),
-		queryFn: fetchAccessoryShortcuts,
+		queryKey: queryKeys.apps(pda, owner),
+		queryFn: fetchAccessoryApps,
 		staleTime: 10 * MINUTE,
 		gcTime: HOUR,
 		retry: 1

@@ -8,8 +8,8 @@ import {
 	imageType,
 	verifyIconUrl,
 	withIconProxy
-} from '#lib/server/accessory/shortcut-icons.ts';
-import type { Shortcut } from '#lib/shared/shortcuts.ts';
+} from '#lib/server/accessory/app-icons.ts';
+import type { ProjectApp } from '#lib/shared/project-apps.ts';
 
 const SECRET = 'x'.repeat(32);
 const URL_ = 'https://cdn.game.xyz/icons/play.png';
@@ -61,23 +61,21 @@ describe('signed proxy links', () => {
 		expect(await verifyIconUrl(SECRET, u, null)).toBe(false);
 	});
 
-	it('rewrites only shortcuts that have an image', async () => {
+	it('rewrites only apps that have an icon', async () => {
 		const base = {
 			label: 'Play',
 			href: 'https://game.xyz',
-			icon: 'generic-link',
-			open: 'embed',
-			platform: 'all'
+			open: 'embed'
 		} as const;
-		const [withImage, glyph] = await withIconProxy(
+		const [withIcon, without] = await withIconProxy(
 			[
-				{ ...base, image: URL_ },
-				{ ...base, image: null }
-			] satisfies Shortcut[],
+				{ ...base, icon: URL_ },
+				{ ...base, icon: null }
+			] satisfies ProjectApp[],
 			SECRET
 		);
-		expect(withImage.image).toBe(await iconProxyPath(SECRET, URL_));
-		expect(glyph.image).toBeNull();
+		expect(withIcon.icon).toBe(await iconProxyPath(SECRET, URL_));
+		expect(without.icon).toBeNull();
 	});
 });
 

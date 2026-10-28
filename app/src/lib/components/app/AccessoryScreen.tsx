@@ -6,12 +6,10 @@ import { useEffect, useState } from 'react';
 
 import { managementActions, tapScreen } from '#lib/client/accessory/screen.ts';
 import { useBoot } from '#lib/client/boot';
-import { platform } from '#lib/client/capability.ts';
-import { accessoryMediaQuery, accessoryShortcutsQuery } from '#lib/client/queries.ts';
+import { accessoryMediaQuery, accessoryAppsQuery } from '#lib/client/queries.ts';
 import { useWallet } from '#lib/client/wallet/wallet-context';
 import { Button } from '#lib/components/ui/button';
 import { Skeleton } from '#lib/components/ui/skeleton';
-import { shortcutsFor } from '#lib/shared/shortcuts.ts';
 import type { AccessoryView } from '#lib/shared/types.ts';
 import { AccessoryMark } from './AccessoryMark';
 import { CollectibleDialog } from './CollectibleDialog';
@@ -23,7 +21,7 @@ import { PageHeader } from './PageHeader';
 import { PageShell } from './PageShell';
 import { ReleaseSheet } from './ReleaseSheet';
 import { ResponsiveSheet } from './ResponsiveSheet';
-import { ShortcutGrid } from './ShortcutGrid';
+import { AppGrid } from './AppGrid';
 import { TechnicalDetails } from './TechnicalDetails';
 import { WalletRow } from './WalletRow';
 
@@ -36,11 +34,9 @@ export function AccessoryScreen({ accessory, loadError }: { accessory: Accessory
 	const [releaseOpen, setReleaseOpen] = useState(false);
 	const [manageOpen, setManageOpen] = useState(false);
 	const [refreshing, setRefreshing] = useState(false);
-	const [formFactor, setFormFactor] = useState<'desktop' | 'mobile' | null>(null);
 	const [embedded, setEmbedded] = useState<{ href: string; label: string } | null>(null);
 
 	useEffect(() => {
-		setFormFactor(platform() === 'desktop' ? 'desktop' : 'mobile');
 		const refreshLink = () => {
 			if (document.visibilityState !== 'visible') return;
 			router.refresh();
@@ -63,11 +59,11 @@ export function AccessoryScreen({ accessory, loadError }: { accessory: Accessory
 	const namedCollectible = !!accessory?.mint;
 	const collectibleLoading = namedCollectible && mediaQuery.isPending;
 	const collectibleName = namedCollectible ? media?.name : null;
-	const shortcutsQuery = useQuery({
-		...accessoryShortcutsQuery(accessory?.pda ?? '', accessory?.owner ?? null),
+	const appsQuery = useQuery({
+		...accessoryAppsQuery(accessory?.pda ?? '', accessory?.owner ?? null),
 		enabled: !!accessory?.mint
 	});
-	const shortcuts = formFactor ? shortcutsFor(shortcutsQuery.data ?? [], formFactor) : [];
+	const apps = appsQuery.data ?? [];
 
 	function openManagement() {
 		if (management?.hasActions) setManageOpen(true);
@@ -178,17 +174,17 @@ export function AccessoryScreen({ accessory, loadError }: { accessory: Accessory
 									/>
 								</List>
 							) : null}
-							{shortcuts.length ? (
-								<ShortcutGrid
+							{apps.length ? (
+								<AppGrid
 									label={media?.collection ? `From ${media.collection}` : 'Apps'}
-									items={shortcuts}
-									onEmbed={(shortcut) => setEmbedded({ href: shortcut.href, label: shortcut.label })}
+									items={apps}
+									onEmbed={(app) => setEmbedded({ href: app.href, label: app.label })}
 								/>
-							) : accessory.mint && shortcutsQuery.isError ? (
+							) : accessory.mint && appsQuery.isError ? (
 								<Notice
 									title="Couldn’t load project apps"
-									onretry={() => void shortcutsQuery.refetch()}
-									retrying={shortcutsQuery.isFetching}
+									onretry={() => void appsQuery.refetch()}
+									retrying={appsQuery.isFetching}
 								/>
 							) : null}
 							<div className="hidden lg:block">{actions}</div>

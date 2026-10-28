@@ -1,6 +1,6 @@
 import { type NextRequest } from 'next/server';
 
-import { fetchIconImage, verifyIconUrl } from '#lib/server/accessory/shortcut-icons.ts';
+import { fetchIconImage, verifyIconUrl } from '#lib/server/accessory/app-icons.ts';
 import { getEnv } from '#lib/server/env.ts';
 
 /** Outside `/api/` so it can be cached: the link is signed, not tied to a session. */

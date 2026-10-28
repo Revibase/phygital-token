@@ -34,20 +34,22 @@ On a phone, connect the wallet first, then prepare the challenge for that wallet
 
 Every transaction the app builds is v1 (up to 4096 bytes; a claim with two WebAuthn verifies doesn't reliably fit v0's 1232). Its compute limit, priority fee and loaded-data limit live in the message header (`LINK_TX_CONFIG`), not in compute-budget instructions; v1 budgets zero for an unset limit. Privy connects embedded Solana wallets and external Wallet Standard wallets. Those wallets sign kit 8 transaction bytes directly and pay their own fees.
 
-## Shortcuts
+## Project apps
 
-Project `shortcuts.json` comes from the mint’s HTTPS `external_url`.
+Project apps come from `revibase.json` at the mint’s HTTPS `external_url`. It is Revibase’s own format, not Phantom’s `shortcuts.json`, so a project can serve both without one affecting the other. Only `"version": 1` is read.
 
-| Field | Opens |
+| `open` | Opens |
 | --- | --- |
-| omitted, or `prefersExternalTarget: false` | In-app browser, and only when the link is the project host or a subdomain |
-| `prefersExternalTarget: true` | New tab |
+| `embed` | In-app browser, and only when the link is the project host or a subdomain |
+| `tab` | New tab, any HTTPS host |
 
-`solana:` links stay on the Solana Pay sheet. A shortcut carries no session or key material. The frame can ask the shell to connect and sign. The shell approves connect once per origin and account, then the connected wallet signs. A dApp registers that wallet with `registerIframeWallet({ parent: "https://portal.revibase.com" })` before it starts a connector. Registration happens only inside an iframe whose parent sent hello. A normal visit is unchanged.
+An app link carries no session or key material. The frame can ask the shell to connect and sign. The shell approves connect once per origin and account, then the connected wallet signs. A dApp registers that wallet with `registerIframeWallet({ parent: "https://portal.revibase.com" })` before it starts a connector. Registration happens only inside an iframe whose parent sent hello. A normal visit is unchanged.
 
-“Forget wallet preference” clears the claim details shown for this accessory. It does not change where a shortcut opens, and it does not release the accessory.
+Any app can send someone into the Revibase wallet with a browse link in the same schema as Phantom, Solflare and Backpack: `/ul/browse/<url-encoded page URL>?ref=<url-encoded origin>`. The link is stateless: `/ul/browse` checks only that the page is http(s) and opens it in the in-app browser, fragment included. `ref` is accepted for compatibility and ignored, since anyone writing the link can put any origin there; the page is labelled by its own hostname. Connecting from that page asks the person the first time, like any other site, and they still approve every transaction.
 
-Only NFT media queries persist locally. Shortcut caches include the owner address. The NFT owner badge is informational.
+“Forget wallet preference” clears the claim details shown for this accessory. It does not change where an app opens, and it does not release the accessory.
+
+Only NFT media queries persist locally. Project app caches include the owner address. The NFT owner badge is informational.
 
 ## Code
 
@@ -55,10 +57,11 @@ Only NFT media queries persist locally. Shortcut caches include the owner addres
 | --- | --- |
 | `src/middleware.ts` | Same-origin API checks. Admit cookie for `/accessory` and `/accessory/link`. |
 | `src/lib/server/tap`, `session` | Tap verification, replay counters, cookies. |
-| `src/lib/server/accessory` | Resolve tokens, enforce view and claim rules, load shortcuts. |
+| `src/lib/server/accessory` | Resolve tokens, enforce view and claim rules, load project apps. |
 | `src/lib/shared/link-transaction.ts` | Transaction construction and byte validation. |
 | `src/lib/client/link`, `wallet` | Claim, release, Privy sign-in, and signing. |
 | `src/lib/client/wallet/embed-host.ts`, `src/lib/shared/wallet-bridge.ts` | In-app browser and the wallet injected into it. |
+| `src/app/ul/browse`, `src/lib/shared/browse-link.ts` | Stateless browse deeplinks into the in-app browser. |
 | `src/lib/shared/wallet-{transfer,fee,holdings}.ts`, `src/lib/client/wallet/send.ts` | `/wallet`: balances and transfers. The connected wallet pays the fee. |
 | `src/lib/components/app`, `src/app` | UI, including `/accessory/link` and `/wallet`. |
 
