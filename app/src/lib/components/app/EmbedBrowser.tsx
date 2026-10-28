@@ -180,12 +180,10 @@ export function EmbedBrowser({
 			if (host.current === started) host.current = null;
 		};
 		// The host is rebuilt when the frame origin changes. Wallet methods are read at call time.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [origin, href, attempt]);
 
 	useEffect(() => {
 		host.current?.pushAccounts(account() ? [account()!] : []);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [wallet.address]);
 
 	// A frame can time a connect to land under a tap it invited, so Connect ignores taps at first.

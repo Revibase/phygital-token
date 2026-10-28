@@ -37,7 +37,7 @@ export function WalletRow({
 						type="button"
 						aria-label="Copy wallet address"
 						className={buttonVariants({ variant: 'ghost', size: 'icon' })}
-						onClick={() => copyText(address, 'Wallet address copied')}
+						onClick={() => void copyText(address, 'Wallet address copied')}
 					>
 						<Copy className="size-4" />
 					</button>
@@ -47,7 +47,9 @@ export function WalletRow({
 				nftOwnership ? (
 					<span
 						className={`inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-							nftOwnership === 'same' ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+							nftOwnership === 'same'
+								? 'bg-success/10 text-success'
+								: 'bg-muted text-muted-foreground'
 						}`}
 					>
 						{nftOwnership === 'same' ? (
