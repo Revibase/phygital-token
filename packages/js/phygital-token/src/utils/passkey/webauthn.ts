@@ -106,6 +106,7 @@ export function nfcWebAuthnRequestOptions(
 
 export async function authenticateWithWebauthn(
   optionsJSON: PublicKeyCredentialRequestOptionsJSON,
+  signal?: AbortSignal,
 ): Promise<AuthenticationResponseJSON> {
   if (typeof window === "undefined" || typeof window.PublicKeyCredential === "undefined") {
     throw new PhygitalTokenError("WEBAUTHN_UNSUPPORTED", "This browser does not support WebAuthn.");
@@ -126,6 +127,7 @@ export async function authenticateWithWebauthn(
   try {
     credential = (await navigator.credentials.get({
       publicKey,
+      signal,
     })) as PublicKeyCredential | null;
   } catch (e) {
     if (e instanceof DOMException && e.name === "NotAllowedError") {

@@ -148,6 +148,7 @@ export type AuthenticatePasskeyOptions = {
     rpc?: Rpc<SolanaRpcApi>;
     rpId?: string;
     credentialId?: string;
+    signal?: AbortSignal;
 };
 
 // @public
