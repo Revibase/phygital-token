@@ -77,7 +77,7 @@ pub enum PhygitalError {
     #[msg("WebAuthn origin does not match any expected origin.")]
     OriginMismatch,
 
-    /// The signer is not the issuer or minter, or a role key is the default key.
+    /// The signer is not the issuer, or a role key is the default key.
     #[msg("Only the designated authority can perform this action.")]
     UnauthorizedAuthority,
 

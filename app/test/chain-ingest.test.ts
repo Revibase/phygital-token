@@ -3,14 +3,12 @@ import { address, type Address } from '@solana/kit';
 import {
 	findAdminConfigPda,
 	findPhygitalTokenPda,
-	getAssignMintEventEventEncoder,
 	getClosePhygitalTokenEventEventEncoder,
 	getCreateConfigEventEventEncoder,
 	getInitializeEventEventEncoder,
 	getRemoveOwnerEventEventEncoder,
 	getSetAdminEventEventEncoder,
 	getSetIssuerEventEventEncoder,
-	getSetMinterEventEventEncoder,
 	getSetOwnerEventEventEncoder,
 	PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 	PhygitalTokenType
@@ -27,7 +25,6 @@ const PROGRAM = PHYGITAL_TOKEN_PROGRAM_ADDRESS;
 const OTHER = address('Stake11111111111111111111111111111111111111');
 const ALICE = address('9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin');
 const BOB = address('So11111111111111111111111111111111111111112');
-const MINT = address('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 const NONE = address(DEFAULT_PUBKEY);
 
 function key(seed: number): Uint8Array {
@@ -40,19 +37,16 @@ const IDENTIFIER = key(9);
 const token = { publicKey: [PUBKEY] as [Uint8Array], identifier: [IDENTIFIER] as [Uint8Array] };
 
 const data = (bytes: Uint8Array) => `Program data: ${bytesToBase64(bytes)}`;
-const initializeWith = (mint: Address) =>
-	data(
-		new Uint8Array(
-			getInitializeEventEventEncoder().encode({
-				authority: ALICE,
-				owner: NONE,
-				tokenType: PhygitalTokenType.Controlled,
-				mint,
-				...token
-			})
-		)
+const initializeBytes = () =>
+	new Uint8Array(
+		getInitializeEventEventEncoder().encode({
+			authority: ALICE,
+			owner: NONE,
+			tokenType: PhygitalTokenType.Controlled,
+			...token
+		})
 	);
-const initialize = initializeWith(NONE);
+const initialize = data(initializeBytes());
 const setOwner = (recipient: Address, owner: Address = NONE) =>
 	data(new Uint8Array(getSetOwnerEventEventEncoder().encode({ recipient, owner, ...token })));
 
@@ -116,7 +110,6 @@ describe('ingestTransactions', () => {
 			identifier: bytesToBase64Url(IDENTIFIER),
 			secp256r1_public_key: bytesToBase64Url(PUBKEY),
 			owner: null,
-			mint: null,
 			token_type: 'Controlled',
 			is_locked: 0,
 			status: 'live',
@@ -125,22 +118,13 @@ describe('ingestTransactions', () => {
 			event_count: 1
 		});
 
-		const assignMint = data(
-			new Uint8Array(
-				getAssignMintEventEventEncoder().encode({ authority: ALICE, mint: MINT, ...token })
-			)
-		);
-		await ingestTransactions(db, [
-			tx('sig-own', 20, [setOwner(BOB)]),
-			tx('sig-mint', 30, [assignMint])
-		]);
+		await ingestTransactions(db, [tx('sig-own', 20, [setOwner(BOB)])]);
 		expect(await tokenRow(db)).toMatchObject({
 			owner: BOB,
-			mint: MINT,
 			is_locked: 1,
-			last_signature: 'sig-mint',
-			updated_at: 30_000,
-			event_count: 3
+			last_signature: 'sig-own',
+			updated_at: 20_000,
+			event_count: 2
 		});
 
 		const removeOwner = data(
@@ -155,7 +139,6 @@ describe('ingestTransactions', () => {
 					admin: ALICE,
 					rentRecipient: ALICE,
 					owner: NONE,
-					mint: MINT,
 					...token
 				})
 			)
@@ -169,16 +152,20 @@ describe('ingestTransactions', () => {
 		expect(results.map((r) => r.event_name)).toEqual([
 			'InitializeEvent',
 			'SetOwnerEvent',
-			'AssignMintEvent',
 			'RemoveOwnerEvent',
 			'ClosePhygitalTokenEvent'
 		]);
 	});
 
-	it('mirrors the mint set at initialize', async () => {
+	it('still reads an InitializeEvent logged with the retired trailing mint', async () => {
 		const db = createTestD1();
-		await ingestTransactions(db, [tx('sig-init', 10, [initializeWith(MINT)])]);
-		expect(await tokenRow(db)).toMatchObject({ mint: MINT, status: 'live' });
+		const legacy = new Uint8Array([...initializeBytes(), ...new Uint8Array(32).fill(5)]);
+		await ingestTransactions(db, [tx('sig-init', 10, [data(legacy)])]);
+		expect(await tokenRow(db)).toMatchObject({
+			identifier: bytesToBase64Url(IDENTIFIER),
+			owner: null,
+			status: 'live'
+		});
 	});
 
 	it('gives the same row for duplicate and out-of-order deliveries', async () => {
@@ -228,10 +215,7 @@ describe('ingestTransactions', () => {
 		await ingestTransactions(db, [
 			tx('sig-create', 1, [encode(getCreateConfigEventEventEncoder(), { authority: ALICE })]),
 			tx('sig-issuer', 2, [encode(getSetIssuerEventEventEncoder(), { admin: ALICE, issuer: BOB })]),
-			tx('sig-minter', 3, [
-				encode(getSetMinterEventEventEncoder(), { admin: ALICE, minter: MINT })
-			]),
-			tx('sig-admin', 4, [
+			tx('sig-admin', 3, [
 				encode(getSetAdminEventEventEncoder(), { previousAdmin: ALICE, newAdmin: OTHER })
 			])
 		]);
@@ -241,8 +225,7 @@ describe('ingestTransactions', () => {
 		).toMatchObject({
 			admin: OTHER,
 			issuer: BOB,
-			minter: MINT,
-			event_count: 4,
+			event_count: 3,
 			last_signature: 'sig-admin'
 		});
 	});

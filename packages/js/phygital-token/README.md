@@ -53,7 +53,7 @@ Your program must check that the signed message is `authorize ‖ payload` and t
 ## Also exported
 
 - **The generated program client**, covering accounts, instructions and errors.
-- **Token-account helpers:** `findPhygitalTokenPda`, `parseSecp256r1Pubkey`, `fetchPhygitalTokenBy{Identifier,Mint}`, `fetchPhygitalTokensByOwner` and `isPhygitalTokenLocked`.
+- **Token-account helpers:** `findPhygitalTokenPda`, `parseSecp256r1Pubkey`, `fetchPhygitalTokenByIdentifier`, `fetchPhygitalTokensByOwner` and `isPhygitalTokenLocked`.
 - **`PhygitalTokenError`**, whose `code` is one of `INVALID_PUBLIC_KEY`, `WEBAUTHN_UNSUPPORTED`, `AUTHENTICATION_CANCELLED`, `INVALID_ASSERTION` or `INVALID_ARGUMENT`.
 
 ## Develop

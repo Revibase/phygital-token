@@ -153,12 +153,6 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 				detail: err.message
 			};
 		}
-		if (err.code === 'not_packed') {
-			return {
-				title: 'Can’t set up this accessory',
-				body: 'It isn’t registered with Revibase yet. Contact whoever issued it.'
-			};
-		}
 		if (err.code === 'already_enrolled') {
 			return {
 				title: 'Already set up',

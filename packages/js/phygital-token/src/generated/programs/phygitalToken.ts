@@ -43,41 +43,33 @@ import {
   type PhygitalTokenArgs,
 } from "../accounts/index.js";
 import {
-  getAssignMintInstructionAsync,
   getClosePhygitalTokenInstructionAsync,
   getCreateConfigInstructionAsync,
   getInitializeInstructionAsync,
   getRemoveOwnerInstruction,
   getSetAdminInstructionAsync,
   getSetIssuerInstructionAsync,
-  getSetMinterInstructionAsync,
   getSetOwnerInstruction,
-  parseAssignMintInstruction,
   parseClosePhygitalTokenInstruction,
   parseCreateConfigInstruction,
   parseInitializeInstruction,
   parseRemoveOwnerInstruction,
   parseSetAdminInstruction,
   parseSetIssuerInstruction,
-  parseSetMinterInstruction,
   parseSetOwnerInstruction,
-  type AssignMintAsyncInput,
   type ClosePhygitalTokenAsyncInput,
   type CreateConfigAsyncInput,
   type InitializeAsyncInput,
-  type ParsedAssignMintInstruction,
   type ParsedClosePhygitalTokenInstruction,
   type ParsedCreateConfigInstruction,
   type ParsedInitializeInstruction,
   type ParsedRemoveOwnerInstruction,
   type ParsedSetAdminInstruction,
   type ParsedSetIssuerInstruction,
-  type ParsedSetMinterInstruction,
   type ParsedSetOwnerInstruction,
   type RemoveOwnerInput,
   type SetAdminAsyncInput,
   type SetIssuerAsyncInput,
-  type SetMinterAsyncInput,
   type SetOwnerInput,
 } from "../instructions/index.js";
 import { findAdminConfigPda } from "../pdas/index.js";
@@ -123,14 +115,12 @@ export function identifyPhygitalTokenAccount(
 }
 
 export enum PhygitalTokenEvent {
-  AssignMintEvent,
   ClosePhygitalTokenEvent,
   CreateConfigEvent,
   InitializeEvent,
   RemoveOwnerEvent,
   SetAdminEvent,
   SetIssuerEvent,
-  SetMinterEvent,
   SetOwnerEvent,
 }
 
@@ -138,17 +128,6 @@ export function identifyPhygitalTokenEvent(
   event: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): PhygitalTokenEvent {
   const data = "data" in event ? event.data : event;
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([232, 80, 198, 243, 228, 74, 254, 97]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenEvent.AssignMintEvent;
-  }
   if (
     containsBytes(
       data,
@@ -219,17 +198,6 @@ export function identifyPhygitalTokenEvent(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([8, 89, 210, 22, 102, 98, 240, 242]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenEvent.SetMinterEvent;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([229, 51, 193, 27, 198, 107, 153, 2]),
       ),
       0,
@@ -241,14 +209,12 @@ export function identifyPhygitalTokenEvent(
 }
 
 export enum PhygitalTokenInstruction {
-  AssignMint,
   ClosePhygitalToken,
   CreateConfig,
   Initialize,
   RemoveOwner,
   SetAdmin,
   SetIssuer,
-  SetMinter,
   SetOwner,
 }
 
@@ -256,17 +222,6 @@ export function identifyPhygitalTokenInstruction(
   instruction: { data: ReadonlyUint8Array } | ReadonlyUint8Array,
 ): PhygitalTokenInstruction {
   const data = "data" in instruction ? instruction.data : instruction;
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([68, 110, 45, 87, 4, 80, 186, 177]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.AssignMint;
-  }
   if (
     containsBytes(
       data,
@@ -337,17 +292,6 @@ export function identifyPhygitalTokenInstruction(
     containsBytes(
       data,
       fixEncoderSize(getBytesEncoder(), 8).encode(
-        new Uint8Array([13, 170, 92, 172, 137, 194, 39, 2]),
-      ),
-      0,
-    )
-  ) {
-    return PhygitalTokenInstruction.SetMinter;
-  }
-  if (
-    containsBytes(
-      data,
-      fixEncoderSize(getBytesEncoder(), 8).encode(
         new Uint8Array([72, 202, 120, 52, 77, 128, 96, 197]),
       ),
       0,
@@ -365,9 +309,6 @@ export type ParsedPhygitalTokenInstruction<
   TProgram extends string = "DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ",
 > =
   | ({
-      instructionType: PhygitalTokenInstruction.AssignMint;
-    } & ParsedAssignMintInstruction<TProgram>)
-  | ({
       instructionType: PhygitalTokenInstruction.ClosePhygitalToken;
     } & ParsedClosePhygitalTokenInstruction<TProgram>)
   | ({
@@ -381,7 +322,6 @@ export type ParsedPhygitalTokenInstruction<
     } & ParsedRemoveOwnerInstruction<TProgram>)
   | ({ instructionType: PhygitalTokenInstruction.SetAdmin } & ParsedSetAdminInstruction<TProgram>)
   | ({ instructionType: PhygitalTokenInstruction.SetIssuer } & ParsedSetIssuerInstruction<TProgram>)
-  | ({ instructionType: PhygitalTokenInstruction.SetMinter } & ParsedSetMinterInstruction<TProgram>)
   | ({ instructionType: PhygitalTokenInstruction.SetOwner } & ParsedSetOwnerInstruction<TProgram>);
 
 export function parsePhygitalTokenInstruction<TProgram extends string>(
@@ -389,13 +329,6 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
 ): ParsedPhygitalTokenInstruction<TProgram> {
   const instructionType = identifyPhygitalTokenInstruction(instruction);
   switch (instructionType) {
-    case PhygitalTokenInstruction.AssignMint: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.AssignMint,
-        ...parseAssignMintInstruction(instruction),
-      };
-    }
     case PhygitalTokenInstruction.ClosePhygitalToken: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -438,13 +371,6 @@ export function parsePhygitalTokenInstruction<TProgram extends string>(
         ...parseSetIssuerInstruction(instruction),
       };
     }
-    case PhygitalTokenInstruction.SetMinter: {
-      assertIsInstructionWithAccounts(instruction);
-      return {
-        instructionType: PhygitalTokenInstruction.SetMinter,
-        ...parseSetMinterInstruction(instruction),
-      };
-    }
     case PhygitalTokenInstruction.SetOwner: {
       assertIsInstructionWithAccounts(instruction);
       return {
@@ -477,10 +403,6 @@ export type PhygitalTokenPluginAccounts = {
 };
 
 export type PhygitalTokenPluginInstructions = {
-  assignMint: (
-    input: AssignMintAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getAssignMintInstructionAsync> & SelfPlanAndSendFunctions;
   closePhygitalToken: (
     input: ClosePhygitalTokenAsyncInput,
     config?: { programAddress?: Address | HasAddress },
@@ -505,10 +427,6 @@ export type PhygitalTokenPluginInstructions = {
     input: SetIssuerAsyncInput,
     config?: { programAddress?: Address | HasAddress },
   ) => ReturnType<typeof getSetIssuerInstructionAsync> & SelfPlanAndSendFunctions;
-  setMinter: (
-    input: SetMinterAsyncInput,
-    config?: { programAddress?: Address | HasAddress },
-  ) => ReturnType<typeof getSetMinterInstructionAsync> & SelfPlanAndSendFunctions;
   setOwner: (
     input: SetOwnerInput,
     config?: { programAddress?: Address | HasAddress },
@@ -534,13 +452,6 @@ export function phygitalTokenProgram(config: { programAddress?: Address | HasAdd
           phygitalToken: addSelfFetchFunctions(client, getPhygitalTokenCodec()),
         },
         instructions: {
-          assignMint: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getAssignMintInstructionAsync(input, {
-                programAddress: instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
           closePhygitalToken: (input, instructionConfig) =>
             addSelfPlanAndSendFunctions(
               client,
@@ -580,13 +491,6 @@ export function phygitalTokenProgram(config: { programAddress?: Address | HasAdd
             addSelfPlanAndSendFunctions(
               client,
               getSetIssuerInstructionAsync(input, {
-                programAddress: instructionConfig?.programAddress ?? config.programAddress,
-              }),
-            ),
-          setMinter: (input, instructionConfig) =>
-            addSelfPlanAndSendFunctions(
-              client,
-              getSetMinterInstructionAsync(input, {
                 programAddress: instructionConfig?.programAddress ?? config.programAddress,
               }),
             ),

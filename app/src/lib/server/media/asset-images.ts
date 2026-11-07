@@ -1,6 +1,5 @@
 import { base64UrlToBytes, bytesToBase64Url } from '#lib/shared/encoding.ts';
-import { normalizeMediaUrl } from '#lib/shared/mint-media.ts';
-import { imageType } from '#lib/server/accessory/app-icons.ts';
+import { normalizeMediaUrl } from '#lib/shared/asset-media.ts';
 
 /**
  * Artwork is fetched here and served from our origin. The browser never loads the publisher URL, and Helius
@@ -10,7 +9,7 @@ export const ASSET_IMAGE_PATH = '/asset-image';
 export const MAX_ASSET_BYTES = 10 * 1024 * 1024;
 const MAX_URLS = 80;
 const TIMEOUT_MS = 8_000;
-/** Domain-separates these MACs from session cookies and app icons signed with the same secret. */
+/** Domain-separates these MACs from session cookies signed with the same secret. */
 const CONTEXT = 'revibase-asset-image\n';
 
 /**
@@ -81,6 +80,22 @@ export async function assetImagePaths(
 		signed[url] = await assetImagePath(secret, url);
 	}
 	return signed;
+}
+
+/** The raster type sniffed from the bytes, or `null`; SVG is never served from our origin. */
+const ascii = (bytes: Uint8Array, at: number, text: string) =>
+	[...text].every((c, i) => bytes[at + i] === c.charCodeAt(0));
+
+export function imageType(bytes: Uint8Array): string | null {
+	if (bytes.length < 12) return null;
+	if ([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((b, i) => bytes[i] === b))
+		return 'image/png';
+	if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+	if (ascii(bytes, 0, 'GIF87a') || ascii(bytes, 0, 'GIF89a')) return 'image/gif';
+	if (ascii(bytes, 0, 'RIFF') && ascii(bytes, 8, 'WEBP')) return 'image/webp';
+	if (ascii(bytes, 4, 'ftyp') && (ascii(bytes, 8, 'avif') || ascii(bytes, 8, 'avis')))
+		return 'image/avif';
+	return null;
 }
 
 export type AssetImage = { bytes: Uint8Array<ArrayBuffer>; type: string };

@@ -152,7 +152,6 @@ fn e2e_permanent_initialize_requires_owner() {
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Permanent,
         owner: Pubkey::default(),
-        mint: Pubkey::default(),
     };
     let ix = ctx.initialize_ix(ctx.issuer.pubkey(), phygital_token, args);
     let issuer = ctx.issuer.insecure_clone();
@@ -172,7 +171,6 @@ fn e2e_non_permanent_initialize_rejects_owner() {
             secp256r1_pubkey,
             token_type,
             owner: Keypair::new().pubkey(),
-            mint: Pubkey::default(),
         };
         let ix = ctx.initialize_ix(ctx.issuer.pubkey(), phygital_token, args);
         let issuer = ctx.issuer.insecure_clone();
@@ -193,7 +191,6 @@ fn e2e_token_pubkey_reinit_is_blocked() {
         secp256r1_pubkey: Secp256r1Pubkey(passkey.compressed_pubkey),
         token_type: PhygitalTokenType::Bearer,
         owner: Pubkey::default(),
-        mint: Pubkey::default(),
     };
     let ix = ctx.initialize_ix(ctx.issuer.pubkey(), phygital_token.phygital_token, args);
     let issuer = ctx.issuer.insecure_clone();
@@ -212,41 +209,9 @@ fn e2e_initialize_rejects_non_authority() {
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
         owner: Pubkey::default(),
-        mint: Pubkey::default(),
     };
     let stranger = ctx.payer.insecure_clone();
     let ix = ctx.initialize_ix(stranger.pubkey(), phygital_token, args);
     let result = TestContext::send_instruction(&mut ctx.svm, ix, &[&stranger]);
     assert_phygital_token_program_error(result, "UnauthorizedAuthority");
-}
-
-#[test]
-fn e2e_set_mint_then_transfer() {
-    let mut ctx = TestContext::new();
-    let passkey = TestPasskey::generate();
-    let phygital_token = ctx.init_phygital_token(&passkey);
-    let mint = Keypair::new().pubkey();
-    let recipient = Keypair::new();
-
-    assert_eq!(
-        ctx.phygital_token_mint(phygital_token.phygital_token),
-        Pubkey::default()
-    );
-
-    ctx.send_assign_mint(phygital_token.phygital_token, mint)
-        .expect("bind mint before first claim");
-    assert_eq!(ctx.phygital_token_mint(phygital_token.phygital_token), mint);
-
-    ctx.send_set_owner(&phygital_token, &recipient, true)
-        .expect("claim after assign_mint");
-
-    assert_eq!(
-        ctx.phygital_token_owner(phygital_token.phygital_token),
-        recipient.pubkey()
-    );
-    assert_eq!(
-        ctx.phygital_token_mint(phygital_token.phygital_token),
-        mint,
-        "transfer must not clear the bound mint"
-    );
 }

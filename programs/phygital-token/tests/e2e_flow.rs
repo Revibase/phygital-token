@@ -28,11 +28,6 @@ fn e2e_initialize_and_transfer() {
         "identifier must be distinct from the passkey public key"
     );
     assert_eq!(instance.last_slot, 0);
-    assert_eq!(
-        instance.mint,
-        Pubkey::default(),
-        "mint is unset until assign_mint"
-    );
 
     ctx.send_set_owner(&phygital_token, &recipient, true)
         .expect("set_owner should succeed");

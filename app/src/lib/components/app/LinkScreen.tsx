@@ -236,11 +236,7 @@ export function LinkScreen({
 						<div className="flex-1" />
 					) : view === 'done' && linked ? (
 						<div className="flex flex-1 flex-col justify-center gap-8">
-							<BondVisual
-								wallet={linked.recipient}
-								pda={accessory.pda}
-								hasMint={!!accessory.mint}
-							/>
+							<BondVisual wallet={linked.recipient} />
 							<PageHeader
 								align="center"
 								title={copy.done.title}
@@ -264,20 +260,12 @@ export function LinkScreen({
 									body={tapPrompt('Approve')}
 								/>
 							) : (
-								<PageHeader
-									step={step(3)}
-									title={copy.confirm.title}
-									body={accessory.mint ? `${copy.confirm.body} ${copy.nft}` : copy.confirm.body}
-								/>
+								<PageHeader step={step(3)} title={copy.confirm.title} body={copy.confirm.body} />
 							)}
 							<Notice error={failure} />
 							{view === 'choose' || view === 'tap' ? (
 								<div className="grid flex-1 place-items-center py-6">
-									<AccessoryMark
-										state={tapping ? 'waiting' : 'idle'}
-										pda={accessory.pda}
-										hasMint={!!accessory.mint}
-									/>
+									<AccessoryMark state={tapping ? 'waiting' : 'idle'} />
 								</div>
 							) : null}
 							{view === 'tap' && wallet.address ? (

@@ -19,7 +19,6 @@ import type { EnrollmentResponse } from '#lib/shared/attestation.ts';
 
 const ENROLL_STATUS = {
 	invalid_attestation: 400,
-	not_packed: 403,
 	already_enrolled: 409,
 	in_progress: 409
 } as const;

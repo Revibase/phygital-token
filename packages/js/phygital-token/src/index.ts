@@ -14,11 +14,7 @@ export { AUTHORIZE_PREFIX, MAX_AUTHORIZE_PAYLOAD } from "./utils/consts.js";
 
 export { findPhygitalTokenPda } from "./utils/pdas/index.js";
 export { parseSecp256r1Pubkey } from "./utils/parseSecp256r1Pubkey.js";
-export {
-  fetchPhygitalTokenByIdentifier,
-  fetchPhygitalTokenByMint,
-  fetchPhygitalTokensByOwner,
-} from "./utils/metadata.js";
+export { fetchPhygitalTokenByIdentifier, fetchPhygitalTokensByOwner } from "./utils/metadata.js";
 export { isPhygitalTokenLocked } from "./utils/lock.js";
 
 export { PhygitalTokenError, type PhygitalTokenErrorCode } from "./utils/errors.js";

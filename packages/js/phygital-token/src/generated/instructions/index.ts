@@ -6,12 +6,10 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./assignMint.js";
 export * from "./closePhygitalToken.js";
 export * from "./createConfig.js";
 export * from "./initialize.js";
 export * from "./removeOwner.js";
 export * from "./setAdmin.js";
 export * from "./setIssuer.js";
-export * from "./setMinter.js";
 export * from "./setOwner.js";

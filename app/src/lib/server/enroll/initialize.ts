@@ -26,7 +26,6 @@ import {
 } from '#lib/shared/attestation.ts';
 import { base64ToBytes, bytesEqual } from '#lib/shared/encoding.ts';
 import { fetchAccessory } from '../accessory/resolve';
-import { packedCardMint } from '../cards';
 import { CHALLENGE_TTL_MS } from '../challenges';
 import { ConfigError } from '../env';
 
@@ -36,8 +35,7 @@ const TOKEN_TYPE = PhygitalTokenType.Controlled;
 /** Namespace in `auth_challenges` holding one in-flight enrollment per identifier. */
 const LOCK_NAMESPACE = 'enroll-lock';
 
-export type EnrollErrorCode =
-	'invalid_attestation' | 'not_packed' | 'already_enrolled' | 'in_progress';
+export type EnrollErrorCode = 'invalid_attestation' | 'already_enrolled' | 'in_progress';
 
 export class EnrollError extends Error {
 	constructor(
@@ -103,8 +101,7 @@ export type EnrollResult = { pda: Address; signature: Signature | null };
  * Register an enrolled card: check the enrollment was made on this origin over
  * the session's challenge and that its attestation chains to a Revi root,
  * then `initialize` an unowned Controlled token (signed and paid for by the
- * issuer) under the tapped identifier, carrying the mint the pack station gave
- * the card in `cards`. The webhook mirrors it into D1.
+ * issuer) under the tapped identifier. The webhook mirrors it into D1.
  *
  * Safe to retry. The card's enrollment is idempotent (every `create` returns
  * the same product key), so a failed attempt just enrolls again; a token an
@@ -127,10 +124,6 @@ export async function registerCard(deps: EnrollDeps, input: EnrollInput): Promis
 		);
 	}
 	const pda = await findPhygitalTokenPda(publicKey);
-	// The tap landing checked this too, but the enroll cookie predates this read.
-	const mint = await packedCardMint(deps.db, input.identifier);
-	if (!mint) throw new EnrollError('not_packed', 'This card isn’t registered.');
-
 	if (!(await lock(deps.db, input.identifier))) {
 		throw new EnrollError('in_progress', 'This card is already being enrolled.');
 	}
@@ -155,8 +148,7 @@ export async function registerCard(deps: EnrollDeps, input: EnrollInput): Promis
 						identifier,
 						secp256r1Pubkey: [publicKey],
 						tokenType: TOKEN_TYPE,
-						owner: NO_OWNER,
-						mint
+						owner: NO_OWNER
 					})
 				],
 				INITIALIZE_BUDGET

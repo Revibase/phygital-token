@@ -1,5 +1,5 @@
-//! `set_admin`, `set_issuer`, `set_minter`: the admin replaces one role key.
-//! The new key must differ from all three current role keys and from the
+//! `set_admin`, `set_issuer`: the admin replaces one role key.
+//! The new key must differ from both current role keys and from the
 //! default key.
 
 use anchor_lang::prelude::*;
@@ -18,12 +18,6 @@ pub struct SetAdminEvent {
 pub struct SetIssuerEvent {
     pub admin: Pubkey,
     pub issuer: Pubkey,
-}
-
-#[event]
-pub struct SetMinterEvent {
-    pub admin: Pubkey,
-    pub minter: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -58,17 +52,6 @@ impl SetRole<'_> {
         emit!(SetIssuerEvent {
             admin: ctx.accounts.admin.key(),
             issuer,
-        });
-        Ok(())
-    }
-
-    pub fn set_minter(ctx: Context<Self>, minter: Pubkey) -> Result<()> {
-        let mut config = ctx.accounts.admin_config.load_mut()?;
-        config.require_unique_role_key(&minter)?;
-        config.minter = minter;
-        emit!(SetMinterEvent {
-            admin: ctx.accounts.admin.key(),
-            minter,
         });
         Ok(())
     }

@@ -25,7 +25,7 @@ pub enum PhygitalTokenType {
 #[repr(C)]
 pub struct PhygitalToken {
     pub owner: Pubkey,
-    pub mint: Pubkey,
+    pub _reserved: [u8; 32],
     pub last_slot: u64,
     pub token_type: u8,
     pub bump: u8,
@@ -42,7 +42,6 @@ impl PhygitalToken {
         token_type: PhygitalTokenType,
         public_key: Secp256r1Pubkey,
         owner: Pubkey,
-        mint: Pubkey,
         bump: u8,
     ) -> Result<()> {
         require!(
@@ -54,7 +53,6 @@ impl PhygitalToken {
         self.token_type = token_type as u8;
         self.public_key = public_key;
         self.owner = owner;
-        self.mint = mint;
         self.bump = bump;
         Ok(())
     }
@@ -77,6 +75,6 @@ impl PhygitalToken {
     }
 }
 
-// Zero-copy layout: owner 32 + mint 32 + last_slot 8 + type 1 + bump 1 +
+// Zero-copy layout: owner 32 + reserved 32 + last_slot 8 + type 1 + bump 1 +
 // public key 33 + identifier 33 + 4 bytes trailing pad (struct align 8 from u64).
 const _: () = assert!(core::mem::size_of::<PhygitalToken>() == 144);

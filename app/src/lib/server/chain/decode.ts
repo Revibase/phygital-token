@@ -1,25 +1,21 @@
 import { type Address } from '@solana/kit';
 import {
 	identifyPhygitalTokenEvent,
-	parseAssignMintEventEvent,
 	parseClosePhygitalTokenEventEvent,
 	parseCreateConfigEventEvent,
 	parseInitializeEventEvent,
 	parseRemoveOwnerEventEvent,
 	parseSetAdminEventEvent,
 	parseSetIssuerEventEvent,
-	parseSetMinterEventEvent,
 	parseSetOwnerEventEvent,
 	PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 	PhygitalTokenEvent,
-	type AssignMintEventEvent,
 	type ClosePhygitalTokenEventEvent,
 	type CreateConfigEventEvent,
 	type InitializeEventEvent,
 	type RemoveOwnerEventEvent,
 	type SetAdminEventEvent,
 	type SetIssuerEventEvent,
-	type SetMinterEventEvent,
 	type SetOwnerEventEvent
 } from 'phygital-token-sdk';
 
@@ -29,13 +25,14 @@ export type ProgramEvent =
 	| { name: 'InitializeEvent'; data: InitializeEventEvent }
 	| { name: 'SetOwnerEvent'; data: SetOwnerEventEvent }
 	| { name: 'RemoveOwnerEvent'; data: RemoveOwnerEventEvent }
-	| { name: 'AssignMintEvent'; data: AssignMintEventEvent }
 	| { name: 'ClosePhygitalTokenEvent'; data: ClosePhygitalTokenEventEvent }
 	| { name: 'CreateConfigEvent'; data: CreateConfigEventEvent }
 	| { name: 'SetAdminEvent'; data: SetAdminEventEvent }
 	| { name: 'SetIssuerEvent'; data: SetIssuerEventEvent }
-	| { name: 'SetMinterEvent'; data: SetMinterEventEvent }
-	/** A discriminator this build doesn't know (an event added to the program later). Kept for the audit log. */
+	/**
+	 * A discriminator this build doesn't know: an event added to the program later, or a
+	 * retired one (`AssignMintEvent`, `SetMinterEvent`). Kept for the audit log.
+	 */
 	| { name: 'Unknown'; data: null };
 
 export type LoggedEvent = ProgramEvent & {
@@ -46,14 +43,12 @@ export type LoggedEvent = ProgramEvent & {
 };
 
 const PARSERS: Record<PhygitalTokenEvent, (bytes: Uint8Array) => unknown> = {
-	[PhygitalTokenEvent.AssignMintEvent]: parseAssignMintEventEvent,
 	[PhygitalTokenEvent.ClosePhygitalTokenEvent]: parseClosePhygitalTokenEventEvent,
 	[PhygitalTokenEvent.CreateConfigEvent]: parseCreateConfigEventEvent,
 	[PhygitalTokenEvent.InitializeEvent]: parseInitializeEventEvent,
 	[PhygitalTokenEvent.RemoveOwnerEvent]: parseRemoveOwnerEventEvent,
 	[PhygitalTokenEvent.SetAdminEvent]: parseSetAdminEventEvent,
 	[PhygitalTokenEvent.SetIssuerEvent]: parseSetIssuerEventEvent,
-	[PhygitalTokenEvent.SetMinterEvent]: parseSetMinterEventEvent,
 	[PhygitalTokenEvent.SetOwnerEvent]: parseSetOwnerEventEvent
 };
 

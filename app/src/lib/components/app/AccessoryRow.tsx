@@ -1,9 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { ChevronRight } from 'lucide-react';
 
-import { accessoryMediaQuery } from '#lib/client/queries.ts';
 import type { AccessoryView } from '#lib/shared/types.ts';
 import { cn } from '#lib/utils.ts';
 import { AccessoryMark } from './AccessoryMark';
@@ -19,14 +17,7 @@ export function AccessoryRow({
 	trailing?: React.ReactNode;
 	busy?: boolean;
 }) {
-	const media = useQuery({ ...accessoryMediaQuery(accessory.pda), enabled: !!accessory.mint });
-	const name = media.data?.name ?? null;
-	const detail = [
-		name ? `Accessory ${accessory.tag}` : null,
-		accessory.kind === 'permanent' ? 'Permanent' : null
-	]
-		.filter(Boolean)
-		.join(' · ');
+	const detail = accessory.kind === 'permanent' ? 'Permanent' : '';
 
 	return (
 		<li className="flex min-h-14 w-full items-stretch">
@@ -42,12 +33,10 @@ export function AccessoryRow({
 				onClick={onClick}
 			>
 				<span className="grid shrink-0 place-items-center">
-					<AccessoryMark size="sm" pda={accessory.pda} hasMint={!!accessory.mint} />
+					<AccessoryMark size="sm" />
 				</span>
 				<span className="min-w-0 flex-1">
-					<span className="block truncate text-[15px] font-medium">
-						{name ?? `Accessory ${accessory.tag}`}
-					</span>
+					<span className="block truncate text-[15px] font-medium">Accessory {accessory.tag}</span>
 					{detail ? (
 						<span className="block truncate text-[13px] text-muted-foreground">{detail}</span>
 					) : null}

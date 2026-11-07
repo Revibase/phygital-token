@@ -51,14 +51,16 @@ export type AdminConfig = {
   bump: number;
   admin: Address;
   issuer: Address;
-  minter: Address;
+  /** Formerly the minter role; kept so the account layout is unchanged. */
+  reserved: ReadonlyUint8Array;
 };
 
 export type AdminConfigArgs = {
   bump: number;
   admin: Address | HasAddress;
   issuer: Address | HasAddress;
-  minter: Address | HasAddress;
+  /** Formerly the minter role; kept so the account layout is unchanged. */
+  reserved: ReadonlyUint8Array;
 };
 
 /** Gets the encoder for {@link AdminConfigArgs} account data. */
@@ -69,7 +71,7 @@ export function getAdminConfigEncoder(): FixedSizeEncoder<AdminConfigArgs> {
       ["bump", getU8Encoder()],
       ["admin", getAddressEncoder()],
       ["issuer", getAddressEncoder()],
-      ["minter", getAddressEncoder()],
+      ["reserved", fixEncoderSize(getBytesEncoder(), 32)],
     ]),
     (value) => ({ ...value, discriminator: ADMIN_CONFIG_DISCRIMINATOR }),
   );
@@ -82,7 +84,7 @@ export function getAdminConfigDecoder(): FixedSizeDecoder<AdminConfig> {
     ["bump", getU8Decoder()],
     ["admin", getAddressDecoder()],
     ["issuer", getAddressDecoder()],
-    ["minter", getAddressDecoder()],
+    ["reserved", fixDecoderSize(getBytesDecoder(), 32)],
   ]);
 }
 

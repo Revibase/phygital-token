@@ -17,7 +17,7 @@ import {
 } from "../generated/index.js";
 import { parseSecp256r1Pubkey } from "./parseSecp256r1Pubkey.js";
 
-/** `PhygitalToken` after its 8-byte discriminator: owner 32 | mint 32 | last_slot 8 | type 1 | bump 1 | public_key 33 | identifier 33. */
+/** `PhygitalToken` after its 8-byte discriminator: owner 32 | reserved 32 | last_slot 8 | type 1 | bump 1 | public_key 33 | identifier 33. */
 const DISCRIMINATOR_LEN = 8;
 const PUBKEY_LEN = 32;
 const LAST_SLOT_LEN = 8;
@@ -26,11 +26,16 @@ const SECP256R1_PUBKEY_LEN = 33;
 
 /** memcmp offset of `owner` in account data. */
 const PHYGITAL_TOKEN_OWNER_OFFSET = DISCRIMINATOR_LEN;
-/** memcmp offset of `mint` in account data. */
-const PHYGITAL_TOKEN_MINT_OFFSET = PHYGITAL_TOKEN_OWNER_OFFSET + PUBKEY_LEN;
+/** Offset of the unused `reserved` bytes (formerly `mint`). */
+const PHYGITAL_TOKEN_RESERVED_OFFSET = PHYGITAL_TOKEN_OWNER_OFFSET + PUBKEY_LEN;
 /** memcmp offset of `identifier` in account data. */
 const PHYGITAL_TOKEN_IDENTIFIER_OFFSET =
-  PHYGITAL_TOKEN_MINT_OFFSET + PUBKEY_LEN + LAST_SLOT_LEN + U8_LEN + U8_LEN + SECP256R1_PUBKEY_LEN;
+  PHYGITAL_TOKEN_RESERVED_OFFSET +
+  PUBKEY_LEN +
+  LAST_SLOT_LEN +
+  U8_LEN +
+  U8_LEN +
+  SECP256R1_PUBKEY_LEN;
 
 const tokenDecoder = getPhygitalTokenDecoder();
 const base64 = getBase64Encoder();
@@ -80,17 +85,4 @@ export function fetchPhygitalTokensByOwner(
   owner: Address,
 ): Promise<PhygitalToken[]> {
   return tokensMatching(rpc, PHYGITAL_TOKEN_OWNER_OFFSET, addressEncoder.encode(owner));
-}
-
-/** Find the token whose on-chain `mint` matches (via `getProgramAccounts` memcmp), or `null`. */
-export async function fetchPhygitalTokenByMint(
-  rpc: Rpc<SolanaRpcApi>,
-  mint: Address,
-): Promise<PhygitalToken | null> {
-  const [token] = await tokensMatching(
-    rpc,
-    PHYGITAL_TOKEN_MINT_OFFSET,
-    addressEncoder.encode(mint),
-  );
-  return token ?? null;
 }

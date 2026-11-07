@@ -1,13 +1,11 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronRight } from 'lucide-react';
 import { findPhygitalTokenPda, startAuthentication, verifyResponse } from 'phygital-token-sdk';
 import { useEffect, useState } from 'react';
 
 import { TAP_HINT, webauthnAvailable } from '#lib/client/capability.ts';
 import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
-import { accessoryMediaQuery } from '#lib/client/queries.ts';
 import { shortAddress } from '#lib/shared/encoding.ts';
 import type { AccessoryView } from '#lib/shared/types.ts';
 import { CopyButton } from './CopyButton';
@@ -17,8 +15,7 @@ import { ListRow } from './ListRow';
 import { Notice } from './Notice';
 import { ResponsiveSheet } from './ResponsiveSheet';
 
-const explorable = new Set(['Owner', 'NFT']);
-const lower = (label: string) => (label === 'NFT' ? label : label.toLowerCase());
+const explorable = new Set(['Owner']);
 const kindLabel = {
 	permanent: 'Permanent · its owner can’t change',
 	bearer: 'Bearer · whoever holds it can claim it',
@@ -37,8 +34,6 @@ export function TechnicalDetails({
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
-	const mediaQuery = useQuery({ ...accessoryMediaQuery(accessory.pda), enabled: !!accessory.mint });
-	const collectibleName = mediaQuery.data?.name ?? null;
 	const [check, setCheck] = useState<'idle' | 'tapping' | 'genuine' | 'mismatch'>('idle');
 	const [checkFailure, setCheckFailure] = useState<FriendlyError | null>(null);
 	const canCheck = webauthnAvailable();
@@ -75,8 +70,7 @@ export function TechnicalDetails({
 
 	const copyable = [
 		['Public key', accessory.publicKey],
-		['Owner', accessory.owner],
-		['NFT', accessory.mint]
+		['Owner', accessory.owner]
 	] as const;
 
 	return (
@@ -106,13 +100,7 @@ export function TechnicalDetails({
 					<ListRow
 						key={label}
 						label={label}
-						detail={
-							value
-								? label === 'NFT' && collectibleName
-									? `${collectibleName} · ${shortAddress(value)}`
-									: shortAddress(value)
-								: 'None'
-						}
+						detail={value ? shortAddress(value) : 'None'}
 						trailing={
 							value ? (
 								<span className="flex items-center">
@@ -120,10 +108,10 @@ export function TechnicalDetails({
 										<ExplorerLink
 											value={value}
 											cluster={cluster}
-											label={`View ${lower(label)} on Solana Explorer`}
+											label={`View ${label.toLowerCase()} on Solana Explorer`}
 										/>
 									) : null}
-									<CopyButton value={value} label={`Copy ${lower(label)}`} />
+									<CopyButton value={value} label={`Copy ${label.toLowerCase()}`} />
 								</span>
 							) : null
 						}

@@ -49,7 +49,6 @@ export type ClosePhygitalTokenEventEvent = {
   publicKey: Secp256r1Pubkey;
   identifier: Secp256r1Pubkey;
   owner: Address;
-  mint: Address;
 };
 
 export type ClosePhygitalTokenEventEventArgs = {
@@ -58,7 +57,6 @@ export type ClosePhygitalTokenEventEventArgs = {
   publicKey: Secp256r1PubkeyArgs;
   identifier: Secp256r1PubkeyArgs;
   owner: Address | HasAddress;
-  mint: Address | HasAddress;
 };
 
 /** Gets the encoder for {@link ClosePhygitalTokenEventEventArgs} event data. */
@@ -70,7 +68,6 @@ export function getClosePhygitalTokenEventEventEncoder(): FixedSizeEncoder<Close
       ["publicKey", getSecp256r1PubkeyEncoder()],
       ["identifier", getSecp256r1PubkeyEncoder()],
       ["owner", getAddressEncoder()],
-      ["mint", getAddressEncoder()],
     ]),
     [getConstantEncoder(CLOSE_PHYGITAL_TOKEN_EVENT_EVENT_DISCRIMINATOR)],
   );
@@ -85,7 +82,6 @@ export function getClosePhygitalTokenEventEventDecoder(): FixedSizeDecoder<Close
       ["publicKey", getSecp256r1PubkeyDecoder()],
       ["identifier", getSecp256r1PubkeyDecoder()],
       ["owner", getAddressDecoder()],
-      ["mint", getAddressDecoder()],
     ]),
     [getConstantDecoder(CLOSE_PHYGITAL_TOKEN_EVENT_EVENT_DISCRIMINATOR)],
   );

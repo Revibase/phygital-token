@@ -44,7 +44,6 @@ CREATE TABLE phygital_tokens (
   identifier TEXT NOT NULL,              -- base64url
   secp256r1_public_key TEXT NOT NULL,    -- base64url
   owner TEXT,                            -- NULL when unowned
-  mint TEXT,                             -- NULL until assign_mint
   token_type TEXT NOT NULL,              -- 'Permanent' | 'Bearer' | 'Controlled'
   is_locked INTEGER NOT NULL,
   status TEXT NOT NULL,                  -- 'live' | 'closed'
@@ -64,7 +63,6 @@ CREATE TABLE admin_config (
   address TEXT PRIMARY KEY NOT NULL,
   admin TEXT,
   issuer TEXT,
-  minter TEXT,
   updated_at INTEGER NOT NULL,
   last_signature TEXT NOT NULL,
   last_slot INTEGER NOT NULL,
@@ -72,28 +70,3 @@ CREATE TABLE admin_config (
   synced_at INTEGER NOT NULL
 );
 
--- Orders and packed cards: inventory, not chain data. Only the developer service writes these;
--- the app reads `cards` to decide which cards may enroll and with which mint.
-CREATE TABLE designs (
-  id TEXT PRIMARY KEY NOT NULL,
-  order_ref TEXT NOT NULL,
-  name TEXT,
-  kind TEXT NOT NULL CHECK (kind IN ('unique', 'shared')),  -- unique: one card per mint; shared: one mint, many cards
-  created_at INTEGER NOT NULL
-);
-
-CREATE TABLE mints (
-  mint TEXT PRIMARY KEY NOT NULL,
-  design_id TEXT NOT NULL REFERENCES designs (id),
-  position INTEGER NOT NULL,             -- allocation order (edition number)
-  UNIQUE (design_id, position)
-);
-
--- A row exists only once a card has been tapped at the pack station.
-CREATE TABLE cards (
-  identifier TEXT PRIMARY KEY NOT NULL,  -- canonical base64url NDEF key (the tap's pk)
-  mint TEXT NOT NULL REFERENCES mints (mint),
-  assigned_at INTEGER NOT NULL
-);
-
-CREATE INDEX cards_mint ON cards (mint);

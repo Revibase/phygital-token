@@ -3,9 +3,7 @@ import { address, getAddressEncoder } from "@solana/kit";
 import { getPhygitalTokenEncoder, getPhygitalTokenSize } from "../generated/index.js";
 
 const OWNER = address("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF");
-const MINT = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const OWNER_OFFSET = 8;
-const MINT_OFFSET = 40;
 // last_slot u64 at 72, token_type at 80, bump at 81, public_key at 82, identifier at 115
 const BUMP_OFFSET = 81;
 const IDENTIFIER_OFFSET = 115;
@@ -15,12 +13,12 @@ function filledKey(fill: number): readonly [Uint8Array] {
 }
 
 describe("PhygitalToken memcmp offsets", () => {
-  it("points owner, mint, and identifier at the zero-copy layout", () => {
+  it("points owner and identifier at the zero-copy layout", () => {
     const publicKey = filledKey(0xaa);
     const identifier = filledKey(0xbb);
     const encoded = getPhygitalTokenEncoder().encode({
       owner: OWNER,
-      mint: MINT,
+      reserved: new Uint8Array(32),
       lastSlot: 7n,
       tokenType: 1,
       bump: 255,
@@ -32,7 +30,6 @@ describe("PhygitalToken memcmp offsets", () => {
 
     const addressBytes = getAddressEncoder();
     expect(encoded.subarray(OWNER_OFFSET, OWNER_OFFSET + 32)).toEqual(addressBytes.encode(OWNER));
-    expect(encoded.subarray(MINT_OFFSET, MINT_OFFSET + 32)).toEqual(addressBytes.encode(MINT));
     expect(encoded[BUMP_OFFSET]).toBe(255);
     expect(encoded.subarray(IDENTIFIER_OFFSET, IDENTIFIER_OFFSET + 33)).toEqual(identifier[0]);
   });

@@ -103,14 +103,12 @@ async function subjectOf(event: LoggedEvent): Promise<Subject | null> {
 		case 'InitializeEvent':
 		case 'SetOwnerEvent':
 		case 'RemoveOwnerEvent':
-		case 'AssignMintEvent':
 		case 'ClosePhygitalTokenEvent':
 			// Every token account is created by `initialize` at this PDA, so the event's key names it.
 			return { kind: 'token', address: await findPhygitalTokenPda(event.data.publicKey) };
 		case 'CreateConfigEvent':
 		case 'SetAdminEvent':
 		case 'SetIssuerEvent':
-		case 'SetMinterEvent':
 			return { kind: 'config', address: (await findAdminConfigPda())[0] };
 		case 'Unknown':
 			return null;
@@ -156,7 +154,6 @@ type TokenState = {
 	identifier: string;
 	publicKey: string;
 	owner: string | null;
-	mint: string | null;
 	tokenType: string;
 	status: 'live' | 'closed';
 	initializeSignature: string;
@@ -173,7 +170,6 @@ function foldToken(rows: readonly EventRow[]): TokenState | null {
 				identifier: data.identifier,
 				publicKey: data.publicKey,
 				owner: orNull(data.owner),
-				mint: orNull(data.mint),
 				tokenType: data.tokenType,
 				status: 'live',
 				initializeSignature: row.signature,
@@ -184,7 +180,6 @@ function foldToken(rows: readonly EventRow[]): TokenState | null {
 		if (!state || state.status === 'closed') continue;
 		if (row.event_name === 'SetOwnerEvent') state.owner = orNull(data.recipient);
 		else if (row.event_name === 'RemoveOwnerEvent') state.owner = null;
-		else if (row.event_name === 'AssignMintEvent') state.mint = orNull(data.mint);
 		else if (row.event_name === 'ClosePhygitalTokenEvent') state.status = 'closed';
 	}
 	return state;
@@ -218,12 +213,12 @@ function writeToken(
 	return db
 		.prepare(
 			`INSERT INTO phygital_tokens (
-         address, identifier, secp256r1_public_key, owner, mint, token_type, is_locked, status,
+         address, identifier, secp256r1_public_key, owner, token_type, is_locked, status,
          initialize_signature, created_at, updated_at, last_signature, last_slot, event_count, synced_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(address) DO UPDATE SET
          identifier = excluded.identifier, secp256r1_public_key = excluded.secp256r1_public_key,
-         owner = excluded.owner, mint = excluded.mint, token_type = excluded.token_type,
+         owner = excluded.owner, token_type = excluded.token_type,
          is_locked = excluded.is_locked, status = excluded.status,
          initialize_signature = excluded.initialize_signature, created_at = excluded.created_at,
          updated_at = excluded.updated_at, last_signature = excluded.last_signature,
@@ -235,7 +230,6 @@ function writeToken(
 			state.identifier,
 			state.publicKey,
 			state.owner,
-			state.mint,
 			state.tokenType,
 			locked ? 1 : 0,
 			state.status,
@@ -249,7 +243,7 @@ function writeToken(
 		);
 }
 
-type ConfigState = { admin: string | null; issuer: string | null; minter: string | null };
+type ConfigState = { admin: string | null; issuer: string | null };
 
 /** Replay the AdminConfig's events. `null` when its `create_config` isn't in the log. */
 function foldConfig(rows: readonly EventRow[]): ConfigState | null {
@@ -257,13 +251,12 @@ function foldConfig(rows: readonly EventRow[]): ConfigState | null {
 	for (const row of rows) {
 		const data = JSON.parse(row.data) as Record<string, string>;
 		if (row.event_name === 'CreateConfigEvent') {
-			state = { admin: orNull(data.authority), issuer: null, minter: null };
+			state = { admin: orNull(data.authority), issuer: null };
 			continue;
 		}
 		if (!state) continue;
 		if (row.event_name === 'SetAdminEvent') state.admin = orNull(data.newAdmin);
 		else if (row.event_name === 'SetIssuerEvent') state.issuer = orNull(data.issuer);
-		else if (row.event_name === 'SetMinterEvent') state.minter = orNull(data.minter);
 	}
 	return state;
 }
@@ -286,10 +279,10 @@ function writeConfig(
 	return db
 		.prepare(
 			`INSERT INTO admin_config (
-         address, admin, issuer, minter, updated_at, last_signature, last_slot, event_count, synced_at
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         address, admin, issuer, updated_at, last_signature, last_slot, event_count, synced_at
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(address) DO UPDATE SET
-         admin = excluded.admin, issuer = excluded.issuer, minter = excluded.minter,
+         admin = excluded.admin, issuer = excluded.issuer,
          updated_at = excluded.updated_at, last_signature = excluded.last_signature,
          last_slot = excluded.last_slot, event_count = excluded.event_count, synced_at = excluded.synced_at
        WHERE excluded.event_count > admin_config.event_count`
@@ -298,7 +291,6 @@ function writeConfig(
 			address,
 			state.admin,
 			state.issuer,
-			state.minter,
 			last.block_time ?? last.received_at,
 			last.signature,
 			last.slot,

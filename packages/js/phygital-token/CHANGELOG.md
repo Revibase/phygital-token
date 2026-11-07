@@ -19,8 +19,7 @@ The SDK now signs payloads with a Revi card, off-chain and on-chain, alongside t
   - `authenticatePasskey`, `bufferToBase64URLString` and `decodeBase64AccountData`;
   - the `verify` instruction and its helpers.
 - **Generated client.** `set_owner` takes `relativeIndex` and `signatureIndex` instead of `secp256r1VerifyArgs`. `PhygitalToken.lastSignCount` is now `lastSlot`, and `STALE_SLOT` (6023) is new.
-- **`fetchPhygitalTokenByMint`** now takes `(rpc, mint)`.
-- **`getInitializeInstruction`** requires `mint` (the default address, `11111111111111111111111111111111`, for none), and `InitializeEventEvent` has a `mint` field.
+- **Mint linkage removed.** `fetchPhygitalTokenByMint`, `getAssignMintInstruction`, `getSetMinterInstruction` and their events are gone. `PhygitalToken.mint` and `AdminConfig.minter` are now `reserved` bytes, so account sizes and the owner/identifier offsets are unchanged. `mint` is gone from `InitializeEventEvent` and `ClosePhygitalTokenEventEvent`.
 - **Error codes.** `PhygitalTokenErrorCode` keeps only `INVALID_PUBLIC_KEY`, `WEBAUTHN_UNSUPPORTED`, `AUTHENTICATION_CANCELLED`, `INVALID_ASSERTION` and `INVALID_ARGUMENT`.
 
 ### Added

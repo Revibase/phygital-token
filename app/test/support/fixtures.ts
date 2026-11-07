@@ -46,7 +46,7 @@ export function fakeAccessory() {
 			return {
 				discriminator: new Uint8Array(8),
 				owner: address('11111111111111111111111111111111'),
-				mint: address('11111111111111111111111111111111'),
+				reserved: new Uint8Array(32),
 				lastSlot: 3n,
 				tokenType: 1,
 				bump: 0,
@@ -125,25 +125,4 @@ export function chip() {
 			});
 		}
 	};
-}
-
-/** Record `identifier` as packed with `mint`, as the developer service's pack station does. */
-export async function packCard(db: D1Database, identifier: string, mint: string) {
-	await db.batch([
-		db
-			.prepare(
-				`INSERT INTO designs (id, order_ref, kind, created_at) VALUES ('test-design', 'test-order', 'shared', 0)
-         ON CONFLICT(id) DO NOTHING`
-			)
-			.bind(),
-		db
-			.prepare(
-				`INSERT INTO mints (mint, design_id, position) VALUES (?, 'test-design', 0)
-         ON CONFLICT(mint) DO NOTHING`
-			)
-			.bind(mint),
-		db
-			.prepare('INSERT INTO cards (identifier, mint, assigned_at) VALUES (?, ?, 0)')
-			.bind(identifier, mint)
-	]);
 }

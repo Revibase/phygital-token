@@ -6,7 +6,6 @@
 
 mod admin;
 mod assertions;
-mod assign_mint;
 mod initialize;
 mod remove_owner;
 mod secp256r1;
@@ -40,18 +39,17 @@ pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 // Domain vocabulary:
 //   Token      = PhygitalToken PDA created by `initialize` (1:1 with a passkey)
 //   Owner = phygital_token.owner (current custodian; `Pubkey::default()` when unowned)
-//   Mint       = optional SPL mint pubkey, set later via `assign_mint` (default until then)
 //
 // Owner lives in the PhygitalToken PDA and is moved by `set_owner`
-// after a secp256r1 proof. `assign_mint` binds an SPL mint after init.
+// after a secp256r1 proof.
 //
-// AdminConfig roles: admin (manages roles), issuer (initialize), minter (assign_mint).
+// AdminConfig roles: admin (manages roles), issuer (initialize).
 
 /// A freshly `initialize`d phygital_token plus the passkey that controls its transfers.
 ///
 /// `identifier` is a chip binding field stored on the phygital_token. The PDA is seeded
 /// by `passkey`'s public key (which also authorizes transfers).
-pub struct MintedPhygitalToken {
+pub struct InitializedPhygitalToken {
     pub phygital_token: Pubkey,
     pub identifier: Secp256r1Pubkey,
     pub passkey: TestPasskey,
@@ -74,8 +72,6 @@ pub struct TestContext {
     pub admin: Keypair,
     /// Issuer role — sole authority for `initialize`.
     pub issuer: Keypair,
-    /// Minter role — sole authority for `assign_mint`.
-    pub minter: Keypair,
     pub program_id: Pubkey,
 }
 
@@ -110,8 +106,7 @@ impl TestContext {
 
         let admin = Keypair::new();
         let issuer = Keypair::new();
-        let minter = Keypair::new();
-        for kp in [&admin, &issuer, &minter] {
+        for kp in [&admin, &issuer] {
             svm.airdrop(&kp.pubkey(), 10 * LAMPORTS_PER_SOL)
                 .expect("airdrop role key");
         }
@@ -130,7 +125,6 @@ impl TestContext {
             payer,
             admin,
             issuer,
-            minter,
             program_id,
         };
         ctx.bootstrap_admin_config();

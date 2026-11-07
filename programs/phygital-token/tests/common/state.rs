@@ -34,10 +34,6 @@ impl TestContext {
         self.load_phygital_token(phygital_token).last_slot
     }
 
-    pub fn phygital_token_mint(&self, phygital_token: Pubkey) -> Pubkey {
-        self.load_phygital_token(phygital_token).mint
-    }
-
     /// Next slot to use for a successful assertion against `phygital_token`.
     /// Warps the SVM forward when the current slot is not strictly greater.
     pub fn advance_past_last_slot(&mut self, phygital_token: Pubkey) -> (u64, [u8; 32]) {

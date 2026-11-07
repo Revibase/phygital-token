@@ -1,39 +1,15 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import { proxied, proxiedImages } from './asset-image';
-import { fetchAccessoryMedia } from './media';
-import { fetchProjectPage } from './apps';
 import { fetchWalletAccessories } from './wallet-accessories';
 import { browserRpc, rpcUrl } from './rpc';
 import { address } from '@solana/kit';
 import { fetchWalletHoldings } from '#lib/shared/wallet-holdings.ts';
 import { queryKeys } from './cache';
 
-// Persist NFT media only; project pages and wallet lists must follow current linkage.
-const DAY = 24 * 60 * 60 * 1000;
-const HOUR = 60 * 60 * 1000;
 const MINUTE = 60 * 1000;
 
-export const accessoryMediaQuery = (pda: string) =>
-	queryOptions({
-		queryKey: queryKeys.media(pda),
-		queryFn: () => fetchAccessoryMedia(pda),
-		staleTime: (query) => (query.state.data?.image ? HOUR : 5 * MINUTE),
-		gcTime: DAY,
-		retry: 1
-	});
-
-/** The session decides which accessory the server reads; `pda` and `owner` only key the cache. */
-export const accessoryProjectQuery = (pda: string, owner: string | null) =>
-	queryOptions({
-		queryKey: queryKeys.project(pda, owner),
-		queryFn: fetchProjectPage,
-		staleTime: 10 * MINUTE,
-		gcTime: HOUR,
-		retry: 1
-	});
-
-/** SOL and fungible tokens; kept fresh rather than persisted. */
+/** SOL and fungible tokens. */
 export const walletHoldingsQuery = (wallet: string) =>
 	queryOptions({
 		queryKey: queryKeys.walletHoldings(wallet),

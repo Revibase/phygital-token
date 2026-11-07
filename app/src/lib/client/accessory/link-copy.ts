@@ -8,8 +8,6 @@ export type LinkCopy = {
 	pageTitle: string;
 	choose: { title: string; body: string };
 	confirm: { title: string; body: string };
-	/** Added to the confirm body when the accessory is bound to an NFT. */
-	nft: string;
 	action: string;
 	done: { title: string; body: (yours: boolean, wallet: string) => string };
 };
@@ -21,7 +19,6 @@ const COMMON: LinkCopy = {
 		body: 'This wallet will own the accessory.'
 	},
 	confirm: { title: 'Claim with this wallet?', body: '' },
-	nft: 'Its NFT stays where it is.',
 	action: 'Claim accessory',
 	done: {
 		title: 'Accessory claimed',

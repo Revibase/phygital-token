@@ -1,10 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { Nfc } from 'lucide-react';
-import { useState } from 'react';
 
-import { accessoryMediaQuery } from '#lib/client/queries.ts';
 import { cn } from '#lib/utils.ts';
 
 type MarkState = 'idle' | 'waiting' | 'verified' | 'unverified';
@@ -15,27 +12,12 @@ const mark = { sm: 'size-6', md: 'size-9', lg: 'size-12', xl: 'size-12 lg:size-2
 export function AccessoryMark({
 	state: mode = 'idle',
 	size = 'lg',
-	pda = null,
-	hasMint,
 	className = ''
 }: {
 	state?: MarkState;
 	size?: 'sm' | 'md' | 'lg' | 'xl';
-	pda?: string | null;
-	hasMint?: boolean;
 	className?: string;
 }) {
-	const wantsMedia = !!pda && hasMint !== false;
-	const media = useQuery({ ...accessoryMediaQuery(pda ?? ''), enabled: wantsMedia });
-	const image = media.data?.image ?? null;
-	const resolved = !wantsMedia || media.isSuccess || media.isError;
-	const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-	const [failedSrc, setFailedSrc] = useState<string | null>(null);
-	const loaded = !!image && loadedSrc === image;
-	const failed = !!image && failedSrc === image;
-	const showArtwork = !!image && !failed;
-	const showPlaceholder = hasMint === true && (!resolved || (showArtwork && !loaded));
-
 	return (
 		<div
 			className={cn('relative grid shrink-0 place-items-center', box[size], className)}
@@ -47,37 +29,13 @@ export function AccessoryMark({
 			<div
 				className={cn(
 					'relative grid size-full place-items-center overflow-hidden rounded-[26%] transition-colors duration-200 ease-out',
-					showPlaceholder || (showArtwork && loaded)
-						? 'bg-muted'
-						: mode === 'unverified'
-							? 'bg-muted text-muted-foreground/60'
-							: 'bg-accent bg-[linear-gradient(160deg,rgb(255_255_255/0.5),transparent_55%)] text-accent-foreground',
+					mode === 'unverified'
+						? 'bg-muted text-muted-foreground/60'
+						: 'bg-accent bg-[linear-gradient(160deg,rgb(255_255_255/0.5),transparent_55%)] text-accent-foreground',
 					'shadow-[0_1px_1px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(14_26_26/0.35),inset_0_1px_0_rgb(255_255_255/0.28)]'
 				)}
 			>
-				{!showPlaceholder && !(showArtwork && loaded) ? (
-					<Nfc
-						strokeWidth={1.75}
-						className={cn(mark[size], resolved && hasMint === true && 'animate-rise')}
-					/>
-				) : null}
-				{showArtwork ? (
-					<>
-						<img
-							src={image}
-							alt=""
-							decoding="async"
-							referrerPolicy="no-referrer"
-							className={cn(
-								'absolute inset-0 size-full object-cover transition-opacity duration-200 ease-out',
-								loaded ? 'opacity-100' : 'opacity-0'
-							)}
-							onLoad={() => setLoadedSrc(image)}
-							onError={() => setFailedSrc(image)}
-						/>
-						<span className="pointer-events-none absolute inset-0 rounded-[26%] ring-1 ring-black/5 ring-inset" />
-					</>
-				) : null}
+				<Nfc strokeWidth={1.75} className={mark[size]} />
 			</div>
 			{mode === 'verified' ? (
 				<span

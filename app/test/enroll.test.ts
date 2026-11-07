@@ -34,10 +34,9 @@ import { DEFAULT_PUBKEY } from '#lib/shared/accessory-view.ts';
 import { bytesToBase64, bytesToBase64Url } from '#lib/shared/encoding.ts';
 import { attestedCard } from './support/attestation';
 import { createTestD1 } from './support/d1-sqlite';
-import { ORIGIN, packCard } from './support/fixtures';
+import { ORIGIN } from './support/fixtures';
 
 const SIGNATURE = '5'.repeat(88) as Signature;
-const MINT = address('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
 
 /** A chain with no tokens, where every sent `initialize` lands. */
 function chainRpc() {
@@ -66,7 +65,7 @@ function chainRpc() {
 			new Uint8Array(
 				getPhygitalTokenEncoder().encode({
 					owner: address(DEFAULT_PUBKEY),
-					mint: address(DEFAULT_PUBKEY),
+					reserved: new Uint8Array(32),
 					lastSlot: 0n,
 					tokenType: PhygitalTokenType.Controlled,
 					bump: 0,
@@ -103,8 +102,6 @@ async function setup() {
 		}
 	};
 	const identifier = bytesToBase64Url(p256.getPublicKey(p256.utils.randomSecretKey(), true));
-	// Packed: the pack station gave this card its mint.
-	await packCard(db, identifier, MINT);
 	// The enroll session's challenge; every tap of Set up enrolls over it.
 	const challenge = crypto.getRandomValues(new Uint8Array(32));
 	/** One tap of Set up: the card's enrollment over `clientData`. */
@@ -147,7 +144,6 @@ describe('registerCard', () => {
 		expect(ix.accounts.phygitalToken.address).toBe(pda);
 		expect(ix.data.tokenType).toBe(PhygitalTokenType.Controlled);
 		expect(ix.data.owner).toBe(DEFAULT_PUBKEY);
-		expect(ix.data.mint).toBe(MINT);
 		expect(bytesToBase64Url(new Uint8Array(ix.data.identifier[0]))).toBe(identifier);
 		expect(new Uint8Array(ix.data.secp256r1Pubkey[0])).toEqual(card.productKey);
 
@@ -254,13 +250,5 @@ describe('enroll cookie', () => {
 			await enrollChallenge(secret, await setEnrollSession(jar(), secret, 'chip'))
 		).not.toEqual(challenge);
 		expect(await enrollChallenge('y'.repeat(48), session)).not.toEqual(challenge);
-	});
-
-	it('refuses a card that was never packed, before sending anything', async () => {
-		const { deps, sent, attempt } = await setup();
-		// A database without this card's pack-station row.
-		const unpacked = { ...deps, db: createTestD1() };
-		expect(await code(registerCard(unpacked, await attempt()))).toBe('not_packed');
-		expect(sent).toHaveLength(0);
 	});
 });

@@ -26,7 +26,6 @@ function accessory(
 				: 'linked_locked',
 		owner,
 		isLocked,
-		mint: null,
 		...rules
 	};
 }
@@ -110,19 +109,6 @@ describe('tapScreen: Controlled and Permanent wallet linkage', () => {
 			claim: false
 		});
 	});
-});
-
-describe('trading a card does not change its link rules', () => {
-	it.each(['controlled', 'permanent'] as const)(
-		'%s explains wallet linkage for mint-backed cards',
-		(kind) => {
-			const a = { ...accessory(kind, W), mint: W };
-			const screen = tapScreen(a, false);
-			expect(screen.claim).toBe(false);
-			expect(screen.body).not.toMatch(/card|trad(e|ing)|collection/i);
-			expect(screen.body).not.toMatch(/proves.*wallet/);
-		}
-	);
 });
 
 describe('accessory management actions', () => {

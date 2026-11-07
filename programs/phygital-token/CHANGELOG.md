@@ -9,6 +9,7 @@ All notable changes to this artifact are documented here. The format follows
 ### Removed
 
 - **The accessory wallet:** `update_policy`, `close_policy`, `execute_with_owner`, `execute_with_accessory`, `preview_execute`, `AccessoryPolicy` and the wallet PDA. `wallet_bump` is now an unused `reserved` byte, so offsets are unchanged. Errors 6022–6037 are no longer raised.
+- **Mint linkage:** `assign_mint`, `set_minter`, `AssignMintEvent`, `SetMinterEvent` and the minter role. `PhygitalToken.mint` and `AdminConfig.minter` are now unused `_reserved` bytes, so account sizes and offsets are unchanged; `mint` is gone from `InitializeEvent` and `ClosePhygitalTokenEvent`. The token-program constants are removed.
 - **The `verify` instruction.** Check the secp256r1 precompile against the token's key instead.
 
 ### Changed
@@ -16,7 +17,6 @@ All notable changes to this artifact are documented here. The format follows
 - **New tap message.** `set_owner` checks only the secp256r1 precompile. The card signs `authorize ‖ SHA256("t" ‖ token ‖ recipient ‖ slot_hash)` (41 bytes), and any other message fails with `ChallengeHashMismatch`.
 - **Replay protection** now requires `slot_number > last_slot`, replacing `last_sign_count`.
 - **`Secp256r1VerifyArgs`** is now `relative_index` and `signature_index`, and the `webauthn` module is renamed `tap`.
-- **`initialize` takes a `mint`** (`InitializeArgs.mint`; `Pubkey::default()` for none), and `InitializeEvent` includes it. The issuer can set a card's mint as it creates the token, in one transaction; the minter can still change it with `assign_mint`.
 
 ### Security
 

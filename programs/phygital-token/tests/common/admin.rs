@@ -1,4 +1,4 @@
-//! Role registry: create_config, set_admin/issuer/minter.
+//! Role registry: create_config, set_admin/issuer.
 
 use super::*;
 
@@ -23,8 +23,6 @@ impl TestContext {
 
         self.send_set_issuer(self.issuer.pubkey())
             .expect("bootstrap set_issuer");
-        self.send_set_minter(self.minter.pubkey())
-            .expect("bootstrap set_minter");
     }
 
     pub fn set_issuer_ix(&self, admin: Pubkey, issuer: Pubkey) -> Instruction {
@@ -41,24 +39,6 @@ impl TestContext {
 
     pub fn send_set_issuer(&mut self, issuer: Pubkey) -> litesvm::types::TransactionResult {
         let ix = self.set_issuer_ix(self.admin.pubkey(), issuer);
-        let admin = self.admin.insecure_clone();
-        Self::send_instruction(&mut self.svm, ix, &[&admin])
-    }
-
-    pub fn set_minter_ix(&self, admin: Pubkey, minter: Pubkey) -> Instruction {
-        Instruction {
-            program_id: self.program_id,
-            accounts: phygital_token::accounts::SetRole {
-                admin,
-                admin_config: self.admin_config_pda(),
-            }
-            .to_account_metas(None),
-            data: phygital_token::instruction::SetMinter { minter }.data(),
-        }
-    }
-
-    pub fn send_set_minter(&mut self, minter: Pubkey) -> litesvm::types::TransactionResult {
-        let ix = self.set_minter_ix(self.admin.pubkey(), minter);
         let admin = self.admin.insecure_clone();
         Self::send_instruction(&mut self.svm, ix, &[&admin])
     }

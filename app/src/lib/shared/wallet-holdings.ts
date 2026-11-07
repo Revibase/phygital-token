@@ -2,7 +2,7 @@ import { address, type Address, type Rpc, type SolanaRpcApi } from '@solana/kit'
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 
 import { formatTokenAmount, SOL_DECIMALS } from './amount';
-import { mediaFromAsset, type GetAssetResult } from './mint-media';
+import { mediaFromAsset, type GetAssetResult } from './asset-media';
 
 export const TOKEN_2022_PROGRAM_ADDRESS = address('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
 

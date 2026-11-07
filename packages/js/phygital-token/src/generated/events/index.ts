@@ -6,12 +6,10 @@
  * @see https://github.com/codama-idl/codama
  */
 
-export * from "./assignMintEvent.js";
 export * from "./closePhygitalTokenEvent.js";
 export * from "./createConfigEvent.js";
 export * from "./initializeEvent.js";
 export * from "./removeOwnerEvent.js";
 export * from "./setAdminEvent.js";
 export * from "./setIssuerEvent.js";
-export * from "./setMinterEvent.js";
 export * from "./setOwnerEvent.js";

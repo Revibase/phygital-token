@@ -84,11 +84,6 @@ pub mod phygital_token {
         SetRole::set_issuer(ctx, issuer)
     }
 
-    /// Admin: sets the key allowed to `assign_mint`.
-    pub fn set_minter(ctx: Context<SetRole>, minter: Pubkey) -> Result<()> {
-        SetRole::set_minter(ctx, minter)
-    }
-
     /// Admin: deletes a token.
     pub fn close_phygital_token(ctx: Context<ClosePhygitalToken>) -> Result<()> {
         ClosePhygitalToken::handler(ctx)
@@ -97,11 +92,6 @@ pub mod phygital_token {
     /// Issuer: registers an accessory's passkey as a new token.
     pub fn initialize(ctx: Context<Initialize>, args: InitializeArgs) -> Result<()> {
         Initialize::handler(ctx, args)
-    }
-
-    /// Minter: records the mint that represents the token.
-    pub fn assign_mint(ctx: Context<AssignMint>, mint: Pubkey) -> Result<()> {
-        AssignMint::handler(ctx, mint)
     }
 
     /// Tap: makes the signing `recipient` the owner, unless the token is locked.

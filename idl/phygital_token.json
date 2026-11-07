@@ -9,55 +9,6 @@
   },
   "instructions": [
     {
-      "name": "assign_mint",
-      "docs": [
-        "Minter: records the mint that represents the token."
-      ],
-      "discriminator": [
-        68,
-        110,
-        45,
-        87,
-        4,
-        80,
-        186,
-        177
-      ],
-      "accounts": [
-        {
-          "name": "authority",
-          "signer": true
-        },
-        {
-          "name": "admin_config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  100,
-                  109,
-                  105,
-                  110
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "phygital_token",
-          "writable": true
-        }
-      ],
-      "args": [
-        {
-          "name": "mint",
-          "type": "pubkey"
-        }
-      ]
-    },
-    {
       "name": "close_phygital_token",
       "docs": [
         "Admin: deletes a token."
@@ -336,52 +287,6 @@
       ]
     },
     {
-      "name": "set_minter",
-      "docs": [
-        "Admin: sets the key allowed to `assign_mint`."
-      ],
-      "discriminator": [
-        13,
-        170,
-        92,
-        172,
-        137,
-        194,
-        39,
-        2
-      ],
-      "accounts": [
-        {
-          "name": "admin",
-          "signer": true
-        },
-        {
-          "name": "admin_config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  100,
-                  109,
-                  105,
-                  110
-                ]
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "minter",
-          "type": "pubkey"
-        }
-      ]
-    },
-    {
       "name": "set_owner",
       "docs": [
         "Tap: makes the signing `recipient` the owner, unless the token is locked."
@@ -460,19 +365,6 @@
   ],
   "events": [
     {
-      "name": "AssignMintEvent",
-      "discriminator": [
-        232,
-        80,
-        198,
-        243,
-        228,
-        74,
-        254,
-        97
-      ]
-    },
-    {
       "name": "ClosePhygitalTokenEvent",
       "discriminator": [
         185,
@@ -548,19 +440,6 @@
         144,
         67,
         152
-      ]
-    },
-    {
-      "name": "SetMinterEvent",
-      "discriminator": [
-        8,
-        89,
-        210,
-        22,
-        102,
-        98,
-        240,
-        242
       ]
     },
     {
@@ -722,40 +601,16 @@
             "type": "pubkey"
           },
           {
-            "name": "minter",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "AssignMintEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "public_key",
+            "name": "_reserved",
+            "docs": [
+              "Formerly the minter role; kept so the account layout is unchanged."
+            ],
             "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
+              "array": [
+                "u8",
+                32
+              ]
             }
-          },
-          {
-            "name": "authority",
-            "type": "pubkey"
-          },
-          {
-            "name": "identifier",
-            "type": {
-              "defined": {
-                "name": "Secp256r1Pubkey"
-              }
-            }
-          },
-          {
-            "name": "mint",
-            "type": "pubkey"
           }
         ]
       }
@@ -791,10 +646,6 @@
           },
           {
             "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "mint",
             "type": "pubkey"
           }
         ]
@@ -844,13 +695,6 @@
           {
             "name": "owner",
             "type": "pubkey"
-          },
-          {
-            "name": "mint",
-            "docs": [
-              "The mint that represents the token, or `Pubkey::default()` for none yet."
-            ],
-            "type": "pubkey"
           }
         ]
       }
@@ -891,10 +735,6 @@
                 "name": "PhygitalTokenType"
               }
             }
-          },
-          {
-            "name": "mint",
-            "type": "pubkey"
           }
         ]
       }
@@ -913,8 +753,16 @@
             "type": "pubkey"
           },
           {
-            "name": "mint",
-            "type": "pubkey"
+            "name": "_reserved",
+            "docs": [
+              "Formerly the linked mint; kept so the account layout is unchanged."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
           },
           {
             "name": "last_slot",
@@ -1065,22 +913,6 @@
           },
           {
             "name": "issuer",
-            "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "SetMinterEvent",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "admin",
-            "type": "pubkey"
-          },
-          {
-            "name": "minter",
             "type": "pubkey"
           }
         ]

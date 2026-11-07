@@ -57,7 +57,8 @@ export function getPhygitalTokenDiscriminatorBytes(): ReadonlyUint8Array {
 export type PhygitalToken = {
   discriminator: ReadonlyUint8Array;
   owner: Address;
-  mint: Address;
+  /** Formerly the linked mint; kept so the account layout is unchanged. */
+  reserved: ReadonlyUint8Array;
   lastSlot: bigint;
   tokenType: number;
   bump: number;
@@ -67,7 +68,8 @@ export type PhygitalToken = {
 
 export type PhygitalTokenArgs = {
   owner: Address | HasAddress;
-  mint: Address | HasAddress;
+  /** Formerly the linked mint; kept so the account layout is unchanged. */
+  reserved: ReadonlyUint8Array;
   lastSlot: number | bigint;
   tokenType: number;
   bump: number;
@@ -81,7 +83,7 @@ export function getPhygitalTokenEncoder(): FixedSizeEncoder<PhygitalTokenArgs> {
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["owner", getAddressEncoder()],
-      ["mint", getAddressEncoder()],
+      ["reserved", fixEncoderSize(getBytesEncoder(), 32)],
       ["lastSlot", getU64Encoder()],
       ["tokenType", getU8Encoder()],
       ["bump", getU8Encoder()],
@@ -97,7 +99,7 @@ export function getPhygitalTokenDecoder(): FixedSizeDecoder<PhygitalToken> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["owner", getAddressDecoder()],
-    ["mint", getAddressDecoder()],
+    ["reserved", fixDecoderSize(getBytesDecoder(), 32)],
     ["lastSlot", getU64Decoder()],
     ["tokenType", getU8Decoder()],
     ["bump", getU8Decoder()],

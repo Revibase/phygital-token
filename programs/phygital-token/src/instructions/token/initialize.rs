@@ -2,9 +2,7 @@
 //!
 //! The token PDA is derived from the passkey's x coordinate, so each passkey
 //! maps to at most one token. Permanent tokens must get their owner here; the
-//! other types must start without one. The issuer may also set the token's
-//! `mint` here, so a card can be enrolled with its mint in one transaction; the
-//! minter can still change it later with `assign_mint`.
+//! other types must start without one.
 
 use anchor_lang::prelude::*;
 
@@ -20,7 +18,6 @@ pub struct InitializeEvent {
     pub identifier: Secp256r1Pubkey,
     pub owner: Pubkey,
     pub token_type: PhygitalTokenType,
-    pub mint: Pubkey,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -29,8 +26,6 @@ pub struct InitializeArgs {
     pub secp256r1_pubkey: Secp256r1Pubkey,
     pub token_type: PhygitalTokenType,
     pub owner: Pubkey,
-    /// The mint that represents the token, or `Pubkey::default()` for none yet.
-    pub mint: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -65,7 +60,6 @@ impl Initialize<'_> {
             args.token_type,
             args.secp256r1_pubkey,
             args.owner,
-            args.mint,
             ctx.bumps.phygital_token,
         )?;
 
@@ -75,7 +69,6 @@ impl Initialize<'_> {
             public_key: args.secp256r1_pubkey,
             owner: args.owner,
             token_type: args.token_type,
-            mint: args.mint,
         });
         Ok(())
     }

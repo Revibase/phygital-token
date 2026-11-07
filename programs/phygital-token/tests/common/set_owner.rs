@@ -29,7 +29,7 @@ impl TestContext {
 
     pub fn send_set_owner(
         &mut self,
-        phygital_token: &MintedPhygitalToken,
+        phygital_token: &InitializedPhygitalToken,
         recipient: &Keypair,
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
@@ -45,7 +45,7 @@ impl TestContext {
 
     pub fn send_set_owner_at_slot(
         &mut self,
-        phygital_token: &MintedPhygitalToken,
+        phygital_token: &InitializedPhygitalToken,
         recipient: &Keypair,
         include_secp_ix: bool,
         slot_number: Option<u64>,

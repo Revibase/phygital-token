@@ -87,7 +87,7 @@ function contentSecurityPolicy(): string {
 		"img-src 'self' data: blob: https:",
 		"font-src 'self' data:",
 		"connect-src 'self' https: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:* wss:",
-		`frame-src https: https://auth.privy.io https://verify.walletconnect.com https://verify.walletconnect.org${dev ? ' http://localhost:* http://127.0.0.1:*' : ''}`,
+		`frame-src https://auth.privy.io https://challenges.cloudflare.com https://verify.walletconnect.com https://verify.walletconnect.org${dev ? ' http://localhost:* http://127.0.0.1:*' : ''}`,
 		"frame-ancestors 'none'",
 		"base-uri 'self'",
 		"form-action 'self'",

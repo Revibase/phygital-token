@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { packedCardMint } from '#lib/server/cards.ts';
 import { getEnv, getRpc } from '#lib/server/env.ts';
 import { readOnlyCookies, responseCookies } from '#lib/server/http/cookies.ts';
 import {
@@ -12,7 +11,7 @@ import { handleTap, hasTapParams } from '#lib/server/tap/handle-tap.ts';
 
 /**
  * Verify a signed NFC URL, consume its counter, then redirect to a clean
- * /accessory, or to /enroll when a packed card has no token yet.
+ * /accessory, or to /enroll when the card has no token yet.
  */
 export async function GET(request: NextRequest) {
 	const purpose = request.headers.get('sec-purpose') ?? request.headers.get('purpose') ?? '';
@@ -40,13 +39,9 @@ export async function GET(request: NextRequest) {
 		});
 		return response;
 	}
-	if (
-		outcome.reason === 'unknown' &&
-		outcome.identifier &&
-		(await packedCardMint(env.DB, outcome.identifier))
-	) {
-		// A verified tap from a packed card with no token yet: let this browser enroll it.
-		// The tap's key is self-asserted, so only cards registered at the pack station may enroll.
+	if (outcome.reason === 'unknown' && outcome.identifier) {
+		// A verified tap with no token yet: let this browser enroll it. The tap's key is
+		// self-asserted, so enrollment itself proves the card is genuine (its attestation).
 		const response = redirect('/enroll');
 		await setEnrollSession(
 			responseCookies(request, response),

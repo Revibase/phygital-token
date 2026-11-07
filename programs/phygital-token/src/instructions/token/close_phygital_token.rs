@@ -14,7 +14,6 @@ pub struct ClosePhygitalTokenEvent {
     pub public_key: Secp256r1Pubkey,
     pub identifier: Secp256r1Pubkey,
     pub owner: Pubkey,
-    pub mint: Pubkey,
 }
 
 #[derive(Accounts)]
@@ -51,7 +50,6 @@ impl ClosePhygitalToken<'_> {
             public_key: token.public_key,
             identifier: token.identifier,
             owner: token.owner,
-            mint: token.mint,
         });
         Ok(())
     }

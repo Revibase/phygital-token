@@ -1,18 +1,10 @@
 import { AccessoryMark } from './AccessoryMark';
 import { WalletAvatar } from './WalletAvatar';
 
-export function BondVisual({
-	wallet = null,
-	pda = null,
-	hasMint
-}: {
-	wallet?: string | null;
-	pda?: string | null;
-	hasMint?: boolean;
-}) {
+export function BondVisual({ wallet = null }: { wallet?: string | null }) {
 	return (
 		<div className="flex items-center justify-center gap-3" aria-hidden="true">
-			<AccessoryMark size="md" pda={pda} hasMint={hasMint} />
+			<AccessoryMark size="md" />
 			<div className="relative h-[3px] w-14 overflow-hidden rounded-full bg-border">
 				<span className="animate-bond absolute inset-0 rounded-full bg-primary" />
 			</div>

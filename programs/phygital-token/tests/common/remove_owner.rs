@@ -17,7 +17,7 @@ impl TestContext {
 
     pub fn send_remove_owner(
         &mut self,
-        phygital_token: &MintedPhygitalToken,
+        phygital_token: &InitializedPhygitalToken,
         owner: &Keypair,
     ) -> litesvm::types::TransactionResult {
         let ix = self.remove_owner_ix(owner.pubkey(), phygital_token.phygital_token);

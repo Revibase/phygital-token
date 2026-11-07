@@ -19,7 +19,6 @@ export type AccessoryView = {
 	status: AccessoryStatus;
 	owner: string | null;
 	isLocked: boolean;
-	mint: string | null;
 	canLink: boolean;
 	canRelease: boolean;
 };

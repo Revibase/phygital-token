@@ -1,6 +1,6 @@
 # Copy to .dev.vars for `next dev` / OpenNext preview.
 # Public values use NEXT_PUBLIC_ because the browser receives them.
-# The RPC endpoint must also serve DAS (getAsset) and must not contain a secret.
+# The RPC endpoint must also serve DAS (getAssetsByOwner, for wallet tokens) and must not contain a secret.
 NEXT_PUBLIC_SOLANA_RPC_URL=https://your-rpc-proxy.example.com
 NEXT_PUBLIC_SOLANA_CLUSTER=devnet
 NEXT_PUBLIC_PRIVY_APP_ID=

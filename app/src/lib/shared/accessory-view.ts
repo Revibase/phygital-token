@@ -58,7 +58,6 @@ export function toAccessoryView(pda: string, account: PhygitalToken): AccessoryV
 		status,
 		owner,
 		isLocked,
-		mint: account.mint === DEFAULT_PUBKEY ? null : String(account.mint),
 		...rules
 	};
 }

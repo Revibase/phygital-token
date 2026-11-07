@@ -1,13 +1,9 @@
 import { QueryClient } from '@tanstack/react-query';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
-/** The app's query cache: its keys, the client, what persists, and what a link or release makes stale. */
-const DAY = 24 * 60 * 60 * 1000;
+/** The app's query cache: its keys, the client, and what a link or release makes stale. Nothing is persisted. */
 const browser = typeof window !== 'undefined';
 
 export const queryKeys = {
-	media: (pda: string) => ['accessory-media', pda] as const,
-	project: (pda: string, owner: string | null) => ['accessory-project', pda, owner ?? ''] as const,
 	walletAccessories: (wallet: string) => ['wallet-accessories', wallet] as const,
 	walletHoldings: (wallet: string) => ['wallet-holdings', wallet] as const
 };
@@ -27,27 +23,3 @@ export const queryClient = createQueryClient();
 export function forgetWalletAccessories() {
 	queryClient.removeQueries({ queryKey: ['wallet-accessories'] });
 }
-
-/** Bump when a cached shape changes, so old persisted entries are discarded. */
-const CACHE_BUSTER = 'v1';
-
-export const persistOptions = {
-	persister: createSyncStoragePersister({
-		// localStorage can throw or be missing (private windows, blocked storage): the cache just stays in memory then.
-		storage: (() => {
-			try {
-				return browser ? window.localStorage : undefined;
-			} catch {
-				return undefined;
-			}
-		})(),
-		key: 'revibase-query-cache',
-		throttleTime: 1000
-	}),
-	maxAge: DAY,
-	buster: CACHE_BUSTER,
-	dehydrateOptions: {
-		shouldDehydrateQuery: (query: { queryKey: readonly unknown[]; state: { status: string } }) =>
-			query.state.status === 'success' && query.queryKey[0] === 'accessory-media'
-	}
-};

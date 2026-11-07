@@ -19,8 +19,7 @@ fn issuer_can_initialize() {
         identifier: unique_identifier(),
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
-        owner: anchor_lang::prelude::Pubkey::default(),
-        mint: Pubkey::default(),
+        owner: Pubkey::default(),
     };
     let issuer = ctx.issuer.insecure_clone();
     let ix = ctx.initialize_ix(issuer.pubkey(), phygital_token, args);
@@ -37,40 +36,12 @@ fn admin_cannot_initialize() {
         identifier: unique_identifier(),
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
-        owner: anchor_lang::prelude::Pubkey::default(),
-        mint: Pubkey::default(),
+        owner: Pubkey::default(),
     };
     let admin = ctx.admin.insecure_clone();
     let ix = ctx.initialize_ix(admin.pubkey(), phygital_token, args);
     assert_phygital_token_program_error(
         TestContext::send_instruction(&mut ctx.svm, ix, &[&admin]),
-        "UnauthorizedAuthority",
-    );
-}
-
-#[test]
-fn minter_can_assign_mint() {
-    let mut ctx = TestContext::new();
-    let passkey = TestPasskey::generate();
-    let phygital_token = ctx.init_phygital_token(&passkey);
-    let mint = Keypair::new().pubkey();
-
-    ctx.send_assign_mint(phygital_token.phygital_token, mint)
-        .expect("minter assign_mint");
-    assert_eq!(ctx.phygital_token_mint(phygital_token.phygital_token), mint);
-}
-
-#[test]
-fn issuer_cannot_assign_mint() {
-    let mut ctx = TestContext::new();
-    let passkey = TestPasskey::generate();
-    let phygital_token = ctx.init_phygital_token(&passkey);
-    let mint = Keypair::new().pubkey();
-    let issuer = ctx.issuer.insecure_clone();
-
-    let ix = ctx.assign_mint_ix(issuer.pubkey(), phygital_token.phygital_token, mint);
-    assert_phygital_token_program_error(
-        TestContext::send_instruction(&mut ctx.svm, ix, &[&issuer]),
         "UnauthorizedAuthority",
     );
 }
@@ -107,8 +78,7 @@ fn admin_can_rotate_issuer() {
         identifier: unique_identifier(),
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
-        owner: anchor_lang::prelude::Pubkey::default(),
-        mint: Pubkey::default(),
+        owner: Pubkey::default(),
     };
     let old_issuer = ctx.issuer.insecure_clone();
     let ix = ctx.initialize_ix(old_issuer.pubkey(), phygital_token, args);
@@ -125,8 +95,7 @@ fn admin_can_rotate_issuer() {
         identifier: unique_identifier(),
         secp256r1_pubkey: secp256r1_pubkey2,
         token_type: PhygitalTokenType::Bearer,
-        owner: anchor_lang::prelude::Pubkey::default(),
-        mint: Pubkey::default(),
+        owner: Pubkey::default(),
     };
     let ix2 = ctx.initialize_ix(new_issuer.pubkey(), phygital_token2, args2);
     TestContext::send_instruction(&mut ctx.svm, ix2, &[&new_issuer]).expect("new issuer init");
@@ -166,17 +135,6 @@ fn set_admin_rejects_existing_issuer() {
 }
 
 #[test]
-fn set_admin_rejects_existing_minter() {
-    let mut ctx = TestContext::new();
-    let admin = ctx.admin.insecure_clone();
-    let ix = ctx.set_admin_ix(admin.pubkey(), ctx.minter.pubkey());
-    assert_phygital_token_program_error(
-        TestContext::send_instruction(&mut ctx.svm, ix, &[&admin]),
-        "KeyAlreadyExists",
-    );
-}
-
-#[test]
 fn create_config_rejects_reinit() {
     let mut ctx = TestContext::new();
     let admin = ctx.admin.insecure_clone();
@@ -195,8 +153,7 @@ fn non_issuer_cannot_initialize() {
         identifier: unique_identifier(),
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
-        owner: anchor_lang::prelude::Pubkey::default(),
-        mint: Pubkey::default(),
+        owner: Pubkey::default(),
     };
     let ix = ctx.initialize_ix(stranger.pubkey(), phygital_token, args);
     assert_phygital_token_program_error(
@@ -209,8 +166,8 @@ fn non_issuer_cannot_initialize() {
 fn admin_can_close_phygital_token_and_reclaim_rent() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let minted = ctx.init_phygital_token(&passkey);
-    let phygital_token = minted.phygital_token;
+    let token = ctx.init_phygital_token(&passkey);
+    let phygital_token = token.phygital_token;
 
     let before = ctx
         .svm
@@ -252,10 +209,10 @@ fn admin_can_close_phygital_token_and_reclaim_rent() {
 fn non_admin_cannot_close_phygital_token() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
-    let minted = ctx.init_phygital_token(&passkey);
+    let token = ctx.init_phygital_token(&passkey);
     let issuer = ctx.issuer.insecure_clone();
 
-    let ix = ctx.close_phygital_token_ix(issuer.pubkey(), issuer.pubkey(), minted.phygital_token);
+    let ix = ctx.close_phygital_token_ix(issuer.pubkey(), issuer.pubkey(), token.phygital_token);
     assert_phygital_token_program_error(
         TestContext::send_instruction(&mut ctx.svm, ix, &[&issuer]),
         "UnauthorizedAdmin",

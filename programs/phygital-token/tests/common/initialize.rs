@@ -23,7 +23,7 @@ impl TestContext {
     }
 
     /// Create a transferable phygital_token controlled by `passkey`.
-    pub fn init_phygital_token(&mut self, passkey: &TestPasskey) -> MintedPhygitalToken {
+    pub fn init_phygital_token(&mut self, passkey: &TestPasskey) -> InitializedPhygitalToken {
         self.init_phygital_token_of_type(passkey, PhygitalTokenType::Bearer)
     }
 
@@ -35,7 +35,7 @@ impl TestContext {
         &mut self,
         passkey: &TestPasskey,
         token_type: PhygitalTokenType,
-    ) -> MintedPhygitalToken {
+    ) -> InitializedPhygitalToken {
         self.init_phygital_token_with_identifier(
             unique_identifier(),
             passkey,
@@ -50,7 +50,7 @@ impl TestContext {
         passkey: &TestPasskey,
         token_type: PhygitalTokenType,
         owner: Pubkey,
-    ) -> MintedPhygitalToken {
+    ) -> InitializedPhygitalToken {
         self.init_phygital_token_with_identifier(unique_identifier(), passkey, token_type, owner)
     }
 
@@ -62,7 +62,7 @@ impl TestContext {
         passkey: &TestPasskey,
         token_type: PhygitalTokenType,
         owner: Pubkey,
-    ) -> MintedPhygitalToken {
+    ) -> InitializedPhygitalToken {
         let secp256r1_pubkey = Secp256r1Pubkey(passkey.compressed_pubkey);
         let phygital_token = self.phygital_token_pda(&secp256r1_pubkey);
         let args = InitializeArgs {
@@ -70,7 +70,6 @@ impl TestContext {
             secp256r1_pubkey,
             token_type,
             owner,
-            mint: Pubkey::default(),
         };
         let ix = self.initialize_ix(self.issuer.pubkey(), phygital_token, args);
         let issuer = self.issuer.insecure_clone();
@@ -81,7 +80,7 @@ impl TestContext {
         );
         assert_eq!(self.load_phygital_token(phygital_token).bump, expected_bump);
 
-        MintedPhygitalToken {
+        InitializedPhygitalToken {
             phygital_token,
             identifier,
             passkey: passkey.clone(),

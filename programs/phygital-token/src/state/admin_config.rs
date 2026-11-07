@@ -3,9 +3,8 @@
 //! - `admin`: sets the other roles and may close tokens.
 //! - `issuer`: creates tokens (`initialize`), choosing their passkey, type and
 //!   initial owner.
-//! - `minter`: assigns a token's `mint` (`assign_mint`).
 //!
-//! The three keys are always distinct and never the default key. All three are
+//! The two keys are always distinct and never the default key. Both are
 //! trusted (README, "Trust assumptions").
 
 use anchor_lang::prelude::*;
@@ -18,7 +17,7 @@ pub struct AdminConfig {
     pub bump: u8,
     pub admin: Pubkey,
     pub issuer: Pubkey,
-    pub minter: Pubkey,
+    pub _reserved: [u8; 32],
 }
 
 impl AdminConfig {
@@ -32,17 +31,13 @@ impl AdminConfig {
         self.issuer == *key
     }
 
-    pub fn is_minter(&self, key: &Pubkey) -> bool {
-        self.minter == *key
-    }
-
     pub fn require_unique_role_key(&self, key: &Pubkey) -> Result<()> {
         require!(
             key != &Pubkey::default(),
             PhygitalError::UnauthorizedAuthority
         );
         require!(
-            !self.is_admin(key) && !self.is_issuer(key) && !self.is_minter(key),
+            !self.is_admin(key) && !self.is_issuer(key),
             PhygitalError::KeyAlreadyExists
         );
         Ok(())

@@ -18,9 +18,8 @@ Program id `DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ`, built with Anchor 1.2
 | Instruction | Signer | Checks | Effect |
 | --- | --- | --- | --- |
 | `create_config` | payer | config doesn't exist yet | payer becomes admin |
-| `set_admin` / `set_issuer` / `set_minter` | admin | new key isn't default and holds no role | replaces the role |
-| `initialize` | issuer | an owner is given exactly when the token is Permanent | creates the token, with its `mint` if one is given |
-| `assign_mint` | minter | — | sets `mint` (informational only) |
+| `set_admin` / `set_issuer` | admin | new key isn't default and holds no role | replaces the role |
+| `initialize` | issuer | an owner is given exactly when the token is Permanent | creates the token |
 | `close_phygital_token` | admin | — | closes the token |
 | `set_owner` | recipient | see below | owner becomes the recipient |
 | `remove_owner` | owner | token isn't Permanent | clears the owner |

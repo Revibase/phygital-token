@@ -2,12 +2,12 @@
 
 import { PrivyProvider } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
-import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 import { useEffect } from 'react';
 
 import { BootProvider, type AppBoot } from '#lib/client/boot';
-import { persistOptions, queryClient } from '#lib/client/cache.ts';
+import { queryClient } from '#lib/client/cache.ts';
 import { clearStoredOwners } from '#lib/client/memory.ts';
 import { configureRpc } from '#lib/client/rpc.ts';
 import { WalletProvider } from '#lib/client/wallet/wallet-context';
@@ -62,10 +62,10 @@ export function Providers({ boot, children }: { boot: AppBoot; children: React.R
 				}}
 			>
 				<WalletProvider cluster={boot.cluster}>
-					<PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+					<QueryClientProvider client={queryClient}>
 						<Toaster />
 						{children}
-					</PersistQueryClientProvider>
+					</QueryClientProvider>
 				</WalletProvider>
 			</PrivyProvider>
 		</BootProvider>
