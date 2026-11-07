@@ -33,7 +33,14 @@ impl TestContext {
         recipient: &Keypair,
         include_secp_ix: bool,
     ) -> litesvm::types::TransactionResult {
-        self.send_set_owner_at_slot(phygital_token, recipient, include_secp_ix, None, None, None)
+        let (slot_number, slot_hash) = self.advance_past_last_slot(phygital_token.phygital_token);
+        self.send_set_owner_at_slot(
+            phygital_token,
+            recipient,
+            include_secp_ix,
+            Some(slot_number),
+            Some(slot_hash),
+        )
     }
 
     pub fn send_set_owner_at_slot(
@@ -43,20 +50,16 @@ impl TestContext {
         include_secp_ix: bool,
         slot_number: Option<u64>,
         slot_hash: Option<[u8; 32]>,
-        sign_count: Option<u32>,
     ) -> litesvm::types::TransactionResult {
         let (slot_number, slot_hash) = match (slot_number, slot_hash) {
             (Some(slot), Some(hash)) => (slot, hash),
             _ => current_slot_entry(&self.svm),
         };
-        let sign_count =
-            sign_count.unwrap_or_else(|| self.next_sign_count(phygital_token.phygital_token));
 
-        let (secp_ix, verify_args) = phygital_token.passkey.secp256r1_verify_instruction(
+        let (secp_ix, verify_args) = phygital_token.passkey.secp256r1_instruction(
             phygital_token.phygital_token,
             recipient.pubkey(),
             slot_hash,
-            sign_count,
         );
 
         let transfer_ix = self.set_owner_ix(
@@ -72,20 +75,18 @@ impl TestContext {
             vec![transfer_ix]
         };
 
-        self.svm
-            .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
-            .ok();
+        ensure_funded(&mut self.svm, recipient);
 
         Self::send_instructions(&mut self.svm, &instructions, &[recipient])
     }
+}
 
-    /// Submit a hand-built instruction list (for negative/edge cases). The first
-    /// signer pays fees.
-    pub fn send_set_owner_with_instructions(
-        &mut self,
-        instructions: Vec<Instruction>,
-        signers: &[&Keypair],
-    ) -> litesvm::types::TransactionResult {
-        Self::send_instructions(&mut self.svm, &instructions, signers)
+fn ensure_funded(svm: &mut LiteSVM, recipient: &Keypair) {
+    let lamports = svm
+        .get_account(&recipient.pubkey())
+        .map(|a| a.lamports)
+        .unwrap_or(0);
+    if lamports < LAMPORTS_PER_SOL {
+        svm.airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL).ok();
     }
 }

@@ -1,17 +1,24 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { getEnv } from '#lib/server/env.ts';
+import { readOnlyCookies } from '#lib/server/http/cookies.ts';
 import {
 	ADMIT_PDA_HEADER,
 	readAdmitSession,
-	readBrowseUnlock,
-	type CookieJar
+	readBrowseUnlock
 } from '#lib/server/session/cookies.ts';
 import { hasTapParams } from '#lib/server/tap/params.ts';
 
 export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
-	if (pathname.startsWith('/api/') && request.method !== 'GET' && request.method !== 'HEAD') {
+	// Webhooks are server-to-server with no Origin; they carry a secret, not cookies, so CSRF can't apply.
+	const webhook = pathname.startsWith('/api/webhooks/');
+	if (
+		pathname.startsWith('/api/') &&
+		!webhook &&
+		request.method !== 'GET' &&
+		request.method !== 'HEAD'
+	) {
 		if (request.headers.get('origin') !== request.nextUrl.origin) {
 			return NextResponse.json(
 				{ error: 'Cross-site request blocked.', code: 'forbidden' },
@@ -53,8 +60,8 @@ async function gate(request: NextRequest): Promise<NextResponse> {
 
 	const env = await getEnv();
 	const session = link
-		? await readBrowseUnlock(readOnlyCookies(request), env.SESSION_SECRET)
-		: await readAdmitSession(readOnlyCookies(request), env.SESSION_SECRET);
+		? await readBrowseUnlock(readOnlyCookies(request.cookies), env.SESSION_SECRET)
+		: await readAdmitSession(readOnlyCookies(request.cookies), env.SESSION_SECRET);
 	if (!session) {
 		const expired = request.nextUrl.clone();
 		expired.pathname = '/tap/expired';
@@ -69,18 +76,6 @@ function continueWith(request: NextRequest, pda?: string): NextResponse {
 	if (pda) headers.set(ADMIT_PDA_HEADER, pda);
 	else headers.delete(ADMIT_PDA_HEADER);
 	return NextResponse.next({ request: { headers } });
-}
-
-function readOnlyCookies(request: NextRequest): CookieJar {
-	return {
-		get: (name) => request.cookies.get(name)?.value,
-		set: () => {
-			throw new Error('Middleware only reads session cookies.');
-		},
-		delete: () => {
-			throw new Error('Middleware only reads session cookies.');
-		}
-	};
 }
 
 function contentSecurityPolicy(): string {

@@ -1,11 +1,19 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { packedCardMint } from '#lib/server/cards.ts';
 import { getEnv, getRpc } from '#lib/server/env.ts';
-import { responseCookies } from '#lib/server/http/cookies.ts';
-import { readBrowseUnlock, setBrowseUnlock } from '#lib/server/session/cookies.ts';
+import { readOnlyCookies, responseCookies } from '#lib/server/http/cookies.ts';
+import {
+	readBrowseUnlock,
+	setBrowseUnlock,
+	setEnrollSession
+} from '#lib/server/session/cookies.ts';
 import { handleTap, hasTapParams } from '#lib/server/tap/handle-tap.ts';
 
-/** Verify a signed NFC URL, consume its counter, then redirect to a clean /accessory. */
+/**
+ * Verify a signed NFC URL, consume its counter, then redirect to a clean
+ * /accessory, or to /enroll when a packed card has no token yet.
+ */
 export async function GET(request: NextRequest) {
 	const purpose = request.headers.get('sec-purpose') ?? request.headers.get('purpose') ?? '';
 	if (/prefetch|prerender/i.test(purpose)) {
@@ -18,31 +26,39 @@ export async function GET(request: NextRequest) {
 
 	const env = await getEnv();
 	const outcome = await handleTap({ db: env.DB, rpc: getRpc(env) }, url.searchParams);
-	const target = new URL('/accessory', url);
-	if (!outcome.ok) {
-		if (outcome.reason === 'replayed' && outcome.identifier) {
-			const existing = await readBrowseUnlock(
-				await requestCookiesReadonly(request),
-				env.SESSION_SECRET
-			);
-			if (existing?.identifier !== outcome.identifier) target.pathname = `/tap/${outcome.reason}`;
-		} else {
-			target.pathname = `/tap/${outcome.reason}`;
-		}
-		const response = NextResponse.redirect(target, 303);
+	const redirect = (pathname: string) => {
+		const response = NextResponse.redirect(new URL(pathname, url), 303);
 		response.headers.set('cache-control', 'no-store');
 		return response;
+	};
+
+	if (outcome.ok) {
+		const response = redirect('/accessory');
+		await setBrowseUnlock(responseCookies(request, response), env.SESSION_SECRET, {
+			pda: outcome.pda,
+			identifier: outcome.identifier
+		});
+		return response;
 	}
-
-	const response = NextResponse.redirect(target, 303);
-	response.headers.set('cache-control', 'no-store');
-	await setBrowseUnlock(responseCookies(request, response), env.SESSION_SECRET, {
-		pda: outcome.pda,
-		identifier: outcome.identifier
-	});
-	return response;
-}
-
-async function requestCookiesReadonly(request: NextRequest) {
-	return responseCookies(request, NextResponse.next());
+	if (
+		outcome.reason === 'unknown' &&
+		outcome.identifier &&
+		(await packedCardMint(env.DB, outcome.identifier))
+	) {
+		// A verified tap from a packed card with no token yet: let this browser enroll it.
+		// The tap's key is self-asserted, so only cards registered at the pack station may enroll.
+		const response = redirect('/enroll');
+		await setEnrollSession(
+			responseCookies(request, response),
+			env.SESSION_SECRET,
+			outcome.identifier
+		);
+		return response;
+	}
+	if (outcome.reason === 'replayed' && outcome.identifier) {
+		// A replay of the tap this browser already holds (e.g. a reload) keeps its session.
+		const existing = await readBrowseUnlock(readOnlyCookies(request.cookies), env.SESSION_SECRET);
+		if (existing?.identifier === outcome.identifier) return redirect('/accessory');
+	}
+	return redirect(`/tap/${outcome.reason}`);
 }

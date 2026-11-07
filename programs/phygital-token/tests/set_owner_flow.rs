@@ -18,19 +18,11 @@ fn set_owner_moves_token_to_recipient_with_recipient_signature() {
         Pubkey::default()
     );
 
-    let meta = ctx
-        .send_set_owner(&phygital_token, &recipient, true)
+    let (slot_before, _) = current_slot_entry(&ctx.svm);
+    ctx.send_set_owner(&phygital_token, &recipient, true)
         .expect("set_owner should succeed with secp256r1 + recipient signature only");
-    eprintln!(
-        "CU set_owner_moves_token_to_recipient: {}",
-        meta.compute_units_consumed
-    );
 
-    assert_eq!(
-        ctx.last_sign_count(phygital_token.phygital_token),
-        1,
-        "phygital_token should record the WebAuthn signCount used for the transfer"
-    );
+    assert!(ctx.last_slot(phygital_token.phygital_token) >= slot_before);
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
         recipient.pubkey()
@@ -48,8 +40,6 @@ fn set_owner_requires_preceding_secp256r1_instruction() {
         .send_set_owner(&phygital_token, &recipient, false)
         .expect_err("set_owner without secp256r1 ix should fail");
 
-    // With no preceding secp256r1 instruction, the phygital_token constraint fails while
-    // trying to read it, surfacing as a generic InvalidArgument.
     let err_str = format!("{err:?}");
     assert!(
         err_str.contains("InvalidArgument") || err_str.contains("InvalidSecp256r1Instruction"),
@@ -62,7 +52,7 @@ fn set_owner_requires_preceding_secp256r1_instruction() {
 }
 
 #[test]
-fn set_owner_rejects_sign_count_not_greater_than_last() {
+fn set_owner_rejects_slot_not_greater_than_last() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -71,9 +61,15 @@ fn set_owner_rejects_sign_count_not_greater_than_last() {
 
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    ctx.send_set_owner(&phygital_token, &first_recipient, true)
-        .expect("first transfer");
-    assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 1);
+    ctx.send_set_owner_at_slot(
+        &phygital_token,
+        &first_recipient,
+        true,
+        Some(slot_number),
+        Some(slot_hash),
+    )
+    .expect("first transfer");
+    assert_eq!(ctx.last_slot(phygital_token.phygital_token), slot_number);
 
     let err = ctx
         .send_set_owner_at_slot(
@@ -82,13 +78,12 @@ fn set_owner_rejects_sign_count_not_greater_than_last() {
             true,
             Some(slot_number),
             Some(slot_hash),
-            Some(1),
         )
-        .expect_err("reusing the same signCount after a successful transfer should fail");
+        .expect_err("reusing the same slot after a successful transfer should fail");
 
     assert!(
-        format!("{err:?}").contains("StaleSignCount"),
-        "expected stale signCount error, got: {err:?}"
+        format!("{err:?}").contains("StaleSlot"),
+        "expected stale slot error, got: {err:?}"
     );
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
@@ -97,7 +92,7 @@ fn set_owner_rejects_sign_count_not_greater_than_last() {
 }
 
 #[test]
-fn set_owner_allows_next_transfer_with_higher_sign_count() {
+fn set_owner_allows_next_transfer_with_higher_slot() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -119,11 +114,10 @@ fn set_owner_allows_next_transfer_with_higher_sign_count() {
         true,
         Some(second_slot),
         Some(second_hash),
-        None,
     )
-    .expect("second transfer with a higher signCount should succeed");
+    .expect("second transfer with a higher slot should succeed");
 
-    assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 2);
+    assert_eq!(ctx.last_slot(phygital_token.phygital_token), second_slot);
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
         second_recipient.pubkey()

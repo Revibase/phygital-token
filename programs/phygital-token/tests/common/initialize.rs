@@ -70,6 +70,7 @@ impl TestContext {
             secp256r1_pubkey,
             token_type,
             owner,
+            mint: Pubkey::default(),
         };
         let ix = self.initialize_ix(self.issuer.pubkey(), phygital_token, args);
         let issuer = self.issuer.insecure_clone();

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 	const body = read.body as { challengeId?: unknown; response?: unknown };
 	try {
 		const result = await verifyResume(
-			{ db: env.DB, rpc: getRpc(env), origin: request.nextUrl.origin },
+			{ db: env.DB, rpc: getRpc(env) },
 			{ challengeId: body.challengeId, response: body.response }
 		);
 		if (!result.ok) {

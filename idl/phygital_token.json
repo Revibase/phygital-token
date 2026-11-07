@@ -4,7 +4,7 @@
     "name": "phygital_token",
     "version": "0.8.0",
     "spec": "0.1.0",
-    "description": "Solana program for phygital tokens with WebAuthn passkey verification",
+    "description": "Solana program for phygital tokens with secp256r1 passkey verification",
     "repository": "https://github.com/Revibase/phygital-token"
   },
   "instructions": [
@@ -428,74 +428,6 @@
           "type": "u64"
         }
       ]
-    },
-    {
-      "name": "verify",
-      "docs": [
-        "Tap: proves the accessory signed `message_hash` (under the `verify`",
-        "domain tag) and records its sign count.",
-        "`expected_rp_id` / `expected_origins` are optional WebAuthn bindings.",
-        "`None` skips the check. When `expected_origins` is `Some`, the signed",
-        "origin must match one listed origin."
-      ],
-      "discriminator": [
-        133,
-        161,
-        141,
-        48,
-        120,
-        198,
-        88,
-        150
-      ],
-      "accounts": [
-        {
-          "name": "phygital_token",
-          "writable": true
-        },
-        {
-          "name": "instructions_sysvar",
-          "address": "Sysvar1nstructions1111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "secp256r1_verify_args",
-          "type": {
-            "defined": {
-              "name": "Secp256r1VerifyArgs"
-            }
-          }
-        },
-        {
-          "name": "message_hash",
-          "type": {
-            "array": [
-              "u8",
-              32
-            ]
-          }
-        },
-        {
-          "name": "expected_rp_id_hash",
-          "type": {
-            "option": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          }
-        },
-        {
-          "name": "expected_origins",
-          "type": {
-            "option": {
-              "vec": "string"
-            }
-          }
-        }
-      ]
     }
   ],
   "accounts": [
@@ -649,7 +581,7 @@
     {
       "code": 6000,
       "name": "InvalidSecp256r1Instruction",
-      "msg": "No prior secp256r1 verification instruction in this transaction matches the provided client data"
+      "msg": "No prior secp256r1 verification instruction in this transaction"
     },
     {
       "code": 6001,
@@ -709,7 +641,7 @@
     {
       "code": 6012,
       "name": "ChallengeHashMismatch",
-      "msg": "Challenge hash mismatch."
+      "msg": "Signed message does not match the expected challenge"
     },
     {
       "code": 6013,
@@ -760,6 +692,11 @@
       "code": 6022,
       "name": "ClientDataTypeMismatch",
       "msg": "clientDataJSON type must be webauthn.get."
+    },
+    {
+      "code": 6023,
+      "name": "StaleSlot",
+      "msg": "slot_number must be greater than the last accepted slot"
     }
   ],
   "types": [
@@ -907,6 +844,13 @@
           {
             "name": "owner",
             "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "docs": [
+              "The mint that represents the token, or `Pubkey::default()` for none yet."
+            ],
+            "type": "pubkey"
           }
         ]
       }
@@ -947,6 +891,10 @@
                 "name": "PhygitalTokenType"
               }
             }
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
           }
         ]
       }
@@ -969,8 +917,8 @@
             "type": "pubkey"
           },
           {
-            "name": "last_sign_count",
-            "type": "u32"
+            "name": "last_slot",
+            "type": "u64"
           },
           {
             "name": "token_type",
@@ -1067,13 +1015,13 @@
     {
       "name": "Secp256r1VerifyArgs",
       "docs": [
-        "Instruction argument locating and completing a tap's assertion."
+        "Instruction argument locating a tap's secp256r1 precompile signature."
       ],
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "verify_args_relative_index",
+            "name": "relative_index",
             "docs": [
               "Position of the secp256r1 precompile instruction relative to the",
               "current top-level instruction (usually `-1`: immediately before)."
@@ -1081,18 +1029,11 @@
             "type": "i64"
           },
           {
-            "name": "signed_message_index",
+            "name": "signature_index",
             "docs": [
               "Which signature inside the precompile instruction to use."
             ],
             "type": "u8"
-          },
-          {
-            "name": "client_data_json",
-            "docs": [
-              "The exact bytes whose SHA-256 the authenticator signed."
-            ],
-            "type": "bytes"
           }
         ]
       }

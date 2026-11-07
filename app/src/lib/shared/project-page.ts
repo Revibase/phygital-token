@@ -1,6 +1,6 @@
 /**
  * The project's part of the tap page, from `revibase.json`: a style, featured entries and the apps. Pure, like
- * `project-apps.ts`. Everything here is data Revibase renders; the rules and why: ARCHITECTURE.md, "Project page".
+ * `project-apps.ts`. Everything here is data Revibase renders; the rules and why: app/README.md, "Project page".
  */
 
 import { normalizeMediaUrl } from './mint-media.ts';

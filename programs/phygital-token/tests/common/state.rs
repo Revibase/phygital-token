@@ -30,19 +30,23 @@ impl TestContext {
         self.load_phygital_token(phygital_token).is_locked()
     }
 
-    pub fn last_sign_count(&self, phygital_token: Pubkey) -> u32 {
-        self.load_phygital_token(phygital_token).last_sign_count
+    pub fn last_slot(&self, phygital_token: Pubkey) -> u64 {
+        self.load_phygital_token(phygital_token).last_slot
     }
 
     pub fn phygital_token_mint(&self, phygital_token: Pubkey) -> Pubkey {
         self.load_phygital_token(phygital_token).mint
     }
 
-    /// Next WebAuthn signCount to use for a successful assertion against `phygital_token`.
-    pub fn next_sign_count(&self, phygital_token: Pubkey) -> u32 {
-        self.load_phygital_token(phygital_token)
-            .last_sign_count
-            .saturating_add(1)
+    /// Next slot to use for a successful assertion against `phygital_token`.
+    /// Warps the SVM forward when the current slot is not strictly greater.
+    pub fn advance_past_last_slot(&mut self, phygital_token: Pubkey) -> (u64, [u8; 32]) {
+        let last = self.last_slot(phygital_token);
+        let (current, _) = current_slot_entry(&self.svm);
+        if current <= last {
+            self.set_current_slot(last.saturating_add(1));
+        }
+        current_slot_entry(&self.svm)
     }
 
     pub fn phygital_token_account(&self, phygital_token: Pubkey) -> PhygitalToken {

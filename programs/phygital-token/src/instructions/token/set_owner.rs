@@ -1,7 +1,7 @@
 //! `set_owner`: a tap makes the transaction's `recipient` signer the owner.
 //!
 //! Refused while the token is locked (Controlled or Permanent with an owner).
-//! The tap signs [`crate::webauthn::challenge::build_set_owner_challenge`],
+//! The tap signs [`crate::tap::challenge::build_set_owner_challenge`],
 //! which names this `recipient`, so the assertion cannot be submitted for a
 //! different wallet.
 
@@ -12,8 +12,8 @@ use solana_sdk_ids::sysvar::slot_hashes::ID as SLOT_HASHES_SYSVAR_ID;
 use crate::error::PhygitalError;
 use crate::state::PhygitalToken;
 use crate::sysvar::fetch_slot_hash;
-use crate::webauthn::challenge::build_set_owner_challenge;
-use crate::webauthn::{Secp256r1Pubkey, Secp256r1VerifyArgs};
+use crate::tap::challenge::build_set_owner_challenge;
+use crate::tap::{Secp256r1Pubkey, Secp256r1VerifyArgs};
 
 #[event]
 pub struct SetOwnerEvent {
@@ -52,12 +52,9 @@ impl SetOwner<'_> {
         let recipient = ctx.accounts.recipient.key();
         let challenge =
             build_set_owner_challenge(&ctx.accounts.phygital_token.key(), &recipient, slot_hash);
-        token.accept_assertion(secp256r1_verify_args.verify_webauthn_assertion(
-            &ctx.accounts.instructions_sysvar,
-            challenge,
-            None,
-            None,
-        )?)?;
+        let pubkey = secp256r1_verify_args
+            .verify_signed_challenge(&ctx.accounts.instructions_sysvar, challenge)?;
+        token.accept_tap(pubkey, slot_number)?;
 
         emit!(SetOwnerEvent {
             owner: token.owner,

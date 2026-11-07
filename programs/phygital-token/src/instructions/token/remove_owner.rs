@@ -5,7 +5,7 @@ use anchor_lang::prelude::*;
 
 use crate::error::PhygitalError;
 use crate::state::{PhygitalToken, PhygitalTokenType};
-use crate::webauthn::Secp256r1Pubkey;
+use crate::tap::Secp256r1Pubkey;
 
 #[event]
 pub struct RemoveOwnerEvent {

@@ -15,7 +15,7 @@ import {
 } from "@solana/kit";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
 
-/** InvalidSecp256r1Instruction: No prior secp256r1 verification instruction in this transaction matches the provided client data */
+/** InvalidSecp256r1Instruction: No prior secp256r1 verification instruction in this transaction */
 export const PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION = 0x1770; // 6000
 /** SignatureIndexOutOfBounds: The signature index provided is out of bounds for the secp256r1 instruction */
 export const PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS = 0x1771; // 6001
@@ -39,7 +39,7 @@ export const PHYGITAL_TOKEN_ERROR__INVALID_SYSVAR_DATA_FORMAT = 0x1779; // 6009
 export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED = 0x177a; // 6010
 /** UnableToParseClientData: Unable to parse client data JSON. */
 export const PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA = 0x177b; // 6011
-/** ChallengeHashMismatch: Challenge hash mismatch. */
+/** ChallengeHashMismatch: Signed message does not match the expected challenge */
 export const PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH = 0x177c; // 6012
 /** InvalidAuthenticatorData: Authenticator data is too short to contain WebAuthn flags. */
 export const PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA = 0x177d; // 6013
@@ -61,6 +61,8 @@ export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_REQUIRED = 0x1784; // 6020
 export const PHYGITAL_TOKEN_ERROR__PERMANENT_OWNER_IMMUTABLE = 0x1785; // 6021
 /** ClientDataTypeMismatch: clientDataJSON type must be webauthn.get. */
 export const PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH = 0x1786; // 6022
+/** StaleSlot: slot_number must be greater than the last accepted slot */
+export const PHYGITAL_TOKEN_ERROR__STALE_SLOT = 0x1787; // 6023
 
 export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH
@@ -81,6 +83,7 @@ export type PhygitalTokenError =
   | typeof PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH
   | typeof PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS
   | typeof PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT
+  | typeof PHYGITAL_TOKEN_ERROR__STALE_SLOT
   | typeof PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED
   | typeof PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA
   | typeof PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN
@@ -90,11 +93,11 @@ export type PhygitalTokenError =
 let phygitalTokenErrorMessages: Record<PhygitalTokenError, string> | undefined;
 if (process.env["NODE_ENV"] !== "production") {
   phygitalTokenErrorMessages = {
-    [PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH]: `Challenge hash mismatch.`,
+    [PHYGITAL_TOKEN_ERROR__CHALLENGE_HASH_MISMATCH]: `Signed message does not match the expected challenge`,
     [PHYGITAL_TOKEN_ERROR__CLIENT_DATA_HASH_MISMATCH]: `Client data hash mismatch`,
     [PHYGITAL_TOKEN_ERROR__CLIENT_DATA_TYPE_MISMATCH]: `clientDataJSON type must be webauthn.get.`,
     [PHYGITAL_TOKEN_ERROR__INVALID_AUTHENTICATOR_DATA]: `Authenticator data is too short to contain WebAuthn flags.`,
-    [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION]: `No prior secp256r1 verification instruction in this transaction matches the provided client data`,
+    [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_INSTRUCTION]: `No prior secp256r1 verification instruction in this transaction`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SECP256R1_PUBLIC_KEY]: `Invalid secp256r1 public key`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SIGNATURE_OFFSETS]: `Failed to deserialize secp256r1 signature offsets from the instruction data`,
     [PHYGITAL_TOKEN_ERROR__INVALID_SLOT_HASH]: `Slot not found in SlotHashes sysvar — signature has expired or is being replayed`,
@@ -108,6 +111,7 @@ if (process.env["NODE_ENV"] !== "production") {
     [PHYGITAL_TOKEN_ERROR__SECP256R1_PUBKEY_MISMATCH]: `secp256r1 pubkey does not match phygital token record`,
     [PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS]: `The signature index provided is out of bounds for the secp256r1 instruction`,
     [PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT]: `WebAuthn signCount must be greater than the last accepted signCount`,
+    [PHYGITAL_TOKEN_ERROR__STALE_SLOT]: `slot_number must be greater than the last accepted slot`,
     [PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED]: `The owner needs to unlock the phygital token to enable transfer.`,
     [PHYGITAL_TOKEN_ERROR__UNABLE_TO_PARSE_CLIENT_DATA]: `Unable to parse client data JSON.`,
     [PHYGITAL_TOKEN_ERROR__UNAUTHORIZED_ADMIN]: `Only the admin can perform this action.`,

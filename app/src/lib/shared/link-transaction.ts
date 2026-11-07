@@ -15,12 +15,11 @@ import {
 } from '@solana/kit';
 import { COMPUTE_BUDGET_PROGRAM_ADDRESS } from '@solana-program/compute-budget';
 import {
-	completeTransfer,
+	buildProductAllowListId,
 	getSetOwnerInstructionDataDecoder,
 	PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 	SET_OWNER_DISCRIMINATOR,
-	type AuthenticationResponseJSON,
-	type TransferSession
+	type AuthenticationResponseJSON
 } from 'phygital-token-sdk';
 
 import { base64UrlToBytes, bytesEqual } from './encoding';
@@ -31,6 +30,7 @@ import {
 	SLOT_HASHES_SYSVAR
 } from './addresses';
 import { LINK_TX_CONFIG } from './fee-policy';
+import { completeTransfer, type TransferSession } from './set-owner';
 import { decodeMessage, TransactionRejected, type DecodedMessage } from './transaction';
 
 /**
@@ -46,7 +46,7 @@ export const TAP_WINDOW_MS = (511 - 20) * 200;
 
 export type LinkTap = { session: TransferSession; response: AuthenticationResponseJSON };
 
-/** The WebAuthn proof is collected in the browser; no server-issued challenge payload is used. */
+/** The tap is collected in the browser; there is no server-issued challenge. */
 export async function buildLinkTransactionFromTap(input: {
 	tap: LinkTap;
 	recipient: TransactionSigner;
@@ -54,11 +54,7 @@ export async function buildLinkTransactionFromTap(input: {
 	feePayer?: Address;
 	blockhash: { blockhash: Blockhash; lastValidBlockHeight: bigint };
 }) {
-	const instructions = await completeTransfer(
-		input.tap.session,
-		input.tap.response,
-		input.recipient
-	);
+	const instructions = completeTransfer(input.tap.session, input.tap.response, input.recipient);
 	const message = pipe(
 		createTransactionMessage({ version: 1 }),
 		(m) => setTransactionMessageFeePayer(input.feePayer ?? input.recipient.address, m),
@@ -77,7 +73,8 @@ export type LinkExpectation = {
 	feePayer?: string;
 	secp256r1Pubkey: Uint8Array;
 	slotNumber: bigint;
-	clientDataJson: Uint8Array;
+	/** What the card signed: `authorize || transfer challenge`. */
+	msgBytes: Uint8Array;
 };
 
 export class LinkTransactionRejected extends Error {
@@ -174,22 +171,27 @@ function validateLinkMessage(
 
 	const args = getSetOwnerInstructionDataDecoder().decode(data);
 	if (args.slotNumber !== expected.slotNumber) reject('slot number mismatch');
-	if (args.secp256r1VerifyArgs.verifyArgsRelativeIndex !== -1n) reject('unexpected verify index');
-	if (
-		!bytesEqual(new Uint8Array(args.secp256r1VerifyArgs.clientDataJson), expected.clientDataJson)
-	) {
-		reject('tap data mismatch');
-	}
+	if (args.relativeIndex !== -1n) reject('unexpected relative index');
 
-	// secp256r1_verify: exactly one signature, over the accessory's passkey.
+	// secp256r1_verify: exactly one signature, by the card key over msgBytes.
 	const secp = new Uint8Array(ixs[secpIndex].data ?? []);
 	if (secp.length < 16 || secp[0] !== 1) reject('unexpected secp256r1 layout');
 	const view = new DataView(secp.buffer, secp.byteOffset, secp.byteLength);
 	const pkOffset = view.getUint16(2 + 4, true);
 	const pkIxIndex = view.getUint16(2 + 6, true);
+	const msgOffset = view.getUint16(2 + 8, true);
+	const msgSize = view.getUint16(2 + 10, true);
+	const msgIxIndex = view.getUint16(2 + 12, true);
 	if (pkIxIndex !== 0xffff) reject('secp256r1 key must be inline');
+	if (msgIxIndex !== 0xffff) reject('secp256r1 message must be inline');
 	if (!bytesEqual(secp.subarray(pkOffset, pkOffset + 33), expected.secp256r1Pubkey)) {
 		reject('tap is from a different accessory');
+	}
+	if (
+		msgSize !== expected.msgBytes.length ||
+		!bytesEqual(secp.subarray(msgOffset, msgOffset + msgSize), expected.msgBytes)
+	) {
+		reject('tap data mismatch');
 	}
 
 	// Only the recipient signs.
@@ -211,7 +213,7 @@ export async function expectationFromTap(
 		recipient,
 		secp256r1Pubkey: base64UrlToBytes(tap.session.secp256r1Pubkey),
 		slotNumber: tap.session.slotNumber,
-		clientDataJson: base64UrlToBytes(tap.response.response.clientDataJSON)
+		msgBytes: buildProductAllowListId(new Uint8Array(tap.session.challenge))
 	};
 }
 

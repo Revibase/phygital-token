@@ -4,6 +4,31 @@ All notable changes to this artifact are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+The SDK now signs payloads with a Revi card, off-chain and on-chain, alongside the generated client.
+
+### Breaking
+
+- **New tap protocol.** Taps use the card's product key. The card signs `authorize ‖ payload` (1–631 bytes) and returns its key and signature in the WebAuthn large blob. The WebAuthn assertion, origin and rpId are no longer checked.
+- **`startAuthentication(payload, { signal? })`** takes a string or bytes and returns the response. The `allowList`, `rpc`, `rpId` and `credentialId` options are gone. A new tap closes the SDK's previous prompt.
+- **`verifyResponse(response, expected)`** is synchronous. It returns `{ publicKey, signature, message }` or throws `INVALID_ASSERTION`, and it no longer returns `isVerified` or recovers the key.
+- **`getSecp256r1VerifyInstruction(entries)`** replaces `buildSecp256r1VerifyInstructionFromWebAuthnResponse`.
+- **Removed exports:**
+  - the `set_owner` helpers: `beginTransfer`, `completeTransfer`, `authenticatePasskeyForTransfer`, `TransferSession` and `getLatestSlotHash`;
+  - `authenticatePasskey`, `bufferToBase64URLString` and `decodeBase64AccountData`;
+  - the `verify` instruction and its helpers.
+- **Generated client.** `set_owner` takes `relativeIndex` and `signatureIndex` instead of `secp256r1VerifyArgs`. `PhygitalToken.lastSignCount` is now `lastSlot`, and `STALE_SLOT` (6023) is new.
+- **`fetchPhygitalTokenByMint`** now takes `(rpc, mint)`.
+- **`getInitializeInstruction`** requires `mint` (the default address, `11111111111111111111111111111111`, for none), and `InitializeEventEvent` has a `mint` field.
+- **Error codes.** `PhygitalTokenErrorCode` keeps only `INVALID_PUBLIC_KEY`, `WEBAUTHN_UNSUPPORTED`, `AUTHENTICATION_CANCELLED`, `INVALID_ASSERTION` and `INVALID_ARGUMENT`.
+
+### Added
+
+- `enrollCard(challenge, { signal? })` enrolls a card's product key with one tap and returns a `RegistrationResponseJSON`. Enrolling again returns the same key.
+- `buildProductAllowListId`, `AUTHORIZE_PREFIX`, `MAX_AUTHORIZE_PAYLOAD`, and the `VerifiedTap` and `Secp256r1VerifyEntry` types.
+- `findPhygitalTokenPda` also accepts raw key bytes.
+
 ## [2.1.0]
 
 ### Added

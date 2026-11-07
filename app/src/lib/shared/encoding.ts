@@ -26,7 +26,7 @@ export function base64UrlToBytes(base64url: string): Uint8Array<ArrayBuffer> {
 	return base64ToBytes(padded + '='.repeat(padLen));
 }
 
-export function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+export function bytesEqual(a: ArrayLike<number>, b: ArrayLike<number>): boolean {
 	if (a.length !== b.length) return false;
 	let diff = 0;
 	for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];

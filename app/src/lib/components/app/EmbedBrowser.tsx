@@ -25,6 +25,7 @@ import { shortAddress } from '#lib/shared/encoding.ts';
 import { embedFrameOrigin } from '#lib/shared/wallet-bridge.ts';
 import { WalletConnect } from './WalletConnect';
 
+/** Frames an `embed` app from the mint's revibase.json, never an arbitrary URL. */
 export function EmbedBrowser({
 	href,
 	label,

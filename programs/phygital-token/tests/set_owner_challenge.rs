@@ -7,7 +7,7 @@ use solana_keypair::Keypair;
 use solana_signer::Signer;
 
 #[test]
-fn transfer_challenge_is_deterministic() {
+fn set_owner_challenge_is_deterministic() {
     let phygital_token = Keypair::new().pubkey();
     let slot_hash = [7u8; 32];
 
@@ -19,7 +19,7 @@ fn transfer_challenge_is_deterministic() {
 }
 
 #[test]
-fn transfer_challenge_changes_when_token_changes() {
+fn set_owner_challenge_changes_when_token_changes() {
     let phygital_token_a = Keypair::new().pubkey();
     let phygital_token_b = Keypair::new().pubkey();
     let slot_hash = [7u8; 32];
@@ -32,7 +32,7 @@ fn transfer_challenge_changes_when_token_changes() {
 }
 
 #[test]
-fn transfer_challenge_changes_when_slot_hash_changes() {
+fn set_owner_challenge_changes_when_slot_hash_changes() {
     let phygital_token = Keypair::new().pubkey();
 
     let recipient = Keypair::new().pubkey();
@@ -43,7 +43,7 @@ fn transfer_challenge_changes_when_slot_hash_changes() {
 }
 
 #[test]
-fn transfer_challenge_changes_when_recipient_changes() {
+fn set_owner_challenge_changes_when_recipient_changes() {
     let phygital_token = Keypair::new().pubkey();
     let slot_hash = [7u8; 32];
     let recipient_a = Keypair::new().pubkey();
@@ -56,13 +56,13 @@ fn transfer_challenge_changes_when_recipient_changes() {
 }
 
 #[test]
-fn transfer_challenge_golden_vector() {
+fn set_owner_challenge_golden_vector() {
     let phygital_token = Pubkey::new_from_array([2u8; 32]);
     let recipient = Pubkey::new_from_array([4u8; 32]);
     let slot_hash = [3u8; 32];
 
     let mut preimage = Vec::new();
-    preimage.extend_from_slice(b"transfer");
+    preimage.extend_from_slice(b"t");
     preimage.extend_from_slice(phygital_token.as_ref());
     preimage.extend_from_slice(recipient.as_ref());
     preimage.extend_from_slice(&slot_hash);
@@ -74,6 +74,6 @@ fn transfer_challenge_golden_vector() {
     let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
     assert_eq!(
         hex,
-        "eea8483ed6f4ff7a77be95ef7b2bb9f27b9a720e30afb1774afc1f5ccea1328b"
+        "23979b69fd7e8f781af25ca4dbd55bdf05ac0a4f6cf9094620b9eeddff5bfcce"
     );
 }

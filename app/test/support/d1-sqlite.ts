@@ -6,12 +6,10 @@ export function createTestD1(): D1Database {
 	db.exec(readFileSync(new URL('./schema.sql', import.meta.url), 'utf8'));
 	return {
 		prepare(sql: string) {
-			let args: SQLInputValue[] = [];
-			const stmt = {
-				bind(...values: unknown[]) {
-					args = values.map((v) => (v === undefined ? null : v)) as SQLInputValue[];
-					return stmt;
-				},
+			// Like D1, `bind` returns a new statement, so one prepared statement can be bound many times.
+			const statement = (args: SQLInputValue[]) => ({
+				bind: (...values: unknown[]) =>
+					statement(values.map((v) => (v === undefined ? null : v)) as SQLInputValue[]),
 				async run() {
 					const r = db.prepare(sql).run(...args);
 					return { success: true, meta: { changes: Number(r.changes) } };
@@ -20,10 +18,12 @@ export function createTestD1(): D1Database {
 					return (db.prepare(sql).get(...args) as T | undefined) ?? null;
 				},
 				async all<T>() {
-					return { success: true, results: db.prepare(sql).all(...args) as T[] };
+					const results = db.prepare(sql).all(...args) as T[];
+					const { c } = db.prepare('SELECT changes() AS c').get() as { c: number };
+					return { success: true, results, meta: { changes: Number(c) } };
 				}
-			};
-			return stmt;
+			});
+			return statement([]);
 		},
 		// Like D1: the statements run in order, each result as from `all()`.
 		async batch(statements: { all: () => Promise<unknown> }[]) {

@@ -1,7 +1,7 @@
 import type { Rpc, SolanaRpcApi } from '@solana/kit';
 
 import type { TapFailureReason } from '#lib/shared/types.ts';
-import { resolveAccessoryByIdentifier } from '../accessory/resolve';
+import { fetchAccessoryByIdentifier } from '../accessory/resolve';
 import { consumeTapCounter } from './counter-store';
 import { TapParamError, verifyDynamicUrlWithoutCounterCheck } from './verify-dynamic-url';
 
@@ -52,9 +52,9 @@ export async function handleTap(
 		return { ok: false, reason: 'replayed', identifier: verified.identifier };
 	}
 
-	let pda: string | null;
+	let accessory;
 	try {
-		pda = await resolveAccessoryByIdentifier(deps.db, deps.rpc, verified.identifier);
+		accessory = await fetchAccessoryByIdentifier(deps.rpc, verified.identifier);
 	} catch {
 		return {
 			ok: false,
@@ -63,9 +63,14 @@ export async function handleTap(
 			detail: 'rpc unavailable'
 		};
 	}
-	if (!pda) {
+	if (!accessory) {
 		return { ok: false, reason: 'unknown', identifier: verified.identifier };
 	}
 
-	return { ok: true, identifier: verified.identifier, counter: verified.counter, pda };
+	return {
+		ok: true,
+		identifier: verified.identifier,
+		counter: verified.counter,
+		pda: accessory.pda
+	};
 }

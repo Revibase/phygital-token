@@ -5,7 +5,7 @@ use anchor_lang::prelude::*;
 use crate::constants::{ADMIN_CONFIG_SEED, PHYGITAL_TOKEN_SEED};
 use crate::error::PhygitalError;
 use crate::state::{AdminConfig, PhygitalToken};
-use crate::webauthn::{secp256r1_pda_seed, Secp256r1Pubkey};
+use crate::tap::{secp256r1_pda_seed, Secp256r1Pubkey};
 
 #[event]
 pub struct ClosePhygitalTokenEvent {

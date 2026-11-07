@@ -21,8 +21,8 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU32Decoder,
-  getU32Encoder,
+  getU64Decoder,
+  getU64Encoder,
   getU8Decoder,
   getU8Encoder,
   transformEncoder,
@@ -58,7 +58,7 @@ export type PhygitalToken = {
   discriminator: ReadonlyUint8Array;
   owner: Address;
   mint: Address;
-  lastSignCount: number;
+  lastSlot: bigint;
   tokenType: number;
   bump: number;
   publicKey: Secp256r1Pubkey;
@@ -68,7 +68,7 @@ export type PhygitalToken = {
 export type PhygitalTokenArgs = {
   owner: Address | HasAddress;
   mint: Address | HasAddress;
-  lastSignCount: number;
+  lastSlot: number | bigint;
   tokenType: number;
   bump: number;
   publicKey: Secp256r1PubkeyArgs;
@@ -82,7 +82,7 @@ export function getPhygitalTokenEncoder(): FixedSizeEncoder<PhygitalTokenArgs> {
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["owner", getAddressEncoder()],
       ["mint", getAddressEncoder()],
-      ["lastSignCount", getU32Encoder()],
+      ["lastSlot", getU64Encoder()],
       ["tokenType", getU8Encoder()],
       ["bump", getU8Encoder()],
       ["publicKey", getSecp256r1PubkeyEncoder()],
@@ -98,7 +98,7 @@ export function getPhygitalTokenDecoder(): FixedSizeDecoder<PhygitalToken> {
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["owner", getAddressDecoder()],
     ["mint", getAddressDecoder()],
-    ["lastSignCount", getU32Decoder()],
+    ["lastSlot", getU64Decoder()],
     ["tokenType", getU8Decoder()],
     ["bump", getU8Decoder()],
     ["publicKey", getSecp256r1PubkeyDecoder()],
@@ -170,5 +170,5 @@ export async function fetchAllMaybePhygitalToken(
 }
 
 export function getPhygitalTokenSize(): number {
-  return 144;
+  return 148;
 }

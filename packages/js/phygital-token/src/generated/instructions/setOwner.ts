@@ -12,19 +12,23 @@ import {
   fixEncoderSize,
   getBytesDecoder,
   getBytesEncoder,
+  getI64Decoder,
+  getI64Encoder,
   getStructDecoder,
   getStructEncoder,
   getU64Decoder,
   getU64Encoder,
+  getU8Decoder,
+  getU8Encoder,
   SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
   SolanaError,
   transformEncoder,
   type AccountMeta,
   type AccountSignerMeta,
   type Address,
-  type Codec,
-  type Decoder,
-  type Encoder,
+  type FixedSizeCodec,
+  type FixedSizeDecoder,
+  type FixedSizeEncoder,
   type Instruction,
   type InstructionWithAccounts,
   type InstructionWithData,
@@ -42,12 +46,6 @@ import {
   type ResolvedInstructionAccountMeta,
 } from "@solana/kit/program-client-core";
 import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from "../programs/index.js";
-import {
-  getSecp256r1VerifyArgsDecoder,
-  getSecp256r1VerifyArgsEncoder,
-  type Secp256r1VerifyArgs,
-  type Secp256r1VerifyArgsArgs,
-} from "../types/index.js";
 
 export const SET_OWNER_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
   72, 202, 120, 52, 77, 128, 96, 197,
@@ -86,35 +84,49 @@ export type SetOwnerInstruction<
 
 export type SetOwnerInstructionData = {
   discriminator: ReadonlyUint8Array;
-  secp256r1VerifyArgs: Secp256r1VerifyArgs;
+  /**
+   * Position of the secp256r1 precompile instruction relative to the
+   * current top-level instruction (usually `-1`: immediately before).
+   */
+  relativeIndex: bigint;
+  /** Which signature inside the precompile instruction to use. */
+  signatureIndex: number;
   slotNumber: bigint;
 };
 
 export type SetOwnerInstructionDataArgs = {
-  secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
+  /**
+   * Position of the secp256r1 precompile instruction relative to the
+   * current top-level instruction (usually `-1`: immediately before).
+   */
+  relativeIndex: number | bigint;
+  /** Which signature inside the precompile instruction to use. */
+  signatureIndex: number;
   slotNumber: number | bigint;
 };
 
-export function getSetOwnerInstructionDataEncoder(): Encoder<SetOwnerInstructionDataArgs> {
+export function getSetOwnerInstructionDataEncoder(): FixedSizeEncoder<SetOwnerInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["secp256r1VerifyArgs", getSecp256r1VerifyArgsEncoder()],
+      ["relativeIndex", getI64Encoder()],
+      ["signatureIndex", getU8Encoder()],
       ["slotNumber", getU64Encoder()],
     ]),
     (value) => ({ ...value, discriminator: SET_OWNER_DISCRIMINATOR }),
   );
 }
 
-export function getSetOwnerInstructionDataDecoder(): Decoder<SetOwnerInstructionData> {
+export function getSetOwnerInstructionDataDecoder(): FixedSizeDecoder<SetOwnerInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["secp256r1VerifyArgs", getSecp256r1VerifyArgsDecoder()],
+    ["relativeIndex", getI64Decoder()],
+    ["signatureIndex", getU8Decoder()],
     ["slotNumber", getU64Decoder()],
   ]);
 }
 
-export function getSetOwnerInstructionDataCodec(): Codec<
+export function getSetOwnerInstructionDataCodec(): FixedSizeCodec<
   SetOwnerInstructionDataArgs,
   SetOwnerInstructionData
 > {
@@ -131,7 +143,8 @@ export type SetOwnerInput<
   phygitalToken: TAccountPhygitalToken;
   slotHashes?: TAccountSlotHashes;
   instructionsSysvar?: TAccountInstructionsSysvar;
-  secp256r1VerifyArgs: SetOwnerInstructionDataArgs["secp256r1VerifyArgs"];
+  relativeIndex: SetOwnerInstructionDataArgs["relativeIndex"];
+  signatureIndex: SetOwnerInstructionDataArgs["signatureIndex"];
   slotNumber: SetOwnerInstructionDataArgs["slotNumber"];
 };
 

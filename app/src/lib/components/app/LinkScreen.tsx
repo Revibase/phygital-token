@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { linkCopy } from '#lib/client/accessory/link-copy.ts';
 import { useBoot } from '#lib/client/boot';
-import { canTapHere, platform, tapHint } from '#lib/client/capability.ts';
+import { tapPrompt, webauthnAvailable } from '#lib/client/capability.ts';
 import {
 	actionFailure,
 	describeError,
@@ -33,27 +33,39 @@ import { List } from './List';
 import { Notice } from './Notice';
 import { PageHeader } from './PageHeader';
 import { PageShell } from './PageShell';
-import { QrCode } from './QrCode';
 import { WalletConnect } from './WalletConnect';
 import { WalletRow } from './WalletRow';
 
 const STALE_MS = 45_000;
+/** Choose a wallet, approve with the accessory, confirm. */
+export const CLAIM_STEPS = 3;
 
-export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
+/**
+ * Claim an accessory in three steps: choose a wallet, approve with the
+ * accessory, confirm. Straight after setup (`afterSetup`) they continue its count.
+ */
+export function LinkScreen({
+	accessory,
+	afterSetup = false
+}: {
+	accessory: AccessoryView;
+	afterSetup?: boolean;
+}) {
 	const wallet = useWallet();
 	const { cluster } = useBoot();
 	const router = useRouter();
 	const copy = linkCopy(accessory.kind);
+	// Straight after setup, setup was step 1.
+	const offset = afterSetup ? 1 : 0;
+	const step = (current: number) => ({ current: current + offset, total: CLAIM_STEPS + offset });
 	const [prepared, setPrepared] = useState<PreparedTap | null>(null);
 	const [tapped, setTapped] = useState<TappedAccessory | null>(null);
 	const [linked, setLinked] = useState<{ recipient: string; signature: string } | null>(null);
 	const [tapping, setTapping] = useState(false);
 	const [failure, setFailure] = useState<FriendlyError | null>(null);
 	const [phase, setPhase] = useState<FinishPhase | null>(null);
-	const [hint, setHint] = useState('Tap Approve, then hold your accessory to your phone.');
-	const [webauthnOk, setWebauthnOk] = useState(true);
-	const [device, setDevice] = useState<'pending' | 'desktop' | 'mobile'>('pending');
-	const [origin, setOrigin] = useState('');
+	/** Null until the browser is checked, so the server render doesn't guess. */
+	const [webauthnOk, setWebauthnOk] = useState<boolean | null>(null);
 	const [retry, setRetry] = useState(0);
 	const prepareFailures = useRef(0);
 	const challengeEpoch = useRef(0);
@@ -63,26 +75,15 @@ export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
 	tappingRef.current = tapping;
 
 	const view = (() => {
-		if (device === 'desktop') return 'phone' as const;
 		if (linked) return 'done' as const;
-		if (device === 'pending') return 'pending' as const;
+		if (webauthnOk === null) return 'pending' as const;
 		if (!wallet.address) return 'choose' as const;
 		if (!tapped) return 'tap' as const;
 		return 'confirm' as const;
 	})();
 	const ownedResult = !!linked && wallet.address === linked.recipient;
 
-	useEffect(() => {
-		setOrigin(window.location.origin);
-		if (platform() === 'desktop') {
-			setDevice('desktop');
-			return;
-		}
-		setDevice('mobile');
-		const nextHint = tapHint();
-		setHint(`Tap Approve, then ${nextHint.charAt(0).toLowerCase()}${nextHint.slice(1)}`);
-		setWebauthnOk(canTapHere());
-	}, []);
+	useEffect(() => setWebauthnOk(webauthnAvailable()), []);
 
 	useEffect(() => {
 		if (tapping || phase || linked) return;
@@ -231,16 +232,7 @@ export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
 		>
 			<section className="flex flex-1 flex-col pt-4" aria-live="polite">
 				<div className="animate-rise flex flex-1 flex-col gap-7">
-					{view === 'phone' ? (
-						<div className="flex flex-1 flex-col justify-center gap-8">
-							<PageHeader
-								align="center"
-								title="Claim on your phone"
-								body="Claiming uses your phone’s NFC."
-							/>
-							{origin ? <QrCode value={origin} label="Scan with your phone’s camera" /> : null}
-						</div>
-					) : view === 'pending' ? (
+					{view === 'pending' ? (
 						<div className="flex-1" />
 					) : view === 'done' && linked ? (
 						<div className="flex flex-1 flex-col justify-center gap-8">
@@ -264,20 +256,16 @@ export function LinkScreen({ accessory }: { accessory: AccessoryView }) {
 					) : (
 						<>
 							{view === 'choose' ? (
-								<PageHeader
-									step={{ current: 1, total: 3 }}
-									title={copy.choose.title}
-									body={copy.choose.body}
-								/>
+								<PageHeader step={step(1)} title={copy.choose.title} body={copy.choose.body} />
 							) : view === 'tap' ? (
 								<PageHeader
-									step={{ current: 2, total: 3 }}
+									step={step(2)}
 									title="Approve with your accessory"
-									body={hint}
+									body={tapPrompt('Approve')}
 								/>
 							) : (
 								<PageHeader
-									step={{ current: 3, total: 3 }}
+									step={step(3)}
 									title={copy.confirm.title}
 									body={accessory.mint ? `${copy.confirm.body} ${copy.nft}` : copy.confirm.body}
 								/>

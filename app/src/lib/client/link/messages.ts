@@ -1,4 +1,4 @@
-import { PhygitalTokenError, type PhygitalTokenErrorCode } from 'phygital-token-sdk';
+import { PhygitalTokenError } from 'phygital-token-sdk';
 import { ApiClientError } from '../api';
 import { LinkTransactionRejected } from '#lib/shared/link-transaction.ts';
 import { TransferRejected } from '#lib/shared/wallet-transfer.ts';
@@ -56,20 +56,21 @@ const LINK_COPY: Record<LinkErrorCode, FriendlyError> = {
 
 const UNKNOWN_ACCESSORY: FriendlyError = {
 	title: 'Unknown accessory',
-	body: 'It isn’t registered, so it can’t be verified. Contact whoever issued it.'
+	body: 'It isn’t set up yet. Hold it to your phone again to set it up.'
+};
+
+export const ENROLL_COPY = {
+	title: 'Set up your accessory',
+	body: 'It’s new, so it needs a one-time setup before you can claim it.',
+	action: 'Set up',
+	saving: 'This takes a few seconds.',
+	retry: 'Try again',
+	unsupported: 'Open this page in Safari or Chrome to set up this accessory.'
 };
 
 export function linkErrorCopy(code: LinkErrorCode | null | undefined): FriendlyError {
 	return LINK_COPY[code ?? 'unknown'] ?? LINK_COPY.unknown;
 }
-
-const TAP_REJECTED_CODES: PhygitalTokenErrorCode[] = [
-	'INVALID_CREDENTIAL_ID',
-	'PASSKEY_RECOVERY_FAILED',
-	'PASSKEY_NOT_RECOGNIZED',
-	'PASSKEY_AMBIGUOUS',
-	'INVALID_ASSERTION'
-];
 
 function errorCauses(err: unknown): unknown[] {
 	const items: unknown[] = [];
@@ -145,6 +146,42 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 			};
 		}
 		if (err.code === 'expired') return { title: 'Session expired', body: err.message };
+		if (err.code === 'invalid_attestation') {
+			return {
+				title: 'Couldn’t verify this accessory',
+				body: 'It didn’t prove it’s a genuine Revibase accessory, so it can’t be set up.',
+				detail: err.message
+			};
+		}
+		if (err.code === 'not_packed') {
+			return {
+				title: 'Can’t set up this accessory',
+				body: 'It isn’t registered with Revibase yet. Contact whoever issued it.'
+			};
+		}
+		if (err.code === 'already_enrolled') {
+			return {
+				title: 'Already set up',
+				body: 'This accessory belongs to another record. Contact whoever issued it.'
+			};
+		}
+		if (err.code === 'in_progress') {
+			return { title: 'Setting up already', body: 'Wait a moment, then try again.' };
+		}
+		if (err.code === 'enroll_unavailable') {
+			return {
+				title: 'Couldn’t finish setting up',
+				body: 'Your accessory is fine. Try again later.',
+				detail: err.message
+			};
+		}
+		if (err.code === 'enroll_failed') {
+			return {
+				title: 'Couldn’t finish setting up',
+				body: 'Your accessory is fine. Tap Try again, then hold it to your phone.',
+				detail: err.message
+			};
+		}
 		if (err.code === 'fee_payer_refused') {
 			return {
 				title: 'Couldn’t send this transaction',
@@ -212,7 +249,7 @@ export function describeError(err: unknown, context: 'tap' | 'wallet' = 'wallet'
 			body: 'Open this page in Safari or Chrome.'
 		};
 	}
-	if (err instanceof PhygitalTokenError && TAP_REJECTED_CODES.includes(err.code)) {
+	if (err instanceof PhygitalTokenError && err.code === 'INVALID_ASSERTION') {
 		return { ...linkErrorCopy('tap_rejected'), detail: message };
 	}
 	return { ...linkErrorCopy('unknown'), detail: message };

@@ -6,3 +6,13 @@ NEXT_PUBLIC_SOLANA_CLUSTER=devnet
 NEXT_PUBLIC_PRIVY_APP_ID=
 # Server only. 32+ characters. Never prefix this with NEXT_PUBLIC_.
 SESSION_SECRET=replace-me
+# Card enrollment (POST /api/enroll). Server only.
+# AdminConfig issuer: base64 of the 64-byte secret key. It signs `initialize` and pays its rent.
+ISSUER_SECRET_KEY=
+# Revi attestation root CA(s): comma-separated base64 DER. Public, not a secret.
+ATTESTATION_ROOT_CERTS=
+# Optional: the cards' AAGUID as 32 hex chars. Empty skips the check.
+ATTESTATION_AAGUID=
+# Helius raw webhook (POST /api/webhooks/helius). Server only.
+# The webhook's authHeader; Helius sends it as Authorization. Long and random.
+HELIUS_WEBHOOK_AUTH=

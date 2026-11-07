@@ -1,53 +1,64 @@
-# phygital-token (on-chain program)
+# phygital-token (program)
 
-Program id `DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ`, built with Anchor 1.2.1.
+This Solana program binds each Revi card, an NFC card that holds one P-256 key, to a token, so tapping the card can claim the token.
 
-Each physical accessory carries a P-256 passkey. The program records that key
-in a token account and accepts a **tap** (a WebAuthn assertion verified by the
-secp256r1 precompile) as proof that the accessory was present. On that basis it
-offers authentication (`verify`) and ownership (`set_owner`, `remove_owner`).
-Taps can also be authenticated off-chain: the token's address is derived from
-the passkey, so a verifier can read its type and owner.
-
-- Start at [`src/lib.rs`](src/lib.rs) for the module map.
-- Invariants: [`docs/program/INVARIANTS.md`](../../docs/program/INVARIANTS.md).
-- Threat model: [`docs/program/THREAT_MODEL.md`](../../docs/program/THREAT_MODEL.md).
+Program id `DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ`, built with Anchor 1.2.1. Module map: [`src/lib.rs`](src/lib.rs). Security reports and verifying the deployed program: [SECURITY.md](../../SECURITY.md).
 
 ## Accounts
 
 | Account | Address | Created by | Closed by |
-|---------|---------|------------|-----------|
+| --- | --- | --- | --- |
 | `AdminConfig` | `["admin"]` | `create_config` | never |
-| `PhygitalToken` | `["token", x(passkey)]` | `initialize` | `close_phygital_token` |
+| `PhygitalToken` | `["token", x(card key)]` | `initialize` | `close_phygital_token` |
 
-`x(passkey)` is the 32-byte x coordinate of the compressed public key.
+`x(card key)` is the 32-byte x coordinate of the card's compressed public key.
 
 ## Instructions
 
-"Tap" means a WebAuthn assertion by the token's passkey, in a secp256r1
-precompile instruction earlier in the same transaction, over the challenge
-listed. Every accepted tap must carry a higher sign count than the last.
+| Instruction | Signer | Checks | Effect |
+| --- | --- | --- | --- |
+| `create_config` | payer | config doesn't exist yet | payer becomes admin |
+| `set_admin` / `set_issuer` / `set_minter` | admin | new key isn't default and holds no role | replaces the role |
+| `initialize` | issuer | an owner is given exactly when the token is Permanent | creates the token, with its `mint` if one is given |
+| `assign_mint` | minter | — | sets `mint` (informational only) |
+| `close_phygital_token` | admin | — | closes the token |
+| `set_owner` | recipient | see below | owner becomes the recipient |
+| `remove_owner` | owner | token isn't Permanent | clears the owner |
 
-| Instruction | Must sign | Checks | Effect |
-|-------------|-----------|--------|--------|
-| `create_config` | payer | config PDA does not exist | payer becomes admin |
-| `set_admin` / `set_issuer` / `set_minter` | admin | new key is not default and holds no role | replaces the role key |
-| `initialize` | issuer | Permanent ⇔ an owner is given | creates the token; sign count 0 |
-| `assign_mint` | minter | — | sets `mint` (informational) |
-| `close_phygital_token` | admin | token PDA matches its key | closes the token |
-| `set_owner` | `recipient` | not locked; tap over `SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`; slot in SlotHashes | owner = `recipient` |
-| `remove_owner` | owner | not Permanent | owner cleared |
-| `verify` | — | tap over the caller's `message_hash`; optional rpId and origin list | sign count recorded |
+`set_owner` needs a secp256r1 precompile instruction earlier in the same transaction. In it, the token's card must have signed `authorize ‖ SHA256("t" ‖ token ‖ recipient ‖ slot_hash)`. The program also checks:
 
-The challenge names the recipient, so the assertion can only make that wallet the owner. Send it before the slot hash leaves SlotHashes.
+- the token isn't locked (a Controlled or Permanent token that already has an owner);
+- the slot hash is still in SlotHashes, which keeps the last 512 slots;
+- `slot_number` is greater than the token's `last_slot`.
 
-## Build and test
+## Guarantees
+
+- **Only the card's key can authorize a tap.** The precompile's offsets must point into the precompile instruction itself. Otherwise a signature by another key could vouch for bytes the card never signed.
+- **A tap can't be replayed or redirected.** The challenge names the token, the recipient and a recent slot hash, and `last_slot` only goes up.
+- **Owners are protected.** A locked token can't change owner by tap. A Permanent token's owner is set at creation and never changes.
+- **Bad input fails cleanly.** Malformed input fails with a typed error. The crate has no `unwrap`, `expect`, `panic` or `unsafe` outside tests, and it builds with `overflow-checks` on.
+
+## Trust assumptions
+
+- The issuer chooses each token's key, type and first owner.
+- The admin can close tokens and rotate roles.
+- `create_config` makes its first caller the admin. Call it right after deploying and confirm the admin. A front-run can be fixed by upgrading the program.
+
+## Develop
+
+| Tool | Version | Pinned in |
+| --- | --- | --- |
+| Rust | 1.98.1 | `rust-toolchain.toml` |
+| Solana CLI / Anchor CLI | 4.3.2 / 1.2.1 | `Anchor.toml` |
 
 ```bash
-NO_DNA=1 anchor build   # program, IDL
-cargo test              # unit tests and LiteSVM integration tests (load target/deploy/phygital_token.so)
+NO_DNA=1 anchor build    # the tests load target/deploy/phygital_token.so
+cargo fmt --all --check && cargo clippy --all-targets -- -D warnings && cargo test && cargo deny check
 ```
 
-From the repository root, `pnpm build:program` also regenerates the TypeScript
-client from the IDL. Comparing a build with the deployed program is
-described in [`SECURITY.md`](../../SECURITY.md).
+The program's public interface is its instruction names and arguments, account layouts, PDA seeds and error codes.
+
+- Errors are append-only, because clients match on the number.
+- After a change, run `pnpm build:program` from the repo root and commit the regenerated `idl/` and SDK `src/generated/`. Never edit those by hand.
+- Add a LiteSVM test for every new check, including the failure path.
+- Record releases in [CHANGELOG.md](CHANGELOG.md). A release that changes the IDL needs a new SDK release.

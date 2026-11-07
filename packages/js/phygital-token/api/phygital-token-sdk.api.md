@@ -11,10 +11,7 @@ import { Address } from '@solana/kit';
 import { ClientWithRpc } from '@solana/kit';
 import { ClientWithTransactionPlanning } from '@solana/kit';
 import { ClientWithTransactionSending } from '@solana/kit';
-import { Codec } from '@solana/kit';
-import { Decoder } from '@solana/kit';
 import { EncodedAccount } from '@solana/kit';
-import { Encoder } from '@solana/kit';
 import { ExtendedClient } from '@solana/kit';
 import { FetchAccountConfig } from '@solana/kit';
 import { FetchAccountsConfig } from '@solana/kit';
@@ -34,8 +31,6 @@ import { InstructionWithAccounts } from '@solana/kit';
 import { InstructionWithData } from '@solana/kit';
 import { MaybeAccount } from '@solana/kit';
 import { MaybeEncodedAccount } from '@solana/kit';
-import { Option as Option_2 } from '@solana/kit';
-import { OptionOrNullable } from '@solana/kit';
 import { ProgramDerivedAddress } from '@solana/kit';
 import { ReadonlyAccount } from '@solana/kit';
 import { ReadonlySignerAccount } from '@solana/kit';
@@ -47,7 +42,6 @@ import { SelfPlanAndSendFunctions } from '@solana/kit/program-client-core';
 import { SOLANA_ERROR__INSTRUCTION_ERROR__CUSTOM } from '@solana/kit';
 import { SolanaError } from '@solana/kit';
 import { SolanaRpcApi } from '@solana/kit';
-import { TransactionSigner } from '@solana/kit';
 import { WritableAccount } from '@solana/kit';
 import { WritableSignerAccount } from '@solana/kit';
 
@@ -129,29 +123,6 @@ export type AssignMintInstructionDataArgs = {
 };
 
 // @public
-export function authenticatePasskey(challenge: string, options?: AuthenticatePasskeyOptions): Promise<AuthenticationResponseJSON>;
-
-// @public
-export function authenticatePasskeyForSecp256r1Verify(input: {
-    allowList?: ReadonlySet<string>;
-    rpc?: Rpc<SolanaRpcApi>;
-    messageHash: Uint8Array;
-    rpId?: string;
-}): Promise<AuthenticationResponseJSON>;
-
-// @public
-export function authenticatePasskeyForTransfer(session: TransferSession): Promise<AuthenticationResponseJSON>;
-
-// @public
-export type AuthenticatePasskeyOptions = {
-    allowList?: ReadonlySet<string>;
-    rpc?: Rpc<SolanaRpcApi>;
-    rpId?: string;
-    credentialId?: string;
-    signal?: AbortSignal;
-};
-
-// @public
 export type AuthenticationResponseJSON = {
     id: Base64URLString_2;
     rawId: Base64URLString_2;
@@ -162,44 +133,19 @@ export type AuthenticationResponseJSON = {
         userHandle?: Base64URLString_2;
     };
     authenticatorAttachment?: AuthenticatorAttachment;
-    clientExtensionResults: AuthenticationExtensionsClientOutputs;
+    clientExtensionResults: {
+        largeBlob?: {
+            blob?: Base64URLString_2;
+        };
+    };
     type: PublicKeyCredentialType;
 };
 
 // @public
-export function beginTransfer(input: {
-    rpc: Rpc<SolanaRpcApi>;
-    secp256r1Pubkey: string;
-    recipient: Address;
-    rpId?: string;
-}): Promise<TransferSession>;
-
-// @public (undocumented)
-export function bufferToBase64URLString(buffer: ArrayBuffer | ArrayBufferView): Base64URLString_2;
+export const AUTHORIZE_PREFIX: Uint8Array<ArrayBuffer>;
 
 // @public
-export function buildMessageHash(message: Uint8Array): Uint8Array;
-
-// @public
-export function buildSecp256r1VerifyInstruction(response: AuthenticationResponseJSON, existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[], verifyArgsRelativeIndex?: number): Promise<{
-    secp256r1VerifyInstruction: Instruction;
-    phygitalTokenPda: Address;
-    secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
-}>;
-
-// @public (undocumented)
-export function buildSecp256r1VerifyInstructionFromWebAuthnResponse(input: {
-    secp256r1PublicKey: Secp256r1Pubkey;
-    response: AuthenticationResponseJSON;
-    existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[];
-}): {
-    signedMessageIndex: number;
-    secp256r1VerifyInstruction: Instruction<typeof SECP256R1_PROGRAM_ADDRESS>;
-    clientDataJson: Uint8Array;
-};
-
-// @public
-export function buildVerifyChallenge(messageHash: Uint8Array): Uint8Array;
+export function buildProductAllowListId(payload: Uint8Array): Uint8Array<ArrayBuffer>;
 
 // @public (undocumented)
 export const CLOSE_PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array;
@@ -260,9 +206,6 @@ export type ClosePhygitalTokenInstructionData = {
 // @public (undocumented)
 export type ClosePhygitalTokenInstructionDataArgs = {};
 
-// @public
-export function completeTransfer(session: TransferSession, response: AuthenticationResponseJSON, recipient: TransactionSigner, existingSecp256r1VerifyInputs?: Secp256r1VerifyEntry[]): Promise<Instruction[]>;
-
 // @public (undocumented)
 export const CREATE_CONFIG_DISCRIMINATOR: ReadonlyUint8Array;
 
@@ -316,13 +259,15 @@ export function decodeAdminConfig<TAddress extends string = string>(encodedAccou
 export function decodeAdminConfig<TAddress extends string = string>(encodedAccount: MaybeEncodedAccount<TAddress>): MaybeAccount<AdminConfig, TAddress>;
 
 // @public (undocumented)
-export function decodeBase64AccountData(data: string | [string, string] | Uint8Array): Uint8Array;
-
-// @public (undocumented)
 export function decodePhygitalToken<TAddress extends string = string>(encodedAccount: EncodedAccount<TAddress>): Account<PhygitalToken, TAddress>;
 
 // @public (undocumented)
 export function decodePhygitalToken<TAddress extends string = string>(encodedAccount: MaybeEncodedAccount<TAddress>): MaybeAccount<PhygitalToken, TAddress>;
+
+// @public
+export function enrollCard(challenge: Uint8Array<ArrayBuffer>, options?: {
+    signal?: AbortSignal;
+}): Promise<RegistrationResponseJSON>;
 
 // @public (undocumented)
 export function fetchAdminConfig<TAddress extends string = string>(rpc: Parameters<typeof fetchEncodedAccount>[0], address: Address<TAddress> | HasAddress<TAddress>, config?: FetchAccountConfig): Promise<Account<AdminConfig, TAddress>>;
@@ -352,7 +297,7 @@ export function fetchPhygitalToken<TAddress extends string = string>(rpc: Parame
 export function fetchPhygitalTokenByIdentifier(rpc: Rpc<SolanaRpcApi>, identifier: string | Secp256r1Pubkey): Promise<PhygitalToken | null>;
 
 // @public
-export function fetchPhygitalTokenByMint(mint: Address, rpc: Rpc<SolanaRpcApi>): Promise<PhygitalToken | null>;
+export function fetchPhygitalTokenByMint(rpc: Rpc<SolanaRpcApi>, mint: Address): Promise<PhygitalToken | null>;
 
 // @public
 export function fetchPhygitalTokensByOwner(rpc: Rpc<SolanaRpcApi>, owner: Address): Promise<PhygitalToken[]>;
@@ -363,7 +308,7 @@ export function findAdminConfigPda(config?: {
 }): Promise<ProgramDerivedAddress>;
 
 // @public
-export function findPhygitalTokenPda(secp256r1Pubkey: Secp256r1Pubkey | Base64URLString_2): Promise<Address>;
+export function findPhygitalTokenPda(secp256r1Pubkey: ReadonlyUint8Array | Secp256r1Pubkey | Base64URLString_2): Promise<Address>;
 
 // @public
 export function getAdminConfigCodec(): FixedSizeCodec<AdminConfigArgs, AdminConfig>;
@@ -532,12 +477,6 @@ export function getInitializeInstructionDataDecoder(): FixedSizeDecoder<Initiali
 // @public (undocumented)
 export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<InitializeInstructionDataArgs>;
 
-// @public (undocumented)
-export function getLatestSlotHash(rpc: Rpc<SolanaRpcApi>): Promise<{
-    slotHash: Uint8Array<ArrayBufferLike>;
-    slotNumber: bigint;
-}>;
-
 // @public
 export function getPhygitalTokenCodec(): FixedSizeCodec<PhygitalTokenArgs, PhygitalToken>;
 
@@ -605,14 +544,8 @@ export function getSecp256r1PubkeyDecoder(): FixedSizeDecoder<Secp256r1Pubkey>;
 // @public (undocumented)
 export function getSecp256r1PubkeyEncoder(): FixedSizeEncoder<Secp256r1PubkeyArgs>;
 
-// @public (undocumented)
-export function getSecp256r1VerifyArgsCodec(): Codec<Secp256r1VerifyArgsArgs, Secp256r1VerifyArgs>;
-
-// @public (undocumented)
-export function getSecp256r1VerifyArgsDecoder(): Decoder<Secp256r1VerifyArgs>;
-
-// @public (undocumented)
-export function getSecp256r1VerifyArgsEncoder(): Encoder<Secp256r1VerifyArgsArgs>;
+// @public
+export function getSecp256r1VerifyInstruction(entries: readonly Secp256r1VerifyEntry[]): Instruction<typeof SECP256R1_PROGRAM_ADDRESS> & InstructionWithData<Uint8Array>;
 
 // @public (undocumented)
 export function getSetAdminDiscriminatorBytes(): ReadonlyUint8Array;
@@ -751,32 +684,13 @@ export function getSetOwnerInstruction<TAccountRecipient extends InstructionSign
 }): SetOwnerInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountRecipient, InstructionAccountInputAddress<TAccountRecipient>>, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>, ResolvedInstructionAccountMeta<TAccountSlotHashes, InstructionAccountInputAddress<TAccountSlotHashes>>, ResolvedInstructionAccountMeta<TAccountInstructionsSysvar, InstructionAccountInputAddress<TAccountInstructionsSysvar>>>;
 
 // @public (undocumented)
-export function getSetOwnerInstructionDataCodec(): Codec<SetOwnerInstructionDataArgs, SetOwnerInstructionData>;
+export function getSetOwnerInstructionDataCodec(): FixedSizeCodec<SetOwnerInstructionDataArgs, SetOwnerInstructionData>;
 
 // @public (undocumented)
-export function getSetOwnerInstructionDataDecoder(): Decoder<SetOwnerInstructionData>;
+export function getSetOwnerInstructionDataDecoder(): FixedSizeDecoder<SetOwnerInstructionData>;
 
 // @public (undocumented)
-export function getSetOwnerInstructionDataEncoder(): Encoder<SetOwnerInstructionDataArgs>;
-
-// @public (undocumented)
-export function getVerifyDiscriminatorBytes(): ReadonlyUint8Array;
-
-// @public (undocumented)
-export function getVerifyInstruction<TAccountPhygitalToken extends InstructionAccountInput, TAccountInstructionsSysvar extends InstructionAccountInput, TProgramAddress extends Address = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS>(input: VerifyInput<TAccountPhygitalToken, TAccountInstructionsSysvar>, config?: {
-    programAddress?: TProgramAddress | {
-        readonly address: TProgramAddress;
-    };
-}): VerifyInstruction<TProgramAddress, ResolvedInstructionAccountMeta<TAccountPhygitalToken, InstructionAccountInputAddress<TAccountPhygitalToken>>, ResolvedInstructionAccountMeta<TAccountInstructionsSysvar, InstructionAccountInputAddress<TAccountInstructionsSysvar>>>;
-
-// @public (undocumented)
-export function getVerifyInstructionDataCodec(): Codec<VerifyInstructionDataArgs, VerifyInstructionData>;
-
-// @public (undocumented)
-export function getVerifyInstructionDataDecoder(): Decoder<VerifyInstructionData>;
-
-// @public (undocumented)
-export function getVerifyInstructionDataEncoder(): Encoder<VerifyInstructionDataArgs>;
+export function getSetOwnerInstructionDataEncoder(): FixedSizeEncoder<SetOwnerInstructionDataArgs>;
 
 // @public (undocumented)
 export function identifyPhygitalTokenAccount(account: {
@@ -809,6 +723,7 @@ export type InitializeAsyncInput<TAccountAuthority extends InstructionSignerInpu
     secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
     tokenType: InitializeInstructionDataArgs["tokenType"];
     owner: InitializeInstructionDataArgs["owner"];
+    mint: InitializeInstructionDataArgs["mint"];
 };
 
 // @public (undocumented)
@@ -818,6 +733,7 @@ export type InitializeEventEvent = {
     identifier: Secp256r1Pubkey;
     owner: Address;
     tokenType: PhygitalTokenType;
+    mint: Address;
 };
 
 // @public (undocumented)
@@ -827,6 +743,7 @@ export type InitializeEventEventArgs = {
     identifier: Secp256r1PubkeyArgs;
     owner: Address | HasAddress;
     tokenType: PhygitalTokenTypeArgs;
+    mint: Address | HasAddress;
 };
 
 // @public (undocumented)
@@ -839,6 +756,7 @@ export type InitializeInput<TAccountAuthority extends InstructionSignerInput = I
     secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
     tokenType: InitializeInstructionDataArgs["tokenType"];
     owner: InitializeInstructionDataArgs["owner"];
+    mint: InitializeInstructionDataArgs["mint"];
 };
 
 // @public (undocumented)
@@ -857,6 +775,7 @@ export type InitializeInstructionData = {
     secp256r1Pubkey: Secp256r1Pubkey;
     tokenType: PhygitalTokenType;
     owner: Address;
+    mint: Address;
 };
 
 // @public (undocumented)
@@ -865,6 +784,7 @@ export type InitializeInstructionDataArgs = {
     secp256r1Pubkey: Secp256r1PubkeyArgs;
     tokenType: PhygitalTokenTypeArgs;
     owner: Address | HasAddress;
+    mint: Address | HasAddress;
 };
 
 // @public (undocumented)
@@ -882,6 +802,9 @@ export function isPhygitalTokenError<TProgramErrorCode extends PhygitalTokenErro
 
 // @public
 export function isPhygitalTokenLocked(token: Pick<PhygitalToken, "tokenType" | "owner">): boolean;
+
+// @public
+export const MAX_AUTHORIZE_PAYLOAD: number;
 
 // @public
 export function parseAssignMintEventEvent(data: ReadonlyUint8Array | Uint8Array): AssignMintEventEvent;
@@ -966,9 +889,7 @@ export type ParsedPhygitalTokenInstruction<TProgram extends string = "DuPpckdjjg
     instructionType: PhygitalTokenInstruction.SetMinter;
 } & ParsedSetMinterInstruction<TProgram>) | ({
     instructionType: PhygitalTokenInstruction.SetOwner;
-} & ParsedSetOwnerInstruction<TProgram>) | ({
-    instructionType: PhygitalTokenInstruction.Verify;
-} & ParsedVerifyInstruction<TProgram>);
+} & ParsedSetOwnerInstruction<TProgram>);
 
 // @public (undocumented)
 export type ParsedRemoveOwnerInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
@@ -1022,16 +943,6 @@ export type ParsedSetOwnerInstruction<TProgram extends string = typeof PHYGITAL_
     data: SetOwnerInstructionData;
 };
 
-// @public (undocumented)
-export type ParsedVerifyInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[]> = {
-    programAddress: Address<TProgram>;
-    accounts: {
-        phygitalToken: TAccountMetas[0];
-        instructionsSysvar: TAccountMetas[1];
-    };
-    data: VerifyInstructionData;
-};
-
 // @public
 export function parseInitializeEventEvent(data: ReadonlyUint8Array | Uint8Array): InitializeEventEvent;
 
@@ -1073,9 +984,6 @@ export function parseSetOwnerEventEvent(data: ReadonlyUint8Array | Uint8Array): 
 
 // @public (undocumented)
 export function parseSetOwnerInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedSetOwnerInstruction<TProgram, TAccountMetas>;
-
-// @public (undocumented)
-export function parseVerifyInstruction<TProgram extends string, TAccountMetas extends readonly AccountMeta[]>(instruction: Instruction<TProgram> & InstructionWithAccounts<TAccountMetas> & InstructionWithData<ReadonlyUint8Array>): ParsedVerifyInstruction<TProgram, TAccountMetas>;
 
 // @public (undocumented)
 export const PHYGITAL_TOKEN_DISCRIMINATOR: ReadonlyUint8Array;
@@ -1135,6 +1043,9 @@ export const PHYGITAL_TOKEN_ERROR__SIGNATURE_INDEX_OUT_OF_BOUNDS = 6001;
 export const PHYGITAL_TOKEN_ERROR__STALE_SIGN_COUNT = 6007;
 
 // @public
+export const PHYGITAL_TOKEN_ERROR__STALE_SLOT = 6023;
+
+// @public
 export const PHYGITAL_TOKEN_ERROR__TOKEN_IS_CURRENTLY_LOCKED = 6010;
 
 // @public
@@ -1157,7 +1068,7 @@ export type PhygitalToken = {
     discriminator: ReadonlyUint8Array;
     owner: Address;
     mint: Address;
-    lastSignCount: number;
+    lastSlot: bigint;
     tokenType: number;
     bump: number;
     publicKey: Secp256r1Pubkey;
@@ -1176,7 +1087,7 @@ export enum PhygitalTokenAccount {
 export type PhygitalTokenArgs = {
     owner: Address | HasAddress;
     mint: Address | HasAddress;
-    lastSignCount: number;
+    lastSlot: number | bigint;
     tokenType: number;
     bump: number;
     publicKey: Secp256r1PubkeyArgs;
@@ -1193,7 +1104,7 @@ export class PhygitalTokenError extends Error {
 }
 
 // @public
-export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "RP_ID_REQUIRED" | "RECOVERY_SOURCE_REQUIRED" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_CREDENTIAL_ID" | "PASSKEY_RECOVERY_FAILED" | "PASSKEY_NOT_RECOGNIZED" | "PASSKEY_AMBIGUOUS" | "INVALID_ASSERTION" | "MESSAGE_MISMATCH" | "ORIGIN_MISMATCH" | "RP_ID_MISMATCH" | "SLOT_HASH_UNAVAILABLE" | "INVALID_ARGUMENT";
+export type PhygitalTokenErrorCode = "INVALID_PUBLIC_KEY" | "WEBAUTHN_UNSUPPORTED" | "AUTHENTICATION_CANCELLED" | "INVALID_ASSERTION" | "INVALID_ARGUMENT";
 
 // @public (undocumented)
 export enum PhygitalTokenEvent {
@@ -1236,9 +1147,7 @@ export enum PhygitalTokenInstruction {
     // (undocumented)
     SetMinter = 7,
     // (undocumented)
-    SetOwner = 8,
-    // (undocumented)
-    Verify = 9
+    SetOwner = 8
 }
 
 // @public (undocumented)
@@ -1286,9 +1195,6 @@ export type PhygitalTokenPluginInstructions = {
     setOwner: (input: SetOwnerInput, config?: {
         programAddress?: Address | HasAddress;
     }) => ReturnType<typeof getSetOwnerInstruction> & SelfPlanAndSendFunctions;
-    verify: (input: VerifyInput, config?: {
-        programAddress?: Address | HasAddress;
-    }) => ReturnType<typeof getVerifyInstruction> & SelfPlanAndSendFunctions;
 };
 
 // @public (undocumented)
@@ -1318,6 +1224,19 @@ export enum PhygitalTokenType {
 
 // @public (undocumented)
 export type PhygitalTokenTypeArgs = PhygitalTokenType;
+
+// @public
+export type RegistrationResponseJSON = {
+    id: Base64URLString_2;
+    rawId: Base64URLString_2;
+    response: {
+        clientDataJSON: Base64URLString_2;
+        attestationObject: Base64URLString_2;
+        transports?: string[];
+    };
+    authenticatorAttachment?: AuthenticatorAttachment;
+    type: PublicKeyCredentialType;
+};
 
 // @public (undocumented)
 export const REMOVE_OWNER_DISCRIMINATOR: ReadonlyUint8Array;
@@ -1367,17 +1286,10 @@ export type Secp256r1Pubkey = readonly [ReadonlyUint8Array];
 export type Secp256r1PubkeyArgs = Secp256r1Pubkey;
 
 // @public
-export type Secp256r1VerifyArgs = {
-    verifyArgsRelativeIndex: bigint;
-    signedMessageIndex: number;
-    clientDataJson: ReadonlyUint8Array;
-};
-
-// @public (undocumented)
-export type Secp256r1VerifyArgsArgs = {
-    verifyArgsRelativeIndex: number | bigint;
-    signedMessageIndex: number;
-    clientDataJson: ReadonlyUint8Array;
+export type Secp256r1VerifyEntry = {
+    publicKey: ReadonlyUint8Array;
+    signature: ReadonlyUint8Array;
+    message: ReadonlyUint8Array;
 };
 
 // @public (undocumented)
@@ -1558,7 +1470,8 @@ export type SetOwnerInput<TAccountRecipient extends InstructionSignerInput = Ins
     phygitalToken: TAccountPhygitalToken;
     slotHashes?: TAccountSlotHashes;
     instructionsSysvar?: TAccountInstructionsSysvar;
-    secp256r1VerifyArgs: SetOwnerInstructionDataArgs["secp256r1VerifyArgs"];
+    relativeIndex: SetOwnerInstructionDataArgs["relativeIndex"];
+    signatureIndex: SetOwnerInstructionDataArgs["signatureIndex"];
     slotNumber: SetOwnerInstructionDataArgs["slotNumber"];
 };
 
@@ -1574,84 +1487,32 @@ TAccountInstructionsSysvar extends string ? ReadonlyAccount<TAccountInstructions
 // @public (undocumented)
 export type SetOwnerInstructionData = {
     discriminator: ReadonlyUint8Array;
-    secp256r1VerifyArgs: Secp256r1VerifyArgs;
+    relativeIndex: bigint;
+    signatureIndex: number;
     slotNumber: bigint;
 };
 
 // @public (undocumented)
 export type SetOwnerInstructionDataArgs = {
-    secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
+    relativeIndex: number | bigint;
+    signatureIndex: number;
     slotNumber: number | bigint;
 };
 
 // @public
-export function startAuthentication(message: string, options?: AuthenticatePasskeyOptions): Promise<AuthenticationResponseJSON>;
+export function startAuthentication(payload: string | Uint8Array, options?: {
+    signal?: AbortSignal;
+}): Promise<AuthenticationResponseJSON>;
 
 // @public
-export type TransferSession = {
-    rpc: Rpc<SolanaRpcApi>;
-    phygitalToken: Address;
-    secp256r1Pubkey: string;
-    slotHash: Uint8Array;
-    slotNumber: bigint;
-    challenge: Uint8Array;
-    rpId: string;
-    recipient: Address;
-    owner: Address | null;
-};
-
-// @public (undocumented)
-export const VERIFY_DISCRIMINATOR: ReadonlyUint8Array;
-
-// @public (undocumented)
-export type VerifyInput<TAccountPhygitalToken extends InstructionAccountInput = InstructionAccountInput, TAccountInstructionsSysvar extends InstructionAccountInput = InstructionAccountInput> = {
-    phygitalToken: TAccountPhygitalToken;
-    instructionsSysvar?: TAccountInstructionsSysvar;
-    secp256r1VerifyArgs: VerifyInstructionDataArgs["secp256r1VerifyArgs"];
-    messageHash: VerifyInstructionDataArgs["messageHash"];
-    expectedRpIdHash: VerifyInstructionDataArgs["expectedRpIdHash"];
-    expectedOrigins: VerifyInstructionDataArgs["expectedOrigins"];
-};
-
-// @public (undocumented)
-export type VerifyInstruction<TProgram extends string = typeof PHYGITAL_TOKEN_PROGRAM_ADDRESS, TAccountPhygitalToken extends string | AccountMeta<string> = string, TAccountInstructionsSysvar extends string | AccountMeta<string> = "Sysvar1nstructions1111111111111111111111111", TRemainingAccounts extends readonly AccountMeta<string>[] = []> = Instruction<TProgram> & InstructionWithData<ReadonlyUint8Array> & InstructionWithAccounts<[
-TAccountPhygitalToken extends string ? WritableAccount<TAccountPhygitalToken> : TAccountPhygitalToken,
-TAccountInstructionsSysvar extends string ? ReadonlyAccount<TAccountInstructionsSysvar> : TAccountInstructionsSysvar,
-...TRemainingAccounts
-]>;
-
-// @public (undocumented)
-export type VerifyInstructionData = {
-    discriminator: ReadonlyUint8Array;
-    secp256r1VerifyArgs: Secp256r1VerifyArgs;
-    messageHash: ReadonlyUint8Array;
-    expectedRpIdHash: Option_2<ReadonlyUint8Array>;
-    expectedOrigins: Option_2<Array<string>>;
-};
-
-// @public (undocumented)
-export type VerifyInstructionDataArgs = {
-    secp256r1VerifyArgs: Secp256r1VerifyArgsArgs;
-    messageHash: ReadonlyUint8Array;
-    expectedRpIdHash: OptionOrNullable<ReadonlyUint8Array>;
-    expectedOrigins: OptionOrNullable<Array<string>>;
+export type VerifiedTap = {
+    publicKey: Uint8Array;
+    signature: Uint8Array;
+    message: Uint8Array;
 };
 
 // @public
-export function verifyResponse(input: {
-    response: AuthenticationResponseJSON;
-    expectedOrigin: string | readonly string[];
-    expectedRpId?: string;
-} & ({
-    expectedMessage: string;
-    expectedChallenge?: never;
-} | {
-    expectedChallenge: string;
-    expectedMessage?: never;
-})): Promise<{
-    isVerified: boolean;
-    secp256r1PublicKey: string;
-}>;
+export function verifyResponse(response: AuthenticationResponseJSON, expected: string | Uint8Array): VerifiedTap;
 
 // (No @packageDocumentation comment for this package)
 

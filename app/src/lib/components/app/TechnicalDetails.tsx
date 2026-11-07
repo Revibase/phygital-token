@@ -5,10 +5,9 @@ import { Check, ChevronRight } from 'lucide-react';
 import { findPhygitalTokenPda, startAuthentication, verifyResponse } from 'phygital-token-sdk';
 import { useEffect, useState } from 'react';
 
-import { canTapHere, tapHint } from '#lib/client/capability.ts';
+import { TAP_HINT, webauthnAvailable } from '#lib/client/capability.ts';
 import { describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 import { accessoryMediaQuery } from '#lib/client/queries.ts';
-import { browserRpc } from '#lib/client/rpc.ts';
 import { shortAddress } from '#lib/shared/encoding.ts';
 import type { AccessoryView } from '#lib/shared/types.ts';
 import { CopyButton } from './CopyButton';
@@ -42,7 +41,7 @@ export function TechnicalDetails({
 	const collectibleName = mediaQuery.data?.name ?? null;
 	const [check, setCheck] = useState<'idle' | 'tapping' | 'genuine' | 'mismatch'>('idle');
 	const [checkFailure, setCheckFailure] = useState<FriendlyError | null>(null);
-	const canCheck = canTapHere();
+	const canCheck = webauthnAvailable();
 	useEffect(() => {
 		if (open) {
 			setCheck('idle');
@@ -53,7 +52,7 @@ export function TechnicalDetails({
 		? 'Open this page in Safari or Chrome'
 		: {
 				idle: 'Hold it to your phone',
-				tapping: tapHint(),
+				tapping: TAP_HINT,
 				genuine: 'Genuine, and in your hand',
 				mismatch: 'That’s a different accessory'
 			}[check];
@@ -63,17 +62,10 @@ export function TechnicalDetails({
 		setCheckFailure(null);
 		try {
 			const message = crypto.randomUUID();
-			const response = await startAuthentication(message, { rpc: browserRpc() });
-			const result = await verifyResponse({
-				expectedMessage: message,
-				expectedOrigin: location.origin,
-				response
-			});
-			if (!result.isVerified) throw new Error('Signature did not verify');
+			const response = await startAuthentication(message);
+			const { publicKey } = verifyResponse(response, message);
 			setCheck(
-				String(await findPhygitalTokenPda(result.secp256r1PublicKey)) === accessory.pda
-					? 'genuine'
-					: 'mismatch'
+				String(await findPhygitalTokenPda(publicKey)) === accessory.pda ? 'genuine' : 'mismatch'
 			);
 		} catch (err) {
 			setCheckFailure(describeError(err, 'tap'));

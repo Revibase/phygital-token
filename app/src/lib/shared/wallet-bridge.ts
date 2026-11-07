@@ -1,10 +1,9 @@
 import {
 	getCompiledTransactionMessageDecoder,
 	getTransactionDecoder,
-	type CompiledTransactionMessage,
-	type ReadonlyUint8Array
+	type CompiledTransactionMessage
 } from '@solana/kit';
-import { PHYGITAL_TOKEN_PROGRAM_ADDRESS, VERIFY_DISCRIMINATOR } from 'phygital-token-sdk';
+import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from 'phygital-token-sdk';
 
 export const BRIDGE_VERSION = 1;
 export const BRIDGE_SOURCE_DAPP = 'iframe-wallet-dapp';
@@ -97,12 +96,12 @@ export function refuseMessage(bytes: Uint8Array, frameOrigin: string): string | 
 
 /**
  * Why Revibase refuses to sign this transaction for a framed app, or null if it can ask the person.
- * Of the accessory program, a framed app may only call `verify`, never change who owns an accessory.
+ * Framed apps may not call the accessory program at all (ownership or otherwise).
  */
 export function refuseTransaction(bytes: Uint8Array): string | null {
-	let calls: { program: string; data: ReadonlyUint8Array }[];
+	let programs: string[];
 	try {
-		calls = programCalls(
+		programs = invokedPrograms(
 			getCompiledTransactionMessageDecoder().decode(
 				getTransactionDecoder().decode(bytes).messageBytes
 			)
@@ -110,11 +109,9 @@ export function refuseTransaction(bytes: Uint8Array): string | null {
 	} catch {
 		return 'Revibase could not read that transaction.';
 	}
-	const ownerChange = calls.some(
-		({ program, data }) =>
-			program === PHYGITAL_TOKEN_PROGRAM_ADDRESS && !startsWith(data, VERIFY_DISCRIMINATOR)
-	);
-	return ownerChange ? 'Revibase won’t let another site change your accessories.' : null;
+	return programs.includes(PHYGITAL_TOKEN_PROGRAM_ADDRESS)
+		? 'Revibase won’t let another site change your accessories.'
+		: null;
 }
 
 function isTransactionMessage(bytes: Uint8Array): boolean {
@@ -127,21 +124,11 @@ function isTransactionMessage(bytes: Uint8Array): boolean {
 }
 
 /** Invoked programs are always static accounts, so address lookup tables can't hide one. */
-function programCalls(
-	message: CompiledTransactionMessage
-): { program: string; data: ReadonlyUint8Array }[] {
+function invokedPrograms(message: CompiledTransactionMessage): string[] {
 	if ('instructionHeaders' in message) {
-		return message.instructionHeaders.map((header, i) => ({
-			program: message.staticAccounts[header.programAccountIndex],
-			data: message.instructionPayloads[i].instructionData
-		}));
+		return message.instructionHeaders.map(
+			(header) => message.staticAccounts[header.programAccountIndex]
+		);
 	}
-	return message.instructions.map((ix) => ({
-		program: message.staticAccounts[ix.programAddressIndex],
-		data: ix.data ?? new Uint8Array()
-	}));
-}
-
-function startsWith(data: ReadonlyUint8Array, prefix: ReadonlyUint8Array): boolean {
-	return data.length >= prefix.length && prefix.every((byte, i) => data[i] === byte);
+	return message.instructions.map((ix) => message.staticAccounts[ix.programAddressIndex]);
 }

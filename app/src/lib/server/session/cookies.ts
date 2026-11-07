@@ -30,6 +30,10 @@ export type CookieJar = {
  * Login:
  * - `os`  — owner_session: this browser proved control of a wallet (one signMessage).
  *
+ * Enroll:
+ * - `en`  — enroll: a verified tap from a card with no token yet. Lets this
+ *   browser enroll that card's product key under the tap's `identifier`.
+ *
  * Purpose is bound into the token (`t`), so a browse_unlock cookie never
  * verifies as owner_browse (and vice versa).
  *
@@ -66,18 +70,22 @@ export type OwnerBrowseSession = {
 /** Wallet login: proof this browser controls `wallet`. Not an admit on its own. */
 export type OwnerSession = { v: 1; t: 'os'; sid: string; wallet: string; exp: number };
 
+/** A verified tap from an unregistered card: `identifier` is its NDEF key. */
+export type EnrollSession = { v: 1; t: 'en'; sid: string; identifier: string; exp: number };
+
 /** Either admit cookie — enough to view `/accessory`. */
 export type AdmitSession = BrowseUnlockSession | OwnerBrowseSession;
 
 /** Middleware sets this after the admit cookie verifies. Pages read the PDA from here. */
 export const ADMIT_PDA_HEADER = 'x-admit-pda';
 
-type AnySession = BrowseUnlockSession | OwnerBrowseSession | OwnerSession;
+type AnySession = BrowseUnlockSession | OwnerBrowseSession | OwnerSession | EnrollSession;
 
 const NAMES = {
 	bu: dev ? 'bu' : '__Host-bu',
 	ob: dev ? 'ob' : '__Host-ob',
-	os: dev ? 'os' : '__Host-os'
+	os: dev ? 'os' : '__Host-os',
+	en: dev ? 'en' : '__Host-en'
 } as const;
 
 const encoder = new TextEncoder();
@@ -217,6 +225,36 @@ export async function setOwnerSession(
 	};
 	await writeCookie(cookies, secret, session);
 	return session;
+}
+
+/** Issue enroll for a verified tap whose card has no token yet. */
+export async function setEnrollSession(
+	cookies: CookieJar,
+	secret: string,
+	identifier: string,
+	now = Date.now()
+): Promise<EnrollSession> {
+	const session: EnrollSession = {
+		v: 1,
+		t: 'en',
+		sid: newSessionId(),
+		identifier,
+		exp: now + BROWSE_SESSION_TTL_MS
+	};
+	await writeCookie(cookies, secret, session);
+	return session;
+}
+
+export function readEnrollSession(cookies: CookieJar, secret: string) {
+	return verifyToken<EnrollSession>(secret, cookies.get(NAMES.en), 'en');
+}
+
+/**
+ * The `credentials.create` challenge for an enroll session: bound to that
+ * cookie and fixed for its life, so the page renders it and nothing refreshes.
+ */
+export function enrollChallenge(secret: string, session: EnrollSession): Promise<Uint8Array> {
+	return hmac(secret, `enroll-challenge:${session.sid}`);
 }
 
 export function readBrowseUnlock(cookies: CookieJar, secret: string) {

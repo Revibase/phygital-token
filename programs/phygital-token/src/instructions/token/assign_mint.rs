@@ -6,7 +6,7 @@ use anchor_lang::prelude::*;
 use crate::constants::ADMIN_CONFIG_SEED;
 use crate::error::PhygitalError;
 use crate::state::{AdminConfig, PhygitalToken};
-use crate::webauthn::Secp256r1Pubkey;
+use crate::tap::Secp256r1Pubkey;
 
 #[event]
 pub struct AssignMintEvent {

@@ -25,11 +25,16 @@ function parseAssertion(input: unknown): AuthenticationResponseJSON | null {
 		!isString(inner.signature)
 	)
 		return null;
+	const ext = r.clientExtensionResults as Record<string, unknown> | undefined;
+	const largeBlob = ext?.largeBlob as Record<string, unknown> | undefined;
+	const blob = largeBlob?.blob;
 	return {
 		id: r.id,
 		rawId: r.rawId,
 		type: 'public-key',
-		clientExtensionResults: {},
+		clientExtensionResults: {
+			...(isString(blob) ? { largeBlob: { blob } } : {})
+		},
 		response: {
 			clientDataJSON: inner.clientDataJSON,
 			authenticatorData: inner.authenticatorData,
@@ -54,7 +59,7 @@ export type ResumeResult =
 	  };
 
 export async function verifyResume(
-	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi>; origin: string },
+	deps: { db: D1Database; rpc: Rpc<SolanaRpcApi> },
 	input: { challengeId: unknown; response: unknown },
 	now = Date.now()
 ): Promise<ResumeResult> {
@@ -73,23 +78,14 @@ export async function verifyResume(
 	const assertion = parseAssertion(input.response);
 	if (!assertion) return rejected;
 
-	let secp256r1PublicKey: string;
+	let publicKey: Uint8Array;
 	try {
-		const result = await verifyResponse({
-			expectedMessage,
-			expectedOrigin: deps.origin,
-			response: assertion
-		});
-		if (!result.isVerified) return rejected;
-		secp256r1PublicKey = result.secp256r1PublicKey;
+		publicKey = verifyResponse(assertion, expectedMessage).publicKey;
 	} catch {
 		return rejected;
 	}
 
-	const resolved = await fetchAccessory(
-		deps.rpc,
-		String(await findPhygitalTokenPda(secp256r1PublicKey))
-	);
+	const resolved = await fetchAccessory(deps.rpc, String(await findPhygitalTokenPda(publicKey)));
 	if (!resolved)
 		return {
 			ok: false,

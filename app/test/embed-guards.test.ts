@@ -9,7 +9,7 @@ import {
 	setTransactionMessageLifetimeUsingBlockhash,
 	type Blockhash
 } from '@solana/kit';
-import { PHYGITAL_TOKEN_PROGRAM_ADDRESS, VERIFY_DISCRIMINATOR } from 'phygital-token-sdk';
+import { PHYGITAL_TOKEN_PROGRAM_ADDRESS } from 'phygital-token-sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import { startEmbedHost, type EmbedAccount } from '#lib/client/wallet/embed-host.ts';
@@ -64,15 +64,11 @@ describe('what a framed app may get signed', () => {
 		expect(refuseMessage(new Uint8Array(message), FRAME)).toMatch(/transaction/);
 	});
 
-	it('refuses any accessory instruction but verify, in every transaction version', () => {
+	it('refuses any accessory-program instruction, in every transaction version', () => {
 		for (const version of ['legacy', 0, 1] as const) {
 			expect(
 				refuseTransaction(transaction(PHYGITAL_TOKEN_PROGRAM_ADDRESS, SET_OWNER, version).wire)
 			).toMatch(/accessories/);
-			const verify = new Uint8Array([...VERIFY_DISCRIMINATOR, 0]);
-			expect(
-				refuseTransaction(transaction(PHYGITAL_TOKEN_PROGRAM_ADDRESS, verify, version).wire)
-			).toBeNull();
 			expect(refuseTransaction(transaction(SYSTEM, new Uint8Array([2]), version).wire)).toBeNull();
 		}
 		expect(refuseTransaction(new Uint8Array([9]))).toMatch(/could not read/);

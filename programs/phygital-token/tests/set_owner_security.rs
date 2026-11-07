@@ -6,6 +6,7 @@ use common::{
     assert_phygital_token_program_error, assert_transaction_failed, current_slot_entry,
     TestContext, TestPasskey, LAMPORTS_PER_SOL,
 };
+use phygital_token::build_set_owner_challenge;
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -18,11 +19,10 @@ fn set_owner_rejects_wrong_signature() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     let bad_sig = [0u8; 64];
-    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction_with(
+    let (secp_ix, verify_args) = passkey.secp256r1_instruction_with(
         phygital_token.phygital_token,
         recipient.pubkey(),
         slot_hash,
-        1,
         Some(bad_sig),
     );
     let transfer_ix = ctx.set_owner_ix(
@@ -34,7 +34,7 @@ fn set_owner_rejects_wrong_signature() {
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    let err = ctx.send_set_owner_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
+    let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, transfer_ix], &[&recipient]);
     assert_transaction_failed(err);
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
@@ -53,11 +53,10 @@ fn set_owner_rejects_passkey_for_different_token() {
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
     // Sign with passkey A but target phygital_token B (whose public_key is passkey B).
-    let (secp_ix, verify_args) = passkey_a.secp256r1_verify_instruction(
+    let (secp_ix, verify_args) = passkey_a.secp256r1_instruction(
         phygital_token_b.phygital_token,
         recipient.pubkey(),
         slot_hash,
-        1,
     );
     let transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),
@@ -68,7 +67,7 @@ fn set_owner_rejects_passkey_for_different_token() {
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    let err = ctx.send_set_owner_with_instructions(vec![secp_ix, transfer_ix], &[&recipient]);
+    let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, transfer_ix], &[&recipient]);
     assert_phygital_token_program_error(err, "Secp256r1PubkeyMismatch");
 }
 
@@ -80,13 +79,9 @@ fn set_owner_succeeds_when_secp_not_immediately_preceding() {
     let recipient = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, mut verify_args) = passkey.secp256r1_verify_instruction(
-        phygital_token.phygital_token,
-        recipient.pubkey(),
-        slot_hash,
-        1,
-    );
-    verify_args.verify_args_relative_index = -2;
+    let (secp_ix, mut verify_args) =
+        passkey.secp256r1_instruction(phygital_token.phygital_token, recipient.pubkey(), slot_hash);
+    verify_args.relative_index = -2;
     let transfer_ix = ctx.set_owner_ix(
         recipient.pubkey(),
         phygital_token.phygital_token,
@@ -97,7 +92,7 @@ fn set_owner_succeeds_when_secp_not_immediately_preceding() {
     ctx.svm
         .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    ctx.send_set_owner_with_instructions(vec![secp_ix, noop, transfer_ix], &[&recipient])
+    TestContext::send_instructions(&mut ctx.svm, &[secp_ix, noop, transfer_ix], &[&recipient])
         .expect("transfer should succeed when secp256r1 ix is not immediately preceding");
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
@@ -120,7 +115,6 @@ fn set_owner_rejects_slot_not_in_sysvar() {
         true,
         Some(missing_slot),
         Some(missing_hash),
-        Some(1),
     );
     assert_phygital_token_program_error(err, "InvalidSlotHash");
 }
@@ -134,12 +128,8 @@ fn set_owner_rejects_a_tap_meant_for_another_wallet() {
     let attacker = Keypair::new();
     let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
 
-    let (secp_ix, verify_args) = passkey.secp256r1_verify_instruction(
-        phygital_token.phygital_token,
-        intended.pubkey(),
-        slot_hash,
-        1,
-    );
+    let (secp_ix, verify_args) =
+        passkey.secp256r1_instruction(phygital_token.phygital_token, intended.pubkey(), slot_hash);
     let transfer_ix = ctx.set_owner_ix(
         attacker.pubkey(),
         phygital_token.phygital_token,
@@ -149,8 +139,51 @@ fn set_owner_rejects_a_tap_meant_for_another_wallet() {
     ctx.svm
         .airdrop(&attacker.pubkey(), 2 * LAMPORTS_PER_SOL)
         .ok();
-    let err = ctx.send_set_owner_with_instructions(vec![secp_ix, transfer_ix], &[&attacker]);
+    let err = TestContext::send_instructions(&mut ctx.svm, &[secp_ix, transfer_ix], &[&attacker]);
     assert_phygital_token_program_error(err, "ChallengeHashMismatch");
+    assert_eq!(
+        ctx.phygital_token_owner(phygital_token.phygital_token),
+        Pubkey::default()
+    );
+}
+
+#[test]
+fn set_owner_rejects_a_challenge_without_the_authorize_prefix() {
+    let mut ctx = TestContext::new();
+    let passkey = TestPasskey::generate();
+    let phygital_token = ctx.init_phygital_token(&passkey);
+    let recipient = Keypair::new();
+    ctx.svm
+        .airdrop(&recipient.pubkey(), 2 * LAMPORTS_PER_SOL)
+        .ok();
+    let (slot_number, slot_hash) = current_slot_entry(&ctx.svm);
+    let challenge = build_set_owner_challenge(
+        &phygital_token.phygital_token,
+        &recipient.pubkey(),
+        slot_hash,
+    );
+
+    // Each validly signed by the token's key: the pre-change `authenticate`
+    // prefix, a same-length near miss, and the bare challenge (shorter than
+    // any accepted message, so it fails the offsets length check first).
+    let cases: [(&[u8], &str); 3] = [
+        (b"authenticate", "ChallengeHashMismatch"),
+        (b"Authorize", "ChallengeHashMismatch"),
+        (b"", "InvalidSignatureOffsets"),
+    ];
+    for (prefix, expected_error) in cases {
+        let message = [prefix, challenge.as_slice()].concat();
+        let (secp_ix, verify_args) = passkey.secp256r1_instruction_for_raw_message(&message);
+        let transfer_ix = ctx.set_owner_ix(
+            recipient.pubkey(),
+            phygital_token.phygital_token,
+            verify_args,
+            slot_number,
+        );
+        let err =
+            TestContext::send_instructions(&mut ctx.svm, &[secp_ix, transfer_ix], &[&recipient]);
+        assert_phygital_token_program_error(err, expected_error);
+    }
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
         Pubkey::default()

@@ -2,13 +2,13 @@
 //! `[PHYGITAL_TOKEN_SEED, x(passkey public key)]`.
 //!
 //! Records the accessory's passkey, its owner (if any), its type and the last
-//! accepted WebAuthn sign count. The sign count strictly increases with every
-//! accepted tap, which is what makes each assertion single-use.
+//! accepted slot number. The slot strictly increases with every accepted tap,
+//! which is what makes each tap single-use within the SlotHashes window.
 
 use anchor_lang::prelude::*;
 
 use crate::error::PhygitalError;
-use crate::webauthn::Secp256r1Pubkey;
+use crate::tap::Secp256r1Pubkey;
 
 #[repr(u8)]
 #[derive(AnchorDeserialize, AnchorSerialize, PartialEq, Clone, Copy)]
@@ -26,7 +26,7 @@ pub enum PhygitalTokenType {
 pub struct PhygitalToken {
     pub owner: Pubkey,
     pub mint: Pubkey,
-    pub last_sign_count: u32,
+    pub last_slot: u64,
     pub token_type: u8,
     pub bump: u8,
     pub public_key: Secp256r1Pubkey,
@@ -42,6 +42,7 @@ impl PhygitalToken {
         token_type: PhygitalTokenType,
         public_key: Secp256r1Pubkey,
         owner: Pubkey,
+        mint: Pubkey,
         bump: u8,
     ) -> Result<()> {
         require!(
@@ -53,20 +54,19 @@ impl PhygitalToken {
         self.token_type = token_type as u8;
         self.public_key = public_key;
         self.owner = owner;
+        self.mint = mint;
         self.bump = bump;
         Ok(())
     }
 
-    pub fn accept_assertion(&mut self, (pubkey, sign_count): (Secp256r1Pubkey, u32)) -> Result<()> {
+    /// Require `pubkey` matches this token and `slot_number > last_slot`, then store the slot.
+    pub fn accept_tap(&mut self, pubkey: Secp256r1Pubkey, slot_number: u64) -> Result<()> {
         require!(
             self.public_key == pubkey,
             PhygitalError::Secp256r1PubkeyMismatch
         );
-        require!(
-            sign_count > self.last_sign_count,
-            PhygitalError::StaleSignCount
-        );
-        self.last_sign_count = sign_count;
+        require!(slot_number > self.last_slot, PhygitalError::StaleSlot);
+        self.last_slot = slot_number;
         Ok(())
     }
 
@@ -77,6 +77,6 @@ impl PhygitalToken {
     }
 }
 
-// Zero-copy layout: owner 32 + mint 32 + sign count 4 + type 1 + bump 1 +
-// public key 33 + identifier 33, with no padding (alignment 4 from the u32).
-const _: () = assert!(core::mem::size_of::<PhygitalToken>() == 136);
+// Zero-copy layout: owner 32 + mint 32 + last_slot 8 + type 1 + bump 1 +
+// public key 33 + identifier 33 + 4 bytes trailing pad (struct align 8 from u64).
+const _: () = assert!(core::mem::size_of::<PhygitalToken>() == 144);

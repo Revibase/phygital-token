@@ -1,25 +1,12 @@
 import { PhygitalTokenError } from "../errors.js";
 
-import { PLACEHOLDER_CREDENTIAL_ID_LENGTH } from "./recoverCredentialId.js";
-
 /** Base64URL-encoded bytes (unpadded). */
 export type Base64URLString = string;
 
-export type PublicKeyCredentialRequestOptionsJSON = {
-  challenge: Base64URLString;
-  timeout?: number;
-  rpId?: string;
-  allowCredentials?: Array<{
-    id: Base64URLString;
-    type: PublicKeyCredentialType;
-    transports?: Array<"ble" | "cable" | "hybrid" | "internal" | "nfc" | "smart-card" | "usb">;
-  }>;
-  userVerification?: UserVerificationRequirement;
-  hints?: Array<"hybrid" | "security-key" | "client-device">;
-  extensions?: AuthenticationExtensionsClientInputs;
-};
-
-/** A WebAuthn assertion in the standard JSON form (base64url fields). */
+/**
+ * A tap in the standard WebAuthn JSON form, safe to `JSON.stringify`. Only
+ * `clientExtensionResults.largeBlob.blob` carries the card's signature.
+ */
 export type AuthenticationResponseJSON = {
   id: Base64URLString;
   rawId: Base64URLString;
@@ -30,143 +17,172 @@ export type AuthenticationResponseJSON = {
     userHandle?: Base64URLString;
   };
   authenticatorAttachment?: AuthenticatorAttachment;
-  clientExtensionResults: AuthenticationExtensionsClientOutputs;
+  clientExtensionResults: { largeBlob?: { blob?: Base64URLString } };
   type: PublicKeyCredentialType;
 };
 
-export function bufferToBase64URLString(buffer: ArrayBuffer | ArrayBufferView): Base64URLString {
-  const bytes =
-    buffer instanceof ArrayBuffer
-      ? new Uint8Array(buffer)
-      : new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-  const chunkSize = 0x8000;
-  let str = "";
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    str += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-}
-
-export function utf8ToBase64URLString(value: string): Base64URLString {
-  return bufferToBase64URLString(new TextEncoder().encode(value));
-}
-
-export function base64URLStringToBuffer(base64URLString: string): Uint8Array {
-  const base64 = base64URLString.replace(/-/g, "+").replace(/_/g, "/");
-  const padLength = (4 - (base64.length % 4)) % 4;
-  const padded = base64.padEnd(base64.length + padLength, "=");
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
-}
-
-function base64URLStringToArrayBuffer(base64URLString: string): ArrayBuffer {
-  const bytes = base64URLStringToBuffer(base64URLString);
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-}
-
-function toPublicKeyCredentialDescriptor(descriptor: {
+/**
+ * An enrollment in the standard WebAuthn JSON form, safe to `JSON.stringify`.
+ * `rawId` is the card's product key (33-byte compressed P-256); verify the
+ * packed attestation in `attestationObject` up to the Revi root before trusting it.
+ */
+export type RegistrationResponseJSON = {
   id: Base64URLString;
+  rawId: Base64URLString;
+  response: {
+    clientDataJSON: Base64URLString;
+    attestationObject: Base64URLString;
+    transports?: string[];
+  };
+  authenticatorAttachment?: AuthenticatorAttachment;
   type: PublicKeyCredentialType;
-  transports?: string[];
-}): PublicKeyCredentialDescriptor {
-  const { id, transports, ...rest } = descriptor;
-  return {
-    ...rest,
-    id: base64URLStringToArrayBuffer(id),
-    ...(transports !== undefined ? { transports: transports as AuthenticatorTransport[] } : {}),
-  };
+};
+
+export function toBase64URL(bytes: ArrayBuffer | Uint8Array): Base64URLString {
+  const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let binary = "";
+  for (let i = 0; i < view.length; i += 0x8000) {
+    binary += String.fromCharCode(...view.subarray(i, i + 0x8000));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 
-export function nfcWebAuthnRequestOptions(
-  challenge: Base64URLString,
-  rpId: string,
-  credentialId?: Base64URLString,
-): PublicKeyCredentialRequestOptionsJSON {
-  return {
-    challenge,
-    rpId,
-    userVerification: "preferred",
-    allowCredentials: [
-      {
-        id:
-          credentialId ??
-          bufferToBase64URLString(
-            crypto.getRandomValues(new Uint8Array(PLACEHOLDER_CREDENTIAL_ID_LENGTH)),
-          ),
-        type: "public-key",
-        transports: ["nfc"],
-      },
-    ],
-  };
+export function fromBase64URL(value: Base64URLString): Uint8Array {
+  return Uint8Array.from(atob(value.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 }
 
-export async function authenticateWithWebauthn(
-  optionsJSON: PublicKeyCredentialRequestOptionsJSON,
-  signal?: AbortSignal,
-): Promise<AuthenticationResponseJSON> {
-  if (typeof window === "undefined" || typeof window.PublicKeyCredential === "undefined") {
+/**
+ * The rpId the SDK sends: the page's hostname, or `""` outside a browser. The
+ * card ignores it; only the large-blob signature matters.
+ */
+export function browserRpId(): string {
+  return typeof window !== "undefined" ? (window.location?.hostname ?? "") : "";
+}
+
+/** The SDK's own open prompt, closed when the next one starts. */
+let openPrompt: AbortController | undefined;
+
+const CANCELLED = "Authentication was cancelled or timed out. Tap the tag again.";
+
+/**
+ * Runs one tap prompt. Starting a prompt closes the SDK's previous one, so a
+ * tap never fails with "A request is already pending". Aborting `signal`
+ * closes this prompt and rejects with the signal's reason.
+ */
+async function prompt(
+  run: (signal: AbortSignal) => Promise<Credential | null>,
+  signal: AbortSignal | undefined,
+): Promise<PublicKeyCredential> {
+  if (typeof globalThis.PublicKeyCredential !== "function") {
     throw new PhygitalTokenError("WEBAUTHN_UNSUPPORTED", "This browser does not support WebAuthn.");
   }
-
-  let allowCredentials: PublicKeyCredentialDescriptor[] | undefined;
-  if (optionsJSON.allowCredentials?.length !== 0) {
-    allowCredentials = optionsJSON.allowCredentials?.map(toPublicKeyCredentialDescriptor);
-  }
-
-  const publicKey: PublicKeyCredentialRequestOptions = {
-    ...optionsJSON,
-    challenge: base64URLStringToArrayBuffer(optionsJSON.challenge),
-    allowCredentials,
-  };
-
-  let credential: PublicKeyCredential | null;
+  signal?.throwIfAborted();
+  openPrompt?.abort(new DOMException("A newer tap replaced this one.", "AbortError"));
+  const controller = new AbortController();
+  openPrompt = controller;
+  const forward = () => controller.abort(signal!.reason);
+  signal?.addEventListener("abort", forward, { once: true });
   try {
-    credential = (await navigator.credentials.get({
-      publicKey,
-      signal,
-    })) as PublicKeyCredential | null;
+    const credential = await run(controller.signal);
+    if (!credential) throw new PhygitalTokenError("AUTHENTICATION_CANCELLED", CANCELLED);
+    return credential as PublicKeyCredential;
   } catch (e) {
     if (e instanceof DOMException && e.name === "NotAllowedError") {
-      throw new PhygitalTokenError(
-        "AUTHENTICATION_CANCELLED",
-        "Authentication was cancelled or timed out. Tap the tag again.",
-        { cause: e },
-      );
+      throw new PhygitalTokenError("AUTHENTICATION_CANCELLED", CANCELLED, { cause: e });
     }
     throw e;
+  } finally {
+    signal?.removeEventListener("abort", forward);
+    if (openPrompt === controller) openPrompt = undefined;
   }
+}
 
-  if (!credential) {
-    throw new PhygitalTokenError(
-      "AUTHENTICATION_CANCELLED",
-      "Authentication was not completed. Tap the tag again.",
-    );
-  }
-
+/**
+ * Prompt one NFC tap asking the card to sign `allowListId` (`authorize || payload`).
+ * One tap, no PIN: the card returns its public key and signature in the large blob.
+ */
+export async function tapCard(
+  allowListId: Uint8Array<ArrayBuffer>,
+  signal?: AbortSignal,
+): Promise<AuthenticationResponseJSON> {
+  const credential = await prompt(
+    (promptSignal) =>
+      navigator.credentials.get({
+        publicKey: {
+          challenge: allowListId, // Framing only: the card signs the allowList id, not the challenge.
+          rpId: browserRpId(),
+          userVerification: "discouraged",
+          allowCredentials: [{ id: allowListId, type: "public-key", transports: ["nfc"] }],
+          extensions: { largeBlob: { read: true } },
+        },
+        signal: promptSignal,
+      }),
+    signal,
+  );
   const response = credential.response as AuthenticatorAssertionResponse;
-  let userHandle: Base64URLString | undefined;
-  if (response.userHandle) {
-    userHandle = bufferToBase64URLString(response.userHandle);
-  }
-
-  const assertion: AuthenticationResponseJSON = {
+  const blob = credential.getClientExtensionResults().largeBlob?.blob;
+  return {
     id: credential.id,
-    rawId: bufferToBase64URLString(credential.rawId),
+    rawId: toBase64URL(credential.rawId),
+    type: "public-key",
     response: {
-      authenticatorData: bufferToBase64URLString(response.authenticatorData),
-      clientDataJSON: bufferToBase64URLString(response.clientDataJSON),
-      signature: bufferToBase64URLString(response.signature),
-      userHandle,
+      clientDataJSON: toBase64URL(response.clientDataJSON),
+      authenticatorData: toBase64URL(response.authenticatorData),
+      signature: toBase64URL(response.signature),
+      userHandle: response.userHandle ? toBase64URL(response.userHandle) : undefined,
     },
-    type: credential.type as PublicKeyCredentialType,
-    clientExtensionResults: credential.getClientExtensionResults(),
+    clientExtensionResults: blob ? { largeBlob: { blob: toBase64URL(blob) } } : {},
     authenticatorAttachment:
       (credential.authenticatorAttachment as AuthenticatorAttachment | null) ?? undefined,
   };
+}
 
-  return assertion;
+/**
+ * Prompt one NFC tap enrolling the card's product key over `challenge`. The
+ * card generates the key on its first enrollment and returns the same key,
+ * freshly attested, on every later one, so a failed registration can just ask
+ * again. No PIN and no resident key, so both are `discouraged`: `"required"`
+ * makes the browser refuse the card.
+ */
+export async function enrollCard(
+  challenge: Uint8Array<ArrayBuffer>,
+  options?: { signal?: AbortSignal },
+): Promise<RegistrationResponseJSON> {
+  const credential = await prompt(
+    (promptSignal) =>
+      navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: { name: "Revibase", id: browserRpId() },
+          user: {
+            id: crypto.getRandomValues(new Uint8Array(16)),
+            name: "Revibase accessory",
+            displayName: "Revibase accessory",
+          },
+          pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+          authenticatorSelection: {
+            authenticatorAttachment: "cross-platform",
+            residentKey: "discouraged",
+            userVerification: "discouraged",
+          },
+          attestation: "direct",
+          hints: ["security-key"],
+        } as PublicKeyCredentialCreationOptions,
+        signal: promptSignal,
+      }),
+    options?.signal,
+  );
+  const response = credential.response as AuthenticatorAttestationResponse;
+  return {
+    id: credential.id,
+    rawId: toBase64URL(credential.rawId),
+    type: "public-key",
+    response: {
+      clientDataJSON: toBase64URL(response.clientDataJSON),
+      attestationObject: toBase64URL(response.attestationObject),
+      transports: response.getTransports?.(),
+    },
+    authenticatorAttachment:
+      (credential.authenticatorAttachment as AuthenticatorAttachment | null) ?? undefined,
+  };
 }

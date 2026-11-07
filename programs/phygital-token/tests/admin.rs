@@ -1,5 +1,6 @@
 mod common;
 
+use anchor_lang::prelude::Pubkey;
 use common::{
     assert_phygital_token_program_error, assert_transaction_failed, unique_identifier, TestContext,
     TestPasskey,
@@ -19,6 +20,7 @@ fn issuer_can_initialize() {
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
         owner: anchor_lang::prelude::Pubkey::default(),
+        mint: Pubkey::default(),
     };
     let issuer = ctx.issuer.insecure_clone();
     let ix = ctx.initialize_ix(issuer.pubkey(), phygital_token, args);
@@ -36,6 +38,7 @@ fn admin_cannot_initialize() {
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
         owner: anchor_lang::prelude::Pubkey::default(),
+        mint: Pubkey::default(),
     };
     let admin = ctx.admin.insecure_clone();
     let ix = ctx.initialize_ix(admin.pubkey(), phygital_token, args);
@@ -105,6 +108,7 @@ fn admin_can_rotate_issuer() {
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
         owner: anchor_lang::prelude::Pubkey::default(),
+        mint: Pubkey::default(),
     };
     let old_issuer = ctx.issuer.insecure_clone();
     let ix = ctx.initialize_ix(old_issuer.pubkey(), phygital_token, args);
@@ -122,6 +126,7 @@ fn admin_can_rotate_issuer() {
         secp256r1_pubkey: secp256r1_pubkey2,
         token_type: PhygitalTokenType::Bearer,
         owner: anchor_lang::prelude::Pubkey::default(),
+        mint: Pubkey::default(),
     };
     let ix2 = ctx.initialize_ix(new_issuer.pubkey(), phygital_token2, args2);
     TestContext::send_instruction(&mut ctx.svm, ix2, &[&new_issuer]).expect("new issuer init");
@@ -191,6 +196,7 @@ fn non_issuer_cannot_initialize() {
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
         owner: anchor_lang::prelude::Pubkey::default(),
+        mint: Pubkey::default(),
     };
     let ix = ctx.initialize_ix(stranger.pubkey(), phygital_token, args);
     assert_phygital_token_program_error(

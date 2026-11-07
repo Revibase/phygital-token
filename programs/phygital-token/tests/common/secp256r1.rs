@@ -1,18 +1,15 @@
-use super::{TEST_ORIGIN, TEST_RP_ID};
+use super::*;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use phygital_token::{
-    build_set_owner_challenge, Secp256r1VerifyArgs, COMPRESSED_PUBKEY_SERIALIZED_SIZE,
-    SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
+    build_set_owner_challenge, Secp256r1VerifyArgs, AUTHORIZE_PREFIX,
+    COMPRESSED_PUBKEY_SERIALIZED_SIZE, DATA_START, SECP256R1_PROGRAM_ID, SIGNATURE_SERIALIZED_SIZE,
+    SIGNED_MESSAGE_LEN,
 };
 use rand::rngs::OsRng;
-use sha2::{Digest, Sha256};
 
-const SIGNATURE_SERIALIZED_SIZE: usize = 64;
-const DATA_START: usize = SIGNATURE_OFFSETS_SERIALIZED_SIZE + SIGNATURE_OFFSETS_START;
 const SECP256R1_HALF_ORDER: [u8; 32] = [
     0x7F, 0xFF, 0xFF, 0xFF, 0x80, 0x00, 0x00, 0x00, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
     0xDE, 0x73, 0x7D, 0x56, 0xD3, 0x8B, 0xCF, 0x42, 0x79, 0xDC, 0xE5, 0x61, 0x7E, 0x31, 0x92, 0xA8,
@@ -43,164 +40,79 @@ impl TestPasskey {
         }
     }
 
-    pub fn secp256r1_verify_instruction(
+    pub fn secp256r1_instruction(
         &self,
         phygital_token: Pubkey,
         recipient: Pubkey,
         slot_hash: [u8; 32],
-        sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.secp256r1_verify_instruction_with(
-            phygital_token,
-            recipient,
-            slot_hash,
-            sign_count,
-            None,
-        )
+        self.secp256r1_instruction_with(phygital_token, recipient, slot_hash, None)
     }
 
-    pub fn secp256r1_verify_instruction_with(
+    pub fn secp256r1_instruction_with(
         &self,
         phygital_token: Pubkey,
         recipient: Pubkey,
         slot_hash: [u8; 32],
-        sign_count: u32,
         signature_override: Option<[u8; 64]>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
         let challenge = build_set_owner_challenge(&phygital_token, &recipient, slot_hash);
-        self.build_secp256r1_verify_instruction(challenge, sign_count, signature_override, None)
-    }
-
-    pub fn secp256r1_verify_instruction_with_auth_flags(
-        &self,
-        phygital_token: Pubkey,
-        recipient: Pubkey,
-        slot_hash: [u8; 32],
-        sign_count: u32,
-        auth_flags: u8,
-    ) -> (Instruction, Secp256r1VerifyArgs) {
-        let challenge = build_set_owner_challenge(&phygital_token, &recipient, slot_hash);
-        self.build_secp256r1_verify_instruction(challenge, sign_count, None, Some(auth_flags))
+        self.build_secp256r1_instruction(challenge, signature_override)
     }
 
     /// A tap over `challenge` as given (for hand-built cases).
     pub fn secp256r1_instruction_for_challenge(
         &self,
         challenge: [u8; 32],
-        sign_count: u32,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.build_secp256r1_verify_instruction(challenge, sign_count, None, None)
+        self.build_secp256r1_instruction(challenge, None)
     }
 
-    pub fn verify_secp256r1_instruction(
+    /// A validly signed tap over `message` exactly as given, with no prefix
+    /// added (for wrong-prefix and wrong-length cases).
+    pub fn secp256r1_instruction_for_raw_message(
         &self,
-        message_hash: [u8; 32],
-        sign_count: u32,
+        message: &[u8],
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.build_secp256r1_verify_instruction(
-            phygital_token::build_verify_challenge(&message_hash),
-            sign_count,
-            None,
-            None,
-        )
+        self.build_signed_instruction(message, None)
     }
 
-    fn build_secp256r1_verify_instruction(
+    fn build_secp256r1_instruction(
         &self,
         expected_challenge: [u8; 32],
-        sign_count: u32,
         signature_override: Option<[u8; 64]>,
-        auth_flags: Option<u8>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.build_secp256r1_verify_instruction_typed(
-            "webauthn.get",
-            expected_challenge,
-            sign_count,
-            signature_override,
-            auth_flags,
-        )
+        let mut signed_message = [0u8; SIGNED_MESSAGE_LEN];
+        signed_message[..AUTHORIZE_PREFIX.len()].copy_from_slice(AUTHORIZE_PREFIX);
+        signed_message[AUTHORIZE_PREFIX.len()..].copy_from_slice(&expected_challenge);
+        self.build_signed_instruction(&signed_message, signature_override)
     }
 
-    /// An assertion whose `clientDataJSON.type` is `client_type`.
-    pub fn secp256r1_instruction_for_challenge_with_type(
+    fn build_signed_instruction(
         &self,
-        client_type: &str,
-        challenge: [u8; 32],
-        sign_count: u32,
-    ) -> (Instruction, Secp256r1VerifyArgs) {
-        self.build_secp256r1_verify_instruction_typed(
-            client_type,
-            challenge,
-            sign_count,
-            None,
-            None,
-        )
-    }
-
-    fn build_secp256r1_verify_instruction_typed(
-        &self,
-        client_type: &str,
-        expected_challenge: [u8; 32],
-        sign_count: u32,
+        signed_message: &[u8],
         signature_override: Option<[u8; 64]>,
-        auth_flags: Option<u8>,
     ) -> (Instruction, Secp256r1VerifyArgs) {
-        let origin = TEST_ORIGIN;
-        let mut client_data_json = Vec::new();
-        client_data_json.extend_from_slice(br#"{"type":"#);
-        Self::ccd_to_string(client_type, &mut client_data_json);
-        client_data_json.extend_from_slice(br#","challenge":"#);
-        Self::ccd_to_string(
-            &URL_SAFE_NO_PAD.encode(expected_challenge),
-            &mut client_data_json,
-        );
-        client_data_json.extend_from_slice(br#","origin":"#);
-        Self::ccd_to_string(origin, &mut client_data_json);
-        client_data_json.extend_from_slice(br#","crossOrigin":false}"#);
-
-        let client_data_hash: [u8; 32] = Sha256::digest(&client_data_json).into();
-        let rp_id_hash: [u8; 32] = Sha256::digest(TEST_RP_ID.as_bytes()).into();
-
-        let mut authenticator_data = Vec::with_capacity(37);
-        authenticator_data.extend_from_slice(&rp_id_hash);
-        authenticator_data.push(auth_flags.unwrap_or(0x01));
-        authenticator_data.extend_from_slice(&sign_count.to_be_bytes());
-
-        let mut signed_message = Vec::with_capacity(authenticator_data.len() + 32);
-        signed_message.extend_from_slice(&authenticator_data);
-        signed_message.extend_from_slice(&client_data_hash);
-
         let signature_bytes = if let Some(bytes) = signature_override {
             bytes
         } else {
-            let signature: p256::ecdsa::Signature = self.signing_key.sign(&signed_message);
+            let signature: p256::ecdsa::Signature = self.signing_key.sign(signed_message);
             normalize_low_s(signature.to_bytes().into())
         };
 
         let ix = new_secp256r1_instruction_with_signature(
-            &signed_message,
+            signed_message,
             &signature_bytes,
             &self.compressed_pubkey,
         );
 
         let verify_args = Secp256r1VerifyArgs {
-            verify_args_relative_index: -1,
-            signed_message_index: 0,
-            client_data_json,
+            relative_index: -1,
+            signature_index: 0,
         };
 
         (ix, verify_args)
     }
-
-    fn ccd_to_string(value: &str, output: &mut Vec<u8>) {
-        output.push(b'"');
-        output.extend_from_slice(value.as_bytes());
-        output.push(b'"');
-    }
-}
-
-fn cmp_be(a: &[u8], b: &[u8]) -> std::cmp::Ordering {
-    a.cmp(b)
 }
 
 fn sub_be(order: &[u8; 32], value: &[u8]) -> [u8; 32] {
@@ -222,7 +134,7 @@ fn sub_be(order: &[u8; 32], value: &[u8]) -> [u8; 32] {
 fn normalize_low_s(mut signature: [u8; 64]) -> [u8; 64] {
     let mut s = [0u8; 32];
     s.copy_from_slice(&signature[32..]);
-    if cmp_be(&s, &SECP256R1_HALF_ORDER) != std::cmp::Ordering::Greater {
+    if s.as_slice().cmp(SECP256R1_HALF_ORDER.as_slice()) != std::cmp::Ordering::Greater {
         return signature;
     }
     signature[32..].copy_from_slice(&sub_be(&SECP256R1_ORDER, &s));

@@ -1,32 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { Endian, getU32Encoder } from '@solana/kit';
 import { p256 } from '@noble/curves/nist.js';
 
 import { bytesToBase64Url, base64UrlToBytes } from '#lib/shared/encoding.ts';
 import { createTestD1 } from './support/d1-sqlite';
+import { chip } from './support/fixtures';
 import { consumeTapCounter } from '#lib/server/tap/counter-store.ts';
 import { verifyDynamicUrlWithoutCounterCheck } from '#lib/server/tap/verify-dynamic-url.ts';
-
-function chip() {
-	const priv = p256.utils.randomSecretKey();
-	return {
-		pk: p256.getPublicKey(priv),
-		tap(counter: number, overrides: Record<string, string> = {}) {
-			const nonce = crypto.getRandomValues(new Uint8Array(8));
-			const message = new Uint8Array(12);
-			message.set(getU32Encoder({ endian: Endian.Big }).encode(counter), 0);
-			message.set(nonce, 4);
-			const sig = p256.sign(message, priv);
-			return new URLSearchParams({
-				pk: bytesToBase64Url(p256.getPublicKey(priv)),
-				s: bytesToBase64Url(sig),
-				c: String(counter),
-				n: bytesToBase64Url(nonce),
-				...overrides
-			});
-		}
-	};
-}
 
 describe('verifyDynamicUrlWithoutCounterCheck', () => {
 	it('verifies a genuine chip signature over counter||nonce', () => {

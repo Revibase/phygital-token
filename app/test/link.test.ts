@@ -76,7 +76,7 @@ describe('direct browser claim transaction', () => {
 			/slot/
 		);
 		expect(() =>
-			validateLinkTransaction(wireBytes, { ...expectation, clientDataJson: new Uint8Array([1]) })
+			validateLinkTransaction(wireBytes, { ...expectation, msgBytes: new Uint8Array(32).fill(1) })
 		).toThrow(/tap data/);
 	});
 

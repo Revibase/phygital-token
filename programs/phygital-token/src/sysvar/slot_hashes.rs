@@ -41,6 +41,22 @@ pub(crate) fn fetch_slot_hash(
         return err!(PhygitalError::InvalidSysvarDataFormat);
     }
 
+    // Clients usually bind the newest entry; check it before binary search.
+    require!(
+        data.len() >= HEADER_LEN + ENTRY_LEN,
+        PhygitalError::InvalidSysvarDataFormat
+    );
+    let newest_slot = u64::from_le_bytes(
+        data[HEADER_LEN..HEADER_LEN + SLOT_LEN]
+            .try_into()
+            .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?,
+    );
+    if newest_slot == slot_number {
+        return Ok(data[HEADER_LEN + SLOT_LEN..HEADER_LEN + ENTRY_LEN]
+            .try_into()
+            .map_err(|_| PhygitalError::InvalidSysvarDataFormat)?);
+    }
+
     let mut left = 0usize;
     let mut right = num_slot_hashes;
 

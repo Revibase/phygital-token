@@ -5,9 +5,8 @@ import { startAuthentication } from 'phygital-token-sdk';
 import { useEffect, useState } from 'react';
 
 import { postJson } from '#lib/client/api.ts';
-import { canTapHere, tapHint } from '#lib/client/capability.ts';
+import { tapPrompt, webauthnAvailable } from '#lib/client/capability.ts';
 import { describeError, TAP_FAILURE_COPY, type FriendlyError } from '#lib/client/link/messages.ts';
-import { browserRpc } from '#lib/client/rpc.ts';
 import { Button } from '#lib/components/ui/button';
 import { Spinner } from '#lib/components/ui/spinner';
 import type { TapFailureReason } from '#lib/shared/types.ts';
@@ -29,8 +28,14 @@ export function TapScreen({ reason }: { reason: TapFailureReason }) {
 	} | null>(null);
 	const [tapping, setTapping] = useState(false);
 	const [failure, setFailure] = useState<FriendlyError | null>(null);
-	const [webauthnOk, setWebauthnOk] = useState(true);
-	const [body, setBody] = useState<string | null>(null);
+	// null until checked after mount.
+	const [webauthnOk, setWebauthnOk] = useState<boolean | null>(null);
+	const body =
+		!resumable || webauthnOk === null
+			? copy.body
+			: webauthnOk
+				? tapPrompt('Continue')
+				: 'Hold your accessory to your phone again.';
 
 	async function prepare() {
 		try {
@@ -43,14 +48,8 @@ export function TapScreen({ reason }: { reason: TapFailureReason }) {
 
 	useEffect(() => {
 		if (!resumable) return;
-		const ok = canTapHere();
+		const ok = webauthnAvailable();
 		setWebauthnOk(ok);
-		const hint = tapHint();
-		setBody(
-			ok
-				? `Tap Continue, then ${hint.charAt(0).toLowerCase()}${hint.slice(1)}`
-				: 'Hold your accessory to your phone again.'
-		);
 		if (ok) void prepare();
 		const refresher = setInterval(() => {
 			setChallenge((current) => {
@@ -69,7 +68,7 @@ export function TapScreen({ reason }: { reason: TapFailureReason }) {
 		setTapping(true);
 		setFailure(null);
 		try {
-			const response = await startAuthentication(current.message, { rpc: browserRpc() });
+			const response = await startAuthentication(current.message);
 			const { next } = await postJson<{ next: string }>('/api/tap/resume', {
 				challengeId: current.challengeId,
 				response
@@ -95,7 +94,7 @@ export function TapScreen({ reason }: { reason: TapFailureReason }) {
 						unverified ? 'unverified' : retryable && (!resumable || tapping) ? 'waiting' : 'idle'
 					}
 				/>
-				<PageHeader align="center" title={copy.title} body={body ?? copy.body} />
+				<PageHeader align="center" title={copy.title} body={body} />
 				{failure ? (
 					<div className="w-full">
 						<Notice error={failure} />
@@ -104,7 +103,7 @@ export function TapScreen({ reason }: { reason: TapFailureReason }) {
 			</section>
 			<footer className="pt-6">
 				<div className="grid gap-1">
-					{resumable && webauthnOk ? (
+					{resumable && webauthnOk !== false ? (
 						<Button size="xl" disabled={tapping || !challenge} onClick={() => void resume()}>
 							{tapping ? (
 								<>

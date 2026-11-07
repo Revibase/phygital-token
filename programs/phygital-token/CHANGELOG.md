@@ -8,24 +8,19 @@ All notable changes to this artifact are documented here. The format follows
 
 ### Removed
 
-- The accessory wallet: `update_policy`, `close_policy`, `execute_with_owner`,
-  `execute_with_accessory`, `preview_execute`, the `AccessoryPolicy` account
-  and the wallet PDA. `set_owner`, `remove_owner` and `close_phygital_token` no
-  longer take `policy` or `wallet` accounts. `PhygitalToken.wallet_bump` is now
-  an unused `reserved` byte, so the layout and field offsets are unchanged.
-  Errors 6022–6037 are no longer raised; the other codes are unchanged.
+- **The accessory wallet:** `update_policy`, `close_policy`, `execute_with_owner`, `execute_with_accessory`, `preview_execute`, `AccessoryPolicy` and the wallet PDA. `wallet_bump` is now an unused `reserved` byte, so offsets are unchanged. Errors 6022–6037 are no longer raised.
+- **The `verify` instruction.** Check the secp256r1 precompile against the token's key instead.
 
 ### Changed
 
-- `set_owner`'s challenge is `SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`.
-  The tap names the wallet that must sign.
+- **New tap message.** `set_owner` checks only the secp256r1 precompile. The card signs `authorize ‖ SHA256("t" ‖ token ‖ recipient ‖ slot_hash)` (41 bytes), and any other message fails with `ChallengeHashMismatch`.
+- **Replay protection** now requires `slot_number > last_slot`, replacing `last_sign_count`.
+- **`Secp256r1VerifyArgs`** is now `relative_index` and `signature_index`, and the `webauthn` module is renamed `tap`.
+- **`initialize` takes a `mint`** (`InitializeArgs.mint`; `Pubkey::default()` for none), and `InitializeEvent` includes it. The issuer can set a card's mint as it creates the token, in one transaction; the minter can still change it with `assign_mint`.
 
 ### Security
 
-- The secp256r1 offsets must reference the precompile instruction itself
-  (`signature/public_key/message_instruction_index == u16::MAX`). Previously a
-  signature by any key in another instruction could vouch for a different
-  key, letting anyone pass `verify` and `set_owner`.
+- **Precompile offsets** must point into the precompile instruction itself. Before this, a signature by another key, in another instruction, could pass `set_owner`.
 
 ## [0.8.0]
 

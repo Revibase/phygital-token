@@ -94,7 +94,7 @@ fn remove_owner_rejects_permanent_token() {
 }
 
 #[test]
-fn remove_owner_preserves_last_sign_count() {
+fn remove_owner_preserves_last_slot() {
     let mut ctx = TestContext::new();
     let passkey = TestPasskey::generate();
     let phygital_token = ctx.init_phygital_token(&passkey);
@@ -102,15 +102,12 @@ fn remove_owner_preserves_last_sign_count() {
 
     ctx.send_set_owner(&phygital_token, &holder, true)
         .expect("claim phygital_token");
-    let count_before = ctx.last_sign_count(phygital_token.phygital_token);
+    let count_before = ctx.last_slot(phygital_token.phygital_token);
 
     ctx.send_remove_owner(&phygital_token, &holder)
         .expect("remove owner");
 
-    assert_eq!(
-        ctx.last_sign_count(phygital_token.phygital_token),
-        count_before
-    );
+    assert_eq!(ctx.last_slot(phygital_token.phygital_token), count_before);
 }
 
 #[test]

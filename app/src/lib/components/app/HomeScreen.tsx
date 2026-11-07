@@ -1,10 +1,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { openOwnedAccessory } from '#lib/client/accessory/open-owned.ts';
-import { platform } from '#lib/client/capability.ts';
 import { actionFailure, describeError, type FriendlyError } from '#lib/client/link/messages.ts';
 import { walletAccessoriesQuery } from '#lib/client/queries.ts';
 import { useWallet } from '#lib/client/wallet/wallet-context';
@@ -22,10 +21,6 @@ export function HomeScreen() {
 	const wallet = useWallet();
 	const [failure, setFailure] = useState<FriendlyError | null>(null);
 	const [opening, setOpening] = useState<string | null>(null);
-	const [desktop, setDesktop] = useState(false);
-	useEffect(() => {
-		setDesktop(platform() === 'desktop');
-	}, []);
 
 	const listQuery = useQuery({
 		...walletAccessoriesQuery(wallet.address ?? ''),
@@ -52,7 +47,7 @@ export function HomeScreen() {
 			size="medium"
 			connect={false}
 			footer={
-				wallet.ready && !wallet.address && !desktop ? (
+				wallet.ready && !wallet.address ? (
 					<p className="text-center text-[14px] text-muted-foreground">
 						Have your accessory? Hold it to your phone.
 					</p>

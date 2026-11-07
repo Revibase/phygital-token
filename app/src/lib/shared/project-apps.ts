@@ -1,6 +1,6 @@
 /**
  * Project apps from `revibase.json`. Pure: the server fetches the file, the client decides how each app opens.
- * The rules and why they exist: ARCHITECTURE.md, "Project apps".
+ * The rules and why they exist: app/README.md, "Project page".
  */
 
 export const APPS_FILE = 'revibase.json';

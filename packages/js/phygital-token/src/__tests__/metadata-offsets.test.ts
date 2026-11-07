@@ -6,8 +6,9 @@ const OWNER = address("G6kBnedts6uAivtY72ToaFHBs1UVbT9udiXmQZgMEjoF");
 const MINT = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const OWNER_OFFSET = 8;
 const MINT_OFFSET = 40;
-const BUMP_OFFSET = 77;
-const IDENTIFIER_OFFSET = 111;
+// last_slot u64 at 72, token_type at 80, bump at 81, public_key at 82, identifier at 115
+const BUMP_OFFSET = 81;
+const IDENTIFIER_OFFSET = 115;
 
 function filledKey(fill: number): readonly [Uint8Array] {
   return [Uint8Array.from({ length: 33 }, () => fill)] as const;
@@ -20,7 +21,7 @@ describe("PhygitalToken memcmp offsets", () => {
     const encoded = getPhygitalTokenEncoder().encode({
       owner: OWNER,
       mint: MINT,
-      lastSignCount: 7,
+      lastSlot: 7n,
       tokenType: 1,
       bump: 255,
       publicKey,

@@ -51,6 +51,7 @@ export type InitializeEventEvent = {
   identifier: Secp256r1Pubkey;
   owner: Address;
   tokenType: PhygitalTokenType;
+  mint: Address;
 };
 
 export type InitializeEventEventArgs = {
@@ -59,6 +60,7 @@ export type InitializeEventEventArgs = {
   identifier: Secp256r1PubkeyArgs;
   owner: Address | HasAddress;
   tokenType: PhygitalTokenTypeArgs;
+  mint: Address | HasAddress;
 };
 
 /** Gets the encoder for {@link InitializeEventEventArgs} event data. */
@@ -70,6 +72,7 @@ export function getInitializeEventEventEncoder(): FixedSizeEncoder<InitializeEve
       ["identifier", getSecp256r1PubkeyEncoder()],
       ["owner", getAddressEncoder()],
       ["tokenType", getPhygitalTokenTypeEncoder()],
+      ["mint", getAddressEncoder()],
     ]),
     [getConstantEncoder(INITIALIZE_EVENT_EVENT_DISCRIMINATOR)],
   );
@@ -84,6 +87,7 @@ export function getInitializeEventEventDecoder(): FixedSizeDecoder<InitializeEve
       ["identifier", getSecp256r1PubkeyDecoder()],
       ["owner", getAddressDecoder()],
       ["tokenType", getPhygitalTokenTypeDecoder()],
+      ["mint", getAddressDecoder()],
     ]),
     [getConstantDecoder(INITIALIZE_EVENT_EVENT_DISCRIMINATOR)],
   );

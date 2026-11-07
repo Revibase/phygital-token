@@ -27,7 +27,7 @@ fn e2e_initialize_and_transfer() {
         instance.identifier, instance.public_key,
         "identifier must be distinct from the passkey public key"
     );
-    assert_eq!(instance.last_sign_count, 0);
+    assert_eq!(instance.last_slot, 0);
     assert_eq!(
         instance.mint,
         Pubkey::default(),
@@ -37,11 +37,7 @@ fn e2e_initialize_and_transfer() {
     ctx.send_set_owner(&phygital_token, &recipient, true)
         .expect("set_owner should succeed");
 
-    assert_eq!(
-        ctx.last_sign_count(phygital_token.phygital_token),
-        1,
-        "phygital_token should record the WebAuthn signCount used for the transfer"
-    );
+    assert!(ctx.last_slot(phygital_token.phygital_token) > 0);
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
         recipient.pubkey()

@@ -96,6 +96,8 @@ export type InitializeInstructionData = {
   secp256r1Pubkey: Secp256r1Pubkey;
   tokenType: PhygitalTokenType;
   owner: Address;
+  /** The mint that represents the token, or `Pubkey::default()` for none yet. */
+  mint: Address;
 };
 
 export type InitializeInstructionDataArgs = {
@@ -103,6 +105,8 @@ export type InitializeInstructionDataArgs = {
   secp256r1Pubkey: Secp256r1PubkeyArgs;
   tokenType: PhygitalTokenTypeArgs;
   owner: Address | HasAddress;
+  /** The mint that represents the token, or `Pubkey::default()` for none yet. */
+  mint: Address | HasAddress;
 };
 
 export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<InitializeInstructionDataArgs> {
@@ -113,6 +117,7 @@ export function getInitializeInstructionDataEncoder(): FixedSizeEncoder<Initiali
       ["secp256r1Pubkey", getSecp256r1PubkeyEncoder()],
       ["tokenType", getPhygitalTokenTypeEncoder()],
       ["owner", getAddressEncoder()],
+      ["mint", getAddressEncoder()],
     ]),
     (value) => ({ ...value, discriminator: INITIALIZE_DISCRIMINATOR }),
   );
@@ -125,6 +130,7 @@ export function getInitializeInstructionDataDecoder(): FixedSizeDecoder<Initiali
     ["secp256r1Pubkey", getSecp256r1PubkeyDecoder()],
     ["tokenType", getPhygitalTokenTypeDecoder()],
     ["owner", getAddressDecoder()],
+    ["mint", getAddressDecoder()],
   ]);
 }
 
@@ -149,6 +155,7 @@ export type InitializeAsyncInput<
   secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
   tokenType: InitializeInstructionDataArgs["tokenType"];
   owner: InitializeInstructionDataArgs["owner"];
+  mint: InitializeInstructionDataArgs["mint"];
 };
 
 export async function getInitializeInstructionAsync<
@@ -262,6 +269,7 @@ export type InitializeInput<
   secp256r1Pubkey: InitializeInstructionDataArgs["secp256r1Pubkey"];
   tokenType: InitializeInstructionDataArgs["tokenType"];
   owner: InitializeInstructionDataArgs["owner"];
+  mint: InitializeInstructionDataArgs["mint"];
 };
 
 export function getInitializeInstruction<

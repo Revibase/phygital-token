@@ -20,7 +20,7 @@ fn e2e_happy_lifecycle_with_retransfer() {
     let (first_slot, _) = current_slot_entry(&ctx.svm);
     ctx.send_set_owner(&phygital_token, &first_recipient, true)
         .expect("claim");
-    assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 1);
+    assert_eq!(ctx.last_slot(phygital_token.phygital_token), first_slot);
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
         first_recipient.pubkey()
@@ -36,11 +36,10 @@ fn e2e_happy_lifecycle_with_retransfer() {
         true,
         Some(second_slot),
         Some(second_hash),
-        None,
     )
     .expect("re-transfer");
 
-    assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 2);
+    assert_eq!(ctx.last_slot(phygital_token.phygital_token), second_slot);
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
         second_recipient.pubkey()
@@ -75,7 +74,7 @@ fn e2e_remove_owner_then_reclaim() {
 
     ctx.send_set_owner(&phygital_token, &second_holder, true)
         .expect("re-claim after remove owner");
-    assert_eq!(ctx.last_sign_count(phygital_token.phygital_token), 2);
+    assert_eq!(ctx.last_slot(phygital_token.phygital_token), second_slot);
     assert_eq!(
         ctx.phygital_token_owner(phygital_token.phygital_token),
         second_holder.pubkey()
@@ -153,6 +152,7 @@ fn e2e_permanent_initialize_requires_owner() {
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Permanent,
         owner: Pubkey::default(),
+        mint: Pubkey::default(),
     };
     let ix = ctx.initialize_ix(ctx.issuer.pubkey(), phygital_token, args);
     let issuer = ctx.issuer.insecure_clone();
@@ -172,6 +172,7 @@ fn e2e_non_permanent_initialize_rejects_owner() {
             secp256r1_pubkey,
             token_type,
             owner: Keypair::new().pubkey(),
+            mint: Pubkey::default(),
         };
         let ix = ctx.initialize_ix(ctx.issuer.pubkey(), phygital_token, args);
         let issuer = ctx.issuer.insecure_clone();
@@ -192,6 +193,7 @@ fn e2e_token_pubkey_reinit_is_blocked() {
         secp256r1_pubkey: Secp256r1Pubkey(passkey.compressed_pubkey),
         token_type: PhygitalTokenType::Bearer,
         owner: Pubkey::default(),
+        mint: Pubkey::default(),
     };
     let ix = ctx.initialize_ix(ctx.issuer.pubkey(), phygital_token.phygital_token, args);
     let issuer = ctx.issuer.insecure_clone();
@@ -210,6 +212,7 @@ fn e2e_initialize_rejects_non_authority() {
         secp256r1_pubkey,
         token_type: PhygitalTokenType::Bearer,
         owner: Pubkey::default(),
+        mint: Pubkey::default(),
     };
     let stranger = ctx.payer.insecure_clone();
     let ix = ctx.initialize_ix(stranger.pubkey(), phygital_token, args);

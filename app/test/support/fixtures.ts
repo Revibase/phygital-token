@@ -1,23 +1,40 @@
 import { p256 } from '@noble/curves/nist.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { address, generateKeyPairSigner, type Rpc, type SolanaRpcApi } from '@solana/kit';
+import { address, Endian, generateKeyPairSigner, getU32Encoder } from '@solana/kit';
 import {
+	buildProductAllowListId,
 	findPhygitalTokenPda,
 	type AuthenticationResponseJSON,
-	type PhygitalToken,
-	type TransferSession
+	type PhygitalToken
 } from 'phygital-token-sdk';
 
 import { bytesToBase64Url } from '#lib/shared/encoding.ts';
+import type { TransferSession } from '#lib/shared/set-owner.ts';
 import type { LinkTap } from '#lib/shared/link-transaction.ts';
 
 export const RP_ID = 'accessory.test';
 export const ORIGIN = 'https://accessory.test';
 
+function encodeProductLargeBlob(publicKey: Uint8Array, signatureDer: Uint8Array): Uint8Array {
+	const out = new Uint8Array(2 + 2 + publicKey.length + 2 + 1 + signatureDer.length);
+	let i = 0;
+	out[i++] = 0xa2;
+	out[i++] = 0x01;
+	out[i++] = 0x58;
+	out[i++] = publicKey.length;
+	out.set(publicKey, i);
+	i += publicKey.length;
+	out[i++] = 0x02;
+	out[i++] = 0x58;
+	out[i++] = signatureDer.length;
+	out.set(signatureDer, i);
+	return out;
+}
+
 export function fakeAccessory() {
 	const priv = p256.utils.randomSecretKey();
-	const publicKey = p256.getPublicKey(priv);
-	const identifier = p256.getPublicKey(p256.utils.randomSecretKey());
+	const publicKey = p256.getPublicKey(priv, true);
+	const identifier = p256.getPublicKey(p256.utils.randomSecretKey(), true);
 	return {
 		publicKey,
 		publicKeyB64: bytesToBase64Url(publicKey),
@@ -30,7 +47,7 @@ export function fakeAccessory() {
 				discriminator: new Uint8Array(8),
 				owner: address('11111111111111111111111111111111'),
 				mint: address('11111111111111111111111111111111'),
-				lastSignCount: 3,
+				lastSlot: 3n,
 				tokenType: 1,
 				bump: 0,
 				publicKey: [publicKey],
@@ -38,11 +55,13 @@ export function fakeAccessory() {
 				...overrides
 			};
 		},
-		assert(challenge: Uint8Array, opts: { highS?: boolean } = {}): AuthenticationResponseJSON {
+		/** Product-key assert: signs authorize||payload; pubkey+sig in largeBlob. */
+		assert(payload: Uint8Array, opts: { highS?: boolean } = {}): AuthenticationResponseJSON {
+			const allowListId = buildProductAllowListId(payload);
 			const clientData = new TextEncoder().encode(
 				JSON.stringify({
 					type: 'webauthn.get',
-					challenge: bytesToBase64Url(challenge),
+					challenge: bytesToBase64Url(allowListId),
 					origin: ORIGIN,
 					crossOrigin: false
 				})
@@ -50,19 +69,18 @@ export function fakeAccessory() {
 			const authData = new Uint8Array(37);
 			authData.set(sha256(new TextEncoder().encode(RP_ID)), 0);
 			authData[32] = 0x01;
-			new DataView(authData.buffer).setUint32(33, 4, false);
-			const signed = new Uint8Array(authData.length + 32);
-			signed.set(authData);
-			signed.set(sha256(clientData), authData.length);
-			let sig = p256.Signature.fromBytes(p256.sign(signed, priv), 'compact');
+			let sig = p256.Signature.fromBytes(p256.sign(allowListId, priv), 'compact');
 			if (!!opts.highS !== sig.hasHighS())
 				sig = new p256.Signature(sig.r, p256.Point.CURVE().n - sig.s);
 			const der = sig.toBytes('der');
+			const blob = encodeProductLargeBlob(publicKey, der);
 			return {
-				id: bytesToBase64Url(publicKey),
-				rawId: bytesToBase64Url(publicKey),
+				id: bytesToBase64Url(allowListId),
+				rawId: bytesToBase64Url(allowListId),
 				type: 'public-key',
-				clientExtensionResults: {},
+				clientExtensionResults: {
+					largeBlob: { blob: bytesToBase64Url(blob) }
+				},
 				response: {
 					clientDataJSON: bytesToBase64Url(clientData),
 					authenticatorData: bytesToBase64Url(authData),
@@ -74,20 +92,58 @@ export function fakeAccessory() {
 }
 
 export async function fakeTap(acc = fakeAccessory()) {
-	const slotHash = crypto.getRandomValues(new Uint8Array(32));
 	const challenge = crypto.getRandomValues(new Uint8Array(32));
 	const recipient = await generateKeyPairSigner();
 	const session: TransferSession = {
-		rpc: {} as Rpc<SolanaRpcApi>,
 		phygitalToken: address(await acc.pda()),
-		owner: null,
 		secp256r1Pubkey: acc.publicKeyB64,
 		slotNumber: 123456n,
-		slotHash,
 		challenge,
-		rpId: RP_ID,
 		recipient: recipient.address
 	};
 	const tap: LinkTap = { session, response: acc.assert(challenge) };
 	return { acc, tap, recipient };
+}
+
+/** An NDEF chip: `tap(counter)` builds its signed dynamic-URL params (`pk`, `s`, `c`, `n`). */
+export function chip() {
+	const priv = p256.utils.randomSecretKey();
+	return {
+		pk: p256.getPublicKey(priv),
+		tap(counter: number, overrides: Record<string, string> = {}) {
+			const nonce = crypto.getRandomValues(new Uint8Array(8));
+			const message = new Uint8Array(12);
+			message.set(getU32Encoder({ endian: Endian.Big }).encode(counter), 0);
+			message.set(nonce, 4);
+			const sig = p256.sign(message, priv);
+			return new URLSearchParams({
+				pk: bytesToBase64Url(p256.getPublicKey(priv)),
+				s: bytesToBase64Url(sig),
+				c: String(counter),
+				n: bytesToBase64Url(nonce),
+				...overrides
+			});
+		}
+	};
+}
+
+/** Record `identifier` as packed with `mint`, as the developer service's pack station does. */
+export async function packCard(db: D1Database, identifier: string, mint: string) {
+	await db.batch([
+		db
+			.prepare(
+				`INSERT INTO designs (id, order_ref, kind, created_at) VALUES ('test-design', 'test-order', 'shared', 0)
+         ON CONFLICT(id) DO NOTHING`
+			)
+			.bind(),
+		db
+			.prepare(
+				`INSERT INTO mints (mint, design_id, position) VALUES (?, 'test-design', 0)
+         ON CONFLICT(mint) DO NOTHING`
+			)
+			.bind(mint),
+		db
+			.prepare('INSERT INTO cards (identifier, mint, assigned_at) VALUES (?, ?, 0)')
+			.bind(identifier, mint)
+	]);
 }

@@ -1,23 +1,15 @@
 //! # phygital-token
 //!
-//! A Solana program that binds a physical accessory (an NFC chip holding a
-//! P-256 passkey) to an on-chain token, so that a live tap can be verified
-//! on-chain.
-//!
-//! - **Authenticate** (`verify`): prove a tap over a caller-chosen message, or
-//!   through CPI from another program. Needs no owner.
-//! - **Own** (`set_owner`, `remove_owner`): a tap assigns the token to a wallet
-//!   key; Controlled and Permanent tokens stay locked while owned.
-//! ## Where to start reading
+//! Binds a Revi card (an NFC card holding a P-256 key) to an on-chain token, so
+//! a live tap can claim ownership. Guarantees and trust assumptions are in
+//! this crate's README.
 //!
 //! | Module | Responsibility |
 //! |--------|----------------|
 //! | [`instructions`] | One file per instruction: account constraints and handler. |
-//! | [`webauthn`] | Verifying a tap's WebAuthn assertion; the signed challenges. |
+//! | [`tap`] | Secp256r1 precompile checks and the `set_owner` challenge. |
 //! | [`state`] | Account layouts. |
 //! | [`sysvar`] | In-place readers for the Instructions and SlotHashes sysvars. |
-//!
-//! Invariants and the threat model are in `docs/program/`.
 
 // On-chain code must not panic: every failure is a typed `PhygitalError`.
 // Unit tests are exempted in clippy.toml; integration tests are separate crates.
@@ -38,7 +30,7 @@ pub mod error;
 pub mod instructions;
 pub mod state;
 pub(crate) mod sysvar;
-pub mod webauthn;
+pub mod tap;
 
 // Anchor's `#[program]` macro resolves each instruction's `Accounts` type and
 // generated client modules through this glob.
@@ -47,12 +39,16 @@ pub use instructions::*;
 pub use constants::*;
 pub use error::PhygitalError;
 pub use state::{AdminConfig, PhygitalToken, PhygitalTokenType};
-pub use webauthn::challenge::{build_set_owner_challenge, build_verify_challenge};
-pub use webauthn::secp256r1::{
-    COMPRESSED_PUBKEY_SERIALIZED_SIZE, SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE,
-    SIGNATURE_OFFSETS_START,
+pub use tap::challenge::build_set_owner_challenge;
+pub use tap::secp256r1::{
+    self_contained as secp256r1_self_contained, COMPRESSED_PUBKEY_SERIALIZED_SIZE, DATA_START,
+    SECP256R1_PROGRAM_ID, SIGNATURE_OFFSETS_SERIALIZED_SIZE, SIGNATURE_OFFSETS_START,
+    SIGNATURE_SERIALIZED_SIZE,
 };
-pub use webauthn::{secp256r1_pda_seed, Secp256r1Pubkey, Secp256r1VerifyArgs, AUTH_DATA_MIN_LEN};
+pub use tap::{
+    secp256r1_pda_seed, Secp256r1Pubkey, Secp256r1VerifyArgs, AUTHORIZE_PREFIX, CHALLENGE_LEN,
+    SIGNED_MESSAGE_LEN,
+};
 
 use anchor_lang::prelude::*;
 declare_id!("DuPpckdjjgVAnYok2aTMAt264ZPBXqq3JSazJjCUzTJQ");
@@ -115,27 +111,6 @@ pub mod phygital_token {
         slot_number: u64,
     ) -> Result<()> {
         SetOwner::handler(ctx, secp256r1_verify_args, slot_number)
-    }
-
-    /// Tap: proves the accessory signed `message_hash` (under the `verify`
-    /// domain tag) and records its sign count.
-    /// `expected_rp_id` / `expected_origins` are optional WebAuthn bindings.
-    /// `None` skips the check. When `expected_origins` is `Some`, the signed
-    /// origin must match one listed origin.
-    pub fn verify(
-        ctx: Context<Verify>,
-        secp256r1_verify_args: Secp256r1VerifyArgs,
-        message_hash: [u8; 32],
-        expected_rp_id_hash: Option<[u8; 32]>,
-        expected_origins: Option<Vec<String>>,
-    ) -> Result<()> {
-        Verify::handler(
-            ctx,
-            secp256r1_verify_args,
-            message_hash,
-            expected_rp_id_hash,
-            expected_origins,
-        )
     }
 
     /// Owner: gives up the token (not Permanent ones).

@@ -1,93 +1,66 @@
 # phygital-token-sdk
 
-TypeScript client for the Phygital Token Solana program.
-
-## Install
+Sign payloads with a Revi card, off-chain and on-chain. The SDK also includes the generated client for the [phygital-token program](https://github.com/Revibase/phygital-token/tree/master/programs/phygital-token).
 
 ```bash
 pnpm add phygital-token-sdk @solana/kit
 ```
 
-## Authenticate with an accessory
+## How a tap signs
+
+The browser asks the card, over WebAuthn, to sign `authorize ‖ payload`, where `payload` can be up to 631 bytes. The card returns its public key and a P-256 signature in the WebAuthn large blob.
+
+## Enroll a card
+
+A card has no product key until it's enrolled. One tap creates it:
 
 ```ts
-import { createSolanaRpc } from "@solana/kit";
-import {
-  startAuthentication,
-  verifyResponse,
-  findPhygitalTokenPda,
-  fetchPhygitalToken,
-} from "phygital-token-sdk";
+import { enrollCard } from "phygital-token-sdk";
 
-const rpc = createSolanaRpc("https://api.devnet.solana.com");
-
-// Server: store a short-lived, single-use challenge
-const message = crypto.randomUUID();
-
-// Client: NFC tap.
-const response = await startAuthentication(message, { rpc });
-
-// Server: check the signature, and that the tap was made on your site
-const { isVerified, secp256r1PublicKey } = await verifyResponse({
-  expectedMessage: message,
-  expectedOrigin: "https://app.example.com",
-  expectedRpId: "app.example.com", // the rpId the tap was requested for
-  response,
-});
-if (!isVerified) throw new Error("bad tap");
-
-const token = await fetchPhygitalToken(
-  rpc,
-  await findPhygitalTokenPda(secp256r1PublicKey),
-);
-// token.data.owner
+const response = await enrollCard(challenge); // a challenge you issued, as bytes
 ```
 
-It rejects anything that isn't a tap (`INVALID_ASSERTION`: a registration response, or no user presence) and, with `expectedRpId`, a tap made for another relying party (`RP_ID_MISMATCH`). `expectedOrigin` is your site's origin as a fixed value, not the request's `Origin` header. A tap made on another site throws `ORIGIN_MISMATCH`, so that site can't pass your challenge to a user and authenticate with their tap.
+`response.rawId` is the product key (33-byte compressed P-256), the seed of the token's PDA. Before trusting the key, check the response's `clientDataJSON` (a `webauthn.create` over your challenge, on your origin) and its packed attestation up to the Revi root. Enrolling again returns the same key, freshly attested, so a failed registration can just ask again.
 
-Reject expired/reused challenges and unlinked tokens before creating a session. The owner is delegated identity, not proof of wallet-key control or NFT ownership.
-
-## On-chain `verify` (CPI)
-
-To check a tap inside your own program, have it CPI `verify` (see the Rust
-client's `VerifyCpiBuilder`). The client signs over a 32-byte `message_hash`
-your program also derives; include a nonce or recent slot hash in it, since
-`verify` adds no freshness of its own.
+## Sign and verify
 
 ```ts
-import {
-  buildMessageHash,
-  authenticatePasskeyForSecp256r1Verify,
-  buildSecp256r1VerifyInstruction,
-} from "phygital-token-sdk";
+import { startAuthentication, verifyResponse, findPhygitalTokenPda } from "phygital-token-sdk";
 
-const messageHash = buildMessageHash(message);
-const tap = await authenticatePasskeyForSecp256r1Verify({ rpc, messageHash });
-const { secp256r1VerifyInstruction, phygitalTokenPda, secp256r1VerifyArgs } =
-  await buildSecp256r1VerifyInstruction(tap);
-// Prepend secp256r1VerifyInstruction to your program's instruction.
+const message = crypto.randomUUID(); // single-use
+
+const response = await startAuthentication(message); // one NFC tap
+const { publicKey } = verifyResponse(response, message); // throws unless the card signed it
+const token = await findPhygitalTokenPda(publicKey);
 ```
 
-## Claim ownership
+Both functions take a string (signed as UTF-8) or bytes. `verifyResponse` returns the key the card reported, so look it up before trusting it.
 
-A tap makes one wallet the token's owner (`set_owner`). Pass that wallet to
-`beginTransfer` before the tap: the challenge is
-`SHA256("transfer" ‖ token ‖ recipient ‖ slot_hash)`, and the same wallet must
-sign the transaction.
+Starting a tap closes the SDK's previous prompt if it's still open. Pass `{ signal }` to close a prompt early.
+
+## Prove a tap on-chain
 
 ```ts
-import {
-  beginTransfer,
-  authenticatePasskeyForTransfer,
-  completeTransfer,
-} from "phygital-token-sdk";
+import { getSecp256r1VerifyInstruction } from "phygital-token-sdk";
 
-const session = await beginTransfer({ rpc, secp256r1Pubkey, recipient: recipientSigner.address });
-const response = await authenticatePasskeyForTransfer(session); // NFC tap
-const instructions = await completeTransfer(session, response, recipientSigner);
-// Send `instructions` in one transaction signed by `recipientSigner` before the
-// slot hash leaves SlotHashes (512 slots, about three minutes).
+const response = await startAuthentication(payload);
+const tap = verifyResponse(response, payload);
+const instructions = [getSecp256r1VerifyInstruction([tap]), yourInstruction];
 ```
 
-`set_owner` refuses Controlled and Permanent tokens that already have an owner
-(`isPhygitalTokenLocked`). Send the assertion before its slot hash expires.
+Your program must check that the signed message is `authorize ‖ payload` and that the key is one it trusts.
+
+## Also exported
+
+- **The generated program client**, covering accounts, instructions and errors.
+- **Token-account helpers:** `findPhygitalTokenPda`, `parseSecp256r1Pubkey`, `fetchPhygitalTokenBy{Identifier,Mint}`, `fetchPhygitalTokensByOwner` and `isPhygitalTokenLocked`.
+- **`PhygitalTokenError`**, whose `code` is one of `INVALID_PUBLIC_KEY`, `WEBAUTHN_UNSUPPORTED`, `AUTHENTICATION_CANCELLED`, `INVALID_ASSERTION` or `INVALID_ARGUMENT`.
+
+## Develop
+
+```bash
+pnpm --filter phygital-token-sdk typecheck && pnpm --filter phygital-token-sdk test
+pnpm --filter phygital-token-sdk api:update   # when the exported surface changes; commit api/
+```
+
+Never edit `src/generated/` by hand. Running `pnpm build:program` at the repo root regenerates it. Record releases in [CHANGELOG.md](CHANGELOG.md).

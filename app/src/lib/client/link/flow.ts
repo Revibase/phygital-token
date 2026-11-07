@@ -15,14 +15,13 @@ import {
 	setTransactionMessageLifetimeUsingBlockhash
 } from '@solana/kit';
 import {
-	authenticatePasskeyForTransfer,
-	beginTransfer,
+	startAuthentication,
 	getRemoveOwnerInstruction,
 	PHYGITAL_TOKEN_PROGRAM_ADDRESS,
 	REMOVE_OWNER_DISCRIMINATOR,
-	type AuthenticationResponseJSON,
-	type TransferSession
+	type AuthenticationResponseJSON
 } from 'phygital-token-sdk';
+import { beginTransfer, type TransferSession } from '#lib/shared/set-owner.ts';
 import { bytesEqual } from '#lib/shared/encoding.ts';
 import { LINK_TX_CONFIG } from '#lib/shared/fee-policy.ts';
 import {
@@ -58,7 +57,7 @@ export async function prepareTap(secp256r1Pubkey: string, recipient: string): Pr
 export async function tapAccessory(prepared: PreparedTap): Promise<TappedAccessory> {
 	return {
 		...prepared,
-		response: await authenticatePasskeyForTransfer(prepared.session)
+		response: await startAuthentication(prepared.session.challenge)
 	};
 }
 

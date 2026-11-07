@@ -9,38 +9,18 @@ import {
 export type ResolvedAccessory = { pda: string; account: PhygitalToken };
 
 /**
- * Resolve a chip `identifier` (the dynamic-URL `pk`) to its phygital token.
- *
- * The PDA is seeded by the FIDO passkey, not the identifier, so the first
- * lookup scans with `fetchPhygitalTokenByIdentifier` (getProgramAccounts +
- * memcmp) and caches identifier → PDA. Both are immutable after `initialize`,
- * so a cache hit needs no RPC at all; pages that render the account fetch it.
+ * The token whose on-chain `identifier` is this chip's (the dynamic-URL `pk`),
+ * or null. The PDA is seeded by the card key, not the identifier, so this
+ * scans the program (`getProgramAccounts` + memcmp); with the card key,
+ * `fetchAccessory` is cheaper.
  */
-export async function resolveAccessoryByIdentifier(
-	db: D1Database,
+export async function fetchAccessoryByIdentifier(
 	rpc: Rpc<SolanaRpcApi>,
 	identifier: string
-): Promise<string | null> {
-	const cached = await db
-		.prepare('SELECT pda FROM revibase_identifier_cache WHERE identifier = ?')
-		.bind(identifier)
-		.first<{ pda: string }>();
-
-	if (cached) return cached.pda;
-
+): Promise<ResolvedAccessory | null> {
 	const account = await fetchPhygitalTokenByIdentifier(rpc, identifier);
 	if (!account) return null;
-	const pda = String(await findPhygitalTokenPda(account.publicKey));
-
-	await db
-		.prepare(
-			`INSERT INTO revibase_identifier_cache (identifier, pda, created_at) VALUES (?, ?, ?)
-       ON CONFLICT(identifier) DO UPDATE SET pda = excluded.pda`
-		)
-		.bind(identifier, pda, Date.now())
-		.run();
-
-	return pda;
+	return { pda: String(await findPhygitalTokenPda(account.publicKey)), account };
 }
 
 export async function fetchAccessory(

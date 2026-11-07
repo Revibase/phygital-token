@@ -14,7 +14,6 @@ mod set_owner;
 mod slots;
 mod state;
 mod tx;
-mod verify;
 
 pub use assertions::{assert_phygital_token_program_error, assert_transaction_failed};
 
@@ -37,8 +36,6 @@ use solana_transaction::versioned::VersionedTransaction;
 pub use secp256r1::{current_slot_entry, TestPasskey};
 
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
-pub const TEST_RP_ID: &str = "localhost";
-pub const TEST_ORIGIN: &str = "http://localhost:3000";
 
 // Domain vocabulary:
 //   Token      = PhygitalToken PDA created by `initialize` (1:1 with a passkey)
@@ -46,7 +43,7 @@ pub const TEST_ORIGIN: &str = "http://localhost:3000";
 //   Mint       = optional SPL mint pubkey, set later via `assign_mint` (default until then)
 //
 // Owner lives in the PhygitalToken PDA and is moved by `set_owner`
-// after a secp256r1/WebAuthn proof. `assign_mint` binds an SPL mint after init.
+// after a secp256r1 proof. `assign_mint` binds an SPL mint after init.
 //
 // AdminConfig roles: admin (manages roles), issuer (initialize), minter (assign_mint).
 
