@@ -54,7 +54,7 @@
     "@solana/kit": "^8.5.0"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "7.59.4",
+    "@microsoft/api-extractor": "7.60.1",
     "@solana/kit": "^8.5.0",
     "typescript": "catalog:",
     "vitest": "catalog:"
